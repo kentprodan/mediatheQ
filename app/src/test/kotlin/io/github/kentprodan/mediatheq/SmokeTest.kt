@@ -6,6 +6,6 @@ import org.junit.Test
 class SmokeTest {
     @Test
     fun `jvm unit test setup runs`() {
-        assertThat(1 + 1).isEqualTo(2)
+        assertThat(1 + 1).isEqualTo(3)
     }
 }
