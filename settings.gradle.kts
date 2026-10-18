@@ -20,8 +20,11 @@ dependencyResolutionManagement {
     }
 }
 
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 rootProject.name = "mediatheQ"
 include(":app")
 include(":core:model")
 include(":core:common")
 include(":core:testing")
+include(":core:designsystem")
