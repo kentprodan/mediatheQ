@@ -14,6 +14,9 @@ activityCompose = "1.13.0"
 coreKtx = "1.19.1"
 junit = "4.13.2"
 truth = "1.4.5"
+coroutines = "1.11.0"
+turbine = "1.2.1"
+javaxInject = "1"
 spotless = "8.10.4"
 ktlint = "1.8.0"
 
@@ -28,6 +31,9 @@ androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
 junit = { module = "junit:junit", version.ref = "junit" }
+javax-inject = { module = "javax.inject:javax.inject", version.ref = "javaxInject" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 
 # Gradle plugins used by build-logic
