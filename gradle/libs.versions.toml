@@ -10,6 +10,9 @@ kotlin = "2.4.21"
 ksp = "2.3.12"
 hilt = "2.60.1"
 composeBom = "2026.09.00"
+# Expressive APIs only exist on 1.5 (ADR 0004); overrides the BOM.
+material3 = "1.5.0-beta01"
+screenshot = "0.0.1-alpha16"
 activityCompose = "1.13.0"
 coreKtx = "1.19.1"
 junit = "4.13.2"
@@ -27,7 +30,9 @@ androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = 
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
 androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+screenshot-validation-api = { module = "com.android.tools.screenshot:screenshot-validation-api", version.ref = "screenshot" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -51,6 +56,7 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+screenshot = { id = "com.android.compose.screenshot", version.ref = "screenshot" }
 
 mediatheq-android-application = { id = "mediatheq.android.application" }
 mediatheq-android-library = { id = "mediatheq.android.library" }
@@ -58,3 +64,4 @@ mediatheq-android-library-compose = { id = "mediatheq.android.library.compose" }
 mediatheq-android-feature = { id = "mediatheq.android.feature" }
 mediatheq-jvm-library = { id = "mediatheq.jvm.library" }
 mediatheq-android-hilt = { id = "mediatheq.android.hilt" }
+mediatheq-android-screenshot = { id = "mediatheq.android.screenshot" }
