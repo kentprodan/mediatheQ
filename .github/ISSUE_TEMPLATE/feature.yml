@@ -1,0 +1,61 @@
+name: Feature / task
+description: One vertical, user-visible slice sized for 1-3 sessions
+labels: []
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What the user can do when this is done, and why.
+    validations:
+      required: true
+  - type: textarea
+    id: out
+    attributes:
+      label: Out of scope
+      description: What this issue deliberately does not do (link follow-up issues).
+    validations:
+      required: true
+  - type: textarea
+    id: ac
+    attributes:
+      label: Acceptance criteria
+      description: Checkable items, Given / When / Then where useful.
+      value: |
+        - [ ] Given ..., When ..., Then ...
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Required tests
+      description: Per the `testing` skill (unit, contract, DB, playback, UI, screenshot).
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: manual
+    attributes:
+      label: Manual test
+      description: What only real hardware can prove (queued with /test). Write "None." if not needed.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Skills to follow, dependencies (#n), links.
+      value: |
+        **Skills:**
+
+        **Depends on:**
+  - type: markdown
+    attributes:
+      value: |
+        ## Definition of Done
+        - All acceptance criteria met
+        - Done checklists of the listed skills pass
+        - CI green (build, unit tests, screenshot validation, lint)
+        - ADR written if a decision changed
+        - Manual test items queued with `/test` (if any)

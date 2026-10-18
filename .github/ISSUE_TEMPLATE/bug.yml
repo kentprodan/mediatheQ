@@ -1,0 +1,38 @@
+name: Bug
+description: Something does not work as expected
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and app version
+      placeholder: Pixel 9, Android 17, app 0.1.0 (debug)
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: No tokens or server addresses.
+  - type: markdown
+    attributes:
+      value: |
+        Fix rule: write a failing regression test first, then fix (see `testing` skill).
