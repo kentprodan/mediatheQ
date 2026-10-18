@@ -15,6 +15,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0008](0008-jellyfin-12-own-client.md) | Jellyfin 12+ only, own thin HTTP client | Accepted |
 | [0009](0009-project-skills.md) | Project rules live in Claude Code skills | Accepted |
 | [0010](0010-sdk-levels.md) | SDK levels: minSdk 31, targetSdk 37, compileSdk 37 | Accepted |
+| [0011](0011-github-copilot-role.md) | Role of GitHub Copilot | Accepted |
 
 Template for new ADRs:
 
