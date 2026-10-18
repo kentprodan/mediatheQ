@@ -10,6 +10,7 @@ class TestClock(
 ) : Clock {
     override fun now(): Instant = now
 
+    /** Moves [now] forward by [duration]. */
     fun advanceBy(duration: Duration) {
         now += duration
     }

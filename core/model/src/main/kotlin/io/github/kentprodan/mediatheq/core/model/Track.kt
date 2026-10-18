@@ -6,7 +6,7 @@ import kotlin.time.Duration
 data class Track(
     val id: MediaId,
     val title: String,
-    val artists: List<String>,
+    val artists: List<Artist>,
     val duration: Duration,
     val albumId: MediaId? = null,
     val albumTitle: String? = null,

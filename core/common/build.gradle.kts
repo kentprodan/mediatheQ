@@ -4,5 +4,5 @@ plugins {
 
 dependencies {
     // Qualifier annotations only; Hilt reads javax.inject qualifiers.
-    implementation(libs.javax.inject)
+    api(libs.javax.inject)
 }
