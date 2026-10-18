@@ -21,7 +21,6 @@ jobs:
         with:
           cache-read-only: true
 
-      # Works once the screenshot plugin is set up (#4).
       - name: Update references
         run: ./gradlew updateDebugScreenshotTest
 
