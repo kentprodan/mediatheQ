@@ -1,8 +1,12 @@
 package io.github.kentprodan.mediatheq.navigation
 
 import android.app.Application
+import androidx.activity.ComponentActivity
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.junit4.StateRestorationTester
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
@@ -17,23 +21,31 @@ import org.robolectric.annotation.Config
 @Config(application = Application::class)
 class AppShellTest {
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private fun setContent() {
-        composeRule.setContent {
-            MediatheqTheme {
-                val navigator = rememberTabNavigator()
-                AppShell(navigator, remember(navigator) { placeholderEntries(navigator) })
-            }
+    @Composable
+    private fun Shell() {
+        MediatheqTheme {
+            val navigator = rememberTabNavigator()
+            AppShell(navigator, remember(navigator) { placeholderEntries(navigator) })
         }
+    }
+
+    private fun openLibraryDetail() {
+        composeRule.onNodeWithText("Library").performClick()
+        composeRule.onNodeWithText("Open detail").performClick()
+        composeRule.onNodeWithText("Library 1").assertExists()
+    }
+
+    private fun pressBack() {
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
     }
 
     @Test
     fun `switching tabs keeps the Library stack`() {
-        setContent()
-        composeRule.onNodeWithText("Library").performClick()
-        composeRule.onNodeWithText("Open detail").performClick()
-        composeRule.onNodeWithText("Library 1").assertExists()
+        composeRule.setContent { Shell() }
+        openLibraryDetail()
 
         composeRule.onNodeWithText("Search").performClick()
         composeRule.onNodeWithText("Library 1").assertDoesNotExist()
@@ -44,13 +56,37 @@ class AppShellTest {
 
     @Test
     fun `re-selecting the current tab returns to its root`() {
-        setContent()
-        composeRule.onNodeWithText("Library").performClick()
-        composeRule.onNodeWithText("Open detail").performClick()
+        composeRule.setContent { Shell() }
+        openLibraryDetail()
 
         composeRule.onNodeWithText("Library").performClick()
 
         composeRule.onNodeWithText("Library 1").assertDoesNotExist()
         composeRule.onNodeWithText("Open detail").assertExists()
+    }
+
+    @Test
+    fun `system back pops the tab, then returns to Home`() {
+        composeRule.setContent { Shell() }
+        openLibraryDetail()
+
+        pressBack()
+        composeRule.onNodeWithText("Library 1").assertDoesNotExist()
+        composeRule.onNodeWithText("Open detail").assertExists()
+
+        pressBack()
+        composeRule.onNodeWithText("Open theme showcase").assertExists()
+    }
+
+    @Test
+    fun `stacks and the current tab survive state restoration`() {
+        val restorationTester = StateRestorationTester(composeRule)
+        restorationTester.setContent { Shell() }
+        openLibraryDetail()
+
+        restorationTester.emulateSavedInstanceStateRestore()
+
+        composeRule.onNodeWithText("Library 1").assertExists()
+        composeRule.onNodeWithText("Library").assertIsSelected()
     }
 }

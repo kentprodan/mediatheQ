@@ -1,9 +1,13 @@
 package io.github.kentprodan.mediatheq.navigation
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarItem
@@ -12,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
@@ -59,12 +64,18 @@ fun AppShell(
             }
         },
     ) { padding ->
+        val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
         // Each tab decorates its own stack, so a hidden tab keeps its screens' saved state (e.g. scroll position).
         val entriesByTab =
             TopLevelTab.entries.associateWith { tab ->
                 rememberDecoratedNavEntries(
                     backStack = navigator.stack(tab),
-                    entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator()),
+                    entryDecorators =
+                        listOf(
+                            rememberSaveableStateHolderNavEntryDecorator(),
+                            // ViewModels live as long as their entry, also while their tab is hidden.
+                            rememberViewModelStoreNavEntryDecorator(),
+                        ),
                     entryProvider = entryProvider,
                 )
             }
@@ -72,6 +83,10 @@ fun AppShell(
             entries = navigator.visibleTabs.flatMap { entriesByTab.getValue(it) },
             modifier = Modifier.padding(padding),
             onBack = { navigator.back() },
+            // Theme motion (expressive-design skill, section 4) instead of NavDisplay's default tween.
+            transitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) },
+            popTransitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) },
+            predictivePopTransitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) },
         )
     }
 }

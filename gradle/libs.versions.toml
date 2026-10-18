@@ -23,6 +23,7 @@ coil = "3.6.3"
 robolectric = "4.17"
 espresso = "3.7.0"
 navigation3 = "1.2.0"
+lifecycleNavigation3 = "2.11.0"
 javaxInject = "1"
 spotless = "8.10.4"
 ktlint = "1.8.0"
@@ -44,6 +45,7 @@ androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core",
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "navigation3" }
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
+androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleNavigation3" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
 junit = { module = "junit:junit", version.ref = "junit" }
