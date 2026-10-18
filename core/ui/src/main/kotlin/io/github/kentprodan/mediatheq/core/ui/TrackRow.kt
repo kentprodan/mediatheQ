@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -9,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,12 +36,15 @@ fun TrackRow(
         leadingContent =
             trackNumber?.let {
                 {
-                    Text(
-                        it.toString(),
-                        Modifier.clearAndSetSemantics {},
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    // An invisible "00" reserves two digits of width, so titles line up from track 1 to 99.
+                    Box(Modifier.clearAndSetSemantics {}, contentAlignment = Alignment.CenterEnd) {
+                        Text("00", Modifier.alpha(0f), style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            it.toString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             },
         supportingContent = {

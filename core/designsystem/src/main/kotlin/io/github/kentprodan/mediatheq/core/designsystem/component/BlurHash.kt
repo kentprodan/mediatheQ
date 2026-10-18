@@ -41,6 +41,9 @@ internal fun decodeBlurHash(
             }
         }
 
+    // Cosine tables: width * numX + height * numY cos() calls instead of one pair per pixel and component.
+    val cosX = FloatArray(width * numX) { cos(PI * (it / numX) * (it % numX) / width).toFloat() }
+    val cosY = FloatArray(height * numY) { cos(PI * (it / numY) * (it % numY) / height).toFloat() }
     val pixels = IntArray(width * height)
     for (y in 0 until height) {
         for (x in 0 until width) {
@@ -49,7 +52,7 @@ internal fun decodeBlurHash(
             var b = 0f
             for (j in 0 until numY) {
                 for (i in 0 until numX) {
-                    val basis = (cos(PI * x * i / width) * cos(PI * y * j / height)).toFloat()
+                    val basis = cosX[x * numX + i] * cosY[y * numY + j]
                     val color = colors[i + j * numX]
                     r += color[0] * basis
                     g += color[1] * basis

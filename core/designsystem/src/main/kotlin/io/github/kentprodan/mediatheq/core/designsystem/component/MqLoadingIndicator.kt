@@ -28,7 +28,7 @@ fun MqLoadingIndicator(
     modifier: Modifier = Modifier,
     delayMillis: Long = DEFAULT_DELAY_MILLIS,
 ) {
-    var visible by remember { mutableStateOf(delayMillis <= 0) }
+    var visible by remember(delayMillis) { mutableStateOf(delayMillis <= 0) }
     LaunchedEffect(delayMillis) {
         delay(delayMillis)
         visible = true

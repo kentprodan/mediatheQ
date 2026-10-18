@@ -24,6 +24,8 @@ internal fun Project.configureCompose(android: CommonExtension) {
         add("testImplementation", libs.findLibrary("robolectric").get())
         // ui-test brings espresso-core 3.5, which crashes on SDK 37 (InputManager.getInstance removed).
         add("testImplementation", libs.findLibrary("androidx-test-espresso-core").get())
+        // Hosts createComposeRule's activity; also for unit tests so release unit tests resolve it too.
         add("debugImplementation", libs.findLibrary("androidx-compose-ui-test-manifest").get())
+        add("testImplementation", libs.findLibrary("androidx-compose-ui-test-manifest").get())
     }
 }

@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.designsystem.component
 
 import android.graphics.Bitmap
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
+import coil3.decode.DataSource
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 
 /**
@@ -41,13 +43,17 @@ fun MqCover(
     shape: Shape = MaterialTheme.shapes.medium,
 ) {
     val placeholder = remember(blurHash) { blurHash?.let(::blurHashBitmap) }
-    val asyncPainter = rememberAsyncImagePainter(model.takeUnless { it is Painter })
+    // Crop here too, so Coil decodes at the size the cover is drawn (Fit would upscale and blur it).
+    val asyncPainter = rememberAsyncImagePainter(model.takeUnless { it is Painter }, contentScale = ContentScale.Crop)
     val state by asyncPainter.state.collectAsState()
     val painter = model as? Painter ?: asyncPainter
-    val loaded = model is Painter || state is AsyncImagePainter.State.Success
+    val success = state as? AsyncImagePainter.State.Success
+    val loaded = model is Painter || success != null
+    // Memory-cache hits (e.g. scrolling back in a grid) appear at once instead of fading in again.
+    val instant = model is Painter || success?.result?.dataSource == DataSource.MEMORY_CACHE
     val alpha by animateFloatAsState(
         targetValue = if (loaded) 1f else 0f,
-        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+        animationSpec = if (instant) snap() else MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "coverAlpha",
     )
     Box(
