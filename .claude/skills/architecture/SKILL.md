@@ -76,6 +76,7 @@ A module is created in the issue that first needs it, never "for later".
 :provider:*     -> :core:model, :core:common, :core:server, :core:network
 :core:ui        -> :core:model, :core:designsystem
 :core:server    -> :core:model, :core:common
+:core:navigation -> :core:model (keys carry typed ids, e.g. `AlbumKey(MediaId)`)
 :core:database / :core:datastore / :core:network -> :core:model, :core:common
 :core:model     -> nothing
 ```
