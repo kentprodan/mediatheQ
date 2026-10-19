@@ -2,8 +2,10 @@ package io.github.kentprodan.mediatheq.feature.album
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -67,5 +69,16 @@ class AlbumScreenTest {
 
         composeRule.onNodeWithText("Play").assertIsNotEnabled()
         composeRule.onNodeWithText("Shuffle").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `the playing track is announced as now playing, the others are not`() {
+        composeRule.setContent {
+            MediatheqTheme { AlbumScreen(albumId, content.copy(currentTrackId = tracks[0].id), {}, onBack = {}) }
+        }
+
+        composeRule.onNodeWithText("Track 1").assert(hasStateDescription("Now playing"))
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Track 2"))
+        composeRule.onNodeWithText("Track 2").assert(hasStateDescription("Now playing").not())
     }
 }

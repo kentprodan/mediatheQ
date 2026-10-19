@@ -67,6 +67,26 @@ object MqIcons {
     val Shuffle: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_shuffle)
 
+    val PlayFilled: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_play_arrow_filled)
+
+    val PauseFilled: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_pause_filled)
+
+    /** Media controls keep their direction in right-to-left layouts (Material guidance). */
+    val SkipNextFilled: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_skip_next_filled)
+
+    val SkipPreviousFilled: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_skip_previous_filled)
+
+    /** Marks the track that is playing. */
+    val GraphicEq: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_graphic_eq)
+
+    val KeyboardArrowDown: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_keyboard_arrow_down)
+
     /** Mirrors in right-to-left layouts. */
     val ArrowBack: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_arrow_back)

@@ -59,3 +59,12 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: `.\gradlew.bat :app:connectedDebugAndroidTest` -> PlaybackServiceTest passes (service starts, controller connects)
 - [ ] Pixel 9: Home -> Log out while music plays -> playback stops
 
+
+## #13 Mini player and Now Playing with cover colors
+- [ ] Pixel 9: play an album -> the mini player slides in above the nav bar with cover, title, artist; play/pause and next work from it; the list above is not hidden behind it
+- [ ] Pixel 9: tap the mini player, and separately swipe it up -> Now Playing opens, the cover flies from the pill into the large cover; swipe down, the close button and Back each return to the mini player with the cover flying back
+- [ ] Pixel 9: Now Playing colors follow the cover (try 3 albums with very different covers); changing track to another album blends the colors, no snap; an album without cover stays Iris
+- [ ] Pixel 9 on Wi-Fi: the seek bar moves smoothly, dragging it seeks; on mobile data (transcode) it is disabled
+- [ ] Pixel 9: on the album page the playing track shows the equalizer icon and a colored title; it moves to the next track when the player advances
+- [ ] Pixel 9: motion feels right (no jank opening/closing Now Playing, mini player enter/exit) and there are no haptics on plain taps
+- [ ] Pixel 9: TalkBack on the album page reads "Now playing" on the playing track; the mini player announces "Open player"

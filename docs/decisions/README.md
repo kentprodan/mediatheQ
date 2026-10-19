@@ -21,6 +21,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0014](0014-library-filter-styles.md) | Library filters come in two styles, chosen by the user | Accepted |
 | [0015](0015-cover-images-without-token.md) | Cover images load without the access token | Accepted |
 | [0016](0016-opus-in-ogg-for-metered-streaming.md) | Opus in Ogg for streaming on metered networks | Accepted |
+| [0017](0017-cover-colors.md) | Player colors from the cover with material-color-utilities | Accepted |
 
 Template for new ADRs:
 

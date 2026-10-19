@@ -1,23 +1,18 @@
 package io.github.kentprodan.mediatheq.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEventDispatcher
 import androidx.navigationevent.NavigationEventDispatcherOwner
 import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import com.android.tools.screenshot.PreviewTest
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqMiniPlayer
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
+import io.github.kentprodan.mediatheq.core.designsystem.preview.rememberPreviewCover
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 
 @Composable
@@ -59,17 +54,26 @@ fun ShellSearchScreenshot() = Shell(TopLevelTab.Search)
 @Composable
 fun ShellDownloadsScreenshot() = Shell(TopLevelTab.Downloads)
 
-/** The mini player slot in use: a stand-in pill until #13 builds the real one. */
+/** The mini player slot in use, with the real pill as the player host places it. */
 @PreviewTest
 @MqPreviews
 @Composable
 fun ShellWithMiniPlayerScreenshot() =
     Shell(TopLevelTab.Library) {
-        Surface(
-            Modifier.fillMaxWidth().height(64.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ) {
-            Box(contentAlignment = Alignment.Center) { Text("Mini player") }
-        }
+        MqMiniPlayer(
+            title = "Strobe",
+            artist = "deadmau5",
+            cover = rememberPreviewCover(),
+            isPlaying = true,
+            hasNext = true,
+            onPlayPause = {},
+            onNext = {},
+            onOpen = {},
+            modifier =
+                Modifier.padding(
+                    start = MediatheqSpacing.l,
+                    end = MediatheqSpacing.l,
+                    bottom = MediatheqSpacing.s,
+                ),
+        )
     }

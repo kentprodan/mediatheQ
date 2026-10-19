@@ -15,6 +15,8 @@ sealed interface AlbumUiState {
     data class Content(
         val album: Album,
         val discs: List<Disc>,
+        /** The track the player is on, marked in the list (any album's; only this album's shows). */
+        val currentTrackId: MediaId? = null,
     ) : AlbumUiState {
         /** All tracks in play order, the queue Play and Shuffle start. */
         val tracks: List<Track> get() = discs.flatMap { it.tracks }

@@ -30,6 +30,7 @@ dependencies {
     implementation(projects.feature.onboarding)
     implementation(projects.feature.library)
     implementation(projects.feature.album)
+    implementation(projects.feature.nowplaying)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)

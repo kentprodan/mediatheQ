@@ -23,6 +23,13 @@ private fun Album(state: AlbumUiState) = MediatheqTheme { AlbumScreen(album.id, 
 @Composable
 fun AlbumSingleDiscScreenshot() = Album(AlbumUiState.Content(album, listOf(Disc(1, tracks))))
 
+/** The second track is playing: equalizer icon instead of its number, primary title. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun AlbumPlayingTrackScreenshot() =
+    Album(AlbumUiState.Content(album, listOf(Disc(1, tracks)), currentTrackId = tracks[1].id))
+
 @PreviewTest
 @MqPreviews
 @Composable
