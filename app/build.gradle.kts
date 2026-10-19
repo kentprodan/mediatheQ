@@ -33,6 +33,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     testImplementation(projects.core.testing)
+    testImplementation(projects.core.ui)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
 }

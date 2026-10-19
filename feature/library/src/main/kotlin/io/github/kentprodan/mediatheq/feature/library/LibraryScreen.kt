@@ -227,8 +227,8 @@ private fun LibraryContentView(
         is LibraryContent.Songs -> {
             LazyColumn(Modifier.fillMaxSize(), states.songs, contentPadding = listPadding) {
                 items(content.tracks, key = { it.id.toString() }) { track ->
-                    // shortcut: tapping a song and its menu do nothing until playback exists (#12).
-                    TrackRow(track, onClick = {}, onMoreClick = {}, showCover = true)
+                    // shortcut: tapping a song does nothing until playback exists (#12); no menu button yet.
+                    TrackRow(track, onClick = {}, showCover = true)
                 }
             }
         }

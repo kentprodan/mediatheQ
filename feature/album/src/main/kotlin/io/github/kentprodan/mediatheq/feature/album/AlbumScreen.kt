@@ -26,7 +26,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,6 +41,8 @@ import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.DiscHeader
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
+import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
+import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
 import kotlin.time.Duration
 
 @Composable
@@ -119,8 +120,8 @@ fun AlbumScreen(
                     state.discs.forEach { disc ->
                         if (state.showDiscHeaders) item(key = "disc-${disc.number}") { DiscHeader(disc.number) }
                         items(disc.tracks, key = { it.id.toString() }) { track ->
-                            // shortcut: the track menu comes with the queue and playlist actions (#14, #16).
-                            TrackRow(track, onClick = { onAction(AlbumAction.PlayTrack(track.id)) }, onMoreClick = {})
+                            // The track menu (no button yet) comes with the queue and playlist actions (#14, #16).
+                            TrackRow(track, onClick = { onAction(AlbumAction.PlayTrack(track.id)) })
                         }
                     }
                 }
@@ -190,16 +191,11 @@ private fun albumFacts(
     album: Album,
     trackCount: Int,
     duration: Duration,
-): String {
-    val minutes = duration.inWholeMinutes.toInt()
-    val length =
-        if (minutes >= 60) {
-            stringResource(R.string.album_duration_hours, minutes / 60, minutes % 60)
-        } else {
-            stringResource(R.string.album_duration_minutes, minutes)
-        }
-    val tracks = pluralStringResource(R.plurals.album_track_count, trackCount, trackCount)
-    return listOfNotNull(album.year?.toString(), tracks, length).joinToString(" · ")
-}
+): String =
+    listOfNotNull(
+        album.year?.toString(),
+        formatTrackCount(trackCount),
+        formatTotalDuration(duration),
+    ).joinToString(" · ")
 
 private const val COVER_WIDTH_FRACTION = 0.6f

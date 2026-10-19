@@ -2,6 +2,8 @@
 <resources>
     <string name="core_ui_more_options">More options for %1$s</string>
     <string name="core_ui_disc">Disc %1$d</string>
+    <string name="core_ui_duration_minutes">%1$d min</string>
+    <string name="core_ui_duration_hours">%1$d h %2$d min</string>
     <plurals name="core_ui_track_count">
         <item quantity="one">%1$d track</item>
         <item quantity="other">%1$d tracks</item>

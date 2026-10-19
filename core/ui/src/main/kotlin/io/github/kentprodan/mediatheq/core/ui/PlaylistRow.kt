@@ -2,7 +2,6 @@ package io.github.kentprodan.mediatheq.core.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.model.Playlist
 
@@ -19,6 +18,6 @@ fun PlaylistRow(
         placeholderIcon = MqIcons.QueueMusic,
         onClick = onClick,
         modifier = modifier,
-        subtitle = pluralStringResource(R.plurals.core_ui_track_count, playlist.trackCount, playlist.trackCount),
+        subtitle = formatTrackCount(playlist.trackCount),
     )
 }

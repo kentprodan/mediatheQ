@@ -66,5 +66,6 @@ class AlbumScreenTest {
         }
 
         composeRule.onNodeWithText("Play").assertIsNotEnabled()
+        composeRule.onNodeWithText("Shuffle").assertIsNotEnabled()
     }
 }

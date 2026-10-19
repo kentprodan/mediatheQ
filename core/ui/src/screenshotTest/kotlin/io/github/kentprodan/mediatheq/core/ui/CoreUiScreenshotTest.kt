@@ -74,8 +74,13 @@ fun LibraryRowsScreenshot() {
                 ArtistRow(PreviewData.longTrack.artists[1], onClick = {})
                 PlaylistRow(PreviewData.playlist, onClick = {})
                 PlaylistRow(PreviewData.playlist.copy(name = "Empty", trackCount = 1, artwork = null), onClick = {})
-                TrackRow(PreviewData.track.copy(artwork = PreviewData.artwork), {}, {}, showCover = true)
-                TrackRow(PreviewData.longTrack, {}, {}, showCover = true)
+                TrackRow(
+                    PreviewData.track.copy(artwork = PreviewData.artwork),
+                    onClick = {},
+                    showCover = true,
+                    onMoreClick = {},
+                )
+                TrackRow(PreviewData.longTrack, onClick = {}, showCover = true, onMoreClick = {})
             }
         }
     }
