@@ -132,6 +132,10 @@ Logging: method + path + status + duration. Never headers, never query strings c
 - **R8 Invalid query values are ignored (12.2.0):** `includeItemTypes=Bogus`, `filters=Nope`, `sortBy=Nope`, `fields=Nope` all return 200 as if the value were absent (checked 2026-10-19; earlier notes said 400). Contract tests assert the exact query string of every request shape, because the server will not tell us about a typo.
 - **R9 One session per DeviceId:** a new login (password or Quick Connect) with the same `DeviceId` revokes the previous access token (old token -> 401, found on 12.2.0). Keep exactly one stored token per server and replace it on every login; never keep using an older token. Android backup is off so a restored install cannot share a DeviceId with the original.
 
+- **R10 Transcoding URL carries the token:** `PlaybackInfo`'s `TranscodingUrl` includes `ApiKey=<token>` (12.2.0). Strip `ApiKey`/`api_key` in any case and send the header (R1); never keep a URL with the token.
+- **R11 Music transcodes default to 128 kbps:** without `DeviceProfile.MusicStreamingTranscodingBitrate` Jellyfin converts music at 128 kbps whatever `MaxStreamingBitrate` says (12.2.0). Always send it (256000 for Opus on metered networks).
+- **R12 Live transcodes cannot be seeked:** progressive transcodes answer `Accept-Ranges: none` with no length (12.2.0); direct-play files return 206. Mark such streams `canSeek = false` (ADR 0016).
+
 New quirk found -> add `R<n>` here + fixture + test in the same PR.
 
 ## 13. Done checklist

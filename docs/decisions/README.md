@@ -20,6 +20,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0013](0013-token-encryption-and-local-cleartext.md) | Token encryption with the Android Keystore; cleartext only on local networks | Accepted |
 | [0014](0014-library-filter-styles.md) | Library filters come in two styles, chosen by the user | Accepted |
 | [0015](0015-cover-images-without-token.md) | Cover images load without the access token | Accepted |
+| [0016](0016-opus-in-ogg-for-metered-streaming.md) | Opus in Ogg for streaming on metered networks | Accepted |
 
 Template for new ADRs:
 

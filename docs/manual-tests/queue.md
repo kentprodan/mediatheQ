@@ -47,3 +47,14 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: a multi-disc album shows "Disc 1", "Disc 2" headers; scrolling collapses the large title into the top bar
 - [ ] Pixel 9 (after #12): Play starts track 1, tapping a track starts there, Shuffle does not always start at track 1
 
+## #12 Playback core: MediaLibraryService, PlaybackConnection, stream selection, reporting
+- [ ] Pixel 9 on home Wi-Fi: open a FLAC album -> Play -> music plays; Jellyfin dashboard -> Activity/Sessions shows "Direct playing" for the phone
+- [ ] Pixel 9 on mobile data (Tailscale on): play a FLAC track -> Jellyfin shows "Transcoding" to Opus ~256 kbps; `adb shell dumpsys connectivity | findstr METERED` shows the active network is metered (if Tailscale makes it look unmetered, note it in issue #12)
+- [ ] Pixel 9 on mobile data: Opus/Ogg plays without errors (ADR 0016 device check); seeking is not possible yet (expected)
+- [ ] Pixel 9: notification shows the track with cover; play/pause, next and previous work from the notification and the lock screen
+- [ ] Pixel 9: unplug wired headphones (or disconnect Bluetooth) while playing -> playback pauses; a phone call -> music pauses and resumes after
+- [ ] Pixel 9: tapping the notification opens the app
+- [ ] Pixel 9: Jellyfin dashboard shows the playing track, its progress moving, and it disappears when playback stops (Stopped reported, transcode ended)
+- [ ] Pixel 9: `.\gradlew.bat :app:connectedDebugAndroidTest` -> PlaybackServiceTest passes (service starts, controller connects)
+- [ ] Pixel 9: Home -> Log out while music plays -> playback stops
+
