@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_title">Library</string>
+    <string name="library_filter_albums">Albums</string>
+    <string name="library_filter_artists">Artists</string>
+    <string name="library_filter_playlists">Playlists</string>
+    <string name="library_filter_songs">Songs</string>
+    <string name="library_sort">Sort</string>
+    <string name="library_sort_name">Name</string>
+    <string name="library_sort_recently_added">Recently added</string>
+    <string name="library_sort_year">Year</string>
+    <string name="library_sort_artist">Artist</string>
+    <string name="library_sort_album">Album</string>
+    <string name="library_view_options">View options</string>
+    <string name="library_columns">%1$d columns</string>
+    <string name="library_style_chips">Filter chips</string>
+    <string name="library_style_buttons">Connected buttons</string>
+    <string name="library_empty_title">Nothing here yet</string>
+    <string name="library_empty_body">Your server has no music of this kind.</string>
+    <string name="library_sync_now">Sync now</string>
+    <string name="library_offline_title">You\'re offline</string>
+    <string name="library_offline_body">Your library loads once the server can be reached.</string>
+    <string name="library_error_title">Couldn\'t load your library</string>
+    <string name="library_error_body">The server answered with an error. Try again in a moment.</string>
+    <string name="library_retry">Try again</string>
+    <string name="library_refresh_failed">Couldn\'t refresh the library</string>
+</resources>
