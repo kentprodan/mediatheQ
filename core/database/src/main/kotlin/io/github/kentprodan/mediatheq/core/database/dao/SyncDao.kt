@@ -97,6 +97,24 @@ interface SyncDao {
         saveState(SyncStateEntity(lastFullSyncAtMillis = state()?.lastFullSyncAtMillis))
     }
 
+    /** Forgets the whole library: live tables, staging, search index and sync state (sign-out). */
+    @Transaction
+    suspend fun clearAll() {
+        clearStaging()
+        replaceArtists()
+        replaceAlbums()
+        replaceAlbumArtists()
+        replaceTracks()
+        replaceTrackArtists()
+        replacePlaylists()
+        replacePlaylistEntries()
+        clearSearch()
+        clearState()
+    }
+
+    @Query("DELETE FROM sync_state")
+    suspend fun clearState()
+
     @Transaction
     suspend fun clearStaging() {
         clearArtistStaging()

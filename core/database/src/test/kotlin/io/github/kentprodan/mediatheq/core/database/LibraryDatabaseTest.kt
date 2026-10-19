@@ -273,13 +273,13 @@ class LibraryDatabaseTest {
         }
 
     @Test
-    fun `clearing all tables empties the library, staging, search and sync state`() =
+    fun `clearAll empties the library, staging, search and sync state`() =
         runTest {
             stageLibrary()
             syncDao.swap(finishedAtMillis = 1)
             stageLibrary()
 
-            database.clearAllTables()
+            syncDao.clearAll()
 
             listOf("artist", "album", "track", "playlist_entry", "track_staging", "search", "sync_state").forEach {
                 assertThat(database.rows("SELECT COUNT(*) FROM $it")).containsExactly(listOf("0"))

@@ -10,4 +10,10 @@ import dagger.hilt.components.SingletonComponent
 internal interface DataModule {
     @Binds
     fun sessionRepository(repository: DefaultSessionRepository): SessionRepository
+
+    @Binds
+    fun librarySyncRepository(repository: DefaultLibrarySyncRepository): LibrarySyncRepository
+
+    @Binds
+    fun libraryRepository(repository: DefaultLibraryRepository): LibraryRepository
 }
