@@ -1,0 +1,135 @@
+{
+  "Items": [
+    {
+      "Name": "U R the One",
+      "Id": "1d718626e60fa122addba50bb1ec0579",
+      "PlaylistItemId": "1d718626e60fa122addba50bb1ec0579",
+      "HasLyrics": false,
+      "Container": "flac",
+      "PremiereDate": "2014-02-01T00:00:00.0000000Z",
+      "ChannelId": null,
+      "RunTimeTicks": 1790315420,
+      "ProductionYear": 2014,
+      "IndexNumber": 19,
+      "ParentIndexNumber": 1,
+      "IsFolder": false,
+      "Type": "Audio",
+      "Artists": [
+        "Gramatik"
+      ],
+      "ArtistItems": [
+        {
+          "Name": "Gramatik",
+          "Id": "8069fdab8026670d9bcb51dd594f7413"
+        }
+      ],
+      "Album": "SB1",
+      "AlbumId": "0cab20d5372c307bd7970cf254c44add",
+      "AlbumPrimaryImageTag": "6070e416a6eab012871fca967095498c",
+      "AlbumArtist": "Gramatik",
+      "AlbumArtists": [
+        {
+          "Name": "Gramatik",
+          "Id": "8069fdab8026670d9bcb51dd594f7413"
+        }
+      ],
+      "ImageBlurHashes": {
+        "Primary": {
+          "6070e416a6eab012871fca967095498c": "ebGk?=%2NcWBIp4TR+R+RPWB_NbIoft6s.D%aes:bIofR*WBj[oft6"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Audio",
+      "NormalizationGain": -8.7,
+      "AlbumNormalizationGain": -10
+    },
+    {
+      "Name": "Район (feat. Truwer)",
+      "Id": "1685a8cb44da5fbc59f9c0582b7213e8",
+      "PlaylistItemId": "1685a8cb44da5fbc59f9c0582b7213e8",
+      "HasLyrics": false,
+      "Container": "flac",
+      "PremiereDate": "2025-04-04T00:00:00.0000000Z",
+      "ChannelId": null,
+      "RunTimeTicks": 1811065620,
+      "ProductionYear": 2025,
+      "IndexNumber": 11,
+      "ParentIndexNumber": 1,
+      "IsFolder": false,
+      "Type": "Audio",
+      "Artists": [
+        "CAPTOWN"
+      ],
+      "ArtistItems": [
+        {
+          "Name": "CAPTOWN",
+          "Id": "5af6c95954f6f034c311c8917c1cb2e2"
+        }
+      ],
+      "Album": "Omertà",
+      "AlbumId": "6ea96e5d376edf37ab3b4aa20a97f3d5",
+      "AlbumPrimaryImageTag": "8449ce17d19e8c5e1e9c31fd1be2f1fa",
+      "AlbumArtist": "CAPTOWN",
+      "AlbumArtists": [
+        {
+          "Name": "CAPTOWN",
+          "Id": "5af6c95954f6f034c311c8917c1cb2e2"
+        }
+      ],
+      "ImageBlurHashes": {
+        "Primary": {
+          "8449ce17d19e8c5e1e9c31fd1be2f1fa": "eTDT^G%KS4bIafYkWCkCtQafY4n$s.kqayD+RPWBozo0xtRQR+t6ja"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Audio",
+      "NormalizationGain": -6.8,
+      "AlbumNormalizationGain": -8.4
+    },
+    {
+      "Name": "Breathe (feat. Sean Paul) [Rap Verison]",
+      "Id": "f185be2b17bee6ef290e9d7df2f125b7",
+      "PlaylistItemId": "f185be2b17bee6ef290e9d7df2f125b7",
+      "HasLyrics": false,
+      "Container": "flac",
+      "PremiereDate": "2003-06-21T00:00:00.0000000Z",
+      "ChannelId": null,
+      "RunTimeTicks": 2280000000,
+      "ProductionYear": 2003,
+      "IndexNumber": 5,
+      "ParentIndexNumber": 1,
+      "IsFolder": false,
+      "Type": "Audio",
+      "Artists": [
+        "Blu Cantrell"
+      ],
+      "ArtistItems": [
+        {
+          "Name": "Blu Cantrell",
+          "Id": "7bdfb5416c6b7501b60262fade570c4c"
+        }
+      ],
+      "Album": "Bittersweet",
+      "AlbumId": "42abed63d78bd1b31aa75520e0eed97e",
+      "AlbumPrimaryImageTag": "330c76fb78230c04f1d709fea153af42",
+      "AlbumArtist": "Blu Cantrell",
+      "AlbumArtists": [
+        {
+          "Name": "Blu Cantrell",
+          "Id": "7bdfb5416c6b7501b60262fade570c4c"
+        }
+      ],
+      "ImageBlurHashes": {
+        "Primary": {
+          "330c76fb78230c04f1d709fea153af42": "e=Nw7sj?_N-;aK-pxuWYRjaexZayM{WVn%t7WWoLt6axe:ofaeWBaf"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Audio",
+      "NormalizationGain": -8.9,
+      "AlbumNormalizationGain": -8.7
+    }
+  ],
+  "TotalRecordCount": 43,
+  "StartIndex": 0
+}

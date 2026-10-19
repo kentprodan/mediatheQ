@@ -52,7 +52,7 @@ Jellyfin 12 disables legacy authorization by default (also on upgraded servers).
 - Main query: `GET /Items` with `userId`, `includeItemTypes` (`MusicAlbum`, `Audio`, `MusicArtist`, `Playlist`), `recursive=true`, `fields=...` (only what we map), `enableImageTypes`, `startIndex` + `limit` paging, explicit `sortBy`/`sortOrder` for stable paging.
 - Jellyfin 12 changes to remember:
   - `GetItems` applies `recursive` when filters are requested together with `includeItemTypes`; the same query can return a different set than 10.11. Always send `includeItemTypes` and `recursive` explicitly.
-  - Invalid filter values now return **HTTP 400** -> treat as our bug (log request, fail tests), not as a server error.
+  - Unknown values in `includeItemTypes`, `filters`, `sortBy` or `fields` are **silently ignored** on 12.2.0 (HTTP 200), so a typo returns a different set (e.g. the whole library) with no error (R8). Every query shape has a contract test asserting its exact parameters.
   - By-name items (artists, genres) responses are restricted and people are deduplicated.
 - Artists: album artists vs track artists are different lists - use the artists endpoints the OpenAPI lists for each and map both; the Library "Artists" tab shows **album artists** by default.
 - Page size: 200-500 items; full sync of < 10k tracks must finish in under ~1 min on LAN. Measure, then tune.
@@ -111,7 +111,7 @@ Jellyfin 12 disables legacy authorization by default (also on upgraded servers).
 
 | HTTP | Meaning for us | Action |
 |---|---|---|
-| 400 | our request is invalid (12 rejects bad filters) | `MqError.Client`, log request shape (no token), fix code |
+| 400 | our request is invalid (malformed body or ids; bad enum values are ignored instead, R8) | `MqError.Client`, log request shape (no token), fix code |
 | 401 | token invalid/expired or legacy auth used | `MqError.Unauthorized` -> re-login |
 | 403 | parental/permission restriction | `MqError.Forbidden`, show message |
 | 404 | item gone | remove locally, `MqError.NotFound` |
@@ -129,7 +129,7 @@ Logging: method + path + status + duration. Never headers, never query strings c
 - **R5 Delete:** `DELETE /Items` deletes the file **for all users from the server**. The app never calls it. "Remove" in the UI means remove from playlist / unfavorite / remove download.
 - **R6 Playlist collage:** the generated playlist image appears ~1 s after creation; refresh images after a short delay instead of showing a broken image.
 - **R7 GetItems semantics (12):** always send `includeItemTypes` + `recursive` explicitly; results differ from 10.11 otherwise.
-- **R8 Invalid filters (12):** 400 instead of being ignored -> contract tests cover every filter we send.
+- **R8 Invalid query values are ignored (12.2.0):** `includeItemTypes=Bogus`, `filters=Nope`, `sortBy=Nope`, `fields=Nope` all return 200 as if the value were absent (checked 2026-10-19; earlier notes said 400). Contract tests assert the exact query string of every request shape, because the server will not tell us about a typo.
 - **R9 One session per DeviceId:** a new login (password or Quick Connect) with the same `DeviceId` revokes the previous access token (old token -> 401, found on 12.2.0). Keep exactly one stored token per server and replace it on every login; never keep using an older token. Android backup is off so a restored install cannot share a DeviceId with the original.
 
 New quirk found -> add `R<n>` here + fixture + test in the same PR.

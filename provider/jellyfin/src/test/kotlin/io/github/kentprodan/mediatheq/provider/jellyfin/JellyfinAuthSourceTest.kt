@@ -253,10 +253,40 @@ class JellyfinAuthSourceTest {
         }
 
     @Test
-    fun `server errors map to Server`() =
+    fun `a GET that keeps failing with 5xx maps to Server after three attempts`() =
+        runTest {
+            repeat(3) { server.enqueue(MockResponse(code = 503)) }
+
+            assertThat(source.serverInfo(anonymous).errorOrNull()).isEqualTo(MqError.Server(503))
+            assertThat(server.requestCount).isEqualTo(3)
+        }
+
+    @Test
+    fun `a GET is retried after 5xx and then succeeds`() =
+        runTest {
+            server.enqueue(MockResponse(code = 503))
+            server.enqueue(MockResponse(code = 502))
+            enqueue("system_info_public/version_12.json")
+
+            assertThat(source.serverInfo(anonymous)).isInstanceOf(MqResult.Success::class.java)
+            assertThat(server.requestCount).isEqualTo(3)
+        }
+
+    @Test
+    fun `a 401 is never retried`() =
+        runTest {
+            server.enqueue(MockResponse(code = 401))
+
+            assertThat(source.isQuickConnectEnabled(anonymous).errorOrNull()).isEqualTo(MqError.Unauthorized)
+            assertThat(server.requestCount).isEqualTo(1)
+        }
+
+    @Test
+    fun `a POST is never retried`() =
         runTest {
             server.enqueue(MockResponse(code = 503))
 
-            assertThat(source.serverInfo(anonymous).errorOrNull()).isEqualTo(MqError.Server(503))
+            assertThat(source.login(anonymous, "test-user", "pw").errorOrNull()).isEqualTo(MqError.Server(503))
+            assertThat(server.requestCount).isEqualTo(1)
         }
 }

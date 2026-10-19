@@ -1,0 +1,150 @@
+{
+  "Items": [
+    {
+      "Name": "+",
+      "Id": "7fe986c7d0a9a0ef004dd8390b0a0e05",
+      "DateCreated": "2026-08-01T16:16:05.8699387Z",
+      "SortName": " ",
+      "PremiereDate": "2011-01-01T00:00:00.0000000Z",
+      "ChannelId": null,
+      "RunTimeTicks": 7885466669,
+      "ProductionYear": 2011,
+      "IsFolder": true,
+      "Type": "MusicAlbum",
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "Ed Sheeran-+",
+        "ItemId": "7fe986c7d0a9a0ef004dd8390b0a0e05"
+      },
+      "ChildCount": 2,
+      "Artists": [
+        "Ed Sheeran"
+      ],
+      "ArtistItems": [
+        {
+          "Name": "Ed Sheeran",
+          "Id": "0d35bdacdff048361377055dfa05787c"
+        }
+      ],
+      "AlbumArtist": "Ed Sheeran",
+      "AlbumArtists": [
+        {
+          "Name": "Ed Sheeran",
+          "Id": "0d35bdacdff048361377055dfa05787c"
+        }
+      ],
+      "ImageTags": {
+        "Primary": "2dc56932923a684da450b2396930c2ae"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "2dc56932923a684da450b2396930c2ae": "eHN*2D=w8x=wWB~BjZMxtRa#DiM{tltRtQ;1aebbt7j[%gkCV?ofRP"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown",
+      "NormalizationGain": -5.6000004
+    },
+    {
+      "Name": "...And Then There Was X",
+      "Id": "33eb72b05792cef7b8756a025f81a978",
+      "DateCreated": "2026-08-01T16:16:05.1561202Z",
+      "SortName": "   and then there was x",
+      "PremiereDate": "1999-12-21T00:00:00.0000000Z",
+      "ChannelId": null,
+      "RunTimeTicks": 19854266669,
+      "ProductionYear": 1999,
+      "IsFolder": true,
+      "Type": "MusicAlbum",
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "DMX-...And Then There Was X",
+        "ItemId": "33eb72b05792cef7b8756a025f81a978"
+      },
+      "ChildCount": 8,
+      "Artists": [
+        "DMX"
+      ],
+      "ArtistItems": [
+        {
+          "Name": "DMX",
+          "Id": "d33bc96d84ee94178e8f402e91708fb3"
+        }
+      ],
+      "AlbumArtist": "DMX",
+      "AlbumArtists": [
+        {
+          "Name": "DMX",
+          "Id": "d33bc96d84ee94178e8f402e91708fb3"
+        }
+      ],
+      "ImageTags": {
+        "Primary": "4577a6409662a928d9dfd5aa29ae6f9f"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "4577a6409662a928d9dfd5aa29ae6f9f": "eIEoxst700oexa~pIp4.ofxaWXIUozt7M{_2xaRj%LE1-;ofM{t6WB"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown",
+      "NormalizationGain": -8.9
+    },
+    {
+      "Name": "- (Deluxe)",
+      "Id": "c022ae777397ba92f9de6be9d42559d1",
+      "DateCreated": "2026-08-01T16:16:05.8711244Z",
+      "SortName": " (deluxe)",
+      "PremiereDate": "2023-01-01T00:00:00.0000000Z",
+      "ChannelId": null,
+      "RunTimeTicks": 3805200000,
+      "ProductionYear": 2023,
+      "IsFolder": true,
+      "Type": "MusicAlbum",
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "Ed Sheeran-- (Deluxe)",
+        "ItemId": "c022ae777397ba92f9de6be9d42559d1"
+      },
+      "ChildCount": 2,
+      "Artists": [
+        "Ed Sheeran"
+      ],
+      "ArtistItems": [
+        {
+          "Name": "Ed Sheeran",
+          "Id": "0d35bdacdff048361377055dfa05787c"
+        }
+      ],
+      "AlbumArtist": "Ed Sheeran",
+      "AlbumArtists": [
+        {
+          "Name": "Ed Sheeran",
+          "Id": "0d35bdacdff048361377055dfa05787c"
+        }
+      ],
+      "ImageTags": {
+        "Primary": "ab28bab776d24ca2fdc6b63ddac254fc"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "ab28bab776d24ca2fdc6b63ddac254fc": "eLR2Q%^z?7~NRo~3n*S5oxt3xBf6Nyf*RS^zoet2s,RobaWXWEsms,"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown",
+      "NormalizationGain": -8.4
+    }
+  ],
+  "TotalRecordCount": 989,
+  "StartIndex": 0
+}

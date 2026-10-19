@@ -1,0 +1,93 @@
+{
+  "Items": [
+    {
+      "Name": "debug-72",
+      "Id": "44cf7709a5f57ff316a34e6f9d3fcb33",
+      "DateCreated": "2026-10-13T22:11:07.0000000Z",
+      "SortName": "debug0000000072",
+      "ChannelId": null,
+      "RunTimeTicks": 453600000000,
+      "IsFolder": true,
+      "Type": "Playlist",
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "44cf7709-a5f5-7ff3-16a3-4e6f9d3fcb33",
+        "ItemId": "44cf7709a5f57ff316a34e6f9d3fcb33"
+      },
+      "ChildCount": 200,
+      "ImageTags": {
+        "Primary": "90fc2f9362811fd3fce1ca8a16181324"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "90fc2f9362811fd3fce1ca8a16181324": "e684Y@-14nx_~p0QM]_3Ro00E1IVkCt7Rj^%xvM{RixutRW;WBn$RP"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown"
+    },
+    {
+      "Name": "Electronic_Pop_Indie_Medium_Danceable_Party_automatic",
+      "Id": "0de0fee98a6778f3052499beed37c468",
+      "DateCreated": "2026-08-08T00:01:31.0000000Z",
+      "SortName": "electronic_pop_indie_medium_danceable_party_automatic",
+      "ChannelId": null,
+      "RunTimeTicks": 132242880056,
+      "IsFolder": true,
+      "Type": "Playlist",
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "0de0fee9-8a67-78f3-0524-99beed37c468",
+        "ItemId": "0de0fee98a6778f3052499beed37c468"
+      },
+      "ChildCount": 57,
+      "ImageTags": {
+        "Primary": "3a450b43a7e53d0da0321e673d91e367"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "3a450b43a7e53d0da0321e673d91e367": "elLpzAU{kCtQSd0{EgRjxHWnxZMws:W=oJi|%3bIWAaytkogRjoza{"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Audio"
+    },
+    {
+      "Name": "Electronic_Pop_Rock_Medium_Danceable_Party_1_automatic",
+      "Id": "95c27b84ec6e58551c754718c04a8a5b",
+      "DateCreated": "2026-08-08T00:01:31.0000000Z",
+      "SortName": "electronic_pop_rock_medium_danceable_party_0000000001_automatic",
+      "ChannelId": null,
+      "RunTimeTicks": 89355053927,
+      "IsFolder": true,
+      "Type": "Playlist",
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "95c27b84-ec6e-5855-1c75-4718c04a8a5b",
+        "ItemId": "95c27b84ec6e58551c754718c04a8a5b"
+      },
+      "ChildCount": 43,
+      "ImageTags": {
+        "Primary": "a8488228cfe8fa0948b317dbc47ff7f0"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "a8488228cfe8fa0948b317dbc47ff7f0": "eUHC7ZE0xtMx.8~W9GWCj?%MMcMxWBxuRjSgXSWBxuM{%gtRjsjFay"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Audio"
+    }
+  ],
+  "TotalRecordCount": 11,
+  "StartIndex": 0
+}
