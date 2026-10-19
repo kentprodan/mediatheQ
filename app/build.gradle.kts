@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.mediatheq.android.application)
     alias(libs.plugins.mediatheq.android.hilt)
+    alias(libs.plugins.mediatheq.android.screenshot)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -17,4 +19,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(projects.core.designsystem)
+    implementation(projects.core.navigation)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
 }
