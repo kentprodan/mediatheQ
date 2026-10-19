@@ -16,4 +16,7 @@ internal interface DataModule {
 
     @Binds
     fun libraryRepository(repository: DefaultLibraryRepository): LibraryRepository
+
+    @Binds
+    fun libraryPreferencesRepository(repository: DefaultLibraryPreferencesRepository): LibraryPreferencesRepository
 }

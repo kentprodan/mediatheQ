@@ -32,5 +32,15 @@ internal interface DataStoreModule {
                 // A truncated file (e.g. power loss mid-write) means signed out, not a crash on every start.
                 corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
             ) { context.preferencesDataStoreFile("account") }
+
+        @Provides
+        @Singleton
+        @LibraryPrefs
+        fun libraryDataStore(
+            @ApplicationContext context: Context,
+        ): DataStore<Preferences> =
+            PreferenceDataStoreFactory.create(
+                corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+            ) { context.preferencesDataStoreFile("library_prefs") }
     }
 }

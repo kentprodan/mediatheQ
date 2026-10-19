@@ -2,9 +2,12 @@ package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.SearchHit
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -15,6 +18,14 @@ class DefaultLibraryRepository
         private val libraryDao: LibraryDao,
     ) : LibraryRepository {
         override fun albums(): Flow<List<Album>> = libraryDao.albums().map { rows -> rows.map { it.toDomain() } }
+
+        override fun albumArtists(): Flow<List<Artist>> =
+            libraryDao.albumArtists().map { rows -> rows.map { it.toDomain() } }
+
+        override fun playlists(): Flow<List<Playlist>> =
+            libraryDao.playlists().map { rows -> rows.map { it.toDomain() } }
+
+        override fun tracks(): Flow<List<Track>> = libraryDao.tracks().map { rows -> rows.map { it.toDomain() } }
 
         override suspend fun search(
             query: String,

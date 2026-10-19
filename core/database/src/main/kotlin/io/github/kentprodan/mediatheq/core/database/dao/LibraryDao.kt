@@ -8,7 +8,10 @@ import androidx.room3.Transaction
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
+import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SearchEntity
+import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistEntity
+import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import kotlinx.coroutines.flow.Flow
 
 /** Reads of the live library. Screens add their own queries in their issues. */
@@ -18,6 +21,18 @@ interface LibraryDao {
     @Transaction
     @Query("SELECT * FROM album ORDER BY sort_name, id")
     fun albums(): Flow<List<AlbumWithArtists>>
+
+    /** The Library's Artists tab: album artists only (credit-only artists exist for track credits). */
+    @Query("SELECT * FROM artist WHERE is_album_artist ORDER BY sort_name, id")
+    fun albumArtists(): Flow<List<ArtistEntity>>
+
+    @Query("SELECT * FROM playlist ORDER BY sort_name, id")
+    fun playlists(): Flow<List<PlaylistEntity>>
+
+    /** All tracks with their artist credits, from one snapshot. */
+    @Transaction
+    @Query("SELECT * FROM track ORDER BY sort_name, id")
+    fun tracks(): Flow<List<TrackWithArtists>>
 
     /** [match] must already be a safe FTS5 expression (see `ftsMatchExpression` in `:core:data`). */
     @Query("SELECT * FROM search WHERE search MATCH :match ORDER BY rank LIMIT :limit")
@@ -36,6 +51,24 @@ data class AlbumWithArtists(
         entityColumns = ["server_id", "album_id"],
     )
     val credits: List<AlbumCredit>,
+)
+
+/** A track with its artist credits; sort [credits] by position. */
+data class TrackWithArtists(
+    @Embedded val track: TrackEntity,
+    @Relation(
+        entity = TrackArtistEntity::class,
+        parentColumns = ["server_id", "id"],
+        entityColumns = ["server_id", "track_id"],
+    )
+    val credits: List<TrackCredit>,
+)
+
+/** One track credit and its artist; [artist] is `null` when the credited artist was not synced. */
+data class TrackCredit(
+    @Embedded val link: TrackArtistEntity,
+    @Relation(parentColumns = ["server_id", "artist_id"], entityColumns = ["server_id", "id"])
+    val artist: ArtistEntity?,
 )
 
 /** One album credit and its artist; [artist] is `null` when the credited artist was not synced. */

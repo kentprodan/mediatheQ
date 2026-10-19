@@ -285,4 +285,47 @@ class LibraryDatabaseTest {
                 assertThat(database.rows("SELECT COUNT(*) FROM $it")).containsExactly(listOf("0"))
             }
         }
+
+    @Test
+    fun `the artists tab lists album artists only`() =
+        runTest {
+            stageLibrary(
+                artists =
+                    listOf(
+                        artist,
+                        artist.copy(id = "ar2", name = "Guest", sortName = "Guest", isAlbumArtist = false),
+                    ),
+            )
+            syncDao.swap(1, "s", "user-1")
+
+            assertThat(libraryDao.albumArtists().first().map { it.id }).containsExactly("ar1")
+        }
+
+    @Test
+    fun `playlists come by sort name`() =
+        runTest {
+            syncDao.stagePlaylists(
+                listOf(
+                    PlaylistStaging(playlist.copy(id = "p2", sortName = "B")),
+                    PlaylistStaging(playlist.copy(sortName = "A")),
+                ),
+            )
+            syncDao.swap(1, "s", "user-1")
+
+            assertThat(libraryDao.playlists().first().map { it.id }).containsExactly("p1", "p2").inOrder()
+        }
+
+    @Test
+    fun `tracks come with their credits, also when an artist is missing`() =
+        runTest {
+            stageLibrary()
+            syncDao.stageTrackArtistLinks(listOf(TrackArtistStaging(TrackArtistEntity("s", "t1", 1, "not-synced"))))
+            syncDao.swap(1, "s", "user-1")
+
+            val row = libraryDao.tracks().first().single()
+            assertThat(row.track).isEqualTo(track)
+            assertThat(
+                row.credits.sortedBy { it.link.position }.map { it.artist?.id },
+            ).containsExactly("ar1", null).inOrder()
+        }
 }
