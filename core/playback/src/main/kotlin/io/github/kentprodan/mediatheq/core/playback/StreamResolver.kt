@@ -10,8 +10,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Turns a track into a playable stream when the player is about to load it (media3 skill, section 3). Remembers the
- * stream it handed out for each track, so progress reports carry the same play session.
+ * Turns a track into a playable stream when the player loads it (media3 skill, section 3). One stream per track and
+ * network kind: seeks and retries reopen the same stream (a reopen mid-file must never switch format), and progress
+ * reports carry its play session.
  */
 @Singleton
 class StreamResolver
@@ -21,24 +22,31 @@ class StreamResolver
         private val decoders: AudioDecoders,
         private val networkMonitor: NetworkMonitor,
     ) {
-        private val decoderMimeTypes by lazy { decoders.mimeTypes() }
-        private val streams = ConcurrentHashMap<MediaId, PlaybackStream>()
+        private class Resolved(
+            val stream: PlaybackStream,
+            val metered: Boolean,
+        )
 
-        /** A fresh stream for [itemId] for the current network; each call is a new play session. */
-        suspend fun resolve(itemId: MediaId): MqResult<PlaybackStream> {
-            val profile = DeviceProfileBuilder.build(decoderMimeTypes, networkMonitor.isMetered())
-            val result = playbackRepository.stream(itemId, profile)
-            if (result is MqResult.Success) streams[itemId] = result.value
+        private val decoderMimeTypes by lazy { decoders.mimeTypes() }
+        private val streams = ConcurrentHashMap<MediaId, Resolved>()
+
+        /**
+         * The stream for [itemId]. [continuing] (reading on from a byte offset) always reuses the known stream; a fresh
+         * load reuses it unless the network kind changed since (e.g. home Wi-Fi to cellular).
+         */
+        suspend fun resolve(
+            itemId: MediaId,
+            continuing: Boolean = false,
+        ): MqResult<PlaybackStream> {
+            val metered = networkMonitor.isMetered()
+            streams[itemId]?.let { if (continuing || it.metered == metered) return MqResult.Success(it.stream) }
+            val result = playbackRepository.stream(itemId, DeviceProfileBuilder.build(decoderMimeTypes, metered))
+            if (result is MqResult.Success) streams[itemId] = Resolved(result.value, metered)
             return result
         }
 
-        /** The stream last handed out for [itemId], or `null` if it was never resolved (or already finished). */
-        fun current(itemId: MediaId): PlaybackStream? = streams[itemId]
-
-        /** Forgets [itemId]'s stream once its session ended, so a replay asks for a new one. */
-        fun finished(itemId: MediaId) {
-            streams.remove(itemId)
-        }
+        /** The stream the player uses for [itemId], or `null` if it was never resolved. */
+        fun current(itemId: MediaId): PlaybackStream? = streams[itemId]?.stream
 
         /** Request headers (authentication) for stream requests, from the current token. */
         suspend fun headers(): Map<String, String> = playbackRepository.streamHeaders()

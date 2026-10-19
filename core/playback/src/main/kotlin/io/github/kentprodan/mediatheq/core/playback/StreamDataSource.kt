@@ -28,7 +28,7 @@ internal fun streamDataSourceFactory(
         // Runs on the loader thread, which may block (ResolvingDataSource.Resolver contract).
         runBlocking {
             val stream =
-                when (val result = resolver.resolve(itemId)) {
+                when (val result = resolver.resolve(itemId, continuing = dataSpec.position > 0)) {
                     is MqResult.Success -> result.value
                     is MqResult.Failure -> throw StreamUnavailableException(result.error)
                 }

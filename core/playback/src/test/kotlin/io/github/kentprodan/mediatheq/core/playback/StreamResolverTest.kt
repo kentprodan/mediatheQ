@@ -29,10 +29,21 @@ class StreamResolverTest {
     private val itemId = MediaId(ServerId("server-1"), "item:with:colons")
 
     @Test
-    fun `each resolve asks for the network of that moment`() =
+    fun `one stream per track while the network kind stays the same`() =
+        runTest {
+            val first = resolver.resolve(itemId)
+
+            assertThat(resolver.resolve(itemId)).isEqualTo(first)
+            assertThat(repository.streamRequests).hasSize(1)
+            assertThat(resolver.current(itemId)).isEqualTo((first as MqResult.Success).value)
+        }
+
+    @Test
+    fun `a fresh load after the network became metered asks for the reduced stream`() =
         runTest {
             resolver.resolve(itemId)
             metered = true
+
             resolver.resolve(itemId)
 
             assertThat(
@@ -41,13 +52,13 @@ class StreamResolverTest {
         }
 
     @Test
-    fun `the stream handed out is remembered for reports until its session ends`() =
+    fun `reading on mid-file keeps the stream even if the network changed (never switch format mid-track)`() =
         runTest {
-            val stream = (resolver.resolve(itemId) as MqResult.Success).value
+            val first = resolver.resolve(itemId)
+            metered = true
 
-            assertThat(resolver.current(itemId)).isEqualTo(stream)
-            resolver.finished(itemId)
-            assertThat(resolver.current(itemId)).isNull()
+            assertThat(resolver.resolve(itemId, continuing = true)).isEqualTo(first)
+            assertThat(repository.streamRequests).hasSize(1)
         }
 
     @Test

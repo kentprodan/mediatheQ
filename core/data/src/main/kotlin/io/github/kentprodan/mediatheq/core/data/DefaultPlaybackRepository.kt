@@ -28,20 +28,37 @@ class DefaultPlaybackRepository
         override suspend fun streamHeaders(): Map<String, String> =
             accountStore.signedInServer()?.let { playbackSource.streamHeaders(it) }.orEmpty()
 
-        override suspend fun reportStart(report: PlaybackReport) = withServer { playbackSource.reportStart(it, report) }
+        override suspend fun reportStart(report: PlaybackReport) =
+            withReportServer { playbackSource.reportStart(it, report) }
 
         override suspend fun reportProgress(report: PlaybackReport) =
-            withServer { playbackSource.reportProgress(it, report) }
+            withReportServer { playbackSource.reportProgress(it, report) }
 
         override suspend fun reportStopped(
             report: PlaybackReport,
             failed: Boolean,
-        ) = withServer { playbackSource.reportStopped(it, report, failed) }
+        ) = withReportServer { playbackSource.reportStopped(it, report, failed) }
+
+        // The server of the last stream: right after sign-out the final Stopped still goes out (best effort), so the
+        // server can end a running transcode.
+        @Volatile private var lastServer: SignedInServer? = null
 
         private suspend fun <T> withServer(call: suspend (SignedInServer) -> MqResult<T>): MqResult<T> {
             // Signed out meanwhile: nothing to do, and not a session expiry.
             val server = accountStore.signedInServer() ?: return MqResult.Failure(MqError.Unauthorized)
+            lastServer = server
+            return expireOn401(call(server))
+        }
+
+        private suspend fun <T> withReportServer(call: suspend (SignedInServer) -> MqResult<T>): MqResult<T> {
+            val current = accountStore.signedInServer()
+            val server = current ?: lastServer ?: return MqResult.Failure(MqError.Unauthorized)
             val result = call(server)
+            // A 401 after a deliberate sign-out is expected (the token was revoked), not a session expiry.
+            return if (current != null) expireOn401(result) else result
+        }
+
+        private suspend fun <T> expireOn401(result: MqResult<T>): MqResult<T> {
             if ((result as? MqResult.Failure)?.error == MqError.Unauthorized) {
                 withContext(NonCancellable) { sessionRepository.onUnauthorized() }
             }

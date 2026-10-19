@@ -45,8 +45,11 @@ internal fun Track.toMediaItem(artworkUrl: String?): MediaItem =
                 .build(),
         ).build()
 
-/** The session side: gives a controller's item its resolvable URI (items from controllers carry none we trust). */
-internal fun MediaItem.withTrackUri(): MediaItem {
-    val itemId = runCatching { MediaId.parse(mediaId) }.getOrNull() ?: return this
+/**
+ * The session side: gives a controller's item its resolvable URI (items from controllers carry none we trust); `null`
+ * for an item that is not one of our tracks.
+ */
+internal fun MediaItem.withTrackUri(): MediaItem? {
+    val itemId = runCatching { MediaId.parse(mediaId) }.getOrNull() ?: return null
     return buildUpon().setUri(trackUri(itemId)).build()
 }

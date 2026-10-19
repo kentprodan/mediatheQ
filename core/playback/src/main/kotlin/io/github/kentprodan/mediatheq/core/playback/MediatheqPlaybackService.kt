@@ -4,8 +4,6 @@ import android.app.PendingIntent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSourceBitmapLoader
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -21,7 +19,6 @@ import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
-import io.github.kentprodan.mediatheq.core.model.MediaId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -76,7 +73,6 @@ class MediatheqPlaybackService : MediaLibraryService() {
             PlaybackReporter(
                 repository = playbackRepository,
                 streamOf = streamResolver::current,
-                onSessionEnded = streamResolver::finished,
                 scope = applicationScope,
                 playerDispatcher = Dispatchers.Main,
             )
@@ -110,7 +106,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
     /** Stops with the task only when nothing is playing; otherwise music keeps going (with its notification). */
     override fun onTaskRemoved(rootIntent: android.content.Intent?) {
         val player = session?.player
-        if (player == null || !player.playWhenReady || player.mediaItemCount == 0) stopSelf()
+        if (player == null || !player.playWhenReady || player.mediaItemCount == 0) {
+            // The process may die soon after; end the server session (and any transcode) now.
+            if (player != null) reporter.ended(player.currentPosition.milliseconds)
+            stopSelf()
+        }
     }
 
     override fun onDestroy() {
@@ -147,54 +147,14 @@ class MediatheqPlaybackService : MediaLibraryService() {
             mediaSession: MediaSession,
             controller: MediaSession.ControllerInfo,
             mediaItems: MutableList<MediaItem>,
-        ): ListenableFuture<MutableList<MediaItem>> =
-            Futures.immediateFuture(
-                mediaItems
-                    .map {
-                        it.withTrackUri()
-                    }.toMutableList(),
-            )
-    }
-}
-
-/** Turns player events into server reports. */
-@UnstableApi
-private class ReportingListener(
-    private val player: Player,
-    private val reporter: PlaybackReporter,
-) : Player.Listener {
-    private fun currentId(): MediaId? =
-        player.currentMediaItem?.mediaId?.let {
-            runCatching { MediaId.parse(it) }.getOrNull()
+        ): ListenableFuture<MutableList<MediaItem>> {
+            // Only our tracks can play; anything else (e.g. a voice search without an id) is refused, not crashed on.
+            val resolved =
+                mediaItems.map {
+                    it.withTrackUri()
+                        ?: return Futures.immediateFailedFuture(UnsupportedOperationException())
+                }
+            return Futures.immediateFuture(resolved.toMutableList())
         }
-
-    override fun onIsPlayingChanged(isPlaying: Boolean) {
-        val itemId = currentId() ?: return
-        if (isPlaying) {
-            reporter.playing(itemId) { player.currentPosition.milliseconds }
-        } else if (player.playbackState == Player.STATE_READY) {
-            reporter.paused(player.currentPosition.milliseconds)
-        }
-    }
-
-    override fun onPositionDiscontinuity(
-        oldPosition: Player.PositionInfo,
-        newPosition: Player.PositionInfo,
-        reason: Int,
-    ) {
-        if (oldPosition.mediaItem?.mediaId != newPosition.mediaItem?.mediaId) {
-            // Next track, skip or a new queue: the old one ended where it was (currentPosition is already the new one).
-            reporter.ended(oldPosition.positionMs.milliseconds)
-        } else if (reason == Player.DISCONTINUITY_REASON_SEEK) {
-            reporter.seeked(newPosition.positionMs.milliseconds, player.isPlaying)
-        }
-    }
-
-    override fun onPlaybackStateChanged(playbackState: Int) {
-        if (playbackState == Player.STATE_ENDED) reporter.ended(player.currentPosition.milliseconds)
-    }
-
-    override fun onPlayerError(error: PlaybackException) {
-        reporter.ended(player.currentPosition.milliseconds, failed = true)
     }
 }

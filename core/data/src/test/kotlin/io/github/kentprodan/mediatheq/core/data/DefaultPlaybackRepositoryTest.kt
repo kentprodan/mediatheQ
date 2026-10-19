@@ -74,4 +74,25 @@ class DefaultPlaybackRepositoryTest {
 
             assertThat(session.session.value).isEqualTo(SessionState.LoggedOut(LogoutReason.SessionExpired))
         }
+
+    @Test
+    fun `right after sign-out the final report still goes to the last server, without a session expiry`() =
+        runTest {
+            signIn()
+            repository.stream(itemId, profile)
+            accountStore.clear()
+            source.failure = MqResult.Failure(MqError.Unauthorized) // the token was revoked by the logout
+
+            repository.reportStopped(
+                io.github.kentprodan.mediatheq.core.model.PlaybackReport(
+                    FakePlaybackSource.fakeStream(itemId),
+                    kotlin.time.Duration.ZERO,
+                    false,
+                ),
+                failed = false,
+            )
+
+            assertThat(source.reports).containsExactly("stopped t1")
+            assertThat(session.session.value).isEqualTo(SessionState.LoggedOut())
+        }
 }

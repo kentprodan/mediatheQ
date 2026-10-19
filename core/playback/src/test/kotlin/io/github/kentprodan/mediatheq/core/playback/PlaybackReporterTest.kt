@@ -18,7 +18,6 @@ class PlaybackReporterTest {
     private val repository = FakePlaybackRepository()
     private val t1 = MediaId(ServerId("s"), "t1")
     private val t2 = MediaId(ServerId("s"), "t2")
-    private val ended = mutableListOf<MediaId>()
     private var position: Duration = Duration.ZERO
 
     private fun TestScope.reporter(known: Set<MediaId> = setOf(t1, t2)): PlaybackReporter {
@@ -26,7 +25,6 @@ class PlaybackReporterTest {
         return PlaybackReporter(
             repository = repository,
             streamOf = { id -> FakePlaybackSource.fakeStream(id).takeIf { id in known } },
-            onSessionEnded = { ended += it },
             scope = backgroundScope,
             playerDispatcher = dispatcher,
             interval = 10.seconds,
@@ -89,7 +87,7 @@ class PlaybackReporterTest {
         }
 
     @Test
-    fun `the next track stops the previous session first and frees its stream`() =
+    fun `the next track stops the previous session first`() =
         runTest {
             val reporter = reporter()
             reporter.playing(t1) { position }
@@ -103,7 +101,6 @@ class PlaybackReporterTest {
             assertThat(repository.reports)
                 .containsExactly("start t1 @0s", "progress t1 @10s", "stopped t1 @12s", "start t2 @0s")
                 .inOrder()
-            assertThat(ended).containsExactly(t1)
         }
 
     @Test

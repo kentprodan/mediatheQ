@@ -7,11 +7,10 @@ import io.github.kentprodan.mediatheq.core.model.PlaybackStream
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -19,19 +18,24 @@ import kotlin.time.Duration.Companion.seconds
  * Tells the server what is playing (jellyfin skill, section 6): started when a track first plays, progress every
  * [interval] while playing and on pause or seek, stopped when it ends or is left. Stopped is never skipped: for a
  * transcode it is what ends the conversion on the server. Reports keep their order (one at a time, first come first
- * sent) and run on [scope], so the final one survives the playback service.
+ * sent) and run on [scope], so the final one survives the playback service. Call it from the player's thread.
  */
 class PlaybackReporter(
     private val repository: PlaybackRepository,
     private val streamOf: (MediaId) -> PlaybackStream?,
-    private val onSessionEnded: (MediaId) -> Unit,
     private val scope: CoroutineScope,
     /** Where the position is read: the player's thread. */
     private val playerDispatcher: CoroutineDispatcher,
     private val interval: Duration = 10.seconds,
 ) {
-    private val order = Mutex()
+    // One consumer sends reports one by one in the order the player produced them.
+    private val reports = Channel<suspend () -> Unit>(Channel.UNLIMITED)
     private var current: PlaybackStream? = null
+
+    init {
+        scope.launch { for (report in reports) report() }
+    }
+
     private var ticker: Job? = null
 
     /** [itemId] is playing (first time: started; again after a pause: progress). [position] is read on the player thread. */
@@ -93,10 +97,9 @@ class PlaybackReporter(
         failed: Boolean,
     ) {
         send { repository.reportStopped(PlaybackReport(stream, position, isPaused = false), failed) }
-        onSessionEnded(stream.itemId)
     }
 
     private fun send(report: suspend () -> Unit) {
-        scope.launch { order.withLock { report() } }
+        reports.trySend { report() }
     }
 }
