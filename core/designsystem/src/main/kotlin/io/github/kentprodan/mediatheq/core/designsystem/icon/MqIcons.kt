@@ -60,4 +60,14 @@ object MqIcons {
 
     val QueueMusic: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_queue_music)
+
+    val PlayArrow: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_play_arrow)
+
+    val Shuffle: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_shuffle)
+
+    /** Mirrors in right-to-left layouts. */
+    val ArrowBack: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_arrow_back)
 }
