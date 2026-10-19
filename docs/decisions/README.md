@@ -17,6 +17,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0010](0010-sdk-levels.md) | SDK levels: minSdk 31, targetSdk 37, compileSdk 37 | Accepted |
 | [0011](0011-github-copilot-role.md) | Role of GitHub Copilot | Accepted |
 | [0012](0012-iris-color-scheme.md) | Iris color scheme: Vibrant variant, spec 2025 | Accepted |
+| [0013](0013-token-encryption-and-local-cleartext.md) | Token encryption with the Android Keystore; cleartext only on local networks | Accepted |
 
 Template for new ADRs:
 

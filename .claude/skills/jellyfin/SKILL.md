@@ -130,6 +130,7 @@ Logging: method + path + status + duration. Never headers, never query strings c
 - **R6 Playlist collage:** the generated playlist image appears ~1 s after creation; refresh images after a short delay instead of showing a broken image.
 - **R7 GetItems semantics (12):** always send `includeItemTypes` + `recursive` explicitly; results differ from 10.11 otherwise.
 - **R8 Invalid filters (12):** 400 instead of being ignored -> contract tests cover every filter we send.
+- **R9 One session per DeviceId:** a new login (password or Quick Connect) with the same `DeviceId` revokes the previous access token (old token -> 401, found on 12.2.0). Keep exactly one stored token per server and replace it on every login; never keep using an older token. Android backup is off so a restored install cannot share a DeviceId with the original.
 
 New quirk found -> add `R<n>` here + fixture + test in the same PR.
 

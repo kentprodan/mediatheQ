@@ -171,8 +171,8 @@ AlbumEntry.kt          Navigation 3 entry registration for AlbumKey
 ## 10. Security and privacy
 
 - Access tokens never in logs, crash output, screenshots, or test fixtures.
-- Tokens stored encrypted (Android Keystore-backed; library choice per ADR), not in plain DataStore.
-- Cleartext HTTP only for LAN/Tailscale addresses the user explicitly adds (network security config); HTTPS otherwise.
+- Tokens stored encrypted with an Android Keystore AES-GCM key (ADR 0013), not in plain DataStore. App backup is off.
+- Cleartext HTTP only to LAN/Tailscale IPs, enforced on every connection by `CleartextPolicyInterceptor` in `:core:network` (ADR 0013; network security config cannot express IP ranges); HTTPS otherwise. Every HTTP stack (OkHttp, Media3) must go through it.
 - No telemetry. Logs stay on device.
 
 ## 11. Conventions

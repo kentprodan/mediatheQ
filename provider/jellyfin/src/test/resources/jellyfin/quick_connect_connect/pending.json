@@ -1,0 +1,10 @@
+{
+  "Authenticated": false,
+  "Secret": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+  "Code": "123456",
+  "DeviceId": "test-device-id",
+  "DeviceName": "Test Device",
+  "AppName": "mediatheQ",
+  "AppVersion": "0.1.0",
+  "DateAdded": "2026-10-19T03:43:11.3799432Z"
+}
