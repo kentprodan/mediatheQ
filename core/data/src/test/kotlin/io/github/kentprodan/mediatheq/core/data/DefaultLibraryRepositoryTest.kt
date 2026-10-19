@@ -27,7 +27,7 @@ class DefaultLibraryRepositoryTest {
                 TrackStaging(TrackEntity("s", "t$i", title, title))
             },
         )
-        database.syncDao().swap(finishedAtMillis = 1)
+        database.syncDao().swap(1, "s", "user-1")
     }
 
     @Test

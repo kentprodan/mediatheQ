@@ -4,6 +4,7 @@ import androidx.room3.Dao
 import androidx.room3.Embedded
 import androidx.room3.Query
 import androidx.room3.Relation
+import androidx.room3.Transaction
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
@@ -13,6 +14,8 @@ import kotlinx.coroutines.flow.Flow
 /** Reads of the live library. Screens add their own queries in their issues. */
 @Dao
 interface LibraryDao {
+    /** @Transaction: albums and their artists come from one snapshot, never from both sides of a swap. */
+    @Transaction
     @Query("SELECT * FROM album ORDER BY sort_name, id")
     fun albums(): Flow<List<AlbumWithArtists>>
 

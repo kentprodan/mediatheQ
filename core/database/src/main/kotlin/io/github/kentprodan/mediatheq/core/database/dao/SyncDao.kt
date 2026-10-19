@@ -67,9 +67,13 @@ interface SyncDao {
         saveState(checkpoint)
     }
 
-    /** Replaces the live library with the staged one and records the finished sync. Safe to run twice. */
+    /** Replaces the live library with the staged one and records the finished sync and its owner. */
     @Transaction
-    suspend fun swap(finishedAtMillis: Long) {
+    suspend fun swap(
+        finishedAtMillis: Long,
+        ownerServerId: String,
+        ownerUserId: String,
+    ) {
         replaceArtists()
         copyArtists()
         replaceAlbums()
@@ -87,14 +91,15 @@ interface SyncDao {
         clearSearch()
         indexSearch()
         clearStaging()
-        saveState(SyncStateEntity(lastFullSyncAtMillis = finishedAtMillis))
+        saveState(SyncStateEntity(0, finishedAtMillis, ownerServerId, ownerUserId))
     }
 
     /** Drops a sync in progress (staging and checkpoint) but keeps the live library. */
     @Transaction
     suspend fun discardStaging() {
         clearStaging()
-        saveState(SyncStateEntity(lastFullSyncAtMillis = state()?.lastFullSyncAtMillis))
+        val state = state()
+        saveState(SyncStateEntity(0, state?.lastFullSyncAtMillis, state?.ownerServerId, state?.ownerUserId))
     }
 
     /** Forgets the whole library: live tables, staging, search index and sync state (sign-out). */
@@ -167,6 +172,18 @@ interface SyncDao {
 
     @Query("INSERT INTO playlist_entry SELECT * FROM playlist_entry_staging")
     suspend fun copyPlaylistEntries()
+
+    @Query("SELECT COUNT(*) FROM artist_staging WHERE is_album_artist")
+    suspend fun stagedAlbumArtistCount(): Int
+
+    @Query("SELECT COUNT(*) FROM album_staging")
+    suspend fun stagedAlbumCount(): Int
+
+    @Query("SELECT COUNT(*) FROM track_staging")
+    suspend fun stagedTrackCount(): Int
+
+    @Query("SELECT COUNT(*) FROM playlist_staging")
+    suspend fun stagedPlaylistCount(): Int
 
     @Query("DELETE FROM search")
     suspend fun clearSearch()

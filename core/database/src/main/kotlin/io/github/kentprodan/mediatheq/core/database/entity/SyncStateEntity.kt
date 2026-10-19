@@ -12,6 +12,9 @@ import androidx.room3.PrimaryKey
 data class SyncStateEntity(
     @PrimaryKey val id: Int = 0,
     @ColumnInfo(name = "last_full_sync_at") val lastFullSyncAtMillis: Long? = null,
+    /** Account the live library belongs to; a different account must never see it. */
+    @ColumnInfo(name = "owner_server_id") val ownerServerId: String? = null,
+    @ColumnInfo(name = "owner_user_id") val ownerUserId: String? = null,
     @ColumnInfo(name = "checkpoint_server_id") val checkpointServerId: String? = null,
     @ColumnInfo(name = "checkpoint_user_id") val checkpointUserId: String? = null,
     @ColumnInfo(name = "checkpoint_started_at") val checkpointStartedAtMillis: Long? = null,

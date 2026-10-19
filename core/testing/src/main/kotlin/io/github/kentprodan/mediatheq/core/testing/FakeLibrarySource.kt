@@ -31,6 +31,12 @@ class FakeLibrarySource : LibrarySource {
     val paused = CompletableDeferred<Unit>()
     val resume = CompletableDeferred<Unit>()
 
+    /** Playlist item id -> error its entries request answers with. */
+    var playlistErrors: Map<String, MqError> = emptyMap()
+
+    /** Listings (e.g. "albums") whose reported total is one more than they return, like an item lost between pages. */
+    var shortListings: Set<String> = emptySet()
+
     override suspend fun albumArtists(
         server: SignedInServer,
         startIndex: Int,
@@ -60,7 +66,11 @@ class FakeLibrarySource : LibrarySource {
         playlistId: MediaId,
         startIndex: Int,
         limit: Int,
-    ) = page("entries:${playlistId.itemId}", entries[playlistId].orEmpty(), startIndex, limit)
+    ): MqResult<LibraryPage<PlaylistEntry>> {
+        val error = playlistErrors[playlistId.itemId]
+        if (error != null) return MqResult.Failure(error).also { calls += "entries:${playlistId.itemId}@$startIndex" }
+        return page("entries:${playlistId.itemId}", entries[playlistId].orEmpty(), startIndex, limit)
+    }
 
     private suspend fun <T> page(
         name: String,
@@ -74,6 +84,7 @@ class FakeLibrarySource : LibrarySource {
             resume.await()
         }
         if (calls.size == failAt) return MqResult.Failure(failure)
-        return MqResult.Success(LibraryPage(all.drop(startIndex).take(limit), all.size))
+        val total = if (name in shortListings) all.size + 1 else all.size
+        return MqResult.Success(LibraryPage(all.drop(startIndex).take(limit), total))
     }
 }

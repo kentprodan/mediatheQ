@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "33b0ed200485273f0b07ed7c9c3d8c58",
+    "identityHash": "ba92bf6d930006b4633887a3133a8658",
     "entities": [
       {
         "tableName": "artist",
@@ -1171,7 +1171,7 @@
       },
       {
         "tableName": "sync_state",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `last_full_sync_at` INTEGER, `checkpoint_server_id` TEXT, `checkpoint_user_id` TEXT, `checkpoint_started_at` INTEGER, `checkpoint_step` TEXT, `checkpoint_index` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `last_full_sync_at` INTEGER, `owner_server_id` TEXT, `owner_user_id` TEXT, `checkpoint_server_id` TEXT, `checkpoint_user_id` TEXT, `checkpoint_started_at` INTEGER, `checkpoint_step` TEXT, `checkpoint_index` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -1183,6 +1183,16 @@
             "fieldPath": "lastFullSyncAtMillis",
             "columnName": "last_full_sync_at",
             "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "ownerServerId",
+            "columnName": "owner_server_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ownerUserId",
+            "columnName": "owner_user_id",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "checkpointServerId",
@@ -1221,7 +1231,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '33b0ed200485273f0b07ed7c9c3d8c58')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ba92bf6d930006b4633887a3133a8658')"
     ]
   }
 }

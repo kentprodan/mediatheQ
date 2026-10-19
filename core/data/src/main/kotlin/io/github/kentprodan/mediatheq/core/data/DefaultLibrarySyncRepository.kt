@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.SyncStateEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
+import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.server.LibraryPage
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
@@ -21,6 +22,7 @@ import io.github.kentprodan.mediatheq.core.server.ServerConnection
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +34,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
@@ -58,6 +61,7 @@ class DefaultLibrarySyncRepository
         override val status: StateFlow<SyncStatus> = mutableStatus.asStateFlow()
 
         private val lock = Mutex()
+        private val restartedSteps = mutableSetOf<SyncStep>()
         private var running: Deferred<MqResult<Unit>>? = null
 
         override suspend fun sync(): MqResult<Unit> = join().await()
@@ -72,11 +76,18 @@ class DefaultLibrarySyncRepository
                         }
                     }.distinctUntilChanged()
                     .collectLatest { signedIn ->
-                        if (signedIn == null) {
-                            wipe()
-                        } else {
-                            mutableStatus.value = SyncStatus.Idle(lastSyncedAt())
-                            if (isDue(signedIn)) sync()
+                        try {
+                            if (signedIn == null) {
+                                wipe()
+                            } else {
+                                // Another account's library must never show, even if a wipe was interrupted.
+                                val owner = syncDao.state()?.let { it.ownerServerId to it.ownerUserId }
+                                if (owner != null && owner.first != null && owner != signedIn) wipe()
+                                mutableStatus.value = SyncStatus.Idle(lastSyncedAt())
+                                if (isDue(signedIn)) sync()
+                            }
+                        } catch (_: SQLiteException) {
+                            mutableStatus.value = SyncStatus.Failed(MqError.Storage, null)
                         }
                     }
             }
@@ -87,12 +98,15 @@ class DefaultLibrarySyncRepository
                 running?.takeIf { it.isActive } ?: scope.async { runSync() }.also { running = it }
             }
 
-        private suspend fun wipe() {
-            lock.withLock { running }?.cancel()
-            running?.join()
-            syncDao.clearAll()
-            mutableStatus.value = SyncStatus.Idle(null)
-        }
+        /** Cancels any sync, then forgets the library. Not cancellable itself: a half-done wipe would leak data. */
+        private suspend fun wipe() =
+            withContext(NonCancellable) {
+                val job = lock.withLock { running }
+                job?.cancel()
+                job?.join()
+                syncDao.clearAll()
+                mutableStatus.value = SyncStatus.Idle(null)
+            }
 
         /** Due when never synced, when an interrupted sync can resume, or when the last one is over a day old. */
         internal suspend fun isDue(signedIn: Pair<String, String>): Boolean {
@@ -106,36 +120,46 @@ class DefaultLibrarySyncRepository
             syncDao.state()?.lastFullSyncAtMillis?.let(Instant::fromEpochMilliseconds)
 
         private suspend fun runSync(): MqResult<Unit> {
+            // Signed out meanwhile: nothing to sync, and not a session expiry.
             val account =
                 (accountStore.account.first() as? MqResult.Success)?.value
                     ?: return MqResult.Failure(MqError.Unauthorized)
-            val server =
-                SignedInServer(
-                    ServerConnection(account.baseUrl, accountStore.deviceId(), account.accessToken),
-                    account.serverId,
-                    account.userId,
-                )
             val result =
                 try {
-                    fetchAll(server)
+                    fetchAll(signedIn(account))
                 } catch (_: SQLiteException) {
                     MqResult.Failure(MqError.Storage)
                 }
             mutableStatus.value =
-                when (result) {
-                    is MqResult.Success -> SyncStatus.Idle(lastSyncedAt())
-                    is MqResult.Failure -> SyncStatus.Failed(result.error, lastSyncedAt())
+                try {
+                    when (result) {
+                        is MqResult.Success -> SyncStatus.Idle(lastSyncedAt())
+                        is MqResult.Failure -> SyncStatus.Failed(result.error, lastSyncedAt())
+                    }
+                } catch (_: SQLiteException) {
+                    SyncStatus.Failed(MqError.Storage, null)
                 }
-            if ((result as? MqResult.Failure)?.error == MqError.Unauthorized) sessionRepository.onUnauthorized()
+            if ((result as? MqResult.Failure)?.error == MqError.Unauthorized) {
+                // Signing out wipes, which cancels this sync; the expiry notice must still be recorded.
+                withContext(NonCancellable) { sessionRepository.onUnauthorized() }
+            }
             return result
         }
+
+        private suspend fun signedIn(account: StoredAccount) =
+            SignedInServer(
+                ServerConnection(account.baseUrl, accountStore.deviceId(), account.accessToken),
+                account.serverId,
+                account.userId,
+            )
 
         private suspend fun fetchAll(server: SignedInServer): MqResult<Unit> {
             val account = server.serverId.value to server.userId
             var state = syncDao.state() ?: SyncStateEntity()
             val now = clock.now().toEpochMilliseconds()
+            restartedSteps.clear()
             val resumable =
-                state.checkpointStep != null &&
+                SyncStep.entries.any { it.name == state.checkpointStep } &&
                     state.belongsTo(account) &&
                     now - (state.checkpointStartedAtMillis ?: 0) < RESUME_WINDOW.inWholeMilliseconds
             if (!resumable) {
@@ -151,7 +175,7 @@ class DefaultLibrarySyncRepository
                     )
                 syncDao.saveState(state)
             }
-            var step = SyncStep.valueOf(state.checkpointStep!!)
+            var step = SyncStep.entries.first { it.name == state.checkpointStep }
             var index = state.checkpointIndex
             while (true) {
                 when (val next = fetchPage(server, state, step, index)) {
@@ -166,7 +190,7 @@ class DefaultLibrarySyncRepository
                     }
                 }
             }
-            syncDao.swap(finishedAtMillis = clock.now().toEpochMilliseconds())
+            syncDao.swap(clock.now().toEpochMilliseconds(), account.first, account.second)
             return MqResult.Success(Unit)
         }
 
@@ -227,10 +251,50 @@ class DefaultLibrarySyncRepository
                     is MqResult.Success -> page.value
                 }
             val nextIndex = index + PAGE_SIZE
-            val next = if (nextIndex < value.totalCount && value.items.isNotEmpty()) step to nextIndex else step.next()
+            var next = if (nextIndex < value.totalCount && value.items.isNotEmpty()) step to nextIndex else step.next()
             syncDao.stagePage(state.at(next)) { write(value.items) }
+            if (next.first != step && stagedCount(step) < value.totalCount && restartedSteps.add(step)) {
+                // Offsets shifted (an item added or removed mid-sync) and one slipped between pages: fetch it again.
+                next = step to 0
+                syncDao.stagePage(state.at(next)) { clearStaging(step) }
+            }
             mutableStatus.value = SyncStatus.Running(step, minOf(nextIndex, value.totalCount), value.totalCount)
             return MqResult.Success(next)
+        }
+
+        private suspend fun stagedCount(step: SyncStep): Int =
+            when (step) {
+                SyncStep.AlbumArtists -> syncDao.stagedAlbumArtistCount()
+                SyncStep.Albums -> syncDao.stagedAlbumCount()
+                SyncStep.Tracks -> syncDao.stagedTrackCount()
+                SyncStep.Playlists -> syncDao.stagedPlaylistCount()
+                SyncStep.PlaylistEntries -> Int.MAX_VALUE
+            }
+
+        private suspend fun SyncDao.clearStaging(step: SyncStep) {
+            when (step) {
+                SyncStep.AlbumArtists -> {
+                    clearArtistStaging()
+                }
+
+                SyncStep.Albums -> {
+                    clearAlbumStaging()
+                    clearAlbumArtistStaging()
+                }
+
+                SyncStep.Tracks -> {
+                    clearTrackStaging()
+                    clearTrackArtistStaging()
+                }
+
+                SyncStep.Playlists -> {
+                    clearPlaylistStaging()
+                }
+
+                SyncStep.PlaylistEntries -> {
+                    clearPlaylistEntryStaging()
+                }
+            }
         }
 
         /** Fetches every entry of the playlist at [playlistIndex] and stages them as one checkpointed unit. */
@@ -241,15 +305,18 @@ class DefaultLibrarySyncRepository
         ): MqResult<Pair<SyncStep, Int>?> {
             val playlistIds = syncDao.stagedPlaylistIds()
             val playlistId = playlistIds.getOrNull(playlistIndex)?.let { MediaId(server.serverId, it) }
-            if (playlistId == null) {
-                syncDao.saveState(state.at(null))
-                return MqResult.Success(null)
-            }
+            // Done: the checkpoint stays until the swap, so a failed swap resumes instead of fetching everything again.
+            if (playlistId == null) return MqResult.Success(null)
             val entries = mutableListOf<PlaylistEntryStaging>()
             var start = 0
             do {
                 val page = librarySource.playlistEntries(server, playlistId, start, PAGE_SIZE)
-                if (page is MqResult.Failure) return page
+                if (page is MqResult.Failure) {
+                    // Deleted or hidden since the playlist list was read: keep it without entries, never block the sync.
+                    if (page.error != MqError.NotFound && page.error != MqError.Forbidden) return page
+                    entries.clear()
+                    break
+                }
                 val value = (page as MqResult.Success).value
                 value.items.forEachIndexed { i, entry ->
                     entries +=

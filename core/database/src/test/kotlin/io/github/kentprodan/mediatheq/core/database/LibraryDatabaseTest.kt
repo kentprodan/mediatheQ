@@ -105,7 +105,7 @@ class LibraryDatabaseTest {
                 stageLibrary()
                 expectNoEvents()
 
-                syncDao.swap(finishedAtMillis = 42)
+                syncDao.swap(42, "s", "user-1")
                 val albums = awaitItem()
                 assertThat(albums.single().album).isEqualTo(album)
                 assertThat(
@@ -123,7 +123,7 @@ class LibraryDatabaseTest {
         runTest {
             stageLibrary()
 
-            syncDao.swap(finishedAtMillis = 42)
+            syncDao.swap(42, "s", "user-1")
 
             assertThat(
                 libraryDao
@@ -143,10 +143,10 @@ class LibraryDatabaseTest {
     fun `the swap removes what the new sync no longer has and empties staging`() =
         runTest {
             stageLibrary(albums = listOf(album, album.copy(id = "al2", title = "Gone", sortName = "Gone")))
-            syncDao.swap(finishedAtMillis = 1)
+            syncDao.swap(1, "s", "user-1")
 
             stageLibrary()
-            syncDao.swap(finishedAtMillis = 2)
+            syncDao.swap(2, "s", "user-1")
 
             assertThat(libraryDao.albums().first().map { it.album.id }).containsExactly("al1")
             assertThat(database.rows("SELECT COUNT(*) FROM album_staging")).containsExactly(listOf("0"))
@@ -161,18 +161,18 @@ class LibraryDatabaseTest {
             )
             stageLibrary()
 
-            syncDao.swap(finishedAtMillis = 42)
+            syncDao.swap(42, "s", "user-1")
 
-            assertThat(syncDao.state()).isEqualTo(SyncStateEntity(lastFullSyncAtMillis = 42))
+            assertThat(syncDao.state()).isEqualTo(SyncStateEntity(0, 42, "s", "user-1"))
         }
 
     @Test
     fun `running the swap twice is harmless`() =
         runTest {
             stageLibrary()
-            syncDao.swap(finishedAtMillis = 1)
+            syncDao.swap(1, "s", "user-1")
 
-            syncDao.swap(finishedAtMillis = 2)
+            syncDao.swap(2, "s", "user-1")
 
             // Staging was empty the second time, so the library is replaced by nothing - callers only swap after a
             // complete sync, and a crash mid-swap rolls the whole transaction back.
@@ -184,7 +184,7 @@ class LibraryDatabaseTest {
     fun `discarding staging keeps the live library and the last sync time`() =
         runTest {
             stageLibrary()
-            syncDao.swap(finishedAtMillis = 42)
+            syncDao.swap(42, "s", "user-1")
             stageLibrary(albums = listOf(album.copy(title = "Half")))
             syncDao.saveState(SyncStateEntity(lastFullSyncAtMillis = 42, checkpointStep = "ALBUMS"))
 
@@ -248,7 +248,7 @@ class LibraryDatabaseTest {
                         track.copy(id = "t4", title = "Beyoncé"),
                     ),
             )
-            syncDao.swap(finishedAtMillis = 1)
+            syncDao.swap(1, "s", "user-1")
 
             assertThat(libraryDao.search("mosoi", 10).map { it.itemId }).containsExactly("t1", "t2")
             assertThat(libraryDao.search("tara", 10).map { it.itemId }).containsExactly("t3")
@@ -262,7 +262,7 @@ class LibraryDatabaseTest {
             stageLibrary(
                 artists = listOf(artist, artist.copy(id = "ar2", name = "Subcarpați Feat", isAlbumArtist = false)),
             )
-            syncDao.swap(finishedAtMillis = 1)
+            syncDao.swap(1, "s", "user-1")
 
             assertThat(
                 libraryDao.search("subcarpati", 10).map { it.kind to it.itemId },
@@ -276,7 +276,7 @@ class LibraryDatabaseTest {
     fun `clearAll empties the library, staging, search and sync state`() =
         runTest {
             stageLibrary()
-            syncDao.swap(finishedAtMillis = 1)
+            syncDao.swap(1, "s", "user-1")
             stageLibrary()
 
             syncDao.clearAll()
