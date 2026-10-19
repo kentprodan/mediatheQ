@@ -12,6 +12,7 @@ android {
         applicationId = "io.github.kentprodan.mediatheq"
         versionCode = 1
         versionName = "0.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 }
 
@@ -34,6 +35,10 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     testImplementation(projects.core.testing)
     testImplementation(projects.core.ui)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.androidx.media3.session)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
 }

@@ -114,7 +114,7 @@ class JellyfinPlaybackSourceTest {
         }
 
     @Test
-    fun `metered network gets the 256 kbps Opus transcode, unseekable, token stripped`() =
+    fun `R10 R11 R12 metered network gets the 256 kbps Opus transcode, unseekable, token stripped`() =
         runTest {
             enqueue("items_playbackinfo/transcode.json")
 
@@ -142,7 +142,7 @@ class JellyfinPlaybackSourceTest {
     }
 
     @Test
-    fun `token parameters are removed in any spelling`() {
+    fun `R10 token parameters are removed in any spelling`() {
         assertThat(withoutApiKey("/a?x=1&ApiKey=t&api_key=t&APIKEY=t&y=2")).isEqualTo("/a?x=1&y=2")
         assertThat(withoutApiKey("/a?ApiKey=t")).isEqualTo("/a")
         assertThat(withoutApiKey("/a")).isEqualTo("/a")
