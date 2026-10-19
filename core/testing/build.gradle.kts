@@ -11,7 +11,7 @@ dependencies {
     api(projects.core.data)
     api(projects.core.datastore)
     api(projects.core.server)
-    implementation(libs.androidx.datastore.preferences)
+    api(libs.androidx.datastore.preferences)
     api(libs.junit)
     api(libs.truth)
     api(libs.kotlinx.coroutines.test)
