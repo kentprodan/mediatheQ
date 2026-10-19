@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -28,6 +29,8 @@ fun MqLoadingIndicator(
     modifier: Modifier = Modifier,
     delayMillis: Long = DEFAULT_DELAY_MILLIS,
 ) {
+    // Previews and screenshot tests show the indicator at once instead of an empty frame.
+    val delayMillis = if (LocalInspectionMode.current) 0 else delayMillis
     var visible by remember(delayMillis) { mutableStateOf(delayMillis <= 0) }
     LaunchedEffect(delayMillis) {
         delay(delayMillis)

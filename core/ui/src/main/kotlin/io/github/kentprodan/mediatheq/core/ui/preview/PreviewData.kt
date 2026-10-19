@@ -1,8 +1,11 @@
 package io.github.kentprodan.mediatheq.core.ui.preview
 
+import io.github.kentprodan.mediatheq.core.designsystem.preview.PREVIEW_BLUR_HASH
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlin.time.Duration.Companion.minutes
@@ -40,6 +43,11 @@ object PreviewData {
             year = 2024,
             trackCount = 11,
         )
+
+    /** An image reference with a BlurHash; previews have no image loader, so the BlurHash is what shows. */
+    val artwork = Artwork("album-1", "preview-tag", PREVIEW_BLUR_HASH)
+
+    val playlist = Playlist(MediaId(server, "playlist-1"), "Road Trip", trackCount = 24, artwork = artwork)
 
     val longAlbum =
         album.copy(

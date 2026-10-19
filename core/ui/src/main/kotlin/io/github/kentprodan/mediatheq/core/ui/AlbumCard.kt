@@ -19,8 +19,8 @@ fun AlbumCard(
     album: Album,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    coverModel: Any? = null,
-    coverBlurHash: String? = null,
+    coverModel: Any? = album.artwork,
+    coverBlurHash: String? = album.artwork?.blurHash,
 ) {
     Column(
         modifier

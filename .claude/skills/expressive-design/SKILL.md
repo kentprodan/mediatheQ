@@ -128,7 +128,9 @@ fun MediatheqTheme(
 | Player transport controls | `ButtonGroup` with large icon buttons | Play/Pause is the largest, morphs round -> squarish. |
 | Context actions on long-press | Expressive `DropdownMenu` or `ModalBottomSheet` | Sheet for > 5 actions. |
 | Search | `SearchBar` with `SearchBarState` | Docked on Search tab, results below. |
-| Filters (Library: Albums/Artists/Playlists/Songs) | `FilterChip` row or connected `ButtonGroup` | Pick one per ADR, use everywhere. |
+| Filters (Library: Albums/Artists/Playlists/Songs) | `MqFilterBar`: `FilterChip` row (default) or connected `ToggleButton` row | User setting, ADR 0014. Chips scroll and fit at fontScale 2.0; connected buttons share the width and ellipsize. |
+| Library top bar | `TopAppBar` (pinned) + sort and grid `DropdownMenu`s (`SelectableDropdownMenuItem`) | Sort per tab, columns on Albums only, filter style. |
+| Artist / playlist rows | `ArtistRow` (round picture), `PlaylistRow` (cover + track count) in `:core:ui` | Shared `CoverRow`. Songs use `TrackRow(showCover = true)`. |
 | Initial loading | `MqLoadingIndicator` (wraps `LoadingIndicator`, experimental) | Centered, only for full-screen loads > 300 ms. |
 | Download progress | `LinearWavyProgressIndicator` / `CircularWavyProgressIndicator` | Determinate when size known. |
 | Playback seek bar | `Slider` (stateful) | Waveform scrubber is a later feature - keep seek bar behind `MqSeekBar`. |

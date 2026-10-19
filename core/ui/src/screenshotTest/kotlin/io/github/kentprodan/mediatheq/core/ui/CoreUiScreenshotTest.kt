@@ -62,4 +62,23 @@ fun AlbumCardScreenshot() {
     }
 }
 
+/** Library rows: artist with and without picture, playlist with cover and count, track with its cover. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryRowsScreenshot() {
+    MediatheqTheme {
+        Surface {
+            Column {
+                ArtistRow(PreviewData.artist.copy(artwork = PreviewData.artwork), onClick = {})
+                ArtistRow(PreviewData.longTrack.artists[1], onClick = {})
+                PlaylistRow(PreviewData.playlist, onClick = {})
+                PlaylistRow(PreviewData.playlist.copy(name = "Empty", trackCount = 1, artwork = null), onClick = {})
+                TrackRow(PreviewData.track.copy(artwork = PreviewData.artwork), {}, {}, showCover = true)
+                TrackRow(PreviewData.longTrack, {}, {}, showCover = true)
+            }
+        }
+    }
+}
+
 private val CardWidth = 112.dp
