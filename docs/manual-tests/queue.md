@@ -19,7 +19,7 @@ Items are added by `/end` and run with `/test`.
 
 ## #7 Connect to Jellyfin and log in (password + Quick Connect)
 - [ ] Pixel 9 on home Wi-Fi: fresh install, enter `192.168.178.34:8096` -> "Sign in to trueNAS"; wrong password -> "Wrong username or password."; right password -> the tab shell opens
-- [ ] Pixel 9 on mobile data with Tailscale on: fresh install, enter the server's Tailscale address (100.x or MagicDNS name) with port 8096 -> sign-in works over http
+- [x] Pixel 9 on mobile data with Tailscale on: fresh install, enter the server's Tailscale address (100.x or MagicDNS name) with port 8096 -> sign-in works over http - passed 2026-10-19
 - [ ] Pixel 9: Sign in -> "Use Quick Connect" -> approve the code from the Jellyfin web UI (Settings -> Quick Connect) -> the tab shell opens within ~5 s
 - [ ] Pixel 9: Home -> "Log out" -> back at "Welcome to mediatheQ"; Jellyfin dashboard -> Devices no longer shows an active session for the phone
 - [ ] Pixel 9: sign in, force-stop the app, reopen -> goes straight to the tab shell (token read back and decrypted)
@@ -48,12 +48,13 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9 (after #12): Play starts track 1, tapping a track starts there, Shuffle does not always start at track 1
 
 ## #12 Playback core: MediaLibraryService, PlaybackConnection, stream selection, reporting
-- [ ] Pixel 9 on home Wi-Fi: open a FLAC album -> Play -> music plays; Jellyfin dashboard -> Activity/Sessions shows "Direct playing" for the phone
-- [ ] Pixel 9 on mobile data (Tailscale on): play a FLAC track -> Jellyfin shows "Transcoding" to Opus ~256 kbps; `adb shell dumpsys connectivity | findstr METERED` shows the active network is metered (if Tailscale makes it look unmetered, note it in issue #12)
-- [ ] Pixel 9 on mobile data: Opus/Ogg plays without errors (ADR 0016 device check); seeking is not possible yet (expected)
-- [ ] Pixel 9: notification shows the track with cover; play/pause, next and previous work from the notification and the lock screen
+- [x] Pixel 9 on home Wi-Fi: open a FLAC album -> Play -> music plays; Jellyfin dashboard -> Activity/Sessions shows "Direct playing" for the phone - passed 2026-10-19
+- [x] Pixel 9 on mobile data (Tailscale on): play a FLAC track -> Jellyfin shows "Transcoding" to Opus ~256 kbps; `adb shell dumpsys connectivity | findstr METERED` shows the active network is metered (if Tailscale makes it look unmetered, note it in issue #12) - passed 2026-10-19
+- [x] Pixel 9 on mobile data: Opus/Ogg plays without errors (ADR 0016 device check); seeking is not possible yet (expected) - passed 2026-10-19
+- [x] Pixel 9: notification shows the track with cover; play/pause, next and previous work from the notification - passed 2026-10-19
+- [ ] Pixel 9: the same controls work from the lock screen (owner: run once the in-app player from #13 exists)
 - [ ] Pixel 9: unplug wired headphones (or disconnect Bluetooth) while playing -> playback pauses; a phone call -> music pauses and resumes after
-- [ ] Pixel 9: tapping the notification opens the app
+- [x] Pixel 9: tapping the notification opens the app - passed 2026-10-19
 - [ ] Pixel 9: Jellyfin dashboard shows the playing track, its progress moving, and it disappears when playback stops (Stopped reported, transcode ended)
 - [ ] Pixel 9: `.\gradlew.bat :app:connectedDebugAndroidTest` -> PlaybackServiceTest passes (service starts, controller connects)
 - [ ] Pixel 9: Home -> Log out while music plays -> playback stops
