@@ -1,0 +1,41 @@
+package io.github.kentprodan.mediatheq
+
+import android.content.Context
+import android.os.Build
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
+import io.github.kentprodan.mediatheq.core.common.IoDispatcher
+import io.github.kentprodan.mediatheq.core.server.ClientInfo
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+
+@Module
+@InstallIn(SingletonComponent::class)
+object AppModule {
+    @Provides
+    @IoDispatcher
+    fun ioDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    @Provides
+    @DefaultDispatcher
+    fun defaultDispatcher(): CoroutineDispatcher = Dispatchers.Default
+
+    /** How the app introduces itself to servers: name, phone model, version. */
+    @Provides
+    fun clientInfo(
+        @ApplicationContext context: Context,
+    ): ClientInfo =
+        ClientInfo(
+            client = "mediatheQ",
+            device = Build.MODEL,
+            version =
+                context.packageManager
+                    .getPackageInfo(context.packageName, 0)
+                    .versionName
+                    .orEmpty(),
+        )
+}

@@ -38,4 +38,4 @@ internal fun authorizationHeader(
     return "MediaBrowser " + parts.joinToString(", ") { (key, value) -> "$key=\"${encode(value)}\"" }
 }
 
-private fun encode(value: String) = URLEncoder.encode(value, Charsets.UTF_8).replace("+", "%20")
+private fun encode(value: String) = URLEncoder.encode(value, "UTF-8").replace("+", "%20")

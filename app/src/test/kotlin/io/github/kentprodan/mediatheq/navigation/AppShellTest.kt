@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import org.junit.Rule
 import org.junit.Test
@@ -24,10 +25,10 @@ class AppShellTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @Composable
-    private fun Shell() {
+    private fun Shell(onLogout: () -> Unit = {}) {
         MediatheqTheme {
             val navigator = rememberTabNavigator()
-            AppShell(navigator, remember(navigator) { placeholderEntries(navigator) })
+            AppShell(navigator, remember(navigator) { placeholderEntries(navigator, onLogout) })
         }
     }
 
@@ -88,5 +89,15 @@ class AppShellTest {
 
         composeRule.onNodeWithText("Library 1").assertExists()
         composeRule.onNodeWithText("Library").assertIsSelected()
+    }
+
+    @Test
+    fun `Log out on Home calls the logout action`() {
+        var loggedOut = false
+        composeRule.setContent { Shell(onLogout = { loggedOut = true }) }
+
+        composeRule.onNodeWithText("Log out").performClick()
+
+        assertThat(loggedOut).isTrue()
     }
 }

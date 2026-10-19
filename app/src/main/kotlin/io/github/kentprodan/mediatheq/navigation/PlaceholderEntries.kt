@@ -1,6 +1,11 @@
 package io.github.kentprodan.mediatheq.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -28,10 +33,17 @@ data class PlaceholderDetailKey(
 data object ThemeShowcaseKey : NavKey
 
 /** Entries for the tab roots and placeholder pages; real features replace them one by one. */
-fun placeholderEntries(navigator: Navigator): (NavKey) -> NavEntry<NavKey> =
+fun placeholderEntries(
+    navigator: Navigator,
+    onLogout: () -> Unit = {},
+): (NavKey) -> NavEntry<NavKey> =
     entryProvider {
         entry<HomeKey> {
-            Placeholder("Home", "Open theme showcase") { navigator.navigateTo(ThemeShowcaseKey) }
+            Box {
+                Placeholder("Home", "Open theme showcase") { navigator.navigateTo(ThemeShowcaseKey) }
+                // shortcut: logout lives here until the Settings screen exists (#25).
+                TextButton(onClick = onLogout, Modifier.align(Alignment.BottomCenter)) { Text("Log out") }
+            }
         }
         entry<LibraryKey> { PlaceholderRoot("Library", navigator) }
         entry<SearchKey> { PlaceholderRoot("Search", navigator) }
