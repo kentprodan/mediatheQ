@@ -328,4 +328,37 @@ class LibraryDatabaseTest {
                 row.credits.sortedBy { it.link.position }.map { it.artist?.id },
             ).containsExactly("ar1", null).inOrder()
         }
+
+    @Test
+    fun `one album by its full id, null when unknown or on another server`() =
+        runTest {
+            stageLibrary()
+            syncDao.swap(1, "s", "user-1")
+
+            assertThat(libraryDao.album("s", "al1").first()?.album).isEqualTo(album)
+            assertThat(libraryDao.album("s", "nope").first()).isNull()
+            assertThat(libraryDao.album("other", "al1").first()).isNull()
+        }
+
+    @Test
+    fun `album tracks come in play order with credits, only from that server and album`() =
+        runTest {
+            stageLibrary(
+                tracks =
+                    listOf(
+                        track.copy(id = "d2t1", discNumber = 2, trackNumber = 1, title = "B"),
+                        track.copy(id = "d1t2", discNumber = 1, trackNumber = 2),
+                        track.copy(id = "d1-none", discNumber = 1, trackNumber = null, sortName = "Z"),
+                        track.copy(id = "nodisc-t1", discNumber = null, trackNumber = 1),
+                        track.copy(id = "other-album", albumId = "al2"),
+                    ),
+            )
+            syncDao.stageTracks(listOf(TrackStaging(track.copy(serverId = "other", id = "foreign"))))
+            syncDao.swap(1, "s", "user-1")
+
+            val rows = libraryDao.albumTracks("s", "al1").first()
+
+            assertThat(rows.map { it.track.id }).containsExactly("nodisc-t1", "d1t2", "d1-none", "d2t1").inOrder()
+            assertThat(rows.first().credits.map { it.artist?.id }).containsExactly("ar1")
+        }
 }

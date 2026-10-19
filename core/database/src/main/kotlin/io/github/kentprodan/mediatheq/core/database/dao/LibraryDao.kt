@@ -34,6 +34,31 @@ interface LibraryDao {
     @Query("SELECT * FROM track ORDER BY sort_name, id")
     fun tracks(): Flow<List<TrackWithArtists>>
 
+    /** One album with its credits, `null` when it is not in the library. */
+    @Transaction
+    @Query("SELECT * FROM album WHERE server_id = :serverId AND id = :albumId")
+    fun album(
+        serverId: String,
+        albumId: String,
+    ): Flow<AlbumWithArtists?>
+
+    /**
+     * The tracks of one album in play order: disc (unknown = 1), then track number (unknown last), then name.
+     * shortcut: no index on track.album_id (it would need a migration); a scan of < 10k rows is fast. Add one with the
+     * first schema change.
+     */
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM track WHERE server_id = :serverId AND album_id = :albumId
+        ORDER BY COALESCE(disc_number, 1), track_number IS NULL, track_number, sort_name, id
+        """,
+    )
+    fun albumTracks(
+        serverId: String,
+        albumId: String,
+    ): Flow<List<TrackWithArtists>>
+
     /** [match] must already be a safe FTS5 expression (see `ftsMatchExpression` in `:core:data`). */
     @Query("SELECT * FROM search WHERE search MATCH :match ORDER BY rank LIMIT :limit")
     suspend fun search(

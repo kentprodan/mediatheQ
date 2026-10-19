@@ -19,6 +19,12 @@ class DefaultLibraryRepository
     ) : LibraryRepository {
         override fun albums(): Flow<List<Album>> = libraryDao.albums().map { rows -> rows.map { it.toDomain() } }
 
+        override fun album(id: MediaId): Flow<Album?> =
+            libraryDao.album(id.serverId.value, id.itemId).map { it?.toDomain() }
+
+        override fun albumTracks(albumId: MediaId): Flow<List<Track>> =
+            libraryDao.albumTracks(albumId.serverId.value, albumId.itemId).map { rows -> rows.map { it.toDomain() } }
+
         override fun albumArtists(): Flow<List<Artist>> =
             libraryDao.albumArtists().map { rows -> rows.map { it.toDomain() } }
 
