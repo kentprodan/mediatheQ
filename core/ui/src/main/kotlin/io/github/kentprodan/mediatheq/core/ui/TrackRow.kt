@@ -11,8 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -20,6 +23,8 @@ import io.github.kentprodan.mediatheq.core.model.Track
 /**
  * One track in a list: optional track number or cover, title, artists, duration and an overflow button.
  * TalkBack reads the row as one item ("title, artists, duration"); the overflow button stays separately focusable.
+ * The playing track ([isCurrent]) shows an equalizer icon instead of its number or cover, a primary-colored title and
+ * "Now playing" for TalkBack, so color is never the only signal.
  */
 @Composable
 fun TrackRow(
@@ -30,13 +35,30 @@ fun TrackRow(
     showCover: Boolean = false,
     /** The overflow menu; no button when `null` (nothing to offer yet). */
     onMoreClick: (() -> Unit)? = null,
+    isCurrent: Boolean = false,
 ) {
     val trackNumber = track.trackNumber.takeIf { showTrackNumber && !showCover }
+    val nowPlaying = stringResource(R.string.core_ui_now_playing)
     ListItem(
         onClick = onClick,
-        modifier = modifier,
+        modifier = if (isCurrent) modifier.semantics { stateDescription = nowPlaying } else modifier,
         leadingContent =
-            if (showCover) {
+            if (isCurrent && trackNumber != null) {
+                {
+                    // Sized like the two-digit number cell, so the titles stay aligned.
+                    Box(Modifier.clearAndSetSemantics {}) {
+                        Text("00", Modifier.alpha(0f), style = MaterialTheme.typography.bodyMedium)
+                        Icon(
+                            MqIcons.GraphicEq,
+                            null,
+                            Modifier.matchParentSize(),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            } else if (isCurrent && showCover) {
+                { Icon(MqIcons.GraphicEq, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+            } else if (showCover) {
                 { RowCover(track.artwork, MqIcons.MusicNote) }
             } else {
                 trackNumber?.let {
@@ -70,6 +92,11 @@ fun TrackRow(
             }
         },
     ) {
-        Text(track.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            track.title,
+            color = if (isCurrent) MaterialTheme.colorScheme.primary else Color.Unspecified,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }

@@ -121,7 +121,11 @@ fun AlbumScreen(
                         if (state.showDiscHeaders) item(key = "disc-${disc.number}") { DiscHeader(disc.number) }
                         items(disc.tracks, key = { it.id.toString() }) { track ->
                             // The track menu (no button yet) comes with the queue and playlist actions (#14, #16).
-                            TrackRow(track, onClick = { onAction(AlbumAction.PlayTrack(track.id)) })
+                            TrackRow(
+                                track,
+                                onClick = { onAction(AlbumAction.PlayTrack(track.id)) },
+                                isCurrent = track.id == state.currentTrackId,
+                            )
                         }
                     }
                 }

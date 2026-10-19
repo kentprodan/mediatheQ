@@ -5,6 +5,8 @@ import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
+import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
@@ -133,5 +135,22 @@ class AlbumViewModelTest {
 
             assertThat((viewModel.uiState.value as AlbumUiState.Content).trackCount).isEqualTo(0)
             assertThat(playback.plays).isEmpty()
+        }
+
+    @Test
+    fun `the playing track follows the player`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albums.value = listOf(album)
+            library.tracks.value = disc1 + disc2
+            val viewModel = viewModel()
+            assertThat((viewModel.uiState.value as AlbumUiState.Content).currentTrackId).isNull()
+
+            playback.state.value = PlayerUiModel(item = NowPlayingItem(disc2.first().id, "d2t1", ""), queueSize = 3)
+
+            assertThat((viewModel.uiState.value as AlbumUiState.Content).currentTrackId).isEqualTo(disc2.first().id)
+
+            playback.state.value = PlayerUiModel()
+
+            assertThat((viewModel.uiState.value as AlbumUiState.Content).currentTrackId).isNull()
         }
 }

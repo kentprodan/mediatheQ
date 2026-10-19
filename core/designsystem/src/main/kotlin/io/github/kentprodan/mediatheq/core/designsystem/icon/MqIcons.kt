@@ -80,6 +80,10 @@ object MqIcons {
     val SkipPreviousFilled: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_skip_previous_filled)
 
+    /** Marks the track that is playing. */
+    val GraphicEq: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_graphic_eq)
+
     val KeyboardArrowDown: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_keyboard_arrow_down)
 

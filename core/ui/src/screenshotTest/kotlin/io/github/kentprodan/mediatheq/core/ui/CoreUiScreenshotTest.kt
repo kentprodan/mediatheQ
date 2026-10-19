@@ -28,6 +28,8 @@ fun TrackRowScreenshot() {
                 TrackRow(PreviewData.track, onClick = {}, onMoreClick = {})
                 TrackRow(PreviewData.longTrack, onClick = {}, onMoreClick = {})
                 TrackRow(PreviewData.track, onClick = {}, onMoreClick = {}, showTrackNumber = false)
+                TrackRow(PreviewData.track, onClick = {}, onMoreClick = {}, isCurrent = true)
+                TrackRow(PreviewData.track, onClick = {}, onMoreClick = {}, showCover = true, isCurrent = true)
             }
         }
     }
