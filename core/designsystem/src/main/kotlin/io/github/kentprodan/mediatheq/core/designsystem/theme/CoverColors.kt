@@ -52,8 +52,9 @@ fun coverColorsOf(pixels: IntArray): CoverColors? =
     }
 
 /**
- * The player scheme for the cover [model] (anything the app's image loader takes) identified by [key]; `null` while it
- * loads, without a cover, or when it has no usable color.
+ * The player scheme for the cover [model] (anything the app's image loader takes) identified by [key]; `null` without a
+ * cover or when it has no usable color. While a new cover loads, the previous one's scheme stays, so colors blend from
+ * cover to cover instead of passing through Iris.
  */
 @Composable
 fun rememberCoverColorScheme(
@@ -63,10 +64,13 @@ fun rememberCoverColorScheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
 ): ColorScheme? {
     val context = LocalContext.current
-    var colors by remember(key) { mutableStateOf(key?.let { cache[it] }) }
+    var loaded by remember { mutableStateOf<CoverColors?>(null) }
     LaunchedEffect(key) {
-        if (key == null || model == null || colors != null) return@LaunchedEffect
-        colors =
+        if (key == null || model == null) {
+            loaded = null
+            return@LaunchedEffect
+        }
+        loaded =
             cache.getOrCompute(key) {
                 val request =
                     ImageRequest
@@ -80,6 +84,7 @@ fun rememberCoverColorScheme(
                 bitmap?.let { withContext(Dispatchers.Default) { coverColorsOf(it.pixels()) } }
             }
     }
+    val colors = if (key == null) null else key.let { cache[it] } ?: loaded
     return colors?.let { if (darkTheme) it.dark else it.light }
 }
 

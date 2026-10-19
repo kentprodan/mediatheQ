@@ -16,7 +16,6 @@ internal fun Player.toPlayerUiModel(): PlayerUiModel {
     val item = current?.toNowPlayingItem()
     return PlayerUiModel(
         item = item,
-        queueSize = mediaItemCount,
         isPlaying = !Util.shouldShowPlayButton(this),
         duration =
             duration.takeIf { it != C.TIME_UNSET }?.milliseconds
@@ -35,7 +34,6 @@ private fun MediaItem.toNowPlayingItem(): NowPlayingItem? {
         id = id,
         title = mediaMetadata.title?.toString().orEmpty(),
         artist = mediaMetadata.artist?.toString().orEmpty(),
-        albumTitle = mediaMetadata.albumTitle?.toString(),
         artwork = mediaMetadata.extras?.toArtwork(),
     )
 }

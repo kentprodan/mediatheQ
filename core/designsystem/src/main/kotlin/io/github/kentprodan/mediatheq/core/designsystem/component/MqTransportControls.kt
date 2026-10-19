@@ -72,7 +72,16 @@ fun MqTransportControls(
                     TransportIcon(MqIcons.SkipPreviousFilled, previousLabel, IconButtonDefaults.mediumIconSize)
                 }
             },
-            menuContent = { DropdownMenuItem(text = { Text(previousLabel) }, onClick = onPrevious) },
+            menuContent = { menu ->
+                DropdownMenuItem(
+                    text = { Text(previousLabel) },
+                    onClick = {
+                        onPrevious()
+                        menu.dismiss()
+                    },
+                    enabled = hasPrevious,
+                )
+            },
         )
         customItem(
             buttonGroupContent = {
@@ -89,7 +98,15 @@ fun MqTransportControls(
                     )
                 }
             },
-            menuContent = { DropdownMenuItem(text = { Text(playPauseLabel) }, onClick = onPlayPause) },
+            menuContent = { menu ->
+                DropdownMenuItem(
+                    text = { Text(playPauseLabel) },
+                    onClick = {
+                        onPlayPause()
+                        menu.dismiss()
+                    },
+                )
+            },
         )
         customItem(
             buttonGroupContent = {
@@ -103,7 +120,16 @@ fun MqTransportControls(
                     TransportIcon(MqIcons.SkipNextFilled, nextLabel, IconButtonDefaults.mediumIconSize)
                 }
             },
-            menuContent = { DropdownMenuItem(text = { Text(nextLabel) }, onClick = onNext) },
+            menuContent = { menu ->
+                DropdownMenuItem(
+                    text = { Text(nextLabel) },
+                    onClick = {
+                        onNext()
+                        menu.dismiss()
+                    },
+                    enabled = hasNext,
+                )
+            },
         )
     }
 }

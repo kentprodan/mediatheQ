@@ -2,19 +2,28 @@ package io.github.kentprodan.mediatheq.feature.nowplaying
 
 import android.app.Application
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeUp
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,11 +55,17 @@ class NowPlayingLayoutTest {
 
     private val miniPlayer = hasText("Strobe") and hasClickAction()
     private val closeButton = "Close player"
+    private val playerPane = SemanticsMatcher.expectValue(SemanticsProperties.PaneTitle, "Now playing")
 
     private fun setContent() {
         composeRule.setContent {
             MediatheqTheme {
-                NowPlayingLayout(state, flowOf(150.seconds), { actions += it }, content = { mini -> Box { mini() } })
+                NowPlayingLayout(state, MutableStateFlow(150.seconds), { actions += it }, content = { mini ->
+                    Column {
+                        Text(SHELL_TEXT)
+                        mini()
+                    }
+                })
             }
         }
     }
@@ -123,7 +138,39 @@ class NowPlayingLayoutTest {
         composeRule.onNode(miniPlayer).assertIsDisplayed()
     }
 
+    @Test
+    fun `swiping the mini player up opens the player, swiping the player down closes it`() {
+        setContent()
+
+        composeRule.onNode(miniPlayer).performTouchInput { swipeUp() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription(closeButton).assertIsDisplayed()
+
+        composeRule.onNode(playerPane).performTouchInput { swipeDown() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription(closeButton).assertDoesNotExist()
+        composeRule.onNode(miniPlayer).assertIsDisplayed()
+    }
+
+    @Test
+    fun `while the player is open, TalkBack cannot reach the shell behind it`() {
+        setContent()
+        composeRule
+            .onNodeWithText(SHELL_TEXT)
+            .assert(!hasAnyAncestor(SemanticsMatcher.keyIsDefined(SemanticsProperties.HideFromAccessibility)))
+
+        composeRule.onNode(miniPlayer).performClick()
+        composeRule.waitForIdle()
+
+        // Still composed (it stays behind), but marked hidden for accessibility services.
+        composeRule
+            .onNodeWithText(SHELL_TEXT)
+            .assert(hasAnyAncestor(SemanticsMatcher.keyIsDefined(SemanticsProperties.HideFromAccessibility)))
+        composeRule.onNode(playerPane).assertExists()
+    }
+
     private companion object {
         const val SETTLE_FRAMES = 180
+        const val SHELL_TEXT = "Shell content"
     }
 }

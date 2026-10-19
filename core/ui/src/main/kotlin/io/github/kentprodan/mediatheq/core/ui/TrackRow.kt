@@ -56,7 +56,7 @@ fun TrackRow(
                         )
                     }
                 }
-            } else if (isCurrent && showCover) {
+            } else if (isCurrent) {
                 { Icon(MqIcons.GraphicEq, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
             } else if (showCover) {
                 { RowCover(track.artwork, MqIcons.MusicNote) }

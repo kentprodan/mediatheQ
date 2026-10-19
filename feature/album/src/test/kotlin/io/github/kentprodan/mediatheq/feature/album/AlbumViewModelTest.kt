@@ -145,7 +145,7 @@ class AlbumViewModelTest {
             val viewModel = viewModel()
             assertThat((viewModel.uiState.value as AlbumUiState.Content).currentTrackId).isNull()
 
-            playback.state.value = PlayerUiModel(item = NowPlayingItem(disc2.first().id, "d2t1", ""), queueSize = 3)
+            playback.state.value = PlayerUiModel(item = NowPlayingItem(disc2.first().id, "d2t1", ""))
 
             assertThat((viewModel.uiState.value as AlbumUiState.Content).currentTrackId).isEqualTo(disc2.first().id)
 

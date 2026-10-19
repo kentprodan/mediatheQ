@@ -1,7 +1,6 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import io.github.kentprodan.mediatheq.core.model.Track
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.Duration
 
@@ -13,8 +12,11 @@ interface PlaybackConnection {
     /** What the player is doing; collecting it connects to the player. */
     val state: StateFlow<PlayerUiModel>
 
-    /** The playing position, sampled a few times a second while playing (so composables never poll). */
-    val position: Flow<Duration>
+    /**
+     * The playing position, sampled a few times a second while playing (so composables never poll); keeps the last
+     * known value, so a screen that opens shows it at once.
+     */
+    val position: StateFlow<Duration>
 
     /**
      * Replaces the queue with [queue] and starts playing it at [startIndex]. With [shuffle] the player turns shuffle on

@@ -27,8 +27,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,8 +59,17 @@ fun NowPlayingScreen(
 ) {
     val colors = MaterialTheme.colorScheme
     // No Surface under the gradient, so set the text and icon color the surface would give.
+    val paneTitle = stringResource(R.string.nowplaying_pane_title)
     CompositionLocalProvider(LocalContentColor provides colors.onSurface) {
-        NowPlayingContent(state, position, onAction, onCollapse, modifier, cover, coverModifier)
+        NowPlayingContent(
+            state,
+            position,
+            onAction,
+            onCollapse,
+            modifier.semantics { this.paneTitle = paneTitle },
+            cover,
+            coverModifier,
+        )
     }
 }
 
@@ -146,16 +157,20 @@ private fun SeekSection(
 internal fun Modifier.swipeDownToCollapse(onCollapse: () -> Unit): Modifier {
     var height by remember { mutableIntStateOf(0) }
     var dragged by remember { mutableFloatStateOf(0f) }
+    val flingVelocity = flingVelocityPx()
     return onSizeChanged { height = it.height }
         .draggable(
             state = rememberDraggableState { dragged += it },
             orientation = Orientation.Vertical,
             onDragStarted = { dragged = 0f },
             onDragStopped = { velocity ->
-                if (velocity > FLING_VELOCITY || dragged > height / 4f) onCollapse()
+                if (velocity > flingVelocity || dragged > height / 4f) onCollapse()
             },
         )
 }
 
-/** Pixels per second that count as a fling. */
-internal const val FLING_VELOCITY = 1_500f
+/** The speed that counts as a fling, in pixels per second (about 600 dp/s on any screen density). */
+@Composable
+internal fun flingVelocityPx(): Float = FLING_DP_PER_SECOND * LocalDensity.current.density
+
+private const val FLING_DP_PER_SECOND = 600f

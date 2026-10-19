@@ -5,17 +5,25 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingLayout
+import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingUiState
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 
 // Plain Application: the shell needs no Hilt graph.
 @RunWith(RobolectricTestRunner::class)
@@ -99,5 +107,29 @@ class AppShellTest {
         composeRule.onNodeWithText("Log out").performClick()
 
         assertThat(loggedOut).isTrue()
+    }
+
+    @Test
+    fun `back closes the open player first and leaves the tab stack alone`() {
+        val playing =
+            NowPlayingUiState.Playing("Strobe", "deadmau5", null, true, 10.minutes, true, true, true)
+        composeRule.setContent {
+            MediatheqTheme {
+                val navigator = rememberTabNavigator()
+                val entries = remember(navigator) { placeholderEntries(navigator, {}) }
+                NowPlayingLayout(playing, MutableStateFlow(Duration.ZERO), {}, content = { mini ->
+                    AppShell(navigator, entries, miniPlayer = mini)
+                })
+            }
+        }
+        openLibraryDetail()
+        composeRule.onNode(hasText("Strobe") and hasClickAction()).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Close player").assertExists()
+
+        pressBack()
+
+        composeRule.onNodeWithContentDescription("Close player").assertDoesNotExist()
+        composeRule.onNodeWithText("Library 1").assertExists()
     }
 }

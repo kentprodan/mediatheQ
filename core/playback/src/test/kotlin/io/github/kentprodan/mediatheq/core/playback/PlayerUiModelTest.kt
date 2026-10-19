@@ -63,8 +63,7 @@ class PlayerUiModelTest {
         val model = player.toPlayerUiModel()
 
         assertThat(model.item)
-            .isEqualTo(NowPlayingItem(MediaId(ServerId("s"), "t1"), "Title t1", "Artist", "Album", artwork))
-        assertThat(model.queueSize).isEqualTo(2)
+            .isEqualTo(NowPlayingItem(MediaId(ServerId("s"), "t1"), "Title t1", "Artist", artwork))
         assertThat(model.hasNext).isTrue()
         assertThat(model.hasPrevious).isTrue()
     }

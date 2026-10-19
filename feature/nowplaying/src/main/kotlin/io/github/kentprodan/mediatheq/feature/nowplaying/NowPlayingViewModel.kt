@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -25,7 +24,7 @@ class NowPlayingViewModel
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), playback.state.value.toUiState())
 
         /** The playing position, sampled by the connection; collect it only where it is drawn. */
-        val position: Flow<Duration> = playback.position
+        val position: StateFlow<Duration> = playback.position
 
         fun onAction(action: NowPlayingAction) {
             when (action) {

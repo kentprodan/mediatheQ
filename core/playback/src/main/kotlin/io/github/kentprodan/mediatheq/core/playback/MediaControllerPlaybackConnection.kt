@@ -71,10 +71,11 @@ internal class MediaControllerPlaybackConnection
                 .flowOn(Dispatchers.Main.immediate)
                 .stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), PlayerUiModel())
 
-        override val position: Flow<Duration> =
+        override val position: StateFlow<Duration> =
             connected
                 .flatMapLatest { c -> c?.positions(POSITION_TICK) ?: flowOf(Duration.ZERO) }
                 .flowOn(Dispatchers.Main.immediate)
+                .stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), Duration.ZERO)
 
         override fun play(
             queue: List<Track>,

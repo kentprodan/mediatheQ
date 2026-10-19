@@ -8,8 +8,6 @@ import kotlin.time.Duration
 data class PlayerUiModel(
     /** The current queue entry, or `null` when nothing is queued. */
     val item: NowPlayingItem? = null,
-    /** Entries in the queue; 0 hides the mini player. */
-    val queueSize: Int = 0,
     /** Shows a pause button (playing or about to play); `false` shows play. */
     val isPlaying: Boolean = false,
     val duration: Duration = Duration.ZERO,
@@ -24,6 +22,5 @@ data class NowPlayingItem(
     val id: MediaId,
     val title: String,
     val artist: String,
-    val albumTitle: String? = null,
     val artwork: Artwork? = null,
 )
