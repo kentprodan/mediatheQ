@@ -32,6 +32,10 @@ gradlePlugin {
             id = "mediatheq.jvm.library"
             implementationClass = "JvmLibraryConventionPlugin"
         }
+        register("androidScreenshot") {
+            id = "mediatheq.android.screenshot"
+            implementationClass = "AndroidScreenshotConventionPlugin"
+        }
         register("androidHilt") {
             id = "mediatheq.android.hilt"
             implementationClass = "AndroidHiltConventionPlugin"

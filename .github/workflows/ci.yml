@@ -28,9 +28,7 @@ jobs:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Check
-        run: ./gradlew spotlessCheck assembleDebug testDebugUnitTest lint --continue
-
-      # validateDebugScreenshotTest is added here with the screenshot setup (#4).
+        run: ./gradlew spotlessCheck assembleDebug testDebugUnitTest validateDebugScreenshotTest lint --continue
 
       - name: Upload reports
         if: failure()
