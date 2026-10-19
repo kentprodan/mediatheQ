@@ -1,0 +1,1237 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "ba92bf6d930006b4633887a3133a8658",
+    "entities": [
+      {
+        "tableName": "artist",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `id` TEXT NOT NULL, `name` TEXT NOT NULL, `sort_name` TEXT NOT NULL, `is_album_artist` INTEGER NOT NULL, `image_item_id` TEXT, `image_tag` TEXT, `blur_hash` TEXT, `is_favorite` INTEGER NOT NULL, `rating` REAL, `play_count` INTEGER NOT NULL, `last_played_at` INTEGER, `played` INTEGER NOT NULL, PRIMARY KEY(`server_id`, `id`))",
+        "fields": [
+          {
+            "fieldPath": "serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortName",
+            "columnName": "sort_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isAlbumArtist",
+            "columnName": "is_album_artist",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "image.itemId",
+            "columnName": "image_item_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "image.tag",
+            "columnName": "image_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "image.blurHash",
+            "columnName": "blur_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userData.isFavorite",
+            "columnName": "is_favorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userData.rating",
+            "columnName": "rating",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "userData.playCount",
+            "columnName": "play_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userData.lastPlayedAtMillis",
+            "columnName": "last_played_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "userData.played",
+            "columnName": "played",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "album",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `id` TEXT NOT NULL, `title` TEXT NOT NULL, `sort_name` TEXT NOT NULL, `year` INTEGER, `track_count` INTEGER NOT NULL, `duration_ms` INTEGER NOT NULL, `date_added` INTEGER, `normalization_gain` REAL, `image_item_id` TEXT, `image_tag` TEXT, `blur_hash` TEXT, `is_favorite` INTEGER NOT NULL, `rating` REAL, `play_count` INTEGER NOT NULL, `last_played_at` INTEGER, `played` INTEGER NOT NULL, PRIMARY KEY(`server_id`, `id`))",
+        "fields": [
+          {
+            "fieldPath": "serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortName",
+            "columnName": "sort_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "year",
+            "columnName": "year",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "trackCount",
+            "columnName": "track_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationMillis",
+            "columnName": "duration_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dateAddedMillis",
+            "columnName": "date_added",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "normalizationGainDb",
+            "columnName": "normalization_gain",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "image.itemId",
+            "columnName": "image_item_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "image.tag",
+            "columnName": "image_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "image.blurHash",
+            "columnName": "blur_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userData.isFavorite",
+            "columnName": "is_favorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userData.rating",
+            "columnName": "rating",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "userData.playCount",
+            "columnName": "play_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userData.lastPlayedAtMillis",
+            "columnName": "last_played_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "userData.played",
+            "columnName": "played",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "album_artist",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `album_id` TEXT NOT NULL, `position` INTEGER NOT NULL, `artist_id` TEXT NOT NULL, PRIMARY KEY(`server_id`, `album_id`, `position`))",
+        "fields": [
+          {
+            "fieldPath": "serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "albumId",
+            "columnName": "album_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "artistId",
+            "columnName": "artist_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "album_id",
+            "position"
+          ]
+        }
+      },
+      {
+        "tableName": "track",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `id` TEXT NOT NULL, `title` TEXT NOT NULL, `sort_name` TEXT NOT NULL, `album_id` TEXT, `album_title` TEXT, `track_number` INTEGER, `disc_number` INTEGER, `duration_ms` INTEGER NOT NULL, `date_added` INTEGER, `normalization_gain` REAL, `codec` TEXT, `sample_rate` INTEGER, `bit_depth` INTEGER, `channels` INTEGER, `bitrate_kbps` INTEGER, `spatial_format` TEXT, `image_item_id` TEXT, `image_tag` TEXT, `blur_hash` TEXT, `is_favorite` INTEGER NOT NULL, `rating` REAL, `play_count` INTEGER NOT NULL, `last_played_at` INTEGER, `played` INTEGER NOT NULL, PRIMARY KEY(`server_id`, `id`))",
+        "fields": [
+          {
+            "fieldPath": "serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortName",
+            "columnName": "sort_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "albumId",
+            "columnName": "album_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "albumTitle",
+            "columnName": "album_title",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "trackNumber",
+            "columnName": "track_number",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "discNumber",
+            "columnName": "disc_number",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "durationMillis",
+            "columnName": "duration_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dateAddedMillis",
+            "columnName": "date_added",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "normalizationGainDb",
+            "columnName": "normalization_gain",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "codec",
+            "columnName": "codec",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sampleRateHz",
+            "columnName": "sample_rate",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "bitDepth",
+            "columnName": "bit_depth",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "channels",
+            "columnName": "channels",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "bitrateKbps",
+            "columnName": "bitrate_kbps",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "spatialFormat",
+            "columnName": "spatial_format",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "image.itemId",
+            "columnName": "image_item_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "image.tag",
+            "columnName": "image_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "image.blurHash",
+            "columnName": "blur_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userData.isFavorite",
+            "columnName": "is_favorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userData.rating",
+            "columnName": "rating",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "userData.playCount",
+            "columnName": "play_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userData.lastPlayedAtMillis",
+            "columnName": "last_played_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "userData.played",
+            "columnName": "played",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "track_artist",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `track_id` TEXT NOT NULL, `position` INTEGER NOT NULL, `artist_id` TEXT NOT NULL, PRIMARY KEY(`server_id`, `track_id`, `position`))",
+        "fields": [
+          {
+            "fieldPath": "serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trackId",
+            "columnName": "track_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "artistId",
+            "columnName": "artist_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "track_id",
+            "position"
+          ]
+        }
+      },
+      {
+        "tableName": "playlist",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `id` TEXT NOT NULL, `name` TEXT NOT NULL, `sort_name` TEXT NOT NULL, `track_count` INTEGER NOT NULL, `duration_ms` INTEGER NOT NULL, `date_added` INTEGER, `image_item_id` TEXT, `image_tag` TEXT, `blur_hash` TEXT, `is_favorite` INTEGER NOT NULL, `rating` REAL, `play_count` INTEGER NOT NULL, `last_played_at` INTEGER, `played` INTEGER NOT NULL, PRIMARY KEY(`server_id`, `id`))",
+        "fields": [
+          {
+            "fieldPath": "serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortName",
+            "columnName": "sort_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trackCount",
+            "columnName": "track_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationMillis",
+            "columnName": "duration_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dateAddedMillis",
+            "columnName": "date_added",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "image.itemId",
+            "columnName": "image_item_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "image.tag",
+            "columnName": "image_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "image.blurHash",
+            "columnName": "blur_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userData.isFavorite",
+            "columnName": "is_favorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userData.rating",
+            "columnName": "rating",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "userData.playCount",
+            "columnName": "play_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userData.lastPlayedAtMillis",
+            "columnName": "last_played_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "userData.played",
+            "columnName": "played",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "playlist_entry",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `playlist_id` TEXT NOT NULL, `position` INTEGER NOT NULL, `entry_id` TEXT NOT NULL, `track_id` TEXT NOT NULL, PRIMARY KEY(`server_id`, `playlist_id`, `position`))",
+        "fields": [
+          {
+            "fieldPath": "serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playlistId",
+            "columnName": "playlist_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entryId",
+            "columnName": "entry_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trackId",
+            "columnName": "track_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "playlist_id",
+            "position"
+          ]
+        }
+      },
+      {
+        "tableName": "artist_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `id` TEXT NOT NULL, `name` TEXT NOT NULL, `sort_name` TEXT NOT NULL, `is_album_artist` INTEGER NOT NULL, `image_item_id` TEXT, `image_tag` TEXT, `blur_hash` TEXT, `is_favorite` INTEGER NOT NULL, `rating` REAL, `play_count` INTEGER NOT NULL, `last_played_at` INTEGER, `played` INTEGER NOT NULL, PRIMARY KEY(`server_id`, `id`))",
+        "fields": [
+          {
+            "fieldPath": "row.serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.sortName",
+            "columnName": "sort_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.isAlbumArtist",
+            "columnName": "is_album_artist",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.image.itemId",
+            "columnName": "image_item_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.image.tag",
+            "columnName": "image_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.image.blurHash",
+            "columnName": "blur_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.userData.isFavorite",
+            "columnName": "is_favorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.userData.rating",
+            "columnName": "rating",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "row.userData.playCount",
+            "columnName": "play_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.userData.lastPlayedAtMillis",
+            "columnName": "last_played_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.userData.played",
+            "columnName": "played",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "album_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `id` TEXT NOT NULL, `title` TEXT NOT NULL, `sort_name` TEXT NOT NULL, `year` INTEGER, `track_count` INTEGER NOT NULL, `duration_ms` INTEGER NOT NULL, `date_added` INTEGER, `normalization_gain` REAL, `image_item_id` TEXT, `image_tag` TEXT, `blur_hash` TEXT, `is_favorite` INTEGER NOT NULL, `rating` REAL, `play_count` INTEGER NOT NULL, `last_played_at` INTEGER, `played` INTEGER NOT NULL, PRIMARY KEY(`server_id`, `id`))",
+        "fields": [
+          {
+            "fieldPath": "row.serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.sortName",
+            "columnName": "sort_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.year",
+            "columnName": "year",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.trackCount",
+            "columnName": "track_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.durationMillis",
+            "columnName": "duration_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.dateAddedMillis",
+            "columnName": "date_added",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.normalizationGainDb",
+            "columnName": "normalization_gain",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "row.image.itemId",
+            "columnName": "image_item_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.image.tag",
+            "columnName": "image_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.image.blurHash",
+            "columnName": "blur_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.userData.isFavorite",
+            "columnName": "is_favorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.userData.rating",
+            "columnName": "rating",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "row.userData.playCount",
+            "columnName": "play_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.userData.lastPlayedAtMillis",
+            "columnName": "last_played_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.userData.played",
+            "columnName": "played",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "album_artist_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `album_id` TEXT NOT NULL, `position` INTEGER NOT NULL, `artist_id` TEXT NOT NULL, PRIMARY KEY(`server_id`, `album_id`, `position`))",
+        "fields": [
+          {
+            "fieldPath": "row.serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.albumId",
+            "columnName": "album_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.artistId",
+            "columnName": "artist_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "album_id",
+            "position"
+          ]
+        }
+      },
+      {
+        "tableName": "track_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `id` TEXT NOT NULL, `title` TEXT NOT NULL, `sort_name` TEXT NOT NULL, `album_id` TEXT, `album_title` TEXT, `track_number` INTEGER, `disc_number` INTEGER, `duration_ms` INTEGER NOT NULL, `date_added` INTEGER, `normalization_gain` REAL, `codec` TEXT, `sample_rate` INTEGER, `bit_depth` INTEGER, `channels` INTEGER, `bitrate_kbps` INTEGER, `spatial_format` TEXT, `image_item_id` TEXT, `image_tag` TEXT, `blur_hash` TEXT, `is_favorite` INTEGER NOT NULL, `rating` REAL, `play_count` INTEGER NOT NULL, `last_played_at` INTEGER, `played` INTEGER NOT NULL, PRIMARY KEY(`server_id`, `id`))",
+        "fields": [
+          {
+            "fieldPath": "row.serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.sortName",
+            "columnName": "sort_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.albumId",
+            "columnName": "album_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.albumTitle",
+            "columnName": "album_title",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.trackNumber",
+            "columnName": "track_number",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.discNumber",
+            "columnName": "disc_number",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.durationMillis",
+            "columnName": "duration_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.dateAddedMillis",
+            "columnName": "date_added",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.normalizationGainDb",
+            "columnName": "normalization_gain",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "row.codec",
+            "columnName": "codec",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.sampleRateHz",
+            "columnName": "sample_rate",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.bitDepth",
+            "columnName": "bit_depth",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.channels",
+            "columnName": "channels",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.bitrateKbps",
+            "columnName": "bitrate_kbps",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.spatialFormat",
+            "columnName": "spatial_format",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.image.itemId",
+            "columnName": "image_item_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.image.tag",
+            "columnName": "image_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.image.blurHash",
+            "columnName": "blur_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.userData.isFavorite",
+            "columnName": "is_favorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.userData.rating",
+            "columnName": "rating",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "row.userData.playCount",
+            "columnName": "play_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.userData.lastPlayedAtMillis",
+            "columnName": "last_played_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.userData.played",
+            "columnName": "played",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "track_artist_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `track_id` TEXT NOT NULL, `position` INTEGER NOT NULL, `artist_id` TEXT NOT NULL, PRIMARY KEY(`server_id`, `track_id`, `position`))",
+        "fields": [
+          {
+            "fieldPath": "row.serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.trackId",
+            "columnName": "track_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.artistId",
+            "columnName": "artist_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "track_id",
+            "position"
+          ]
+        }
+      },
+      {
+        "tableName": "playlist_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `id` TEXT NOT NULL, `name` TEXT NOT NULL, `sort_name` TEXT NOT NULL, `track_count` INTEGER NOT NULL, `duration_ms` INTEGER NOT NULL, `date_added` INTEGER, `image_item_id` TEXT, `image_tag` TEXT, `blur_hash` TEXT, `is_favorite` INTEGER NOT NULL, `rating` REAL, `play_count` INTEGER NOT NULL, `last_played_at` INTEGER, `played` INTEGER NOT NULL, PRIMARY KEY(`server_id`, `id`))",
+        "fields": [
+          {
+            "fieldPath": "row.serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.sortName",
+            "columnName": "sort_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.trackCount",
+            "columnName": "track_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.durationMillis",
+            "columnName": "duration_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.dateAddedMillis",
+            "columnName": "date_added",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.image.itemId",
+            "columnName": "image_item_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.image.tag",
+            "columnName": "image_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.image.blurHash",
+            "columnName": "blur_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.userData.isFavorite",
+            "columnName": "is_favorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.userData.rating",
+            "columnName": "rating",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "row.userData.playCount",
+            "columnName": "play_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.userData.lastPlayedAtMillis",
+            "columnName": "last_played_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.userData.played",
+            "columnName": "played",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "playlist_entry_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `playlist_id` TEXT NOT NULL, `position` INTEGER NOT NULL, `entry_id` TEXT NOT NULL, `track_id` TEXT NOT NULL, PRIMARY KEY(`server_id`, `playlist_id`, `position`))",
+        "fields": [
+          {
+            "fieldPath": "row.serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.playlistId",
+            "columnName": "playlist_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.entryId",
+            "columnName": "entry_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.trackId",
+            "columnName": "track_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "playlist_id",
+            "position"
+          ]
+        }
+      },
+      {
+        "tableName": "search",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS5(`kind` UNINDEXED, `server_id` UNINDEXED, `item_id` UNINDEXED, `name`, tokenize=`unicode61`)",
+        "fields": [
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemId",
+            "columnName": "item_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": []
+        },
+        "ftsVersion": "FTS5",
+        "ftsOptions": {
+          "tokenizer": "unicode61",
+          "tokenizerArgs": [],
+          "contentTable": "",
+          "languageIdColumnName": "",
+          "matchInfo": "FTS4",
+          "notIndexedColumns": [
+            "kind",
+            "server_id",
+            "item_id"
+          ],
+          "prefixSizes": [],
+          "preferredOrder": "ASC",
+          "contentRowId": "",
+          "columnSize": true,
+          "detail": "FULL"
+        },
+        "contentSyncTriggers": []
+      },
+      {
+        "tableName": "sync_state",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `last_full_sync_at` INTEGER, `owner_server_id` TEXT, `owner_user_id` TEXT, `checkpoint_server_id` TEXT, `checkpoint_user_id` TEXT, `checkpoint_started_at` INTEGER, `checkpoint_step` TEXT, `checkpoint_index` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastFullSyncAtMillis",
+            "columnName": "last_full_sync_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "ownerServerId",
+            "columnName": "owner_server_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ownerUserId",
+            "columnName": "owner_user_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "checkpointServerId",
+            "columnName": "checkpoint_server_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "checkpointUserId",
+            "columnName": "checkpoint_user_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "checkpointStartedAtMillis",
+            "columnName": "checkpoint_started_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "checkpointStep",
+            "columnName": "checkpoint_step",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "checkpointIndex",
+            "columnName": "checkpoint_index",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ba92bf6d930006b4633887a3133a8658')"
+    ]
+  }
+}

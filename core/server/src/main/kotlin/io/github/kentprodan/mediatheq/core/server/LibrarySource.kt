@@ -1,0 +1,47 @@
+package io.github.kentprodan.mediatheq.core.server
+
+import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
+import io.github.kentprodan.mediatheq.core.model.Track
+
+/**
+ * Paged reads of a whole music library, in a stable order (by sort name) so offset paging works. Pages start at
+ * [startIndex] and hold at most [limit] items.
+ */
+interface LibrarySource {
+    suspend fun albumArtists(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<Artist>>
+
+    suspend fun albums(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<Album>>
+
+    suspend fun tracks(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<Track>>
+
+    suspend fun playlists(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<Playlist>>
+
+    /** The tracks of [playlistId] in playlist order. */
+    suspend fun playlistEntries(
+        server: SignedInServer,
+        playlistId: MediaId,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<PlaylistEntry>>
+}

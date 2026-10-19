@@ -26,3 +26,9 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: `.\gradlew.bat :core:datastore:connectedDebugAndroidTest` -> AndroidKeystoreTokenCipherTest passes (Keystore round trip, fresh IV)
 - [ ] Pixel 9: on the server screen enter `http://example.com` -> "Use https:// for servers outside your home network or Tailscale."
 
+## #9 Library sync: Room 3 database, full sync from Jellyfin, FTS5 search index
+- [ ] Pixel 9 on home Wi-Fi: fresh install, sign in -> the first sync runs by itself; measure the time from sign-in until it finishes (JVM check on the dev PC: 5.8 s) and note it in issue #9
+- [ ] Pixel 9: after the sync, Library counts match the server: 455 album artists, 989 albums, 2729 tracks, 11 playlists (642 entries). Until #10 there is no Library screen: check with App Inspection -> Database Inspector on `mediatheq.db`
+- [ ] Pixel 9: start a fresh sync, swipe the app away mid-sync, reopen within an hour -> the sync continues and ends with the same counts
+- [ ] Pixel 9: Home -> Log out -> Database Inspector shows every table empty
+

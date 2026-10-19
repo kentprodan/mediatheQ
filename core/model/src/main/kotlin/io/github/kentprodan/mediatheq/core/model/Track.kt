@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.model
 
 import kotlin.time.Duration
+import kotlin.time.Instant
 
 /** A playable music track. */
 data class Track(
@@ -13,4 +14,10 @@ data class Track(
     val trackNumber: Int? = null,
     val discNumber: Int? = null,
     val audioFormat: AudioFormat? = null,
+    val sortName: String = title,
+    val dateAdded: Instant? = null,
+    /** Track ReplayGain-style gain in dB. */
+    val normalizationGainDb: Double? = null,
+    val artwork: Artwork? = null,
+    val userData: UserData = UserData(),
 )

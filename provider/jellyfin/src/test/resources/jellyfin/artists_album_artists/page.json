@@ -1,0 +1,87 @@
+{
+  "Items": [
+    {
+      "Name": "2 Chainz",
+      "Id": "53f65616c504e185b962929e0d683285",
+      "SortName": "0000000002 chainz",
+      "ChannelId": null,
+      "RunTimeTicks": 0,
+      "IsFolder": true,
+      "Type": "MusicArtist",
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "Artist-2 Chainz",
+        "ItemId": "53f65616c504e185b962929e0d683285"
+      },
+      "ImageTags": {
+        "Primary": "5f594a17b901a35024f46c1130dc005b"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "5f594a17b901a35024f46c1130dc005b": "e97wvfV?0K-o-TD%xuxtIUxuEMNGs:S5I:XTRjsAxuIoIU%2%2V?xa"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown"
+    },
+    {
+      "Name": "2Pac",
+      "Id": "6af2479a3f1f11d9ba2d04be8b78b358",
+      "SortName": "0000000002pac",
+      "ChannelId": null,
+      "RunTimeTicks": 0,
+      "IsFolder": true,
+      "Type": "MusicArtist",
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "Artist-2Pac",
+        "ItemId": "6af2479a3f1f11d9ba2d04be8b78b358"
+      },
+      "ImageTags": {
+        "Primary": "932ddcc9a04c102fbf854bfa58173208"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "932ddcc9a04c102fbf854bfa58173208": "elPjGc%M_3-;9F~qt7ofoft7%Mj[9FRjxu?bofofofWBt7ayWBoft7"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown"
+    },
+    {
+      "Name": "2Scratch",
+      "Id": "b4920a93584fa6baeec82d3a61b76958",
+      "SortName": "0000000002scratch",
+      "ChannelId": null,
+      "RunTimeTicks": 0,
+      "IsFolder": true,
+      "Type": "MusicArtist",
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "Artist-2Scratch",
+        "ItemId": "b4920a93584fa6baeec82d3a61b76958"
+      },
+      "ImageTags": {
+        "Primary": "187f731be8b73f0567f4cb71397c4fe7"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "187f731be8b73f0567f4cb71397c4fe7": "eW7|LRMwUcb{buq[ogSxj=epM0xvTxVrtRX9a^sCNGs9ozWWsobHRP"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown"
+    }
+  ],
+  "TotalRecordCount": 455,
+  "StartIndex": 0
+}
