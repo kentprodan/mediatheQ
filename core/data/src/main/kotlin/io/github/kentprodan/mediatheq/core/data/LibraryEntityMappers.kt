@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.database.dao.AlbumWithArtists
+import io.github.kentprodan.mediatheq.core.database.dao.TrackWithArtists
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
@@ -13,10 +14,12 @@ import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
 import kotlin.time.Duration.Companion.milliseconds
@@ -115,6 +118,48 @@ internal fun AlbumWithArtists.toDomain(): Album {
         userData = album.userData.toDomain(),
     )
 }
+
+internal fun TrackWithArtists.toDomain(): Track {
+    val serverId = ServerId(track.serverId)
+    return Track(
+        id = MediaId(serverId, track.id),
+        title = track.title,
+        artists = credits.sortedBy { it.link.position }.mapNotNull { it.artist?.toDomain() },
+        duration = track.durationMillis.milliseconds,
+        albumId = track.albumId?.let { MediaId(serverId, it) },
+        albumTitle = track.albumTitle,
+        trackNumber = track.trackNumber,
+        discNumber = track.discNumber,
+        audioFormat =
+            track.codec?.let { codec ->
+                AudioFormat(
+                    codec = codec,
+                    sampleRateHz = track.sampleRateHz,
+                    bitDepth = track.bitDepth,
+                    channels = track.channels,
+                    bitrateKbps = track.bitrateKbps,
+                    spatialFormat = SpatialFormat.entries.firstOrNull { it.name == track.spatialFormat },
+                )
+            },
+        sortName = track.sortName,
+        dateAdded = track.dateAddedMillis?.let(Instant::fromEpochMilliseconds),
+        normalizationGainDb = track.normalizationGainDb,
+        artwork = track.image.toDomain(),
+        userData = track.userData.toDomain(),
+    )
+}
+
+internal fun PlaylistEntity.toDomain() =
+    Playlist(
+        id = MediaId(ServerId(serverId), id),
+        name = name,
+        trackCount = trackCount,
+        duration = durationMillis.milliseconds,
+        sortName = sortName,
+        dateAdded = dateAddedMillis?.let(Instant::fromEpochMilliseconds),
+        artwork = image.toDomain(),
+        userData = userData.toDomain(),
+    )
 
 internal fun ArtistEntity.toDomain() =
     Artist(MediaId(ServerId(serverId), id), name, sortName, image.toDomain(), userData.toDomain())

@@ -18,6 +18,8 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0011](0011-github-copilot-role.md) | Role of GitHub Copilot | Accepted |
 | [0012](0012-iris-color-scheme.md) | Iris color scheme: Vibrant variant, spec 2025 | Accepted |
 | [0013](0013-token-encryption-and-local-cleartext.md) | Token encryption with the Android Keystore; cleartext only on local networks | Accepted |
+| [0014](0014-library-filter-styles.md) | Library filters come in two styles, chosen by the user | Accepted |
+| [0015](0015-cover-images-without-token.md) | Cover images load without the access token | Accepted |
 
 Template for new ADRs:
 

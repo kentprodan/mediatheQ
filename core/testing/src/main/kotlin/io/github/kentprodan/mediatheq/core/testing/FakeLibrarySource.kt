@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -60,6 +61,13 @@ class FakeLibrarySource : LibrarySource {
         startIndex: Int,
         limit: Int,
     ) = page("playlists", playlists, startIndex, limit)
+
+    /** `baseUrl|itemId|tag|width`, easy to assert on. */
+    override fun imageUrl(
+        baseUrl: String,
+        artwork: Artwork,
+        widthPx: Int,
+    ) = "$baseUrl|${artwork.itemId}|${artwork.tag}|$widthPx"
 
     override suspend fun playlistEntries(
         server: SignedInServer,

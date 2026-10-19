@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -21,6 +22,7 @@ import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toPlaylistEntry
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toTrack
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 
@@ -81,6 +83,24 @@ class JellyfinLibrarySource internal constructor(
             startIndex,
             limit,
         ) { it.toPlaylist(server.serverId) }
+
+    override fun imageUrl(
+        baseUrl: String,
+        artwork: Artwork,
+        widthPx: Int,
+    ): String =
+        baseUrl
+            .toHttpUrl()
+            .newBuilder()
+            .addPathSegments("Items")
+            .addPathSegment(artwork.itemId)
+            .addPathSegments("Images/Primary")
+            // The tag versions the image, so the URL is immutable and caches forever (jellyfin skill, section 4).
+            .addQueryParameter("tag", artwork.tag)
+            .addQueryParameter("fillWidth", widthPx.toString())
+            .addQueryParameter("quality", "90")
+            .build()
+            .toString()
 
     override suspend fun playlistEntries(
         server: SignedInServer,

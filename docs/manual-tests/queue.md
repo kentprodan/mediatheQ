@@ -32,3 +32,11 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: start a fresh sync, swipe the app away mid-sync, reopen within an hour -> the sync continues and ends with the same counts
 - [ ] Pixel 9: Home -> Log out -> Database Inspector shows every table empty
 
+## #10 Library screen: albums grid, artists, playlists, songs
+- [ ] Pixel 9, **release build** (`.\gradlew.bat installRelease` or a signed R8 build), synced library (989 albums): Library -> Albums, fling the grid top to bottom and back with 2, 3 and 4 columns -> no visible stutter; covers fade in from their BlurHash
+- [ ] Pixel 9: the Library title sits right under the status bar (no double gap), the last row is not hidden behind the navigation bar
+- [ ] Pixel 9: change columns to 4 and sort Albums by Year, switch to Songs and back, force-stop and reopen -> 4 columns and Year are kept, the scroll position per tab is kept while the app runs
+- [ ] Pixel 9: view menu -> Connected buttons -> the filters become connected buttons; reopen the app -> still connected buttons
+- [ ] Pixel 9: pull down on Albums -> the refresh spinner shows while the sync runs, then hides
+- [ ] Pixel 9: Artists tab lists only album artists (455 on the test server)
+

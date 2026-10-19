@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -81,7 +82,8 @@ fun AppShell(
             }
         NavDisplay(
             entries = navigator.visibleTabs.flatMap { entriesByTab.getValue(it) },
-            modifier = Modifier.padding(padding),
+            // Consumed, so screens with their own top bar do not add the status bar inset a second time.
+            modifier = Modifier.padding(padding).consumeWindowInsets(padding),
             onBack = { navigator.back() },
             // Theme motion (expressive-design skill, section 4) instead of NavDisplay's default tween.
             transitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) },

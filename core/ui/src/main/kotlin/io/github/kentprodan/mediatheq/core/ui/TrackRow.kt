@@ -18,7 +18,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.model.Track
 
 /**
- * One track in a list: optional track number, title, artists, duration and an overflow button.
+ * One track in a list: optional track number or cover, title, artists, duration and an overflow button.
  * TalkBack reads the row as one item ("title, artists, duration"); the overflow button stays separately focusable.
  */
 @Composable
@@ -28,22 +28,27 @@ fun TrackRow(
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier,
     showTrackNumber: Boolean = true,
+    showCover: Boolean = false,
 ) {
-    val trackNumber = track.trackNumber.takeIf { showTrackNumber }
+    val trackNumber = track.trackNumber.takeIf { showTrackNumber && !showCover }
     ListItem(
         onClick = onClick,
         modifier = modifier,
         leadingContent =
-            trackNumber?.let {
-                {
-                    // An invisible "00" reserves two digits of width, so titles line up from track 1 to 99.
-                    Box(Modifier.clearAndSetSemantics {}, contentAlignment = Alignment.CenterEnd) {
-                        Text("00", Modifier.alpha(0f), style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            it.toString(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+            if (showCover) {
+                { RowCover(track.artwork, MqIcons.MusicNote) }
+            } else {
+                trackNumber?.let {
+                    {
+                        // An invisible "00" reserves two digits of width, so titles line up from track 1 to 99.
+                        Box(Modifier.clearAndSetSemantics {}, contentAlignment = Alignment.CenterEnd) {
+                            Text("00", Modifier.alpha(0f), style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                it.toString(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             },

@@ -192,6 +192,17 @@ class JellyfinLibrarySourceTest {
         }
 
     @Test
+    fun `image urls are public, sized and versioned by tag`() {
+        val url = source.imageUrl("http://nas:8096/jellyfin", Artwork("al1", "t a/g", null), 512)
+
+        assertThat(
+            url,
+        ).isEqualTo("http://nas:8096/jellyfin/Items/al1/Images/Primary?tag=t%20a%2Fg&fillWidth=512&quality=90")
+        assertThat(url).doesNotContain("api_key")
+        assertThat(url.lowercase()).doesNotContain("token")
+    }
+
+    @Test
     fun `a 401 during a library read is Unauthorized`() =
         runTest {
             mockServer.enqueue(MockResponse(code = 401))

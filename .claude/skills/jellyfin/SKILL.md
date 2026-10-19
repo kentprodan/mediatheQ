@@ -63,7 +63,7 @@ Jellyfin 12 disables legacy authorization by default (also on upgraded servers).
 - URL: `/Items/{id}/Images/{type}` with `tag` (cache key from the item's `ImageTags`), and size params (`maxWidth`/`fillWidth` + `quality`). Always request the display size (grid thumbnail vs Now Playing), never originals in lists.
 - The `tag` makes URLs immutable -> Coil can cache aggressively; a changed tag = new URL.
 - BlurHash: request `ImageBlurHashes` in `fields` and store it in Room for placeholders.
-- Images go through the same OkHttp client (auth header), not anonymous.
+- Images go through the app OkHttp client (so the local-network cleartext rule applies), **without** the auth header: `/Items/{id}/Images/{type}` is public on 12.x (no security in the OpenAPI, checked 2026-10-19), and keeping the token out of image requests keeps it out of image caches (ADR 0015). Request widths are rounded up to 128/256/512/1024 so different layouts share cached images.
 
 ## 5. Playback: stream selection
 

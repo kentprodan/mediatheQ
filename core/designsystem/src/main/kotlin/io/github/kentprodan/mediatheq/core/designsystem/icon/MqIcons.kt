@@ -45,4 +45,19 @@ object MqIcons {
 
     val VisibilityOff: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_visibility_off)
+
+    val Check: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_check)
+
+    val Sort: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_sort)
+
+    val GridView: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_grid_view)
+
+    val Person: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_person)
+
+    val QueueMusic: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_queue_music)
 }
