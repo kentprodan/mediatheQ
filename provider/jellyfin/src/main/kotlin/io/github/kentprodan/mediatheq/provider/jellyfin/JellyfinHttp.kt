@@ -60,11 +60,12 @@ internal class JellyfinHttp(
         map: (Dto) -> R?,
     ): MqResult<R> = send(connection, path, emptyList(), body) { parse(it, path, serializer, map) }
 
-    /** POST without a response body. */
+    /** POST [body] (empty by default) without a response body. */
     suspend fun post(
         connection: ServerConnection,
         path: String,
-    ): MqResult<Unit> = send(connection, path, emptyList(), emptyBody()) { MqResult.Success(Unit) }
+        body: RequestBody = emptyBody(),
+    ): MqResult<Unit> = send(connection, path, emptyList(), body) { MqResult.Success(Unit) }
 
     fun <T> jsonBody(
         serializer: KSerializer<T>,

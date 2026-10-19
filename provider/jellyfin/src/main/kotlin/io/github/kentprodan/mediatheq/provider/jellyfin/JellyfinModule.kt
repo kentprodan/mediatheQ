@@ -6,6 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.kentprodan.mediatheq.core.server.AuthSource
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
+import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -15,4 +16,7 @@ internal interface JellyfinModule {
 
     @Binds
     fun librarySource(source: JellyfinLibrarySource): LibrarySource
+
+    @Binds
+    fun playbackSource(source: JellyfinPlaybackSource): PlaybackSource
 }

@@ -146,12 +146,7 @@ class DefaultLibrarySyncRepository
             return result
         }
 
-        private suspend fun signedIn(account: StoredAccount) =
-            SignedInServer(
-                ServerConnection(account.baseUrl, accountStore.deviceId(), account.accessToken),
-                account.serverId,
-                account.userId,
-            )
+        private suspend fun signedIn(account: StoredAccount) = accountStore.signedInServer(account)
 
         private suspend fun fetchAll(server: SignedInServer): MqResult<Unit> {
             val account = server.serverId.value to server.userId
