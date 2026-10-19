@@ -11,6 +11,7 @@ android {
 dependencies {
     implementation(projects.core.server)
     implementation(projects.core.network)
+    implementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.kotlinx.coroutines.test)
 }

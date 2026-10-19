@@ -11,4 +11,5 @@ dependencies {
     api(libs.okhttp)
     api(libs.kotlinx.serialization.json)
     implementation(projects.core.common)
+    testImplementation(libs.okhttp.mockwebserver)
 }
