@@ -80,6 +80,9 @@ object MqIcons {
     val SkipPreviousFilled: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_skip_previous_filled)
 
+    val KeyboardArrowDown: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_keyboard_arrow_down)
+
     /** Mirrors in right-to-left layouts. */
     val ArrowBack: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_arrow_back)

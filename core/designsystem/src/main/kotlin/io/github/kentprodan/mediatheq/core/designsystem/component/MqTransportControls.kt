@@ -9,6 +9,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import io.github.kentprodan.mediatheq.core.designsystem.R
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
@@ -44,12 +46,17 @@ fun MqTransportControls(
     val previousInteraction = remember { MutableInteractionSource() }
     val playInteraction = remember { MutableInteractionSource() }
     val nextInteraction = remember { MutableInteractionSource() }
-    val sideSize = IconButtonDefaults.largeContainerSize(IconButtonDefaults.IconButtonWidthOption.Uniform)
+    // Medium sides and a large wide centre fit a 320 dp wide screen; the group would otherwise move buttons to a menu.
+    val sideSize = IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Uniform)
     val playSize = IconButtonDefaults.largeContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide)
     val playShape = if (isPlaying) MaterialTheme.shapes.large else IconButtonDefaults.shapes().shape
     ButtonGroup(
-        // Three icon buttons never overflow (icons do not grow with the font scale).
-        overflowIndicator = {},
+        // Only on very narrow windows: the buttons that do not fit go to this menu.
+        overflowIndicator = { menu ->
+            IconButton(onClick = { if (menu.isShowing) menu.dismiss() else menu.show() }) {
+                Icon(MqIcons.MoreVert, contentDescription = stringResource(R.string.mq_more))
+            }
+        },
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s, Alignment.CenterHorizontally),
     ) {
@@ -62,7 +69,7 @@ fun MqTransportControls(
                     interactionSource = previousInteraction,
                     modifier = Modifier.size(sideSize).animateWidth(previousInteraction),
                 ) {
-                    TransportIcon(MqIcons.SkipPreviousFilled, previousLabel)
+                    TransportIcon(MqIcons.SkipPreviousFilled, previousLabel, IconButtonDefaults.mediumIconSize)
                 }
             },
             menuContent = { DropdownMenuItem(text = { Text(previousLabel) }, onClick = onPrevious) },
@@ -75,7 +82,11 @@ fun MqTransportControls(
                     interactionSource = playInteraction,
                     modifier = Modifier.size(playSize).animateWidth(playInteraction),
                 ) {
-                    TransportIcon(if (isPlaying) MqIcons.PauseFilled else MqIcons.PlayFilled, playPauseLabel)
+                    TransportIcon(
+                        if (isPlaying) MqIcons.PauseFilled else MqIcons.PlayFilled,
+                        playPauseLabel,
+                        IconButtonDefaults.largeIconSize,
+                    )
                 }
             },
             menuContent = { DropdownMenuItem(text = { Text(playPauseLabel) }, onClick = onPlayPause) },
@@ -89,7 +100,7 @@ fun MqTransportControls(
                     interactionSource = nextInteraction,
                     modifier = Modifier.size(sideSize).animateWidth(nextInteraction),
                 ) {
-                    TransportIcon(MqIcons.SkipNextFilled, nextLabel)
+                    TransportIcon(MqIcons.SkipNextFilled, nextLabel, IconButtonDefaults.mediumIconSize)
                 }
             },
             menuContent = { DropdownMenuItem(text = { Text(nextLabel) }, onClick = onNext) },
@@ -101,6 +112,7 @@ fun MqTransportControls(
 private fun TransportIcon(
     icon: ImageVector,
     label: String,
+    size: Dp,
 ) {
-    Icon(icon, contentDescription = label, modifier = Modifier.size(IconButtonDefaults.largeIconSize))
+    Icon(icon, contentDescription = label, modifier = Modifier.size(size))
 }

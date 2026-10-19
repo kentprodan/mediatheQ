@@ -17,6 +17,7 @@ import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.library.libraryEntry
+import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingHost
 import io.github.kentprodan.mediatheq.navigation.AppShell
 import io.github.kentprodan.mediatheq.navigation.OnboardingHost
 import io.github.kentprodan.mediatheq.navigation.placeholders
@@ -52,7 +53,9 @@ class MainActivity : ComponentActivity() {
                                     placeholders(navigator, onLogout = viewModel::logout, includeLibrary = false)
                                 }
                             }
-                        AppShell(navigator, entries)
+                        NowPlayingHost(content = { miniPlayer ->
+                            AppShell(navigator, entries, miniPlayer = miniPlayer)
+                        })
                     }
                 }
             }

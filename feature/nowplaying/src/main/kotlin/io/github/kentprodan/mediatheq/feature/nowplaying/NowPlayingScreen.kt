@@ -1,0 +1,161 @@
+package io.github.kentprodan.mediatheq.feature.nowplaying
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayerCover
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqSeekBar
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqTransportControls
+import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.ui.formatDuration
+import kotlin.time.Duration
+
+/**
+ * The full player: large cover, title and artist, seek bar and transport, on a gradient from the (cover) theme's
+ * primary container to its surface. Swiping down or the close button returns to the mini player.
+ * [position] is read only by the seek bar, so position ticks recompose nothing else.
+ */
+@Composable
+fun NowPlayingScreen(
+    state: NowPlayingUiState.Playing,
+    position: () -> Duration,
+    onAction: (NowPlayingAction) -> Unit,
+    onCollapse: () -> Unit,
+    modifier: Modifier = Modifier,
+    cover: Any? = state.artwork,
+    coverModifier: Modifier = Modifier,
+) {
+    val colors = MaterialTheme.colorScheme
+    // No Surface under the gradient, so set the text and icon color the surface would give.
+    CompositionLocalProvider(LocalContentColor provides colors.onSurface) {
+        NowPlayingContent(state, position, onAction, onCollapse, modifier, cover, coverModifier)
+    }
+}
+
+@Composable
+private fun NowPlayingContent(
+    state: NowPlayingUiState.Playing,
+    position: () -> Duration,
+    onAction: (NowPlayingAction) -> Unit,
+    onCollapse: () -> Unit,
+    modifier: Modifier,
+    cover: Any?,
+    coverModifier: Modifier,
+) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(colors.primaryContainer, colors.surface)))
+            .swipeDownToCollapse(onCollapse)
+            .safeDrawingPadding()
+            .padding(horizontal = MediatheqSpacing.l),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.l),
+    ) {
+        Box(Modifier.fillMaxWidth()) {
+            IconButton(onClick = onCollapse) {
+                Icon(MqIcons.KeyboardArrowDown, contentDescription = stringResource(R.string.nowplaying_collapse))
+            }
+        }
+        // Takes what is left, so the controls always fit (e.g. at fontScale 2.0).
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            MqPlayerCover(model = cover, modifier = coverModifier, blurHash = state.artwork?.blurHash)
+        }
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                state.title,
+                style = MaterialTheme.typography.headlineSmallEmphasized,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text(
+                state.artist,
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        SeekSection(state, position, onAction)
+        MqTransportControls(
+            isPlaying = state.isPlaying,
+            hasPrevious = state.hasPrevious,
+            hasNext = state.hasNext,
+            onPrevious = { onAction(NowPlayingAction.Previous) },
+            onPlayPause = { onAction(NowPlayingAction.TogglePlayPause) },
+            onNext = { onAction(NowPlayingAction.Next) },
+            modifier = Modifier.padding(bottom = MediatheqSpacing.xl),
+        )
+    }
+}
+
+@Composable
+private fun SeekSection(
+    state: NowPlayingUiState.Playing,
+    position: () -> Duration,
+    onAction: (NowPlayingAction) -> Unit,
+) {
+    val elapsed = position().coerceIn(Duration.ZERO, state.duration)
+    val progress = if (state.duration.isPositive()) (elapsed / state.duration).toFloat() else 0f
+    MqSeekBar(
+        progress = progress,
+        elapsedLabel = formatDuration(elapsed),
+        totalLabel = formatDuration(state.duration),
+        onSeek = { onAction(NowPlayingAction.SeekTo(it)) },
+        enabled = state.isSeekable,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/** Closes on a downward fling, or a drag over a quarter of the screen. */
+@Composable
+internal fun Modifier.swipeDownToCollapse(onCollapse: () -> Unit): Modifier {
+    var height by remember { mutableIntStateOf(0) }
+    var dragged by remember { mutableFloatStateOf(0f) }
+    return onSizeChanged { height = it.height }
+        .draggable(
+            state = rememberDraggableState { dragged += it },
+            orientation = Orientation.Vertical,
+            onDragStarted = { dragged = 0f },
+            onDragStopped = { velocity ->
+                if (velocity > FLING_VELOCITY || dragged > height / 4f) onCollapse()
+            },
+        )
+}
+
+/** Pixels per second that count as a fling. */
+internal const val FLING_VELOCITY = 1_500f

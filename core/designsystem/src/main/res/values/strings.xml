@@ -7,4 +7,5 @@
     <string name="mq_previous_track">Previous track</string>
     <string name="mq_open_player">Open player</string>
     <string name="mq_seek">Playback position</string>
+    <string name="mq_more">More</string>
 </resources>

@@ -30,7 +30,6 @@ import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigation3.ui.NavDisplay
 import io.github.kentprodan.mediatheq.core.designsystem.motion.LocalNavAnimatedVisibilityScope
 import io.github.kentprodan.mediatheq.core.designsystem.motion.LocalSharedTransitionScope
-import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 
 /**
  * The app shell: the current tab's screens, the floating [miniPlayer] slot and the bottom navigation bar.
@@ -47,17 +46,8 @@ fun AppShell(
         modifier = modifier,
         bottomBar = {
             Column {
-                if (miniPlayer != null) {
-                    Box(
-                        Modifier.padding(
-                            start = MediatheqSpacing.l,
-                            end = MediatheqSpacing.l,
-                            bottom = MediatheqSpacing.s,
-                        ),
-                    ) {
-                        miniPlayer()
-                    }
-                }
+                // Places and animates itself (it is hidden while nothing is queued).
+                miniPlayer?.invoke()
                 ShortNavigationBar {
                     TopLevelTab.entries.forEach { tab ->
                         val selected = tab == navigator.currentTab

@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqMiniPlayer
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayerCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqSeekBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqTransportControls
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
@@ -94,6 +95,24 @@ fun MqTransportControlsScreenshot() {
             ) {
                 MqTransportControls(isPlaying = true, hasPrevious = true, hasNext = true, {}, {}, {})
                 MqTransportControls(isPlaying = false, hasPrevious = true, hasNext = false, {}, {}, {})
+            }
+        }
+    }
+}
+
+/** The large Now Playing cover: loaded, and BlurHash only. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun MqPlayerCoverScreenshot() {
+    MediatheqTheme {
+        Surface {
+            Column(
+                Modifier.padding(MediatheqSpacing.l),
+                verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.l),
+            ) {
+                MqPlayerCover(model = rememberPreviewCover())
+                MqPlayerCover(model = null, blurHash = PREVIEW_BLUR_HASH)
             }
         }
     }

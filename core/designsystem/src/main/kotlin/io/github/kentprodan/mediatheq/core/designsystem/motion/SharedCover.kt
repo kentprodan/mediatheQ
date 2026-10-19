@@ -12,7 +12,7 @@ import androidx.compose.ui.geometry.Rect
 /** The app shell's shared-transition scope; `null` outside the shell (previews, tests). */
 val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope?> { null }
 
-/** The current screen's enter/exit animation scope; `null` outside a navigation entry. */
+/** The enclosing enter/exit animation scope (a navigation entry or the player overlay); `null` elsewhere. */
 val LocalNavAnimatedVisibilityScope = compositionLocalOf<AnimatedVisibilityScope?> { null }
 
 /**
