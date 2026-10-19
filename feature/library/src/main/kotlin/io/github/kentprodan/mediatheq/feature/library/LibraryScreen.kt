@@ -40,6 +40,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
@@ -112,7 +116,8 @@ fun LibraryScreen(
                 modifier = Modifier.padding(bottom = MediatheqSpacing.s),
             )
             PullToRefreshBox(
-                isRefreshing = state.refreshing,
+                // The full-screen loading indicator already shows progress; no second spinner on top.
+                isRefreshing = state.refreshing && state.content !is LibraryContent.Loading,
                 onRefresh = { onAction(LibraryAction.Refresh) },
                 modifier = Modifier.fillMaxSize(),
             ) {
@@ -303,6 +308,12 @@ private fun CheckedMenuItem(
         text = { Text(text) },
         onClick = onClick,
         leadingIcon = { if (checked) Icon(MqIcons.Check, contentDescription = null) else Box(Modifier) },
+        // TalkBack announces which option is active.
+        modifier =
+            Modifier.semantics {
+                selected = checked
+                role = Role.RadioButton
+            },
     )
 }
 

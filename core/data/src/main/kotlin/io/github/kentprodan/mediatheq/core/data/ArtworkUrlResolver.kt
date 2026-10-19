@@ -1,33 +1,35 @@
 package io.github.kentprodan.mediatheq.core.data
 
-import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
+import javax.inject.Singleton
 
 /** Turns an [Artwork] into an image URL for the image loader (wired in `:app`). */
+@Singleton
 class ArtworkUrlResolver
     @Inject
     constructor(
-        private val accountStore: AccountStore,
+        accountStore: AccountStore,
         private val librarySource: LibrarySource,
+        @ApplicationScope scope: CoroutineScope,
     ) {
-        /** Waits for a signed-in server (covers can be requested a moment before the account is read), then builds the URL. */
+        // Kept in memory: covers are resolved on the main thread while scrolling, so this must not touch disk.
+        private val baseUrl: StateFlow<String?> = accountStore.baseUrl.stateIn(scope, SharingStarted.Eagerly, null)
+
+        /** Returns at once when signed in; a cover requested before the account is read waits for it. */
         suspend fun url(
             artwork: Artwork,
             widthPx: Int?,
-        ): String {
-            val baseUrl =
-                accountStore.account
-                    .map { (it as? MqResult.Success)?.value?.baseUrl }
-                    .filterNotNull()
-                    .first()
-            return librarySource.imageUrl(baseUrl, artwork, artworkWidthBucket(widthPx))
-        }
+        ): String = librarySource.imageUrl(baseUrl.filterNotNull().first(), artwork, artworkWidthBucket(widthPx))
     }
 
 /**

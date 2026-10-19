@@ -9,13 +9,13 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
 import kotlinx.coroutines.async
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class ArtworkUrlResolverTest {
     private val accountStore = AccountStore(InMemoryPreferencesDataStore(), FakeTokenCipher())
-    private val resolver = ArtworkUrlResolver(accountStore, FakeLibrarySource())
     private val artwork = Artwork("al1", "tag")
 
     private suspend fun signIn() =
@@ -30,10 +30,13 @@ class ArtworkUrlResolverTest {
         assertThat(artworkWidthBucket(0)).isEqualTo(512)
     }
 
+    private fun TestScope.resolver() = ArtworkUrlResolver(accountStore, FakeLibrarySource(), backgroundScope)
+
     @Test
     fun `the url uses the signed-in server and the bucketed width`() =
         runTest {
             signIn()
+            val resolver = resolver()
 
             assertThat(resolver.url(artwork, 300)).isEqualTo("http://nas:8096|al1|tag|512")
         }
@@ -41,6 +44,7 @@ class ArtworkUrlResolverTest {
     @Test
     fun `a cover requested before the account is read waits for it instead of failing`() =
         runTest {
+            val resolver = resolver()
             val url = async { resolver.url(artwork, 200) }
             runCurrent()
             assertThat(url.isCompleted).isFalse()

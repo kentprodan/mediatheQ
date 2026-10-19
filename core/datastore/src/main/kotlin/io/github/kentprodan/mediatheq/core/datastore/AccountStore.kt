@@ -55,6 +55,12 @@ class AccountStore
                     }
                 }.catch { if (it is IOException) emit(MqResult.Failure(MqError.Storage)) else throw it }
 
+        /** The signed-in server's base URL, `null` when signed out. Cheap: no token decryption. */
+        val baseUrl: Flow<String?> =
+            dataStore.data
+                .map { prefs -> prefs[BASE_URL]?.takeIf { prefs[TOKEN] != null } }
+                .catch { if (it is IOException) emit(null) else throw it }
+
         /** Replaces the saved account (R9: one token per server, the newest wins). Throws on IO or crypto failure. */
         suspend fun save(account: StoredAccount) {
             val encrypted = cipher.encrypt(account.accessToken)

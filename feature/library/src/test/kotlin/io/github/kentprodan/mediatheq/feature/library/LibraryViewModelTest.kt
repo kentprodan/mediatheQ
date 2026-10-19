@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.library
 
+import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import io.github.kentprodan.mediatheq.core.common.MqError
@@ -20,6 +21,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -90,13 +92,16 @@ class LibraryViewModelTest {
             Playlist(id("p2"), "Gym", sortName = "Gym", dateAdded = day(9)),
         )
 
-    private fun TestScope.viewModel(): LibraryViewModel {
+    private fun TestScope.viewModel(
+        status: SyncStatus = SyncStatus.Idle(day(10)),
+        savedState: SavedStateHandle = SavedStateHandle(),
+    ): LibraryViewModel {
         library.albums.value = albums
         library.albumArtists.value = listOf(bob, ada)
         library.playlists.value = playlists
         library.tracks.value = tracks
-        sync.status.value = SyncStatus.Idle(day(10))
-        val viewModel = LibraryViewModel(library, sync, preferences, mainDispatcherRule.testDispatcher)
+        sync.status.value = status
+        val viewModel = LibraryViewModel(savedState, library, sync, preferences, mainDispatcherRule.testDispatcher)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -194,9 +199,8 @@ class LibraryViewModelTest {
         }
 
     @Test
-    fun `an empty tab shows what the sync says`() =
+    fun `before the first complete sync an empty tab shows the sync state`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = viewModel()
             library.albums.value = emptyList()
             val expected =
                 mapOf(
@@ -204,13 +208,52 @@ class LibraryViewModelTest {
                     SyncStatus.Idle(null) to LibraryContent.Loading,
                     SyncStatus.Failed(MqError.Network, null) to LibraryContent.Offline,
                     SyncStatus.Failed(MqError.Server(500), null) to LibraryContent.Error(MqError.Server(500)),
-                    SyncStatus.Idle(day(1)) to LibraryContent.Empty,
                 )
 
             expected.forEach { (status, content) ->
-                sync.status.value = status
+                val viewModel = viewModel(status = status)
+                library.albums.value = emptyList()
                 assertWithMessage(status.toString()).that(viewModel.uiState.value.content).isEqualTo(content)
             }
+        }
+
+    @Test
+    fun `after a complete sync an empty tab stays empty while syncing or failing`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Playlists))
+            library.playlists.value = emptyList()
+
+            sync.status.value = SyncStatus.Running(SyncStep.Albums, 0, 10)
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Empty)
+
+            sync.status.value = SyncStatus.Failed(MqError.Network, day(10))
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Empty)
+            assertThat(viewModel.uiState.value.refreshError).isEqualTo(MqError.Network)
+        }
+
+    @Test
+    fun `the same failure after a new sync is shown again`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            sync.status.value = SyncStatus.Failed(MqError.Network, day(10))
+            viewModel.onAction(LibraryAction.ErrorShown)
+
+            sync.status.value = SyncStatus.Running(SyncStep.Albums, 0, 10)
+            sync.status.value = SyncStatus.Failed(MqError.Network, day(10))
+
+            assertThat(viewModel.uiState.value.refreshError).isEqualTo(MqError.Network)
+        }
+
+    @Test
+    fun `the selected tab survives process death`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val savedState = SavedStateHandle()
+            viewModel(savedState = savedState).onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
+
+            val restored = viewModel(savedState = savedState)
+
+            assertThat(restored.uiState.value.filter).isEqualTo(LibraryFilter.Songs)
         }
 
     @Test
@@ -235,5 +278,24 @@ class LibraryViewModelTest {
             viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
 
             assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Empty)
+        }
+
+    @Test
+    fun `switching tabs shows loading until the new tab's items are ready`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albums.value = albums
+            library.tracks.value = tracks
+            sync.status.value = SyncStatus.Idle(day(10))
+            val sorting = StandardTestDispatcher(testScheduler)
+            val viewModel = LibraryViewModel(SavedStateHandle(), library, sync, preferences, sorting)
+            backgroundScope.launch { viewModel.uiState.collect() }
+            sorting.scheduler.runCurrent()
+
+            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
+            assertThat(viewModel.uiState.value.filter).isEqualTo(LibraryFilter.Songs)
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Loading)
+
+            sorting.scheduler.runCurrent()
+            assertThat(viewModel.uiState.value.content).isInstanceOf(LibraryContent.Songs::class.java)
         }
 }
