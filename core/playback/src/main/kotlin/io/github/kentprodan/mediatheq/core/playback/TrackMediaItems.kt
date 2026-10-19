@@ -1,9 +1,11 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import android.net.Uri
+import android.os.Bundle
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 
@@ -40,6 +42,7 @@ internal fun Track.toMediaItem(artworkUrl: String?): MediaItem =
                 .setDiscNumber(discNumber)
                 .setDurationMs(duration.inWholeMilliseconds)
                 .setArtworkUri(artworkUrl?.toUri())
+                .setExtras(artwork?.toBundle())
                 .setIsPlayable(true)
                 .setIsBrowsable(false)
                 .build(),
@@ -52,4 +55,23 @@ internal fun Track.toMediaItem(artworkUrl: String?): MediaItem =
 internal fun MediaItem.withTrackUri(): MediaItem? {
     val itemId = runCatching { MediaId.parse(mediaId) }.getOrNull() ?: return null
     return buildUpon().setUri(trackUri(itemId)).build()
+}
+
+// The cover travels with the item as plain strings (other processes, e.g. System UI, unbundle the extras), so screens can
+// show it without a lookup.
+private const val EXTRA_ARTWORK_ID = "io.github.kentprodan.mediatheq.ARTWORK_ID"
+private const val EXTRA_ARTWORK_TAG = "io.github.kentprodan.mediatheq.ARTWORK_TAG"
+private const val EXTRA_ARTWORK_BLUR_HASH = "io.github.kentprodan.mediatheq.ARTWORK_BLUR_HASH"
+
+private fun Artwork.toBundle(): Bundle =
+    Bundle().apply {
+        putString(EXTRA_ARTWORK_ID, itemId)
+        putString(EXTRA_ARTWORK_TAG, tag)
+        putString(EXTRA_ARTWORK_BLUR_HASH, blurHash)
+    }
+
+internal fun Bundle.toArtwork(): Artwork? {
+    val itemId = getString(EXTRA_ARTWORK_ID) ?: return null
+    val tag = getString(EXTRA_ARTWORK_TAG) ?: return null
+    return Artwork(itemId, tag, getString(EXTRA_ARTWORK_BLUR_HASH))
 }
