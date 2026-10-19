@@ -25,10 +25,11 @@ import io.github.kentprodan.mediatheq.core.model.Track
 fun TrackRow(
     track: Track,
     onClick: () -> Unit,
-    onMoreClick: () -> Unit,
     modifier: Modifier = Modifier,
     showTrackNumber: Boolean = true,
     showCover: Boolean = false,
+    /** The overflow menu; no button when `null` (nothing to offer yet). */
+    onMoreClick: (() -> Unit)? = null,
 ) {
     val trackNumber = track.trackNumber.takeIf { showTrackNumber && !showCover }
     ListItem(
@@ -58,11 +59,13 @@ fun TrackRow(
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(formatDuration(track.duration), style = MaterialTheme.typography.bodySmall)
-                IconButton(onClick = onMoreClick) {
-                    Icon(
-                        MqIcons.MoreVert,
-                        contentDescription = stringResource(R.string.core_ui_more_options, track.title),
-                    )
+                if (onMoreClick != null) {
+                    IconButton(onClick = onMoreClick) {
+                        Icon(
+                            MqIcons.MoreVert,
+                            contentDescription = stringResource(R.string.core_ui_more_options, track.title),
+                        )
+                    }
                 }
             }
         },

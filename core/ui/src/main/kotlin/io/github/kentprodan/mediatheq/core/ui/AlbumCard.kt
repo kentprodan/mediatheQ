@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedCover
+import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
 
@@ -29,7 +31,13 @@ fun AlbumCard(
             // Keeps the artist line clear of the rounded bottom corners of the click/ripple shape.
             .padding(bottom = MediatheqSpacing.s),
     ) {
-        MqCover(model = coverModel, contentDescription = null, blurHash = coverBlurHash)
+        MqCover(
+            model = coverModel,
+            contentDescription = null,
+            // Flies into the album page's header cover.
+            modifier = Modifier.mqSharedCover(sharedCoverKey(album.id)),
+            blurHash = coverBlurHash,
+        )
         Text(
             album.title,
             Modifier.padding(top = MediatheqSpacing.s),

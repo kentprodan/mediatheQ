@@ -40,3 +40,10 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: pull down on Albums -> the refresh spinner shows while the sync runs, then hides
 - [ ] Pixel 9: Artists tab lists only album artists (455 on the test server)
 
+## #11 Album screen: header, track list, play and shuffle
+- [ ] Pixel 9: Library -> tap an album -> the cover flies from the grid into the album header and back on Back; it feels smooth (corners go from rounded to more rounded during the flight; a BlurHash flash is acceptable while the larger cover loads)
+- [ ] Pixel 9: force-stop the app, reopen, open an album at once (cold database) -> the cover still flies; if it jumps or only fades, note it in issue #11
+- [ ] Pixel 9: on an album page, start a predictive back gesture halfway and cancel -> the page stays, no stuck cover; complete it -> the cover flies back into the grid
+- [ ] Pixel 9: a multi-disc album shows "Disc 1", "Disc 2" headers; scrolling collapses the large title into the top bar
+- [ ] Pixel 9 (after #12): Play starts track 1, tapping a track starts there, Shuffle does not always start at track 1
+

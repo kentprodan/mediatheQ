@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.SearchHit
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -11,6 +12,12 @@ import kotlinx.coroutines.flow.Flow
 interface LibraryRepository {
     /** All albums by sort name; emits again after each completed sync, never with a half-synced library. */
     fun albums(): Flow<List<Album>>
+
+    /** One album, `null` when it is not (or no longer) in the library. */
+    fun album(id: MediaId): Flow<Album?>
+
+    /** The album's tracks in play order (disc, then track number). */
+    fun albumTracks(albumId: MediaId): Flow<List<Track>>
 
     /** Album artists by sort name (the Library's Artists tab). */
     fun albumArtists(): Flow<List<Artist>>

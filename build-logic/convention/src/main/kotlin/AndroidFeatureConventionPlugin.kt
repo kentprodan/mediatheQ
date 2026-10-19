@@ -10,7 +10,7 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
             pluginManager.apply("mediatheq.android.library.compose")
             pluginManager.apply("mediatheq.android.hilt")
             dependencies {
-                listOf("model", "common", "navigation", "data", "designsystem", "ui").forEach {
+                listOf("model", "common", "navigation", "data", "playback", "designsystem", "ui").forEach {
                     add("implementation", project(":core:$it"))
                 }
                 add("implementation", libs.findLibrary("androidx-lifecycle-runtime-compose").get())

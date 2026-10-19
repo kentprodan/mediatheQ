@@ -15,6 +15,7 @@ import androidx.navigation3.runtime.entryProvider
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.library.libraryEntry
 import io.github.kentprodan.mediatheq.navigation.AppShell
 import io.github.kentprodan.mediatheq.navigation.OnboardingHost
@@ -47,6 +48,7 @@ class MainActivity : ComponentActivity() {
                             remember(navigator) {
                                 entryProvider {
                                     libraryEntry(navigator)
+                                    albumEntry(navigator)
                                     placeholders(navigator, onLogout = viewModel::logout, includeLibrary = false)
                                 }
                             }

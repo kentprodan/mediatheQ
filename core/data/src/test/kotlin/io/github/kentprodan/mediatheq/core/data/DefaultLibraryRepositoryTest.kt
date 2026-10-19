@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchHit
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
@@ -66,5 +67,45 @@ class DefaultLibraryRepositoryTest {
             library("Moșoi")
 
             assertThat(repository.search("  ")).isEmpty()
+        }
+
+    @Test
+    fun `an album and its tracks map to the domain`() =
+        runTest {
+            database.syncDao().stageAlbums(
+                listOf(
+                    io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging(
+                        io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity(
+                            "s",
+                            "al1",
+                            "Satelit",
+                            "Satelit",
+                            year = 2016,
+                        ),
+                    ),
+                ),
+            )
+            database.syncDao().stageTracks(
+                listOf(
+                    TrackStaging(
+                        TrackEntity(
+                            "s",
+                            "t1",
+                            "Moșoi",
+                            "Mosoi",
+                            albumId = "al1",
+                            trackNumber = 1,
+                            durationMillis = 1_000,
+                        ),
+                    ),
+                ),
+            )
+            database.syncDao().swap(1, "s", "user-1")
+            val id = MediaId(ServerId("s"), "al1")
+
+            assertThat(repository.album(id).first()?.year).isEqualTo(2016)
+            val track = repository.albumTracks(id).first().single()
+            assertThat(track.albumId).isEqualTo(id)
+            assertThat(track.duration.inWholeMilliseconds).isEqualTo(1_000)
         }
 }

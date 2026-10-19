@@ -123,7 +123,9 @@ fun MediatheqTheme(
 | Album grid | `LazyVerticalGrid(GridCells.Fixed(columns))` | `columns` from DataStore, range 2-4, default 2. |
 | Track rows | Expressive `ListItem` | Leading: track number or art. Trailing: duration + overflow menu. |
 | Grouped settings | Segmented list items | |
-| Play / Shuffle on album header | `ButtonGroup` | Play = filled, Shuffle = tonal. |
+| Play / Shuffle on album header | Row of `Button` (Play, filled) + `FilledTonalButton` (Shuffle), half width each | Not the M3 `ButtonGroup` DSL: two plain buttons need no overflow menu and never collapse into one at fontScale 2.0. |
+| Disc headers (multi-disc albums) | `DiscHeader` in `:core:ui` (titleSmall, primary, heading semantics) | Only when the album has more than one disc. |
+| Cover flight grid -> album | `Modifier.mqSharedCover(sharedCoverKey(id))` in `:core:designsystem` | Slow spatial spec; inert in previews and tests. |
 | Like / Download toggles | Toggle buttons (icon) | Shape morphs on checked. |
 | Player transport controls | `ButtonGroup` with large icon buttons | Play/Pause is the largest, morphs round -> squarish. |
 | Context actions on long-press | Expressive `DropdownMenu` or `ModalBottomSheet` | Sheet for > 5 actions. |

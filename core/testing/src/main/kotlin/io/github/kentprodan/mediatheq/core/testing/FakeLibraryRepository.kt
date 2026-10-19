@@ -3,10 +3,12 @@ package io.github.kentprodan.mediatheq.core.testing
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.SearchHit
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 
 /** [LibraryRepository] with settable contents; search matches names case-insensitively. */
 class FakeLibraryRepository : LibraryRepository {
@@ -17,6 +19,11 @@ class FakeLibraryRepository : LibraryRepository {
     var hits: List<SearchHit> = emptyList()
 
     override fun albums() = albums
+
+    override fun album(id: MediaId) = albums.map { list -> list.firstOrNull { it.id == id } }
+
+    /** Tracks of the album in the order they were set (set them in play order). */
+    override fun albumTracks(albumId: MediaId) = tracks.map { list -> list.filter { it.albumId == albumId } }
 
     override fun albumArtists() = albumArtists
 

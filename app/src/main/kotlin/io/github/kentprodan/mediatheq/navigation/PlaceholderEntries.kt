@@ -13,7 +13,6 @@ import androidx.navigation3.runtime.entryProvider
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.preview.ThemeShowcase
-import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
@@ -23,7 +22,7 @@ import io.github.kentprodan.mediatheq.core.navigation.PlaylistKey
 import io.github.kentprodan.mediatheq.core.navigation.SearchKey
 import kotlinx.serialization.Serializable
 
-// shortcut: placeholder screens until the real features exist (#11, #15-#17, #19, #20); delete with the last of them.
+// shortcut: placeholder screens until the real features exist (#15-#17, #19, #20); delete with the last of them.
 
 /** A placeholder page [depth] levels deep inside a tab, to exercise the per-tab back stacks. */
 @Serializable
@@ -67,8 +66,7 @@ fun EntryProviderScope<NavKey>.placeholders(
         }
     }
     entry<ThemeShowcaseKey> { ThemeShowcase() }
-    // Detail pages opened from the Library until #11, #15 and #16 build them.
-    entry<AlbumKey> { Placeholder("Album", "Back") { navigator.back() } }
+    // Detail pages opened from the Library until #15 and #16 build them.
     entry<ArtistKey> { Placeholder("Artist", "Back") { navigator.back() } }
     entry<PlaylistKey> { Placeholder("Playlist", "Back") { navigator.back() } }
 }
