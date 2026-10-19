@@ -1,13 +1,22 @@
 package io.github.kentprodan.mediatheq.core.network
 
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+internal interface NetworkBindings {
+    @Binds
+    fun networkMonitor(monitor: ConnectivityNetworkMonitor): NetworkMonitor
+}
 
 @Module
 @InstallIn(SingletonComponent::class)
