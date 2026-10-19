@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.server
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -36,6 +37,13 @@ interface LibrarySource {
         startIndex: Int,
         limit: Int,
     ): MqResult<LibraryPage<Playlist>>
+
+    /** URL of [artwork] at least [widthPx] wide. Public on Jellyfin 12, so no token (ADR 0015). */
+    fun imageUrl(
+        baseUrl: String,
+        artwork: Artwork,
+        widthPx: Int,
+    ): String
 
     /** The tracks of [playlistId] in playlist order. */
     suspend fun playlistEntries(
