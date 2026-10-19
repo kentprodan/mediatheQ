@@ -28,6 +28,7 @@ dependencies {
     implementation(projects.provider.jellyfin)
     implementation(projects.feature.onboarding)
     implementation(projects.feature.library)
+    implementation(projects.feature.album)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
