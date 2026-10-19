@@ -9,6 +9,9 @@ android {
 dependencies {
     // Fakes of the :core:data interfaces live here (testing skill), so this is an Android library.
     api(projects.core.data)
+    api(projects.core.datastore)
+    api(projects.core.server)
+    implementation(libs.androidx.datastore.preferences)
     api(libs.junit)
     api(libs.truth)
     api(libs.kotlinx.coroutines.test)
