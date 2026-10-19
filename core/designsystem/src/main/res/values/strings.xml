@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="mq_loading">Loading</string>
+    <string name="mq_play">Play</string>
+    <string name="mq_pause">Pause</string>
+    <string name="mq_next_track">Next track</string>
+    <string name="mq_previous_track">Previous track</string>
+    <string name="mq_open_player">Open player</string>
+    <string name="mq_seek">Playback position</string>
 </resources>

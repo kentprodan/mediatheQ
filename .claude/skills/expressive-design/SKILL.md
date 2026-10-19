@@ -117,7 +117,7 @@ fun MediatheqTheme(
 | UI element | Component | Notes |
 |---|---|---|
 | Bottom navigation (Home, Library, Search, Downloads) | `ShortNavigationBar` + `ShortNavigationBarItem` | Phone. On tablet/foldable later: `NavigationSuiteScaffold` -> `WideNavigationRail`. |
-| Mini player | `MqMiniPlayer` (custom) | Floating pill above the nav bar. See section 5. |
+| Mini player | `MqMiniPlayer` (custom) | Floating pill above the nav bar. See section 5. `coverModifier` carries the shared cover. |
 | Screen headers (Album, Artist, Playlist) | `LargeFlexibleTopAppBar` with `exitUntilCollapsedScrollBehavior` | Title = item name, subtitle = artist / count. |
 | Simple screens (Settings) | `TopAppBar` / `MediumFlexibleTopAppBar` | |
 | Album grid | `LazyVerticalGrid(GridCells.Fixed(columns))` | `columns` from DataStore, range 2-4, default 2. |
@@ -127,7 +127,7 @@ fun MediatheqTheme(
 | Disc headers (multi-disc albums) | `DiscHeader` in `:core:ui` (titleSmall, primary, heading semantics) | Only when the album has more than one disc. |
 | Cover flight grid -> album | `Modifier.mqSharedCover(sharedCoverKey(id))` in `:core:designsystem` | Slow spatial spec; inert in previews and tests. |
 | Like / Download toggles | Toggle buttons (icon) | Shape morphs on checked. |
-| Player transport controls | `ButtonGroup` with large icon buttons | Play/Pause is the largest, morphs round -> squarish. |
+| Player transport controls | `MqTransportControls`: `ButtonGroup` of large icon buttons (`customItem` + `animateWidth`) | Play/Pause is the largest (Wide), round while paused, squarish while playing. |
 | Context actions on long-press | Expressive `DropdownMenu` or `ModalBottomSheet` | Sheet for > 5 actions. |
 | Search | `SearchBar` with `SearchBarState` | Docked on Search tab, results below. |
 | Filters (Library: Albums/Artists/Playlists/Songs) | `MqFilterBar`: `FilterChip` row (default) or connected `ToggleButton` row | User setting, ADR 0014. Chips scroll and fit at fontScale 2.0; connected buttons share the width and ellipsize. |
@@ -135,7 +135,8 @@ fun MediatheqTheme(
 | Artist / playlist rows | `ArtistRow` (round picture), `PlaylistRow` (cover + track count) in `:core:ui` | Shared `CoverRow`. Songs use `TrackRow(showCover = true)`. |
 | Initial loading | `MqLoadingIndicator` (wraps `LoadingIndicator`, experimental) | Centered, only for full-screen loads > 300 ms. |
 | Download progress | `LinearWavyProgressIndicator` / `CircularWavyProgressIndicator` | Determinate when size known. |
-| Playback seek bar | `Slider` (stateful) | Waveform scrubber is a later feature - keep seek bar behind `MqSeekBar`. |
+| Playback seek bar | `MqSeekBar` (value `Slider` + elapsed/total labels) | Keeps the dragged value until release, then seeks once. Disabled when the stream cannot be seeked. Waveform scrubber is a later feature - keep it behind `MqSeekBar`. |
+| Player colors | `rememberCoverColorScheme` + `MqCoverTheme` | Cover seed -> `SchemeContent` (ADR 0017), cached per cover, roles blended with the effects spec. |
 | Multi-select actions (playlist edit) | `FloatingToolbar` | Appears on selection. |
 | Pull to refresh (Library) | `PullToRefreshBox` | |
 
