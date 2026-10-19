@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.buildlogic
 import com.android.build.api.dsl.CommonExtension
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.dependencies
 import org.jetbrains.kotlin.gradle.dsl.KotlinBaseExtension
 
 /** SDK levels and JDK toolchain shared by every Android module (ADR 0003, ADR 0010). */
@@ -12,9 +13,13 @@ internal fun Project.configureAndroid(android: CommonExtension) {
     configureKotlin()
 }
 
-/** JDK toolchain for every Kotlin module. */
+/** JDK toolchain and the standard unit test libraries (testing skill) for every Kotlin module. */
 internal fun Project.configureKotlin() {
     extensions.configure<KotlinBaseExtension> {
         jvmToolchain(libs.intVersion("jdk"))
+    }
+    dependencies {
+        add("testImplementation", libs.findLibrary("junit").get())
+        add("testImplementation", libs.findLibrary("truth").get())
     }
 }
