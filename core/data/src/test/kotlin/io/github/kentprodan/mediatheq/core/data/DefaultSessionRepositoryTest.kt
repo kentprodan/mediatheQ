@@ -19,7 +19,8 @@ import org.junit.Test
 class DefaultSessionRepositoryTest {
     private val authSource = FakeAuthSource()
     private val cipher = FakeTokenCipher()
-    private val accountStore = AccountStore(InMemoryPreferencesDataStore(), cipher)
+    private val dataStore = InMemoryPreferencesDataStore()
+    private val accountStore = AccountStore(dataStore, cipher)
     private val repository = DefaultSessionRepository(authSource, accountStore, Dispatchers.Unconfined)
 
     private suspend fun loginAs(token: String) {
@@ -101,6 +102,28 @@ class DefaultSessionRepositoryTest {
             repository.logout()
 
             assertThat(repository.session.first()).isEqualTo(SessionState.LoggedOut())
+        }
+
+    @Test
+    fun `logout clears the token at once even when the server hangs`() =
+        runTest {
+            loginAs("token-1")
+            authSource.logoutHangs = true
+
+            repository.logout()
+
+            assertThat(repository.session.first()).isEqualTo(SessionState.LoggedOut())
+        }
+
+    @Test
+    fun `a disk that cannot be written fails the login with Storage`() =
+        runTest {
+            accountStore.deviceId()
+            dataStore.failing = true
+
+            val result = repository.login("http://192.168.1.10:8096", "Home", "Ana", "pw")
+
+            assertThat(result).isEqualTo(MqResult.Failure(MqError.Storage))
         }
 
     @Test

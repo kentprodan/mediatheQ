@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.model.ServerInfo
 import io.github.kentprodan.mediatheq.core.server.AuthSession
 import io.github.kentprodan.mediatheq.core.server.AuthSource
 import io.github.kentprodan.mediatheq.core.server.ServerConnection
+import kotlinx.coroutines.awaitCancellation
 
 /** [AuthSource] with settable results; [connections] records every call's connection. */
 class FakeAuthSource : AuthSource {
@@ -45,7 +46,14 @@ class FakeAuthSource : AuthSource {
         code: QuickConnectCode,
     ) = login.also { connections += connection }
 
-    override suspend fun logout(connection: ServerConnection) = logout.also { connections += connection }
+    /** When true, logout never answers, like a server that hangs. */
+    var logoutHangs = false
+
+    override suspend fun logout(connection: ServerConnection): MqResult<Unit> {
+        connections += connection
+        if (logoutHangs) awaitCancellation()
+        return logout
+    }
 
     companion object {
         /** A successful login result carrying [token]. */

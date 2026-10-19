@@ -3,7 +3,9 @@ package io.github.kentprodan.mediatheq.core.datastore
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import java.security.GeneralSecurityException
 import java.security.KeyStore
+import java.security.ProviderException
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -24,19 +26,29 @@ interface TokenCipher {
 internal class AndroidKeystoreTokenCipher
     @Inject
     constructor() : TokenCipher {
-        override fun encrypt(plain: String): String {
-            val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, key()) }
-            return Base64.encodeToString(cipher.iv + cipher.doFinal(plain.toByteArray()), Base64.NO_WRAP)
-        }
+        override fun encrypt(plain: String): String =
+            keystore {
+                val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, key()) }
+                Base64.encodeToString(cipher.iv + cipher.doFinal(plain.toByteArray()), Base64.NO_WRAP)
+            }
 
-        override fun decrypt(encrypted: String): String {
-            val bytes = Base64.decode(encrypted, Base64.NO_WRAP)
-            val cipher =
-                Cipher.getInstance(TRANSFORMATION).apply {
-                    init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(TAG_BITS, bytes, 0, IV_BYTES))
-                }
-            return String(cipher.doFinal(bytes, IV_BYTES, bytes.size - IV_BYTES))
-        }
+        override fun decrypt(encrypted: String): String =
+            keystore {
+                val bytes = Base64.decode(encrypted, Base64.NO_WRAP)
+                val cipher =
+                    Cipher.getInstance(TRANSFORMATION).apply {
+                        init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(TAG_BITS, bytes, 0, IV_BYTES))
+                    }
+                String(cipher.doFinal(bytes, IV_BYTES, bytes.size - IV_BYTES))
+            }
+
+        /** Keystore failures often surface as `ProviderException` (a RuntimeException); keep the interface contract. */
+        private inline fun <T> keystore(block: () -> T): T =
+            try {
+                block()
+            } catch (e: ProviderException) {
+                throw GeneralSecurityException(e)
+            }
 
         private fun key(): SecretKey {
             val keyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }

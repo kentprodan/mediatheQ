@@ -39,7 +39,7 @@ class AccountStoreTest {
         runTest {
             store().save(account)
 
-            assertThat(dataStore.data.value.toString()).doesNotContain("secret-token")
+            assertThat(dataStore.current.toString()).doesNotContain("secret-token")
         }
 
     @Test
@@ -51,6 +51,23 @@ class AccountStoreTest {
             cipher.failing = true
 
             assertThat(store.account.first()).isEqualTo(MqResult.Failure(MqError.Storage))
+        }
+
+    @Test
+    fun `an unreadable disk fails with Storage instead of crashing`() =
+        runTest {
+            dataStore.failing = true
+
+            assertThat(store().account.first()).isEqualTo(MqResult.Failure(MqError.Storage))
+        }
+
+    @Test
+    fun `the DeviceId stays stable for the process when the disk fails`() =
+        runTest {
+            val store = store()
+            dataStore.failing = true
+
+            assertThat(store.deviceId()).isEqualTo(store.deviceId())
         }
 
     @Test

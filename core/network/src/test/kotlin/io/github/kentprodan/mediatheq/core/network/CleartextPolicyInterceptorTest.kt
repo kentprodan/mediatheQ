@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.network
 import com.google.common.truth.Truth.assertThat
 import mockwebserver3.MockResponse
 import mockwebserver3.junit4.MockWebServerRule
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.junit.Assert.assertThrows
 import org.junit.Rule
@@ -19,6 +20,16 @@ class CleartextPolicyInterceptorTest {
         val response = mediatheqOkHttpClient().newCall(Request(serverRule.server.url("/"))).execute()
 
         assertThat(response.body.string()).isEqualTo("ok")
+    }
+
+    @Test
+    fun `cleartext through a proxy is refused, even when the proxy is local`() {
+        val client = mediatheqOkHttpClient().newBuilder().proxy(serverRule.server.proxyAddress).build()
+
+        val call = client.newCall(Request("http://jellyfin.example.com/".toHttpUrl()))
+
+        assertThrows(CleartextNotAllowedException::class.java) { call.execute() }
+        assertThat(serverRule.server.requestCount).isEqualTo(0)
     }
 
     @Test

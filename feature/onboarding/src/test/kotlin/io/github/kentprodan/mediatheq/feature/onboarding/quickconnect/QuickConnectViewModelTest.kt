@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.navigation.OnboardingQuickConnectKey
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import io.github.kentprodan.mediatheq.feature.onboarding.quickconnect.QuickConnectViewModel.Companion.MAX_POLLS
 import io.github.kentprodan.mediatheq.feature.onboarding.quickconnect.QuickConnectViewModel.Companion.POLL_INTERVAL_MILLIS
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -93,6 +94,19 @@ class QuickConnectViewModelTest {
 
             assertThat(viewModel.uiState.value).isEqualTo(QuickConnectUiState.Waiting("Home", "123456"))
             assertThat(repository.approvalChecks).isEqualTo(2)
+        }
+
+    @Test
+    fun `polling stops after ten minutes and offers a new code`() =
+        test { viewModel ->
+            repository.quickConnectApprovals = listOf(MqResult.Failure(MqError.Network))
+            runCurrent()
+
+            repeat(MAX_POLLS) { nextPoll() }
+
+            assertThat(viewModel.uiState.value).isEqualTo(QuickConnectUiState.Expired("Home"))
+            nextPoll()
+            assertThat(repository.approvalChecks).isEqualTo(MAX_POLLS)
         }
 
     @Test

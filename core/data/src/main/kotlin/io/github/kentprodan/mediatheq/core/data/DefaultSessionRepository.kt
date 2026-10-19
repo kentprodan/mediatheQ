@@ -11,17 +11,21 @@ import io.github.kentprodan.mediatheq.core.server.AuthSession
 import io.github.kentprodan.mediatheq.core.server.AuthSource
 import io.github.kentprodan.mediatheq.core.server.ServerConnection
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import java.io.IOException
 import java.net.InetAddress
 import java.net.URI
 import java.net.UnknownHostException
 import java.security.GeneralSecurityException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.seconds
 
 @Singleton
 class DefaultSessionRepository
@@ -101,15 +105,26 @@ class DefaultSessionRepository
 
         override suspend fun logout() {
             val account = (accountStore.account.first() as? MqResult.Success)?.value
-            // Best effort: the local token goes away even when the server is offline or already revoked it.
-            if (account != null) authSource.logout(connection(account.baseUrl).copy(accessToken = account.accessToken))
-            accountStore.clear()
-            logoutReason.value = null
+            // Local first, so leaving the screen or a slow server can never keep the token.
+            clearAccount(reason = null)
+            if (account == null) return
+            // Best effort: the server may be offline or may have revoked the token already.
+            withContext(NonCancellable) {
+                withTimeoutOrNull(LOGOUT_TIMEOUT) {
+                    authSource.logout(connection(account.baseUrl).copy(accessToken = account.accessToken))
+                }
+            }
         }
 
-        override suspend fun onUnauthorized() {
-            accountStore.clear()
-            logoutReason.value = LogoutReason.SessionExpired
+        override suspend fun onUnauthorized() = clearAccount(LogoutReason.SessionExpired)
+
+        private suspend fun clearAccount(reason: LogoutReason?) {
+            try {
+                accountStore.clear()
+            } catch (_: IOException) {
+                // Nothing better to do; the session keeps showing what is on disk.
+            }
+            logoutReason.value = reason
         }
 
         private suspend fun connection(baseUrl: String) = ServerConnection(baseUrl, accountStore.deviceId())
@@ -136,6 +151,12 @@ class DefaultSessionRepository
                 MqResult.Success(Unit)
             } catch (_: GeneralSecurityException) {
                 MqResult.Failure(MqError.Storage)
+            } catch (_: IOException) {
+                MqResult.Failure(MqError.Storage)
             }
+        }
+
+        private companion object {
+            val LOGOUT_TIMEOUT = 5.seconds
         }
     }

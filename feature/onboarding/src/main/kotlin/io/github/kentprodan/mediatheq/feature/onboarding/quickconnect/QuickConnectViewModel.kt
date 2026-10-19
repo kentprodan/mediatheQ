@@ -59,7 +59,7 @@ class QuickConnectViewModel
         }
 
         private suspend fun poll(code: QuickConnectCode) {
-            while (true) {
+            repeat(MAX_POLLS) {
                 delay(POLL_INTERVAL_MILLIS)
                 when (val approved = sessionRepository.isQuickConnectApproved(key.baseUrl, code)) {
                     is MqResult.Success -> {
@@ -89,6 +89,8 @@ class QuickConnectViewModel
                     }
                 }
             }
+            // The server forgets codes after a few minutes; stop asking (also when it was never reachable).
+            state.value = QuickConnectUiState.Expired(key.serverName)
         }
 
         private fun fail(error: MqError) {
@@ -103,5 +105,8 @@ class QuickConnectViewModel
         companion object {
             /** How often the server is asked whether the code was approved. */
             const val POLL_INTERVAL_MILLIS = 5_000L
+
+            /** Polls before giving up: 10 minutes. */
+            const val MAX_POLLS = 120
         }
     }
