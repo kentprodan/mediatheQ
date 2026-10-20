@@ -38,4 +38,25 @@ interface PlaybackConnection {
     fun previous()
 
     fun seekTo(position: Duration)
+
+    /** The queue in play order; collecting it connects to the player. Changes only when the queue does. */
+    val queue: StateFlow<List<QueueItem>>
+
+    /** Queues [tracks] right after the current track; with nothing queued, plays them. */
+    fun playNext(tracks: List<Track>)
+
+    /** Queues [tracks] at the end; with nothing queued, plays them. */
+    fun addToQueue(tracks: List<Track>)
+
+    /** Moves the queue entry to position [to] of the queue (not shuffled: reordering needs shuffle off). */
+    fun moveQueueItem(
+        entryId: String,
+        to: Int,
+    )
+
+    /** Removes the queue entry; removing the playing one goes on with the next. */
+    fun removeQueueItem(entryId: String)
+
+    /** Plays the queue entry from its start. */
+    fun skipToQueueItem(entryId: String)
 }

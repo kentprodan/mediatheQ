@@ -44,8 +44,6 @@ interface LibraryDao {
 
     /**
      * The tracks of one album in play order: disc (unknown = 1), then track number (unknown last), then name.
-     * shortcut: no index on track.album_id (it would need a migration); a scan of < 10k rows is fast. Add one with the
-     * first schema change.
      */
     @Transaction
     @Query(

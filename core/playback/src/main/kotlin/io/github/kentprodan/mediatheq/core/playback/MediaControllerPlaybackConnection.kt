@@ -1,8 +1,10 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import androidx.core.content.ContextCompat
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
@@ -84,15 +86,46 @@ internal class MediaControllerPlaybackConnection
         ) {
             if (queue.isEmpty()) return
             playJob?.cancel()
-            playJob =
-                command { controller ->
-                    val items =
-                        queue.map { track ->
-                            track.toMediaItem(track.artwork?.let { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) })
-                        }
-                    controller.playQueue(items, startIndex, shuffle)
-                }
+            playJob = command { controller -> controller.playQueue(queue.toMediaItems(), startIndex, shuffle) }
         }
+
+        override val queue: StateFlow<List<QueueItem>> =
+            connected
+                .flatMapLatest { c ->
+                    c?.changes(Player.EVENT_TIMELINE_CHANGED, Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED)?.map {
+                        c.toQueueItems()
+                    } ?: flowOf(emptyList())
+                }.onStart { command {} }
+                .flowOn(Dispatchers.Main.immediate)
+                .stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
+
+        override fun playNext(tracks: List<Track>) {
+            if (tracks.isEmpty()) return
+            command { it.playNext(tracks.toMediaItems()) }
+        }
+
+        override fun addToQueue(tracks: List<Track>) {
+            if (tracks.isEmpty()) return
+            command { it.addToQueue(tracks.toMediaItems()) }
+        }
+
+        override fun moveQueueItem(
+            entryId: String,
+            to: Int,
+        ) {
+            command { it.moveEntry(entryId, to) }
+        }
+
+        override fun removeQueueItem(entryId: String) {
+            command { it.removeEntry(entryId) }
+        }
+
+        override fun skipToQueueItem(entryId: String) {
+            command { it.skipToEntry(entryId) }
+        }
+
+        private suspend fun List<Track>.toMediaItems(): List<MediaItem> =
+            map { track -> track.toMediaItem(track.artwork?.let { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) }) }
 
         override fun togglePlayPause() {
             command { Util.handlePlayPauseButtonAction(it) }
@@ -156,14 +189,18 @@ internal class MediaControllerPlaybackConnection
             }
 
         private companion object {
-            const val NOTIFICATION_ART_WIDTH = 512
             val POSITION_TICK = 250.milliseconds
             const val STOP_TIMEOUT_MS = 5_000L
         }
     }
 
-/** Emits once at once and again after every batch of player events (on the player's thread). */
-internal fun Player.changes(): Flow<Unit> =
+/**
+ * Emits once at once and again after every batch of player events (on the player's thread); with [only], just after
+ * batches that hold one of those events. (WrongConstant: [only] holds @Player.Event values; lint cannot see through
+ * the spread array.)
+ */
+@SuppressLint("WrongConstant")
+internal fun Player.changes(vararg only: @Player.Event Int): Flow<Unit> =
     callbackFlow {
         val listener =
             object : Player.Listener {
@@ -171,7 +208,7 @@ internal fun Player.changes(): Flow<Unit> =
                     player: Player,
                     events: Player.Events,
                 ) {
-                    trySend(Unit)
+                    if (only.isEmpty() || events.containsAny(*only)) trySend(Unit)
                 }
             }
         trySend(Unit)

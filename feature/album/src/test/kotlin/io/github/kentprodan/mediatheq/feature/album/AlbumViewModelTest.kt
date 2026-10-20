@@ -125,6 +125,35 @@ class AlbumViewModelTest {
         }
 
     @Test
+    fun `a track's menu queues just that track, next or last`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albums.value = listOf(album)
+            library.tracks.value = disc1 + disc2
+            val viewModel = viewModel()
+
+            viewModel.onAction(AlbumAction.PlayNext(disc1[1].id))
+            viewModel.onAction(AlbumAction.AddToQueue(disc2[0].id))
+
+            assertThat(playback.playedNext).containsExactly(listOf(disc1[1]))
+            assertThat(playback.addedToQueue).containsExactly(listOf(disc2[0]))
+            assertThat(playback.plays).isEmpty()
+        }
+
+    @Test
+    fun `the album menu queues the whole album in play order`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albums.value = listOf(album)
+            library.tracks.value = disc1 + disc2
+            val viewModel = viewModel()
+
+            viewModel.onAction(AlbumAction.PlayNext())
+            viewModel.onAction(AlbumAction.AddToQueue())
+
+            assertThat(playback.playedNext).containsExactly(disc1 + disc2)
+            assertThat(playback.addedToQueue).containsExactly(disc1 + disc2)
+        }
+
+    @Test
     fun `an album without tracks plays nothing`() =
         runTest(mainDispatcherRule.testDispatcher) {
             library.albums.value = listOf(album)
@@ -132,9 +161,11 @@ class AlbumViewModelTest {
 
             viewModel.onAction(AlbumAction.Play)
             viewModel.onAction(AlbumAction.Shuffle)
+            viewModel.onAction(AlbumAction.AddToQueue())
 
             assertThat((viewModel.uiState.value as AlbumUiState.Content).trackCount).isEqualTo(0)
             assertThat(playback.plays).isEmpty()
+            assertThat(playback.addedToQueue).isEmpty()
         }
 
     @Test

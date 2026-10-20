@@ -90,4 +90,16 @@ object MqIcons {
     /** Mirrors in right-to-left layouts. */
     val ArrowBack: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_arrow_back)
+
+    val DragHandle: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_drag_handle)
+
+    val Delete: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_delete)
+
+    val PlayNext: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_queue_play_next)
+
+    val AddToQueue: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_playlist_add)
 }

@@ -68,3 +68,12 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: on the album page the playing track shows the equalizer icon and a colored title; it moves to the next track when the player advances
 - [ ] Pixel 9: motion feels right (no jank opening/closing Now Playing, mini player enter/exit) and there are no haptics on plain taps
 - [ ] Pixel 9: TalkBack on the album page reads "Now playing" on the playing track; the mini player announces "Open player"
+
+## #14 Queue: view, reorder, remove, persistence and restore
+- [ ] Pixel 9: play an album, seek into track 3, then reboot the phone -> open the app: the mini player shows track 3 paused; Play continues at about the same position; the queue screen lists the whole album
+- [ ] Pixel 9: play an album, wait 15 s, `adb shell am force-stop io.github.kentprodan.mediatheq` -> reopen: same queue, same track, paused, position at most ~10 s behind
+- [ ] Pixel 9: Now Playing -> queue button -> drag a track by its handle up and down (also past the screen edge so the list scrolls) -> a light tick on pick-up and each swap, the order changes and the player plays in the new order; no jumps or flicker
+- [ ] Pixel 9: swipe a queue entry left and right -> it is removed; removing the playing entry continues with the next; Back closes the queue, a second Back closes the player
+- [ ] Pixel 9: album track menu -> Play next / Add to queue, album top bar menu -> Play next (whole album), Songs tab menu -> Add to queue -> the queue screen shows them in the right places; with nothing playing, Play next starts playback
+- [ ] Pixel 9: album started with Shuffle -> the queue shows the shuffled order without drag handles; Play next on a track plays right after the current one
+- [ ] Pixel 9: TalkBack on the queue: rows read "Now playing" for the current one and offer Move up / Move down / Remove from queue actions

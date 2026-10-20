@@ -1,0 +1,38 @@
+package io.github.kentprodan.mediatheq.core.playback
+
+import androidx.media3.common.ForwardingPlayer
+import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
+import kotlin.random.Random
+
+/**
+ * The player the session exposes: while shuffle is on, entries added through "play next" play right after the current
+ * one and "add to queue" entries play last (see [shuffleWithInserted]), instead of landing at random places.
+ */
+@UnstableApi
+internal class QueuePlayer(
+    private val player: ExoPlayer,
+) : ForwardingPlayer(player) {
+    override fun addMediaItem(mediaItem: MediaItem) = addMediaItems(mediaItemCount, listOf(mediaItem))
+
+    override fun addMediaItem(
+        index: Int,
+        mediaItem: MediaItem,
+    ) = addMediaItems(index, listOf(mediaItem))
+
+    override fun addMediaItems(mediaItems: List<MediaItem>) = addMediaItems(mediaItemCount, mediaItems)
+
+    override fun addMediaItems(
+        index: Int,
+        mediaItems: List<MediaItem>,
+    ) {
+        val at = index.coerceAtMost(mediaItemCount)
+        val appended = at == mediaItemCount
+        super.addMediaItems(at, mediaItems)
+        if (!shuffleModeEnabled || mediaItems.isEmpty()) return
+        val order = shuffleWithInserted(playOrder(), at until at + mediaItems.size, currentMediaItemIndex, appended)
+        player.setShuffleOrder(DefaultShuffleOrder(order.toIntArray(), Random.nextLong()))
+    }
+}

@@ -40,6 +40,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.DiscHeader
+import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
+import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
@@ -88,6 +90,17 @@ fun AlbumScreen(
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.album_back))
                     }
                 },
+                actions = {
+                    if (album != null && (state as AlbumUiState.Content).tracks.isNotEmpty()) {
+                        OverflowMenu(stringResource(R.string.album_more_options, album.title)) { close ->
+                            QueueMenuItems(
+                                onPlayNext = { onAction(AlbumAction.PlayNext()) },
+                                onAddToQueue = { onAction(AlbumAction.AddToQueue()) },
+                                close = close,
+                            )
+                        }
+                    }
+                },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -120,11 +133,17 @@ fun AlbumScreen(
                     state.discs.forEach { disc ->
                         if (state.showDiscHeaders) item(key = "disc-${disc.number}") { DiscHeader(disc.number) }
                         items(disc.tracks, key = { it.id.toString() }) { track ->
-                            // The track menu (no button yet) comes with the queue and playlist actions (#14, #16).
                             TrackRow(
                                 track,
                                 onClick = { onAction(AlbumAction.PlayTrack(track.id)) },
                                 isCurrent = track.id == state.currentTrackId,
+                                menuItems = { close ->
+                                    QueueMenuItems(
+                                        onPlayNext = { onAction(AlbumAction.PlayNext(track.id)) },
+                                        onAddToQueue = { onAction(AlbumAction.AddToQueue(track.id)) },
+                                        close = close,
+                                    )
+                                },
                             )
                         }
                     }

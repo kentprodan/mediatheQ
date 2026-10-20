@@ -16,13 +16,16 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
+import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
+import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
@@ -42,6 +45,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var sessionRepository: SessionRepository
 
+    @Inject lateinit var queueRepository: QueueRepository
+
+    @Inject lateinit var artworkUrls: ArtworkUrlResolver
+
     @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
@@ -49,6 +56,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var session: MediaLibrarySession? = null
     private lateinit var reporter: PlaybackReporter
     private var signOutWatch: Job? = null
+    private lateinit var persistence: QueuePersistence
+    private var persistJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -77,9 +86,17 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 playerDispatcher = Dispatchers.Main,
             )
         player.addListener(ReportingListener(player, reporter))
+        persistence =
+            QueuePersistence(
+                player = player,
+                repository = queueRepository,
+                scope = applicationScope + Dispatchers.Main,
+                artworkUrl = { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) },
+            )
+        persistJob = persistence.start()
         session =
             MediaLibrarySession
-                .Builder(this, player, LibraryCallback())
+                .Builder(this, QueuePlayer(player), LibraryCallback())
                 // Notification artwork through the app client too (cleartext rule, ADR 0013).
                 .setBitmapLoader(
                     CacheBitmapLoader(
@@ -115,7 +132,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     override fun onDestroy() {
         signOutWatch?.cancel()
+        persistJob?.cancel()
         session?.run {
+            persistence.saveNow()
             reporter.ended(player.currentPosition.milliseconds)
             player.release()
             release()

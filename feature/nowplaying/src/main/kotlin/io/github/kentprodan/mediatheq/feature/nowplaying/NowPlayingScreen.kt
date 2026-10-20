@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -54,6 +55,7 @@ fun NowPlayingScreen(
     onAction: (NowPlayingAction) -> Unit,
     onCollapse: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenQueue: () -> Unit = {},
     cover: Any? = state.artwork,
     coverModifier: Modifier = Modifier,
 ) {
@@ -66,6 +68,7 @@ fun NowPlayingScreen(
             position,
             onAction,
             onCollapse,
+            onOpenQueue,
             modifier.semantics { this.paneTitle = paneTitle },
             cover,
             coverModifier,
@@ -79,6 +82,7 @@ private fun NowPlayingContent(
     position: () -> Duration,
     onAction: (NowPlayingAction) -> Unit,
     onCollapse: () -> Unit,
+    onOpenQueue: () -> Unit,
     modifier: Modifier,
     cover: Any?,
     coverModifier: Modifier,
@@ -129,8 +133,13 @@ private fun NowPlayingContent(
             onPrevious = { onAction(NowPlayingAction.Previous) },
             onPlayPause = { onAction(NowPlayingAction.TogglePlayPause) },
             onNext = { onAction(NowPlayingAction.Next) },
-            modifier = Modifier.padding(bottom = MediatheqSpacing.xl),
         )
+        // The secondary row (expressive-design section 5); lyrics and output come in their issues.
+        Row(Modifier.fillMaxWidth().padding(bottom = MediatheqSpacing.l), horizontalArrangement = Arrangement.End) {
+            IconButton(onClick = onOpenQueue) {
+                Icon(MqIcons.QueueMusic, contentDescription = stringResource(R.string.nowplaying_queue_open))
+            }
+        }
     }
 }
 

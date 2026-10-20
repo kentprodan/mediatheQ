@@ -46,4 +46,14 @@ sealed interface AlbumAction {
     data class PlayTrack(
         val trackId: MediaId,
     ) : AlbumAction
+
+    /** Queue one track right after the playing one, or the whole album when [trackId] is `null`. */
+    data class PlayNext(
+        val trackId: MediaId? = null,
+    ) : AlbumAction
+
+    /** Queue one track at the end, or the whole album when [trackId] is `null`. */
+    data class AddToQueue(
+        val trackId: MediaId? = null,
+    ) : AlbumAction
 }

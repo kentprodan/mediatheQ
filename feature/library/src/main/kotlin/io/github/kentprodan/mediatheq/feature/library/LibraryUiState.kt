@@ -80,4 +80,14 @@ sealed interface LibraryAction {
     data object Refresh : LibraryAction
 
     data object ErrorShown : LibraryAction
+
+    /** Queue the song right after the playing one. */
+    data class PlayNext(
+        val track: Track,
+    ) : LibraryAction
+
+    /** Queue the song at the end. */
+    data class AddToQueue(
+        val track: Track,
+    ) : LibraryAction
 }

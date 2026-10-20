@@ -20,12 +20,14 @@ class TrackRowTest {
 
     private val track = PreviewData.track
     private var clicks = 0
-    private var moreClicks = 0
+    private val queued = mutableListOf<String>()
 
     private fun setContent() {
         composeRule.setContent {
             MediatheqTheme {
-                TrackRow(track, onClick = { clicks++ }, onMoreClick = { moreClicks++ })
+                TrackRow(track, onClick = { clicks++ }, menuItems = { close ->
+                    QueueMenuItems(onPlayNext = { queued += "next" }, onAddToQueue = { queued += "add" }, close = close)
+                })
             }
         }
     }
@@ -35,15 +37,21 @@ class TrackRowTest {
         setContent()
         composeRule.onNodeWithText(track.title).performClick()
         assertThat(clicks).isEqualTo(1)
-        assertThat(moreClicks).isEqualTo(0)
+        composeRule.onNodeWithText("Play next").assertDoesNotExist()
     }
 
     @Test
-    fun `clicking the overflow button calls onMoreClick only`() {
+    fun `the overflow menu queues the track and closes`() {
         setContent()
+
         composeRule.onNodeWithContentDescription("More options for ${track.title}").performClick()
-        assertThat(moreClicks).isEqualTo(1)
+        composeRule.onNodeWithText("Play next").performClick()
+        composeRule.onNodeWithContentDescription("More options for ${track.title}").performClick()
+        composeRule.onNodeWithText("Add to queue").performClick()
+
+        assertThat(queued).containsExactly("next", "add").inOrder()
         assertThat(clicks).isEqualTo(0)
+        composeRule.onNodeWithText("Add to queue").assertDoesNotExist()
     }
 
     @Test

@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -25,12 +26,27 @@ fun TrackRowScreenshot() {
     MediatheqTheme {
         Surface {
             Column {
-                TrackRow(PreviewData.track, onClick = {}, onMoreClick = {})
-                TrackRow(PreviewData.longTrack, onClick = {}, onMoreClick = {})
-                TrackRow(PreviewData.track, onClick = {}, onMoreClick = {}, showTrackNumber = false)
-                TrackRow(PreviewData.track, onClick = {}, onMoreClick = {}, isCurrent = true)
-                TrackRow(PreviewData.track, onClick = {}, onMoreClick = {}, showCover = true, isCurrent = true)
+                TrackRow(PreviewData.track, onClick = {}, menuItems = {})
+                TrackRow(PreviewData.longTrack, onClick = {}, menuItems = {})
+                TrackRow(PreviewData.track, onClick = {}, menuItems = {}, showTrackNumber = false)
+                TrackRow(PreviewData.track, onClick = {}, menuItems = {}, isCurrent = true)
+                TrackRow(PreviewData.track, onClick = {}, menuItems = {}, showCover = true, isCurrent = true)
             }
+        }
+    }
+}
+
+/**
+ * The queue items of track and album menus, drawn in place (screenshot rendering shows popups as blank boxes, so the
+ * open DropdownMenu itself cannot be captured).
+ */
+@PreviewTest
+@MqPreviews
+@Composable
+fun QueueMenuItemsScreenshot() {
+    MediatheqTheme {
+        Surface {
+            Column(Modifier.width(IntrinsicSize.Max)) { QueueMenuItems(onPlayNext = {}, onAddToQueue = {}, close = {}) }
         }
     }
 }
@@ -80,9 +96,9 @@ fun LibraryRowsScreenshot() {
                     PreviewData.track.copy(artwork = PreviewData.artwork),
                     onClick = {},
                     showCover = true,
-                    onMoreClick = {},
+                    menuItems = {},
                 )
-                TrackRow(PreviewData.longTrack, onClick = {}, showCover = true, onMoreClick = {})
+                TrackRow(PreviewData.longTrack, onClick = {}, showCover = true, menuItems = {})
             }
         }
     }

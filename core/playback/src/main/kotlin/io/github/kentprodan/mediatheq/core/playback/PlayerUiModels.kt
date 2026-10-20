@@ -25,8 +25,31 @@ internal fun Player.toPlayerUiModel(): PlayerUiModel {
         hasNext = hasNextMediaItem(),
         // Previous also restarts the current track, so it is there whenever something is queued.
         hasPrevious = item != null,
+        currentEntryId = current?.entryId(),
+        shuffle = shuffleModeEnabled,
     )
 }
+
+/** The queue in play order (the shuffled order while shuffle is on), for the queue screen. */
+internal fun Player.toQueueItems(): List<QueueItem> =
+    playOrder().mapNotNull { index ->
+        val item = getMediaItemAt(index)
+        val id = runCatching { MediaId.parse(item.mediaId) }.getOrNull() ?: return@mapNotNull null
+        QueueItem(
+            entryId = item.entryId() ?: index.toString(),
+            id = id,
+            title =
+                item.mediaMetadata.title
+                    ?.toString()
+                    .orEmpty(),
+            artist =
+                item.mediaMetadata.artist
+                    ?.toString()
+                    .orEmpty(),
+            artwork = item.mediaMetadata.extras?.toArtwork(),
+            duration = item.mediaMetadata.durationMs?.milliseconds ?: Duration.ZERO,
+        )
+    }
 
 private fun MediaItem.toNowPlayingItem(): NowPlayingItem? {
     val id = runCatching { MediaId.parse(mediaId) }.getOrNull() ?: return null
