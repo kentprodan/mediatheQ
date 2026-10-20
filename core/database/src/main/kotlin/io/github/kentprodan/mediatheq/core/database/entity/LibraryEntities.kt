@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.database.entity
 import androidx.room3.ColumnInfo
 import androidx.room3.Embedded
 import androidx.room3.Entity
+import androidx.room3.Index
 
 // One file for the library tables: each staging table embeds its live entity, so both always share the same columns
 // in the same order (the swap copies them with SELECT *).
@@ -61,7 +62,11 @@ data class AlbumArtistEntity(
     @ColumnInfo(name = "artist_id") val artistId: String,
 )
 
-@Entity(tableName = "track", primaryKeys = ["server_id", "id"])
+@Entity(
+    tableName = "track",
+    primaryKeys = ["server_id", "id"],
+    indices = [Index("server_id", "album_id")],
+)
 data class TrackEntity(
     @ColumnInfo(name = "server_id") val serverId: String,
     val id: String,
