@@ -73,7 +73,12 @@ class ArtistScreenTest {
         composeRule.setContent {
             MediatheqTheme {
                 ArtistScreen(
-                    content.copy(albums = emptyList(), appearsOn = emptyList(), tracks = emptyList()),
+                    content.copy(
+                        albums = emptyList(),
+                        appearsOn = emptyList(),
+                        tracks = emptyList(),
+                        topTracks = emptyList(),
+                    ),
                     {},
                     {},
                     {},
