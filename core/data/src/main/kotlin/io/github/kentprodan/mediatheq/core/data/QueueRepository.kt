@@ -19,7 +19,10 @@ interface QueueRepository {
     /** Updates only where the player is (cheap; the entries stay). */
     suspend fun savePlace(place: QueuePlace)
 
-    /** The saved queue with its tracks, or `null` when none; entries whose track left the library are dropped. */
+    /**
+     * The saved queue with its tracks, or `null` when none; entries whose track left the library are dropped. When the
+     * current entry is one of them, the next entry in queue order (not shuffle order) becomes current, from its start.
+     */
     suspend fun restore(): SavedQueue?
 }
 

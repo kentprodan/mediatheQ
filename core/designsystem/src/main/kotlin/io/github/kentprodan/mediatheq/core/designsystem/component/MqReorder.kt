@@ -80,6 +80,12 @@ class MqReorderState internal constructor(
                 it.index != dragged.index && center > it.offset && center < it.offset + it.size
             } ?: return
         movedTo = target.index
+        // The list keeps its first visible item in place by key; when that item takes part in the swap it would
+        // scroll a whole row. Pinning the current scroll position avoids the jump (as in the Compose drag-and-drop demo).
+        val first = listState.firstVisibleItemIndex
+        if (dragged.index == first || target.index == first) {
+            listState.requestScrollToItem(first, listState.firstVisibleItemScrollOffset)
+        }
         onMove()(dragged.index, target.index)
         haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
     }

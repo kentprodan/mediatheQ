@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import android.util.Log
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
@@ -10,11 +11,14 @@ import io.github.kentprodan.mediatheq.core.data.QueuePlace
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -39,6 +43,7 @@ internal class QueuePersistence(
     private var queueVersion = 0
     private var savedVersion = 0
     private var pending: Job? = null
+    private val writes = Mutex()
 
     private val listener =
         object : Player.Listener {
@@ -47,7 +52,8 @@ internal class QueuePersistence(
                 timeline: Timeline,
                 reason: Int,
             ) {
-                queueVersion++
+                // Not source updates: those come each time a track prepares, and the entries stay the same.
+                if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) queueVersion++
             }
 
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
@@ -65,7 +71,19 @@ internal class QueuePersistence(
     /** Restores the saved queue unless something was queued meanwhile, then starts saving. */
     fun start(): Job =
         scope.launch {
-            val saved = repository.restore()
+            // Listening first: what is queued while the restore runs is saved too, and the restored queue itself is
+            // rewritten once, so the saved positions match the entries left after a sync dropped some.
+            player.addListener(listener)
+            val saved =
+                try {
+                    repository.restore()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Nothing to bring back; saving goes on.
+                    Log.w(TAG, "Could not restore the saved queue", e)
+                    null
+                }
             if (saved != null && player.mediaItemCount == 0) {
                 val items =
                     saved.entries.map { entry ->
@@ -79,7 +97,6 @@ internal class QueuePersistence(
                 player.setShuffleOrder(DefaultShuffleOrder(saved.shuffleOrder.toIntArray(), Random.nextLong()))
                 player.shuffleModeEnabled = saved.place.shuffle
             }
-            player.addListener(listener)
             while (isActive) {
                 delay(tick)
                 if (player.isPlaying) save()
@@ -123,28 +140,20 @@ internal class QueuePersistence(
                 shuffle = player.shuffleModeEnabled,
             )
         // The shuffle order is saved also while shuffle is off, so the restored player has one of the right length.
-        return Snapshot(
-            entries,
-            if (entries !=
-                null
-            ) {
-                player.playOrder(shuffled = true)
-            } else {
-                emptyList()
-            },
-            place,
-            version,
-        )
+        val shuffleOrder = entries?.let { player.playOrder(shuffled = true) }.orEmpty()
+        return Snapshot(entries, shuffleOrder, place, version)
     }
 
-    private suspend fun Snapshot.write() {
-        if (entries != null) {
-            repository.saveQueue(entries, shuffleOrder, place)
-            savedVersion = maxOf(savedVersion, this.queueVersion)
-        } else {
-            repository.savePlace(place)
+    // One write at a time, in the order the snapshots were taken (FIFO lock), so an older one never lands last.
+    private suspend fun Snapshot.write() =
+        writes.withLock {
+            if (entries != null) {
+                repository.saveQueue(entries, shuffleOrder, place)
+                savedVersion = maxOf(savedVersion, this.queueVersion)
+            } else {
+                repository.savePlace(place)
+            }
         }
-    }
 
     private class Snapshot(
         /** `null` when only the place changed. */
@@ -155,6 +164,7 @@ internal class QueuePersistence(
     )
 
     private companion object {
+        const val TAG = "QueuePersistence"
         val SAVED_ON =
             intArrayOf(
                 Player.EVENT_TIMELINE_CHANGED,

@@ -2,12 +2,16 @@ package io.github.kentprodan.mediatheq.feature.nowplaying
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -108,6 +112,51 @@ class QueueScreenTest {
         composeRule.waitForIdle()
 
         assertThat(actions).containsExactly(NowPlayingAction.MoveQueueItem("e1", 2))
+    }
+
+    @Test
+    fun `a long queue opens at the playing entry, and dragging the top row there moves it without a jump`() {
+        val long = (1..30).map { QueueItem("e$it", MediaId(ServerId("s"), "t$it"), "Track $it", "Artist") }
+        composeRule.setContent {
+            MediatheqTheme {
+                QueueScreen(long, currentEntryId = "e20", canReorder = true, onAction = { actions += it }, onClose = {})
+            }
+        }
+        val rowHeight =
+            row(20)
+                .fetchSemanticsNode()
+                .size.height
+                .toFloat()
+        row(1).assertDoesNotExist()
+        row(20).assertIsDisplayed()
+
+        // The top visible row moves down two places.
+        row(20).performTouchInput { down(Offset(right - 40.dp.toPx(), centerY)) }
+        repeat(10) {
+            row(20).performTouchInput { moveBy(Offset(0f, rowHeight * 0.25f)) }
+            composeRule.waitForIdle()
+        }
+        row(20).performTouchInput { up() }
+        composeRule.waitForIdle()
+
+        assertThat(actions).containsExactly(NowPlayingAction.MoveQueueItem("e20", 21))
+    }
+
+    @Test
+    fun `a queue that arrives after the screen opened still scrolls to the playing entry`() {
+        val long = (1..30).map { QueueItem("e$it", MediaId(ServerId("s"), "t$it"), "Track $it", "Artist") }
+        var shown by mutableStateOf(emptyList<QueueItem>())
+        composeRule.setContent {
+            MediatheqTheme {
+                QueueScreen(shown, currentEntryId = "e20", canReorder = true, onAction = {}, onClose = {})
+            }
+        }
+
+        shown = long
+        composeRule.waitForIdle()
+
+        row(20).assertIsDisplayed()
+        row(1).assertDoesNotExist()
     }
 
     @Test

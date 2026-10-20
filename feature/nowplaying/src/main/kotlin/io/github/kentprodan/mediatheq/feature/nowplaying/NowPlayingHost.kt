@@ -157,6 +157,8 @@ fun NowPlayingLayout(
                 // Registered when the player opens, so it comes after the shell's own back handling and wins; back
                 // closes the queue first.
                 BackHandler(enabled = expanded) { if (showQueue) showQueue = false else expanded = false }
+                // Collected while the full player is open, so the queue is current by the time it is opened.
+                val entries by queue.collectAsStateWithLifecycle()
                 PlayerScope(sharedScope, this) {
                     shown?.let { playing ->
                         MqCoverTheme(coverScheme) {
@@ -169,8 +171,6 @@ fun NowPlayingLayout(
                                 label = "queue",
                             ) { queueShown ->
                                 if (queueShown) {
-                                    // Collected only while the queue shows.
-                                    val entries by queue.collectAsStateWithLifecycle()
                                     QueueScreen(
                                         queue = entries,
                                         currentEntryId = playing.currentEntryId,

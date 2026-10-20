@@ -60,8 +60,12 @@ class QueuePersistenceTest {
         QueuePersistence(player, repository, backgroundScope, artworkUrl = { "https://art/${it.itemId}" })
             .also { it.start() }
 
-    /** Lets the player deliver its events (posted to the main looper), then lets [time] pass. */
+    /**
+     * Lets the player finish what it was asked (its own thread answers on the main looper at its own pace) and deliver
+     * the events, then lets [time] pass.
+     */
     private fun TestScope.wait(time: Duration) {
+        advance(player).untilPendingCommandsAreFullyHandled()
         shadowOf(Looper.getMainLooper()).idle()
         advanceTimeBy(time)
     }
@@ -132,6 +136,76 @@ class QueuePersistenceTest {
         }
 
     @Test
+    fun `a restored queue is saved again in full, so later places match its entries`() =
+        runTest {
+            // As restore() returns it after a sync dropped an entry: indices are into the entries left.
+            repository.saved = saved(QueuePlace(1, 5.seconds, shuffle = false))
+
+            start()
+            runCurrent()
+            wait(2.seconds)
+
+            assertThat(repository.queueWrites).isEqualTo(1)
+            assertThat(repository.entries.map { it.entryId }).containsExactly("e1", "e2", "e3").inOrder()
+            assertThat(repository.place?.index).isEqualTo(1)
+        }
+
+    @Test
+    fun `a failed restore still saves what is played next`() =
+        runTest {
+            val failing =
+                object : QueueRepository by repository {
+                    override suspend fun restore(): SavedQueue? = error("database broken")
+                }
+            QueuePersistence(player, failing, backgroundScope, artworkUrl = { null }).start()
+            runCurrent()
+
+            player.playQueue(listOf(item(1)), 0, shuffle = false)
+            wait(2.seconds)
+
+            assertThat(repository.entries.map { it.trackId.itemId }).containsExactly("t1")
+        }
+
+    @Test
+    fun `a queue started before the restore finished is saved`() =
+        runTest {
+            val restoreGate = CompletableDeferred<Unit>()
+            val slowRepository =
+                object : QueueRepository by repository {
+                    override suspend fun restore(): SavedQueue? {
+                        restoreGate.await()
+                        return null
+                    }
+                }
+            QueuePersistence(player, slowRepository, backgroundScope, artworkUrl = { null }).start()
+            runCurrent()
+
+            player.playQueue(listOf(item(9)), 0, shuffle = false)
+            restoreGate.complete(Unit)
+            wait(2.seconds)
+
+            assertThat(repository.entries.map { it.trackId.itemId }).containsExactly("t9")
+        }
+
+    @Test
+    fun `preparing tracks does not rewrite the queue, only queue changes do`() =
+        runTest {
+            start()
+            runCurrent()
+            player.playQueue(listOf(item(1), item(2)), 0, shuffle = false)
+            advance(player).untilState(Player.STATE_READY)
+            wait(2.seconds)
+            val writes = repository.queueWrites
+
+            player.seekToNextMediaItem()
+            advance(player).untilState(Player.STATE_READY)
+            wait(2.seconds)
+
+            assertThat(repository.queueWrites).isEqualTo(writes)
+            assertThat(repository.place?.index).isEqualTo(1)
+        }
+
+    @Test
     fun `nothing saved leaves the player empty`() =
         runTest {
             start()
@@ -149,7 +223,7 @@ class QueuePersistenceTest {
             player.playQueue(listOf(item(1), item(2)), 1, shuffle = false)
             wait(500.milliseconds)
             assertThat(repository.queueWrites).isEqualTo(0)
-            wait(1.seconds)
+            wait(2.seconds)
 
             assertThat(repository.queueWrites).isEqualTo(1)
             assertThat(repository.entries.map { it.trackId.itemId }).containsExactly("t1", "t2").inOrder()
@@ -166,12 +240,12 @@ class QueuePersistenceTest {
             player.playQueue(listOf(item(1), item(2)), 0, shuffle = false)
             wait(2.seconds)
 
-            player.seekTo(1, 30_000)
+            player.seekTo(1, 5_000) // fake media is ~10 s long
             player.pause()
             wait(2.seconds)
 
             assertThat(repository.queueWrites).isEqualTo(1)
-            assertThat(repository.place).isEqualTo(QueuePlace(1, 30.seconds, shuffle = false))
+            assertThat(repository.place).isEqualTo(QueuePlace(1, 5.seconds, shuffle = false))
         }
 
     @Test

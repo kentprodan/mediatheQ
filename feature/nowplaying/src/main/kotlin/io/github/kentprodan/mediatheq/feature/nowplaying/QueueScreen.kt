@@ -23,6 +23,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,14 +65,16 @@ fun QueueScreen(
 ) {
     // A local copy follows the finger while dragging; the player gets one move when it is dropped.
     var items by remember(queue) { mutableStateOf(queue) }
-    val listState =
-        rememberLazyListState(
-            initialFirstVisibleItemIndex =
-                queue
-                    .indexOfFirst {
-                        it.entryId == currentEntryId
-                    }.coerceAtLeast(0),
-        )
+    val listState = rememberLazyListState()
+    // Opens at the playing entry, also when the queue arrives a moment after the screen.
+    var scrolledToCurrent by remember { mutableStateOf(false) }
+    LaunchedEffect(queue, currentEntryId) {
+        val current = queue.indexOfFirst { it.entryId == currentEntryId }
+        if (!scrolledToCurrent && current >= 0) {
+            listState.scrollToItem(current)
+            scrolledToCurrent = true
+        }
+    }
     val reorder =
         rememberMqReorderState(
             listState,
