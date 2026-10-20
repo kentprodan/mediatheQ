@@ -2,4 +2,10 @@
 <resources>
     <string name="nowplaying_collapse">Close player</string>
     <string name="nowplaying_pane_title">Now playing</string>
+    <string name="nowplaying_queue">Queue</string>
+    <string name="nowplaying_queue_open">Open queue</string>
+    <string name="nowplaying_queue_close">Close queue</string>
+    <string name="nowplaying_queue_remove">Remove from queue</string>
+    <string name="nowplaying_queue_move_up">Move up</string>
+    <string name="nowplaying_queue_move_down">Move down</string>
 </resources>

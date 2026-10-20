@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.playback.QueueItem
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -26,6 +27,9 @@ class NowPlayingViewModel
         /** The playing position, sampled by the connection; collect it only where it is drawn. */
         val position: StateFlow<Duration> = playback.position
 
+        /** The queue in play order; collect it only while the queue screen shows. */
+        val queue: StateFlow<List<QueueItem>> = playback.queue
+
         fun onAction(action: NowPlayingAction) {
             when (action) {
                 NowPlayingAction.TogglePlayPause -> {
@@ -44,6 +48,18 @@ class NowPlayingViewModel
                     val duration = playback.state.value.duration
                     if (duration.isPositive()) playback.seekTo(duration * action.fraction.coerceIn(0f, 1f).toDouble())
                 }
+
+                is NowPlayingAction.SkipToQueueItem -> {
+                    playback.skipToQueueItem(action.entryId)
+                }
+
+                is NowPlayingAction.RemoveQueueItem -> {
+                    playback.removeQueueItem(action.entryId)
+                }
+
+                is NowPlayingAction.MoveQueueItem -> {
+                    playback.moveQueueItem(action.entryId, action.to)
+                }
             }
         }
     }
@@ -59,5 +75,7 @@ private fun PlayerUiModel.toUiState(): NowPlayingUiState {
         isSeekable = isSeekable,
         hasNext = hasNext,
         hasPrevious = hasPrevious,
+        currentEntryId = currentEntryId,
+        shuffle = shuffle,
     )
 }

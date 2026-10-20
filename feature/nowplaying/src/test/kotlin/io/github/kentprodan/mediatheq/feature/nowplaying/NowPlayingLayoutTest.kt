@@ -169,6 +169,27 @@ class NowPlayingLayoutTest {
         composeRule.onNode(playerPane).assertExists()
     }
 
+    @Test
+    fun `the queue opens from the player, and back closes the queue before the player`() {
+        val queuePane = SemanticsMatcher.expectValue(SemanticsProperties.PaneTitle, "Queue")
+        setContent()
+        composeRule.onNode(miniPlayer).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Open queue").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNode(queuePane).assertExists()
+
+        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+        composeRule.onNode(queuePane).assertDoesNotExist()
+        composeRule.onNode(playerPane).assertExists()
+
+        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+        composeRule.onNode(playerPane).assertDoesNotExist()
+    }
+
     private companion object {
         const val SETTLE_FRAMES = 180
         const val SHELL_TEXT = "Shell content"

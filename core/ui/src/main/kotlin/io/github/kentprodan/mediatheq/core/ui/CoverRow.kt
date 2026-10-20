@@ -37,9 +37,9 @@ internal fun CoverRow(
     }
 }
 
-/** A row-sized cover; [placeholderIcon] shows when the item has no image. */
+/** A row-sized cover (48 dp); [placeholderIcon] shows when the item has no image. */
 @Composable
-internal fun RowCover(
+fun RowCover(
     artwork: Artwork?,
     placeholderIcon: ImageVector,
     shape: Shape = MaterialTheme.shapes.small,

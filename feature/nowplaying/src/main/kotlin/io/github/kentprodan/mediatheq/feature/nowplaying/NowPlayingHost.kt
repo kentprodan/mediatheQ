@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.nowplaying
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionLayout
@@ -13,6 +14,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -48,6 +50,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColorCache
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqCoverTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.rememberCoverColorScheme
+import io.github.kentprodan.mediatheq.core.playback.QueueItem
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.Duration
 
@@ -61,12 +65,12 @@ fun NowPlayingHost(
     viewModel: NowPlayingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    NowPlayingLayout(state, viewModel.position, viewModel::onAction, content)
+    NowPlayingLayout(state, viewModel.position, viewModel::onAction, content, queue = viewModel.queue)
 }
 
 /**
- * [NowPlayingHost] without the ViewModel: mini player <-> full player, shared cover, cover colors, back. Public for
- * tests of the whole shell.
+ * [NowPlayingHost] without the ViewModel: mini player <-> full player <-> queue, shared cover, cover colors, back.
+ * Public for tests of the whole shell.
  */
 @Composable
 fun NowPlayingLayout(
@@ -75,8 +79,11 @@ fun NowPlayingLayout(
     onAction: (NowPlayingAction) -> Unit,
     content: @Composable (miniPlayer: @Composable () -> Unit) -> Unit,
     expandedInitially: Boolean = false,
+    queue: StateFlow<List<QueueItem>> = NoQueue,
 ) {
     var expanded by rememberSaveable { mutableStateOf(expandedInitially) }
+    var showQueue by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(expanded) { if (!expanded) showQueue = false }
     // Keeps showing the last track while the player animates away after the queue was cleared.
     var last by remember { mutableStateOf(state as? NowPlayingUiState.Playing) }
     LaunchedEffect(state) {
@@ -147,20 +154,43 @@ fun NowPlayingLayout(
                     slideOutVertically(motion.slowSpatialSpec<IntOffset>()) { it / 2 } +
                         fadeOut(motion.slowEffectsSpec()),
             ) {
-                // Registered when the player opens, so it comes after the shell's own back handling and wins.
-                BackHandler(enabled = expanded) { expanded = false }
-                // Sampled only while the full player is open; the mini player shows no position.
-                val position = positions.collectAsStateWithLifecycle()
+                // Registered when the player opens, so it comes after the shell's own back handling and wins; back
+                // closes the queue first.
+                BackHandler(enabled = expanded) { if (showQueue) showQueue = false else expanded = false }
                 PlayerScope(sharedScope, this) {
                     shown?.let { playing ->
                         MqCoverTheme(coverScheme) {
-                            NowPlayingScreen(
-                                state = playing,
-                                position = { position.value },
-                                onAction = onAction,
-                                onCollapse = { expanded = false },
-                                coverModifier = Modifier.mqSharedCover(PLAYER_COVER_KEY),
-                            )
+                            AnimatedContent(
+                                targetState = showQueue,
+                                transitionSpec = {
+                                    fadeIn(motion.defaultEffectsSpec()) togetherWith
+                                        fadeOut(motion.defaultEffectsSpec())
+                                },
+                                label = "queue",
+                            ) { queueShown ->
+                                if (queueShown) {
+                                    // Collected only while the queue shows.
+                                    val entries by queue.collectAsStateWithLifecycle()
+                                    QueueScreen(
+                                        queue = entries,
+                                        currentEntryId = playing.currentEntryId,
+                                        canReorder = !playing.shuffle,
+                                        onAction = onAction,
+                                        onClose = { showQueue = false },
+                                    )
+                                } else {
+                                    // Sampled only while the full player is open; the mini player shows no position.
+                                    val position = positions.collectAsStateWithLifecycle()
+                                    NowPlayingScreen(
+                                        state = playing,
+                                        position = { position.value },
+                                        onAction = onAction,
+                                        onCollapse = { expanded = false },
+                                        onOpenQueue = { showQueue = true },
+                                        coverModifier = Modifier.mqSharedCover(PLAYER_COVER_KEY),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -223,3 +253,5 @@ private fun Modifier.swipeUpToExpand(onExpand: () -> Unit): Modifier {
 
 // Its own key, so it never meets the grid -> album covers (they use sharedCoverKey(albumId)).
 private const val PLAYER_COVER_KEY = "player-cover"
+
+private val NoQueue: StateFlow<List<QueueItem>> = MutableStateFlow(emptyList())
