@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import androidx.core.content.ContextCompat
@@ -195,8 +196,10 @@ internal class MediaControllerPlaybackConnection
 
 /**
  * Emits once at once and again after every batch of player events (on the player's thread); with [only], just after
- * batches that hold one of those events.
+ * batches that hold one of those events. (WrongConstant: [only] holds @Player.Event values; lint cannot see through
+ * the spread array.)
  */
+@SuppressLint("WrongConstant")
 internal fun Player.changes(vararg only: @Player.Event Int): Flow<Unit> =
     callbackFlow {
         val listener =
