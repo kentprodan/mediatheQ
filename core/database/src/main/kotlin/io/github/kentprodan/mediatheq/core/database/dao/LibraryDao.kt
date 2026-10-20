@@ -57,6 +57,75 @@ interface LibraryDao {
         albumId: String,
     ): Flow<List<TrackWithArtists>>
 
+    /** One artist, album artist or credit-only, `null` when it is not in the library. */
+    @Query("SELECT * FROM artist WHERE server_id = :serverId AND id = :artistId")
+    fun artist(
+        serverId: String,
+        artistId: String,
+    ): Flow<ArtistEntity?>
+
+    /** Albums the artist is an album artist of: newest year first, unknown year last. */
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM album WHERE server_id = :serverId AND id IN (
+            SELECT album_id FROM album_artist WHERE server_id = :serverId AND artist_id = :artistId
+        )
+        ORDER BY year IS NULL, year DESC, sort_name, id
+        """,
+    )
+    fun artistAlbums(
+        serverId: String,
+        artistId: String,
+    ): Flow<List<AlbumWithArtists>>
+
+    /** Albums with a track credited to the artist, other than the artist's own albums; same order as [artistAlbums]. */
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM album WHERE server_id = :serverId AND id IN (
+            SELECT t.album_id FROM track t JOIN track_artist ta ON ta.server_id = t.server_id AND ta.track_id = t.id
+            WHERE t.server_id = :serverId AND ta.artist_id = :artistId
+        ) AND id NOT IN (
+            SELECT album_id FROM album_artist WHERE server_id = :serverId AND artist_id = :artistId
+        )
+        ORDER BY year IS NULL, year DESC, sort_name, id
+        """,
+    )
+    fun appearsOnAlbums(
+        serverId: String,
+        artistId: String,
+    ): Flow<List<AlbumWithArtists>>
+
+    /**
+     * Every track of the artist, each once: the tracks of the artist's albums plus the tracks crediting the artist.
+     * Own albums first, then other albums (both newest first), then tracks without an album; album play order within.
+     */
+    @Transaction
+    @Query(
+        """
+        SELECT track.* FROM track
+        LEFT JOIN album ON album.server_id = track.server_id AND album.id = track.album_id
+        WHERE track.server_id = :serverId AND (
+            track.album_id IN (SELECT album_id FROM album_artist WHERE server_id = :serverId AND artist_id = :artistId)
+            OR EXISTS (
+                SELECT 1 FROM track_artist ta
+                WHERE ta.server_id = track.server_id AND ta.track_id = track.id AND ta.artist_id = :artistId
+            )
+        )
+        ORDER BY track.album_id IS NULL,
+            track.album_id NOT IN (
+                SELECT album_id FROM album_artist WHERE server_id = :serverId AND artist_id = :artistId
+            ),
+            album.year IS NULL, album.year DESC, album.sort_name, track.album_id,
+            COALESCE(track.disc_number, 1), track.track_number IS NULL, track.track_number, track.sort_name, track.id
+        """,
+    )
+    fun artistTracks(
+        serverId: String,
+        artistId: String,
+    ): Flow<List<TrackWithArtists>>
+
     /** [match] must already be a safe FTS5 expression (see `ftsMatchExpression` in `:core:data`). */
     @Query("SELECT * FROM search WHERE search MATCH :match ORDER BY rank LIMIT :limit")
     suspend fun search(
