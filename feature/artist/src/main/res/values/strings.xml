@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="artist_back">Back</string>
-    <string name="artist_play">Play</string>
-    <string name="artist_shuffle">Shuffle</string>
     <string name="artist_top_tracks">Top tracks</string>
     <string name="artist_albums">Albums</string>
     <string name="artist_appears_on">Appears on</string>
