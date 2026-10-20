@@ -188,7 +188,6 @@ internal class MediaControllerPlaybackConnection
             }
 
         private companion object {
-            const val NOTIFICATION_ART_WIDTH = 512
             val POSITION_TICK = 250.milliseconds
             const val STOP_TIMEOUT_MS = 5_000L
         }

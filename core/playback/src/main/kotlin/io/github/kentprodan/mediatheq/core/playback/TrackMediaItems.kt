@@ -16,6 +16,9 @@ import java.util.UUID
  */
 internal const val TRACK_SCHEME = "mediatheq"
 
+/** Cover width for the notification and system controls. */
+internal const val NOTIFICATION_ART_WIDTH = 512
+
 internal fun trackUri(itemId: MediaId): Uri = "$TRACK_SCHEME://track/${Uri.encode(itemId.toString())}".toUri()
 
 /** The track id inside a [trackUri], or `null` for any other URI. */

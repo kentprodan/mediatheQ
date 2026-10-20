@@ -58,14 +58,14 @@ internal fun Player.skipToEntry(entryId: String) {
 internal fun Player.indexOfEntry(entryId: String): Int =
     (0 until mediaItemCount).indexOfFirst { getMediaItemAt(it).entryId() == entryId }
 
-/** Queue indices in play order: the shuffle order while shuffle is on. */
-internal fun Player.playOrder(): List<Int> {
+/** Queue indices in play order: the shuffle order when [shuffled] (by default while shuffle is on). */
+internal fun Player.playOrder(shuffled: Boolean = shuffleModeEnabled): List<Int> {
     val timeline = currentTimeline
     return buildList {
-        var index = timeline.getFirstWindowIndex(shuffleModeEnabled)
+        var index = timeline.getFirstWindowIndex(shuffled)
         while (index != C.INDEX_UNSET) {
             add(index)
-            index = timeline.getNextWindowIndex(index, Player.REPEAT_MODE_OFF, shuffleModeEnabled)
+            index = timeline.getNextWindowIndex(index, Player.REPEAT_MODE_OFF, shuffled)
         }
     }
 }
