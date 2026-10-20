@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="artist_back">Back</string>
+    <string name="artist_top_tracks">Top tracks</string>
+    <string name="artist_albums">Albums</string>
+    <string name="artist_appears_on">Appears on</string>
+    <string name="artist_not_found_title">Artist not available</string>
+    <string name="artist_not_found_body">They are no longer in your library.</string>
+    <string name="artist_empty_title">No music yet</string>
+    <string name="artist_empty_body">Nothing by this artist is in your library.</string>
+    <plurals name="artist_album_count">
+        <item quantity="one">%d album</item>
+        <item quantity="other">%d albums</item>
+    </plurals>
+</resources>

@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqArtistAvatar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBar
@@ -71,6 +72,24 @@ fun CoverStatesScreenshot() {
                     blurHash = PREVIEW_BLUR_HASH,
                 )
                 MqCover(model = rememberPreviewCover(), contentDescription = null, Modifier.width(CoverWidth))
+            }
+        }
+    }
+}
+
+/** Artist avatar without a picture and with one. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun ArtistAvatarScreenshot() {
+    MediatheqTheme {
+        Surface {
+            Row(
+                Modifier.padding(MediatheqSpacing.l),
+                horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
+            ) {
+                MqArtistAvatar(model = null, Modifier.width(CoverWidth))
+                MqArtistAvatar(model = rememberPreviewCover(), Modifier.width(CoverWidth))
             }
         }
     }

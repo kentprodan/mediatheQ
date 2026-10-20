@@ -3,17 +3,12 @@ package io.github.kentprodan.mediatheq.feature.album
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -33,6 +28,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayShuffleButtons
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedCover
 import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
@@ -129,7 +125,13 @@ fun AlbumScreen(
                     contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = MediatheqSpacing.l),
                 ) {
                     item(key = "header") { AlbumHeader(albumId, state) }
-                    item(key = "buttons") { PlayButtons(enabled = state.tracks.isNotEmpty(), onAction) }
+                    item(key = "buttons") {
+                        MqPlayShuffleButtons(
+                            enabled = state.tracks.isNotEmpty(),
+                            onPlay = { onAction(AlbumAction.Play) },
+                            onShuffle = { onAction(AlbumAction.Shuffle) },
+                        )
+                    }
                     state.discs.forEach { disc ->
                         if (state.showDiscHeaders) item(key = "disc-${disc.number}") { DiscHeader(disc.number) }
                         items(disc.tracks, key = { it.id.toString() }) { track ->
@@ -176,35 +178,6 @@ private fun AlbumHeader(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-    }
-}
-
-/** Play (filled) and Shuffle (tonal), side by side (expressive-design component map). */
-@Composable
-private fun PlayButtons(
-    enabled: Boolean,
-    onAction: (AlbumAction) -> Unit,
-) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
-        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
-    ) {
-        Button(onClick = { onAction(AlbumAction.Play) }, Modifier.weight(1f), enabled = enabled) {
-            Icon(MqIcons.PlayArrow, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-            Text(
-                stringResource(R.string.album_play),
-                Modifier.padding(start = ButtonDefaults.IconSpacing),
-                maxLines = 1,
-            )
-        }
-        FilledTonalButton(onClick = { onAction(AlbumAction.Shuffle) }, Modifier.weight(1f), enabled = enabled) {
-            Icon(MqIcons.Shuffle, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-            Text(
-                stringResource(R.string.album_shuffle),
-                Modifier.padding(start = ButtonDefaults.IconSpacing),
-                maxLines = 1,
-            )
-        }
     }
 }
 

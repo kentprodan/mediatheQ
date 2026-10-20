@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.SearchHit
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /** [LibraryRepository] with settable contents; search matches names case-insensitively. */
@@ -26,6 +27,23 @@ class FakeLibraryRepository : LibraryRepository {
     override fun albumTracks(albumId: MediaId) = tracks.map { list -> list.filter { it.albumId == albumId } }
 
     override fun albumArtists() = albumArtists
+
+    /** Artists [artist] finds besides [albumArtists] (credit-only artists). */
+    val creditedArtists = MutableStateFlow<List<Artist>>(emptyList())
+
+    // Per-artist lists are set directly: the album artist vs track artist rules are proven by the DAO tests.
+    val artistAlbums = MutableStateFlow<Map<MediaId, List<Album>>>(emptyMap())
+    val appearsOn = MutableStateFlow<Map<MediaId, List<Album>>>(emptyMap())
+    val artistTracks = MutableStateFlow<Map<MediaId, List<Track>>>(emptyMap())
+
+    override fun artist(id: MediaId) =
+        combine(albumArtists, creditedArtists) { a, c -> (a + c).firstOrNull { it.id == id } }
+
+    override fun artistAlbums(artistId: MediaId) = artistAlbums.map { it[artistId].orEmpty() }
+
+    override fun appearsOn(artistId: MediaId) = appearsOn.map { it[artistId].orEmpty() }
+
+    override fun artistTracks(artistId: MediaId) = artistTracks.map { it[artistId].orEmpty() }
 
     override fun playlists() = playlists
 

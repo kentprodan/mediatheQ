@@ -32,7 +32,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 /**
  * Square cover art clipped to [shape]. Shows the [blurHash] placeholder (or a music note) until [model] loads, then
  * crossfades in with the theme's effects motion spec. [model] is anything Coil loads, or a ready [Painter]
- * (previews, screenshot tests). Never use `MaterialShapes` here (they crop the art).
+ * (previews, screenshot tests). Never use `MaterialShapes` for album art (they crop it); artists use [MqArtistAvatar].
  */
 @Composable
 fun MqCover(
