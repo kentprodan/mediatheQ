@@ -8,6 +8,7 @@ import androidx.media3.common.MediaMetadata
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
+import java.util.UUID
 
 /**
  * Queue items carry no real URL: `mediatheq://track/<mediaId>` is resolved into a stream only when the player loads it
@@ -27,8 +28,14 @@ internal fun Uri.trackId(): MediaId? =
         null
     }
 
-/** What a controller sends: id and display metadata only (the session adds the URI). */
-internal fun Track.toMediaItem(artworkUrl: String?): MediaItem =
+/**
+ * What a controller sends: id and display metadata only (the session adds the URI). [entryId] tells queue entries
+ * apart, since the same track can be queued twice.
+ */
+internal fun Track.toMediaItem(
+    artworkUrl: String?,
+    entryId: String = newEntryId(),
+): MediaItem =
     MediaItem
         .Builder()
         .setMediaId(id.toString())
@@ -42,33 +49,49 @@ internal fun Track.toMediaItem(artworkUrl: String?): MediaItem =
                 .setDiscNumber(discNumber)
                 .setDurationMs(duration.inWholeMilliseconds)
                 .setArtworkUri(artworkUrl?.toUri())
-                .setExtras(artwork?.toBundle())
+                .setExtras(Bundle().apply { putQueueExtras(entryId, artwork) })
                 .setIsPlayable(true)
                 .setIsBrowsable(false)
                 .build(),
         ).build()
 
 /**
- * The session side: gives a controller's item its resolvable URI (items from controllers carry none we trust); `null`
- * for an item that is not one of our tracks.
+ * The session side: gives a controller's item its resolvable URI (items from controllers carry none we trust), and an
+ * entry id when it has none; `null` for an item that is not one of our tracks.
  */
 internal fun MediaItem.withTrackUri(): MediaItem? {
     val itemId = runCatching { MediaId.parse(mediaId) }.getOrNull() ?: return null
-    return buildUpon().setUri(trackUri(itemId)).build()
+    val builder = buildUpon().setUri(trackUri(itemId))
+    if (entryId() == null) {
+        val extras = Bundle(mediaMetadata.extras ?: Bundle()).apply { putString(EXTRA_ENTRY_ID, newEntryId()) }
+        builder.setMediaMetadata(mediaMetadata.buildUpon().setExtras(extras).build())
+    }
+    return builder.build()
 }
 
-// The cover travels with the item as plain strings (other processes, e.g. System UI, unbundle the extras), so screens can
-// show it without a lookup.
+/** The queue entry this item is (see [toMediaItem]). */
+internal fun MediaItem.entryId(): String? = mediaMetadata.extras?.getString(EXTRA_ENTRY_ID)
+
+internal fun newEntryId(): String = UUID.randomUUID().toString()
+
+// The entry id and the cover travel with the item as plain strings (other processes, e.g. System UI, unbundle the
+// extras), so screens can show the cover without a lookup.
+private const val EXTRA_ENTRY_ID = "io.github.kentprodan.mediatheq.ENTRY_ID"
 private const val EXTRA_ARTWORK_ID = "io.github.kentprodan.mediatheq.ARTWORK_ID"
 private const val EXTRA_ARTWORK_TAG = "io.github.kentprodan.mediatheq.ARTWORK_TAG"
 private const val EXTRA_ARTWORK_BLUR_HASH = "io.github.kentprodan.mediatheq.ARTWORK_BLUR_HASH"
 
-private fun Artwork.toBundle(): Bundle =
-    Bundle().apply {
-        putString(EXTRA_ARTWORK_ID, itemId)
-        putString(EXTRA_ARTWORK_TAG, tag)
-        putString(EXTRA_ARTWORK_BLUR_HASH, blurHash)
+private fun Bundle.putQueueExtras(
+    entryId: String,
+    artwork: Artwork?,
+) {
+    putString(EXTRA_ENTRY_ID, entryId)
+    if (artwork != null) {
+        putString(EXTRA_ARTWORK_ID, artwork.itemId)
+        putString(EXTRA_ARTWORK_TAG, artwork.tag)
+        putString(EXTRA_ARTWORK_BLUR_HASH, artwork.blurHash)
     }
+}
 
 internal fun Bundle.toArtwork(): Artwork? {
     val itemId = getString(EXTRA_ARTWORK_ID) ?: return null

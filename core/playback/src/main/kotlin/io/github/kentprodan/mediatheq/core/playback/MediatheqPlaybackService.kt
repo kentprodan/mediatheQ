@@ -79,7 +79,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         player.addListener(ReportingListener(player, reporter))
         session =
             MediaLibrarySession
-                .Builder(this, player, LibraryCallback())
+                .Builder(this, QueuePlayer(player), LibraryCallback())
                 // Notification artwork through the app client too (cleartext rule, ADR 0013).
                 .setBitmapLoader(
                     CacheBitmapLoader(

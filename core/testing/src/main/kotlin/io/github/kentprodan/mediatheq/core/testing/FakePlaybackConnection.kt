@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.testing
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.playback.QueueItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.time.Duration
 
@@ -44,5 +45,34 @@ class FakePlaybackConnection : PlaybackConnection {
 
     override fun seekTo(position: Duration) {
         commands += "seekTo $position"
+    }
+
+    override val queue = MutableStateFlow<List<QueueItem>>(emptyList())
+
+    /** Tracks passed to [playNext] and [addToQueue], per call. */
+    val playedNext = mutableListOf<List<Track>>()
+    val addedToQueue = mutableListOf<List<Track>>()
+
+    override fun playNext(tracks: List<Track>) {
+        playedNext += tracks
+    }
+
+    override fun addToQueue(tracks: List<Track>) {
+        addedToQueue += tracks
+    }
+
+    override fun moveQueueItem(
+        entryId: String,
+        to: Int,
+    ) {
+        commands += "move $entryId $to"
+    }
+
+    override fun removeQueueItem(entryId: String) {
+        commands += "remove $entryId"
+    }
+
+    override fun skipToQueueItem(entryId: String) {
+        commands += "skipTo $entryId"
     }
 }

@@ -15,6 +15,21 @@ data class PlayerUiModel(
     val isSeekable: Boolean = false,
     val hasNext: Boolean = false,
     val hasPrevious: Boolean = false,
+    /** The queue entry playing, to mark it in [PlaybackConnection.queue]. */
+    val currentEntryId: String? = null,
+    /** Shuffle on: the queue shows the shuffled order and cannot be reordered (#41 adds the toggle). */
+    val shuffle: Boolean = false,
+)
+
+/** One queue entry, for the queue screen. */
+data class QueueItem(
+    /** Unique in the queue (the same track can be queued twice); commands name entries by it. */
+    val entryId: String,
+    val id: MediaId,
+    val title: String,
+    val artist: String,
+    val artwork: Artwork? = null,
+    val duration: Duration = Duration.ZERO,
 )
 
 /** The playing track as the queue knows it. */
