@@ -21,5 +21,8 @@ internal interface DataModule {
     fun playbackRepository(repository: DefaultPlaybackRepository): PlaybackRepository
 
     @Binds
+    fun queueRepository(repository: DefaultQueueRepository): QueueRepository
+
+    @Binds
     fun libraryPreferencesRepository(repository: DefaultLibraryPreferencesRepository): LibraryPreferencesRepository
 }
