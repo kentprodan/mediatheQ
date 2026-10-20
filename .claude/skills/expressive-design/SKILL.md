@@ -137,6 +137,10 @@ fun MediatheqTheme(
 | Download progress | `LinearWavyProgressIndicator` / `CircularWavyProgressIndicator` | Determinate when size known. |
 | Playback seek bar | `MqSeekBar` (value `Slider` + elapsed/total labels) | Keeps the dragged value until release, then seeks once. Disabled when the stream cannot be seeked. Waveform scrubber is a later feature - keep it behind `MqSeekBar`. |
 | Player colors | `rememberCoverColorScheme` + `MqCoverTheme` | Cover seed -> `SchemeContent` (ADR 0017), cached per cover, roles blended with the effects spec. |
+| Queue screen | `QueueScreen` in `:feature:nowplaying`, inside the player overlay | Opened by the queue button in Now Playing's secondary row; back closes it before the player. |
+| Drag to reorder (queue, later playlists) | `rememberMqReorderState` + `Modifier.mqReorderItem` / `mqReorderHandle` in `:core:designsystem` | Drag handle icon, not a button; haptics on pick-up, each swap and drop; one commit on drop. Rows also get Move up / Move down custom accessibility actions. Off while shuffled. |
+| Swipe to remove (queue) | `SwipeToDismissBox` | `errorContainer` background with a delete icon, drawn only while swiping (rows are rounded). |
+| Track / album overflow menu | `OverflowMenu` + `QueueMenuItems` in `:core:ui` | `DropdownMenu` (up to 5 actions). Screenshot the items in place: popups render blank in screenshot tests. |
 | Multi-select actions (playlist edit) | `FloatingToolbar` | Appears on selection. |
 | Pull to refresh (Library) | `PullToRefreshBox` | |
 
