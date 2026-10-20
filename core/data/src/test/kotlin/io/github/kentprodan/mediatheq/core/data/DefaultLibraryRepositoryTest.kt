@@ -1,6 +1,12 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
+import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
+import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -107,5 +113,30 @@ class DefaultLibraryRepositoryTest {
             val track = repository.albumTracks(id).first().single()
             assertThat(track.albumId).isEqualTo(id)
             assertThat(track.duration.inWholeMilliseconds).isEqualTo(1_000)
+        }
+
+    @Test
+    fun `an artist, its albums and tracks map to the domain`() =
+        runTest {
+            val syncDao = database.syncDao()
+            syncDao.stageAlbumArtists(listOf(ArtistStaging(ArtistEntity("s", "ar1", "Subcarpați", "Subcarpati", true))))
+            syncDao.stageAlbums(listOf(AlbumStaging(AlbumEntity("s", "al1", "Satelit", "Satelit", year = 2016))))
+            syncDao.stageAlbumArtistLinks(listOf(AlbumArtistStaging(AlbumArtistEntity("s", "al1", 0, "ar1"))))
+            syncDao.stageTracks(listOf(TrackStaging(TrackEntity("s", "t1", "Moșoi", "Mosoi", albumId = "al1"))))
+            syncDao.swap(1, "s", "user-1")
+            val id = MediaId(ServerId("s"), "ar1")
+
+            assertThat(repository.artist(id).first()?.name).isEqualTo("Subcarpați")
+            assertThat(
+                repository
+                    .artistAlbums(id)
+                    .first()
+                    .single()
+                    .albumArtists
+                    .single()
+                    .id,
+            ).isEqualTo(id)
+            assertThat(repository.appearsOn(id).first()).isEmpty()
+            assertThat(repository.artistTracks(id).first().map { it.title }).containsExactly("Moșoi")
         }
 }

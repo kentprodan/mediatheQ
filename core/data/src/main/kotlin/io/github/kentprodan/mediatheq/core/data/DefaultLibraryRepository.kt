@@ -28,6 +28,20 @@ class DefaultLibraryRepository
         override fun albumArtists(): Flow<List<Artist>> =
             libraryDao.albumArtists().map { rows -> rows.map { it.toDomain() } }
 
+        override fun artist(id: MediaId): Flow<Artist?> =
+            libraryDao.artist(id.serverId.value, id.itemId).map { it?.toDomain() }
+
+        override fun artistAlbums(artistId: MediaId): Flow<List<Album>> =
+            libraryDao.artistAlbums(artistId.serverId.value, artistId.itemId).map { rows -> rows.map { it.toDomain() } }
+
+        override fun appearsOn(artistId: MediaId): Flow<List<Album>> =
+            libraryDao.appearsOnAlbums(artistId.serverId.value, artistId.itemId).map { rows ->
+                rows.map { it.toDomain() }
+            }
+
+        override fun artistTracks(artistId: MediaId): Flow<List<Track>> =
+            libraryDao.artistTracks(artistId.serverId.value, artistId.itemId).map { rows -> rows.map { it.toDomain() } }
+
         override fun playlists(): Flow<List<Playlist>> =
             libraryDao.playlists().map { rows -> rows.map { it.toDomain() } }
 
