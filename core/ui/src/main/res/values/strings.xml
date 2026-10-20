@@ -3,6 +3,8 @@
     <string name="core_ui_more_options">More options for %1$s</string>
     <string name="core_ui_disc">Disc %1$d</string>
     <string name="core_ui_now_playing">Now playing</string>
+    <string name="core_ui_play_next">Play next</string>
+    <string name="core_ui_add_to_queue">Add to queue</string>
     <string name="core_ui_duration_minutes">%1$d min</string>
     <string name="core_ui_duration_hours">%1$d h %2$d min</string>
     <plurals name="core_ui_track_count">

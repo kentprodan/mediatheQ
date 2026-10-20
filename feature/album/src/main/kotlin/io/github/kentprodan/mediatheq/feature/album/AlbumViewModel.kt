@@ -8,6 +8,7 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -59,8 +60,19 @@ class AlbumViewModel
                     val index = tracks.indexOfFirst { it.id == action.trackId }
                     if (index >= 0) playback.play(tracks, startIndex = index)
                 }
+
+                is AlbumAction.PlayNext -> {
+                    playback.playNext(tracks.pick(action.trackId))
+                }
+
+                is AlbumAction.AddToQueue -> {
+                    playback.addToQueue(tracks.pick(action.trackId))
+                }
             }
         }
+
+        /** The track with [trackId], or all of them for `null`. */
+        private fun List<Track>.pick(trackId: MediaId?): List<Track> = filter { trackId == null || it.id == trackId }
 
         @AssistedFactory
         interface Factory {

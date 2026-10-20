@@ -1,9 +1,9 @@
 package io.github.kentprodan.mediatheq.core.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,8 +33,8 @@ fun TrackRow(
     modifier: Modifier = Modifier,
     showTrackNumber: Boolean = true,
     showCover: Boolean = false,
-    /** The overflow menu; no button when `null` (nothing to offer yet). */
-    onMoreClick: (() -> Unit)? = null,
+    /** The overflow menu's items (see [OverflowMenu]); no button when `null`. */
+    menuItems: (@Composable ColumnScope.(close: () -> Unit) -> Unit)? = null,
     isCurrent: Boolean = false,
 ) {
     val trackNumber = track.trackNumber.takeIf { showTrackNumber && !showCover }
@@ -81,13 +81,8 @@ fun TrackRow(
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(formatDuration(track.duration), style = MaterialTheme.typography.bodySmall)
-                if (onMoreClick != null) {
-                    IconButton(onClick = onMoreClick) {
-                        Icon(
-                            MqIcons.MoreVert,
-                            contentDescription = stringResource(R.string.core_ui_more_options, track.title),
-                        )
-                    }
+                if (menuItems != null) {
+                    OverflowMenu(stringResource(R.string.core_ui_more_options, track.title), items = menuItems)
                 }
             }
         },

@@ -18,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
+import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -36,6 +37,7 @@ class LibraryViewModelTest {
     private val library = FakeLibraryRepository()
     private val sync = FakeLibrarySyncRepository()
     private val preferences = FakeLibraryPreferencesRepository()
+    private val playback = FakePlaybackConnection()
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
@@ -101,7 +103,8 @@ class LibraryViewModelTest {
         library.playlists.value = playlists
         library.tracks.value = tracks
         sync.status.value = status
-        val viewModel = LibraryViewModel(savedState, library, sync, preferences, mainDispatcherRule.testDispatcher)
+        val viewModel =
+            LibraryViewModel(savedState, library, sync, preferences, playback, mainDispatcherRule.testDispatcher)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -113,6 +116,18 @@ class LibraryViewModelTest {
             is LibraryContent.Playlists -> content.playlists.map { it.id.itemId }
             is LibraryContent.Songs -> content.tracks.map { it.id.itemId }
             else -> error("no items: $content")
+        }
+
+    @Test
+    fun `a song's menu queues it next or last`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+
+            viewModel.onAction(LibraryAction.PlayNext(tracks[0]))
+            viewModel.onAction(LibraryAction.AddToQueue(tracks[1]))
+
+            assertThat(playback.playedNext).containsExactly(listOf(tracks[0]))
+            assertThat(playback.addedToQueue).containsExactly(listOf(tracks[1]))
         }
 
     @Test
@@ -287,7 +302,7 @@ class LibraryViewModelTest {
             library.tracks.value = tracks
             sync.status.value = SyncStatus.Idle(day(10))
             val sorting = StandardTestDispatcher(testScheduler)
-            val viewModel = LibraryViewModel(SavedStateHandle(), library, sync, preferences, sorting)
+            val viewModel = LibraryViewModel(SavedStateHandle(), library, sync, preferences, playback, sorting)
             backgroundScope.launch { viewModel.uiState.collect() }
             sorting.scheduler.runCurrent()
 

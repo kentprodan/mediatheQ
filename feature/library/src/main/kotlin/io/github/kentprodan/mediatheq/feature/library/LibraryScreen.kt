@@ -60,6 +60,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
 import io.github.kentprodan.mediatheq.core.ui.ArtistRow
 import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
+import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 
 @Composable
@@ -123,6 +124,7 @@ fun LibraryScreen(
             ) {
                 LibraryContentView(
                     state,
+                    onAction = onAction,
                     onRetry = { onAction(LibraryAction.Refresh) },
                     states = ScrollStates(albumsState, artistsState, playlistsState, songsState),
                     onOpenAlbum = onOpenAlbum,
@@ -144,6 +146,7 @@ private class ScrollStates(
 @Composable
 private fun LibraryContentView(
     state: LibraryUiState,
+    onAction: (LibraryAction) -> Unit,
     onRetry: () -> Unit,
     states: ScrollStates,
     onOpenAlbum: (MediaId) -> Unit,
@@ -227,8 +230,14 @@ private fun LibraryContentView(
         is LibraryContent.Songs -> {
             LazyColumn(Modifier.fillMaxSize(), states.songs, contentPadding = listPadding) {
                 items(content.tracks, key = { it.id.toString() }) { track ->
-                    // shortcut: tapping a song does nothing until playback exists (#12); no menu button yet.
-                    TrackRow(track, onClick = {}, showCover = true)
+                    // shortcut: tapping a song does nothing yet; playing from the Songs tab needs its own queue rule.
+                    TrackRow(track, onClick = {}, showCover = true, menuItems = { close ->
+                        QueueMenuItems(
+                            onPlayNext = { onAction(LibraryAction.PlayNext(track)) },
+                            onAddToQueue = { onAction(LibraryAction.AddToQueue(track)) },
+                            close = close,
+                        )
+                    })
                 }
             }
         }
