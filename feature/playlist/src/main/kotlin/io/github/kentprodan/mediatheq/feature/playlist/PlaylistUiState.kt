@@ -20,8 +20,11 @@ sealed interface PlaylistUiState {
         val playlist: Playlist,
         val items: List<PlaylistItem>,
         val currentTrackId: MediaId? = null,
-        /** Positions of the selected items; selection mode while not empty. */
-        val selected: Set<Int> = emptySet(),
+        /**
+         * Entry ids of the selected items; selection mode while not empty. Ids, not positions: a read-back may
+         * renumber the items. Copies of a track share their id and are selected together (R13).
+         */
+        val selected: Set<String> = emptySet(),
         /** The last edit that failed (it was undone), until the user dismisses it. */
         val error: MqError? = null,
     ) : PlaylistUiState {

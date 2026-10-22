@@ -24,9 +24,11 @@ import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -124,16 +126,17 @@ class DefaultPlaylistRepositoryTest {
         }
 
     @Test
-    fun `a failed add is undone`() =
+    fun `a failed add is undone when the server cannot be read either`() =
         runTest(dispatcher) {
             editor.failure = MqError.Network
+            source.playlistErrors = mapOf("p1" to MqError.Network)
 
             val result = repository().add(playlistId, listOf(id("t4")))
 
             assertThat(result).isEqualTo(MqResult.Failure(MqError.Network))
             assertThat(entryIds()).containsExactly("e-t1", "e-hidden", "e-t2", "e-t3").inOrder()
             assertThat(dao.playlistRow("s", "p1")?.trackCount).isEqualTo(4)
-            assertThat(source.calls).isEmpty()
+            assertThat(source.calls).containsExactly("playlist:p1")
         }
 
     @Test
@@ -171,6 +174,7 @@ class DefaultPlaylistRepositoryTest {
     fun `a failed remove is undone`() =
         runTest(dispatcher) {
             editor.failure = MqError.Server(500)
+            source.playlistErrors = mapOf("p1" to MqError.Network)
 
             repository().remove(playlistId, setOf("e-t1"))
 
@@ -227,6 +231,7 @@ class DefaultPlaylistRepositoryTest {
     fun `a failed rename is undone`() =
         runTest(dispatcher) {
             editor.failure = MqError.Forbidden
+            source.playlistErrors = mapOf("p1" to MqError.Network)
 
             assertThat(repository().rename(playlistId, "Nou")).isEqualTo(MqResult.Failure(MqError.Forbidden))
 
@@ -258,17 +263,69 @@ class DefaultPlaylistRepositoryTest {
         }
 
     @Test
-    fun `create makes the playlist then adds its tracks`() =
+    fun `create stores the new empty playlist`() =
         runTest(dispatcher) {
             editor.createdId = "p9"
-            source.playlists = listOf(Playlist(id("p9"), "Nou", trackCount = 1))
-            source.entries = mapOf(id("p9") to listOf(PlaylistEntry("e-t2", id("t2"))))
 
-            val result = repository().create("Nou", listOf(id("t2")))
+            val result = repository().create("Nou")
 
             assertThat(result).isEqualTo(MqResult.Success(id("p9")))
-            assertThat(editor.calls).containsExactly("create:Nou", "add:p9:t2").inOrder()
-            assertThat(dao.entryRows("s", "p9").map { it.entryId }).containsExactly("e-t2")
+            assertThat(editor.calls).containsExactly("create:Nou")
+            assertThat(dao.playlistRow("s", "p9")?.name).isEqualTo("Nou")
+        }
+
+    @Test
+    fun `a half failed add shows what the server really has`() =
+        runTest(dispatcher) {
+            // Like a second chunk failing: the server already holds part of the tracks.
+            editor.failure = MqError.Server(500)
+
+            val result = repository().add(playlistId, (1..4).map { id("t$it") })
+
+            assertThat(result).isEqualTo(MqResult.Failure(MqError.Server(500)))
+            assertThat(entryIds()).containsExactly("e-t4")
+        }
+
+    @Test
+    fun `an edit finishes when its caller is cancelled`() =
+        runTest(dispatcher) {
+            editor.gate = CompletableDeferred()
+            source.pauseAt = 2 // the read-back's entries request
+            val repository = repository()
+
+            val caller = launch { repository.remove(playlistId, setOf("e-t1")) }
+            runCurrent()
+            caller.cancel()
+            editor.gate!!.complete(Unit)
+
+            // The read-back starts although the screen that asked for the edit is gone.
+            source.paused.await()
+            source.resume.complete(Unit)
+            repository.refresh(playlistId) // queued behind the edit
+            assertThat(editor.calls).containsExactly("remove:p1:e-t1")
+            assertThat(entryIds()).containsExactly("e-t4")
+        }
+
+    @Test
+    fun `the read-back pages by server offset`() =
+        runTest(dispatcher) {
+            source.entries = mapOf(playlistId to (1..600).map { PlaylistEntry("e$it", id("t1")) })
+
+            repository().refresh(playlistId)
+
+            assertThat(source.calls).containsExactly("playlist:p1", "entries:p1@0", "entries:p1@500").inOrder()
+            assertThat(entryIds()).hasSize(600)
+        }
+
+    @Test
+    fun `a playlist already deleted on the server counts as deleted`() =
+        runTest(dispatcher) {
+            editor.failure = MqError.NotFound
+            val repository = repository()
+
+            assertThat(repository.delete(playlistId)).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(repository.playlist(playlistId).first()).isNull()
         }
 
     @Test

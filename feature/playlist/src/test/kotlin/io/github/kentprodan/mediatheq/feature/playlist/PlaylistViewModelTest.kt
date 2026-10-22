@@ -63,6 +63,7 @@ class PlaylistViewModelTest {
             assertThat(state.items).isEqualTo(items)
             assertThat(state.duration).isEqualTo(9.minutes)
             assertThat(state.canEdit).isTrue()
+            assertThat(repository.refreshes).containsExactly(playlistId)
         }
 
     @Test
@@ -110,7 +111,7 @@ class PlaylistViewModelTest {
             viewModel.onAction(PlaylistAction.ToggleSelection(3))
             viewModel.onAction(PlaylistAction.ToggleSelection(2))
             viewModel.onAction(PlaylistAction.ToggleSelection(2))
-            assertThat(viewModel.content.selected).containsExactly(0, 3)
+            assertThat(viewModel.content.selected).containsExactly("e1", "e3")
 
             viewModel.onAction(PlaylistAction.RemoveSelected)
 

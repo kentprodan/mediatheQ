@@ -85,7 +85,25 @@ class AddToPlaylistViewModelTest {
             assertThat(viewModel.content.creating).isTrue()
             viewModel.onAction(AddToPlaylistAction.Create("  Nou "))
 
-            assertThat(repository.calls).containsExactly("create:Nou:t1,t2")
+            assertThat(repository.calls).containsExactly("create:Nou", "add:p9:t1,t2").inOrder()
+            assertThat(viewModel.uiState.value).isEqualTo(AddToPlaylistUiState.Done)
+        }
+
+    @Test
+    fun `when adding to the new playlist fails, a retry picks it instead of creating another`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.createdId = id("p9")
+            repository.addFailure = MqError.Network
+            val viewModel = viewModel()
+            viewModel.onAction(AddToPlaylistAction.StartCreating)
+
+            viewModel.onAction(AddToPlaylistAction.Create("Nou"))
+
+            assertThat(viewModel.content.creating).isFalse()
+            assertThat(viewModel.content.error).isEqualTo(MqError.Network)
+            repository.addFailure = null
+            viewModel.onAction(AddToPlaylistAction.Pick(id("p9")))
+            assertThat(repository.calls).containsExactly("create:Nou", "add:p9:t1,t2", "add:p9:t1,t2").inOrder()
             assertThat(viewModel.uiState.value).isEqualTo(AddToPlaylistUiState.Done)
         }
 

@@ -59,7 +59,15 @@ class AddToPlaylistViewModel
 
                 is AddToPlaylistAction.Create -> {
                     val name = action.name.trim()
-                    if (name.isNotEmpty()) submit { playlistRepository.create(name, trackIds) }
+                    if (name.isNotEmpty()) {
+                        submit {
+                            val created = playlistRepository.create(name)
+                            if (created !is MqResult.Success) return@submit created
+                            // The playlist exists now: a retry must pick it, not create a second one.
+                            creating.value = false
+                            playlistRepository.add(created.value, trackIds)
+                        }
+                    }
                 }
             }
         }

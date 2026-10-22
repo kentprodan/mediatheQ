@@ -17,11 +17,11 @@ interface PlaylistRepository {
     /** The entries in playlist order; entries whose track is not in the library are left out. */
     fun items(id: MediaId): Flow<List<PlaylistItem>>
 
-    /** Creates a playlist named [name] holding [trackIds] and returns its id. */
-    suspend fun create(
-        name: String,
-        trackIds: List<MediaId>,
-    ): MqResult<MediaId>
+    /** Creates an empty playlist named [name] and returns its id; tracks follow with [add]. */
+    suspend fun create(name: String): MqResult<MediaId>
+
+    /** Reads the playlist again from the server (e.g. when its screen opens). */
+    suspend fun refresh(id: MediaId): MqResult<Unit>
 
     suspend fun rename(
         id: MediaId,

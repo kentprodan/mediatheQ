@@ -57,7 +57,7 @@ class PlaylistScreenTest {
     @Test
     fun `while selecting, taps toggle items and the toolbar removes or clears`() {
         val actions = mutableListOf<PlaylistAction>()
-        show(content.copy(selected = setOf(0)), actions)
+        show(content.copy(selected = setOf("e0")), actions)
 
         composeRule.onNodeWithText("1 selected").assertExists()
         composeRule.onNodeWithText("Track 2").performClick()
@@ -96,7 +96,7 @@ class PlaylistScreenTest {
 
     @Test
     fun `a selected row is marked selected`() {
-        show(content.copy(selected = setOf(2)), mutableListOf())
+        show(content.copy(selected = setOf("e2")), mutableListOf())
 
         composeRule.onNode(hasText("Track 2") and isSelected()).assertExists()
         composeRule.onNode(hasText("Track 0") and isSelected()).assertDoesNotExist()

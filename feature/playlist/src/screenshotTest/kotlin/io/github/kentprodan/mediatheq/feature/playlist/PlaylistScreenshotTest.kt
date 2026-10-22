@@ -28,7 +28,7 @@ fun PlaylistContentScreenshot() = Playlist(PlaylistUiState.Content(playlist, ite
 @PreviewTest
 @MqPreviews
 @Composable
-fun PlaylistSelectionScreenshot() = Playlist(PlaylistUiState.Content(playlist, items, selected = setOf(0, 3)))
+fun PlaylistSelectionScreenshot() = Playlist(PlaylistUiState.Content(playlist, items, selected = setOf("e0", "e3")))
 
 /** Tracks just added and not read back yet: no handles. */
 @PreviewTest

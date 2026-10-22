@@ -27,15 +27,23 @@ class FakePlaylistRepository : PlaylistRepository {
 
     override fun items(id: MediaId): Flow<List<PlaylistItem>> = items.map { it[id].orEmpty() }
 
-    override suspend fun create(
-        name: String,
-        trackIds: List<MediaId>,
-    ): MqResult<MediaId> {
-        calls += "create:$name:${trackIds.joinToString(",") { it.itemId }}"
+    /** Calls of [refresh], kept apart from [calls] (the screen refreshes on its own when it opens). */
+    val refreshes = mutableListOf<MediaId>()
+
+    /** Makes only [add] fail, e.g. after a successful [create]. */
+    var addFailure: MqError? = null
+
+    override suspend fun create(name: String): MqResult<MediaId> {
+        calls += "create:$name"
         failure?.let { return MqResult.Failure(it) }
         val id = checkNotNull(createdId) { "set createdId first" }
-        playlists.value += Playlist(id, name, trackCount = trackIds.size)
+        playlists.value += Playlist(id, name)
         return MqResult.Success(id)
+    }
+
+    override suspend fun refresh(id: MediaId): MqResult<Unit> {
+        refreshes += id
+        return MqResult.Success(Unit)
     }
 
     override suspend fun rename(
@@ -51,7 +59,14 @@ class FakePlaylistRepository : PlaylistRepository {
     override suspend fun add(
         id: MediaId,
         trackIds: List<MediaId>,
-    ) = edit("add:${id.itemId}:${trackIds.joinToString(",") { it.itemId }}") {}
+    ): MqResult<Unit> {
+        val call = "add:${id.itemId}:${trackIds.joinToString(",") { it.itemId }}"
+        addFailure?.let {
+            calls += call
+            return MqResult.Failure(it)
+        }
+        return edit(call) {}
+    }
 
     override suspend fun remove(
         id: MediaId,

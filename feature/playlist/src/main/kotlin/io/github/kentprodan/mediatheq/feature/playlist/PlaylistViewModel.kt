@@ -30,7 +30,7 @@ class PlaylistViewModel
         private val repository: PlaylistRepository,
         private val playback: PlaybackConnection,
     ) : ViewModel() {
-        private val selected = MutableStateFlow(emptySet<Int>())
+        private val selected = MutableStateFlow(emptySet<String>())
         private val error = MutableStateFlow<MqError?>(null)
         private val deleted = MutableStateFlow(false)
 
@@ -53,11 +53,16 @@ class PlaylistViewModel
 
                     else -> {
                         // An edit may have removed selected items meanwhile.
-                        val positions = items.mapTo(HashSet()) { it.position }
-                        PlaylistUiState.Content(playlist, items, currentTrackId, selected intersect positions, error)
+                        val entryIds = items.mapTo(HashSet()) { it.entryId }
+                        PlaylistUiState.Content(playlist, items, currentTrackId, selected intersect entryIds, error)
                     }
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlaylistUiState.Loading)
+
+        init {
+            // Edits made elsewhere (or a read-back that failed) show up when the screen opens.
+            viewModelScope.launch { repository.refresh(playlistId) }
+        }
 
         fun onAction(action: PlaylistAction) {
             val content = uiState.value as? PlaylistUiState.Content ?: return
@@ -87,9 +92,8 @@ class PlaylistViewModel
                 }
 
                 is PlaylistAction.ToggleSelection -> {
-                    if (item(action.position)?.isPending == false) {
-                        selected.update { if (action.position in it) it - action.position else it + action.position }
-                    }
+                    val entryId = item(action.position)?.takeUnless { it.isPending }?.entryId
+                    if (entryId != null) selected.update { if (entryId in it) it - entryId else it + entryId }
                 }
 
                 PlaylistAction.ClearSelection -> {
@@ -97,7 +101,7 @@ class PlaylistViewModel
                 }
 
                 PlaylistAction.RemoveSelected -> {
-                    val entries = items.filter { it.position in content.selected }
+                    val entries = items.filter { it.entryId in content.selected }
                     selected.value = emptySet()
                     remove(content, entries)
                 }

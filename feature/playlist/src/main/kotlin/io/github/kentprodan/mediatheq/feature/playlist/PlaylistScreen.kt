@@ -329,7 +329,7 @@ private fun PlaylistRow(
             showCover = true,
             isCurrent = item.track.id == state.currentTrackId,
             onLongClick = { if (canEditItem) onAction(PlaylistAction.ToggleSelection(item.position)) },
-            selected = if (state.isSelecting) item.position in state.selected else null,
+            selected = if (state.isSelecting) item.entryId in state.selected else null,
             menuItems =
                 if (state.isSelecting) {
                     null
