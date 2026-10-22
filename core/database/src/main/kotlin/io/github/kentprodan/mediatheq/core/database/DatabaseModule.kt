@@ -9,6 +9,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
+import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
 import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
 import io.github.kentprodan.mediatheq.core.database.dao.SyncDao
 import kotlinx.coroutines.Dispatchers
@@ -36,4 +37,7 @@ object DatabaseModule {
 
     @Provides
     fun queueDao(database: MediatheqDatabase): QueueDao = database.queueDao()
+
+    @Provides
+    fun playlistDao(database: MediatheqDatabase): PlaylistDao = database.playlistDao()
 }
