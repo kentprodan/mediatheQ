@@ -17,11 +17,10 @@ import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
-import io.github.kentprodan.mediatheq.core.navigation.PlaylistKey
 import io.github.kentprodan.mediatheq.core.navigation.SearchKey
 import kotlinx.serialization.Serializable
 
-// shortcut: placeholder screens until the real features exist (#16, #17, #19, #20); delete with the last of them.
+// shortcut: placeholder screens until the real features exist (#17, #19, #20); delete with the last of them.
 
 /** A placeholder page [depth] levels deep inside a tab, to exercise the per-tab back stacks. */
 @Serializable
@@ -65,8 +64,6 @@ fun EntryProviderScope<NavKey>.placeholders(
         }
     }
     entry<ThemeShowcaseKey> { ThemeShowcase() }
-    // Opened from the Library until #16 builds it.
-    entry<PlaylistKey> { Placeholder("Playlist", "Back") { navigator.back() } }
 }
 
 @Composable

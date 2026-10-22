@@ -22,7 +22,8 @@ import androidx.compose.ui.zIndex
 /**
  * Drag to reorder for a `LazyColumn` with keyed items: drag an item by its [mqReorderHandle]; while dragging, [onMove]
  * swaps it with its neighbors (keep a local copy of the list and move there), and [onDrop] gets its key and final
- * index once the finger lifts (commit there, once). Give each item [mqReorderItem] so it follows the finger.
+ * index once the finger lifts (commit there, once). Give each item [mqReorderItem] so it follows the finger. Items
+ * whose key fails `canDropOn` (e.g. a header above the list) never trade places with the dragged one.
  */
 @Stable
 class MqReorderState internal constructor(
@@ -30,6 +31,7 @@ class MqReorderState internal constructor(
     private val haptics: HapticFeedback,
     private val onMove: () -> (from: Int, to: Int) -> Unit,
     private val onDrop: () -> (key: Any, to: Int) -> Unit,
+    private val canDropOn: () -> (key: Any) -> Boolean,
 ) {
     /** The key of the item being dragged, or `null`. */
     var draggedKey: Any? by mutableStateOf(null)
@@ -77,7 +79,7 @@ class MqReorderState internal constructor(
         val center = top + dragged.size / 2f
         val target =
             info.visibleItemsInfo.firstOrNull {
-                it.index != dragged.index && center > it.offset && center < it.offset + it.size
+                it.index != dragged.index && center > it.offset && center < it.offset + it.size && canDropOn()(it.key)
             } ?: return
         movedTo = target.index
         // The list keeps its first visible item in place by key; when that item takes part in the swap it would
@@ -105,11 +107,13 @@ fun rememberMqReorderState(
     listState: LazyListState,
     onMove: (from: Int, to: Int) -> Unit,
     onDrop: (key: Any, to: Int) -> Unit,
+    canDropOn: (key: Any) -> Boolean = { true },
 ): MqReorderState {
     val haptics = LocalHapticFeedback.current
     val move by rememberUpdatedState(onMove)
     val drop by rememberUpdatedState(onDrop)
-    return remember(listState, haptics) { MqReorderState(listState, haptics, { move }, { drop }) }
+    val canDrop by rememberUpdatedState(canDropOn)
+    return remember(listState, haptics) { MqReorderState(listState, haptics, { move }, { drop }, { canDrop }) }
 }
 
 /** Draws the item where the finger is while it is dragged, above its neighbors. */

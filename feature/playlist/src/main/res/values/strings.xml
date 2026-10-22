@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playlist_back">Back</string>
+    <string name="playlist_not_found_title">Playlist not available</string>
+    <string name="playlist_not_found_body">It is no longer in your library.</string>
+    <string name="playlist_more_options">More options for %1$s</string>
+    <string name="playlist_empty_title">No tracks yet</string>
+    <string name="playlist_empty_body">Add tracks from an album\'s menu.</string>
+    <string name="playlist_rename">Rename</string>
+    <string name="playlist_name">Name</string>
+    <string name="playlist_save">Save</string>
+    <string name="playlist_cancel">Cancel</string>
+    <string name="playlist_delete">Delete playlist</string>
+    <string name="playlist_delete_title">Delete \"%1$s\"?</string>
+    <string name="playlist_delete_body">The playlist is deleted from the server. Its tracks stay in your library.</string>
+    <string name="playlist_delete_confirm">Delete</string>
+    <string name="playlist_remove">Remove from playlist</string>
+    <string name="playlist_move_up">Move up</string>
+    <string name="playlist_move_down">Move down</string>
+    <string name="playlist_clear_selection">Clear selection</string>
+    <plurals name="playlist_selected">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <string name="playlist_edit_failed">The change could not be saved and was undone.</string>
+</resources>

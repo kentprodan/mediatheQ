@@ -102,4 +102,19 @@ object MqIcons {
 
     val AddToQueue: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_playlist_add)
+
+    val Close: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_close)
+
+    val Edit: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_edit)
+
+    val Add: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_add)
+
+    val CheckCircleFilled: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_check_circle_filled)
+
+    val AddToPlaylist: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_library_add)
 }
