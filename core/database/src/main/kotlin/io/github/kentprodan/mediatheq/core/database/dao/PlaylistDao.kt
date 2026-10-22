@@ -67,6 +67,33 @@ interface PlaylistDao {
         insertSearch(SearchEntity("playlist", playlist.serverId, playlist.id, playlist.name))
     }
 
+    /** [replace], then counts entries and sums the known tracks' durations into the row, for an edit not yet synced. */
+    @Transaction
+    suspend fun replaceAndCount(
+        playlist: PlaylistEntity,
+        entries: List<PlaylistEntryEntity>,
+    ) {
+        replace(playlist, entries)
+        recount(playlist.serverId, playlist.id)
+    }
+
+    @Query(
+        """
+        UPDATE playlist SET
+            track_count = (SELECT COUNT(*) FROM playlist_entry WHERE server_id = :serverId AND playlist_id = :playlistId),
+            duration_ms = (
+                SELECT COALESCE(SUM(t.duration_ms), 0) FROM playlist_entry e
+                JOIN track t ON t.server_id = e.server_id AND t.id = e.track_id
+                WHERE e.server_id = :serverId AND e.playlist_id = :playlistId
+            )
+        WHERE server_id = :serverId AND id = :playlistId
+        """,
+    )
+    suspend fun recount(
+        serverId: String,
+        playlistId: String,
+    )
+
     /** Forgets the playlist, its entries and its search row. */
     @Transaction
     suspend fun delete(
