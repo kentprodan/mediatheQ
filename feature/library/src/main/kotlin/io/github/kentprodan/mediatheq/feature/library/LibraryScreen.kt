@@ -68,10 +68,11 @@ internal fun LibraryRoute(
     onOpenAlbum: (MediaId) -> Unit,
     onOpenArtist: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
+    onNewPlaylist: () -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    LibraryScreen(state, viewModel::onAction, onOpenAlbum, onOpenArtist, onOpenPlaylist)
+    LibraryScreen(state, viewModel::onAction, onOpenAlbum, onOpenArtist, onOpenPlaylist, onNewPlaylist = onNewPlaylist)
 }
 
 /** Stateless Library tab: top bar with sort and view menus, filter bar, pull-to-refresh list or grid. */
@@ -83,6 +84,7 @@ fun LibraryScreen(
     onOpenArtist: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
     modifier: Modifier = Modifier,
+    onNewPlaylist: () -> Unit = {},
 ) {
     // One scroll state per tab, kept above the content so switching tabs and back keeps each position.
     val albumsState = rememberLazyGridState()
@@ -99,7 +101,7 @@ fun LibraryScreen(
     }
     Scaffold(
         modifier = modifier,
-        topBar = { LibraryTopBar(state, onAction) },
+        topBar = { LibraryTopBar(state, onAction, onNewPlaylist) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         // The app shell already pads for the navigation bar.
         contentWindowInsets = WindowInsets(0),
@@ -256,12 +258,18 @@ private fun ScrollableEmptyState(content: @Composable () -> Unit) {
 private fun LibraryTopBar(
     state: LibraryUiState,
     onAction: (LibraryAction) -> Unit,
+    onNewPlaylist: () -> Unit,
 ) {
     var sortMenu by rememberSaveable { mutableStateOf(false) }
     var viewMenu by rememberSaveable { mutableStateOf(false) }
     TopAppBar(
         title = { Text(stringResource(R.string.library_title)) },
         actions = {
+            if (state.filter == LibraryFilter.Playlists) {
+                IconButton(onClick = onNewPlaylist) {
+                    Icon(MqIcons.Add, contentDescription = stringResource(R.string.library_new_playlist))
+                }
+            }
             if (state.filter.sorts.size > 1) {
                 Box {
                     IconButton(onClick = { sortMenu = true }) {

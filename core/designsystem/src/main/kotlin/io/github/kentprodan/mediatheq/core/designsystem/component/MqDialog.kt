@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.designsystem.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -59,7 +60,8 @@ fun MqDialogContent(
     ) {
         Column(Modifier.padding(MediatheqSpacing.xl), verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.l)) {
             Text(title, style = MaterialTheme.typography.headlineSmall)
-            content()
+            // A long list scrolls inside the dialog instead of pushing the buttons out.
+            Box(Modifier.weight(1f, fill = false)) { content() }
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s, Alignment.End),

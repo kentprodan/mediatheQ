@@ -24,4 +24,5 @@
     <string name="library_error_body">The server answered with an error. Try again in a moment.</string>
     <string name="library_retry">Try again</string>
     <string name="library_refresh_failed">Couldn\'t refresh the library</string>
+    <string name="library_new_playlist">New playlist</string>
 </resources>

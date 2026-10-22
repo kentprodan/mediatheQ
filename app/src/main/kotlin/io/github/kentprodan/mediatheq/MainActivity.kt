@@ -19,6 +19,7 @@ import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.artist.artistEntry
 import io.github.kentprodan.mediatheq.feature.library.libraryEntry
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingHost
+import io.github.kentprodan.mediatheq.feature.playlist.addToPlaylistEntry
 import io.github.kentprodan.mediatheq.feature.playlist.playlistEntry
 import io.github.kentprodan.mediatheq.navigation.AppShell
 import io.github.kentprodan.mediatheq.navigation.OnboardingHost
@@ -54,6 +55,7 @@ class MainActivity : ComponentActivity() {
                                     albumEntry(navigator)
                                     artistEntry(navigator)
                                     playlistEntry(navigator)
+                                    addToPlaylistEntry(navigator)
                                     placeholders(navigator, onLogout = viewModel::logout, includeLibrary = false)
                                 }
                             }

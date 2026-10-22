@@ -146,6 +146,7 @@ fun MediatheqTheme(
 | Multi-select actions (playlist edit) | `HorizontalFloatingToolbar` (Clear, "n selected", Remove) | Appears on selection (long press a row), bottom center; the list pads its bottom by the toolbar while selecting. |
 | Selectable track rows | `TrackRow(selected = ...)` = the selectable `ListItem` overload | A filled check replaces the cover of selected rows; no menu or drag handle while selecting. |
 | Dialogs (rename, delete confirm, new playlist) | `MqDialog` in `:core:designsystem` (wraps `BasicAlertDialog`) | Title, optional content, text buttons. Screenshot `MqDialogContent` in place: dialog windows render blank. |
+| Add to playlist (track / album menus, Library "New playlist") | `AddToPlaylistKey` dialog entry (Navigation 3 `DialogSceneStrategy`) showing `MqDialogContent`: playlist rows, "New playlist" switches to a name field | Menu item `AddToPlaylistMenuItem` in `:core:ui`. Library Playlists tab: "+" in the top bar opens it with no tracks. |
 | Pull to refresh (Library) | `PullToRefreshBox` | |
 
 If an element is not in this table, pick the closest M3 component, then add a row here in the same PR.

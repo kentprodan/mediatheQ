@@ -67,3 +67,19 @@ fun ColumnScope.QueueMenuItems(
         },
     )
 }
+
+/** "Add to playlist", for track and album menus. */
+@Composable
+fun AddToPlaylistMenuItem(
+    onClick: () -> Unit,
+    close: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(stringResource(R.string.core_ui_add_to_playlist)) },
+        leadingIcon = { Icon(MqIcons.AddToPlaylist, contentDescription = null) },
+        onClick = {
+            onClick()
+            close()
+        },
+    )
+}

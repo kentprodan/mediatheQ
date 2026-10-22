@@ -23,4 +23,9 @@
         <item quantity="other">%d selected</item>
     </plurals>
     <string name="playlist_edit_failed">The change could not be saved and was undone.</string>
+    <string name="playlist_add_to">Add to playlist</string>
+    <string name="playlist_new">New playlist</string>
+    <string name="playlist_create">Create</string>
+    <string name="playlist_none_yet">No playlists yet.</string>
+    <string name="playlist_add_failed">The tracks could not be added. Try again.</string>
 </resources>
