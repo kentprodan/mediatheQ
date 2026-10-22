@@ -72,8 +72,8 @@ class LibraryMappersTest {
     }
 
     @Test
-    fun `a playlist entry without its own entry id uses the item id`() {
-        assertThat(BaseItemDto(id = "t1").toPlaylistEntry(server)?.entryId).isEqualTo("t1")
+    fun `a playlist entry without its own entry id is dropped`() {
+        assertThat(BaseItemDto(id = "t1").toPlaylistEntry(server)).isNull()
         assertThat(BaseItemDto(id = "t1", playlistItemId = "e9").toPlaylistEntry(server)?.entryId).isEqualTo("e9")
         assertThat(BaseItemDto().toPlaylistEntry(server)).isNull()
     }

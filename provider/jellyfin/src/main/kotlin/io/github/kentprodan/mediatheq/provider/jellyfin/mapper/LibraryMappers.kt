@@ -78,9 +78,11 @@ internal fun BaseItemDto.toPlaylist(serverId: ServerId): Playlist? {
     )
 }
 
+/** Entries without their own entry id are dropped: removing by the track id would hit the wrong position. */
 internal fun BaseItemDto.toPlaylistEntry(serverId: ServerId): PlaylistEntry? {
     val trackId = id?.takeIf { it.isNotEmpty() } ?: return null
-    return PlaylistEntry(entryId = playlistItemId ?: trackId, trackId = MediaId(serverId, trackId))
+    val entryId = playlistItemId?.takeIf { it.isNotEmpty() } ?: return null
+    return PlaylistEntry(entryId = entryId, trackId = MediaId(serverId, trackId))
 }
 
 /** Jellyfin durations are 100 ns ticks (jellyfin skill, section 5). */

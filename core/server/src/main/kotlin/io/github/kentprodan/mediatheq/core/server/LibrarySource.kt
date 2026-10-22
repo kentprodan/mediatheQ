@@ -38,6 +38,12 @@ interface LibrarySource {
         limit: Int,
     ): MqResult<LibraryPage<Playlist>>
 
+    /** One playlist with fresh counts and image; a missing playlist fails with `NotFound`. */
+    suspend fun playlist(
+        server: SignedInServer,
+        playlistId: MediaId,
+    ): MqResult<Playlist>
+
     /** URL of [artwork] at least [widthPx] wide. Public on Jellyfin 12, so no token (ADR 0015). */
     fun imageUrl(
         baseUrl: String,

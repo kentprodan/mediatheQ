@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.provider.jellyfin
 
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
+import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
@@ -76,13 +77,23 @@ class JellyfinLibrarySource internal constructor(
         startIndex: Int,
         limit: Int,
     ): MqResult<LibraryPage<Playlist>> =
-        items(
-            server,
-            "Playlist",
-            "SortName,DateCreated,ChildCount",
-            startIndex,
-            limit,
-        ) { it.toPlaylist(server.serverId) }
+        items(server, "Playlist", PLAYLIST_FIELDS, startIndex, limit) { it.toPlaylist(server.serverId) }
+
+    override suspend fun playlist(
+        server: SignedInServer,
+        playlistId: MediaId,
+    ): MqResult<Playlist> {
+        val page =
+            items(server, "Playlist", PLAYLIST_FIELDS, 0, 1, listOf("ids" to playlistId.itemId)) {
+                it.toPlaylist(server.serverId)
+            }
+        val playlist =
+            when (page) {
+                is MqResult.Failure -> return page
+                is MqResult.Success -> page.value.items.firstOrNull() ?: return MqResult.Failure(MqError.NotFound)
+            }
+        return MqResult.Success(playlist)
+    }
 
     override fun imageUrl(
         baseUrl: String,
@@ -126,13 +137,14 @@ class JellyfinLibrarySource internal constructor(
         fields: String,
         startIndex: Int,
         limit: Int,
+        extra: List<Pair<String, String>> = emptyList(),
         map: (BaseItemDto) -> T?,
     ): MqResult<LibraryPage<T>> =
         page(
             server,
             "Items",
             pagedQuery(server, startIndex, limit) +
-                listOf("includeItemTypes" to type, "recursive" to "true", "fields" to fields),
+                listOf("includeItemTypes" to type, "recursive" to "true", "fields" to fields) + extra,
             map,
         )
 
@@ -161,4 +173,8 @@ class JellyfinLibrarySource internal constructor(
         http.get(server.connection, path, QueryResultDto.serializer(), query) { result ->
             LibraryPage(result.items.mapNotNull(map), result.totalRecordCount)
         }
+
+    private companion object {
+        const val PLAYLIST_FIELDS = "SortName,DateCreated,ChildCount"
+    }
 }

@@ -43,7 +43,7 @@ internal class JellyfinHttp(
     ): MqResult<R> {
         var attempt = 1
         while (true) {
-            val result = send(connection, path, query, body = null) { parse(it, path, serializer, map) }
+            val result = send(connection, "GET", path, query, body = null) { parse(it, path, serializer, map) }
             val retryable = (result as? MqResult.Failure)?.error.let { it == MqError.Network || it is MqError.Server }
             if (!retryable || attempt == GET_ATTEMPTS) return result
             delay(RETRY_DELAY_MILLIS * attempt)
@@ -58,14 +58,22 @@ internal class JellyfinHttp(
         serializer: KSerializer<Dto>,
         body: RequestBody = emptyBody(),
         map: (Dto) -> R?,
-    ): MqResult<R> = send(connection, path, emptyList(), body) { parse(it, path, serializer, map) }
+    ): MqResult<R> = send(connection, "POST", path, emptyList(), body) { parse(it, path, serializer, map) }
 
     /** POST [body] (empty by default) without a response body. */
     suspend fun post(
         connection: ServerConnection,
         path: String,
         body: RequestBody = emptyBody(),
-    ): MqResult<Unit> = send(connection, path, emptyList(), body) { MqResult.Success(Unit) }
+        query: List<Pair<String, String>> = emptyList(),
+    ): MqResult<Unit> = send(connection, "POST", path, query, body) { MqResult.Success(Unit) }
+
+    /** DELETE without a response body. */
+    suspend fun delete(
+        connection: ServerConnection,
+        path: String,
+        query: List<Pair<String, String>> = emptyList(),
+    ): MqResult<Unit> = send(connection, "DELETE", path, query, body = null) { MqResult.Success(Unit) }
 
     fun <T> jsonBody(
         serializer: KSerializer<T>,
@@ -92,6 +100,7 @@ internal class JellyfinHttp(
 
     private suspend fun <R> send(
         connection: ServerConnection,
+        method: String,
         path: String,
         query: List<Pair<String, String>>,
         body: RequestBody?,
@@ -102,7 +111,7 @@ internal class JellyfinHttp(
             Request
                 .Builder()
                 .url(url)
-                .apply { if (body != null) post(body) }
+                .method(method, body)
                 .tag(ServerConnection::class, connection)
                 .build()
         return withContext(ioDispatcher) {
