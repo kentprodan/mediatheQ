@@ -19,5 +19,7 @@ class LibraryKeysTest {
         assertThat(Json.decodeFromString<ArtistKey>(Json.encodeToString(artist))).isEqualTo(artist)
         assertThat(Json.decodeFromString<PlaylistKey>(Json.encodeToString(playlist))).isEqualTo(playlist)
         assertThat(Json.encodeToString(album)).isEqualTo("""{"id":"server-1:item:with:colons"}""")
+        val add = AddToPlaylistKey(listOf(id, id))
+        assertThat(Json.decodeFromString<AddToPlaylistKey>(Json.encodeToString(add))).isEqualTo(add)
     }
 }

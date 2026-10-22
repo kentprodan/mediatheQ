@@ -192,6 +192,38 @@ class JellyfinLibrarySourceTest {
         }
 
     @Test
+    fun `R6 one playlist query reads the collage image tag`() =
+        runTest {
+            enqueue("items_playlist_by_id/collage.json")
+
+            val playlist = (source.playlist(server, MediaId(serverId, "p1")) as MqResult.Success).value
+
+            val request = mockServer.takeRequest()
+            assertThat(request.url.encodedPath).isEqualTo("/Items")
+            assertThat(request.query()).isEqualTo(
+                paging +
+                    mapOf(
+                        "startIndex" to "0",
+                        "limit" to "1",
+                        "includeItemTypes" to "Playlist",
+                        "recursive" to "true",
+                        "fields" to "SortName,DateCreated,ChildCount",
+                        "ids" to "p1",
+                    ),
+            )
+            assertThat(playlist.trackCount).isEqualTo(4)
+            assertThat(playlist.artwork?.tag).isEqualTo("8c9da4e9f38d0a1c376a9903282bb63e")
+        }
+
+    @Test
+    fun `a playlist the server no longer has is not found`() =
+        runTest {
+            enqueue("items_playlist_by_id/missing.json")
+
+            assertThat(source.playlist(server, MediaId(serverId, "gone")).errorOrNull()).isEqualTo(MqError.NotFound)
+        }
+
+    @Test
     fun `image urls are public, sized and versioned by tag`() {
         val url = source.imageUrl("http://nas:8096/jellyfin", Artwork("al1", "t a/g", null), 512)
 

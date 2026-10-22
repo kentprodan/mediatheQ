@@ -140,10 +140,13 @@ fun MediatheqTheme(
 | Playback seek bar | `MqSeekBar` (value `Slider` + elapsed/total labels) | Keeps the dragged value until release, then seeks once. Disabled when the stream cannot be seeked. Waveform scrubber is a later feature - keep it behind `MqSeekBar`. |
 | Player colors | `rememberCoverColorScheme` + `MqCoverTheme` | Cover seed -> `SchemeContent` (ADR 0017), cached per cover, roles blended with the effects spec. |
 | Queue screen | `QueueScreen` in `:feature:nowplaying`, inside the player overlay | Opened by the queue button in Now Playing's secondary row; back closes it before the player. |
-| Drag to reorder (queue, later playlists) | `rememberMqReorderState` + `Modifier.mqReorderItem` / `mqReorderHandle` in `:core:designsystem` | Drag handle icon, not a button; haptics on pick-up, each swap and drop; one commit on drop. Rows also get Move up / Move down custom accessibility actions. Off while shuffled. |
+| Drag to reorder (queue, playlist) | `rememberMqReorderState` + `Modifier.mqReorderItem` / `mqReorderHandle` in `:core:designsystem` | Drag handle icon, not a button; haptics on pick-up, each swap and drop; one commit on drop. Rows also get Move up / Move down custom accessibility actions. Off while shuffled. |
 | Swipe to remove (queue) | `SwipeToDismissBox` | `errorContainer` background with a delete icon, drawn only while swiping (rows are rounded). |
 | Track / album overflow menu | `OverflowMenu` + `QueueMenuItems` in `:core:ui` | `DropdownMenu` (up to 5 actions). Screenshot the items in place: popups render blank in screenshot tests. |
-| Multi-select actions (playlist edit) | `FloatingToolbar` | Appears on selection. |
+| Multi-select actions (playlist edit) | `HorizontalFloatingToolbar` (Clear, "n selected", Remove) | Appears on selection (long press a row), bottom center; the list pads its bottom by the toolbar while selecting. |
+| Selectable track rows | `TrackRow(selected = ...)` = the selectable `ListItem` overload | A filled check replaces the cover of selected rows; no menu or drag handle while selecting. |
+| Dialogs (rename, delete confirm, new playlist) | `MqDialog` in `:core:designsystem` (wraps `BasicAlertDialog`) | Title, optional content, text buttons. Screenshot `MqDialogContent` in place: dialog windows render blank. |
+| Add to playlist (track / album menus, Library "New playlist") | `AddToPlaylistKey` dialog entry (Navigation 3 `DialogSceneStrategy`) showing `MqDialogContent`: playlist rows, "New playlist" switches to a name field | Menu item `AddToPlaylistMenuItem` in `:core:ui`. Library Playlists tab: "+" in the top bar opens it with no tracks. |
 | Pull to refresh (Library) | `PullToRefreshBox` | |
 
 If an element is not in this table, pick the closest M3 component, then add a row here in the same PR.

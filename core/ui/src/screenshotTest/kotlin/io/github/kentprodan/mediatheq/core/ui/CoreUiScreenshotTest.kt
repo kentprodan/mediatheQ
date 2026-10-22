@@ -36,6 +36,21 @@ fun TrackRowScreenshot() {
     }
 }
 
+/** Rows in selection mode (playlist editing): a check replaces the cover of the selected one. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun TrackRowSelectionScreenshot() {
+    MediatheqTheme {
+        Surface {
+            Column {
+                TrackRow(PreviewData.track, onClick = {}, showCover = true, selected = true)
+                TrackRow(PreviewData.longTrack, onClick = {}, showCover = true, selected = false)
+            }
+        }
+    }
+}
+
 /**
  * The queue items of track and album menus, drawn in place (screenshot rendering shows popups as blank boxes, so the
  * open DropdownMenu itself cannot be captured).

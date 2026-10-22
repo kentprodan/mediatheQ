@@ -35,6 +35,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.ui.AddToPlaylistMenuItem
 import io.github.kentprodan.mediatheq.core.ui.DiscHeader
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
@@ -47,13 +48,14 @@ import kotlin.time.Duration
 internal fun AlbumRoute(
     albumId: MediaId,
     onBack: () -> Unit,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
     viewModel: AlbumViewModel =
         hiltViewModel<AlbumViewModel, AlbumViewModel.Factory>(key = albumId.toString(), creationCallback = {
             it.create(albumId)
         }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    AlbumScreen(albumId, state, viewModel::onAction, onBack)
+    AlbumScreen(albumId, state, viewModel::onAction, onBack, onAddToPlaylist = onAddToPlaylist)
 }
 
 /** Stateless album page: collapsing top bar with title and artists, cover, facts, Play / Shuffle, tracks by disc. */
@@ -64,6 +66,7 @@ fun AlbumScreen(
     onAction: (AlbumAction) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onAddToPlaylist: (List<MediaId>) -> Unit = {},
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val album = (state as? AlbumUiState.Content)?.album
@@ -94,6 +97,7 @@ fun AlbumScreen(
                                 onAddToQueue = { onAction(AlbumAction.AddToQueue()) },
                                 close = close,
                             )
+                            AddToPlaylistMenuItem({ onAddToPlaylist(state.tracks.map { it.id }) }, close)
                         }
                     }
                 },
@@ -145,6 +149,7 @@ fun AlbumScreen(
                                         onAddToQueue = { onAction(AlbumAction.AddToQueue(track.id)) },
                                         close = close,
                                     )
+                                    AddToPlaylistMenuItem({ onAddToPlaylist(listOf(track.id)) }, close)
                                 },
                             )
                         }

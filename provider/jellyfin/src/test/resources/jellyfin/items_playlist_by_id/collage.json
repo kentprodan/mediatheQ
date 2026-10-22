@@ -1,0 +1,32 @@
+{
+  "Items": [
+    {
+      "Name": "mediatheq-dev-16",
+      "ServerId": "a65a5024b5064c98a5962b978f3323b1",
+      "Id": "e512974d6519242955404c6564f3460d",
+      "DateCreated": "2026-10-22T16:03:08.0000000Z",
+      "SortName": "mediatheqdev0000000016",
+      "ChannelId": null,
+      "RunTimeTicks": 0,
+      "IsFolder": true,
+      "Type": "Playlist",
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "e512974d-6519-2429-5540-4c6564f3460d",
+        "ItemId": "e512974d6519242955404c6564f3460d"
+      },
+      "ChildCount": 4,
+      "ImageTags": {
+        "Primary": "8c9da4e9f38d0a1c376a9903282bb63e"
+      },
+      "ImageBlurHashes": {},
+      "LocationType": "FileSystem",
+      "MediaType": "Audio"
+    }
+  ],
+  "TotalRecordCount": 1,
+  "StartIndex": 0
+}

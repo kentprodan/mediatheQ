@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasText
@@ -80,5 +81,23 @@ class AlbumScreenTest {
         composeRule.onNodeWithText("Track 1").assert(hasStateDescription("Now playing"))
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Track 2"))
         composeRule.onNodeWithText("Track 2").assert(hasStateDescription("Now playing").not())
+    }
+
+    @Test
+    fun `add to playlist sends one track from its menu and every track from the album menu`() {
+        val added = mutableListOf<List<MediaId>>()
+        composeRule.setContent {
+            MediatheqTheme { AlbumScreen(albumId, content, {}, onBack = {}, onAddToPlaylist = { added += it }) }
+        }
+
+        composeRule
+            .onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasContentDescription("More options for Track 2"))
+        composeRule.onNodeWithContentDescription("More options for Track 2").performClick()
+        composeRule.onNodeWithText("Add to playlist").performClick()
+        composeRule.onNodeWithContentDescription("More options for Satelit").performClick()
+        composeRule.onNodeWithText("Add to playlist").performClick()
+
+        assertThat(added).containsExactly(listOf(tracks[1].id), tracks.map { it.id }).inOrder()
     }
 }

@@ -62,6 +62,18 @@ class FakeLibrarySource : LibrarySource {
         limit: Int,
     ) = page("playlists", playlists, startIndex, limit)
 
+    /** Answers from [playlists]; a missing one is `NotFound`. Recorded as "playlist:<id>". */
+    override suspend fun playlist(
+        server: SignedInServer,
+        playlistId: MediaId,
+    ): MqResult<Playlist> {
+        calls += "playlist:${playlistId.itemId}"
+        val error = playlistErrors[playlistId.itemId]
+        if (error != null) return MqResult.Failure(error)
+        return playlists.firstOrNull { it.id == playlistId }?.let { MqResult.Success(it) }
+            ?: MqResult.Failure(MqError.NotFound)
+    }
+
     /** `baseUrl|itemId|tag|width`, easy to assert on. */
     override fun imageUrl(
         baseUrl: String,

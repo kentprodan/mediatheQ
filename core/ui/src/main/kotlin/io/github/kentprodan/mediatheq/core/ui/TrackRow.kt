@@ -36,62 +36,88 @@ fun TrackRow(
     /** The overflow menu's items (see [OverflowMenu]); no button when `null`. */
     menuItems: (@Composable ColumnScope.(close: () -> Unit) -> Unit)? = null,
     isCurrent: Boolean = false,
+    /** Long press, e.g. to start selecting; `null` for none. */
+    onLongClick: (() -> Unit)? = null,
+    /** In a multi-select list: whether this row is selected (shown with a check). `null` outside selection. */
+    selected: Boolean? = null,
 ) {
     val trackNumber = track.trackNumber.takeIf { showTrackNumber && !showCover }
     val nowPlaying = stringResource(R.string.core_ui_now_playing)
-    ListItem(
-        onClick = onClick,
-        modifier = if (isCurrent) modifier.semantics { stateDescription = nowPlaying } else modifier,
-        leadingContent =
-            if (isCurrent && trackNumber != null) {
+    val rowModifier = if (isCurrent) modifier.semantics { stateDescription = nowPlaying } else modifier
+    val leading: (@Composable () -> Unit)? =
+        if (selected == true) {
+            { Icon(MqIcons.CheckCircleFilled, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+        } else if (isCurrent && trackNumber != null) {
+            {
+                // Sized like the two-digit number cell, so the titles stay aligned.
+                Box(Modifier.clearAndSetSemantics {}) {
+                    Text("00", Modifier.alpha(0f), style = MaterialTheme.typography.bodyMedium)
+                    Icon(
+                        MqIcons.GraphicEq,
+                        null,
+                        Modifier.matchParentSize(),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        } else if (isCurrent) {
+            { Icon(MqIcons.GraphicEq, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+        } else if (showCover) {
+            { RowCover(track.artwork, MqIcons.MusicNote) }
+        } else {
+            trackNumber?.let {
                 {
-                    // Sized like the two-digit number cell, so the titles stay aligned.
-                    Box(Modifier.clearAndSetSemantics {}) {
+                    // An invisible "00" reserves two digits of width, so titles line up from track 1 to 99.
+                    Box(Modifier.clearAndSetSemantics {}, contentAlignment = Alignment.CenterEnd) {
                         Text("00", Modifier.alpha(0f), style = MaterialTheme.typography.bodyMedium)
-                        Icon(
-                            MqIcons.GraphicEq,
-                            null,
-                            Modifier.matchParentSize(),
-                            tint = MaterialTheme.colorScheme.primary,
+                        Text(
+                            it.toString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-            } else if (isCurrent) {
-                { Icon(MqIcons.GraphicEq, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
-            } else if (showCover) {
-                { RowCover(track.artwork, MqIcons.MusicNote) }
-            } else {
-                trackNumber?.let {
-                    {
-                        // An invisible "00" reserves two digits of width, so titles line up from track 1 to 99.
-                        Box(Modifier.clearAndSetSemantics {}, contentAlignment = Alignment.CenterEnd) {
-                            Text("00", Modifier.alpha(0f), style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                it.toString(),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            },
-        supportingContent = {
-            Text(track.artists.joinToString { it.name }, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        },
-        trailingContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(formatDuration(track.duration), style = MaterialTheme.typography.bodySmall)
-                if (menuItems != null) {
-                    OverflowMenu(stringResource(R.string.core_ui_more_options, track.title), items = menuItems)
-                }
             }
-        },
-    ) {
+        }
+    val supporting: @Composable () -> Unit = {
+        Text(track.artists.joinToString { it.name }, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+    val trailing: @Composable () -> Unit = {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(formatDuration(track.duration), style = MaterialTheme.typography.bodySmall)
+            if (menuItems != null) {
+                OverflowMenu(stringResource(R.string.core_ui_more_options, track.title), items = menuItems)
+            }
+        }
+    }
+    val title: @Composable () -> Unit = {
         Text(
             track.title,
             color = if (isCurrent) MaterialTheme.colorScheme.primary else Color.Unspecified,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+        )
+    }
+    if (selected != null) {
+        ListItem(
+            selected = selected,
+            onClick = onClick,
+            modifier = rowModifier,
+            leadingContent = leading,
+            supportingContent = supporting,
+            trailingContent = trailing,
+            onLongClick = onLongClick,
+            content = title,
+        )
+    } else {
+        ListItem(
+            onClick = onClick,
+            modifier = rowModifier,
+            leadingContent = leading,
+            supportingContent = supporting,
+            trailingContent = trailing,
+            onLongClick = onLongClick,
+            content = title,
         )
     }
 }

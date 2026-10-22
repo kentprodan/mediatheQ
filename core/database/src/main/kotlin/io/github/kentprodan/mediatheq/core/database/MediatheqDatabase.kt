@@ -4,6 +4,7 @@ import androidx.room3.AutoMigration
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
+import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
 import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
 import io.github.kentprodan.mediatheq.core.database.dao.SyncDao
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
@@ -59,4 +60,6 @@ abstract class MediatheqDatabase : RoomDatabase() {
     abstract fun syncDao(): SyncDao
 
     abstract fun queueDao(): QueueDao
+
+    abstract fun playlistDao(): PlaylistDao
 }

@@ -90,9 +90,9 @@ Jellyfin 12 disables legacy authorization by default (also on upgraded servers).
 
 ## 8. Playlists
 
-- Create: `POST /Playlists`. Add: `POST /Playlists/{id}/Items?ids=...`. Remove: `DELETE /Playlists/{id}/Items?entryIds=...` (playlist **entry** IDs, not item IDs). Move: `POST /Playlists/{id}/Items/{itemId}/Move/{newIndex}`.
-- Chunk any request carrying ID lists (R3).
-- Playlist cover collage appears with delay (R6).
+- Create: `POST /Playlists` with JSON `{Name, UserId, MediaType: "Audio"}` and no `Ids`; tracks follow through Add, so there is one chunked path. Add: `POST /Playlists/{id}/Items?ids=...&userId=...`. Remove: `DELETE /Playlists/{id}/Items?entryIds=...` (`PlaylistItemId`s, never guessed from item IDs). Move: `POST /Playlists/{id}/Items/{entryId}/Move/{newIndex}` (index over all server entries). Rename: `POST /Playlists/{id}` with `{Name}`. Delete: `DELETE /Items/{id}`, the R5 exception.
+- Chunk any request carrying ID lists (R3). Entries without `PlaylistItemId` are dropped by the mapper.
+- Playlist cover collage appears with delay (R6). On 12.2.0 entry IDs equal item IDs (R13).
 
 ## 9. Live updates (WebSocket)
 
@@ -126,8 +126,8 @@ Logging: method + path + status + duration. Never headers, never query strings c
 - **R2 Rating vs progress:** a rating/favorite set while the track is playing can be overwritten by Jellyfin 12 playback progress reporting. Re-apply user data after the next progress/stop report (or send it after stop), and verify via server state in the test.
 - **R3 Long ID lists:** ~250+ IDs in a query string -> 414. Chunk to <= 200 IDs per request (`ServerCapabilities.maxIdsPerRequest`).
 - **R4 Lyrics sync flag:** `.lrc` lyrics may arrive without `IsSynced`; infer from line timestamps.
-- **R5 Delete:** `DELETE /Items` deletes the file **for all users from the server**. The app never calls it. "Remove" in the UI means remove from playlist / unfavorite / remove download.
-- **R6 Playlist collage:** the generated playlist image appears ~1 s after creation; refresh images after a short delay instead of showing a broken image.
+- **R5 Delete:** `DELETE /Items` deletes the file **for all users from the server**. The app never calls it, with one exception: `PlaylistEditor.deletePlaylist` sends `DELETE /Items/{id}` for a single id that the repository has checked is a playlist (owner decision, #16; a non-admin user may delete their own playlist on 12.2.0). Never with `ids`, never for any other item type. "Remove" in the UI means remove from playlist / unfavorite / remove download.
+- **R6 Playlist collage:** a new or empty playlist has no image; the generated collage appears ~1 s after tracks are added (12.2.0, checked 2026-10-22). Refresh the playlist again after a short delay instead of showing a broken image.
 - **R7 GetItems semantics (12):** always send `includeItemTypes` + `recursive` explicitly; results differ from 10.11 otherwise.
 - **R8 Invalid query values are ignored (12.2.0):** `includeItemTypes=Bogus`, `filters=Nope`, `sortBy=Nope`, `fields=Nope` all return 200 as if the value were absent (checked 2026-10-19; earlier notes said 400). Contract tests assert the exact query string of every request shape, because the server will not tell us about a typo.
 - **R9 One session per DeviceId:** a new login (password or Quick Connect) with the same `DeviceId` revokes the previous access token (old token -> 401, found on 12.2.0). Keep exactly one stored token per server and replace it on every login; never keep using an older token. Android backup is off so a restored install cannot share a DeviceId with the original.
@@ -135,6 +135,7 @@ Logging: method + path + status + duration. Never headers, never query strings c
 - **R10 Transcoding URL carries the token:** `PlaybackInfo`'s `TranscodingUrl` includes `ApiKey=<token>` (12.2.0). Strip `ApiKey`/`api_key` in any case and send the header (R1); never keep a URL with the token.
 - **R11 Music transcodes default to 128 kbps:** without `DeviceProfile.MusicStreamingTranscodingBitrate` Jellyfin converts music at 128 kbps whatever `MaxStreamingBitrate` says (12.2.0). Always send it (256000 for Opus on metered networks).
 - **R12 Live transcodes cannot be seeked:** progressive transcodes answer `Accept-Ranges: none` with no length (12.2.0); direct-play files return 206. Mark such streams `canSeek = false` (ADR 0016).
+- **R13 Entry IDs are item IDs:** on 12.2.0 `PlaylistItemId` equals the track's item ID (checked 2026-10-22). Remove by entry ID removes **every** copy of that track in the playlist; Move by entry ID moves the **first** copy; Move past the last index answers 500. Mirror that locally and refresh the playlist after each edit.
 
 New quirk found -> add `R<n>` here + fixture + test in the same PR.
 

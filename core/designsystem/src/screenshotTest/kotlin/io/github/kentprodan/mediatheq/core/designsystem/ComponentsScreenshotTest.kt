@@ -5,13 +5,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqArtistAvatar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialogContent
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBarStyle
@@ -115,3 +118,21 @@ fun MqFilterBarScreenshot() {
 }
 
 private val CoverWidth = 112.dp
+
+/** Dialog content in place (dialog windows render blank): with a text field, and with a message. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun MqDialogScreenshot() {
+    MediatheqTheme {
+        Column(Modifier.padding(MediatheqSpacing.l), verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.l)) {
+            MqDialogContent("Rename", "Save", {}, "Cancel", {}) {
+                OutlinedTextField("Road Trip", {}, label = { Text("Name") }, singleLine = true)
+            }
+            MqDialogContent("Delete \"Road Trip\"?", "Delete", {}, "Cancel", {}) {
+                Text("The playlist is deleted from the server. Its tracks stay in your library.")
+            }
+            MqDialogContent("New playlist", "Create", {}, "Cancel", {}, confirmEnabled = false)
+        }
+    }
+}

@@ -26,6 +26,7 @@ import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.scene.DialogSceneStrategy
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigation3.ui.NavDisplay
 import io.github.kentprodan.mediatheq.core.designsystem.motion.LocalNavAnimatedVisibilityScope
@@ -97,6 +98,8 @@ fun AppShell(
                     entries = navigator.visibleTabs.flatMap { entriesByTab.getValue(it) },
                     sharedTransitionScope = this,
                     onBack = { navigator.back() },
+                    // Entries marked as dialogs (Add to playlist) show in a dialog window over the screen below.
+                    sceneStrategies = listOf(DialogSceneStrategy()),
                     // Theme motion (expressive-design skill, section 4) instead of NavDisplay's default tween.
                     transitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) },
                     popTransitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) },

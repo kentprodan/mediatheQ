@@ -21,3 +21,15 @@ data class ArtistKey(
 data class PlaylistKey(
     @Serializable(with = MediaIdSerializer::class) val id: MediaId,
 ) : NavKey
+
+/**
+ * The "Add to playlist" dialog (#16) for [trackIds], in order. With no tracks it only creates an empty playlist.
+ * shortcut: the ids live in the saved back stack (~70 bytes each); pass an album id instead if lists of thousands appear.
+ */
+@Serializable
+data class AddToPlaylistKey(
+    val trackIds: List<
+        @Serializable(with = MediaIdSerializer::class)
+        MediaId,
+    >,
+) : NavKey

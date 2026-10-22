@@ -11,4 +11,5 @@
         <item quantity="one">%1$d track</item>
         <item quantity="other">%1$d tracks</item>
     </plurals>
+    <string name="core_ui_add_to_playlist">Add to playlist</string>
 </resources>

@@ -77,3 +77,12 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: album track menu -> Play next / Add to queue, album top bar menu -> Play next (whole album), Songs tab menu -> Add to queue -> the queue screen shows them in the right places; with nothing playing, Play next starts playback
 - [ ] Pixel 9: album started with Shuffle -> the queue shows the shuffled order without drag handles; Play next on a track plays right after the current one
 - [ ] Pixel 9: TalkBack on the queue: rows read "Now playing" for the current one and offer Move up / Move down / Remove from queue actions
+
+## #16 Playlist screen and editing
+- [ ] Pixel 9: open an album with 300+ tracks (or the largest album) -> top bar menu -> Add to playlist -> pick a playlist -> the dialog closes, the playlist shows all tracks in album order (count matches), no error; the server's playlist (Jellyfin web) has the same count
+- [ ] Pixel 9: Library -> Playlists -> "+" -> name "mediatheq test" -> Create -> the playlist appears; add 3 tracks from album track menus -> within a few seconds the playlist cover changes from the placeholder to the server's collage
+- [ ] Pixel 9: on a playlist, drag a track by its handle up and down (also past the screen edge) -> ticks on pick-up and each swap, the new order stays after leaving and reopening, and Jellyfin web shows the same order
+- [ ] Pixel 9: long press a track -> selection mode with the floating toolbar; select 2 more -> Remove -> the 3 tracks disappear at once and stay gone after reopening; the Library playlist row shows the new count
+- [ ] Pixel 9: turn on airplane mode, remove a track from a playlist -> it disappears, then comes back with the "could not be saved" snackbar
+- [ ] Pixel 9: playlist menu -> Rename (new name shows, also in Library search), then Delete -> confirm -> the screen closes, the playlist is gone from Library and Jellyfin web; the tracks are still in the library
+- [ ] Pixel 9: TalkBack on a playlist row offers Move up / Move down; the toolbar buttons read "Clear selection" and "Remove from playlist"
