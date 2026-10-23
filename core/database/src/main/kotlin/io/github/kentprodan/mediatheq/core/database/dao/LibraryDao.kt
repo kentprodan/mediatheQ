@@ -9,7 +9,6 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
-import io.github.kentprodan.mediatheq.core.database.entity.SearchEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import kotlinx.coroutines.flow.Flow
@@ -126,13 +125,84 @@ interface LibraryDao {
         artistId: String,
     ): Flow<List<TrackWithArtists>>
 
-    /** [match] must already be a safe FTS5 expression (see `ftsMatchExpression` in `:core:data`). */
-    @Query("SELECT * FROM search WHERE search MATCH :match ORDER BY rank LIMIT :limit")
+    /**
+     * Best matches of each kind, from one snapshot: [match] must already be a safe FTS5 expression (see
+     * `ftsMatchExpression` in `:core:data`). Ranked by bm25 (shorter names first), then by sort name.
+     */
+    @Transaction
     suspend fun search(
         match: String,
+        limitPerKind: Int,
+    ): SearchRows =
+        SearchRows(
+            artists = searchArtists(match, limitPerKind),
+            albums = searchAlbums(match, limitPerKind),
+            tracks = searchTracks(match, limitPerKind),
+            playlists = searchPlaylists(match, limitPerKind),
+        )
+
+    @Query(
+        """
+        SELECT artist.* FROM search
+        JOIN artist ON artist.server_id = search.server_id AND artist.id = search.item_id
+        WHERE search MATCH :match AND search.kind = 'artist'
+        ORDER BY search.rank, artist.sort_name, artist.id LIMIT :limit
+        """,
+    )
+    suspend fun searchArtists(
+        match: String,
         limit: Int,
-    ): List<SearchEntity>
+    ): List<ArtistEntity>
+
+    @Transaction
+    @Query(
+        """
+        SELECT album.* FROM search
+        JOIN album ON album.server_id = search.server_id AND album.id = search.item_id
+        WHERE search MATCH :match AND search.kind = 'album'
+        ORDER BY search.rank, album.sort_name, album.id LIMIT :limit
+        """,
+    )
+    suspend fun searchAlbums(
+        match: String,
+        limit: Int,
+    ): List<AlbumWithArtists>
+
+    @Transaction
+    @Query(
+        """
+        SELECT track.* FROM search
+        JOIN track ON track.server_id = search.server_id AND track.id = search.item_id
+        WHERE search MATCH :match AND search.kind = 'track'
+        ORDER BY search.rank, track.sort_name, track.id LIMIT :limit
+        """,
+    )
+    suspend fun searchTracks(
+        match: String,
+        limit: Int,
+    ): List<TrackWithArtists>
+
+    @Query(
+        """
+        SELECT playlist.* FROM search
+        JOIN playlist ON playlist.server_id = search.server_id AND playlist.id = search.item_id
+        WHERE search MATCH :match AND search.kind = 'playlist'
+        ORDER BY search.rank, playlist.sort_name, playlist.id LIMIT :limit
+        """,
+    )
+    suspend fun searchPlaylists(
+        match: String,
+        limit: Int,
+    ): List<PlaylistEntity>
 }
+
+/** Search matches grouped by kind, each group best first. */
+data class SearchRows(
+    val artists: List<ArtistEntity>,
+    val albums: List<AlbumWithArtists>,
+    val tracks: List<TrackWithArtists>,
+    val playlists: List<PlaylistEntity>,
+)
 
 /** An album with its artist credits; sort [credits] by position, Room does not order relations. */
 data class AlbumWithArtists(

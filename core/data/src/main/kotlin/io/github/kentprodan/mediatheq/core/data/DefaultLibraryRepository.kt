@@ -1,12 +1,14 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import androidx.sqlite.SQLiteException
+import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
-import io.github.kentprodan.mediatheq.core.model.SearchHit
-import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -49,12 +51,22 @@ class DefaultLibraryRepository
 
         override suspend fun search(
             query: String,
-            limit: Int,
-        ): List<SearchHit> {
-            val match = ftsMatchExpression(query) ?: return emptyList()
-            return libraryDao.search(match, limit).mapNotNull { row ->
-                val kind = SearchHit.Kind.entries.firstOrNull { it.name.equals(row.kind, ignoreCase = true) }
-                kind?.let { SearchHit(it, MediaId(ServerId(row.serverId), row.itemId), row.name) }
-            }
+            limitPerKind: Int,
+        ): MqResult<SearchResults> {
+            val match = ftsMatchExpression(query) ?: return MqResult.Success(SearchResults())
+            val rows =
+                try {
+                    libraryDao.search(match, limitPerKind)
+                } catch (_: SQLiteException) {
+                    return MqResult.Failure(MqError.Storage)
+                }
+            return MqResult.Success(
+                SearchResults(
+                    artists = rows.artists.map { it.toDomain() },
+                    albums = rows.albums.map { it.toDomain() },
+                    tracks = rows.tracks.map { it.toDomain() },
+                    playlists = rows.playlists.map { it.toDomain() },
+                ),
+            )
         }
     }

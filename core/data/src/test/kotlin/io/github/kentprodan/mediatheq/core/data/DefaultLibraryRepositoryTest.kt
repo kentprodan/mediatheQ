@@ -1,6 +1,10 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import androidx.room3.useWriterConnection
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.common.errorOrNull
+import io.github.kentprodan.mediatheq.core.common.getOrNull
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
@@ -10,7 +14,6 @@ import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.model.MediaId
-import io.github.kentprodan.mediatheq.core.model.SearchHit
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import kotlinx.coroutines.flow.first
@@ -37,6 +40,22 @@ class DefaultLibraryRepositoryTest {
         database.syncDao().swap(1, "s", "user-1")
     }
 
+    private suspend fun searchTitles(query: String) =
+        repository
+            .search(query)
+            .getOrNull()!!
+            .tracks
+            .map { it.title }
+
+    @Test
+    fun `a database failure becomes a storage error`() =
+        runTest {
+            // A broken index file shows up as an SQLite error on the query.
+            database.useWriterConnection { connection -> connection.usePrepared("DROP TABLE search") { it.step() } }
+
+            assertThat(repository.search("mos").errorOrNull()).isEqualTo(MqError.Storage)
+        }
+
     @Test
     fun `typed words become quoted terms and the last one a prefix`() {
         assertThat(ftsMatchExpression("  ada  mos ")).isEqualTo("\"ada\" \"mos\"*")
@@ -49,10 +68,16 @@ class DefaultLibraryRepositoryTest {
         runTest {
             library("Moșoi", "Țară")
 
+            assertThat(searchTitles("mos")).containsExactly("Moșoi")
+            assertThat(searchTitles("tara")).containsExactly("Țară")
             assertThat(
-                repository.search("mos"),
-            ).containsExactly(SearchHit(SearchHit.Kind.Track, MediaId(ServerId("s"), "t0"), "Moșoi"))
-            assertThat(repository.search("tara").map { it.name }).containsExactly("Țară")
+                repository
+                    .search("mos")
+                    .getOrNull()!!
+                    .tracks
+                    .single()
+                    .id,
+            ).isEqualTo(MediaId(ServerId("s"), "t0"))
         }
 
     @Test
@@ -61,10 +86,10 @@ class DefaultLibraryRepositoryTest {
             library("AC/DC", "Rock-n-roll", "Do NOT disturb", "Re: Union", "Say \"hi\"")
 
             listOf("AC/DC", "rock-n-roll", "NOT", "re:", "\"", "say \"hi", "*", "(", "OR", "-").forEach { query ->
-                repository.search(query) // must not throw
+                assertThat(repository.search(query).getOrNull()).isNotNull()
             }
-            assertThat(repository.search("AC/DC").map { it.name }).containsExactly("AC/DC")
-            assertThat(repository.search("NOT").map { it.name }).containsExactly("Do NOT disturb")
+            assertThat(searchTitles("AC/DC")).containsExactly("AC/DC")
+            assertThat(searchTitles("NOT")).containsExactly("Do NOT disturb")
         }
 
     @Test
@@ -72,7 +97,7 @@ class DefaultLibraryRepositoryTest {
         runTest {
             library("Moșoi")
 
-            assertThat(repository.search("  ")).isEmpty()
+            assertThat(repository.search("  ").getOrNull()?.isEmpty()).isTrue()
         }
 
     @Test

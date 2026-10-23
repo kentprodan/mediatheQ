@@ -1,10 +1,11 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
-import io.github.kentprodan.mediatheq.core.model.SearchHit
+import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.Flow
 
@@ -39,9 +40,12 @@ interface LibraryRepository {
     /** Every track with its artists, by sort name. */
     fun tracks(): Flow<List<Track>>
 
-    /** Diacritic-insensitive search over names; the last word matches as a prefix. Any typed text is safe. */
+    /**
+     * Diacritic-insensitive search over names, at most [limitPerKind] of each kind; the last word matches as a prefix.
+     * Any typed text is safe; a blank query finds nothing.
+     */
     suspend fun search(
         query: String,
-        limit: Int = 50,
-    ): List<SearchHit>
+        limitPerKind: Int = 20,
+    ): MqResult<SearchResults>
 }
