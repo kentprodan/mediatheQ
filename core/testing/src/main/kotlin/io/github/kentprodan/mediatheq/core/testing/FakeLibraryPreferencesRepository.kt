@@ -5,11 +5,22 @@ import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
+import io.github.kentprodan.mediatheq.core.data.withRecentSearch
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /** In-memory [LibraryPreferencesRepository] with the same validation rules as the real one. */
 class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
     override val preferences = MutableStateFlow(LibraryPreferences())
+
+    override val recentSearches = MutableStateFlow<List<String>>(emptyList())
+
+    override suspend fun addRecentSearch(query: String) {
+        recentSearches.value = recentSearches.value.withRecentSearch(query)
+    }
+
+    override suspend fun clearRecentSearches() {
+        recentSearches.value = emptyList()
+    }
 
     override suspend fun setFilterStyle(style: FilterControlStyle) {
         preferences.value = preferences.value.copy(filterStyle = style)
