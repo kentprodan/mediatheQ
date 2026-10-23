@@ -21,6 +21,7 @@ import io.github.kentprodan.mediatheq.feature.library.libraryEntry
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingHost
 import io.github.kentprodan.mediatheq.feature.playlist.addToPlaylistEntry
 import io.github.kentprodan.mediatheq.feature.playlist.playlistEntry
+import io.github.kentprodan.mediatheq.feature.search.searchEntry
 import io.github.kentprodan.mediatheq.navigation.AppShell
 import io.github.kentprodan.mediatheq.navigation.OnboardingHost
 import io.github.kentprodan.mediatheq.navigation.placeholders
@@ -55,8 +56,14 @@ class MainActivity : ComponentActivity() {
                                     albumEntry(navigator)
                                     artistEntry(navigator)
                                     playlistEntry(navigator)
+                                    searchEntry(navigator)
                                     addToPlaylistEntry(navigator)
-                                    placeholders(navigator, onLogout = viewModel::logout, includeLibrary = false)
+                                    placeholders(
+                                        navigator,
+                                        onLogout = viewModel::logout,
+                                        includeLibrary = false,
+                                        includeSearch = false,
+                                    )
                                 }
                             }
                         NowPlayingHost(content = { miniPlayer ->

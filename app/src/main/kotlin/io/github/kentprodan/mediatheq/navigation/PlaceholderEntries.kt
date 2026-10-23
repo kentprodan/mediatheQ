@@ -20,7 +20,7 @@ import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.SearchKey
 import kotlinx.serialization.Serializable
 
-// shortcut: placeholder screens until the real features exist (#17, #19, #20); delete with the last of them.
+// shortcut: placeholder screens until the real features exist (#19, #20); delete with the last of them.
 
 /** A placeholder page [depth] levels deep inside a tab, to exercise the per-tab back stacks. */
 @Serializable
@@ -40,13 +40,14 @@ fun placeholderEntries(
 ): (NavKey) -> NavEntry<NavKey> = entryProvider { placeholders(navigator, onLogout) }
 
 /**
- * Placeholder entries. [includeLibrary] is false in the app, where the real Library tab (#10) is registered; the shell
- * tests keep the placeholder to exercise back stacks without Hilt.
+ * Placeholder entries. [includeLibrary] and [includeSearch] are false in the app, where the real Library (#10) and
+ * Search (#17) tabs are registered; the shell tests keep the placeholders to exercise back stacks without Hilt.
  */
 fun EntryProviderScope<NavKey>.placeholders(
     navigator: Navigator,
     onLogout: () -> Unit = {},
     includeLibrary: Boolean = true,
+    includeSearch: Boolean = true,
 ) {
     entry<HomeKey> {
         Box {
@@ -56,7 +57,7 @@ fun EntryProviderScope<NavKey>.placeholders(
         }
     }
     if (includeLibrary) entry<LibraryKey> { PlaceholderRoot("Library", navigator) }
-    entry<SearchKey> { PlaceholderRoot("Search", navigator) }
+    if (includeSearch) entry<SearchKey> { PlaceholderRoot("Search", navigator) }
     entry<DownloadsKey> { PlaceholderRoot("Downloads", navigator) }
     entry<PlaceholderDetailKey> { key ->
         Placeholder("${key.title} ${key.depth}", "Open next") {
