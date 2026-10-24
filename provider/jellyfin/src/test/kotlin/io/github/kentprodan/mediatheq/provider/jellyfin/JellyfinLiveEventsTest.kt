@@ -10,7 +10,12 @@ import io.github.kentprodan.mediatheq.core.server.LiveEvent
 import io.github.kentprodan.mediatheq.core.server.ServerConnection
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -153,5 +158,24 @@ class JellyfinLiveEventsTest {
                 assertThat(awaitItem()).isEqualTo(LiveEvent.Closed(MqError.Unauthorized))
                 awaitComplete()
             }
+        }
+
+    @Test
+    fun `a slow collector loses no event, the final Closed included`() =
+        realTimeTest {
+            upgrade()
+
+            val events =
+                coroutineScope {
+                    // Each event takes a while to handle (as a Room write does), so frames pile up meanwhile.
+                    val collected = async { liveEvents.events(server).onEach { delay(5) }.toList() }
+                    val socket = serverSocket.next()
+                    repeat(200) { socket.send(fixture("library_changed")) }
+                    socket.close(1001, "restarting")
+                    collected.await()
+                }
+
+            assertThat(events.count { it == LiveEvent.LibraryChanged }).isEqualTo(200)
+            assertThat(events.last()).isEqualTo(LiveEvent.Closed(MqError.Network))
         }
 }

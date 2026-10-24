@@ -111,6 +111,7 @@ class DefaultLibrarySyncRepository
                 val job = lock.withLock { running }
                 job?.cancel()
                 job?.join()
+                userData.forgetPending()
                 syncDao.clearAll()
                 mutableStatus.value = SyncStatus.Idle(null)
             }
@@ -177,6 +178,7 @@ class DefaultLibrarySyncRepository
                     )
                 syncDao.saveState(state)
             }
+            userData.onSyncStarted()
             var step = SyncStep.entries.first { it.name == state.checkpointStep }
             var index = state.checkpointIndex
             while (true) {

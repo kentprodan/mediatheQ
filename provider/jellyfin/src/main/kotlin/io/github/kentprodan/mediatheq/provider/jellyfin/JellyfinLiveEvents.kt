@@ -7,9 +7,11 @@ import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.SocketMessage
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toSocketMessage
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -116,6 +118,8 @@ class JellyfinLiveEvents
                     socket.close(NORMAL_CLOSURE, null)
                 }
             }
+                // trySend must never drop an event (above all the final Closed) while the collector writes to Room.
+                .buffer(Channel.UNLIMITED)
 
         private companion object {
             const val KEEP_ALIVE = """{"MessageType":"KeepAlive"}"""

@@ -225,8 +225,10 @@ class DefaultUserDataRepositoryTest {
             userData.setFavorite(track, true)
             userData.setRating(track, 5)
             playback.reportProgress(report.copy(position = 10.seconds))
+            runCurrent()
             assertThat(sink.serverState[track]?.isFavorite).isTrue()
             playback.reportStopped(report.copy(position = 20.seconds), failed = false)
+            runCurrent()
 
             assertThat(sink.serverState[track]).isEqualTo(UserData(isFavorite = true, rating = 10.0))
             assertThat(stored(track)?.isFavorite).isTrue()
@@ -241,11 +243,13 @@ class DefaultUserDataRepositoryTest {
             playback.reportStart(report)
             userData.setFavorite(track, true)
             playback.reportStopped(report, failed = false)
+            runCurrent()
             sink.calls.clear()
 
             playback.reportStart(report)
             playback.reportProgress(report)
             playback.reportStopped(report, failed = false)
+            runCurrent()
 
             assertThat(sink.calls).isEmpty()
         }
@@ -261,7 +265,79 @@ class DefaultUserDataRepositoryTest {
             userData.setFavorite(album, true)
             playback.reportProgress(report)
             playback.reportStopped(report, failed = false)
+            runCurrent()
 
             assertThat(sink.calls).containsExactly("favorite:al1:true")
+        }
+
+    @Test
+    fun `a change confirmed while a sync fetches survives its swap`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            val syncDao = database.syncDao()
+            repository.onSyncStarted()
+            // The sync read the track before the change...
+            val oldPage = TrackStaging(TrackEntity("s", "t1", "Pe-o margine", "Pe-o margine", userData = rated(6.0)))
+
+            repository.setFavorite(track, true)
+            // ...and stages it only after the server confirmed the change.
+            syncDao.stageTracks(listOf(oldPage))
+            syncDao.swap(2, "s", "user-1")
+            repository.reapplyOverrides()
+
+            assertThat(stored(track)?.isFavorite).isTrue()
+        }
+
+    @Test
+    fun `a change confirmed before a sync started is not written over it`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            val syncDao = database.syncDao()
+            repository.setFavorite(track, true)
+            repository.onSyncStarted()
+            // Another client unfavorited it meanwhile; this sync read that.
+            syncDao.stageTracks(listOf(TrackStaging(TrackEntity("s", "t1", "Pe-o margine", "Pe-o margine"))))
+            syncDao.swap(2, "s", "user-1")
+
+            repository.reapplyOverrides()
+
+            assertThat(stored(track)?.isFavorite).isFalse()
+        }
+
+    @Test
+    fun `signing out forgets pending changes, so the next user gets none of them`() =
+        runTest(dispatcher) {
+            val userData = repository()
+            val playback = DefaultPlaybackRepository(FakePlaybackSource(), accountStore, session, userData)
+            val report = PlaybackReport(FakePlaybackSource.fakeStream(track), 0.seconds, isPaused = false)
+            playback.reportStart(report)
+            userData.setFavorite(track, true)
+            sink.calls.clear()
+
+            userData.forgetPending()
+            playback.reportStopped(report, failed = false)
+            runCurrent()
+
+            assertThat(sink.calls).isEmpty()
+        }
+
+    @Test
+    fun `a stop report does not wait for a slow write`() =
+        runTest(dispatcher) {
+            val userData = repository()
+            val playback = DefaultPlaybackRepository(FakePlaybackSource(), accountStore, session, userData)
+            val report = PlaybackReport(FakePlaybackSource.fakeStream(track), 0.seconds, isPaused = false)
+            playback.reportStart(report)
+            userData.setFavorite(track, true)
+            sink.gate = CompletableDeferred()
+            val slowWrite = async { userData.setRating(album, 3) }
+            runCurrent()
+
+            val stopped = async { playback.reportStopped(report, failed = false) }
+            runCurrent()
+
+            assertThat(stopped.isCompleted).isTrue()
+            sink.gate!!.complete(Unit)
+            slowWrite.await()
         }
 }

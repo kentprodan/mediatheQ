@@ -16,6 +16,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -45,6 +46,9 @@ class DefaultUserDataRepository
         private val stateLock = Mutex()
         private val inFlight = mutableMapOf<MediaId, Change>()
         private val whilePlaying = mutableMapOf<MediaId, Change>()
+
+        // Changes the server confirmed while a sync was fetching: its pages may hold the older value.
+        private val sinceSyncStart = mutableMapOf<MediaId, Change>()
         private var playing: MediaId? = null
         private val mutableError = MutableStateFlow<MqError?>(null)
         override val error: StateFlow<MqError?> = mutableError.asStateFlow()
@@ -80,16 +84,39 @@ class DefaultUserDataRepository
                 }
             }
 
-        /** Writes the overrides again, e.g. after a sync swapped in rows fetched before them. */
+        /** A sync starts fetching: what it reads from now on already has the changes confirmed before. */
+        internal suspend fun onSyncStarted() = stateLock.withLock { sinceSyncStart.clear() }
+
+        /** Writes the overrides again after a sync swapped in rows fetched before them. */
         internal suspend fun reapplyOverrides() =
             stateLock.withLock {
                 storageSafe {
-                    (inFlight.keys + whilePlaying.keys).forEach { id ->
+                    (sinceSyncStart.keys + inFlight.keys + whilePlaying.keys).forEach { id ->
                         val stored = userDataDao.userData(id.serverId.value, id.itemId) ?: return@forEach
-                        store(id, overrideOf(id)!!.applyTo(stored))
+                        val confirmed = sinceSyncStart[id]
+                        val pending = overrideOf(id)
+                        val change =
+                            if (confirmed != null &&
+                                pending != null
+                            ) {
+                                confirmed.then(pending)
+                            } else {
+                                pending ?: confirmed!!
+                            }
+                        store(id, change.applyTo(stored))
                     }
+                    sinceSyncStart.clear()
                     MqResult.Success(Unit)
                 }
+            }
+
+        /** Signed out or another account: nothing pending belongs to the next user. */
+        internal suspend fun forgetPending() =
+            stateLock.withLock {
+                inFlight.clear()
+                whilePlaying.clear()
+                sinceSyncStart.clear()
+                playing = null
             }
 
         /** [itemId] started playing: changes to it from now on are R2 overrides. */
@@ -109,11 +136,14 @@ class DefaultUserDataRepository
                     }
                     change
                 } ?: return
-            val server = accountStore.signedInServer() ?: return
-            // Best effort: the change already reached the server once; a failure here is not the user's to see.
-            writeLock.withLock {
-                change.isFavorite?.let { sink.setFavorite(server, itemId, it) }
-                if (change.setsRating) sink.setRating(server, itemId, change.rating)
+            // Best effort: the change already reached the server once; a failure here is not the user's to see. Not
+            // awaited: playback reports must not wait behind a slow write.
+            scope.launch {
+                val server = accountStore.signedInServer() ?: return@launch
+                writeLock.withLock {
+                    change.isFavorite?.let { sink.setFavorite(server, itemId, it) }
+                    if (change.setsRating) sink.setRating(server, itemId, change.rating)
+                }
             }
         }
 
@@ -148,8 +178,9 @@ class DefaultUserDataRepository
                                         userDataDao.userData(id.serverId.value, id.itemId)?.let { now ->
                                             store(id, change.undo(before).applyTo(now))
                                         }
-                                    } else if (id == playing) {
-                                        whilePlaying[id] = whilePlaying[id]?.then(change) ?: change
+                                    } else {
+                                        sinceSyncStart[id] = sinceSyncStart[id]?.then(change) ?: change
+                                        if (id == playing) whilePlaying[id] = whilePlaying[id]?.then(change) ?: change
                                     }
                                 }
                                 if ((result as? MqResult.Failure)?.error == MqError.Unauthorized) {
