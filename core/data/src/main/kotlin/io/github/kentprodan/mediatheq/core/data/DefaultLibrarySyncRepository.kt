@@ -67,6 +67,12 @@ class DefaultLibrarySyncRepository
 
         override suspend fun sync(): MqResult<Unit> = join().await()
 
+        /** Like [sync], but never joins a sync that was already running: it may have read past the change. */
+        internal suspend fun syncAfterChange(): MqResult<Unit> {
+            lock.withLock { running }?.join()
+            return sync()
+        }
+
         /** Follows the account for the app's lifetime; call once from the Application. */
         fun start() {
             scope.launch {

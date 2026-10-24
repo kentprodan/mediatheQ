@@ -1,6 +1,9 @@
 package io.github.kentprodan.mediatheq
 
 import android.app.Application
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -9,6 +12,7 @@ import coil3.serviceLoaderEnabled
 import dagger.hilt.android.HiltAndroidApp
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.DefaultLibrarySyncRepository
+import io.github.kentprodan.mediatheq.core.data.LiveSync
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 
@@ -20,6 +24,9 @@ class MediatheqApplication :
     lateinit var librarySync: DefaultLibrarySyncRepository
 
     @Inject
+    lateinit var liveSync: LiveSync
+
+    @Inject
     lateinit var okHttpClient: OkHttpClient
 
     @Inject
@@ -29,6 +36,15 @@ class MediatheqApplication :
         super.onCreate()
         // Syncs after login and when a day has passed; wipes the library on sign-out (issue #9).
         librarySync.start()
+        // Live updates while the app is visible (or music plays, told by the playback service), issue #18.
+        liveSync.start()
+        ProcessLifecycleOwner.get().lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) = liveSync.setForeground(true)
+
+                override fun onStop(owner: LifecycleOwner) = liveSync.setForeground(false)
+            },
+        )
     }
 
     /**
