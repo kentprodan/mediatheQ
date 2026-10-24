@@ -69,8 +69,9 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             }
+                        val online by viewModel.online.collectAsStateWithLifecycle()
                         NowPlayingHost(content = { miniPlayer ->
-                            AppShell(navigator, entries, miniPlayer = miniPlayer)
+                            AppShell(navigator, entries, offline = !online, miniPlayer = miniPlayer)
                         })
                     }
                 }

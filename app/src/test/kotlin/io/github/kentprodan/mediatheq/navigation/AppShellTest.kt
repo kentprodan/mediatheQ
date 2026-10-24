@@ -33,10 +33,13 @@ class AppShellTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @Composable
-    private fun Shell(onLogout: () -> Unit = {}) {
+    private fun Shell(
+        onLogout: () -> Unit = {},
+        offline: Boolean = false,
+    ) {
         MediatheqTheme {
             val navigator = rememberTabNavigator()
-            AppShell(navigator, remember(navigator) { placeholderEntries(navigator, onLogout) })
+            AppShell(navigator, remember(navigator) { placeholderEntries(navigator, onLogout) }, offline = offline)
         }
     }
 
@@ -49,6 +52,17 @@ class AppShellTest {
     private fun pressBack() {
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
         composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `offline the tabs show the offline state, and its button opens Downloads, which works`() {
+        composeRule.setContent { Shell(offline = true) }
+        composeRule.onNodeWithText("You are offline").assertExists()
+
+        composeRule.onNodeWithText("Open Downloads").performClick()
+
+        composeRule.onNodeWithText("You are offline").assertDoesNotExist()
+        composeRule.onNode(hasText("Downloads") and hasClickAction()).assertIsSelected()
     }
 
     @Test
