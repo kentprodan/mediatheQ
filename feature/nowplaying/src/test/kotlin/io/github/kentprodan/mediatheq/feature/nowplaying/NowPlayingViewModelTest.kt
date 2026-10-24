@@ -5,10 +5,14 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -22,6 +26,8 @@ class NowPlayingViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val playback = FakePlaybackConnection()
+    private val library = FakeLibraryRepository()
+    private val userData = FakeUserDataRepository()
     private val artwork = Artwork("al1", "tag")
     private val playing =
         PlayerUiModel(
@@ -42,7 +48,7 @@ class NowPlayingViewModelTest {
     @Test
     fun `nothing queued hides the player`() =
         runTest {
-            NowPlayingViewModel(playback).uiState.test {
+            NowPlayingViewModel(playback, library, userData).uiState.test {
                 assertThat(awaitItem()).isEqualTo(NowPlayingUiState.Hidden)
             }
         }
@@ -50,7 +56,7 @@ class NowPlayingViewModelTest {
     @Test
     fun `the queue entry shows with its cover and controls, and follows pause`() =
         runTest {
-            val viewModel = NowPlayingViewModel(playback)
+            val viewModel = NowPlayingViewModel(playback, library, userData)
             viewModel.uiState.test {
                 assertThat(awaitItem()).isEqualTo(NowPlayingUiState.Hidden)
 
@@ -79,7 +85,7 @@ class NowPlayingViewModelTest {
 
     @Test
     fun `transport actions reach the player`() {
-        val viewModel = NowPlayingViewModel(playback)
+        val viewModel = NowPlayingViewModel(playback, library, userData)
 
         viewModel.onAction(NowPlayingAction.TogglePlayPause)
         viewModel.onAction(NowPlayingAction.Next)
@@ -91,7 +97,7 @@ class NowPlayingViewModelTest {
     @Test
     fun `seeking turns the fraction into a position in the current track`() {
         playback.state.value = playing
-        val viewModel = NowPlayingViewModel(playback)
+        val viewModel = NowPlayingViewModel(playback, library, userData)
 
         viewModel.onAction(NowPlayingAction.SeekTo(0.25f))
         viewModel.onAction(NowPlayingAction.SeekTo(1.5f))
@@ -104,7 +110,7 @@ class NowPlayingViewModelTest {
         runTest {
             playback.state.value = playing.copy(currentEntryId = "e2", shuffle = true)
 
-            NowPlayingViewModel(playback).uiState.test {
+            NowPlayingViewModel(playback, library, userData).uiState.test {
                 val state = awaitItem() as NowPlayingUiState.Playing
                 assertThat(state.currentEntryId).isEqualTo("e2")
                 assertThat(state.shuffle).isTrue()
@@ -116,12 +122,12 @@ class NowPlayingViewModelTest {
         val queue = listOf(QueueItem("e1", MediaId(ServerId("s"), "t1"), "Strobe", "deadmau5"))
         playback.queue.value = queue
 
-        assertThat(NowPlayingViewModel(playback).queue.value).isEqualTo(queue)
+        assertThat(NowPlayingViewModel(playback, library, userData).queue.value).isEqualTo(queue)
     }
 
     @Test
     fun `queue actions reach the player by entry`() {
-        val viewModel = NowPlayingViewModel(playback)
+        val viewModel = NowPlayingViewModel(playback, library, userData)
 
         viewModel.onAction(NowPlayingAction.SkipToQueueItem("e1"))
         viewModel.onAction(NowPlayingAction.RemoveQueueItem("e2"))
@@ -134,8 +140,63 @@ class NowPlayingViewModelTest {
     fun `seeking without a known duration does nothing`() {
         playback.state.value = playing.copy(duration = Duration.ZERO)
 
-        NowPlayingViewModel(playback).onAction(NowPlayingAction.SeekTo(0.5f))
+        NowPlayingViewModel(playback, library, userData).onAction(NowPlayingAction.SeekTo(0.5f))
 
         assertThat(playback.commands).isEmpty()
+    }
+
+    private val track = Track(MediaId(ServerId("s"), "t1"), "Strobe", emptyList(), 10.minutes)
+
+    @Test
+    fun `favorite and stars of the playing track come from the library`() =
+        runTest {
+            library.tracks.value = listOf(track.copy(userData = UserData(isFavorite = true, rating = 8.0)))
+            playback.state.value = playing
+
+            NowPlayingViewModel(playback, library, userData).uiState.test {
+                val state = awaitItem() as NowPlayingUiState.Playing
+                assertThat(state.isFavorite).isTrue()
+                assertThat(state.stars).isEqualTo(4)
+
+                library.tracks.value = listOf(track.copy(userData = UserData(isFavorite = false)))
+                val changed = awaitItem() as NowPlayingUiState.Playing
+                assertThat(changed.isFavorite).isFalse()
+                assertThat(changed.stars).isNull()
+            }
+        }
+
+    @Test
+    fun `a track not in the library shows as not favorite and unrated`() =
+        runTest {
+            playback.state.value = playing
+
+            NowPlayingViewModel(playback, library, userData).uiState.test {
+                val state = awaitItem() as NowPlayingUiState.Playing
+                assertThat(state.isFavorite).isFalse()
+                assertThat(state.stars).isNull()
+            }
+        }
+
+    @Test
+    fun `favorite and rating change the playing track`() =
+        runTest {
+            playback.state.value = playing
+            val viewModel = NowPlayingViewModel(playback, library, userData)
+
+            viewModel.onAction(NowPlayingAction.SetFavorite(true))
+            viewModel.onAction(NowPlayingAction.Rate(3))
+            viewModel.onAction(NowPlayingAction.Rate(null))
+
+            assertThat(userData.calls).containsExactly("favorite:t1:true", "stars:t1:3", "stars:t1:null").inOrder()
+        }
+
+    @Test
+    fun `with nothing playing, favorite and rating do nothing`() {
+        val viewModel = NowPlayingViewModel(playback, library, userData)
+
+        viewModel.onAction(NowPlayingAction.SetFavorite(true))
+        viewModel.onAction(NowPlayingAction.Rate(3))
+
+        assertThat(userData.calls).isEmpty()
     }
 }

@@ -21,6 +21,9 @@ sealed interface NowPlayingUiState {
         val currentEntryId: String? = null,
         /** Shuffled queues cannot be reordered. */
         val shuffle: Boolean = false,
+        val isFavorite: Boolean = false,
+        /** 1-5, `null` when unrated. */
+        val stars: Int? = null,
     ) : NowPlayingUiState
 }
 
@@ -42,6 +45,15 @@ sealed interface NowPlayingAction {
 
     data class RemoveQueueItem(
         val entryId: String,
+    ) : NowPlayingAction
+
+    data class SetFavorite(
+        val isFavorite: Boolean,
+    ) : NowPlayingAction
+
+    /** Rate the playing track with 1-5 [stars]; `null` clears the rating. */
+    data class Rate(
+        val stars: Int?,
     ) : NowPlayingAction
 
     /** Move the entry to position [to] of the queue. */

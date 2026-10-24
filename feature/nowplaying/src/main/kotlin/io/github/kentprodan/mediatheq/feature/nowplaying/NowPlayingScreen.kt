@@ -35,8 +35,10 @@ import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayerCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqSeekBar
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqTransportControls
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
@@ -124,6 +126,7 @@ private fun NowPlayingContent(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            MqStarRating(stars = state.stars, onRate = { onAction(NowPlayingAction.Rate(it)) })
         }
         SeekSection(state, position, onAction)
         MqTransportControls(
@@ -135,7 +138,11 @@ private fun NowPlayingContent(
             onNext = { onAction(NowPlayingAction.Next) },
         )
         // The secondary row (expressive-design section 5); lyrics and output come in their issues.
-        Row(Modifier.fillMaxWidth().padding(bottom = MediatheqSpacing.l), horizontalArrangement = Arrangement.End) {
+        Row(
+            Modifier.fillMaxWidth().padding(bottom = MediatheqSpacing.l),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            MqFavoriteToggle(state.isFavorite, onToggle = { onAction(NowPlayingAction.SetFavorite(it)) })
             IconButton(onClick = onOpenQueue) {
                 Icon(MqIcons.QueueMusic, contentDescription = stringResource(R.string.nowplaying_queue_open))
             }

@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * [UserDataRepository] for ViewModel tests: records each change in [calls] (e.g. "favorite:t1:true", "stars:t1:4") and
@@ -12,6 +13,11 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 class FakeUserDataRepository : UserDataRepository {
     val calls = mutableListOf<String>()
     var failure: MqError? = null
+    override val error = MutableStateFlow<MqError?>(null)
+
+    override fun dismissError() {
+        error.value = null
+    }
 
     override suspend fun setFavorite(
         id: MediaId,

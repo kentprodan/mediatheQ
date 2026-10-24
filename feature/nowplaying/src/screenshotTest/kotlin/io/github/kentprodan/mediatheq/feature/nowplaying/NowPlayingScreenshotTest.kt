@@ -78,3 +78,11 @@ fun NowPlayingUnseekableScreenshot() {
 }
 
 private const val PREVIEW_COVER_SEED = 0xFFC2185B.toInt()
+
+/** A favorite rated with four stars. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingFavoriteRatedScreenshot() {
+    MediatheqTheme { Screen(playing.copy(isFavorite = true, stars = 4)) }
+}

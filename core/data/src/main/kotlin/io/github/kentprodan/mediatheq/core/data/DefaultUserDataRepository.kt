@@ -13,6 +13,9 @@ import io.github.kentprodan.mediatheq.core.server.UserDataSink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -43,6 +46,12 @@ class DefaultUserDataRepository
         private val inFlight = mutableMapOf<MediaId, Change>()
         private val whilePlaying = mutableMapOf<MediaId, Change>()
         private var playing: MediaId? = null
+        private val mutableError = MutableStateFlow<MqError?>(null)
+        override val error: StateFlow<MqError?> = mutableError.asStateFlow()
+
+        override fun dismissError() {
+            mutableError.value = null
+        }
 
         override suspend fun setFavorite(
             id: MediaId,
@@ -151,6 +160,11 @@ class DefaultUserDataRepository
                         }
                     }
                 }.await()
+                .also { result ->
+                    // Unauthorized means signed out (or about to be): the login screen says it, not a message.
+                    val error = (result as? MqResult.Failure)?.error
+                    if (error != null && error != MqError.Unauthorized) mutableError.value = error
+                }
 
         private fun overrideOf(id: MediaId): Change? {
             val playingChange = whilePlaying[id]

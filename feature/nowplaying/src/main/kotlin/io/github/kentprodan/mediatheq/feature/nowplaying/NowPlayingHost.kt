@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -33,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -63,9 +65,17 @@ import kotlin.time.Duration
 fun NowPlayingHost(
     content: @Composable (miniPlayer: @Composable () -> Unit) -> Unit,
     viewModel: NowPlayingViewModel = hiltViewModel(),
+    snackbarHost: @Composable () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    NowPlayingLayout(state, viewModel.position, viewModel::onAction, content, queue = viewModel.queue)
+    NowPlayingLayout(
+        state,
+        viewModel.position,
+        viewModel::onAction,
+        content,
+        queue = viewModel.queue,
+        snackbarHost = snackbarHost,
+    )
 }
 
 /**
@@ -80,6 +90,8 @@ fun NowPlayingLayout(
     content: @Composable (miniPlayer: @Composable () -> Unit) -> Unit,
     expandedInitially: Boolean = false,
     queue: StateFlow<List<QueueItem>> = NoQueue,
+    /** The app's messages, shown over the full player while it covers the shell. */
+    snackbarHost: @Composable () -> Unit = {},
 ) {
     var expanded by rememberSaveable { mutableStateOf(expandedInitially) }
     var showQueue by rememberSaveable { mutableStateOf(false) }
@@ -159,40 +171,43 @@ fun NowPlayingLayout(
                 BackHandler(enabled = expanded) { if (showQueue) showQueue = false else expanded = false }
                 // Collected while the full player is open, so the queue is current by the time it is opened.
                 val entries by queue.collectAsStateWithLifecycle()
-                PlayerScope(sharedScope, this) {
-                    shown?.let { playing ->
-                        MqCoverTheme(coverScheme) {
-                            AnimatedContent(
-                                targetState = showQueue,
-                                transitionSpec = {
-                                    fadeIn(motion.defaultEffectsSpec()) togetherWith
-                                        fadeOut(motion.defaultEffectsSpec())
-                                },
-                                label = "queue",
-                            ) { queueShown ->
-                                if (queueShown) {
-                                    QueueScreen(
-                                        queue = entries,
-                                        currentEntryId = playing.currentEntryId,
-                                        canReorder = !playing.shuffle,
-                                        onAction = onAction,
-                                        onClose = { showQueue = false },
-                                    )
-                                } else {
-                                    // Sampled only while the full player is open; the mini player shows no position.
-                                    val position = positions.collectAsStateWithLifecycle()
-                                    NowPlayingScreen(
-                                        state = playing,
-                                        position = { position.value },
-                                        onAction = onAction,
-                                        onCollapse = { expanded = false },
-                                        onOpenQueue = { showQueue = true },
-                                        coverModifier = Modifier.mqSharedCover(PLAYER_COVER_KEY),
-                                    )
+                Box(Modifier.fillMaxSize()) {
+                    PlayerScope(sharedScope, this@AnimatedVisibility) {
+                        shown?.let { playing ->
+                            MqCoverTheme(coverScheme) {
+                                AnimatedContent(
+                                    targetState = showQueue,
+                                    transitionSpec = {
+                                        fadeIn(motion.defaultEffectsSpec()) togetherWith
+                                            fadeOut(motion.defaultEffectsSpec())
+                                    },
+                                    label = "queue",
+                                ) { queueShown ->
+                                    if (queueShown) {
+                                        QueueScreen(
+                                            queue = entries,
+                                            currentEntryId = playing.currentEntryId,
+                                            canReorder = !playing.shuffle,
+                                            onAction = onAction,
+                                            onClose = { showQueue = false },
+                                        )
+                                    } else {
+                                        // Sampled only while the full player is open; the mini player shows no position.
+                                        val position = positions.collectAsStateWithLifecycle()
+                                        NowPlayingScreen(
+                                            state = playing,
+                                            position = { position.value },
+                                            onAction = onAction,
+                                            onCollapse = { expanded = false },
+                                            onOpenQueue = { showQueue = true },
+                                            coverModifier = Modifier.mqSharedCover(PLAYER_COVER_KEY),
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+                    Box(Modifier.align(Alignment.BottomCenter).safeDrawingPadding()) { snackbarHost() }
                 }
             }
         }

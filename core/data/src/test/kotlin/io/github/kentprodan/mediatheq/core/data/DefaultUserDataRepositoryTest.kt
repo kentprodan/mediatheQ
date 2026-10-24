@@ -102,6 +102,30 @@ class DefaultUserDataRepositoryTest {
         }
 
     @Test
+    fun `a refused change is offered as the app-wide error until dismissed`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Forbidden
+
+            repository.setFavorite(track, true)
+            assertThat(repository.error.value).isEqualTo(MqError.Forbidden)
+
+            repository.dismissError()
+            assertThat(repository.error.value).isNull()
+        }
+
+    @Test
+    fun `a 401 is not an app-wide error, signing out says it`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Unauthorized
+
+            repository.setFavorite(track, true)
+
+            assertThat(repository.error.value).isNull()
+        }
+
+    @Test
     fun `a failed rating puts back only the rating`() =
         runTest(dispatcher) {
             val repository = repository()

@@ -13,6 +13,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -42,9 +44,11 @@ fun AppShell(
     entryProvider: (NavKey) -> NavEntry<NavKey>,
     modifier: Modifier = Modifier,
     miniPlayer: (@Composable () -> Unit)? = null,
+    snackbarHostState: SnackbarHostState? = null,
 ) {
     Scaffold(
         modifier = modifier,
+        snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
         bottomBar = {
             Column {
                 // Places and animates itself (it is hidden while nothing is queued).
