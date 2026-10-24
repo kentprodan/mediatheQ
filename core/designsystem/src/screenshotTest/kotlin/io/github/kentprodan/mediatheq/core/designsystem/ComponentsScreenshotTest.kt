@@ -16,9 +16,11 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqArtistAvatar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialogContent
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBarStyle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.preview.PREVIEW_BLUR_HASH
@@ -133,6 +135,24 @@ fun MqDialogScreenshot() {
                 Text("The playlist is deleted from the server. Its tracks stay in your library.")
             }
             MqDialogContent("New playlist", "Create", {}, "Cancel", {}, confirmEnabled = false)
+        }
+    }
+}
+
+/** The heart off and on, and stars unrated, 1, 3 and 5. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun FavoriteAndRatingScreenshot() {
+    MediatheqTheme {
+        Surface {
+            Column(Modifier.padding(MediatheqSpacing.l)) {
+                Row {
+                    MqFavoriteToggle(isFavorite = false, onToggle = {})
+                    MqFavoriteToggle(isFavorite = true, onToggle = {})
+                }
+                listOf(null, 1, 3, 5).forEach { MqStarRating(stars = it, onRate = {}) }
+            }
         }
     }
 }
