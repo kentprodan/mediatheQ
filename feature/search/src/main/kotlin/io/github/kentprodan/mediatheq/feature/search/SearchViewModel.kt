@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
+import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -29,6 +30,7 @@ class SearchViewModel
         private val libraryRepository: LibraryRepository,
         private val preferencesRepository: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
+        private val userData: UserDataRepository,
     ) : ViewModel() {
         // The search field restores its own text after process death and sends it again, so this is not saved.
         private val query = MutableStateFlow("")
@@ -68,6 +70,14 @@ class SearchViewModel
 
                 is SearchAction.AddToQueue -> {
                     playback.addToQueue(listOf(action.track))
+                }
+
+                is SearchAction.SetFavorite -> {
+                    viewModelScope.launch {
+                        userData.setFavorite(action.track.id, action.isFavorite)
+                        // Results are read once; read them again so the menu shows the new state.
+                        retries.value++
+                    }
                 }
 
                 SearchAction.ClearRecent -> {

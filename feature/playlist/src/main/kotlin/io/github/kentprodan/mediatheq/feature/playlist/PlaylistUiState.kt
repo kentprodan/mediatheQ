@@ -55,6 +55,12 @@ sealed interface PlaylistAction {
         val position: Int,
     ) : PlaylistAction
 
+    /** Favorite or not: the track at [position]. */
+    data class SetFavorite(
+        val position: Int,
+        val isFavorite: Boolean,
+    ) : PlaylistAction
+
     /** Starts selecting, or adds/removes an item from the selection. */
     data class ToggleSelection(
         val position: Int,

@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
+import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -41,6 +42,7 @@ class LibraryViewModel
         private val syncRepository: LibrarySyncRepository,
         private val preferencesRepository: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
+        private val userData: UserDataRepository,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
         // Saved, so the tab (and its restored scroll position) comes back after process death.
@@ -111,6 +113,7 @@ class LibraryViewModel
                 LibraryAction.ErrorShown -> shownFailure.value = syncRepository.status.value as? SyncStatus.Failed
                 is LibraryAction.PlayNext -> playback.playNext(listOf(action.track))
                 is LibraryAction.AddToQueue -> playback.addToQueue(listOf(action.track))
+                is LibraryAction.SetFavorite -> launch { userData.setFavorite(action.track.id, action.isFavorite) }
             }
         }
 
