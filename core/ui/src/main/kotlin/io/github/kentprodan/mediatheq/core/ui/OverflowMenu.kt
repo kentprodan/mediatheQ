@@ -83,3 +83,24 @@ fun AddToPlaylistMenuItem(
         },
     )
 }
+
+/** "Add to favorites" or "Remove from favorites", for track menus. */
+@Composable
+fun FavoriteMenuItem(
+    isFavorite: Boolean,
+    onToggle: (Boolean) -> Unit,
+    close: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = {
+            Text(stringResource(if (isFavorite) R.string.core_ui_remove_favorite else R.string.core_ui_add_favorite))
+        },
+        leadingIcon = {
+            Icon(if (isFavorite) MqIcons.FavoriteFilled else MqIcons.Favorite, contentDescription = null)
+        },
+        onClick = {
+            onToggle(!isFavorite)
+            close()
+        },
+    )
+}
