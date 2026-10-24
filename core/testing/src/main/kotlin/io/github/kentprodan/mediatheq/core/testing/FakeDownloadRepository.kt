@@ -17,7 +17,11 @@ class FakeDownloadRepository(
 
     override fun download(tracks: List<Track>) {
         downloads.update { current ->
-            current + tracks.filter { track -> current.none { it.track.id == track.id } }.map { TrackDownload(it, DownloadState.Queued) }
+            current +
+                tracks
+                    .filter { track ->
+                        current.none { it.track.id == track.id }
+                    }.map { TrackDownload(it, DownloadState.Queued) }
         }
     }
 
@@ -25,7 +29,11 @@ class FakeDownloadRepository(
         downloads.update { current -> current.filterNot { it.track.id in ids } }
     }
 
-    override fun isDownloaded(id: MediaId) = downloads.value.any { it.track.id == id && it.state == DownloadState.Completed }
+    override fun isDownloaded(id: MediaId) =
+        downloads.value.any {
+            it.track.id == id &&
+                it.state == DownloadState.Completed
+        }
 
     fun setState(
         id: MediaId,

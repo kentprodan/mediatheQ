@@ -1,5 +1,7 @@
 package io.github.kentprodan.mediatheq.core.common
 
+import kotlinx.coroutines.flow.Flow
+
 /** The device's current network, as far as data use goes. Implemented with the platform in `:core:network`. */
 interface NetworkMonitor {
     /**
@@ -7,4 +9,13 @@ interface NetworkMonitor {
      * use reduced quality (media3 skill, section 3).
      */
     fun isMetered(): Boolean
+
+    /**
+     * True while there is any network that can carry traffic. No internet check: the server is often on the LAN or
+     * Tailscale, where the system never validates internet access.
+     */
+    fun isOnline(): Boolean
+
+    /** [isOnline] as it changes; emits the current value first. Offline, only downloads play. */
+    val online: Flow<Boolean>
 }

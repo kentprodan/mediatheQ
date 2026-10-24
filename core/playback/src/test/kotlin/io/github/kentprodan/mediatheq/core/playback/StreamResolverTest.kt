@@ -4,9 +4,9 @@ import android.net.Uri
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
-import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -17,15 +17,8 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class StreamResolverTest {
     private val repository = FakePlaybackRepository()
-    private var metered = false
-    private val resolver =
-        StreamResolver(
-            repository,
-            { setOf("audio/flac") },
-            object : NetworkMonitor {
-                override fun isMetered() = metered
-            },
-        )
+    private val network = FakeNetworkMonitor()
+    private val resolver = StreamResolver(repository, { setOf("audio/flac") }, network)
     private val itemId = MediaId(ServerId("server-1"), "item:with:colons")
 
     @Test
@@ -42,7 +35,7 @@ class StreamResolverTest {
     fun `a fresh load after the network became metered asks for the reduced stream`() =
         runTest {
             resolver.resolve(itemId)
-            metered = true
+            network.metered = true
 
             resolver.resolve(itemId)
 
@@ -55,7 +48,7 @@ class StreamResolverTest {
     fun `reading on mid-file keeps the stream even if the network changed (never switch format mid-track)`() =
         runTest {
             val first = resolver.resolve(itemId)
-            metered = true
+            network.metered = true
 
             assertThat(resolver.resolve(itemId, continuing = true)).isEqualTo(first)
             assertThat(repository.streamRequests).hasSize(1)
