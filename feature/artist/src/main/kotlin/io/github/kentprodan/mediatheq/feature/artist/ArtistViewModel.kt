@@ -8,6 +8,7 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
+import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
@@ -17,15 +18,17 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 @HiltViewModel(assistedFactory = ArtistViewModel.Factory::class)
 class ArtistViewModel
     @AssistedInject
     constructor(
-        @Assisted artistId: MediaId,
+        @Assisted private val artistId: MediaId,
         libraryRepository: LibraryRepository,
         preferencesRepository: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
+        private val userData: UserDataRepository,
     ) : ViewModel() {
         private val content =
             combine(
@@ -62,6 +65,14 @@ class ArtistViewModel
                 is ArtistAction.PlayTopTrack -> {
                     val index = state.topTracks.indexOfFirst { it.id == action.trackId }
                     if (index >= 0) playback.play(state.topTracks, startIndex = index)
+                }
+
+                is ArtistAction.SetFavorite -> {
+                    viewModelScope.launch { userData.setFavorite(artistId, action.isFavorite) }
+                }
+
+                is ArtistAction.Rate -> {
+                    viewModelScope.launch { userData.setRating(artistId, action.stars) }
                 }
             }
         }

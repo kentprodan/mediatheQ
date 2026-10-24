@@ -72,3 +72,10 @@ fun ArtistLoadingScreenshot() = Artist(ArtistUiState.Loading)
 @MqPreviews
 @Composable
 fun ArtistNotFoundScreenshot() = Artist(ArtistUiState.NotFound)
+
+/** A favorite artist rated with five stars. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun ArtistFavoriteRatedScreenshot() =
+    Artist(content.copy(artist = content.artist.copy(userData = UserData(isFavorite = true, rating = 10.0))))
