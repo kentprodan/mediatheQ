@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSourceBitmapLoader
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -17,6 +18,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
+import io.github.kentprodan.mediatheq.core.data.LiveSync
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
@@ -48,6 +50,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var queueRepository: QueueRepository
 
     @Inject lateinit var artworkUrls: ArtworkUrlResolver
+
+    @Inject lateinit var liveSync: LiveSync
 
     @Inject
     @ApplicationScope
@@ -86,6 +90,12 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 playerDispatcher = Dispatchers.Main,
             )
         player.addListener(ReportingListener(player, reporter))
+        // Live updates keep going in the background while music plays (issue #18).
+        player.addListener(
+            object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) = liveSync.setPlaying(isPlaying)
+            },
+        )
         persistence =
             QueuePersistence(
                 player = player,
@@ -140,6 +150,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             release()
         }
         session = null
+        liveSync.setPlaying(false)
         super.onDestroy()
     }
 

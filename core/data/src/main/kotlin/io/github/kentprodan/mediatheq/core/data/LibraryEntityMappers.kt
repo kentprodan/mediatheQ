@@ -171,8 +171,8 @@ private fun ImageColumns.toDomain(): Artwork? {
     return Artwork(owner, tag ?: return null, blurHash)
 }
 
-private fun UserData.toColumns() =
+internal fun UserData.toColumns() =
     UserDataColumns(isFavorite, rating, playCount, lastPlayedAt?.toEpochMilliseconds(), played)
 
-private fun UserDataColumns.toDomain() =
+internal fun UserDataColumns.toDomain() =
     UserData(isFavorite, rating, playCount, lastPlayedAtMillis?.let(Instant::fromEpochMilliseconds), played)

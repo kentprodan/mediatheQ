@@ -12,15 +12,33 @@ import io.github.kentprodan.mediatheq.core.model.TranscodingTarget
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackSource
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
+import io.github.kentprodan.mediatheq.core.testing.FakeUserDataSink
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
+import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Test
 
 class DefaultPlaybackRepositoryTest {
     private val source = FakePlaybackSource()
     private val accountStore = AccountStore(InMemoryPreferencesDataStore(), FakeTokenCipher())
     private val session = FakeSessionRepository()
-    private val repository = DefaultPlaybackRepository(source, accountStore, session)
+    private val database = inMemoryDatabase()
+    private val userData =
+        DefaultUserDataRepository(
+            database.userDataDao(),
+            FakeUserDataSink(),
+            accountStore,
+            session,
+            CoroutineScope(Job()),
+        )
+    private val repository = DefaultPlaybackRepository(source, accountStore, session, userData)
+
+    @After
+    fun close() = database.close()
+
     private val itemId = MediaId(ServerId("s"), "t1")
     private val profile =
         DeviceProfile(listOf("flac"), listOf("flac"), TranscodingTarget("ogg", "opus", 256_000, 2), null)

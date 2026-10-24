@@ -35,7 +35,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqArtistAvatar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayShuffleButtons
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
@@ -115,7 +117,7 @@ fun ArtistScreen(
                     Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = MediatheqSpacing.l),
                 ) {
-                    item(key = "header") { ArtistHeader(content) }
+                    item(key = "header") { ArtistHeader(content, onAction) }
                     item(key = "buttons") {
                         MqPlayShuffleButtons(
                             enabled = content.tracks.isNotEmpty(),
@@ -143,7 +145,10 @@ fun ArtistScreen(
 }
 
 @Composable
-private fun ArtistHeader(content: ArtistUiState.Content) {
+private fun ArtistHeader(
+    content: ArtistUiState.Content,
+    onAction: (ArtistAction) -> Unit,
+) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.m),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -165,6 +170,10 @@ private fun ArtistHeader(content: ArtistUiState.Content) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            MqFavoriteToggle(content.artist.userData.isFavorite, { onAction(ArtistAction.SetFavorite(it)) })
+            MqStarRating(content.artist.userData.stars, { onAction(ArtistAction.Rate(it)) })
+        }
     }
 }
 

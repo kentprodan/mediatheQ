@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
+import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -25,6 +26,7 @@ class AlbumViewModelTest {
 
     private val library = FakeLibraryRepository()
     private val playback = FakePlaybackConnection()
+    private val userData = FakeUserDataRepository()
     private val albumId = MediaId(ServerId("s"), "al1")
     private val album = Album(albumId, "Satelit", emptyList(), year = 2016)
 
@@ -46,14 +48,14 @@ class AlbumViewModelTest {
     private val disc2 = listOf(track("d2t1", 2, 1))
 
     private fun TestScope.viewModel(): AlbumViewModel {
-        val viewModel = AlbumViewModel(albumId, library, playback)
+        val viewModel = AlbumViewModel(albumId, library, playback, userData)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
 
     @Test
     fun `starts loading`() {
-        assertThat(AlbumViewModel(albumId, library, playback).uiState.value).isEqualTo(AlbumUiState.Loading)
+        assertThat(AlbumViewModel(albumId, library, playback, userData).uiState.value).isEqualTo(AlbumUiState.Loading)
     }
 
     @Test
@@ -183,5 +185,32 @@ class AlbumViewModelTest {
             playback.state.value = PlayerUiModel()
 
             assertThat((viewModel.uiState.value as AlbumUiState.Content).currentTrackId).isNull()
+        }
+
+    @Test
+    fun `favorite and rating go to the album, and a track menu favorites the track`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albums.value = listOf(album)
+            library.tracks.value = disc1
+            val viewModel = viewModel()
+
+            viewModel.onAction(AlbumAction.SetFavorite(albumId, true))
+            viewModel.onAction(AlbumAction.Rate(5))
+            viewModel.onAction(AlbumAction.SetFavorite(disc1.first().id, true))
+
+            assertThat(
+                userData.calls,
+            ).containsExactly("favorite:al1:true", "stars:al1:5", "favorite:d1t1:true").inOrder()
+        }
+
+    @Test
+    fun `an album without tracks can still be rated`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albums.value = listOf(album)
+            val viewModel = viewModel()
+
+            viewModel.onAction(AlbumAction.Rate(null))
+
+            assertThat(userData.calls).containsExactly("stars:al1:null")
         }
 }

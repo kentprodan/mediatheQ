@@ -56,7 +56,7 @@ Jellyfin 12 disables legacy authorization by default (also on upgraded servers).
   - By-name items (artists, genres) responses are restricted and people are deduplicated.
 - Artists: album artists vs track artists are different lists - use the artists endpoints the OpenAPI lists for each and map both; the Library "Artists" tab shows **album artists** by default.
 - Page size: 200-500 items; full sync of < 10k tracks must finish in under ~1 min on LAN. Measure, then tune.
-- Incremental sync: re-query with a "changed since" filter if the target version supports one (check OpenAPI), otherwise driven by WebSocket `LibraryChanged` (section 9) + periodic full reconcile (e.g. daily, on Wi-Fi).
+- Incremental sync: WebSocket `LibraryChanged` (section 9) starts a full sync (owner decision, #18), plus the daily full sync. A targeted re-sync by item ids can replace it if full syncs get too slow.
 
 ## 4. Images
 
@@ -84,8 +84,9 @@ Jellyfin 12 disables legacy authorization by default (also on upgraded servers).
 
 ## 7. User data
 
-- Favorites, played state, rating: use the per-item user-data endpoints from the 12.x OpenAPI (`/UserFavoriteItems/{itemId}`, `/UserPlayedItems/{itemId}`, rating endpoint). Verify routes; older `/Users/{userId}/...` variants may be removed.
-- Optimistic update in Room, then server call; revert on failure.
+- Favorite and rating: `POST /UserItems/{itemId}/UserData?userId=...` with only the changed field (`{"IsFavorite": true}` or `{"Rating": 8.0}`); fields left out keep their value. `Rating` is 0-10; the app shows 1-5 stars (one star = 2). `/UserItems/{itemId}/Rating` is the like/dislike flag (`Likes`), not the rating: never used. Clearing sends `Rating: 0` (R14).
+- `/UserFavoriteItems/{itemId}` and `/UserPlayedItems/{itemId}` exist too; played state is not written yet.
+- Optimistic update in Room, then server call; revert on failure (`DefaultUserDataRepository`). A change waiting for the server stays on top of socket echoes and sync swaps.
 - See regression R2 (rating overwritten during playback).
 
 ## 8. Playlists
@@ -97,9 +98,10 @@ Jellyfin 12 disables legacy authorization by default (also on upgraded servers).
 ## 9. Live updates (WebSocket)
 
 - Connect to `/socket` with `ApiKey` and `deviceId` query params (header not possible here).
-- Handle: `ForceKeepAlive` / `KeepAlive` (reply on the interval the server sends), `LibraryChanged` (targeted re-sync of added/updated/removed IDs), `UserDataChanged` (update favorites/played/rating in Room). Ignore unknown message types.
-- Reconnect with exponential backoff + jitter; stop on 401 and route to re-login.
-- One connection per server, owned by an `@ApplicationScope` component; paused when app is in background and not playing.
+- Connect with the plain OkHttp client (no `JellyfinAuthInterceptor`: never header and `ApiKey` together, R1). Never log the socket URL.
+- Handle: `ForceKeepAlive` (`Data` = seconds; send `{"MessageType":"KeepAlive"}` at once, then every half of it), `LibraryChanged` (one full sync after 5 s of quiet, at most 30 s after the first change; a change during a running sync syncs again after it), `UserDataChanged` (only for our `UserId`; write favorite/played/rating in Room). Ids may come with dashes: compare without them. Ignore unknown message types and unreadable frames.
+- Reconnect after 1, 2, 4 ... 60 s with +/- 20 % jitter; the wait resets only after a connection lasted 30 s. Stop on 401 and route to re-login.
+- One connection per server, owned by `LiveSync` (`@Singleton`, app scope); open while signed in and the app is in the foreground or playing.
 
 ## 10. Lyrics
 
@@ -136,6 +138,8 @@ Logging: method + path + status + duration. Never headers, never query strings c
 - **R11 Music transcodes default to 128 kbps:** without `DeviceProfile.MusicStreamingTranscodingBitrate` Jellyfin converts music at 128 kbps whatever `MaxStreamingBitrate` says (12.2.0). Always send it (256000 for Opus on metered networks).
 - **R12 Live transcodes cannot be seeked:** progressive transcodes answer `Accept-Ranges: none` with no length (12.2.0); direct-play files return 206. Mark such streams `canSeek = false` (ADR 0016).
 - **R13 Entry IDs are item IDs:** on 12.2.0 `PlaylistItemId` equals the track's item ID (checked 2026-10-22). Remove by entry ID removes **every** copy of that track in the playlist; Move by entry ID moves the **first** copy; Move past the last index answers 500. Mirror that locally and refresh the playlist after each edit.
+
+- **R14 Clearing a rating:** the server applies `Rating` in `UpdateUserItemDataDto` only when it has a value, and `/UserItems/{itemId}/Rating` changes `Likes`, not `Rating`. So a cleared rating is sent as `Rating: 0`, and the mapper reads 0 as unrated (socket messages too). To be confirmed on 12.2.0.
 
 New quirk found -> add `R<n>` here + fixture + test in the same PR.
 

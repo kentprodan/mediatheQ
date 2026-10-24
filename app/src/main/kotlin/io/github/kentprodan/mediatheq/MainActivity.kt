@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -49,6 +51,8 @@ class MainActivity : ComponentActivity() {
 
                     is SessionState.LoggedIn -> {
                         val navigator = rememberTabNavigator()
+                        val snackbar = remember { SnackbarHostState() }
+                        UserDataErrorMessages(viewModel.userDataError, viewModel::dismissUserDataError, snackbar)
                         val entries =
                             remember(navigator) {
                                 entryProvider {
@@ -66,9 +70,12 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             }
-                        NowPlayingHost(content = { miniPlayer ->
-                            AppShell(navigator, entries, miniPlayer = miniPlayer)
-                        })
+                        NowPlayingHost(
+                            content = { miniPlayer ->
+                                AppShell(navigator, entries, miniPlayer = miniPlayer, snackbarHostState = snackbar)
+                            },
+                            snackbarHost = { SnackbarHost(snackbar) },
+                        )
                     }
                 }
             }

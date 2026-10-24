@@ -27,5 +27,8 @@ internal interface DataModule {
     fun playlistRepository(repository: DefaultPlaylistRepository): PlaylistRepository
 
     @Binds
+    fun userDataRepository(repository: DefaultUserDataRepository): UserDataRepository
+
+    @Binds
     fun libraryPreferencesRepository(repository: DefaultLibraryPreferencesRepository): LibraryPreferencesRepository
 }

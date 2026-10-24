@@ -56,6 +56,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.rememberMqReor
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
@@ -339,6 +340,11 @@ private fun PlaylistRow(
                             onPlayNext = { onAction(PlaylistAction.PlayNext(item.position)) },
                             onAddToQueue = { onAction(PlaylistAction.AddToQueue(item.position)) },
                             close = close,
+                        )
+                        FavoriteMenuItem(
+                            item.track.userData.isFavorite,
+                            { onAction(PlaylistAction.SetFavorite(item.position, it)) },
+                            close,
                         )
                         if (canEditItem) {
                             DropdownMenuItem(

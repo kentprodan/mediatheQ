@@ -9,4 +9,16 @@
     <string name="mq_open_player">Open player</string>
     <string name="mq_seek">Playback position</string>
     <string name="mq_more">More</string>
+    <string name="mq_favorite">Favorite</string>
+    <string name="mq_rating">Rating</string>
+    <string name="mq_not_rated">Not rated</string>
+    <string name="mq_clear_rating">Clear rating</string>
+    <plurals name="mq_rate_stars">
+        <item quantity="one">Rate %d star</item>
+        <item quantity="other">Rate %d stars</item>
+    </plurals>
+    <plurals name="mq_rated_stars">
+        <item quantity="one">%d of 5 stars</item>
+        <item quantity="other">%d of 5 stars</item>
+    </plurals>
 </resources>

@@ -6,8 +6,10 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.kentprodan.mediatheq.core.server.AuthSource
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
+import io.github.kentprodan.mediatheq.core.server.LiveEvents
 import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.PlaylistEditor
+import io.github.kentprodan.mediatheq.core.server.UserDataSink
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -23,4 +25,10 @@ internal interface JellyfinModule {
 
     @Binds
     fun playlistEditor(editor: JellyfinPlaylistEditor): PlaylistEditor
+
+    @Binds
+    fun userDataSink(sink: JellyfinUserDataSink): UserDataSink
+
+    @Binds
+    fun liveEvents(events: JellyfinLiveEvents): LiveEvents
 }

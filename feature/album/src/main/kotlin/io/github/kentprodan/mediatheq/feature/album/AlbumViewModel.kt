@@ -7,6 +7,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
+import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
@@ -16,14 +17,16 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 @HiltViewModel(assistedFactory = AlbumViewModel.Factory::class)
 class AlbumViewModel
     @AssistedInject
     constructor(
-        @Assisted albumId: MediaId,
+        @Assisted private val albumId: MediaId,
         libraryRepository: LibraryRepository,
         private val playback: PlaybackConnection,
+        private val userData: UserDataRepository,
     ) : ViewModel() {
         val uiState: StateFlow<AlbumUiState> =
             combine(
@@ -45,15 +48,14 @@ class AlbumViewModel
 
         fun onAction(action: AlbumAction) {
             val tracks = (uiState.value as? AlbumUiState.Content)?.tracks.orEmpty()
-            if (tracks.isEmpty()) return
             when (action) {
                 AlbumAction.Play -> {
-                    playback.play(tracks)
+                    if (tracks.isNotEmpty()) playback.play(tracks)
                 }
 
                 // The player picks the random start and keeps the album order for unshuffling (PlaybackConnection).
                 AlbumAction.Shuffle -> {
-                    playback.play(tracks, shuffle = true)
+                    if (tracks.isNotEmpty()) playback.play(tracks, shuffle = true)
                 }
 
                 is AlbumAction.PlayTrack -> {
@@ -62,11 +64,20 @@ class AlbumViewModel
                 }
 
                 is AlbumAction.PlayNext -> {
-                    playback.playNext(tracks.pick(action.trackId))
+                    tracks.pick(action.trackId).takeIf { it.isNotEmpty() }?.let(playback::playNext)
                 }
 
                 is AlbumAction.AddToQueue -> {
-                    playback.addToQueue(tracks.pick(action.trackId))
+                    tracks.pick(action.trackId).takeIf { it.isNotEmpty() }?.let(playback::addToQueue)
+                }
+
+                is AlbumAction.SetFavorite -> {
+                    viewModelScope.launch { userData.setFavorite(action.id, action.isFavorite) }
+                }
+
+                // An album without tracks can still be rated.
+                is AlbumAction.Rate -> {
+                    viewModelScope.launch { userData.setRating(albumId, action.stars) }
                 }
             }
         }

@@ -28,6 +28,8 @@ class FakeLibraryRepository : LibraryRepository {
 
     override fun albums() = albums
 
+    override fun track(id: MediaId) = tracks.map { list -> list.firstOrNull { it.id == id } }
+
     override fun album(id: MediaId) = albums.map { list -> list.firstOrNull { it.id == id } }
 
     /** Tracks of the album in the order they were set (set them in play order). */

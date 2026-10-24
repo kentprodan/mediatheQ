@@ -108,7 +108,7 @@ Each convention plugin declares the allowed dependencies for its module type. A 
 ### Repositories (offline-first)
 
 - UI reads from **Room** via `Flow`. The network only writes into Room. Library size (< 10k tracks) allows a full local copy.
-- Sync = provider pages -> mapped -> upserted in a transaction. Live updates (WebSocket events) trigger targeted re-syncs.
+- Sync = provider pages -> mapped -> upserted in a transaction. Live updates (WebSocket events): user data is written at once, library changes start a full sync (`LiveSync`, #18).
 - User actions (favorite, rating, playlist edit): optimistic write to Room, then server call; on failure revert and surface an error.
 - Repositories are interfaces in `:core:data` (`AlbumRepository`, ...) with one default implementation and one `Fake*` in `:core:testing`.
 

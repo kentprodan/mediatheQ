@@ -129,6 +129,8 @@ fun MediatheqTheme(
 | Disc headers (multi-disc albums) | `DiscHeader` in `:core:ui` (titleSmall, primary, heading semantics) | Only when the album has more than one disc. |
 | Cover flight grid -> album | `Modifier.mqSharedCover(sharedCoverKey(id))` in `:core:designsystem` | Slow spatial spec; inert in previews and tests. |
 | Like / Download toggles | Toggle buttons (icon) | Shape morphs on checked. |
+| Favorite (Now Playing, album / artist header) | `MqFavoriteToggle`: `FilledTonalIconToggleButton` + `IconButtonDefaults.toggleableShapes()` | Round off, squarish on; filled heart when on; toggle haptics. Track menus use `FavoriteMenuItem` in `:core:ui`. |
+| Rating (Now Playing, album / artist header) | `MqStarRating`: five `IconButton` stars | Filled stars = rating (primary), outlined = rest; tapping the current star clears it. Row has a state description ("3 of 5 stars"). No haptics (plain taps). |
 | Player transport controls | `MqTransportControls`: `ButtonGroup` of large icon buttons (`customItem` + `animateWidth`) | Play/Pause is the largest (Wide), round while paused, squarish while playing. |
 | Context actions on long-press | Expressive `DropdownMenu` or `ModalBottomSheet` | Sheet for > 5 actions. |
 | Search | `SearchBarDefaults.InputField` + `SearchBarState` on a search bar `Surface` | Fixed on top of the Search tab, results below. Not the collapsed `SearchBar`: in 1.5 it disables the soft keyboard and expects an expanded bar. Clear-text button in the trailing slot. |

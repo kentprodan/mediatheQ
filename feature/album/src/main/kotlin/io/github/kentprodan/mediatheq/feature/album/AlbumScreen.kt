@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.album
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,7 +29,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayShuffleButtons
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedCover
 import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
@@ -37,6 +40,7 @@ import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.AddToPlaylistMenuItem
 import io.github.kentprodan.mediatheq.core.ui.DiscHeader
+import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
@@ -128,7 +132,7 @@ fun AlbumScreen(
                     Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = MediatheqSpacing.l),
                 ) {
-                    item(key = "header") { AlbumHeader(albumId, state) }
+                    item(key = "header") { AlbumHeader(albumId, state, onAction) }
                     item(key = "buttons") {
                         MqPlayShuffleButtons(
                             enabled = state.tracks.isNotEmpty(),
@@ -150,6 +154,11 @@ fun AlbumScreen(
                                         close = close,
                                     )
                                     AddToPlaylistMenuItem({ onAddToPlaylist(listOf(track.id)) }, close)
+                                    FavoriteMenuItem(
+                                        track.userData.isFavorite,
+                                        { onAction(AlbumAction.SetFavorite(track.id, it)) },
+                                        close,
+                                    )
                                 },
                             )
                         }
@@ -164,6 +173,7 @@ fun AlbumScreen(
 private fun AlbumHeader(
     albumId: MediaId,
     state: AlbumUiState.Content,
+    onAction: (AlbumAction) -> Unit,
 ) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.m),
@@ -183,6 +193,10 @@ private fun AlbumHeader(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            MqFavoriteToggle(state.album.userData.isFavorite, { onAction(AlbumAction.SetFavorite(albumId, it)) })
+            MqStarRating(state.album.userData.stars, { onAction(AlbumAction.Rate(it)) })
+        }
     }
 }
 

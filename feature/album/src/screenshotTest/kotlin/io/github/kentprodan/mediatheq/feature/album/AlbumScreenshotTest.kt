@@ -5,6 +5,7 @@ import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
 
 private val album = PreviewData.album.copy(artwork = PreviewData.artwork, year = 2024)
@@ -29,6 +30,18 @@ fun AlbumSingleDiscScreenshot() = Album(AlbumUiState.Content(album, listOf(Disc(
 @Composable
 fun AlbumPlayingTrackScreenshot() =
     Album(AlbumUiState.Content(album, listOf(Disc(1, tracks)), currentTrackId = tracks[1].id))
+
+/** A favorite album rated with three stars. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun AlbumFavoriteRatedScreenshot() =
+    Album(
+        AlbumUiState.Content(
+            album.copy(userData = UserData(isFavorite = true, rating = 6.0)),
+            listOf(Disc(1, tracks)),
+        ),
+    )
 
 @PreviewTest
 @MqPreviews

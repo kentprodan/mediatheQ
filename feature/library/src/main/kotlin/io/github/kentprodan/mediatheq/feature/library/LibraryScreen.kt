@@ -59,6 +59,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
 import io.github.kentprodan.mediatheq.core.ui.ArtistRow
+import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
@@ -238,6 +239,11 @@ private fun LibraryContentView(
                             onPlayNext = { onAction(LibraryAction.PlayNext(track)) },
                             onAddToQueue = { onAction(LibraryAction.AddToQueue(track)) },
                             close = close,
+                        )
+                        FavoriteMenuItem(
+                            track.userData.isFavorite,
+                            { onAction(LibraryAction.SetFavorite(track, it)) },
+                            close,
                         )
                     })
                 }

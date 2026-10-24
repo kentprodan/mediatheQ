@@ -14,6 +14,9 @@ interface LibraryRepository {
     /** All albums by sort name; emits again after each completed sync, never with a half-synced library. */
     fun albums(): Flow<List<Album>>
 
+    /** One track with its artists, `null` when it is not (or no longer) in the library. */
+    fun track(id: MediaId): Flow<Track?>
+
     /** One album, `null` when it is not (or no longer) in the library. */
     fun album(id: MediaId): Flow<Album?>
 

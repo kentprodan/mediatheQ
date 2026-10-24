@@ -41,4 +41,13 @@ sealed interface ArtistAction {
     data class PlayTopTrack(
         val trackId: MediaId,
     ) : ArtistAction
+
+    data class SetFavorite(
+        val isFavorite: Boolean,
+    ) : ArtistAction
+
+    /** Rate the artist with 1-5 [stars]; `null` clears the rating. */
+    data class Rate(
+        val stars: Int?,
+    ) : ArtistAction
 }
