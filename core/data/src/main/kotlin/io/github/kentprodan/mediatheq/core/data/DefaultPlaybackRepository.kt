@@ -19,6 +19,7 @@ class DefaultPlaybackRepository
         private val playbackSource: PlaybackSource,
         private val accountStore: AccountStore,
         private val sessionRepository: SessionRepository,
+        private val userData: DefaultUserDataRepository,
     ) : PlaybackRepository {
         override suspend fun stream(
             itemId: MediaId,
@@ -28,16 +29,23 @@ class DefaultPlaybackRepository
         override suspend fun streamHeaders(): Map<String, String> =
             accountStore.signedInServer()?.let { playbackSource.streamHeaders(it) }.orEmpty()
 
-        override suspend fun reportStart(report: PlaybackReport) =
-            withReportServer { playbackSource.reportStart(it, report) }
+        override suspend fun reportStart(report: PlaybackReport): MqResult<Unit> {
+            userData.onPlaybackStarted(report.stream.itemId)
+            return withReportServer { playbackSource.reportStart(it, report) }
+        }
 
+        // R2: a report may put the server's older user data over a change made during this play; send it again.
         override suspend fun reportProgress(report: PlaybackReport) =
-            withReportServer { playbackSource.reportProgress(it, report) }
+            withReportServer { playbackSource.reportProgress(it, report) }.also {
+                if (it is MqResult.Success) userData.onPlaybackReported(report.stream.itemId, stopped = false)
+            }
 
         override suspend fun reportStopped(
             report: PlaybackReport,
             failed: Boolean,
-        ) = withReportServer { playbackSource.reportStopped(it, report, failed) }
+        ) = withReportServer { playbackSource.reportStopped(it, report, failed) }.also {
+            userData.onPlaybackReported(report.stream.itemId, stopped = true)
+        }
 
         // The server of the last stream: right after sign-out the final Stopped still goes out (best effort), so the
         // server can end a running transcode.

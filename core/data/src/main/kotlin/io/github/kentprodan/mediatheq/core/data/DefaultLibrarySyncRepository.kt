@@ -56,6 +56,7 @@ class DefaultLibrarySyncRepository
         private val sessionRepository: SessionRepository,
         private val clock: Clock,
         @param:ApplicationScope private val scope: CoroutineScope,
+        private val userData: DefaultUserDataRepository,
     ) : LibrarySyncRepository {
         private val mutableStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle(null))
         override val status: StateFlow<SyncStatus> = mutableStatus.asStateFlow()
@@ -186,6 +187,8 @@ class DefaultLibrarySyncRepository
                 }
             }
             syncDao.swap(clock.now().toEpochMilliseconds(), account.first, account.second)
+            // Pages fetched before a favorite or rating reached the server carry the old value.
+            userData.reapplyOverrides()
             return MqResult.Success(Unit)
         }
 

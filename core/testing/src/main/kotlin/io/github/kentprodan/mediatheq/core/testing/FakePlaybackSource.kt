@@ -9,11 +9,15 @@ import io.github.kentprodan.mediatheq.core.model.PlaybackStream
 import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 
-/** [PlaybackSource] that answers with a direct stream per item; [failure] makes every call fail. */
+/**
+ * [PlaybackSource] that answers with a direct stream per item; [failure] makes every call fail. [onReport] runs on each
+ * report ("start", "progress", "stopped"), e.g. to act as the server does on it.
+ */
 class FakePlaybackSource : PlaybackSource {
     var failure: MqResult.Failure? = null
     val reports = mutableListOf<String>()
     val profiles = mutableListOf<DeviceProfile>()
+    var onReport: (kind: String, report: PlaybackReport) -> Unit = { _, _ -> }
 
     override suspend fun stream(
         server: SignedInServer,
@@ -48,6 +52,7 @@ class FakePlaybackSource : PlaybackSource {
         report: PlaybackReport,
     ): MqResult<Unit> {
         reports += "$kind ${report.stream.itemId.itemId}"
+        onReport(kind, report)
         return failure ?: MqResult.Success(Unit)
     }
 

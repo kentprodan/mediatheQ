@@ -16,6 +16,7 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
+import io.github.kentprodan.mediatheq.core.testing.FakeUserDataSink
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
 import io.github.kentprodan.mediatheq.core.testing.TestClock
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
@@ -77,8 +78,13 @@ class DefaultLibrarySyncRepositoryTest {
     private suspend fun signIn() =
         accountStore.save(StoredAccount("http://nas:8096", server, "Home", "user-1", "Ana", accessToken = "token"))
 
+    private val userDataSink = FakeUserDataSink()
+
+    private fun userData(scope: CoroutineScope) =
+        DefaultUserDataRepository(database.userDataDao(), userDataSink, accountStore, session, scope)
+
     private fun TestScope.repository(scope: CoroutineScope = backgroundScope) =
-        DefaultLibrarySyncRepository(source, accountStore, database.syncDao(), session, clock, scope)
+        DefaultLibrarySyncRepository(source, accountStore, database.syncDao(), session, clock, scope, userData(scope))
 
     private suspend fun count(table: String) =
         database
@@ -184,6 +190,7 @@ class DefaultLibrarySyncRepositoryTest {
                     session,
                     clock,
                     backgroundScope,
+                    userData(backgroundScope),
                 )
             secondSource.albumArtists = source.albumArtists
             secondSource.albums = source.albums
@@ -430,7 +437,15 @@ class DefaultLibrarySyncRepositoryTest {
                     dispatcher,
                 )
             val repository =
-                DefaultLibrarySyncRepository(source, accountStore, database.syncDao(), sessions, clock, backgroundScope)
+                DefaultLibrarySyncRepository(
+                    source,
+                    accountStore,
+                    database.syncDao(),
+                    sessions,
+                    clock,
+                    backgroundScope,
+                    userData(backgroundScope),
+                )
             source.failAt = 3
             source.failure = MqError.Unauthorized
 
