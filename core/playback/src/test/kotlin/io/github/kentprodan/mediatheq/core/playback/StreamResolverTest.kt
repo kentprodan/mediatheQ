@@ -5,6 +5,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackRepository
@@ -61,6 +62,61 @@ class StreamResolverTest {
 
             assertThat(resolver.resolve(itemId)).isEqualTo(MqResult.Failure(MqError.Unauthorized))
             assertThat(resolver.current(itemId)).isNull()
+        }
+
+    @Test
+    fun `offline a fresh load fails at once without asking the server`() =
+        runTest {
+            network.online.value = false
+
+            assertThat(resolver.resolve(itemId)).isEqualTo(MqResult.Failure(MqError.Network))
+            assertThat(repository.streamRequests).isEmpty()
+        }
+
+    @Test
+    fun `a download asks for the original even on a metered network, and is not remembered for the player`() =
+        runTest {
+            network.metered = true
+
+            val result = resolver.downloadStream(itemId)
+
+            assertThat(result).isInstanceOf(MqResult.Success::class.java)
+            assertThat(
+                repository.streamRequests
+                    .single()
+                    .second.maxStreamingBitrate,
+            ).isNull()
+            assertThat(resolver.current(itemId)).isNull()
+        }
+
+    @Test
+    fun `a download that the server would convert fails (no converted downloads)`() =
+        runTest {
+            repository.playMethod = PlayMethod.Transcode
+
+            assertThat(resolver.downloadStream(itemId)).isInstanceOf(MqResult.Failure::class.java)
+        }
+
+    @Test
+    fun `a track playing from its download reports as a direct play of its own session`() {
+        resolver.playLocal(itemId)
+
+        val stream = resolver.current(itemId)!!
+        assertThat(stream.playMethod).isEqualTo(PlayMethod.DirectPlay)
+        assertThat(stream.mediaSourceId).isEqualTo(itemId.itemId)
+        assertThat(stream.playSessionId).isNotEmpty()
+        assertThat(repository.streamRequests).isEmpty()
+    }
+
+    @Test
+    fun `after the download is gone the track asks the server again`() =
+        runTest {
+            resolver.playLocal(itemId)
+
+            resolver.resolve(itemId)
+
+            assertThat(repository.streamRequests).hasSize(1)
+            assertThat(resolver.current(itemId)?.url).isEqualTo("http://nas/${itemId.itemId}")
         }
 
     @Test

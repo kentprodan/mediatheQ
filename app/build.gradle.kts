@@ -24,6 +24,7 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.data)
     implementation(projects.core.playback)
+    implementation(projects.core.download)
     implementation(projects.core.server)
     implementation(projects.core.network)
     implementation(projects.provider.jellyfin)

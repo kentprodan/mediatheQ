@@ -15,6 +15,7 @@ import androidx.navigation3.runtime.entryProvider
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.download.resumeDownloads
 import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.artist.artistEntry
 import io.github.kentprodan.mediatheq.feature.library.libraryEntry
@@ -33,6 +34,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Unfinished downloads (after a reboot or a killed process) go on once the app is open (#20).
+        resumeDownloads(this)
         enableEdgeToEdge()
         setContent {
             MediatheqTheme {

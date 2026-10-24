@@ -6,6 +6,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSourceBitmapLoader
+import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -16,7 +17,10 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
+import io.github.kentprodan.mediatheq.core.common.DownloadCache
+import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
+import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
@@ -49,6 +53,14 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var artworkUrls: ArtworkUrlResolver
 
+    @Inject lateinit var downloads: DownloadRepository
+
+    @Inject
+    @DownloadCache
+    lateinit var downloadCache: Cache
+
+    @Inject lateinit var networkMonitor: NetworkMonitor
+
     @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
@@ -75,8 +87,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 ).setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setMediaSourceFactory(
-                    DefaultMediaSourceFactory(streamDataSourceFactory(okHttpClient, streamResolver))
-                        .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
+                    DefaultMediaSourceFactory(
+                        streamDataSourceFactory(okHttpClient, streamResolver, downloads, downloadCache),
+                    ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy(networkMonitor::isOnline)),
                 ).build()
         reporter =
             PlaybackReporter(
