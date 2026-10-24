@@ -58,6 +58,29 @@ class SearchViewModelTest {
         }
 
     @Test
+    fun `before anything is collected the screen is loading`() =
+        test {
+            assertThat(viewModel.uiState.value).isEqualTo(SearchUiState.Loading)
+        }
+
+    @Test
+    fun `a query of only spaces shows the recent searches and never searches`() =
+        test {
+            viewModel.uiState.test {
+                skipItems(1) // the recent searches
+                viewModel.onAction(SearchAction.QueryChanged("mo"))
+                advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+                skipItems(1)
+
+                viewModel.onAction(SearchAction.QueryChanged("   "))
+
+                assertThat(awaitItem()).isEqualTo(SearchUiState.Recent(emptyList()))
+                advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+                assertThat(library.searches).containsExactly("mo")
+            }
+        }
+
+    @Test
     fun `typing searches once after a short pause, with the last text only`() =
         test {
             viewModel.uiState.test {

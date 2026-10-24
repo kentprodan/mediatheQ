@@ -60,15 +60,21 @@ class LibraryPreferencesStore
         /** Recent searches in stored order; `:core:data` decides the order and the limit. */
         val recentSearches: Flow<List<String>> = data.map { it[RECENT_SEARCHES].toList() }
 
-        /** Replaces the recent searches with [transform] of the stored ones, atomically. */
+        /**
+         * Replaces the recent searches with [transform] of the stored ones, atomically. Best effort: a failed write is
+         * dropped, since a lost recent search is not worth crashing a tap.
+         */
         suspend fun updateRecentSearches(transform: (List<String>) -> List<String>) {
-            dataStore.edit { prefs ->
-                val searches = transform(prefs[RECENT_SEARCHES].toList())
-                if (searches.isEmpty()) {
-                    prefs.remove(RECENT_SEARCHES)
-                } else {
-                    prefs[RECENT_SEARCHES] = searches.joinToString(SEPARATOR)
+            try {
+                dataStore.edit { prefs ->
+                    val searches = transform(prefs[RECENT_SEARCHES].toList())
+                    if (searches.isEmpty()) {
+                        prefs.remove(RECENT_SEARCHES)
+                    } else {
+                        prefs[RECENT_SEARCHES] = searches.joinToString(SEPARATOR)
+                    }
                 }
+            } catch (_: IOException) {
             }
         }
 

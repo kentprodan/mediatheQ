@@ -86,3 +86,8 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: turn on airplane mode, remove a track from a playlist -> it disappears, then comes back with the "could not be saved" snackbar
 - [ ] Pixel 9: playlist menu -> Rename (new name shows, also in Library search), then Delete -> confirm -> the screen closes, the playlist is gone from Library and Jellyfin web; the tracks are still in the library
 - [ ] Pixel 9: TalkBack on a playlist row offers Move up / Move down; the toolbar buttons read "Clear selection" and "Remove from playlist"
+
+## #17 Search: diacritic-insensitive local search
+- [ ] Pixel 9: Search tab on the real library -> type "mosoi" letter by letter -> results update while typing with no visible lag (~100 ms) and "Moșoi" appears; Artists / Albums / Tracks / Playlists groups in that order
+- [ ] Pixel 9: open a result, then come back -> the query stays; clear the field -> recent searches show; Clear -> the list is empty and stays empty after restarting the app
+- [ ] Pixel 9: motion feels right (keyboard and results, no jank while typing) and there are no haptics on plain taps; TalkBack reads the clear-text button label
