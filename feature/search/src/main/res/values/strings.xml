@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_placeholder">Search your library</string>
+    <string name="search_clear_query">Clear search</string>
+    <string name="search_recent">Recent searches</string>
+    <string name="search_clear_recent">Clear</string>
+    <string name="search_start_title">Search your library</string>
+    <string name="search_start_body">Artists, albums, songs and playlists. Accents are optional.</string>
+    <string name="search_no_results_title">No results</string>
+    <string name="search_no_results_body">Nothing in your library matches “%1$s”.</string>
+    <string name="search_error_title">Search failed</string>
+    <string name="search_error_body">The library on this phone could not be read.</string>
+    <string name="search_retry">Retry</string>
+    <string name="search_artists">Artists</string>
+    <string name="search_albums">Albums</string>
+    <string name="search_songs">Songs</string>
+    <string name="search_playlists">Playlists</string>
+</resources>

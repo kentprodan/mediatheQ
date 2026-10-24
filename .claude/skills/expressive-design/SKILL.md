@@ -131,10 +131,11 @@ fun MediatheqTheme(
 | Like / Download toggles | Toggle buttons (icon) | Shape morphs on checked. |
 | Player transport controls | `MqTransportControls`: `ButtonGroup` of large icon buttons (`customItem` + `animateWidth`) | Play/Pause is the largest (Wide), round while paused, squarish while playing. |
 | Context actions on long-press | Expressive `DropdownMenu` or `ModalBottomSheet` | Sheet for > 5 actions. |
-| Search | `SearchBar` with `SearchBarState` | Docked on Search tab, results below. |
+| Search | `SearchBarDefaults.InputField` + `SearchBarState` on a search bar `Surface` | Fixed on top of the Search tab, results below. Not the collapsed `SearchBar`: in 1.5 it disables the soft keyboard and expects an expanded bar. Clear-text button in the trailing slot. |
+| Search results | Section titles (`titleMedium`, heading) + `ArtistRow`, `AlbumRow`, `TrackRow(showCover = true)`, `PlaylistRow` | Groups in that order, empty groups hidden. Recent searches: `ListItem` rows + a "Clear" `TextButton`. |
 | Filters (Library: Albums/Artists/Playlists/Songs) | `MqFilterBar`: `FilterChip` row (default) or connected `ToggleButton` row | User setting, ADR 0014. Chips scroll and fit at fontScale 2.0; connected buttons share the width and ellipsize. |
 | Library top bar | `TopAppBar` (pinned) + sort and view `DropdownMenu`s; items show a check and carry selected + radio semantics | Sort per tab, columns on Albums only, filter style. |
-| Artist / playlist rows | `ArtistRow` (round picture), `PlaylistRow` (cover + track count) in `:core:ui` | Shared `CoverRow`. Songs use `TrackRow(showCover = true)`. |
+| Artist / album / playlist rows | `ArtistRow` (round picture), `AlbumRow` (cover + album artists), `PlaylistRow` (cover + track count) in `:core:ui` | Shared `CoverRow`. Songs use `TrackRow(showCover = true)`. |
 | Initial loading | `MqLoadingIndicator` (wraps `LoadingIndicator`, experimental) | Centered, only for full-screen loads > 300 ms. |
 | Download progress | `LinearWavyProgressIndicator` / `CircularWavyProgressIndicator` | Determinate when size known. |
 | Playback seek bar | `MqSeekBar` (value `Slider` + elapsed/total labels) | Keeps the dragged value until release, then seeks once. Disabled when the stream cannot be seeked. Waveform scrubber is a later feature - keep it behind `MqSeekBar`. |

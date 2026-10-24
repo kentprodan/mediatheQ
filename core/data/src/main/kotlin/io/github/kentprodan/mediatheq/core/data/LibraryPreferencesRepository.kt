@@ -16,4 +16,12 @@ interface LibraryPreferencesRepository {
         filter: LibraryFilter,
         sort: LibrarySort,
     )
+
+    /** Recent searches, newest first, at most [MAX_RECENT_SEARCHES]. Kept across sign-out, like the rest. */
+    val recentSearches: Flow<List<String>>
+
+    /** Puts [query] first (see [withRecentSearch]). */
+    suspend fun addRecentSearch(query: String)
+
+    suspend fun clearRecentSearches()
 }

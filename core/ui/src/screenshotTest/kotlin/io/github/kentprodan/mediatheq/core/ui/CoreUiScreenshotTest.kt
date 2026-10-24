@@ -95,7 +95,10 @@ fun AlbumCardScreenshot() {
     }
 }
 
-/** Library rows: artist with and without picture, playlist with cover and count, track with its cover. */
+/**
+ * Library rows: artist with and without picture, playlist with cover and count, album with cover and artists (and
+ * without cover), track with its cover.
+ */
 @PreviewTest
 @MqPreviews
 @Composable
@@ -107,6 +110,8 @@ fun LibraryRowsScreenshot() {
                 ArtistRow(PreviewData.longTrack.artists[1], onClick = {})
                 PlaylistRow(PreviewData.playlist, onClick = {})
                 PlaylistRow(PreviewData.playlist.copy(name = "Empty", trackCount = 1, artwork = null), onClick = {})
+                AlbumRow(PreviewData.album.copy(artwork = PreviewData.artwork), onClick = {})
+                AlbumRow(PreviewData.longAlbum.copy(artwork = null), onClick = {})
                 TrackRow(
                     PreviewData.track.copy(artwork = PreviewData.artwork),
                     onClick = {},

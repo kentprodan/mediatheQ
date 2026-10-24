@@ -23,10 +23,11 @@ class LibraryPreferencesStore
     constructor(
         @param:LibraryPrefs private val dataStore: DataStore<Preferences>,
     ) {
+        private val data = dataStore.data.catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+
         /** Stored values; empty preferences when the file cannot be read. */
         val values: Flow<StoredLibraryPreferences> =
-            dataStore.data
-                .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+            data
                 .map { prefs ->
                     StoredLibraryPreferences(
                         filterStyle = prefs[FILTER_STYLE],
@@ -56,10 +57,36 @@ class LibraryPreferencesStore
             dataStore.edit { it[stringPreferencesKey(SORT_PREFIX + tab)] = name }
         }
 
+        /** Recent searches in stored order; `:core:data` decides the order and the limit. */
+        val recentSearches: Flow<List<String>> = data.map { it[RECENT_SEARCHES].toList() }
+
+        /**
+         * Replaces the recent searches with [transform] of the stored ones, atomically. Best effort: a failed write is
+         * dropped, since a lost recent search is not worth crashing a tap.
+         */
+        suspend fun updateRecentSearches(transform: (List<String>) -> List<String>) {
+            try {
+                dataStore.edit { prefs ->
+                    val searches = transform(prefs[RECENT_SEARCHES].toList())
+                    if (searches.isEmpty()) {
+                        prefs.remove(RECENT_SEARCHES)
+                    } else {
+                        prefs[RECENT_SEARCHES] = searches.joinToString(SEPARATOR)
+                    }
+                }
+            } catch (_: IOException) {
+            }
+        }
+
+        // One string, one search per line: callers keep searches on a single line.
+        private fun String?.toList() = this?.split(SEPARATOR)?.filter { it.isNotBlank() }.orEmpty()
+
         private companion object {
             val FILTER_STYLE = stringPreferencesKey("filter_style")
             val ALBUM_COLUMNS = intPreferencesKey("album_columns")
             const val SORT_PREFIX = "sort_"
+            val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
+            const val SEPARATOR = "\n"
         }
     }
 

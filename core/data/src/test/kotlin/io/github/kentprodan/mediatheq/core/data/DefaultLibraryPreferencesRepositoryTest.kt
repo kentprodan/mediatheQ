@@ -15,6 +15,36 @@ class DefaultLibraryPreferencesRepositoryTest {
     private val repository = DefaultLibraryPreferencesRepository(LibraryPreferencesStore(dataStore))
 
     @Test
+    fun `recent searches come newest first, without repeats, at most ten`() =
+        runTest {
+            (1..12).forEach { repository.addRecentSearch("q$it") }
+            repository.addRecentSearch("Q5")
+
+            assertThat(repository.recentSearches.first())
+                .containsExactly("Q5", "q12", "q11", "q10", "q9", "q8", "q7", "q6", "q4", "q3")
+                .inOrder()
+        }
+
+    @Test
+    fun `a recent search is one line and blank ones are ignored`() =
+        runTest {
+            repository.addRecentSearch("  pasted\nwith   lines  ")
+            repository.addRecentSearch(" \n ")
+
+            assertThat(repository.recentSearches.first()).containsExactly("pasted with lines")
+        }
+
+    @Test
+    fun `recent searches can be cleared`() =
+        runTest {
+            repository.addRecentSearch("mosoi")
+
+            repository.clearRecentSearches()
+
+            assertThat(repository.recentSearches.first()).isEmpty()
+        }
+
+    @Test
     fun `defaults are chips, two columns and each tab's first sort`() =
         runTest {
             val preferences = repository.preferences.first()

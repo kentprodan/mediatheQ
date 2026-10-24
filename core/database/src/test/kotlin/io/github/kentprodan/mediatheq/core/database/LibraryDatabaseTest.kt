@@ -236,6 +236,8 @@ class LibraryDatabaseTest {
             assertThat(syncDao.stagedPlaylistIds()).containsExactly("p1", "p2").inOrder()
         }
 
+    private suspend fun searchTrackIds(match: String) = libraryDao.search(match, 10).tracks.map { it.track.id }
+
     @Test
     fun `search ignores diacritics in both directions`() =
         runTest {
@@ -250,26 +252,77 @@ class LibraryDatabaseTest {
             )
             syncDao.swap(1, "s", "user-1")
 
-            assertThat(libraryDao.search("mosoi", 10).map { it.itemId }).containsExactly("t1", "t2")
-            assertThat(libraryDao.search("tara", 10).map { it.itemId }).containsExactly("t3")
-            assertThat(libraryDao.search("beyonce", 10).map { it.itemId }).containsExactly("t4")
-            assertThat(libraryDao.search("Moșoi", 10).map { it.itemId }).containsExactly("t1", "t2")
+            assertThat(searchTrackIds("mosoi")).containsExactly("t1", "t2")
+            assertThat(searchTrackIds("tara")).containsExactly("t3")
+            assertThat(searchTrackIds("beyonce")).containsExactly("t4")
+            assertThat(searchTrackIds("Moșoi")).containsExactly("t1", "t2")
         }
 
     @Test
-    fun `search covers album artists, albums and playlists but not credit-only artists`() =
+    fun `search groups album artists, albums, tracks and playlists but not credit-only artists`() =
         runTest {
             stageLibrary(
                 artists = listOf(artist, artist.copy(id = "ar2", name = "Subcarpați Feat", isAlbumArtist = false)),
             )
             syncDao.swap(1, "s", "user-1")
 
+            assertThat(libraryDao.search("subcarpati", 10).artists.map { it.id }).containsExactly("ar1")
+            assertThat(libraryDao.search("satelit", 10).albums.map { it.album.id }).containsExactly("al1")
+            assertThat(libraryDao.search("drum", 10).playlists.map { it.id }).containsExactly("p1")
+            val rows = libraryDao.search("mos*", 10)
+            assertThat(rows.tracks.map { it.track.id }).containsExactly("t1")
+            assertThat(rows.artists + rows.albums + rows.playlists).isEmpty()
+        }
+
+    @Test
+    fun `search results carry their artist credits`() =
+        runTest {
+            stageLibrary()
+            syncDao.swap(1, "s", "user-1")
+
+            val rows = libraryDao.search("satelit", 10)
+
             assertThat(
-                libraryDao.search("subcarpati", 10).map { it.kind to it.itemId },
-            ).containsExactly("artist" to "ar1")
-            assertThat(libraryDao.search("satelit", 10).map { it.kind }).containsExactly("album")
-            assertThat(libraryDao.search("drum", 10).map { it.kind }).containsExactly("playlist")
-            assertThat(libraryDao.search("mos*", 10).map { it.kind }).containsExactly("track")
+                rows.albums
+                    .single()
+                    .credits
+                    .map { it.artist?.name },
+            ).containsExactly("Subcarpați")
+        }
+
+    @Test
+    fun `search matches the last word as a prefix`() =
+        runTest {
+            stageLibrary()
+            syncDao.swap(1, "s", "user-1")
+
+            assertThat(searchTrackIds("mo*")).containsExactly("t1")
+            assertThat(searchTrackIds("mo")).isEmpty()
+        }
+
+    @Test
+    fun `search ranks the closest name first, ties by sort name`() =
+        runTest {
+            stageLibrary(
+                tracks =
+                    listOf(
+                        track.copy(id = "long", title = "Cântec pentru Moșoi și prieteni", sortName = "A"),
+                        track.copy(id = "b", sortName = "B"),
+                        track.copy(id = "a", sortName = "A"),
+                    ),
+            )
+            syncDao.swap(1, "s", "user-1")
+
+            assertThat(searchTrackIds("mosoi")).containsExactly("a", "b", "long").inOrder()
+        }
+
+    @Test
+    fun `search returns at most the limit of each kind`() =
+        runTest {
+            stageLibrary(tracks = (1..5).map { track.copy(id = "t$it") })
+            syncDao.swap(1, "s", "user-1")
+
+            assertThat(libraryDao.search("mos*", 2).tracks).hasSize(2)
         }
 
     @Test

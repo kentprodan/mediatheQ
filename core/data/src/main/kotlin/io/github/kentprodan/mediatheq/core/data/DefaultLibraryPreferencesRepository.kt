@@ -39,6 +39,13 @@ class DefaultLibraryPreferencesRepository
             if (sort in filter.sorts) store.setSort(filter.name, sort.name)
         }
 
+        override val recentSearches: Flow<List<String>> =
+            store.recentSearches.map { it.take(MAX_RECENT_SEARCHES) }
+
+        override suspend fun addRecentSearch(query: String) = store.updateRecentSearches { it.withRecentSearch(query) }
+
+        override suspend fun clearRecentSearches() = store.updateRecentSearches { emptyList() }
+
         private inline fun <reified E : Enum<E>> enumOrNull(name: String?): E? =
             enumValues<E>().firstOrNull {
                 it.name ==
