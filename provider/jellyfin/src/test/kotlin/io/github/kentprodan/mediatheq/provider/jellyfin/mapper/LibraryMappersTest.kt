@@ -67,6 +67,13 @@ class LibraryMappersTest {
     }
 
     @Test
+    fun `R14 a rating of 0 maps to unrated`() {
+        val dto = BaseItemDto(id = "t1", name = "T", userData = UserItemDataDto(rating = 0.0))
+
+        assertThat(dto.toTrack(server)?.userData?.rating).isNull()
+    }
+
+    @Test
     fun `an unreadable date is dropped, not fatal`() {
         assertThat(BaseItemDto(id = "t1", name = "T", dateCreated = "yesterday").toTrack(server)?.dateAdded).isNull()
     }
