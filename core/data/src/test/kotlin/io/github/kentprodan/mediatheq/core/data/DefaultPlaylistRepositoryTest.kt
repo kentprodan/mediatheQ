@@ -4,6 +4,8 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem.Companion.PENDING_ENTRY_ID
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
@@ -55,16 +57,24 @@ class DefaultPlaylistRepositoryTest {
     @After
     fun close() = database.close()
 
-    /** Tracks t1..t4 of 60 s each; playlist p1 holds t1, a track not in the library, t2 and t3. */
+    /** Tracks t1..t4 of 60 s each (t1 on album al1); playlist p1 holds t1, a track not in the library, t2 and t3. */
     @Before
     fun library() =
         runTest(dispatcher) {
             accountStore.save(StoredAccount("http://nas:8096", server, "Home", "user-1", "Ana", accessToken = "token"))
             val syncDao = database.syncDao()
+            syncDao.stageAlbums(listOf(AlbumStaging(AlbumEntity("s", "al1", "A", "A", normalizationGainDb = -7.5))))
             syncDao.stageTracks(
                 (1..4).map {
                     TrackStaging(
-                        TrackEntity("s", "t$it", "Track $it", "Track $it", durationMillis = 60_000),
+                        TrackEntity(
+                            "s",
+                            "t$it",
+                            "Track $it",
+                            "Track $it",
+                            albumId = "al1".takeIf { _ -> it == 1 },
+                            durationMillis = 60_000,
+                        ),
                     )
                 },
             )
@@ -90,6 +100,14 @@ class DefaultPlaylistRepositoryTest {
             assertThat(items.map { it.track.id.itemId to it.position })
                 .containsExactly("t1" to 0, "t2" to 2, "t3" to 3)
                 .inOrder()
+        }
+
+    @Test
+    fun `items carry their album's normalization gain`() =
+        runTest(dispatcher) {
+            val gains = repository().visible().map { it.track.albumNormalizationGainDb }
+
+            assertThat(gains).containsExactly(-7.5, null, null).inOrder()
         }
 
     @Test

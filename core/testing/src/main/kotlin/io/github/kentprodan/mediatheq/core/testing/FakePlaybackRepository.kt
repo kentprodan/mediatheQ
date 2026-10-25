@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.model.DeviceProfile
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
+import java.util.concurrent.CopyOnWriteArrayList
 
 /** [PlaybackRepository] that records what is asked and reported. */
 class FakePlaybackRepository : PlaybackRepository {
@@ -13,7 +14,12 @@ class FakePlaybackRepository : PlaybackRepository {
 
     /** How the server delivers the streams it gives. */
     var playMethod = PlayMethod.DirectPlay
-    val streamRequests = mutableListOf<Pair<MediaId, DeviceProfile>>()
+
+    /** The file size the server reports for its streams. */
+    var sizeBytes: Long? = null
+
+    // Thread-safe: the prefetcher asks from an IO thread while tests read on the main thread.
+    val streamRequests: MutableList<Pair<MediaId, DeviceProfile>> = CopyOnWriteArrayList()
 
     /** "start t1 @12s paused", "progress ...", "stopped ... failed" in call order. */
     val reports = mutableListOf<String>()
@@ -22,10 +28,13 @@ class FakePlaybackRepository : PlaybackRepository {
         itemId: MediaId,
         profile: DeviceProfile,
     ) = failure
-        ?: MqResult.Success(FakePlaybackSource.fakeStream(itemId).copy(playMethod = playMethod)).also {
-            streamRequests +=
-                itemId to profile
-        }
+        ?: MqResult
+            .Success(
+                FakePlaybackSource.fakeStream(itemId).copy(playMethod = playMethod, sizeBytes = sizeBytes),
+            ).also {
+                streamRequests +=
+                    itemId to profile
+            }
 
     override suspend fun streamHeaders() = mapOf("Authorization" to "fake")
 

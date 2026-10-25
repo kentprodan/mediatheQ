@@ -56,6 +56,21 @@ class StreamResolver
         }
 
         /**
+         * The stream to prefetch [itemId] with: the one the player already knows (never replaced, so a track that is
+         * playing never switches format), or a new one the player will then reuse with its play session.
+         */
+        suspend fun prefetchStream(itemId: MediaId): MqResult<PlaybackStream> {
+            streams[itemId]?.takeUnless { it.local }?.let { return MqResult.Success(it.stream) }
+            val metered = networkMonitor.isMetered()
+            val result = playbackRepository.stream(itemId, DeviceProfileBuilder.build(decoderMimeTypes, metered))
+            if (result is MqResult.Success) {
+                val known = streams.putIfAbsent(itemId, Resolved(result.value, metered))
+                if (known != null && !known.local) return MqResult.Success(known.stream)
+            }
+            return result
+        }
+
+        /**
          * Records that [itemId] plays from its download, so progress reports still reach the server: a direct play with
          * a play session of our own (no server stream was asked for).
          */

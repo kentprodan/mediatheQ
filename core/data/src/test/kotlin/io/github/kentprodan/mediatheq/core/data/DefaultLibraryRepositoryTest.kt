@@ -112,6 +112,7 @@ class DefaultLibraryRepositoryTest {
                             "Satelit",
                             "Satelit",
                             year = 2016,
+                            normalizationGainDb = -7.5,
                         ),
                     ),
                 ),
@@ -127,6 +128,7 @@ class DefaultLibraryRepositoryTest {
                             albumId = "al1",
                             trackNumber = 1,
                             durationMillis = 1_000,
+                            normalizationGainDb = -6.0,
                         ),
                     ),
                 ),
@@ -138,6 +140,8 @@ class DefaultLibraryRepositoryTest {
             val track = repository.albumTracks(id).first().single()
             assertThat(track.albumId).isEqualTo(id)
             assertThat(track.duration.inWholeMilliseconds).isEqualTo(1_000)
+            assertThat(track.normalizationGainDb).isEqualTo(-6.0)
+            assertThat(track.albumNormalizationGainDb).isEqualTo(-7.5)
         }
 
     @Test

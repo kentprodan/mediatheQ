@@ -56,7 +56,13 @@ class DefaultPlaylistRepository
 
         override fun items(id: MediaId): Flow<List<PlaylistItem>> =
             playlistDao.tracks(id.serverId.value, id.itemId).map { rows ->
-                rows.map { PlaylistItem(it.entryId, it.position, TrackWithArtists(it.track, it.credits).toDomain()) }
+                rows.map {
+                    PlaylistItem(
+                        it.entryId,
+                        it.position,
+                        TrackWithArtists(it.track, it.credits, it.album).toDomain(),
+                    )
+                }
             }
 
         override suspend fun create(name: String): MqResult<MediaId> =

@@ -45,7 +45,13 @@ class DefaultQueueRepository
                 rows.indexOfFirst { it.queuePosition >= state.currentPosition }.takeIf { it >= 0 } ?: rows.lastIndex
             val sameEntry = rows[index].queuePosition == state.currentPosition
             return SavedQueue(
-                entries = rows.map { SavedEntry(it.entryId, TrackWithArtists(it.track, it.credits).toDomain()) },
+                entries =
+                    rows.map {
+                        SavedEntry(
+                            it.entryId,
+                            TrackWithArtists(it.track, it.credits, it.album).toDomain(),
+                        )
+                    },
                 shuffleOrder = rows.indices.sortedBy { rows[it].shufflePosition },
                 place =
                     QueuePlace(

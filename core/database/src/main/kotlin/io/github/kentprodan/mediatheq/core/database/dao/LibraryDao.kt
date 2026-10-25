@@ -224,6 +224,13 @@ data class TrackWithArtists(
         entityColumns = ["server_id", "track_id"],
     )
     val credits: List<TrackCredit>,
+    /**
+     * The track's album, for its normalization gain; `null` without an album or when it was not synced.
+     * shortcut: loads whole album rows (and watches the album table) for one number; store the album gain on the track
+     * row at sync if the Songs list ever feels slow.
+     */
+    @Relation(parentColumns = ["server_id", "album_id"], entityColumns = ["server_id", "id"])
+    val album: AlbumEntity? = null,
 )
 
 /** One track credit and its artist; [artist] is `null` when the credited artist was not synced. */

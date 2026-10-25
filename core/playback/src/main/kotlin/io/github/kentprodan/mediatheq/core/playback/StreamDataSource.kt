@@ -4,7 +4,6 @@ import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
-import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
@@ -15,15 +14,17 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import java.io.IOException
 
 /**
- * Data source for the player: `mediatheq://track/...` becomes the server's stream URL with the auth header, built at
- * load time, or the downloaded copy when the track is fully downloaded (no network at all). All requests go through
- * the app [okHttpClient], so the local-network cleartext rule applies (ADR 0013).
+ * Data source for the player: `mediatheq://track/...` plays, in this order, from the download, from a complete copy in
+ * the streaming cache (both with no network at all), or from the server's stream URL with the auth header, built at
+ * load time and kept in the streaming cache when it is the original file. All requests go through the app
+ * [okHttpClient], so the local-network cleartext rule applies (ADR 0013).
  */
 @UnstableApi
 internal fun streamDataSourceFactory(
@@ -31,25 +32,48 @@ internal fun streamDataSourceFactory(
     resolver: StreamResolver,
     downloads: DownloadRepository,
     downloadCache: Cache,
+    streamingCache: Cache,
     isOnline: () -> Boolean,
+    /** Called when the player starts loading a track (the prefetcher then leaves it alone). */
+    onOpen: (MediaId) -> Unit = {},
 ): DataSource.Factory {
+    val streamed =
+        CacheDataSource
+            .Factory()
+            .setCache(streamingCache)
+            .setUpstreamDataSourceFactory(OkHttpDataSource.Factory(okHttpClient))
     // Read-only: streams are never written into the download cache, and only downloads have a key that can hit.
     val cached =
         CacheDataSource
             .Factory()
             .setCache(downloadCache)
-            .setUpstreamDataSourceFactory(OkHttpDataSource.Factory(okHttpClient))
+            .setUpstreamDataSourceFactory(streamed)
             .setCacheWriteDataSinkFactory(null)
-            .setCacheKeyFactory { it.key ?: STREAM_CACHE_KEY }
     return ResolvingDataSource.Factory(cached) { dataSpec ->
         val itemId = dataSpec.uri.trackId() ?: return@Factory dataSpec
+        onOpen(itemId)
         if (downloads.isDownloaded(itemId)) {
             resolver.playLocal(itemId)
             return@Factory dataSpec.buildUpon().setKey(downloadCacheKey(itemId)).build()
         }
-        // Offline only downloads play; anything else fails at once, without a server request or retries.
+        val original = originalCacheKey(itemId)
+        // shortcut: a complete copy plays as it is, even if the file changed on the server since; a partial replay
+        // (after eviction) notices the new size and starts over.
+        if (streamingCache.isFullyCached(original)) {
+            resolver.playLocal(itemId)
+            return@Factory dataSpec.buildUpon().setKey(original).build()
+        }
+        // Offline only downloads and cached tracks play; anything else fails at once, without retries.
         if (!isOnline()) throw OfflineException()
-        resolveStream(dataSpec, itemId, resolver) { resolver.resolve(itemId, continuing = dataSpec.position > 0) }
+        val stream = awaitStream { resolver.resolve(itemId, continuing = dataSpec.position > 0) }
+        val key = streamCacheKey(stream)
+        if (stream.playMethod == PlayMethod.DirectPlay) streamingCache.dropIfChanged(key, stream.sizeBytes)
+        dataSpec
+            .buildUpon()
+            .setUri(stream.url.toUri())
+            .setKey(key)
+            .build()
+            .withAdditionalHeaders(runBlocking { resolver.headers() })
     }
 }
 
@@ -66,7 +90,8 @@ internal fun downloadDataSourceFactory(
         val itemId =
             dataSpec.key?.let { runCatching { MediaId.parse(it) }.getOrNull() }
                 ?: throw StreamUnavailableException(MqError.Client(0, "download: no track id"))
-        resolveStream(dataSpec, itemId, resolver) { resolver.downloadStream(itemId) }
+        val stream = awaitStream { resolver.downloadStream(itemId) }
+        dataSpec.withUri(stream.url.toUri()).withAdditionalHeaders(runBlocking { resolver.headers() })
     }
 
 /**
@@ -75,24 +100,11 @@ internal fun downloadDataSourceFactory(
  */
 internal fun downloadCacheKey(itemId: MediaId): String = itemId.toString()
 
-// Lookups of streamed tracks never hit (no download has this key) and keep stream URLs out of cache keys.
-private const val STREAM_CACHE_KEY = "stream"
-
-@UnstableApi
-private fun resolveStream(
-    dataSpec: DataSpec,
-    itemId: MediaId,
-    resolver: StreamResolver,
-    resolve: suspend () -> MqResult<PlaybackStream>,
-): DataSpec =
-    // Runs on the loader thread, which may block (ResolvingDataSource.Resolver contract).
-    runBlocking {
-        val stream =
-            when (val result = resolve()) {
-                is MqResult.Success -> result.value
-                is MqResult.Failure -> throw StreamUnavailableException(result.error)
-            }
-        dataSpec.withUri(stream.url.toUri()).withAdditionalHeaders(resolver.headers())
+// Runs on the loader thread, which may block (ResolvingDataSource.Resolver contract).
+private fun awaitStream(resolve: suspend () -> MqResult<PlaybackStream>): PlaybackStream =
+    when (val result = runBlocking { resolve() }) {
+        is MqResult.Success -> result.value
+        is MqResult.Failure -> throw StreamUnavailableException(result.error)
     }
 
 /** The server would not give a stream for a track (signed out, no compatible format, unreachable). */

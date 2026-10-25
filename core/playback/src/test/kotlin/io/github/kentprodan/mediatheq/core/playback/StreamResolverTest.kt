@@ -126,6 +126,26 @@ class StreamResolverTest {
         }
 
     @Test
+    fun `a prefetch never replaces the stream the player knows, even after the network changed`() =
+        runTest {
+            val playing = (resolver.resolve(itemId) as MqResult.Success).value
+            network.metered = true
+
+            assertThat(resolver.prefetchStream(itemId)).isEqualTo(MqResult.Success(playing))
+            assertThat(resolver.current(itemId)).isEqualTo(playing)
+            assertThat(repository.streamRequests).hasSize(1)
+        }
+
+    @Test
+    fun `a prefetched stream is the one the player then uses`() =
+        runTest {
+            val prefetched = (resolver.prefetchStream(itemId) as MqResult.Success).value
+
+            assertThat(resolver.resolve(itemId)).isEqualTo(MqResult.Success(prefetched))
+            assertThat(repository.streamRequests).hasSize(1)
+        }
+
+    @Test
     fun `track uris round-trip ids with colons, other uris are not tracks`() {
         assertThat(trackUri(itemId).trackId()).isEqualTo(itemId)
         assertThat(Uri.parse("http://nas/Audio/x/stream").trackId()).isNull()

@@ -7,6 +7,8 @@ import androidx.media3.datasource.DataSourceUtil
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheWriter
+import androidx.media3.datasource.cache.ContentMetadataMutations
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.test.utils.FakeDataSet
@@ -16,6 +18,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
@@ -25,7 +28,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
+import okhttp3.ResponseBody.Companion.asResponseBody
 import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.Buffer
 import org.junit.After
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -44,8 +49,9 @@ class StreamDataSourceTest {
     private val resolver = StreamResolver(repository, { setOf("audio/flac") }, network)
     private val downloads = FakeDownloadRepository()
 
-    /** Every request that reaches the network, answered with a few bytes instead. */
+    /** Every request that reaches the network, answered with 10 bytes instead (without a length when [chunked]). */
     private val requests = mutableListOf<Request>()
+    private var chunked = false
     private val client =
         OkHttpClient
             .Builder()
@@ -57,20 +63,82 @@ class StreamDataSourceTest {
                     .protocol(Protocol.HTTP_1_1)
                     .code(200)
                     .message("OK")
-                    .body(ByteArray(10).toResponseBody())
-                    .build()
+                    .apply { if (!chunked) header("Content-Length", "10") }
+                    .body(
+                        if (chunked) {
+                            Buffer().write(ByteArray(10)).asResponseBody(null, -1)
+                        } else {
+                            ByteArray(10).toResponseBody()
+                        },
+                    ).build()
             }.build()
-    private val cache =
+    private val database = StandaloneDatabaseProvider(ApplicationProvider.getApplicationContext())
+    private val cache = SimpleCache(Files.createTempDirectory("downloads").toFile(), NoOpCacheEvictor(), database)
+    private val streamingCache =
         SimpleCache(
-            Files.createTempDirectory("downloads").toFile(),
-            NoOpCacheEvictor(),
-            StandaloneDatabaseProvider(ApplicationProvider.getApplicationContext()),
+            Files.createTempDirectory("media").toFile(),
+            LeastRecentlyUsedCacheEvictor(STREAMING_CACHE_BYTES),
+            database,
         )
-    private val factory = streamDataSourceFactory(client, resolver, downloads, cache, network::isOnline)
+    private val factory =
+        streamDataSourceFactory(client, resolver, downloads, cache, streamingCache, network::isOnline)
 
     @After
     fun release() {
         cache.release()
+        streamingCache.release()
+    }
+
+    /** Reads the track to the end the way the player loads it. */
+    private fun play(): ByteArray {
+        val spec =
+            DataSpec
+                .Builder()
+                .setUri(trackUri(itemId))
+                .setFlags(DataSpec.FLAG_DONT_CACHE_IF_LENGTH_UNKNOWN or DataSpec.FLAG_ALLOW_CACHE_FRAGMENTATION)
+                .build()
+        val source = factory.createDataSource()
+        return try {
+            DataSourceUtil.readToEnd(source.apply { open(spec) })
+        } finally {
+            source.close()
+        }
+    }
+
+    @Test
+    fun `replaying a streamed original needs no network, also offline`() {
+        play()
+        network.online.value = false
+
+        assertThat(play()).hasLength(10)
+        assertThat(requests).hasSize(1)
+        assertThat(repository.streamRequests).hasSize(1)
+        // Reported as a direct play of its own session, not the server stream of the first play.
+        assertThat(resolver.current(itemId)?.url).isEmpty()
+    }
+
+    @Test
+    fun `a converted stream is never kept in the cache`() {
+        repository.playMethod = PlayMethod.Transcode
+        chunked = true
+
+        play()
+
+        assertThat(streamingCache.cacheSpace).isEqualTo(0)
+    }
+
+    @Test
+    fun `a partial copy of a file changed on the server is dropped, never mixed with the new one`() {
+        play()
+        // The cache knows 20 bytes but holds 10: it was cut, and the server now says the file has 10.
+        streamingCache.applyContentMetadataMutations(
+            originalCacheKey(itemId),
+            ContentMetadataMutations().also { ContentMetadataMutations.setContentLength(it, 20) },
+        )
+        repository.sizeBytes = 10
+
+        assertThat(play()).hasLength(10)
+        assertThat(requests).hasSize(2)
     }
 
     @Test

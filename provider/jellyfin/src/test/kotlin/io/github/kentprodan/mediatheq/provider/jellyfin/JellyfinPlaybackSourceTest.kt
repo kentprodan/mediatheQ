@@ -73,6 +73,7 @@ class JellyfinPlaybackSourceTest {
             assertThat(stream.url).contains("static=true")
             assertThat(stream.url).contains("playSessionId=${stream.playSessionId}")
             assertThat(stream.url.lowercase()).doesNotContain("apikey")
+            assertThat(stream.sizeBytes).isEqualTo(27_735_057)
         }
 
     @Test

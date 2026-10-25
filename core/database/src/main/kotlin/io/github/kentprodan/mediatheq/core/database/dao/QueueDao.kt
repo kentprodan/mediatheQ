@@ -8,6 +8,7 @@ import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import androidx.room3.Relation
 import androidx.room3.Transaction
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.QueueEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.QueueStateEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistEntity
@@ -75,4 +76,7 @@ data class QueuedTrack(
         entityColumns = ["server_id", "track_id"],
     )
     val credits: List<TrackCredit>,
+    /** The track's album, for its normalization gain; `null` without an album or when it was not synced. */
+    @Relation(parentColumns = ["server_id", "album_id"], entityColumns = ["server_id", "id"])
+    val album: AlbumEntity? = null,
 )

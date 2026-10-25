@@ -99,3 +99,9 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: start downloading a large album, reboot the phone mid-way, open the app -> the unfinished downloads continue (finished ones stay done)
 - [ ] Pixel 9: Downloads -> row menu -> Remove download -> the row goes away and the storage line shrinks; Jellyfin web still has the track (R5)
 - [ ] Pixel 9: play a downloaded album while online -> Jellyfin's dashboard shows the session as Direct Play and the play count goes up
+
+## #21 Audio quality: offload, gapless, album normalization, prefetch and 2 GB cache
+- [ ] Pixel 9: on Wi-Fi play a gapless FLAC album (e.g. a live album) with the screen off for 15+ minutes -> no gaps or clicks between tracks; `adb shell dumpsys media.audio_flinger` shows an offloaded output while playing; battery use for the session is low (Settings -> Battery). Repeat with an MP3/AAC album and note whether it offloads (it may not, by design)
+- [ ] Pixel 9: queue a quiet album, then a loud one, screen off -> both play at a similar loudness; note whether the first second of the loud album is louder (accepted lag with offload)
+- [ ] Pixel 9: play a few tracks on Wi-Fi, then turn on airplane mode and play them again -> they play from the start to the end with no error; tracks never played fail at once
+- [ ] Pixel 9: on Wi-Fi start an album and wait ~1 minute -> the next track starts instantly; Jellyfin's dashboard shows the sessions as Direct Play

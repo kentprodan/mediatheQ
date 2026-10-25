@@ -18,6 +18,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.DownloadCache
+import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
@@ -25,6 +26,7 @@ import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -62,6 +64,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var networkMonitor: NetworkMonitor
 
     @Inject
+    @StreamingCache
+    lateinit var streamingCache: Cache
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -70,6 +76,12 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var signOutWatch: Job? = null
     private lateinit var persistence: QueuePersistence
     private var persistJob: Job? = null
+    private lateinit var prefetcher: Prefetcher
+    private var prefetchJob: Job? = null
+
+    @Inject
+    @IoDispatcher
+    lateinit var ioDispatcher: CoroutineDispatcher
 
     override fun onCreate() {
         super.onCreate()
@@ -93,10 +105,16 @@ class MediatheqPlaybackService : MediaLibraryService() {
                             streamResolver,
                             downloads,
                             downloadCache,
+                            streamingCache,
                             networkMonitor::isOnline,
+                            onOpen = { prefetcher.cancel(it) },
                         ),
                     ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
                 ).build()
+        // shortcut: default settings until the Settings screen exists (#25); then re-apply the mode when they change.
+        val audioSettings = AudioSettings()
+        player.applyAudioMode(AudioPolicy.decide(audioSettings))
+        player.addListener(NormalizationListener(player) { audioSettings })
         reporter =
             PlaybackReporter(
                 repository = playbackRepository,
@@ -113,6 +131,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 artworkUrl = { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) },
             )
         persistJob = persistence.start()
+        prefetcher =
+            Prefetcher(
+                player = player,
+                scope = applicationScope + Dispatchers.Main,
+                ioDispatcher = ioDispatcher,
+                resolver = streamResolver,
+                downloads = downloads,
+                cache = streamingCache,
+                upstream = OkHttpDataSource.Factory(okHttpClient),
+                network = networkMonitor,
+            )
+        prefetchJob = prefetcher.start()
         session =
             MediaLibrarySession
                 .Builder(this, QueuePlayer(player), LibraryCallback())
@@ -152,6 +182,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     override fun onDestroy() {
         signOutWatch?.cancel()
         persistJob?.cancel()
+        prefetchJob?.cancel()
+        prefetcher.stop()
         session?.run {
             persistence.saveNow()
             reporter.ended(player.currentPosition.milliseconds)
@@ -176,7 +208,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
             if (controller.packageName == packageName || controller.isTrusted ||
                 session.isMediaNotificationController(controller)
             ) {
-                super.onConnect(session, controller)
+                val accepted = super.onConnect(session, controller)
+                MediaSession.ConnectionResult.accept(
+                    accepted.availableSessionCommands,
+                    withoutPlayerVolume(accepted.availablePlayerCommands),
+                )
             } else {
                 MediaSession.ConnectionResult.reject()
             }
