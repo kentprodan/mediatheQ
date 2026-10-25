@@ -132,11 +132,14 @@ Rules:
 
 ## 10. Downloads (:core:download)
 
-- Media3 `DownloadManager` + `DownloadService` (foreground, with notification), separate `SimpleCache` in `filesDir/downloads` with **`NoOpCacheEvictor`** (downloads are never evicted).
-- Download quality setting: Original (default) or a transcoded quality; the chosen stream URL comes from `StreamResolver` with a "download" context.
-- Download state goes into Room via `DownloadIndex` -> repository -> UI (Downloads tab).
-- Playback prefers the download cache automatically (same cache key scheme).
-- Requirements: Wi-Fi only by default; resumes after reboot; removing a download never touches the server (see `jellyfin` R5).
+- Media3 `DownloadManager` + `MediatheqDownloadService` (foreground `dataSync`, progress notification), separate `SimpleCache` in `filesDir/downloads` with **`NoOpCacheEvictor`** (downloads are never evicted). Media3's own `StandaloneDatabaseProvider` (SQLite, not Room) holds the download index; #21 shares it for the streaming cache.
+- Download id = custom cache key = `MediaId.toString()`. The request URI is a placeholder; the `@DownloadSource` data source finds the track by the key.
+- Quality: the original file only. `StreamResolver.downloadStream` asks with the unmetered profile and accepts only direct play (a converted stream cannot resume at a byte offset); anything else fails the download. Transcoded downloads come with #24 if needed. Downloads never share the player's streams or play sessions.
+- Wiring without a module edge: `:core:download` provides `@DownloadCache Cache`, `:core:playback` provides `@DownloadSource DataSource.Factory` (it knows the decoders); both qualifiers live in `:core:common`.
+- Playback: the player's data source is `ResolvingDataSource` over a **read-only** `CacheDataSource` on the download cache. A track that `DownloadRepository.isDownloaded` gets the download key and plays with no network at all; any other track resolves its stream (its cache key never hits). Downloaded plays still report to the server with a direct-play session of our own (`StreamResolver.playLocal`).
+- Offline (`NetworkMonitor.isOnline`), tracks that are not downloaded fail at once and the load error policy never retries, so the queue does not stall.
+- State: `DefaultDownloadRepository` (in `:core:download`) keeps every download from the index plus the manager's events; progress is read once a second while someone watches. Actions go through `DownloadService.sendAddDownload/sendRemoveDownload`.
+- Requirements: Wi-Fi only (`NETWORK_UNMETERED`; the toggle comes with Settings, #25). No scheduler: on API 31+ Media3 cannot restart the service from the background, so unfinished downloads resume when the app opens (`resumeDownloads` in `MainActivity`). Android 15+ limits `dataSync` to 6 h a day; a stopped batch resumes at the next app start. Removing a download never touches the server (see `jellyfin` R5).
 
 ## 11. Queue, session and system integration
 
