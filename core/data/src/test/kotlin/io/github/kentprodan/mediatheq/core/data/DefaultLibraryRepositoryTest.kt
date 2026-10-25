@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
+import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
@@ -46,6 +47,19 @@ class DefaultLibraryRepositoryTest {
             .getOrNull()!!
             .tracks
             .map { it.title }
+
+    @Test
+    fun `track reads one track with its user data, null when missing`() =
+        runTest {
+            library("Pe-o margine")
+            database.userDataDao().setUserData("s", "t0", UserDataColumns(isFavorite = true, rating = 8.0))
+
+            val track = repository.track(MediaId(ServerId("s"), "t0")).first()
+            assertThat(track?.title).isEqualTo("Pe-o margine")
+            assertThat(track?.userData?.isFavorite).isTrue()
+            assertThat(track?.userData?.stars).isEqualTo(4)
+            assertThat(repository.track(MediaId(ServerId("s"), "gone")).first()).isNull()
+        }
 
     @Test
     fun `a database failure becomes a storage error`() =

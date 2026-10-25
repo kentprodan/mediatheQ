@@ -94,4 +94,9 @@ sealed interface LibraryAction {
     data class AddToQueue(
         val track: Track,
     ) : LibraryAction
+
+    data class SetFavorite(
+        val track: Track,
+        val isFavorite: Boolean,
+    ) : LibraryAction
 }

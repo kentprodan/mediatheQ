@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesReposit
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
+import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -29,6 +30,7 @@ class ArtistViewModelTest {
     private val library = FakeLibraryRepository()
     private val preferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
+    private val userData = FakeUserDataRepository()
     private val artistId = MediaId(ServerId("s"), "ar1")
     private val artist = Artist(artistId, "Subcarpați")
     private val own = Album(MediaId(ServerId("s"), "al1"), "Satelit", listOf(artist), year = 2016)
@@ -50,7 +52,7 @@ class ArtistViewModelTest {
     }
 
     private fun TestScope.viewModel(): ArtistViewModel {
-        val viewModel = ArtistViewModel(artistId, library, preferences, playback)
+        val viewModel = ArtistViewModel(artistId, library, preferences, playback, userData)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -59,7 +61,7 @@ class ArtistViewModelTest {
 
     @Test
     fun `starts loading`() {
-        assertThat(ArtistViewModel(artistId, library, preferences, playback).uiState.value)
+        assertThat(ArtistViewModel(artistId, library, preferences, playback, userData).uiState.value)
             .isEqualTo(ArtistUiState.Loading)
     }
 
@@ -172,5 +174,17 @@ class ArtistViewModelTest {
             viewModel.onAction(ArtistAction.Shuffle)
 
             assertThat(playback.plays).isEmpty()
+        }
+
+    @Test
+    fun `favorite and rating go to the artist`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albumArtists.value = listOf(artist)
+            val viewModel = viewModel()
+
+            viewModel.onAction(ArtistAction.SetFavorite(true))
+            viewModel.onAction(ArtistAction.Rate(2))
+
+            assertThat(userData.calls).containsExactly("favorite:ar1:true", "stars:ar1:2").inOrder()
         }
 }

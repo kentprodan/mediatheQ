@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
 import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
 import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
 import io.github.kentprodan.mediatheq.core.database.dao.SyncDao
+import io.github.kentprodan.mediatheq.core.database.dao.UserDataDao
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Singleton
 
@@ -40,4 +41,7 @@ object DatabaseModule {
 
     @Provides
     fun playlistDao(database: MediatheqDatabase): PlaylistDao = database.playlistDao()
+
+    @Provides
+    fun userDataDao(database: MediatheqDatabase): UserDataDao = database.userDataDao()
 }

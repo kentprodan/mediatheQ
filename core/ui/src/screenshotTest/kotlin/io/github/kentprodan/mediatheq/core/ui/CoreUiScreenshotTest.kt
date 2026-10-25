@@ -66,6 +66,21 @@ fun QueueMenuItemsScreenshot() {
     }
 }
 
+/** The favorite item of track menus, for a track that is not a favorite and one that is, drawn in place. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun FavoriteMenuItemScreenshot() {
+    MediatheqTheme {
+        Surface {
+            Column(Modifier.width(IntrinsicSize.Max)) {
+                FavoriteMenuItem(isFavorite = false, onToggle = {}, close = {})
+                FavoriteMenuItem(isFavorite = true, onToggle = {}, close = {})
+            }
+        }
+    }
+}
+
 /** Album cards: loaded cover, BlurHash placeholder with a long title, no cover. */
 @PreviewTest
 @MqPreviews

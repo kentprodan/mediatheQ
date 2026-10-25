@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
 import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
 import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
 import io.github.kentprodan.mediatheq.core.database.dao.SyncDao
+import io.github.kentprodan.mediatheq.core.database.dao.UserDataDao
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
@@ -62,4 +63,6 @@ abstract class MediatheqDatabase : RoomDatabase() {
     abstract fun queueDao(): QueueDao
 
     abstract fun playlistDao(): PlaylistDao
+
+    abstract fun userDataDao(): UserDataDao
 }

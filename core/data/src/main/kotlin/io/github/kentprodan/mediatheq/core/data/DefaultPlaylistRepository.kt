@@ -1,6 +1,5 @@
 package io.github.kentprodan.mediatheq.core.data
 
-import androidx.sqlite.SQLiteException
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
@@ -236,12 +235,4 @@ class DefaultPlaylistRepository
             val COLLAGE_DELAY = 2.seconds
             const val PAGE_SIZE = 500
         }
-    }
-
-/** A database failure during an edit becomes [MqError.Storage]. */
-private inline fun <T> storageSafe(block: () -> MqResult<T>): MqResult<T> =
-    try {
-        block()
-    } catch (_: SQLiteException) {
-        MqResult.Failure(MqError.Storage)
     }

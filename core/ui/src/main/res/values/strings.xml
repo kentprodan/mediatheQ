@@ -12,6 +12,8 @@
         <item quantity="other">%1$d tracks</item>
     </plurals>
     <string name="core_ui_add_to_playlist">Add to playlist</string>
+    <string name="core_ui_add_favorite">Add to favorites</string>
+    <string name="core_ui_remove_favorite">Remove from favorites</string>
     <string name="core_ui_download">Download</string>
     <string name="core_ui_remove_download">Remove download</string>
 </resources>

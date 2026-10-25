@@ -33,6 +33,14 @@ interface LibraryDao {
     @Query("SELECT * FROM track ORDER BY sort_name, id")
     fun tracks(): Flow<List<TrackWithArtists>>
 
+    /** One track with its credits, `null` when it is not in the library. */
+    @Transaction
+    @Query("SELECT * FROM track WHERE server_id = :serverId AND id = :trackId")
+    fun track(
+        serverId: String,
+        trackId: String,
+    ): Flow<TrackWithArtists?>
+
     /** One album with its credits, `null` when it is not in the library. */
     @Transaction
     @Query("SELECT * FROM album WHERE server_id = :serverId AND id = :albumId")

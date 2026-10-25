@@ -92,6 +92,15 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: open a result, then come back -> the query stays; clear the field -> recent searches show; Clear -> the list is empty and stays empty after restarting the app
 - [ ] Pixel 9: motion feels right (keyboard and results, no jank while typing) and there are no haptics on plain taps; TalkBack reads the clear-text button label
 
+## #18 Favorites, ratings and live updates via WebSocket
+- [ ] Pixel 9: app open on an album page -> in Jellyfin web mark that album and one of its tracks as favorite -> within a few seconds the album heart fills and the track menu says "Remove from favorites"
+- [ ] Pixel 9: play a track, tap the heart and give it 4 stars in Now Playing, let it play to the end (or skip) -> in Jellyfin web (or `GET /UserItems/{id}/UserData`) the track is still a favorite with Rating 8 (R2)
+- [ ] Pixel 9 + server: rate a track 3 stars, then tap the 3rd star again -> the stars clear in the app; the server's user data shows Rating 0 or none, and Jellyfin web shows it unrated (R14 confirmation)
+- [ ] Pixel 9: airplane mode, tap the heart on an album -> it fills, then goes back with "Could not save that change"; same with Now Playing open (message shows over the player)
+- [ ] Pixel 9: app open, restart the Jellyfin server -> after it is back, a favorite set in Jellyfin web still reaches the app within a few seconds (reconnect)
+- [ ] Pixel 9: press Home with nothing playing, wait 1 min, change a favorite in Jellyfin web -> it is not live (socket closed); open the app again -> socket reconnects; with music playing in the background the change shows live
+- [ ] Pixel 9 + server: add an album in Jellyfin (library scan) while the app is open -> it appears in Library within about 30 s without pull-to-refresh
+- [ ] Pixel 9: heart toggle gives a toggle haptic and morphs round -> squarish; stars give no haptic; TalkBack reads "Favorite, on/off", "Rate 3 stars", "Clear rating" and the rating state "3 of 5 stars"
 ## #20 Downloads and offline mode
 - [ ] Pixel 9: on Wi-Fi, album menu -> Download -> the Downloads tab shows the album's tracks with progress, then done, and the storage line grows; turn on airplane mode -> Home/Library/Search show "You are offline"; Downloads -> tap the first track -> the whole downloaded album plays through, seeking works, no errors
 - [ ] Pixel 9: in airplane mode, play a track that is not downloaded (e.g. from the restored queue) -> it fails at once with no long spinner, and the downloaded tracks still play

@@ -78,6 +78,7 @@ class AlbumScreenTest {
             MediatheqTheme { AlbumScreen(albumId, content.copy(currentTrackId = tracks[0].id), {}, onBack = {}) }
         }
 
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Track 1"))
         composeRule.onNodeWithText("Track 1").assert(hasStateDescription("Now playing"))
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Track 2"))
         composeRule.onNodeWithText("Track 2").assert(hasStateDescription("Now playing").not())
@@ -99,5 +100,26 @@ class AlbumScreenTest {
         composeRule.onNodeWithText("Add to playlist").performClick()
 
         assertThat(added).containsExactly(listOf(tracks[1].id), tracks.map { it.id }).inOrder()
+    }
+
+    @Test
+    fun `the header heart and stars and a track menu send favorite and rating`() {
+        val actions = mutableListOf<AlbumAction>()
+        composeRule.setContent { MediatheqTheme { AlbumScreen(albumId, content, { actions += it }, onBack = {}) } }
+
+        composeRule.onNodeWithContentDescription("Favorite").performClick()
+        composeRule.onNodeWithContentDescription("Rate 4 stars").performClick()
+        composeRule
+            .onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasContentDescription("More options for Track 2"))
+        composeRule.onNodeWithContentDescription("More options for Track 2").performClick()
+        composeRule.onNodeWithText("Add to favorites").performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                AlbumAction.SetFavorite(albumId, true),
+                AlbumAction.Rate(4),
+                AlbumAction.SetFavorite(tracks[1].id, true),
+            ).inOrder()
     }
 }

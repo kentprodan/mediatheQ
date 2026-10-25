@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
@@ -27,10 +28,11 @@ class SearchViewModelTest {
     private val library = FakeLibraryRepository()
     private val preferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
+    private val userData = FakeUserDataRepository()
 
     // Lazy: viewModelScope must be created after the rule replaced the main dispatcher.
     private val downloads = FakeDownloadRepository()
-    private val viewModel by lazy { SearchViewModel(library, preferences, playback, downloads) }
+    private val viewModel by lazy { SearchViewModel(library, preferences, playback, userData, downloads) }
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
@@ -186,6 +188,24 @@ class SearchViewModelTest {
 
             assertThat(playback.playedNext).containsExactly(listOf(track))
             assertThat(playback.addedToQueue).containsExactly(listOf(track))
+        }
+
+    @Test
+    fun `a song menu favorites the track and the results are read again`() =
+        test {
+            viewModel.uiState.test {
+                skipItems(1) // the recent searches
+                viewModel.onAction(SearchAction.QueryChanged("mo"))
+                advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+                skipItems(1)
+
+                viewModel.onAction(SearchAction.SetFavorite(track, true))
+                advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+
+                assertThat(userData.calls).containsExactly("favorite:${track.id.itemId}:true")
+                assertThat(library.searches).containsExactly("mo", "mo")
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 
     @Test

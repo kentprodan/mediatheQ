@@ -125,11 +125,12 @@ private fun BaseItemDto.albumArtwork(): Artwork? {
     return Artwork(albumId ?: return null, tag, imageBlurHashes["Primary"]?.get(tag))
 }
 
-private fun UserItemDataDto?.toDomain(): UserData =
+/** A rating of 0 is how a cleared rating comes back (R14), so it maps to unrated. */
+internal fun UserItemDataDto?.toDomain(): UserData =
     if (this == null) {
         UserData()
     } else {
-        UserData(isFavorite, rating, playCount, instant(lastPlayedDate), played)
+        UserData(isFavorite, rating?.takeIf { it > 0 }, playCount, instant(lastPlayedDate), played)
     }
 
 private fun instant(value: String?): Instant? = value?.let { runCatching { Instant.parse(it) }.getOrNull() }

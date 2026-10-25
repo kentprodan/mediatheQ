@@ -120,4 +120,16 @@ object MqIcons {
 
     val AddToPlaylist: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_library_add)
+
+    val Favorite: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_favorite)
+
+    val FavoriteFilled: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_favorite_filled)
+
+    val Star: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_star)
+
+    val StarFilled: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_star_filled)
 }

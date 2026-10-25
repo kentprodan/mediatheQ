@@ -35,6 +35,7 @@ dependencies {
     implementation(projects.feature.nowplaying)
     implementation(projects.feature.playlist)
     implementation(projects.feature.search)
+    implementation(libs.androidx.lifecycle.process)
     implementation(projects.feature.downloads)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.coil.compose)

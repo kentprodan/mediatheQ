@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
+import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +31,7 @@ class PlaylistViewModel
         @Assisted private val playlistId: MediaId,
         private val repository: PlaylistRepository,
         private val playback: PlaybackConnection,
+        private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
     ) : ViewModel() {
         private val selected = MutableStateFlow(emptySet<String>())
@@ -103,6 +105,11 @@ class PlaylistViewModel
 
                 is PlaylistAction.AddToQueue -> {
                     item(action.position)?.let { playback.addToQueue(listOf(it.track)) }
+                }
+
+                is PlaylistAction.SetFavorite -> {
+                    val track = item(action.position)?.track ?: return
+                    viewModelScope.launch { userData.setFavorite(track.id, action.isFavorite) }
                 }
 
                 is PlaylistAction.ToggleSelection -> {

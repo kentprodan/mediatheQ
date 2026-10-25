@@ -56,6 +56,7 @@ class DefaultLibrarySyncRepository
         private val sessionRepository: SessionRepository,
         private val clock: Clock,
         @param:ApplicationScope private val scope: CoroutineScope,
+        private val userData: DefaultUserDataRepository,
     ) : LibrarySyncRepository {
         private val mutableStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle(null))
         override val status: StateFlow<SyncStatus> = mutableStatus.asStateFlow()
@@ -65,6 +66,12 @@ class DefaultLibrarySyncRepository
         private var running: Deferred<MqResult<Unit>>? = null
 
         override suspend fun sync(): MqResult<Unit> = join().await()
+
+        /** Like [sync], but never joins a sync that was already running: it may have read past the change. */
+        internal suspend fun syncAfterChange(): MqResult<Unit> {
+            lock.withLock { running }?.join()
+            return sync()
+        }
 
         /** Follows the account for the app's lifetime; call once from the Application. */
         fun start() {
@@ -104,6 +111,7 @@ class DefaultLibrarySyncRepository
                 val job = lock.withLock { running }
                 job?.cancel()
                 job?.join()
+                userData.forgetPending()
                 syncDao.clearAll()
                 mutableStatus.value = SyncStatus.Idle(null)
             }
@@ -170,6 +178,7 @@ class DefaultLibrarySyncRepository
                     )
                 syncDao.saveState(state)
             }
+            userData.onSyncStarted()
             var step = SyncStep.entries.first { it.name == state.checkpointStep }
             var index = state.checkpointIndex
             while (true) {
@@ -186,6 +195,8 @@ class DefaultLibrarySyncRepository
                 }
             }
             syncDao.swap(clock.now().toEpochMilliseconds(), account.first, account.second)
+            // Pages fetched before a favorite or rating reached the server carry the old value.
+            userData.reapplyOverrides()
             return MqResult.Success(Unit)
         }
 

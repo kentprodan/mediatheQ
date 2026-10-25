@@ -11,4 +11,6 @@ internal data class UserItemDataDto(
     @SerialName("PlayCount") val playCount: Int = 0,
     @SerialName("LastPlayedDate") val lastPlayedDate: String? = null,
     @SerialName("Played") val played: Boolean = false,
+    /** Set in WebSocket `UserDataChanged` messages, which carry no item around it. */
+    @SerialName("ItemId") val itemId: String? = null,
 )

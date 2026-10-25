@@ -57,6 +57,17 @@ sealed interface AlbumAction {
         val trackId: MediaId? = null,
     ) : AlbumAction
 
+    /** Favorite or not: the album itself or one of its tracks. */
+    data class SetFavorite(
+        val id: MediaId,
+        val isFavorite: Boolean,
+    ) : AlbumAction
+
+    /** Rate the album with 1-5 [stars]; `null` clears the rating. */
+    data class Rate(
+        val stars: Int?,
+    ) : AlbumAction
+
     /** Download one track, or the whole album when [trackId] is `null`. */
     data class Download(
         val trackId: MediaId? = null,

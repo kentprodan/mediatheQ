@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -27,6 +28,7 @@ class PlaylistViewModelTest {
 
     private val repository = FakePlaylistRepository()
     private val playback = FakePlaybackConnection()
+    private val userData = FakeUserDataRepository()
     private val downloads = FakeDownloadRepository()
     private val playlistId = MediaId(ServerId("s"), "p1")
 
@@ -44,7 +46,7 @@ class PlaylistViewModelTest {
     private fun TestScope.viewModel(): PlaylistViewModel {
         repository.playlists.value = listOf(Playlist(playlistId, "Drum"))
         repository.items.value = mapOf(playlistId to items)
-        val viewModel = PlaylistViewModel(playlistId, repository, playback, downloads)
+        val viewModel = PlaylistViewModel(playlistId, repository, playback, userData, downloads)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -53,7 +55,7 @@ class PlaylistViewModelTest {
 
     @Test
     fun `starts loading`() {
-        assertThat(PlaylistViewModel(playlistId, repository, playback, downloads).uiState.value)
+        assertThat(PlaylistViewModel(playlistId, repository, playback, userData, downloads).uiState.value)
             .isEqualTo(PlaylistUiState.Loading)
     }
 
@@ -114,6 +116,17 @@ class PlaylistViewModelTest {
 
             assertThat(playback.playedNext).containsExactly(listOf(tracks[2]))
             assertThat(playback.addedToQueue).containsExactly(listOf(tracks[0]))
+        }
+
+    @Test
+    fun `a track menu favorites the track at that position`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+
+            viewModel.onAction(PlaylistAction.SetFavorite(3, true))
+            viewModel.onAction(PlaylistAction.SetFavorite(99, true))
+
+            assertThat(userData.calls).containsExactly("favorite:${tracks[2].id.itemId}:true")
         }
 
     @Test

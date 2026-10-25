@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSourceBitmapLoader
 import androidx.media3.datasource.cache.Cache
@@ -22,6 +23,7 @@ import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
+import io.github.kentprodan.mediatheq.core.data.LiveSync
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
@@ -54,6 +56,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var queueRepository: QueueRepository
 
     @Inject lateinit var artworkUrls: ArtworkUrlResolver
+
+    @Inject lateinit var liveSync: LiveSync
 
     @Inject lateinit var downloads: DownloadRepository
 
@@ -123,6 +127,20 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 playerDispatcher = Dispatchers.Main,
             )
         player.addListener(ReportingListener(player, reporter))
+        // Live updates keep going in the background while music plays (issue #18): while it is meant to play, so a
+        // buffering stall does not drop and reopen the connection.
+        player.addListener(
+            object : Player.Listener {
+                override fun onEvents(
+                    player: Player,
+                    events: Player.Events,
+                ) {
+                    if (events.containsAny(Player.EVENT_PLAY_WHEN_READY_CHANGED, Player.EVENT_PLAYBACK_STATE_CHANGED)) {
+                        liveSync.setPlaying(player.wantsToPlay())
+                    }
+                }
+            },
+        )
         persistence =
             QueuePersistence(
                 player = player,
@@ -191,6 +209,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             release()
         }
         session = null
+        liveSync.setPlaying(false)
         super.onDestroy()
     }
 
@@ -230,3 +249,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         }
     }
 }
+
+/** Music is meant to play: play was asked for and the player has something to play (buffering counts). */
+internal fun Player.wantsToPlay(): Boolean =
+    playWhenReady && playbackState != Player.STATE_IDLE && playbackState != Player.STATE_ENDED

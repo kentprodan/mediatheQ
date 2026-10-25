@@ -55,6 +55,11 @@ sealed interface SearchAction {
         val track: Track,
     ) : SearchAction
 
+    data class SetFavorite(
+        val track: Track,
+        val isFavorite: Boolean,
+    ) : SearchAction
+
     data object ClearRecent : SearchAction
 
     /** Runs the failed search again. */
