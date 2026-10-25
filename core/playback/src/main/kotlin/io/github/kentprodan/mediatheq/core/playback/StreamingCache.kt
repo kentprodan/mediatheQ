@@ -18,9 +18,6 @@ import javax.inject.Qualifier
 @Retention(AnnotationRetention.BINARY)
 internal annotation class StreamingCache
 
-/** Size of the streaming cache. shortcut: fixed until the Settings screen exists (#25). */
-internal const val STREAMING_CACHE_BYTES = 2L * 1024 * 1024 * 1024
-
 /** The key of a track's original file in the streaming cache: stable across sessions and URLs. */
 internal fun originalCacheKey(itemId: MediaId): String = "$itemId:original"
 

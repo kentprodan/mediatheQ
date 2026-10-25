@@ -10,7 +10,7 @@ import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
 @Composable
 private fun Home(state: HomeUiState) =
     MediatheqTheme {
-        HomeScreen(state, {}, {}, {}, {})
+        HomeScreen(state, {}, {}, {})
     }
 
 private fun album(n: Int) =

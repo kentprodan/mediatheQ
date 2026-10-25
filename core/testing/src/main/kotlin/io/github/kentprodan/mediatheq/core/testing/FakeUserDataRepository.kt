@@ -7,7 +7,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * [UserDataRepository] for ViewModel tests: records each change in [calls] (e.g. "favorite:t1:true", "stars:t1:4") and
+ * [UserDataRepository] for ViewModel tests: records each change in [calls] (e.g. "favorite:t1:true", "rating:t1:8") and
  * answers with [failure] when it is set.
  */
 class FakeUserDataRepository : UserDataRepository {
@@ -26,8 +26,8 @@ class FakeUserDataRepository : UserDataRepository {
 
     override suspend fun setRating(
         id: MediaId,
-        stars: Int?,
-    ) = record("stars:${id.itemId}:$stars")
+        halfStars: Int?,
+    ) = record("rating:${id.itemId}:$halfStars")
 
     private fun record(call: String): MqResult<Unit> {
         calls += call

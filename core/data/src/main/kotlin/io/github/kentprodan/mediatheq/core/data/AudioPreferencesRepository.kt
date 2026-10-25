@@ -2,7 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import kotlinx.coroutines.flow.Flow
 
-/** Audio preferences (bit-perfect USB, equalizer), kept across restarts. */
+/** Audio, streaming and storage preferences, kept across restarts. */
 interface AudioPreferencesRepository {
     val preferences: Flow<AudioPreferences>
 
@@ -11,6 +11,19 @@ interface AudioPreferencesRepository {
     suspend fun setEqualizerOn(on: Boolean)
 
     suspend fun setEqPreset(preset: EqPreset)
+
+    suspend fun setNormalization(normalization: Normalization)
+
+    /** The quality on [metered] networks, or on unmetered ones. */
+    suspend fun setStreamingQuality(
+        metered: Boolean,
+        quality: StreamingQuality,
+    )
+
+    /** Ignored outside [AudioPreferences.CACHE_SIZES_GB]. */
+    suspend fun setStreamingCacheGb(gb: Int)
+
+    suspend fun setDownloadsUnmeteredOnly(on: Boolean)
 
     /**
      * Sets band [index] to [gainDb] (clamped to [AudioPreferences.EQ_GAIN_DB]), starting from the gains heard now and

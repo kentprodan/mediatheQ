@@ -108,6 +108,10 @@ object MqIcons {
     val GraphicEq: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_graphic_eq)
 
+    /** Opens Settings (Home). */
+    val Settings: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_settings)
+
     /** Audio settings: equalizer, bit-perfect USB. */
     val Tune: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_tune)
@@ -154,6 +158,9 @@ object MqIcons {
 
     val Star: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_star)
+
+    val StarHalf: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_star_half)
 
     val StarFilled: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_star_filled)

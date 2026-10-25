@@ -79,6 +79,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @StreamingCache
     lateinit var streamingCache: Cache
 
+    @Inject internal lateinit var streamingEvictor: ResizableLruCacheEvictor
+
     @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
@@ -200,7 +202,6 @@ class MediatheqPlaybackService : MediaLibraryService() {
      * skill, sections 5-7).
      */
     private fun startAudioOutput(player: ExoPlayer) {
-        // shortcut: normalization keeps its default until the Settings screen exists (#25).
         var settings = AudioSettings()
         var offload: Boolean? = null
         var eqGains = AudioPreferences().eqGainsDb
@@ -254,9 +255,17 @@ class MediatheqPlaybackService : MediaLibraryService() {
         audioSettingsJob =
             applicationScope.launch(Dispatchers.Main) {
                 audioPreferences.preferences.collect {
-                    settings = settings.copy(equalizerOn = it.equalizerOn, bitPerfectUsb = it.bitPerfectUsb)
+                    settings =
+                        settings.copy(
+                            normalization = it.normalization,
+                            equalizerOn = it.equalizerOn,
+                            bitPerfectUsb = it.bitPerfectUsb,
+                        )
                     eqGains = it.eqGainsDb
+                    streamingEvictor.maxBytes = gibibytes(it.streamingCacheGb)
                     audioOutput.setSettings(settings)
+                    // The output state may not change with the normalization, so set the volume here too.
+                    normalization.apply()
                     applyEqualizer()
                 }
             }

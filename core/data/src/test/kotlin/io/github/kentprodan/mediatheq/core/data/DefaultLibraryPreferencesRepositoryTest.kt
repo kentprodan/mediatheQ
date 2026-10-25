@@ -97,4 +97,25 @@ class DefaultLibraryPreferencesRepositoryTest {
 
             assertThat(repository.preferences.first()).isEqualTo(LibraryPreferences())
         }
+
+    @Test
+    fun `display defaults are Iris colors and whole stars`() =
+        runTest {
+            val preferences = repository.preferences.first()
+
+            assertThat(preferences.dynamicColor).isFalse()
+            assertThat(preferences.ratingMode).isEqualTo(RatingMode.WholeStars)
+        }
+
+    @Test
+    fun `display choices are kept, and an unknown rating mode means whole stars`() =
+        runTest {
+            repository.setDynamicColor(true)
+            repository.setRatingMode(RatingMode.HalfStars)
+            assertThat(repository.preferences.first().dynamicColor).isTrue()
+            assertThat(repository.preferences.first().ratingMode).isEqualTo(RatingMode.HalfStars)
+
+            dataStore.edit { it[stringPreferencesKey("rating_mode")] = "Hearts" }
+            assertThat(repository.preferences.first().ratingMode).isEqualTo(RatingMode.WholeStars)
+        }
 }

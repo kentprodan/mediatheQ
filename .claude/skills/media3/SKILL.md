@@ -53,9 +53,11 @@ Input to `StreamResolver`: track, network type (Wi-Fi / Ethernet / cellular / me
 | Situation | Request to server | Result |
 |---|---|---|
 | Wi-Fi / Ethernet, codec decodable or passthrough-able | direct play, no bitrate cap | original file |
-| Cellular / metered | max 256 kbps, transcoding target **Opus** | server transcodes lossless and high-bitrate files |
+| Cellular / metered | the user's quality, default 256 kbps, transcoding target **Opus** at that bitrate | server transcodes lossless and high-bitrate files |
 | Codec not supported on this device/route | let the server transcode | Opus (phone) / lossless-safe target per DeviceProfile |
 | Downloaded track | none, play local file | original (or the downloaded quality) |
+
+- Quality per network kind comes from Settings (#25): `StreamingQuality` Original / 256 / 128 kbps, defaults Original on unmetered and 256 on metered. `DeviceProfileBuilder.build(decoders, quality)`: Original = no cap (formats the device cannot decode still convert to Opus 256), otherwise the cap and Opus at that bitrate. `StreamResolver` keeps one stream per track and quality, so a new setting applies at the next load. Downloads always ask for the original. A fully cached original still plays at any quality, and prefetch only fetches originals.
 
 - Transcoding container for Opus: one that Media3 extracts reliably (Ogg or WebM/Matroska). Pick one in an ADR after a device test; do not mix.
 - The decision is a pure function `selectStream(track, context): StreamDecision` with exhaustive tests (one per row above plus Atmos rows in section 4).
@@ -127,7 +129,7 @@ Rules:
 
 ## 9. Prefetch and cache (streaming)
 
-- One `SimpleCache` for streaming in `cacheDir/media`, `LeastRecentlyUsedCacheEvictor(2 GB)` (size from settings, #25), on the database provider `:core:download` provides (ADR 0018).
+- One `SimpleCache` for streaming in `cacheDir/media`, with `ResizableLruCacheEvictor` (least recently used, 1/2/4/8 GB from Settings, default 2; the service sets the size, a smaller one applies at the next write), on the database provider `:core:download` provides (ADR 0018).
 - Data source: `ResolvingDataSource` -> read-only `CacheDataSource` (downloads) -> `CacheDataSource` (streaming) -> `OkHttpDataSource` with the shared client. The resolver picks, in order: download, complete streaming copy (both with no network), offline failure, server stream.
 - Cache keys (ADR 0018): `<MediaId>:original` for a direct play; `transcode:<playSessionId>` for anything else (never written: no length). Never a URL or token. A partial copy whose length differs from the server's `MediaSource.Size` is dropped.
 - Prefetch (ADR 0018): `Prefetcher` with `CacheWriter` - next 2 items in play order on unmetered networks, 1 on metered; original files only; skips downloaded/cached tracks before any server request; only while playing and online; never replaces the stream the player knows (`StreamResolver.prefetchStream`); cancelled when the player opens the same track.
@@ -142,7 +144,7 @@ Rules:
 - Playback: the player's data source is `ResolvingDataSource` over a **read-only** `CacheDataSource` on the download cache. A track that `DownloadRepository.isDownloaded` gets the download key and plays with no network at all; any other track resolves its stream (its cache key never hits). Downloaded plays still report to the server with a direct-play session of our own (`StreamResolver.playLocal`).
 - Offline (`NetworkMonitor.isOnline`), tracks that are not downloaded fail at once and the load error policy never retries, so the queue does not stall.
 - State: `DefaultDownloadRepository` (in `:core:download`) keeps every download from the index plus the manager's events; progress is read once a second while someone watches. Actions go through `DownloadService.sendAddDownload/sendRemoveDownload`.
-- Requirements: Wi-Fi only (`NETWORK_UNMETERED`; the toggle comes with Settings, #25). No scheduler: on API 31+ Media3 cannot restart the service from the background, so unfinished downloads resume when the app opens (`resumeDownloads` in `MainActivity`). Android 15+ limits `dataSync` to 6 h a day; a stopped batch resumes at the next app start. Removing a download never touches the server (see `jellyfin` R5).
+- Requirements: Wi-Fi only (`NETWORK_UNMETERED`) by default, or any network (`NETWORK`) from Settings; `DefaultDownloadRepository` sets `manager.requirements` on the main thread (never through the service: Android 12+ blocks starting it from the background). No scheduler: on API 31+ Media3 cannot restart the service from the background, so unfinished downloads resume when the app opens (`resumeDownloads` in `MainActivity`). Android 15+ limits `dataSync` to 6 h a day; a stopped batch resumes at the next app start. Removing a download never touches the server (see `jellyfin` R5).
 
 ## 11. Queue, session and system integration
 

@@ -5,18 +5,14 @@ import androidx.navigation3.runtime.NavKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
+import io.github.kentprodan.mediatheq.core.navigation.SettingsKey
 
-/** Registers the Home tab root. [onOpenShowcase] opens the theme showcase, which lives in the app. */
-fun EntryProviderScope<NavKey>.homeEntry(
-    navigator: Navigator,
-    onLogout: () -> Unit,
-    onOpenShowcase: () -> Unit,
-) {
+/** Registers the Home tab root. */
+fun EntryProviderScope<NavKey>.homeEntry(navigator: Navigator) {
     entry<HomeKey> {
         HomeRoute(
             onOpenAlbum = { navigator.navigateTo(AlbumKey(it)) },
-            onLogout = onLogout,
-            onOpenShowcase = onOpenShowcase,
+            onOpenSettings = { navigator.navigateTo(SettingsKey) },
         )
     }
 }

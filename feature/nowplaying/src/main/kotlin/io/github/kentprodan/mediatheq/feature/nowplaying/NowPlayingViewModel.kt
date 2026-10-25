@@ -4,9 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqResult
-import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LyricsRepository
+import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.UserData
@@ -37,8 +38,8 @@ class NowPlayingViewModel
         private val playback: PlaybackConnection,
         private val library: LibraryRepository,
         private val userData: UserDataRepository,
-        private val audioPreferences: AudioPreferencesRepository,
         private val lyricsRepository: LyricsRepository,
+        libraryPreferences: LibraryPreferencesRepository,
     ) : ViewModel() {
         // Favorite and rating come from Room, so a change made here or in another client shows at once.
         private val playingUserData: Flow<Pair<MediaId, UserData>?> =
@@ -56,22 +57,21 @@ class NowPlayingViewModel
                 }
 
         val uiState: StateFlow<NowPlayingUiState> =
-            combine(playback.state, playingUserData) { state, data ->
+            combine(
+                playback.state,
+                playingUserData,
+                libraryPreferences.preferences.map { it.ratingMode }.distinctUntilChanged(),
+            ) { state, data, ratingMode ->
                 // Until the new track's row arrives, the previous track's user data must not show.
-                state.toUiState(data?.takeIf { it.first == state.item?.id }?.second)
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), playback.state.value.toUiState(null))
+                state.toUiState(data?.takeIf { it.first == state.item?.id }?.second, ratingMode)
+            }.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                playback.state.value.toUiState(null, RatingMode.WholeStars),
+            )
 
         /** The playing position, sampled by the connection; collect it only where it is drawn. */
         val position: StateFlow<Duration> = playback.position
-
-        /** The audio settings and output; collect it only while the Audio screen shows. */
-        val audio: StateFlow<AudioUiState> =
-            combine(
-                audioPreferences.preferences,
-                playback.state.map { it.output }.distinctUntilChanged(),
-            ) { prefs, out ->
-                AudioUiState(prefs, out)
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AudioUiState())
 
         private val lyricsRetries = MutableStateFlow(0)
 
@@ -153,33 +153,20 @@ class NowPlayingViewModel
                     val id =
                         playback.state.value.item
                             ?.id ?: return
-                    viewModelScope.launch { userData.setRating(id, action.stars) }
+                    viewModelScope.launch { userData.setRating(id, action.halfStars) }
                 }
 
                 is NowPlayingAction.MoveQueueItem -> {
                     playback.moveQueueItem(action.entryId, action.to)
                 }
-
-                is NowPlayingAction.SetBitPerfectUsb -> {
-                    viewModelScope.launch { audioPreferences.setBitPerfectUsb(action.on) }
-                }
-
-                is NowPlayingAction.SetEqualizerOn -> {
-                    viewModelScope.launch { audioPreferences.setEqualizerOn(action.on) }
-                }
-
-                is NowPlayingAction.SetEqPreset -> {
-                    viewModelScope.launch { audioPreferences.setEqPreset(action.preset) }
-                }
-
-                is NowPlayingAction.SetEqBand -> {
-                    viewModelScope.launch { audioPreferences.setEqBand(action.index, action.gainDb) }
-                }
             }
         }
     }
 
-private fun PlayerUiModel.toUiState(userData: UserData?): NowPlayingUiState {
+private fun PlayerUiModel.toUiState(
+    userData: UserData?,
+    ratingMode: RatingMode,
+): NowPlayingUiState {
     val item = item ?: return NowPlayingUiState.Hidden
     return NowPlayingUiState.Playing(
         title = item.title,
@@ -193,7 +180,8 @@ private fun PlayerUiModel.toUiState(userData: UserData?): NowPlayingUiState {
         currentEntryId = currentEntryId,
         shuffle = shuffle,
         isFavorite = userData?.isFavorite == true,
-        stars = userData?.stars,
+        halfStars = userData?.halfStars,
+        ratingMode = ratingMode,
         bitPerfectSampleRateHz = output.bitPerfectSampleRateHz,
         atmosConverted = output.atmosConverted,
     )

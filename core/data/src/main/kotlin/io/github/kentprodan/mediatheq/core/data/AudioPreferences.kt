@@ -11,7 +11,19 @@ enum class EqPreset(
     Custom(null),
 }
 
-/** Validated audio preferences (media3 skill, sections 6 and 7). */
+/** Which ReplayGain-style gain sets the volume of a track (media3 skill, section 7). */
+enum class Normalization { Album, Track, Off }
+
+/** Streaming quality on one kind of network: the original file, or Opus at [bitrate] bits per second. */
+enum class StreamingQuality(
+    val bitrate: Int?,
+) {
+    Original(null),
+    Kbps256(256_000),
+    Kbps128(128_000),
+}
+
+/** Validated audio, streaming and storage preferences (media3 skill, sections 3, 6, 7, 9 and 10). */
 data class AudioPreferences(
     /** Send audio unchanged to a USB DAC when one is connected. Off by default: phone volume stops working. */
     val bitPerfectUsb: Boolean = false,
@@ -19,7 +31,19 @@ data class AudioPreferences(
     val eqPreset: EqPreset = EqPreset.Flat,
     /** The [EqPreset.Custom] gains, kept while another preset is chosen. */
     val customGainsDb: List<Float> = FLAT_GAINS_DB,
+    val normalization: Normalization = Normalization.Album,
+    /** Quality on unmetered networks (Wi-Fi, Ethernet). */
+    val unmeteredQuality: StreamingQuality = StreamingQuality.Original,
+    /** Quality on metered networks (mobile data). */
+    val meteredQuality: StreamingQuality = StreamingQuality.Kbps256,
+    /** The streaming cache size, one of [CACHE_SIZES_GB]. */
+    val streamingCacheGb: Int = DEFAULT_CACHE_GB,
+    /** Downloads wait for an unmetered network; off = any network. */
+    val downloadsUnmeteredOnly: Boolean = true,
 ) {
+    /** The streaming quality for a network that is [metered] or not. */
+    fun qualityFor(metered: Boolean): StreamingQuality = if (metered) meteredQuality else unmeteredQuality
+
     /** The gains the equalizer applies, one per band of [EQ_BANDS_HZ]. */
     val eqGainsDb: List<Float> get() = eqPreset.gainsDb ?: customGainsDb
 
@@ -31,5 +55,8 @@ data class AudioPreferences(
         val EQ_GAIN_DB = -12f..12f
 
         private val FLAT_GAINS_DB = List(EQ_BANDS_HZ.size) { 0f }
+
+        val CACHE_SIZES_GB = listOf(1, 2, 4, 8)
+        const val DEFAULT_CACHE_GB = 2
     }
 }

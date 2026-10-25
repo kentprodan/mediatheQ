@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
@@ -198,7 +199,13 @@ private fun AlbumHeader(
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             MqFavoriteToggle(state.album.userData.isFavorite, { onAction(AlbumAction.SetFavorite(albumId, it)) })
-            MqStarRating(state.album.userData.stars, { onAction(AlbumAction.Rate(it)) })
+            if (state.ratingMode != RatingMode.Off) {
+                MqStarRating(
+                    state.album.userData.halfStars,
+                    { onAction(AlbumAction.Rate(it)) },
+                    allowHalf = state.ratingMode == RatingMode.HalfStars,
+                )
+            }
         }
     }
 }

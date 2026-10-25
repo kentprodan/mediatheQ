@@ -191,23 +191,6 @@ class NowPlayingLayoutTest {
     }
 
     @Test
-    fun `the audio screen opens from the player, and back returns to the player`() {
-        val audioPane = SemanticsMatcher.expectValue(SemanticsProperties.PaneTitle, "Audio")
-        setContent()
-        composeRule.onNode(miniPlayer).performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithContentDescription("Audio settings").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNode(audioPane).assertExists()
-
-        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
-        composeRule.waitForIdle()
-        composeRule.onNode(audioPane).assertDoesNotExist()
-        composeRule.onNode(playerPane).assertExists()
-    }
-
-    @Test
     fun `lyrics open from the player, and back returns to the player`() {
         val lyricsPane = SemanticsMatcher.expectValue(SemanticsProperties.PaneTitle, "Lyrics")
         setContent()

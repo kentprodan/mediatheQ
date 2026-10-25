@@ -13,6 +13,8 @@
     <string name="mq_rating">Rating</string>
     <string name="mq_not_rated">Not rated</string>
     <string name="mq_clear_rating">Clear rating</string>
+    <string name="mq_rate_half_stars">Rate %1$s stars</string>
+    <string name="mq_rated_half_stars">%1$s of 5 stars</string>
     <plurals name="mq_rate_stars">
         <item quantity="one">Rate %d star</item>
         <item quantity="other">Rate %d stars</item>

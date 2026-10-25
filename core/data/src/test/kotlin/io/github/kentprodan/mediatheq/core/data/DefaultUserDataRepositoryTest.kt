@@ -93,7 +93,7 @@ class DefaultUserDataRepositoryTest {
         runTest(dispatcher) {
             val repository = repository()
 
-            repository.setRating(track, 4)
+            repository.setRating(track, 8)
             assertThat(stored(track)?.rating).isEqualTo(8.0)
 
             repository.setRating(track, null)
@@ -132,7 +132,7 @@ class DefaultUserDataRepositoryTest {
             repository.setFavorite(track, true)
             sink.failure = MqError.Network
 
-            assertThat(repository.setRating(track, 5)).isEqualTo(MqResult.Failure(MqError.Network))
+            assertThat(repository.setRating(track, 10)).isEqualTo(MqResult.Failure(MqError.Network))
             assertThat(stored(track)).isEqualTo(rated(6.0).copy(isFavorite = true))
         }
 
@@ -193,7 +193,7 @@ class DefaultUserDataRepositoryTest {
             val repository = repository()
             val syncDao = database.syncDao()
             sink.gate = CompletableDeferred()
-            val write = async { repository.setRating(track, 2) }
+            val write = async { repository.setRating(track, 4) }
             runCurrent()
             // A sync fetched the track before the change and stages it now, then swaps.
             syncDao.stageTracks(listOf(TrackStaging(TrackEntity("s", "t1", "Pe-o margine", "Pe-o margine"))))
@@ -223,7 +223,7 @@ class DefaultUserDataRepositoryTest {
 
             playback.reportStart(report)
             userData.setFavorite(track, true)
-            userData.setRating(track, 5)
+            userData.setRating(track, 10)
             playback.reportProgress(report.copy(position = 10.seconds))
             runCurrent()
             assertThat(sink.serverState[track]?.isFavorite).isTrue()
@@ -330,7 +330,7 @@ class DefaultUserDataRepositoryTest {
             playback.reportStart(report)
             userData.setFavorite(track, true)
             sink.gate = CompletableDeferred()
-            val slowWrite = async { userData.setRating(album, 3) }
+            val slowWrite = async { userData.setRating(album, 6) }
             runCurrent()
 
             val stopped = async { playback.reportStopped(report, failed = false) }

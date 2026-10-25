@@ -183,8 +183,8 @@ class ArtistViewModelTest {
             val viewModel = viewModel()
 
             viewModel.onAction(ArtistAction.SetFavorite(true))
-            viewModel.onAction(ArtistAction.Rate(2))
+            viewModel.onAction(ArtistAction.Rate(4))
 
-            assertThat(userData.calls).containsExactly("favorite:ar1:true", "stars:ar1:2").inOrder()
+            assertThat(userData.calls).containsExactly("favorite:ar1:true", "rating:ar1:4").inOrder()
         }
 }

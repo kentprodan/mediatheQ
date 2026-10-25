@@ -14,11 +14,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.UserData
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -118,8 +120,32 @@ class AlbumScreenTest {
         assertThat(actions)
             .containsExactly(
                 AlbumAction.SetFavorite(albumId, true),
-                AlbumAction.Rate(4),
+                AlbumAction.Rate(8),
                 AlbumAction.SetFavorite(tracks[1].id, true),
             ).inOrder()
+    }
+
+    @Test
+    fun `with ratings off only the heart shows`() {
+        val off = content.copy(ratingMode = RatingMode.Off)
+        composeRule.setContent { MediatheqTheme { AlbumScreen(albumId, off, {}, onBack = {}) } }
+
+        composeRule.onNodeWithContentDescription("Favorite").assertExists()
+        composeRule.onNodeWithContentDescription("Rate 1 star").assertDoesNotExist()
+    }
+
+    @Test
+    fun `with half stars the current star gives a half star`() {
+        val actions = mutableListOf<AlbumAction>()
+        val rated =
+            content.copy(
+                album = content.album.copy(userData = UserData(rating = 8.0)),
+                ratingMode = RatingMode.HalfStars,
+            )
+        composeRule.setContent { MediatheqTheme { AlbumScreen(albumId, rated, { actions += it }, onBack = {}) } }
+
+        composeRule.onNodeWithContentDescription("Rate 3.5 stars").performClick()
+
+        assertThat(actions).containsExactly(AlbumAction.Rate(7))
     }
 }

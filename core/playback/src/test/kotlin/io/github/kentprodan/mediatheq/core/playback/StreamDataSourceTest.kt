@@ -8,7 +8,6 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheWriter
 import androidx.media3.datasource.cache.ContentMetadataMutations
-import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.test.utils.FakeDataSet
@@ -21,6 +20,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackRepository
@@ -46,7 +46,8 @@ class StreamDataSourceTest {
     private val bytes = ByteArray(1_000) { it.toByte() }
     private val repository = FakePlaybackRepository()
     private val network = FakeNetworkMonitor()
-    private val resolver = StreamResolver(repository, { setOf("audio/flac") }, network)
+    private val audioPreferences = FakeAudioPreferencesRepository()
+    private val resolver = StreamResolver(repository, { setOf("audio/flac") }, network, audioPreferences)
     private val downloads = FakeDownloadRepository()
 
     /** Every request that reaches the network, answered with 10 bytes instead (without a length when [chunked]). */
@@ -77,7 +78,7 @@ class StreamDataSourceTest {
     private val streamingCache =
         SimpleCache(
             Files.createTempDirectory("media").toFile(),
-            LeastRecentlyUsedCacheEvictor(STREAMING_CACHE_BYTES),
+            ResizableLruCacheEvictor(gibibytes(2)),
             database,
         )
     private val factory =

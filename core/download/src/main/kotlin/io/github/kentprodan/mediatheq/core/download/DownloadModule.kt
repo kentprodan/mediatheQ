@@ -31,8 +31,9 @@ internal interface DownloadModule {
     fun downloadRepository(repository: DefaultDownloadRepository): DownloadRepository
 
     companion object {
-        /** Wi-Fi only (any unmetered network); the setting to allow mobile data comes with Settings (#25). */
-        val REQUIREMENTS = Requirements(Requirements.NETWORK_UNMETERED)
+        /** Wi-Fi only (any unmetered network), or any network: the Settings choice, applied by the repository. */
+        fun requirements(unmeteredOnly: Boolean) =
+            Requirements(if (unmeteredOnly) Requirements.NETWORK_UNMETERED else Requirements.NETWORK)
 
         private const val MAX_PARALLEL_DOWNLOADS = 2
 
@@ -69,7 +70,7 @@ internal interface DownloadModule {
                 Executors.newFixedThreadPool(MAX_PARALLEL_DOWNLOADS),
             ).apply {
                 maxParallelDownloads = MAX_PARALLEL_DOWNLOADS
-                requirements = REQUIREMENTS
+                requirements = requirements(unmeteredOnly = true)
             }
     }
 }

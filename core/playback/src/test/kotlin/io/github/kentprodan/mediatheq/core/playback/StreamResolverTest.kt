@@ -4,9 +4,11 @@ import android.net.Uri
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackRepository
 import kotlinx.coroutines.test.runTest
@@ -19,11 +21,12 @@ import org.robolectric.RobolectricTestRunner
 class StreamResolverTest {
     private val repository = FakePlaybackRepository()
     private val network = FakeNetworkMonitor()
-    private val resolver = StreamResolver(repository, { setOf("audio/flac") }, network)
+    private val audioPreferences = FakeAudioPreferencesRepository()
+    private val resolver = StreamResolver(repository, { setOf("audio/flac") }, network, audioPreferences)
     private val itemId = MediaId(ServerId("server-1"), "item:with:colons")
 
     @Test
-    fun `one stream per track while the network kind stays the same`() =
+    fun `one stream per track while the quality stays the same`() =
         runTest {
             val first = resolver.resolve(itemId)
 
@@ -150,4 +153,46 @@ class StreamResolverTest {
         assertThat(trackUri(itemId).trackId()).isEqualTo(itemId)
         assertThat(Uri.parse("http://nas/Audio/x/stream").trackId()).isNull()
     }
+
+    @Test
+    fun `a new quality setting gives tracks resolved before a new stream at the next load`() =
+        runTest {
+            resolver.resolve(itemId)
+            audioPreferences.setStreamingQuality(metered = false, StreamingQuality.Kbps128)
+
+            resolver.resolve(itemId)
+
+            assertThat(repository.streamRequests.map { it.second.maxStreamingBitrate })
+                .containsExactly(null, 128_000)
+                .inOrder()
+        }
+
+    @Test
+    fun `each network kind uses its own quality`() =
+        runTest {
+            audioPreferences.setStreamingQuality(metered = true, StreamingQuality.Kbps128)
+            network.metered = true
+
+            resolver.resolve(itemId)
+
+            assertThat(
+                repository.streamRequests
+                    .single()
+                    .second.maxStreamingBitrate,
+            ).isEqualTo(128_000)
+        }
+
+    @Test
+    fun `downloads ask for the original whatever the streaming quality`() =
+        runTest {
+            audioPreferences.setStreamingQuality(metered = false, StreamingQuality.Kbps128)
+
+            resolver.downloadStream(itemId)
+
+            assertThat(
+                repository.streamRequests
+                    .single()
+                    .second.maxStreamingBitrate,
+            ).isNull()
+        }
 }

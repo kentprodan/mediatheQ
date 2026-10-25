@@ -74,7 +74,6 @@ fun NowPlayingHost(
         viewModel::onAction,
         content,
         queue = viewModel.queue,
-        audio = viewModel.audio,
         lyrics = viewModel.lyrics,
         snackbarHost = snackbarHost,
     )
@@ -92,7 +91,6 @@ fun NowPlayingLayout(
     content: @Composable (miniPlayer: @Composable () -> Unit) -> Unit,
     expandedInitially: Boolean = false,
     queue: StateFlow<List<QueueItem>> = NoQueue,
-    audio: StateFlow<AudioUiState> = NoAudio,
     lyrics: StateFlow<LyricsUiState> = NoLyrics,
     /** The app's messages, shown over the full player while it covers the shell. */
     snackbarHost: @Composable () -> Unit = {},
@@ -177,7 +175,6 @@ fun NowPlayingLayout(
                 }
                 // Collected while the full player is open, so the queue and lyrics are current by the time they open.
                 val entries by queue.collectAsStateWithLifecycle()
-                val audioState by audio.collectAsStateWithLifecycle()
                 val lyricsState by lyrics.collectAsStateWithLifecycle()
                 Box(Modifier.fillMaxSize()) {
                     PlayerScope(sharedScope, this@AnimatedVisibility) {
@@ -197,14 +194,6 @@ fun NowPlayingLayout(
                                                 queue = entries,
                                                 currentEntryId = playing.currentEntryId,
                                                 canReorder = !playing.shuffle,
-                                                onAction = onAction,
-                                                onClose = { panel = PlayerPanel.Player },
-                                            )
-                                        }
-
-                                        PlayerPanel.Audio -> {
-                                            AudioScreen(
-                                                state = audioState,
                                                 onAction = onAction,
                                                 onClose = { panel = PlayerPanel.Player },
                                             )
@@ -230,7 +219,6 @@ fun NowPlayingLayout(
                                                 onAction = onAction,
                                                 onCollapse = { expanded = false },
                                                 onOpenQueue = { panel = PlayerPanel.Queue },
-                                                onOpenAudio = { panel = PlayerPanel.Audio },
                                                 onOpenLyrics = { panel = PlayerPanel.Lyrics },
                                                 coverModifier = Modifier.mqSharedCover(PLAYER_COVER_KEY),
                                             )
@@ -304,9 +292,7 @@ private const val PLAYER_COVER_KEY = "player-cover"
 
 private val NoQueue: StateFlow<List<QueueItem>> = MutableStateFlow(emptyList())
 
-private val NoAudio: StateFlow<AudioUiState> = MutableStateFlow(AudioUiState())
-
 private val NoLyrics: StateFlow<LyricsUiState> = MutableStateFlow(LyricsUiState.None)
 
 /** What the full player shows: itself, or one of the screens opened from its secondary row. */
-private enum class PlayerPanel { Player, Queue, Audio, Lyrics }
+private enum class PlayerPanel { Player, Queue, Lyrics }

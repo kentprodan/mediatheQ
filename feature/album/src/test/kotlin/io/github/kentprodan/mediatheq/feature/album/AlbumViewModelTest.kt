@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
@@ -49,9 +50,10 @@ class AlbumViewModelTest {
     private val disc2 = listOf(track("d2t1", 2, 1))
 
     private val downloads = FakeDownloadRepository()
+    private val preferences = FakeLibraryPreferencesRepository()
 
     private fun TestScope.viewModel(): AlbumViewModel {
-        val viewModel = AlbumViewModel(albumId, library, playback, userData, downloads)
+        val viewModel = AlbumViewModel(albumId, library, playback, userData, downloads, preferences)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -59,7 +61,7 @@ class AlbumViewModelTest {
     @Test
     fun `starts loading`() {
         assertThat(
-            AlbumViewModel(albumId, library, playback, userData, downloads).uiState.value,
+            AlbumViewModel(albumId, library, playback, userData, downloads, preferences).uiState.value,
         ).isEqualTo(AlbumUiState.Loading)
     }
 
@@ -214,12 +216,12 @@ class AlbumViewModelTest {
             val viewModel = viewModel()
 
             viewModel.onAction(AlbumAction.SetFavorite(albumId, true))
-            viewModel.onAction(AlbumAction.Rate(5))
+            viewModel.onAction(AlbumAction.Rate(10))
             viewModel.onAction(AlbumAction.SetFavorite(disc1.first().id, true))
 
             assertThat(
                 userData.calls,
-            ).containsExactly("favorite:al1:true", "stars:al1:5", "favorite:d1t1:true").inOrder()
+            ).containsExactly("favorite:al1:true", "rating:al1:10", "favorite:d1t1:true").inOrder()
         }
 
     @Test
@@ -230,6 +232,6 @@ class AlbumViewModelTest {
 
             viewModel.onAction(AlbumAction.Rate(null))
 
-            assertThat(userData.calls).containsExactly("stars:al1:null")
+            assertThat(userData.calls).containsExactly("rating:al1:null")
         }
 }

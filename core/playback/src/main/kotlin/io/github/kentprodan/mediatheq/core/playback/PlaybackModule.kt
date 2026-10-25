@@ -5,7 +5,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.cache.Cache
-import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import dagger.Binds
 import dagger.Module
@@ -33,6 +32,11 @@ internal interface PlaybackModule {
 @Module
 @InstallIn(SingletonComponent::class)
 internal object PlaybackCachesModule {
+    /** The streaming cache's eviction; the service sets its size from the settings (1-8 GB). */
+    @Provides
+    @Singleton
+    fun streamingCacheEvictor(): ResizableLruCacheEvictor = ResizableLruCacheEvictor()
+
     /**
      * In cacheDir: the system may clear it under storage pressure, which only costs fetching the files again. The
      * Media3 database is the one `:core:download` provides (one index for both caches, no module edge).
@@ -45,10 +49,11 @@ internal object PlaybackCachesModule {
     fun streamingCache(
         @ApplicationContext context: Context,
         databaseProvider: DatabaseProvider,
+        evictor: ResizableLruCacheEvictor,
     ): Cache =
         SimpleCache(
             File(context.cacheDir, "media"),
-            LeastRecentlyUsedCacheEvictor(STREAMING_CACHE_BYTES),
+            evictor,
             databaseProvider,
         )
 

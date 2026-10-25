@@ -87,4 +87,56 @@ class DefaultAudioPreferencesRepositoryTest {
             assertThat(preferences.eqPreset).isEqualTo(EqPreset.Flat)
             assertThat(preferences.customGainsDb).isEqualTo(AudioPreferences().customGainsDb)
         }
+
+    @Test
+    fun `streaming defaults are original on Wi-Fi, 256 on mobile, album gain, 2 GB, Wi-Fi downloads`() =
+        runTest {
+            val preferences = repository.preferences.first()
+
+            assertThat(preferences.qualityFor(metered = false)).isEqualTo(StreamingQuality.Original)
+            assertThat(preferences.qualityFor(metered = true)).isEqualTo(StreamingQuality.Kbps256)
+            assertThat(preferences.normalization).isEqualTo(Normalization.Album)
+            assertThat(preferences.streamingCacheGb).isEqualTo(2)
+            assertThat(preferences.downloadsUnmeteredOnly).isTrue()
+        }
+
+    @Test
+    fun `streaming and storage choices are kept, each network on its own`() =
+        runTest {
+            repository.setStreamingQuality(metered = true, StreamingQuality.Kbps128)
+            repository.setStreamingQuality(metered = false, StreamingQuality.Kbps256)
+            repository.setNormalization(Normalization.Track)
+            repository.setStreamingCacheGb(8)
+            repository.setDownloadsUnmeteredOnly(false)
+
+            val preferences = repository.preferences.first()
+            assertThat(preferences.meteredQuality).isEqualTo(StreamingQuality.Kbps128)
+            assertThat(preferences.unmeteredQuality).isEqualTo(StreamingQuality.Kbps256)
+            assertThat(preferences.normalization).isEqualTo(Normalization.Track)
+            assertThat(preferences.streamingCacheGb).isEqualTo(8)
+            assertThat(preferences.downloadsUnmeteredOnly).isFalse()
+        }
+
+    @Test
+    fun `a cache size that is not offered is refused`() =
+        runTest {
+            repository.setStreamingCacheGb(3)
+
+            assertThat(repository.preferences.first().streamingCacheGb).isEqualTo(2)
+        }
+
+    @Test
+    fun `unknown stored names and sizes fall back to the defaults`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("normalization")] = "Loudest"
+                it[stringPreferencesKey("metered_quality")] = "Kbps999"
+                it[
+                    androidx.datastore.preferences.core
+                        .intPreferencesKey("streaming_cache_gb"),
+                ] = 100
+            }
+
+            assertThat(repository.preferences.first()).isEqualTo(AudioPreferences())
+        }
 }

@@ -8,7 +8,6 @@ import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.BaseDataSource
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
-import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
@@ -26,6 +25,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackRepository
@@ -51,12 +51,13 @@ class PrefetcherTest {
         TestExoPlayerBuilder(context).setMediaSourceFactory(FakeMediaSourceFactory()).build()
     private val repository = FakePlaybackRepository()
     private val network = FakeNetworkMonitor()
-    private val resolver = StreamResolver(repository, { setOf("audio/flac") }, network)
+    private val audioPreferences = FakeAudioPreferencesRepository()
+    private val resolver = StreamResolver(repository, { setOf("audio/flac") }, network, audioPreferences)
     private val downloads = FakeDownloadRepository()
     private val cache =
         SimpleCache(
             Files.createTempDirectory("media").toFile(),
-            LeastRecentlyUsedCacheEvictor(STREAMING_CACHE_BYTES),
+            ResizableLruCacheEvictor(gibibytes(2)),
             StandaloneDatabaseProvider(context),
         )
 
@@ -146,7 +147,8 @@ class PrefetcherTest {
         repository.playMethod = PlayMethod.Transcode
         prefetcher()
 
-        play(1, 2, 3) { requested().size == 2 }
+        // Both upcoming tracks asked for (in order): an exact count would race with repeated player events.
+        play(1, 2, 3) { "t3" in requested() }
 
         assertThat(cache.cacheSpace).isEqualTo(0)
     }

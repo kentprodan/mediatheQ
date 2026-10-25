@@ -20,9 +20,9 @@ interface UserDataRepository {
         isFavorite: Boolean,
     ): MqResult<Unit>
 
-    /** Rates [id] with 1-5 [stars]; `null` clears the rating. */
+    /** Rates [id] with [halfStars], 1-10 (whole stars are even); `null` clears the rating. */
     suspend fun setRating(
         id: MediaId,
-        stars: Int?,
+        halfStars: Int?,
     ): MqResult<Unit>
 }

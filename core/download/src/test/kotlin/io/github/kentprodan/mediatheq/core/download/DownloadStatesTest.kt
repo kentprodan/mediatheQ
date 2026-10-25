@@ -23,6 +23,11 @@ class DownloadStatesTest {
     }
 
     @Test
+    fun `queued without any network, when any network is allowed, stays queued`() {
+        assertThat(downloadState(Download.STATE_QUEUED, 0f, Requirements.NETWORK)).isEqualTo(DownloadState.Queued)
+    }
+
+    @Test
     fun `stopped and restarting show as queued`() {
         assertThat(downloadState(Download.STATE_STOPPED, 0f, 0)).isEqualTo(DownloadState.Queued)
         assertThat(downloadState(Download.STATE_RESTARTING, 0f, 0)).isEqualTo(DownloadState.Queued)

@@ -12,14 +12,9 @@ data class UserData(
     val lastPlayedAt: Instant? = null,
     val played: Boolean = false,
 ) {
-    /** [rating] as 1-5 stars (the server keeps 0-10, one star = 2), `null` when unrated. */
-    val stars: Int? get() = rating?.let { (it / 2).roundToInt().coerceIn(1, 5) }
-
-    companion object {
-        /** The server rating for [stars] 1-5. */
-        fun ratingOf(stars: Int): Double {
-            require(stars in 1..5) { "stars must be 1-5" }
-            return stars * 2.0
-        }
-    }
+    /**
+     * [rating] in half stars, 1-10: the server's 0-10 scale, one half star = 1. `null` when unrated; a rating set
+     * elsewhere is rounded, and anything above 0 is at least half a star (0 itself means unrated, R14).
+     */
+    val halfStars: Int? get() = rating?.let { it.roundToInt().coerceIn(1, 10) }
 }

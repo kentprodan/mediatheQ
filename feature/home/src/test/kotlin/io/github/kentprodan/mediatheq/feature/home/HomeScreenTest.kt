@@ -39,7 +39,7 @@ class HomeScreenTest {
     private fun show(state: HomeUiState) {
         composeRule.setContent {
             MediatheqTheme {
-                HomeScreen(state, { actions += it }, { opened += it }, { events += "logout" }, { events += "showcase" })
+                HomeScreen(state, { actions += it }, { opened += it }, { events += "settings" })
             }
         }
     }
@@ -74,15 +74,12 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `the labelled overflow menu opens the showcase and logs out`() {
+    fun `the labelled settings button opens Settings`() {
         show(HomeUiState.Loading)
 
-        composeRule.onNodeWithContentDescription("More options").performClick()
-        composeRule.onNodeWithText("Theme showcase").performClick()
-        composeRule.onNodeWithContentDescription("More options").performClick()
-        composeRule.onNodeWithText("Log out").performClick()
+        composeRule.onNodeWithContentDescription("Settings").performClick()
 
-        assertThat(events).containsExactly("showcase", "logout").inOrder()
+        assertThat(events).containsExactly("settings")
     }
 
     @Test

@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
@@ -21,7 +22,8 @@ class MainViewModelTest {
     private val userData = FakeUserDataRepository()
     private val network = FakeNetworkMonitor()
     private val sync = FakeLibrarySyncRepository()
-    private val viewModel by lazy { MainViewModel(repository, userData, network, sync) }
+    private val libraryPreferences = FakeLibraryPreferencesRepository()
+    private val viewModel by lazy { MainViewModel(repository, userData, network, sync, libraryPreferences) }
 
     @Test
     fun `the session is unknown until read, then follows the repository`() =
@@ -47,16 +49,6 @@ class MainViewModelTest {
         }
 
     @Test
-    fun `logout signs out`() =
-        runTest {
-            repository.session.value = SessionState.LoggedIn("Home", "Ana")
-
-            viewModel.logout()
-
-            assertThat(repository.session.value).isEqualTo(SessionState.LoggedOut())
-        }
-
-    @Test
     fun `online follows the network`() =
         runTest {
             viewModel.online.test {
@@ -72,5 +64,17 @@ class MainViewModelTest {
             viewModel.onLocalNetworkGranted()
 
             assertThat(sync.syncCalls).isEqualTo(1)
+        }
+
+    @Test
+    fun `Material You is unknown until read, then follows the setting`() =
+        runTest {
+            assertThat(viewModel.dynamicColor.value).isNull()
+
+            viewModel.dynamicColor.test {
+                assertThat(awaitItem()).isFalse()
+                libraryPreferences.setDynamicColor(true)
+                assertThat(awaitItem()).isTrue()
+            }
         }
 }

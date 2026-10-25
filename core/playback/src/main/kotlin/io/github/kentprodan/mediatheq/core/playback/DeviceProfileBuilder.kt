@@ -1,32 +1,33 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.model.DeviceProfile
 import io.github.kentprodan.mediatheq.core.model.TranscodingTarget
 
 /**
  * Builds the profile sent with every stream request (media3 skill, section 3), from real device facts:
- * - unmetered: no bitrate cap, every decodable format plays as it is (original quality);
- * - metered: capped at 256 kbps, so larger files (lossless, high bitrate) are converted to Opus;
- * - formats the device cannot decode are left out, so the server converts them.
+ * - [StreamingQuality.Original]: no bitrate cap, every decodable format plays as it is;
+ * - 256 or 128 kbps: capped, so larger files (lossless, high bitrate) are converted to Opus at that bitrate;
+ * - formats the device cannot decode are left out, so the server converts them (Opus 256 when there is no cap).
  */
 object DeviceProfileBuilder {
-    /** Opus in Ogg on metered networks (ADR 0016); stereo is enough for music on a phone. */
-    val OPUS_256 = TranscodingTarget(container = "ogg", codec = "opus", bitrate = 256_000, maxChannels = 2)
+    /** Opus in Ogg (ADR 0016) at [bitrate]; stereo is enough for music on a phone. */
+    fun opus(bitrate: Int) = TranscodingTarget(container = "ogg", codec = "opus", bitrate = bitrate, maxChannels = 2)
+
+    val OPUS_256 = opus(256_000)
 
     /** Containers Media3's extractors read (Jellyfin names). */
     val CONTAINERS = listOf("flac", "mp3", "m4a", "mp4", "m4b", "aac", "ogg", "oga", "opus", "webm", "mka", "wav")
 
-    private const val METERED_BITRATE = 256_000
-
     fun build(
         decoderMimeTypes: Set<String>,
-        metered: Boolean,
+        quality: StreamingQuality,
     ): DeviceProfile =
         DeviceProfile(
             directPlayContainers = CONTAINERS,
             directPlayCodecs = CODECS.filter { (_, mime) -> mime == null || mime in decoderMimeTypes }.map { it.first },
-            transcoding = OPUS_256,
-            maxStreamingBitrate = if (metered) METERED_BITRATE else null,
+            transcoding = quality.bitrate?.let(::opus) ?: OPUS_256,
+            maxStreamingBitrate = quality.bitrate,
         )
 
     /**
