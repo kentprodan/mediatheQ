@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -43,6 +45,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqTransportCon
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.ui.formatDuration
+import io.github.kentprodan.mediatheq.core.ui.formatFrequency
 import kotlin.time.Duration
 
 /**
@@ -58,6 +61,7 @@ fun NowPlayingScreen(
     onCollapse: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenQueue: () -> Unit = {},
+    onOpenAudio: () -> Unit = {},
     cover: Any? = state.artwork,
     coverModifier: Modifier = Modifier,
 ) {
@@ -71,6 +75,7 @@ fun NowPlayingScreen(
             onAction,
             onCollapse,
             onOpenQueue,
+            onOpenAudio,
             modifier.semantics { this.paneTitle = paneTitle },
             cover,
             coverModifier,
@@ -85,6 +90,7 @@ private fun NowPlayingContent(
     onAction: (NowPlayingAction) -> Unit,
     onCollapse: () -> Unit,
     onOpenQueue: () -> Unit,
+    onOpenAudio: () -> Unit,
     modifier: Modifier,
     cover: Any?,
     coverModifier: Modifier,
@@ -127,6 +133,7 @@ private fun NowPlayingContent(
                 overflow = TextOverflow.Ellipsis,
             )
             MqStarRating(stars = state.stars, onRate = { onAction(NowPlayingAction.Rate(it)) })
+            state.bitPerfectSampleRateHz?.let { BitPerfectBadge(it) }
         }
         SeekSection(state, position, onAction)
         MqTransportControls(
@@ -143,10 +150,35 @@ private fun NowPlayingContent(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             MqFavoriteToggle(state.isFavorite, onToggle = { onAction(NowPlayingAction.SetFavorite(it)) })
+            IconButton(onClick = onOpenAudio) {
+                Icon(MqIcons.Tune, contentDescription = stringResource(R.string.nowplaying_audio_open))
+            }
             IconButton(onClick = onOpenQueue) {
                 Icon(MqIcons.QueueMusic, contentDescription = stringResource(R.string.nowplaying_queue_open))
             }
         }
+    }
+}
+
+/** Bit-perfect USB is on for this track: its sample rate, and that the phone volume does nothing. */
+@Composable
+private fun BitPerfectBadge(sampleRateHz: Int) {
+    Column(
+        Modifier.padding(top = MediatheqSpacing.s).semantics(mergeDescendants = true) {},
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
+            Text(
+                stringResource(R.string.nowplaying_bit_perfect_badge, formatFrequency(sampleRateHz)),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = MediatheqSpacing.m, vertical = MediatheqSpacing.xs),
+            )
+        }
+        Text(
+            stringResource(R.string.nowplaying_bit_perfect_volume),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

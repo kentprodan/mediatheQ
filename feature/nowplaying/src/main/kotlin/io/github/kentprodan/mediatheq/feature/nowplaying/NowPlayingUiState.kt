@@ -1,6 +1,9 @@
 package io.github.kentprodan.mediatheq.feature.nowplaying
 
+import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import kotlin.time.Duration
 
 /** What the mini player and Now Playing show. */
@@ -24,8 +27,16 @@ sealed interface NowPlayingUiState {
         val isFavorite: Boolean = false,
         /** 1-5, `null` when unrated. */
         val stars: Int? = null,
+        /** The sample rate sent unchanged to a USB DAC; `null` when not bit-perfect. */
+        val bitPerfectSampleRateHz: Int? = null,
     ) : NowPlayingUiState
 }
+
+/** What the Audio screen shows: the settings and what the output does with them. */
+data class AudioUiState(
+    val preferences: AudioPreferences = AudioPreferences(),
+    val output: AudioOutputInfo = AudioOutputInfo(),
+)
 
 sealed interface NowPlayingAction {
     data object TogglePlayPause : NowPlayingAction
@@ -60,5 +71,23 @@ sealed interface NowPlayingAction {
     data class MoveQueueItem(
         val entryId: String,
         val to: Int,
+    ) : NowPlayingAction
+
+    data class SetBitPerfectUsb(
+        val on: Boolean,
+    ) : NowPlayingAction
+
+    data class SetEqualizerOn(
+        val on: Boolean,
+    ) : NowPlayingAction
+
+    data class SetEqPreset(
+        val preset: EqPreset,
+    ) : NowPlayingAction
+
+    /** Set equalizer band [index] to [gainDb]. */
+    data class SetEqBand(
+        val index: Int,
+        val gainDb: Float,
     ) : NowPlayingAction
 }

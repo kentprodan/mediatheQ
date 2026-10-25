@@ -90,6 +90,10 @@ object MqIcons {
     val GraphicEq: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_graphic_eq)
 
+    /** Audio settings: equalizer, bit-perfect USB. */
+    val Tune: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_tune)
+
     val KeyboardArrowDown: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_keyboard_arrow_down)
 

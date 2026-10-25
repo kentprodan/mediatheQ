@@ -8,4 +8,23 @@
     <string name="nowplaying_queue_remove">Remove from queue</string>
     <string name="nowplaying_queue_move_up">Move up</string>
     <string name="nowplaying_queue_move_down">Move down</string>
+    <string name="nowplaying_audio">Audio</string>
+    <string name="nowplaying_audio_open">Audio settings</string>
+    <string name="nowplaying_audio_close">Close audio settings</string>
+    <string name="nowplaying_audio_bit_perfect">Bit-perfect USB</string>
+    <string name="nowplaying_audio_bit_perfect_summary">Sends audio unchanged to a USB DAC. Phone volume and the equalizer do not apply then.</string>
+    <string name="nowplaying_audio_bit_perfect_active">Bit-perfect at %1$s. Volume is set on the DAC.</string>
+    <string name="nowplaying_audio_bit_perfect_no_match">The DAC does not take this track\'s format unchanged, so it plays normally.</string>
+    <string name="nowplaying_audio_bit_perfect_unsupported">Needs Android 14 or newer.</string>
+    <string name="nowplaying_audio_equalizer">Equalizer</string>
+    <string name="nowplaying_audio_equalizer_summary">Uses more battery: audio is no longer decoded by the low-power audio chip.</string>
+    <string name="nowplaying_audio_equalizer_blocked">Unavailable while playing bit-perfect: the audio must reach the DAC unchanged.</string>
+    <string name="nowplaying_audio_gain_db">%1$+d dB</string>
+    <string name="nowplaying_eq_flat">Flat</string>
+    <string name="nowplaying_eq_bass">Bass boost</string>
+    <string name="nowplaying_eq_treble">Treble boost</string>
+    <string name="nowplaying_eq_vocal">Vocal</string>
+    <string name="nowplaying_eq_custom">Custom</string>
+    <string name="nowplaying_bit_perfect_badge">Bit-perfect · %1$s</string>
+    <string name="nowplaying_bit_perfect_volume">Phone volume does not apply</string>
 </resources>

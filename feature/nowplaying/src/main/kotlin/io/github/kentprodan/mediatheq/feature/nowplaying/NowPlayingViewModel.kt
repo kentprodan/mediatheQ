@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.nowplaying
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -32,6 +33,7 @@ class NowPlayingViewModel
         private val playback: PlaybackConnection,
         private val library: LibraryRepository,
         private val userData: UserDataRepository,
+        private val audioPreferences: AudioPreferencesRepository,
     ) : ViewModel() {
         // Favorite and rating come from Room, so a change made here or in another client shows at once.
         private val playingUserData: Flow<Pair<MediaId, UserData>?> =
@@ -56,6 +58,15 @@ class NowPlayingViewModel
 
         /** The playing position, sampled by the connection; collect it only where it is drawn. */
         val position: StateFlow<Duration> = playback.position
+
+        /** The audio settings and output; collect it only while the Audio screen shows. */
+        val audio: StateFlow<AudioUiState> =
+            combine(
+                audioPreferences.preferences,
+                playback.state.map { it.output }.distinctUntilChanged(),
+            ) { prefs, out ->
+                AudioUiState(prefs, out)
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AudioUiState())
 
         /** The queue in play order; collect it only while the queue screen shows. */
         val queue: StateFlow<List<QueueItem>> = playback.queue
@@ -104,6 +115,22 @@ class NowPlayingViewModel
                 is NowPlayingAction.MoveQueueItem -> {
                     playback.moveQueueItem(action.entryId, action.to)
                 }
+
+                is NowPlayingAction.SetBitPerfectUsb -> {
+                    viewModelScope.launch { audioPreferences.setBitPerfectUsb(action.on) }
+                }
+
+                is NowPlayingAction.SetEqualizerOn -> {
+                    viewModelScope.launch { audioPreferences.setEqualizerOn(action.on) }
+                }
+
+                is NowPlayingAction.SetEqPreset -> {
+                    viewModelScope.launch { audioPreferences.setEqPreset(action.preset) }
+                }
+
+                is NowPlayingAction.SetEqBand -> {
+                    viewModelScope.launch { audioPreferences.setEqBand(action.index, action.gainDb) }
+                }
             }
         }
     }
@@ -123,5 +150,6 @@ private fun PlayerUiModel.toUiState(userData: UserData?): NowPlayingUiState {
         shuffle = shuffle,
         isFavorite = userData?.isFavorite == true,
         stars = userData?.stars,
+        bitPerfectSampleRateHz = output.bitPerfectSampleRateHz,
     )
 }

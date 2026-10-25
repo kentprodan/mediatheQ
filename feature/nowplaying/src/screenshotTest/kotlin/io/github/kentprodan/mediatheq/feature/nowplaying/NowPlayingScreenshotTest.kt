@@ -86,3 +86,11 @@ private const val PREVIEW_COVER_SEED = 0xFFC2185B.toInt()
 fun NowPlayingFavoriteRatedScreenshot() {
     MediatheqTheme { Screen(playing.copy(isFavorite = true, stars = 4)) }
 }
+
+/** Bit-perfect to a USB DAC: the sample rate and the volume note. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingBitPerfectScreenshot() {
+    MediatheqTheme { Screen(playing.copy(bitPerfectSampleRateHz = 96_000)) }
+}
