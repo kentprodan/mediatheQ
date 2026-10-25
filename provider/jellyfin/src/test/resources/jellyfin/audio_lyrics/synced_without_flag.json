@@ -1,0 +1,10 @@
+{
+  "Metadata": {
+    "Length": 1800000000
+  },
+  "Lyrics": [
+    { "Text": "First line of the song", "Start": 125000000, "Cues": null },
+    { "Text": "", "Start": 150000000, "Cues": null },
+    { "Text": "Second line of the song", "Start": 213400000, "Cues": null }
+  ]
+}
