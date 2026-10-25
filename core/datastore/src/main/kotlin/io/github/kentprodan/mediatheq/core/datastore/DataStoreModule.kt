@@ -42,5 +42,15 @@ internal interface DataStoreModule {
             PreferenceDataStoreFactory.create(
                 corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
             ) { context.preferencesDataStoreFile("library_prefs") }
+
+        @Provides
+        @Singleton
+        @AudioPrefs
+        fun audioDataStore(
+            @ApplicationContext context: Context,
+        ): DataStore<Preferences> =
+            PreferenceDataStoreFactory.create(
+                corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+            ) { context.preferencesDataStoreFile("audio_prefs") }
     }
 }
