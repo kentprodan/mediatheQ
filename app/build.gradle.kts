@@ -37,6 +37,7 @@ dependencies {
     implementation(projects.feature.search)
     implementation(libs.androidx.lifecycle.process)
     implementation(projects.feature.downloads)
+    implementation(projects.feature.home)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)

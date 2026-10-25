@@ -5,9 +5,12 @@ import kotlin.time.Instant
 
 /** Progress of the library sync, for screens and pull-to-refresh. */
 sealed interface SyncStatus {
+    /** The last complete sync, `null` before the first one (and while a sync runs). */
+    val lastSyncedAt: Instant?
+
     /** Not syncing; [lastSyncedAt] is the last complete sync, `null` before the first. */
     data class Idle(
-        val lastSyncedAt: Instant?,
+        override val lastSyncedAt: Instant?,
     ) : SyncStatus
 
     /** Fetching [step]; [fetched] of [total] items of that step so far. */
@@ -15,12 +18,14 @@ sealed interface SyncStatus {
         val step: SyncStep,
         val fetched: Int,
         val total: Int,
-    ) : SyncStatus
+    ) : SyncStatus {
+        override val lastSyncedAt: Instant? get() = null
+    }
 
     /** The last sync stopped with [error]; the library on the phone is the previous complete one. */
     data class Failed(
         val error: MqError,
-        val lastSyncedAt: Instant?,
+        override val lastSyncedAt: Instant?,
     ) : SyncStatus
 }
 

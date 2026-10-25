@@ -180,12 +180,4 @@ private fun emptyContent(
         else -> LibraryContent.Loading
     }
 
-private val SyncStatus.lastSyncedAt
-    get() =
-        when (this) {
-            is SyncStatus.Idle -> lastSyncedAt
-            is SyncStatus.Failed -> lastSyncedAt
-            is SyncStatus.Running -> null
-        }
-
 private const val FILTER_KEY = "filter"
