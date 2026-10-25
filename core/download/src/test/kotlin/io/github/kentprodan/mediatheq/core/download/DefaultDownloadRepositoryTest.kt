@@ -21,6 +21,7 @@ import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -44,6 +45,8 @@ class DefaultDownloadRepositoryTest {
     private val index = DefaultDownloadIndex(database)
     private val cache = SimpleCache(Files.createTempDirectory("downloads").toFile(), NoOpCacheEvictor(), database)
     private val library = FakeLibraryRepository()
+    private val audioPreferences = FakeAudioPreferencesRepository()
+    private lateinit var manager: DownloadManager
 
     private val done = track("t1", "Album A", 2)
     private val failed = track("t2", "Album A", 1)
@@ -125,6 +128,23 @@ class DefaultDownloadRepositoryTest {
         }
 
     @Test
+    fun `downloads wait for Wi-Fi, or take any network when the setting allows it`() =
+        runTest {
+            repository()
+            RobolectricUtil.runMainLooperUntil {
+                manager.requirements ==
+                    DownloadModule.requirements(unmeteredOnly = true)
+            }
+
+            audioPreferences.setDownloadsUnmeteredOnly(false)
+
+            RobolectricUtil.runMainLooperUntil {
+                manager.requirements ==
+                    DownloadModule.requirements(unmeteredOnly = false)
+            }
+        }
+
+    @Test
     fun `before the stored downloads are read, a completed download already counts as on the device`() =
         runTest {
             // The index read is queued but not run yet: the player started the process (e.g. offline, cold start).
@@ -141,11 +161,20 @@ class DefaultDownloadRepositoryTest {
     ): DefaultDownloadRepository {
         library.tracks.value = listOf(done, failed, waiting)
         stored.forEach { (state, track) -> index.putDownload(download(track, state)) }
-        val manager =
+        manager =
             DownloadManager(context, index) { error("nothing is downloaded in these tests") }
                 .apply { pauseDownloads() }
         RobolectricUtil.runMainLooperUntil { manager.isInitialized }
-        return DefaultDownloadRepository(context, manager, cache, library, backgroundScope, dispatcher, dispatcher)
+        return DefaultDownloadRepository(
+            context,
+            manager,
+            cache,
+            library,
+            audioPreferences,
+            backgroundScope,
+            dispatcher,
+            dispatcher,
+        )
     }
 
     private fun startedIntents(): List<Intent> = generateSequence { shadowOf(context).nextStartedService }.toList()

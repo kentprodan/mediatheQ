@@ -3,11 +3,13 @@ package io.github.kentprodan.mediatheq.core.download
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.offline.Download
+import androidx.media3.exoplayer.scheduler.Requirements
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 
 /**
  * A Media3 download state as the app shows it, or `null` while it is being removed (gone for the user).
- * [notMetRequirements] are the manager's unmet requirements: a queued download then waits for Wi-Fi.
+ * [notMetRequirements] are the manager's unmet requirements: a queued download waits for Wi-Fi when that is what it
+ * misses (with "any network" set, it just stays queued until there is one).
  */
 @UnstableApi
 internal fun downloadState(
@@ -17,7 +19,11 @@ internal fun downloadState(
 ): DownloadState? =
     when (state) {
         Download.STATE_QUEUED, Download.STATE_STOPPED, Download.STATE_RESTARTING -> {
-            if (notMetRequirements != 0) DownloadState.WaitingForWifi else DownloadState.Queued
+            if (notMetRequirements and Requirements.NETWORK_UNMETERED != 0) {
+                DownloadState.WaitingForWifi
+            } else {
+                DownloadState.Queued
+            }
         }
 
         Download.STATE_DOWNLOADING -> {

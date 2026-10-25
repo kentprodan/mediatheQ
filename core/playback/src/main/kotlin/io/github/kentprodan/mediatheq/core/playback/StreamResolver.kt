@@ -3,19 +3,22 @@ package io.github.kentprodan.mediatheq.core.playback
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
+import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
+import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
+import kotlinx.coroutines.flow.first
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Turns a track into a playable stream when the player loads it (media3 skill, section 3). One stream per track and
- * network kind: seeks and retries reopen the same stream (a reopen mid-file must never switch format), and progress
- * reports carry its play session.
+ * Turns a track into a playable stream when the player loads it (media3 skill, section 3), in the quality the user set
+ * for the network kind. One stream per track and quality: seeks and retries reopen the same stream (a reopen mid-file
+ * must never switch format), and progress reports carry its play session.
  */
 @Singleton
 class StreamResolver
@@ -24,10 +27,11 @@ class StreamResolver
         private val playbackRepository: PlaybackRepository,
         private val decoders: AudioDecoders,
         private val networkMonitor: NetworkMonitor,
+        private val audioPreferences: AudioPreferencesRepository,
     ) {
         private class Resolved(
             val stream: PlaybackStream,
-            val metered: Boolean,
+            val quality: StreamingQuality,
             /** Played from the download, not from the server. */
             val local: Boolean = false,
         )
@@ -37,8 +41,9 @@ class StreamResolver
 
         /**
          * The stream for [itemId]. [continuing] (reading on from a byte offset) always reuses the known stream; a fresh
-         * load reuses it unless the network kind changed since (e.g. home Wi-Fi to cellular). Reading on from a download
-         * that was removed meanwhile asks for the original file: the bytes already played came from it.
+         * load reuses it unless the quality changed since (another network kind, e.g. home Wi-Fi to cellular, or another
+         * setting). Reading on from a download that was removed meanwhile asks for the original file: the bytes already
+         * played came from it.
          */
         suspend fun resolve(
             itemId: MediaId,
@@ -46,12 +51,12 @@ class StreamResolver
         ): MqResult<PlaybackStream> {
             val known = streams[itemId]
             val fromDownload = continuing && known?.local == true
-            val metered = !fromDownload && networkMonitor.isMetered()
+            val quality = if (fromDownload) StreamingQuality.Original else currentQuality()
             known?.takeUnless { it.local }?.let {
-                if (continuing || it.metered == metered) return MqResult.Success(it.stream)
+                if (continuing || it.quality == quality) return MqResult.Success(it.stream)
             }
-            val result = playbackRepository.stream(itemId, DeviceProfileBuilder.build(decoderMimeTypes, metered))
-            if (result is MqResult.Success) streams[itemId] = Resolved(result.value, metered)
+            val result = playbackRepository.stream(itemId, DeviceProfileBuilder.build(decoderMimeTypes, quality))
+            if (result is MqResult.Success) streams[itemId] = Resolved(result.value, quality)
             return result
         }
 
@@ -61,10 +66,10 @@ class StreamResolver
          */
         suspend fun prefetchStream(itemId: MediaId): MqResult<PlaybackStream> {
             streams[itemId]?.takeUnless { it.local }?.let { return MqResult.Success(it.stream) }
-            val metered = networkMonitor.isMetered()
-            val result = playbackRepository.stream(itemId, DeviceProfileBuilder.build(decoderMimeTypes, metered))
+            val quality = currentQuality()
+            val result = playbackRepository.stream(itemId, DeviceProfileBuilder.build(decoderMimeTypes, quality))
             if (result is MqResult.Success) {
-                val known = streams.putIfAbsent(itemId, Resolved(result.value, metered))
+                val known = streams.putIfAbsent(itemId, Resolved(result.value, quality))
                 if (known != null && !known.local) return MqResult.Success(known.stream)
             }
             return result
@@ -86,16 +91,22 @@ class StreamResolver
                     playSessionId = UUID.randomUUID().toString().replace("-", ""),
                     canSeek = true,
                 )
-            streams[itemId] = Resolved(stream, metered = false, local = true)
+            streams[itemId] = Resolved(stream, StreamingQuality.Original, local = true)
         }
 
         /**
-         * The original file of [itemId] for a download: unmetered profile, and only when the device plays it as it is
+         * The original file of [itemId] for a download, whatever the streaming quality, and only when the device plays it as it is
          * (a converted stream cannot resume at a byte offset). Not remembered: downloads never share the player's
          * streams or play sessions.
          */
         suspend fun downloadStream(itemId: MediaId): MqResult<PlaybackStream> =
-            when (val result = playbackRepository.stream(itemId, DeviceProfileBuilder.build(decoderMimeTypes, false))) {
+            when (
+                val result =
+                    playbackRepository.stream(
+                        itemId,
+                        DeviceProfileBuilder.build(decoderMimeTypes, StreamingQuality.Original),
+                    )
+            ) {
                 is MqResult.Failure -> {
                     result
                 }
@@ -109,6 +120,9 @@ class StreamResolver
                     }
                 }
             }
+
+        private suspend fun currentQuality(): StreamingQuality =
+            audioPreferences.preferences.first().qualityFor(networkMonitor.isMetered())
 
         /** The stream the player uses for [itemId], or `null` if it was never resolved. */
         fun current(itemId: MediaId): PlaybackStream? = streams[itemId]?.stream

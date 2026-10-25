@@ -41,7 +41,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MediatheqTheme {
+            // Read from disk in a few milliseconds; until then nothing is drawn, rather than the wrong colors.
+            val dynamicColor = viewModel.dynamicColor.collectAsStateWithLifecycle().value ?: return@setContent
+            MediatheqTheme(useDynamicColor = dynamicColor) {
                 // Android 17: no server can be reached without local network access, so ask before anything else.
                 LocalNetworkGate(
                     onAccess = { justGranted ->

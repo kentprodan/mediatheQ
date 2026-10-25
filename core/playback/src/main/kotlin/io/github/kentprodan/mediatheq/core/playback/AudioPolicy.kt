@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import kotlin.math.pow
 
@@ -15,13 +16,10 @@ internal enum class AudioMode {
     BitPerfect,
 }
 
-/** Which ReplayGain-style gain sets the volume of a track. */
-internal enum class Normalization { Album, Track, Off }
-
 /** The current audio output, as far as the policy cares. HDMI comes with the TV phase (F2). */
 internal enum class AudioRoute { UsbDac, Other }
 
-/** The user's audio settings. Normalization keeps its default until the Settings screen exists (#25). */
+/** The user's audio settings, as the policy needs them. */
 internal data class AudioSettings(
     val normalization: Normalization = Normalization.Album,
     val equalizerOn: Boolean = false,

@@ -5,7 +5,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.cache.Cache
-import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import dagger.Binds
 import dagger.Module
@@ -14,6 +13,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.kentprodan.mediatheq.core.common.DownloadSource
+import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import okhttp3.OkHttpClient
 import java.io.File
 import javax.inject.Singleton
@@ -33,6 +33,12 @@ internal interface PlaybackModule {
 @Module
 @InstallIn(SingletonComponent::class)
 internal object PlaybackCachesModule {
+    /** The streaming cache's eviction; the service sets its size from the settings (1-8 GB). */
+    @Provides
+    @Singleton
+    fun streamingCacheEvictor(): ResizableLruCacheEvictor =
+        ResizableLruCacheEvictor(gibibytes(AudioPreferences.DEFAULT_CACHE_GB))
+
     /**
      * In cacheDir: the system may clear it under storage pressure, which only costs fetching the files again. The
      * Media3 database is the one `:core:download` provides (one index for both caches, no module edge).
@@ -45,10 +51,11 @@ internal object PlaybackCachesModule {
     fun streamingCache(
         @ApplicationContext context: Context,
         databaseProvider: DatabaseProvider,
+        evictor: ResizableLruCacheEvictor,
     ): Cache =
         SimpleCache(
             File(context.cacheDir, "media"),
-            LeastRecentlyUsedCacheEvictor(STREAMING_CACHE_BYTES),
+            evictor,
             databaseProvider,
         )
 

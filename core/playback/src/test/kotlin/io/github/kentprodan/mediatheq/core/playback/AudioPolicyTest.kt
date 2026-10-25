@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import org.junit.Test
 

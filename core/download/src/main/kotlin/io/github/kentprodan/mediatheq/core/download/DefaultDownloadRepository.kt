@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
+import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
@@ -22,6 +23,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +54,7 @@ internal class DefaultDownloadRepository
         private val manager: DownloadManager,
         @DownloadCache private val cache: Cache,
         libraryRepository: LibraryRepository,
+        audioPreferences: AudioPreferencesRepository,
         @ApplicationScope scope: CoroutineScope,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
@@ -95,6 +98,14 @@ internal class DefaultDownloadRepository
                     }
                 },
             )
+            // On the main thread, where the manager lives. Not through the service: Android 12+ refuses to start it
+            // from the background.
+            scope.launch(Dispatchers.Main.immediate) {
+                audioPreferences.preferences
+                    .map { it.downloadsUnmeteredOnly }
+                    .distinctUntilChanged()
+                    .collect { manager.requirements = DownloadModule.requirements(it) }
+            }
             scope.launch(ioDispatcher) {
                 val stored =
                     manager.downloadIndex.getDownloads().use { cursor ->
