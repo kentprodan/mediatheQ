@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
@@ -108,7 +110,8 @@ private fun LyricLines(
     onAction: (NowPlayingAction) -> Unit,
 ) {
     val current by remember(lyrics) { derivedStateOf { lyrics.currentLineIndex(position()) } }
-    val listState = rememberLazyListState()
+    // Starts at the sung line, which the top padding puts near the middle (also in previews, where effects do not run).
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = current.coerceAtLeast(0))
     var following by remember { mutableStateOf(true) }
     val dragged by listState.interactionSource.collectIsDraggedAsState()
     LaunchedEffect(dragged) {
@@ -124,48 +127,62 @@ private fun LyricLines(
         if (following && current >= 0) listState.centerOn(current) { listState.animateScrollBy(it, spatial) }
     }
     val playFrom = stringResource(R.string.nowplaying_lyrics_play_from)
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        state = listState,
-        contentPadding = PaddingValues(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.xxl),
-    ) {
-        itemsIndexed(lyrics.lines) { index, line ->
-            val isCurrent = index == current
-            val color by animateColorAsState(
-                when {
-                    !lyrics.isSynced -> MaterialTheme.colorScheme.onSurface
-                    isCurrent -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                MaterialTheme.motionScheme.fastEffectsSpec(),
-                label = "line color",
-            )
-            val start = line.start
-            Text(
-                // An empty synced line is an instrumental break.
-                line.text.ifBlank { MUSIC_BREAK },
-                // The current line is also bolder, so it is not marked by color alone.
-                style =
-                    if (isCurrent) {
-                        MaterialTheme.typography.headlineSmallEmphasized
-                    } else {
-                        MaterialTheme.typography.headlineSmall
+    val musicBreak = stringResource(R.string.nowplaying_lyrics_break)
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        // Synced: half a screen above and below, so the first and last lines can be centered too.
+        val vertical = if (lyrics.isSynced) maxHeight / 2 else MediatheqSpacing.xxl
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            state = listState,
+            contentPadding = PaddingValues(horizontal = MediatheqSpacing.l, vertical = vertical),
+        ) {
+            itemsIndexed(lyrics.lines) { index, line ->
+                val isCurrent = index == current
+                val color by animateColorAsState(
+                    when {
+                        !lyrics.isSynced -> MaterialTheme.colorScheme.onSurface
+                        isCurrent -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
                     },
-                color = color,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .then(
-                            if (canSeek && start != null) {
-                                Modifier.clickable(onClickLabel = playFrom) {
-                                    following = true
-                                    onAction(NowPlayingAction.SeekToTime(start))
-                                }
-                            } else {
-                                Modifier
-                            },
-                        ).padding(vertical = MediatheqSpacing.s),
-            )
+                    MaterialTheme.motionScheme.fastEffectsSpec(),
+                    label = "line color",
+                )
+                val start = line.start
+                Text(
+                    // An empty synced line is an instrumental break.
+                    line.text.ifBlank { MUSIC_BREAK },
+                    // The current line is also bolder, so it is not marked by color alone.
+                    style =
+                        if (isCurrent) {
+                            MaterialTheme.typography.headlineSmallEmphasized
+                        } else {
+                            MaterialTheme.typography.headlineSmall
+                        },
+                    color = color,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .then(
+                                if (canSeek && start != null) {
+                                    Modifier.clickable(onClickLabel = playFrom) {
+                                        following = true
+                                        onAction(NowPlayingAction.SeekToTime(start))
+                                    }
+                                } else {
+                                    Modifier
+                                },
+                            ).padding(vertical = MediatheqSpacing.s)
+                            .then(
+                                if (line.text.isBlank()) {
+                                    Modifier.semantics {
+                                        contentDescription = musicBreak
+                                    }
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                )
+            }
         }
     }
 }

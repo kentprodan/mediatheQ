@@ -75,7 +75,7 @@ class NowPlayingViewModel
 
         private val lyricsRetries = MutableStateFlow(0)
 
-        /** The playing track's lyrics, asked of the server once per track; collect it only while the player is open. */
+        /** The playing track's lyrics, asked of the server when the track changes or the player reopens; collect it only while the player is open. */
         val lyrics: StateFlow<LyricsUiState> =
             combine(playback.state.map { it.item?.id }.distinctUntilChanged(), lyricsRetries) { id, _ -> id }
                 .flatMapLatest { id ->

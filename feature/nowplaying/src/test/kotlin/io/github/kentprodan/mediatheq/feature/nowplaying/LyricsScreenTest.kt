@@ -95,6 +95,21 @@ class LyricsScreenTest {
     }
 
     @Test
+    fun `opened during the song, the line being sung is in view`() {
+        position = 201.seconds
+        setContent(LyricsUiState.Content(synced))
+
+        composeRule.onNodeWithText("Line 40").assertIsDisplayed()
+    }
+
+    @Test
+    fun `an instrumental break is read as such`() {
+        setContent(LyricsUiState.Content(Lyrics(listOf(LyricLine("", 0.seconds)))))
+
+        composeRule.onNodeWithContentDescription("Instrumental").assertExists()
+    }
+
+    @Test
     fun `a manual scroll stops the following for a few seconds`() {
         setContent(LyricsUiState.Content(synced))
         composeRule.onRoot().performTouchInput { swipeUp() }

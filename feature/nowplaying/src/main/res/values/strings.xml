@@ -12,6 +12,7 @@
     <string name="nowplaying_lyrics_open">Show lyrics</string>
     <string name="nowplaying_lyrics_close">Close lyrics</string>
     <string name="nowplaying_lyrics_play_from">Play from here</string>
+    <string name="nowplaying_lyrics_break">Instrumental</string>
     <string name="nowplaying_lyrics_none">No lyrics</string>
     <string name="nowplaying_lyrics_none_body">The server has no lyrics for this track.</string>
     <string name="nowplaying_lyrics_error">Couldn\'t load lyrics</string>
