@@ -41,6 +41,7 @@ internal sealed interface StreamSource {
  * download, a cached original, offline, a failure, a file or a progressive transcode all go through the item's own
  * data source, which handles them (and their retries) as before.
  */
+@UnstableApi
 internal suspend fun chooseStreamSource(
     itemId: MediaId,
     resolver: StreamResolver,
