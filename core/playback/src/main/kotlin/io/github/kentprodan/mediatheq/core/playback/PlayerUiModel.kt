@@ -27,6 +27,8 @@ data class AudioOutputInfo(
     /** The sample rate sent unchanged to a USB DAC; `null` when not bit-perfect. Phone volume does not apply then. */
     val bitPerfectSampleRateHz: Int? = null,
     val usbDacConnected: Boolean = false,
+    /** The DAC cannot take the playing track's format unchanged, so it plays normally. */
+    val bitPerfectNoMatch: Boolean = false,
     /** Bit-perfect USB needs Android 14. */
     val bitPerfectSupported: Boolean = true,
 ) {

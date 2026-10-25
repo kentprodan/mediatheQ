@@ -7,6 +7,8 @@ internal data class AudioOutputState(
     val mode: AudioMode = AudioMode.Offload,
     /** The format sent bit-perfect to the DAC, when [mode] is [AudioMode.BitPerfect]. */
     val bitPerfectFormat: PcmFormat? = null,
+    /** Bit-perfect was wanted for a known track format, but the DAC has no matching attribute or refused it. */
+    val bitPerfectNoMatch: Boolean = false,
 )
 
 /**
@@ -34,12 +36,8 @@ internal class AudioOutputController(
     fun refresh() {
         val capabilities = port.dacCapabilities()
         val route = if (capabilities != null) AudioRoute.UsbDac else AudioRoute.Other
-        val wanted =
-            if (capabilities != null && AudioPolicy.wantsBitPerfect(settings, route)) {
-                currentFormat()?.let { MixerAttributeSelector.select(capabilities, it) }
-            } else {
-                null
-            }
+        val format = if (AudioPolicy.wantsBitPerfect(settings, route)) currentFormat() else null
+        val wanted = format?.let { MixerAttributeSelector.select(capabilities.orEmpty(), it) }
         val chosen = wanted?.takeIf { it == preferred || port.setPreferred(it) }
         if (chosen == null && preferred != null) port.clearPreferred()
         preferred = chosen
@@ -49,6 +47,7 @@ internal class AudioOutputController(
                 offload = AudioPolicy.offload(settings, route),
                 mode = AudioPolicy.decide(settings, route, bitPerfectFormat = chosen != null),
                 bitPerfectFormat = chosen?.format,
+                bitPerfectNoMatch = format != null && chosen == null,
             )
         if (next != state) {
             state = next

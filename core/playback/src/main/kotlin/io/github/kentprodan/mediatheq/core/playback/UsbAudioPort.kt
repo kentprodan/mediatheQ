@@ -12,7 +12,7 @@ import androidx.annotation.RequiresApi
 
 /** The platform side of bit-perfect USB (media3 skill, section 6), behind plain data so the decisions stay testable. */
 internal interface UsbAudioPort {
-    /** The connected USB DAC's mixer attributes, or `null` when no DAC is connected (or the platform cannot tell). */
+    /** The USB DAC media is routed to: its mixer attributes, or `null` when there is none (or no way to tell). */
     fun dacCapabilities(): List<MixerCapability>?
 
     /** Prefers [capability] for media on the DAC; `false` when the platform refused. */
@@ -59,8 +59,9 @@ private class AndroidUsbAudioPort(
     private var callback: AudioDeviceCallback? = null
 
     override fun dacCapabilities(): List<MixerCapability>? {
+        // The device media plays on now: a DAC that is plugged in while music goes to Bluetooth does not count.
         val device =
-            audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).firstOrNull {
+            audioManager.getAudioDevicesForAttributes(MEDIA).firstOrNull {
                 it.type == AudioDeviceInfo.TYPE_USB_DEVICE || it.type == AudioDeviceInfo.TYPE_USB_HEADSET
             }
         dac = device

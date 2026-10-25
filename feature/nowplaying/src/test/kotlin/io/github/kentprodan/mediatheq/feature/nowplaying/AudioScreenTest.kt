@@ -94,13 +94,25 @@ class AudioScreenTest {
     @Test
     fun `a DAC without a matching format says the track plays normally`() {
         setContent(
-            AudioUiState(AudioPreferences(bitPerfectUsb = true), AudioOutputInfo(usbDacConnected = true)),
+            AudioUiState(
+                AudioPreferences(bitPerfectUsb = true),
+                AudioOutputInfo(usbDacConnected = true, bitPerfectNoMatch = true),
+            ),
         )
 
         composeRule
             .onNodeWithText("The DAC does not take this track's format unchanged, so it plays normally.")
             .assertExists()
         switch("Equalizer").assertIsEnabled()
+    }
+
+    @Test
+    fun `a DAC with nothing playing does not claim a mismatch`() {
+        setContent(AudioUiState(AudioPreferences(bitPerfectUsb = true), AudioOutputInfo(usbDacConnected = true)))
+
+        composeRule
+            .onNodeWithText("The DAC does not take this track's format unchanged, so it plays normally.")
+            .assertDoesNotExist()
     }
 
     @Test

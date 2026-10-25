@@ -117,9 +117,8 @@ private fun Bundle.putOutputFormat(track: Track) {
 }
 
 /**
- * The PCM format this item reaches the sink in, from the file's metadata (for bit-perfect USB); `null` when unknown.
- * shortcut: a transcoded stream (metered network) has another format, so its mixer attribute will not match and it
- * plays normally; read the decoder's format if bit-perfect on mobile data is ever wanted.
+ * The PCM format this item reaches the sink in when direct played, from the file's metadata (for bit-perfect USB);
+ * `null` when unknown. Callers skip transcodes, whose format differs.
  */
 internal fun MediaItem.outputFormat(): PcmFormat? {
     val extras = mediaMetadata.extras ?: return null

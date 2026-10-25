@@ -39,19 +39,26 @@ internal class EqualizerEffect(
     private var effect: DynamicsProcessing? = null
     private var sessionId: Int? = null
 
-    /** Applies [gainsDb] to [audioSessionId] and turns the effect on or off; re-creates it when the session changed. */
+    /** Applies [gainsDb] to [audioSessionId], or releases the effect when not [enabled]; follows session changes. */
     fun apply(
         audioSessionId: Int,
         enabled: Boolean,
         gainsDb: List<Float>,
     ) {
-        if (!enabled && effect == null) return
+        // Off means released: no effect stays on the session (bit-perfect output takes no effects).
+        if (!enabled) return release()
         val dp = effectFor(audioSessionId) ?: return
-        EqualizerCurve.bands(centersHz, gainsDb).forEachIndexed { i, band ->
-            dp.setPreEqBandAllChannelsTo(i, DynamicsProcessing.EqBand(true, band.cutoffHz, band.gainDb))
+        try {
+            EqualizerCurve.bands(centersHz, gainsDb).forEachIndexed { i, band ->
+                dp.setPreEqBandAllChannelsTo(i, DynamicsProcessing.EqBand(true, band.cutoffHz, band.gainDb))
+            }
+            dp.setInputGainAllChannelsTo(EqualizerCurve.preGainDb(gainsDb))
+            dp.enabled = true
+        } catch (e: RuntimeException) {
+            // E.g. a system effect with a higher priority took control; music plays on without the EQ.
+            Log.w(TAG, "Equalizer could not be applied", e)
+            release()
         }
-        dp.setInputGainAllChannelsTo(EqualizerCurve.preGainDb(gainsDb))
-        dp.enabled = enabled
     }
 
     fun release() {

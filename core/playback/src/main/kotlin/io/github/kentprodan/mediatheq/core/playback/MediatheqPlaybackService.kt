@@ -32,6 +32,8 @@ import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -213,7 +215,14 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 currentFormat = {
                     val stopped =
                         player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED
-                    if (stopped) null else player.currentMediaItem?.outputFormat()
+                    val item = player.currentMediaItem
+                    // A transcode has another format than the file: only a direct play can be bit-perfect.
+                    val direct =
+                        item != null &&
+                            runCatching { MediaId.parse(item.mediaId) }
+                                .getOrNull()
+                                ?.let { streamResolver.current(it)?.playMethod } == PlayMethod.DirectPlay
+                    if (stopped || !direct) null else item.outputFormat()
                 },
             ) { state ->
                 if (state.offload != offload) player.applyOffload(state.offload).also { offload = state.offload }
@@ -254,6 +263,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         AudioOutputInfo(
             bitPerfectSampleRateHz = bitPerfectFormat?.sampleRateHz,
             usbDacConnected = route == AudioRoute.UsbDac,
+            bitPerfectNoMatch = bitPerfectNoMatch,
             bitPerfectSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
         )
 

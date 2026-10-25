@@ -40,7 +40,7 @@ class AudioOutputControllerTest {
 
         assertThat(port.preferred).isNull()
         assertThat(controller.state)
-            .isEqualTo(AudioOutputState(AudioRoute.UsbDac, offload = false, AudioMode.Processed, null))
+            .isEqualTo(AudioOutputState(AudioRoute.UsbDac, offload = false, AudioMode.Processed, null, true))
     }
 
     @Test
@@ -108,6 +108,31 @@ class AudioOutputControllerTest {
         controller.refresh()
 
         assertThat(port.preferred).isNull()
+    }
+
+    @Test
+    fun `a refused next format clears the previous one`() {
+        port.capabilities = listOf(MixerCapability(cd, true), MixerCapability(hiRes, true))
+        controller.setSettings(bitPerfectOn)
+        port.accepts = false
+
+        format = hiRes
+        controller.refresh()
+
+        assertThat(port.preferred).isNull()
+        assertThat(controller.state.mode).isEqualTo(AudioMode.Offload)
+        assertThat(controller.state.bitPerfectNoMatch).isTrue()
+    }
+
+    @Test
+    fun `stopped or unknown, nothing was tried, so it is no mismatch`() {
+        port.capabilities = listOf(MixerCapability(hiRes, true))
+        format = null
+
+        controller.setSettings(bitPerfectOn)
+
+        assertThat(controller.state.bitPerfectNoMatch).isFalse()
+        assertThat(controller.state.route).isEqualTo(AudioRoute.UsbDac)
     }
 
     @Test

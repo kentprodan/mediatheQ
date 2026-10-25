@@ -97,7 +97,7 @@ private fun BitPerfectItem(
                     stringResource(R.string.nowplaying_audio_bit_perfect_active, formatFrequency(rate))
                 }
 
-                output.usbDacConnected && state.preferences.bitPerfectUsb -> {
+                output.bitPerfectNoMatch -> {
                     stringResource(R.string.nowplaying_audio_bit_perfect_no_match)
                 }
 
