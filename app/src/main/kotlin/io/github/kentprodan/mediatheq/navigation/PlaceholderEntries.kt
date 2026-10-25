@@ -1,11 +1,6 @@
 package io.github.kentprodan.mediatheq.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -34,10 +29,7 @@ data class PlaceholderDetailKey(
 data object ThemeShowcaseKey : NavKey
 
 /** Entries for the tab roots and placeholder pages; real features replace them one by one. */
-fun placeholderEntries(
-    navigator: Navigator,
-    onLogout: () -> Unit = {},
-): (NavKey) -> NavEntry<NavKey> = entryProvider { placeholders(navigator, onLogout) }
+fun placeholderEntries(navigator: Navigator): (NavKey) -> NavEntry<NavKey> = entryProvider { placeholders(navigator) }
 
 /**
  * Placeholder entries. [includeHome], [includeLibrary], [includeSearch] and [includeDownloads] are false in the app,
@@ -46,19 +38,13 @@ fun placeholderEntries(
  */
 fun EntryProviderScope<NavKey>.placeholders(
     navigator: Navigator,
-    onLogout: () -> Unit = {},
     includeHome: Boolean = true,
     includeLibrary: Boolean = true,
     includeSearch: Boolean = true,
     includeDownloads: Boolean = true,
 ) {
     if (includeHome) {
-        entry<HomeKey> {
-            Box {
-                Placeholder("Home", "Open theme showcase") { navigator.navigateTo(ThemeShowcaseKey) }
-                TextButton(onClick = onLogout, Modifier.align(Alignment.BottomCenter)) { Text("Log out") }
-            }
-        }
+        entry<HomeKey> { Placeholder("Home", "Open theme showcase") { navigator.navigateTo(ThemeShowcaseKey) } }
     }
     if (includeLibrary) entry<LibraryKey> { PlaceholderRoot("Library", navigator) }
     if (includeSearch) entry<SearchKey> { PlaceholderRoot("Search", navigator) }

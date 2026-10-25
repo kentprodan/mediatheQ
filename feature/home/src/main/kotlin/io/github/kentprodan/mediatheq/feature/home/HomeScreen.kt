@@ -162,12 +162,7 @@ private fun HomeContent(
     onOpenAlbum: (MediaId) -> Unit,
 ) {
     val rows = listOf(content.recentlyPlayed, content.recentlyAdded, content.favoriteAlbums)
-    // An album can be in several rows; only its first card flies into the album page.
-    val flying =
-        remember(rows) {
-            val seen = mutableSetOf<MediaId>()
-            rows.map { row -> row.filter { seen.add(it.id) }.mapTo(HashSet()) { it.id } }
-        }
+    val flying = remember(rows) { flyingCovers(rows) }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l)) {
         item(key = "shuffle") {
             FilledTonalButton(
@@ -252,4 +247,13 @@ private fun LazyListScope.sectionTitle(
             style = MaterialTheme.typography.titleMedium,
         )
     }
+}
+
+/**
+ * For each row, the albums whose cover flies into the album page: an album can be in several rows, and only its first
+ * card may carry the shared cover (two visible covers with one key break the transition).
+ */
+internal fun flyingCovers(rows: List<List<Album>>): List<Set<MediaId>> {
+    val seen = mutableSetOf<MediaId>()
+    return rows.map { row -> row.filter { seen.add(it.id) }.mapTo(HashSet()) { it.id } }
 }
