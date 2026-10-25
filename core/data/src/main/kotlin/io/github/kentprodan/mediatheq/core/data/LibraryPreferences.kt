@@ -15,11 +15,17 @@ enum class LibrarySort { Name, RecentlyAdded, Year, Artist, Album }
 /** How the Library tabs are switched: a chip row or connected toggle buttons (both offered, ADR 0014). */
 enum class FilterControlStyle { Chips, ConnectedButtons }
 
-/** Validated Library preferences. */
+/** How ratings are shown and given: whole stars, half stars, or not at all (favorites only). */
+enum class RatingMode { WholeStars, HalfStars, Off }
+
+/** Validated Library and display preferences. */
 data class LibraryPreferences(
     val filterStyle: FilterControlStyle = FilterControlStyle.Chips,
     val albumColumns: Int = DEFAULT_ALBUM_COLUMNS,
     val sorts: Map<LibraryFilter, LibrarySort> = emptyMap(),
+    /** Material You colors from the wallpaper (Android 12+) instead of Iris. */
+    val dynamicColor: Boolean = false,
+    val ratingMode: RatingMode = RatingMode.WholeStars,
 ) {
     /** The sort of [filter]: the stored one when that tab offers it, else its default. */
     fun sortFor(filter: LibraryFilter): LibrarySort =

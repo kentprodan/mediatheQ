@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
+import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.withRecentSearch
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -32,6 +33,14 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
         ) {
             preferences.value = preferences.value.copy(albumColumns = columns)
         }
+    }
+
+    override suspend fun setDynamicColor(on: Boolean) {
+        preferences.value = preferences.value.copy(dynamicColor = on)
+    }
+
+    override suspend fun setRatingMode(mode: RatingMode) {
+        preferences.value = preferences.value.copy(ratingMode = mode)
     }
 
     override suspend fun setSort(

@@ -2,7 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import kotlinx.coroutines.flow.Flow
 
-/** Library screen preferences, kept across restarts. */
+/** Library and display preferences (grid, sorts, colors, ratings), kept across restarts. */
 interface LibraryPreferencesRepository {
     val preferences: Flow<LibraryPreferences>
 
@@ -10,6 +10,10 @@ interface LibraryPreferencesRepository {
 
     /** Ignored outside [LibraryPreferences.ALBUM_COLUMNS]. */
     suspend fun setAlbumColumns(columns: Int)
+
+    suspend fun setDynamicColor(on: Boolean)
+
+    suspend fun setRatingMode(mode: RatingMode)
 
     /** Ignored when [filter] does not offer [sort]. */
     suspend fun setSort(

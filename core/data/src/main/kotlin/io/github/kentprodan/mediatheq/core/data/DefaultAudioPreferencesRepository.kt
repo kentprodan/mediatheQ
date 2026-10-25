@@ -26,6 +26,14 @@ class DefaultAudioPreferencesRepository
                     equalizerOn = stored.equalizerOn ?: defaults.equalizerOn,
                     eqPreset = EqPreset.entries.firstOrNull { it.name == stored.eqPreset } ?: defaults.eqPreset,
                     customGainsDb = stored.eqBands?.toGains() ?: defaults.customGainsDb,
+                    normalization = enumOrNull<Normalization>(stored.normalization) ?: defaults.normalization,
+                    unmeteredQuality =
+                        enumOrNull<StreamingQuality>(stored.unmeteredQuality) ?: defaults.unmeteredQuality,
+                    meteredQuality = enumOrNull<StreamingQuality>(stored.meteredQuality) ?: defaults.meteredQuality,
+                    streamingCacheGb =
+                        stored.streamingCacheGb?.takeIf { it in AudioPreferences.CACHE_SIZES_GB }
+                            ?: defaults.streamingCacheGb,
+                    downloadsUnmeteredOnly = stored.downloadsUnmeteredOnly ?: defaults.downloadsUnmeteredOnly,
                 )
             }
 
@@ -34,6 +42,19 @@ class DefaultAudioPreferencesRepository
         override suspend fun setEqualizerOn(on: Boolean) = store.setEqualizerOn(on)
 
         override suspend fun setEqPreset(preset: EqPreset) = store.setEq(preset.name, bands = null)
+
+        override suspend fun setNormalization(normalization: Normalization) = store.setNormalization(normalization.name)
+
+        override suspend fun setStreamingQuality(
+            metered: Boolean,
+            quality: StreamingQuality,
+        ) = store.setStreamingQuality(metered, quality.name)
+
+        override suspend fun setStreamingCacheGb(gb: Int) {
+            if (gb in AudioPreferences.CACHE_SIZES_GB) store.setStreamingCacheGb(gb)
+        }
+
+        override suspend fun setDownloadsUnmeteredOnly(on: Boolean) = store.setDownloadsUnmeteredOnly(on)
 
         override suspend fun setEqBand(
             index: Int,
@@ -44,6 +65,9 @@ class DefaultAudioPreferencesRepository
                 store.setEq(EqPreset.Custom.name, gains.joinToString(","))
             }
         }
+
+        private inline fun <reified E : Enum<E>> enumOrNull(name: String?): E? =
+            enumValues<E>().firstOrNull { it.name == name }
 
         // Anything but one valid gain per band is dropped: an old or damaged value means the defaults.
         private fun String.toGains(): List<Float>? =

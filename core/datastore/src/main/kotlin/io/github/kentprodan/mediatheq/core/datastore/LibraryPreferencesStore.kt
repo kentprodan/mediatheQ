@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.datastore
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -32,6 +33,8 @@ class LibraryPreferencesStore
                     StoredLibraryPreferences(
                         filterStyle = prefs[FILTER_STYLE],
                         albumColumns = prefs[ALBUM_COLUMNS],
+                        dynamicColor = prefs[DYNAMIC_COLOR],
+                        ratingMode = prefs[RATING_MODE],
                         sorts =
                             prefs
                                 .asMap()
@@ -47,6 +50,14 @@ class LibraryPreferencesStore
 
         suspend fun setAlbumColumns(columns: Int) {
             dataStore.edit { it[ALBUM_COLUMNS] = columns }
+        }
+
+        suspend fun setDynamicColor(on: Boolean) {
+            dataStore.edit { it[DYNAMIC_COLOR] = on }
+        }
+
+        suspend fun setRatingMode(name: String) {
+            dataStore.edit { it[RATING_MODE] = name }
         }
 
         /** Stores the sort [name] for the Library tab [tab]. */
@@ -84,6 +95,8 @@ class LibraryPreferencesStore
         private companion object {
             val FILTER_STYLE = stringPreferencesKey("filter_style")
             val ALBUM_COLUMNS = intPreferencesKey("album_columns")
+            val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
+            val RATING_MODE = stringPreferencesKey("rating_mode")
             const val SORT_PREFIX = "sort_"
             val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
             const val SEPARATOR = "\n"
@@ -96,4 +109,6 @@ data class StoredLibraryPreferences(
     val albumColumns: Int? = null,
     /** Tab name -> sort name. */
     val sorts: Map<String, String> = emptyMap(),
+    val dynamicColor: Boolean? = null,
+    val ratingMode: String? = null,
 )

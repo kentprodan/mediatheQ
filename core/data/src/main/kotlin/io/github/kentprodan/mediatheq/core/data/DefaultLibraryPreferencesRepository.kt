@@ -23,6 +23,8 @@ class DefaultLibraryPreferencesRepository
                                 val filter = enumOrNull<LibraryFilter>(tab) ?: return@mapNotNull null
                                 enumOrNull<LibrarySort>(sort)?.takeIf { it in filter.sorts }?.let { filter to it }
                             }.toMap(),
+                    dynamicColor = stored.dynamicColor ?: false,
+                    ratingMode = enumOrNull<RatingMode>(stored.ratingMode) ?: RatingMode.WholeStars,
                 )
             }
 
@@ -31,6 +33,10 @@ class DefaultLibraryPreferencesRepository
         override suspend fun setAlbumColumns(columns: Int) {
             if (columns in LibraryPreferences.ALBUM_COLUMNS) store.setAlbumColumns(columns)
         }
+
+        override suspend fun setDynamicColor(on: Boolean) = store.setDynamicColor(on)
+
+        override suspend fun setRatingMode(mode: RatingMode) = store.setRatingMode(mode.name)
 
         override suspend fun setSort(
             filter: LibraryFilter,
