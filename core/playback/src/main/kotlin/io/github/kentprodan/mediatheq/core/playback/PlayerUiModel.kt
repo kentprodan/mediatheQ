@@ -19,7 +19,20 @@ data class PlayerUiModel(
     val currentEntryId: String? = null,
     /** Shuffle on: the queue shows the shuffled order and cannot be reordered (#41 adds the toggle). */
     val shuffle: Boolean = false,
+    val output: AudioOutputInfo = AudioOutputInfo(),
 )
+
+/** The audio output, for the bit-perfect indicator and the Audio sheet (media3 skill, sections 6 and 7). */
+data class AudioOutputInfo(
+    /** The sample rate sent unchanged to a USB DAC; `null` when not bit-perfect. Phone volume does not apply then. */
+    val bitPerfectSampleRateHz: Int? = null,
+    val usbDacConnected: Boolean = false,
+    /** Bit-perfect USB needs Android 14. */
+    val bitPerfectSupported: Boolean = true,
+) {
+    /** The equalizer is off while bit-perfect: the samples must reach the DAC unchanged. */
+    val equalizerBlocked: Boolean get() = bitPerfectSampleRateHz != null
+}
 
 /** One queue entry, for the queue screen. */
 data class QueueItem(

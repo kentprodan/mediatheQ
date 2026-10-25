@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import android.app.PendingIntent
 import android.media.AudioManager
+import android.os.Build
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -179,6 +180,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                             .build(),
                     ),
                 ).apply { sessionActivity()?.let(::setSessionActivity) }
+                .setSessionExtras(audioOutput.state.toInfo().toBundle())
                 .build()
         signOutWatch =
             applicationScope.launch(Dispatchers.Main) {
@@ -217,6 +219,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 if (state.offload != offload) player.applyOffload(state.offload).also { offload = state.offload }
                 normalization.apply()
                 applyEqualizer()
+                session?.sessionExtras = state.toInfo().toBundle()
             }
         normalization = NormalizationListener(player, { settings }) { audioOutput.state.mode }
         player.addListener(normalization)
@@ -246,6 +249,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 }
             }
     }
+
+    private fun AudioOutputState.toInfo() =
+        AudioOutputInfo(
+            bitPerfectSampleRateHz = bitPerfectFormat?.sampleRateHz,
+            usbDacConnected = route == AudioRoute.UsbDac,
+            bitPerfectSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+        )
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 
