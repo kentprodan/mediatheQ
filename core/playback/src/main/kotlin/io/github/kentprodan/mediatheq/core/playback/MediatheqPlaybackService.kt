@@ -208,11 +208,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             if (controller.packageName == packageName || controller.isTrusted ||
                 session.isMediaNotificationController(controller)
             ) {
-                val accepted = super.onConnect(session, controller)
-                MediaSession.ConnectionResult.accept(
-                    accepted.availableSessionCommands,
-                    withoutPlayerVolume(accepted.availablePlayerCommands),
-                )
+                acceptWithoutPlayerVolume(session, controller)
             } else {
                 MediaSession.ConnectionResult.reject()
             }

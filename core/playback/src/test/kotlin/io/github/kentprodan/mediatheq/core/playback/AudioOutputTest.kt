@@ -5,8 +5,11 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaController
+import androidx.media3.session.MediaSession
 import androidx.media3.test.utils.FakeMediaSourceFactory
 import androidx.media3.test.utils.TestExoPlayerBuilder
+import androidx.media3.test.utils.robolectric.RobolectricUtil
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -59,11 +62,29 @@ class AudioOutputTest {
     }
 
     @Test
-    fun `controllers may not set the player volume, which carries the gain`() {
-        val commands = withoutPlayerVolume(player.availableCommands)
+    fun `a controller connects with the default commands, except setting the player volume`() {
+        val session =
+            MediaSession
+                .Builder(context, player)
+                .setCallback(
+                    object : MediaSession.Callback {
+                        override fun onConnect(
+                            session: MediaSession,
+                            controller: MediaSession.ControllerInfo,
+                        ) = acceptWithoutPlayerVolume(session, controller)
+                    },
+                ).build()
+        val future = MediaController.Builder(context, session.token).buildAsync()
+        RobolectricUtil.runMainLooperUntil { future.isDone }
 
-        assertThat(commands.contains(Player.COMMAND_SET_VOLUME)).isFalse()
-        assertThat(commands.contains(Player.COMMAND_PLAY_PAUSE)).isTrue()
+        // Regression (#53): the controller was rejected (Media3 1.11's default onConnect result has no commands).
+        val controller = future.get()
+        assertThat(controller.isConnected).isTrue()
+        assertThat(controller.isCommandAvailable(Player.COMMAND_PLAY_PAUSE)).isTrue()
+        assertThat(controller.isCommandAvailable(Player.COMMAND_SET_MEDIA_ITEM)).isTrue()
+        assertThat(controller.isCommandAvailable(Player.COMMAND_SET_VOLUME)).isFalse()
+        controller.release()
+        session.release()
     }
 
     @Test

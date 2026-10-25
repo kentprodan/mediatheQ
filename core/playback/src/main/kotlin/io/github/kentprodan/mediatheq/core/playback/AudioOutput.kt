@@ -4,6 +4,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.MediaSession
 
 /**
  * Applies [mode]'s offload preference. Only when settings change (once at start for now): a change makes the player
@@ -40,7 +41,23 @@ internal class NormalizationListener(
     }
 }
 
-/** [commands] without setting the player volume, which carries the normalization gain (controllers use the device's). */
+/**
+ * Accepts [controller] with the default commands for it, minus setting the player volume, which carries the
+ * normalization gain (controllers change the device volume instead).
+ */
 @UnstableApi
-internal fun withoutPlayerVolume(commands: Player.Commands): Player.Commands =
-    commands.buildUpon().remove(Player.COMMAND_SET_VOLUME).build()
+internal fun acceptWithoutPlayerVolume(
+    session: MediaSession,
+    controller: MediaSession.ControllerInfo,
+): MediaSession.ConnectionResult {
+    // Not super.onConnect: since Media3 1.11 it returns a "not implemented" marker without any commands (#53).
+    val defaults = MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller).build()
+    return MediaSession.ConnectionResult
+        .AcceptedResultBuilder(session, controller)
+        .setAvailablePlayerCommands(
+            defaults.availablePlayerCommands
+                .buildUpon()
+                .remove(Player.COMMAND_SET_VOLUME)
+                .build(),
+        ).build()
+}
