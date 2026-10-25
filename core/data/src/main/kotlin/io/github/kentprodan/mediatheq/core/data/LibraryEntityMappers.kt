@@ -144,6 +144,7 @@ internal fun TrackWithArtists.toDomain(): Track {
         sortName = track.sortName,
         dateAdded = track.dateAddedMillis?.let(Instant::fromEpochMilliseconds),
         normalizationGainDb = track.normalizationGainDb,
+        albumNormalizationGainDb = album?.normalizationGainDb,
         artwork = track.image.toDomain(),
         userData = track.userData.toDomain(),
     )

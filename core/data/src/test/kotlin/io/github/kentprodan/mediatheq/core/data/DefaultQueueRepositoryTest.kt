@@ -1,6 +1,8 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -28,6 +30,26 @@ class DefaultQueueRepositoryTest {
         trackIds.mapIndexed { i, id -> QueueEntryId("e$i", MediaId(ServerId("s"), id)) }
 
     private fun SavedQueue.trackIds() = entries.map { it.track.id.itemId }
+
+    @Test
+    fun `restored tracks carry their album's gain, and none without an album`() =
+        runTest {
+            database.syncDao().stageAlbums(
+                listOf(AlbumStaging(AlbumEntity("s", "al1", "A", "A", normalizationGainDb = -7.5))),
+            )
+            database.syncDao().stageTracks(
+                listOf(
+                    TrackStaging(TrackEntity("s", "t1", "Track t1", "Track t1", albumId = "al1")),
+                    TrackStaging(TrackEntity("s", "t2", "Track t2", "Track t2")),
+                ),
+            )
+            database.syncDao().swap(1, "s", "user-1")
+            repository.saveQueue(entries("t1", "t2"), emptyList(), QueuePlace(0, Duration.ZERO, false))
+
+            val gains = repository.restore()!!.entries.map { it.track.albumNormalizationGainDb }
+
+            assertThat(gains).containsExactly(-7.5, null).inOrder()
+        }
 
     @Test
     fun `nothing saved restores nothing`() =
