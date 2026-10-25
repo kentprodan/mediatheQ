@@ -133,3 +133,7 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9 + USB DAC (pending: no DAC yet), Bit-perfect USB on: play 44.1, 48 and 96 kHz files -> the DAC shows the file's rate each time; Now Playing shows "Bit-perfect · <rate>" and "Phone volume does not apply"; the Audio screen says the EQ is unavailable and why
 - [ ] Pixel 9 + USB DAC (pending): a gapless album that switches 44.1 -> 96 kHz -> the DAC follows the rate on the second track (if not: the mixer attribute is set too late, see media3 skill section 6)
 - [ ] Pixel 9 + USB DAC (pending): unplug the DAC mid-track -> playback pauses (becoming noisy), the indicator goes away; play again on the speaker -> normal volume and EQ work; phone volume keys do nothing while bit-perfect
+
+## #23 Lyrics: synced and plain
+- [ ] Pixel 9: play a track with a `.lrc` file -> Now Playing -> lyrics button -> the sung line is marked and stays centered, in time with the voice by ear (note whether the LRC `[offset:]` tag is applied; if not, new R-line in the jellyfin skill); tap a later line -> playback jumps there; scroll by hand -> the list stays put ~3 s, then returns to the sung line; back -> the player
+- [ ] Pixel 9: a track with plain (`.txt`) lyrics -> lines show and scroll, none marked, taps do nothing; a track without lyrics -> "No lyrics"; airplane mode on a streamed track -> "Couldn't load lyrics" + Try again; light/dark and font size 200% look right
