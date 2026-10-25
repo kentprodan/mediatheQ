@@ -15,7 +15,10 @@ import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
 
-/** An album in a grid: square cover, then title and album artists on one line each. */
+/**
+ * An album in a grid or row: square cover, then title and album artists on one line each. [sharedCover] off when the
+ * same album already shows elsewhere on screen: only one cover may fly into the album page.
+ */
 @Composable
 fun AlbumCard(
     album: Album,
@@ -23,6 +26,7 @@ fun AlbumCard(
     modifier: Modifier = Modifier,
     coverModel: Any? = album.artwork,
     coverBlurHash: String? = album.artwork?.blurHash,
+    sharedCover: Boolean = true,
 ) {
     Column(
         modifier
@@ -35,7 +39,7 @@ fun AlbumCard(
             model = coverModel,
             contentDescription = null,
             // Flies into the album page's header cover.
-            modifier = Modifier.mqSharedCover(sharedCoverKey(album.id)),
+            modifier = if (sharedCover) Modifier.mqSharedCover(sharedCoverKey(album.id)) else Modifier,
             blurHash = coverBlurHash,
         )
         Text(

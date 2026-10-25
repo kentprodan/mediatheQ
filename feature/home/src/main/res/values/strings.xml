@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_title">Home</string>
+    <string name="home_more">More options</string>
+    <string name="home_theme_showcase">Theme showcase</string>
+    <string name="home_log_out">Log out</string>
+    <string name="home_shuffle_all">Shuffle all</string>
+    <string name="home_recently_played">Recently played</string>
+    <string name="home_recently_added">Recently added</string>
+    <string name="home_favorite_albums">Favorite albums</string>
+    <string name="home_favorite_songs">Favorite songs</string>
+    <string name="home_first_sync_title">Getting your library</string>
+    <string name="home_first_sync_body">The first sync can take a minute. Your music shows here when it is done.</string>
+    <string name="home_empty_title">Nothing here yet</string>
+    <string name="home_empty_body">Your server has no music yet.</string>
+    <string name="home_sync_now">Sync now</string>
+    <string name="home_offline_title">You\'re offline</string>
+    <string name="home_offline_body">Your library loads once the server can be reached.</string>
+    <string name="home_error_title">Couldn\'t load your library</string>
+    <string name="home_error_body">The server answered with an error. Try again in a moment.</string>
+    <string name="home_retry">Try again</string>
+</resources>

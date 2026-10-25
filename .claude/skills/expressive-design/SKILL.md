@@ -110,6 +110,7 @@ fun MediatheqTheme(
 ### Spacing
 
 - `MediatheqSpacing` tokens: `xs 4`, `s 8`, `m 12`, `l 16`, `xl 24`, `xxl 32` (dp). Screen horizontal padding = `l`.
+- Fixed sizes (e.g. an album card's width in a row) live in `MediatheqSizes`.
 - No raw `.dp` literals in feature modules except `0.dp`.
 
 ## 3. Component map for mediatheQ
@@ -151,6 +152,7 @@ fun MediatheqTheme(
 | Dialogs (rename, delete confirm, new playlist) | `MqDialog` in `:core:designsystem` (wraps `BasicAlertDialog`) | Title, optional content, text buttons. Screenshot `MqDialogContent` in place: dialog windows render blank. |
 | Add to playlist (track / album menus, Library "New playlist") | `AddToPlaylistKey` dialog entry (Navigation 3 `DialogSceneStrategy`) showing `MqDialogContent`: playlist rows, "New playlist" switches to a name field | Menu item `AddToPlaylistMenuItem` in `:core:ui`. Library Playlists tab: "+" in the top bar opens it with no tracks. |
 | Pull to refresh (Library) | `PullToRefreshBox` | |
+| Home tab | `TopAppBar` (overflow: Theme showcase, Log out until #25) + full-width `FilledTonalButton` "Shuffle all" + section titles (`titleMedium`, heading) + `LazyRow` of `AlbumCard` (width `MediatheqSizes.albumCardInRow`) + favorite songs as `TrackRow(showCover = true)` | Sections: Recently played, Recently added, Favorite albums, Favorite songs; empty ones hidden. An album in several rows: only its first card has `sharedCover`. |
 | Downloads tab | `TopAppBar` + storage line + album section titles (`titleMedium`, heading) + `TrackRow(supportingContent = ...)` | Supporting line shows Queued / Waiting for Wi-Fi / Download failed (`error` color) or "Downloading n%" over a `LinearWavyProgressIndicator` (indeterminate without a size). Row menu: queue items, Download again (failed), Remove download. |
 | Download (album, playlist, track menus) | `DownloadMenuItem` / `RemoveDownloadMenuItem` in `:core:ui` | Remove only in the Downloads tab. Header toggle later (after #48). |
 | Offline state (tabs other than Downloads) | `MqEmptyState` in `AppShell` (cloud-off icon, "Open Downloads" action) | Replaces the tab's content while offline; its back stack stays. |

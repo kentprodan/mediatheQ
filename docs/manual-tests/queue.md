@@ -123,3 +123,6 @@ Items are added by `/end` and run with `/test`.
 - [x] Pixel 9 (Android 17): open the app without the permission -> "Allow access to your home network" -> Allow -> system dialog -> Allow -> the app opens and reaches the LAN server (album downloads complete) - passed 2026-10-25
 - [x] Pixel 9: Settings -> Apps -> mediatheQ -> Permissions -> Nearby devices -> Don't allow, back to the app -> the gate shows again; deny twice -> the button says "Open settings" and opens the app settings; allow there -> back in the app it opens - passed 2026-10-25
 - [ ] Pixel 9 on mobile data with Tailscale on: sign-in, browse and playback over the Tailscale address work with the permission granted (and note whether they also work with it denied)
+
+## #19 Home screen
+- [ ] Pixel 9: open Home after a sync -> Shuffle all, Recently played, Recently added, Favorite albums and Favorite songs show (empty ones hidden); tap an album that is in two rows -> one cover flies into the album page, no flicker or missing cover; back -> Home keeps its scroll; Shuffle all starts a shuffled queue; a favorite song plays the favorites from it

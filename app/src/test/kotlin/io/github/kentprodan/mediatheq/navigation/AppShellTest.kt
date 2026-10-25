@@ -15,7 +15,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingLayout
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingUiState
@@ -36,13 +35,10 @@ class AppShellTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @Composable
-    private fun Shell(
-        onLogout: () -> Unit = {},
-        offline: Boolean = false,
-    ) {
+    private fun Shell(offline: Boolean = false) {
         MediatheqTheme {
             val navigator = rememberTabNavigator()
-            AppShell(navigator, remember(navigator) { placeholderEntries(navigator, onLogout) }, offline = offline)
+            AppShell(navigator, remember(navigator) { placeholderEntries(navigator) }, offline = offline)
         }
     }
 
@@ -133,23 +129,13 @@ class AppShellTest {
     }
 
     @Test
-    fun `Log out on Home calls the logout action`() {
-        var loggedOut = false
-        composeRule.setContent { Shell(onLogout = { loggedOut = true }) }
-
-        composeRule.onNodeWithText("Log out").performClick()
-
-        assertThat(loggedOut).isTrue()
-    }
-
-    @Test
     fun `back closes the open player first and leaves the tab stack alone`() {
         val playing =
             NowPlayingUiState.Playing("Strobe", "deadmau5", null, true, 10.minutes, true, true, true)
         composeRule.setContent {
             MediatheqTheme {
                 val navigator = rememberTabNavigator()
-                val entries = remember(navigator) { placeholderEntries(navigator, {}) }
+                val entries = remember(navigator) { placeholderEntries(navigator) }
                 NowPlayingLayout(playing, MutableStateFlow(Duration.ZERO), {}, content = { mini ->
                     AppShell(navigator, entries, miniPlayer = mini)
                 })
