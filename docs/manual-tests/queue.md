@@ -126,3 +126,10 @@ Items are added by `/end` and run with `/test`.
 
 ## #19 Home screen
 - [ ] Pixel 9: open Home after a sync -> Shuffle all, Recently played, Recently added, Favorite albums and Favorite songs show (empty ones hidden); tap an album that is in two rows -> one cover flies into the album page, no flicker or missing cover; back -> Home keeps its scroll; Shuffle all starts a shuffled queue; a favorite song plays the favorites from it
+
+## #22 USB DAC bit-perfect and equalizer
+- [ ] Pixel 9: Now Playing -> Audio (tune button) -> turn the Equalizer on, pick Bass boost, then move the 60 Hz band -> the sound changes at once and the preset becomes Custom; `adb shell dumpsys media.audio_flinger` shows no offloaded output while the EQ is on (and offload again after turning it off); light/dark and font size 200% look right
+- [ ] Pixel 9 without a DAC, Bit-perfect USB on -> playback is normal, no indicator on Now Playing, the EQ stays available
+- [ ] Pixel 9 + USB DAC (pending: no DAC yet), Bit-perfect USB on: play 44.1, 48 and 96 kHz files -> the DAC shows the file's rate each time; Now Playing shows "Bit-perfect · <rate>" and "Phone volume does not apply"; the Audio screen says the EQ is unavailable and why
+- [ ] Pixel 9 + USB DAC (pending): a gapless album that switches 44.1 -> 96 kHz -> the DAC follows the rate on the second track (if not: the mixer attribute is set too late, see media3 skill section 6)
+- [ ] Pixel 9 + USB DAC (pending): unplug the DAC mid-track -> playback pauses (becoming noisy), the indicator goes away; play again on the speaker -> normal volume and EQ work; phone volume keys do nothing while bit-perfect
