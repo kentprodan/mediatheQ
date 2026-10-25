@@ -65,12 +65,18 @@ class StreamResolverTest {
         }
 
     @Test
-    fun `offline a fresh load fails at once without asking the server`() =
+    fun `reading on after the playing download was removed asks for the original, also on a metered network`() =
         runTest {
-            network.online.value = false
+            resolver.playLocal(itemId)
+            network.metered = true
 
-            assertThat(resolver.resolve(itemId)).isEqualTo(MqResult.Failure(MqError.Network))
-            assertThat(repository.streamRequests).isEmpty()
+            resolver.resolve(itemId, continuing = true)
+
+            assertThat(
+                repository.streamRequests
+                    .single()
+                    .second.maxStreamingBitrate,
+            ).isNull()
         }
 
     @Test

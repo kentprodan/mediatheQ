@@ -3,7 +3,10 @@ package io.github.kentprodan.mediatheq.navigation
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -63,6 +66,22 @@ class AppShellTest {
 
         composeRule.onNodeWithText("You are offline").assertDoesNotExist()
         composeRule.onNode(hasText("Downloads") and hasClickAction()).assertIsSelected()
+    }
+
+    @Test
+    fun `offline, back still pops the tab`() {
+        var offline by mutableStateOf(false)
+        composeRule.setContent { Shell(offline = offline) }
+        openLibraryDetail()
+        offline = true
+        composeRule.waitForIdle()
+
+        pressBack()
+        offline = false
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Library 1").assertDoesNotExist()
+        composeRule.onNodeWithText("Open detail").assertExists()
     }
 
     @Test

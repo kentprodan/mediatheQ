@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -97,7 +98,11 @@ fun AppShell(
                 )
             }
         if (offline && navigator.currentTab != TopLevelTab.Downloads) {
-            // The tabs' stacks and saved state stay as they are; they come back with the network.
+            // The tabs' stacks and saved state stay as they are; they come back with the network. Back still walks
+            // them (NavDisplay, which handles it otherwise, is not composed meanwhile).
+            BackHandler(navigator.stack(navigator.currentTab).size > 1 || navigator.currentTab != TopLevelTab.Home) {
+                navigator.back()
+            }
             MqEmptyState(
                 icon = MqIcons.CloudOff,
                 title = stringResource(R.string.offline_title),

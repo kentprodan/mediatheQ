@@ -22,6 +22,8 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -122,14 +124,27 @@ class DefaultDownloadRepositoryTest {
             assertThat(intent.getStringExtra(DownloadService.KEY_CONTENT_ID)).isEqualTo(done.id.toString())
         }
 
-    private fun TestScope.repository(vararg stored: Pair<Int, Track>): DefaultDownloadRepository {
+    @Test
+    fun `before the stored downloads are read, a completed download already counts as on the device`() =
+        runTest {
+            // The index read is queued but not run yet: the player started the process (e.g. offline, cold start).
+            val repository =
+                repository(Download.STATE_COMPLETED to done, dispatcher = StandardTestDispatcher(testScheduler))
+
+            assertThat(repository.isDownloaded(done.id)).isTrue()
+            assertThat(repository.isDownloaded(waiting.id)).isFalse()
+        }
+
+    private fun TestScope.repository(
+        vararg stored: Pair<Int, Track>,
+        dispatcher: CoroutineDispatcher = UnconfinedTestDispatcher(testScheduler),
+    ): DefaultDownloadRepository {
         library.tracks.value = listOf(done, failed, waiting)
         stored.forEach { (state, track) -> index.putDownload(download(track, state)) }
         val manager =
             DownloadManager(context, index) { error("nothing is downloaded in these tests") }
                 .apply { pauseDownloads() }
         RobolectricUtil.runMainLooperUntil { manager.isInitialized }
-        val dispatcher = UnconfinedTestDispatcher(testScheduler)
         return DefaultDownloadRepository(context, manager, cache, library, backgroundScope, dispatcher, dispatcher)
     }
 

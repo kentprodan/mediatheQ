@@ -22,7 +22,10 @@ interface DownloadRepository {
     /** Deletes the local copies of [ids]. */
     fun remove(ids: List<MediaId>)
 
-    /** True when [id] is fully on the device. Cheap and safe from any thread (the player asks on its loader). */
+    /**
+     * True when [id] is fully on the device. Safe from any thread; right after app start it may read the disk, so call
+     * it off the main thread (the player asks on its loader thread).
+     */
     fun isDownloaded(id: MediaId): Boolean
 }
 

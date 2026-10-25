@@ -31,6 +31,7 @@ internal fun streamDataSourceFactory(
     resolver: StreamResolver,
     downloads: DownloadRepository,
     downloadCache: Cache,
+    isOnline: () -> Boolean,
 ): DataSource.Factory {
     // Read-only: streams are never written into the download cache, and only downloads have a key that can hit.
     val cached =
@@ -46,6 +47,8 @@ internal fun streamDataSourceFactory(
             resolver.playLocal(itemId)
             return@Factory dataSpec.buildUpon().setKey(downloadCacheKey(itemId)).build()
         }
+        // Offline only downloads play; anything else fails at once, without a server request or retries.
+        if (!isOnline()) throw OfflineException()
         resolveStream(dataSpec, itemId, resolver) { resolver.resolve(itemId, continuing = dataSpec.position > 0) }
     }
 }
@@ -97,18 +100,22 @@ class StreamUnavailableException(
     val error: MqError,
 ) : IOException("Stream unavailable: $error")
 
+/** The device was offline when a track that is not downloaded was to load. */
+class OfflineException : IOException("Offline: only downloads play")
+
 /**
- * Retries network trouble like the default policy, but not answers that will not change (signed out, refused, no
- * compatible stream): each retry would ask the server for a new play session for nothing. Offline nothing is retried:
- * a track that is not downloaded fails at once instead of stalling the queue.
+ * Retries network trouble like the default policy (a dropped connection during a Wi-Fi to cellular handover comes
+ * back), but not answers that will not change (signed out, refused, no compatible stream: each retry would ask the
+ * server for a new play session for nothing), nor a track that cannot load offline.
  */
 @UnstableApi
-internal class StreamLoadErrorPolicy(
-    private val isOnline: () -> Boolean,
-) : DefaultLoadErrorHandlingPolicy() {
+internal class StreamLoadErrorPolicy : DefaultLoadErrorHandlingPolicy() {
     override fun getRetryDelayMsFor(loadErrorInfo: LoadErrorHandlingPolicy.LoadErrorInfo): Long {
-        val error = (loadErrorInfo.exception as? StreamUnavailableException)?.error
-        return if (!isOnline() || (error != null && error != MqError.Network && error !is MqError.Server)) {
+        val exception = loadErrorInfo.exception
+        val error = (exception as? StreamUnavailableException)?.error
+        return if (exception is OfflineException ||
+            (error != null && error != MqError.Network && error !is MqError.Server)
+        ) {
             C.TIME_UNSET
         } else {
             super.getRetryDelayMsFor(loadErrorInfo)

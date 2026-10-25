@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration
@@ -59,6 +60,11 @@ internal class DefaultDownloadRepository
         private val entries = MutableStateFlow<Map<MediaId, Download>>(emptyMap())
         private val notMetRequirements = MutableStateFlow(manager.notMetRequirements)
 
+        // Until the stored index is in [entries], answers come from the index itself, and removals are remembered so
+        // the late index read does not bring them back.
+        @Volatile private var loaded = false
+        private val removedBeforeLoad = ConcurrentHashMap.newKeySet<MediaId>()
+
         init {
             manager.addListener(
                 object : DownloadManager.Listener {
@@ -76,6 +82,7 @@ internal class DefaultDownloadRepository
                         download: Download,
                     ) {
                         val id = download.trackId() ?: return
+                        if (!loaded) removedBeforeLoad += id
                         entries.update { it - id }
                     }
 
@@ -99,7 +106,8 @@ internal class DefaultDownloadRepository
                         }
                     }
                 // Changes the manager reported meanwhile are newer than the index.
-                entries.update { stored + it }
+                entries.update { (stored - removedBeforeLoad) + it }
+                loaded = true
             }
         }
 
@@ -155,7 +163,13 @@ internal class DefaultDownloadRepository
             }
         }
 
-        override fun isDownloaded(id: MediaId): Boolean = entries.value[id]?.state == Download.STATE_COMPLETED
+        override fun isDownloaded(id: MediaId): Boolean {
+            val download =
+                entries.value[id]
+                    // Right after start (e.g. the player starting the process offline) the index is not read yet.
+                    ?: if (loaded) null else manager.downloadIndex.getDownload(id.toString())
+            return download?.state == Download.STATE_COMPLETED
+        }
 
         private companion object {
             val PROGRESS_INTERVAL: Duration = 1.seconds

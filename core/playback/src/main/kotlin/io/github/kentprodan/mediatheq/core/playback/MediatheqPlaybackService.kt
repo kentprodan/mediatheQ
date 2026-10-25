@@ -88,8 +88,14 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setMediaSourceFactory(
                     DefaultMediaSourceFactory(
-                        streamDataSourceFactory(okHttpClient, streamResolver, downloads, downloadCache),
-                    ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy(networkMonitor::isOnline)),
+                        streamDataSourceFactory(
+                            okHttpClient,
+                            streamResolver,
+                            downloads,
+                            downloadCache,
+                            networkMonitor::isOnline,
+                        ),
+                    ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
                 ).build()
         reporter =
             PlaybackReporter(

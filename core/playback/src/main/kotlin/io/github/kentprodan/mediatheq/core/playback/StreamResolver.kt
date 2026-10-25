@@ -37,18 +37,19 @@ class StreamResolver
 
         /**
          * The stream for [itemId]. [continuing] (reading on from a byte offset) always reuses the known stream; a fresh
-         * load reuses it unless the network kind changed since (e.g. home Wi-Fi to cellular). Offline it fails at once
-         * with `Network`, without asking the server.
+         * load reuses it unless the network kind changed since (e.g. home Wi-Fi to cellular). Reading on from a download
+         * that was removed meanwhile asks for the original file: the bytes already played came from it.
          */
         suspend fun resolve(
             itemId: MediaId,
             continuing: Boolean = false,
         ): MqResult<PlaybackStream> {
-            val metered = networkMonitor.isMetered()
-            streams[itemId]?.takeUnless { it.local }?.let {
+            val known = streams[itemId]
+            val fromDownload = continuing && known?.local == true
+            val metered = !fromDownload && networkMonitor.isMetered()
+            known?.takeUnless { it.local }?.let {
                 if (continuing || it.metered == metered) return MqResult.Success(it.stream)
             }
-            if (!networkMonitor.isOnline()) return MqResult.Failure(MqError.Network)
             val result = playbackRepository.stream(itemId, DeviceProfileBuilder.build(decoderMimeTypes, metered))
             if (result is MqResult.Success) streams[itemId] = Resolved(result.value, metered)
             return result
