@@ -40,6 +40,9 @@ object MqIcons {
     val DownloadFilled: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_download_filled)
 
+    val Lan: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_lan)
+
     val CloudOff: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_cloud_off)
 

@@ -42,53 +42,56 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MediatheqTheme {
-                val session by viewModel.session.collectAsStateWithLifecycle()
-                when (session) {
-                    // Read from disk in a few milliseconds; a plain surface avoids flashing onboarding first.
-                    null -> {
-                        Surface(Modifier.fillMaxSize()) {}
-                    }
+                // Android 17: no server can be reached without local network access, so ask before anything else.
+                LocalNetworkGate {
+                    val session by viewModel.session.collectAsStateWithLifecycle()
+                    when (session) {
+                        // Read from disk in a few milliseconds; a plain surface avoids flashing onboarding first.
+                        null -> {
+                            Surface(Modifier.fillMaxSize()) {}
+                        }
 
-                    is SessionState.LoggedOut -> {
-                        OnboardingHost()
-                    }
+                        is SessionState.LoggedOut -> {
+                            OnboardingHost()
+                        }
 
-                    is SessionState.LoggedIn -> {
-                        val navigator = rememberTabNavigator()
-                        val snackbar = remember { SnackbarHostState() }
-                        UserDataErrorMessages(viewModel.userDataError, viewModel::dismissUserDataError, snackbar)
-                        val entries =
-                            remember(navigator) {
-                                entryProvider {
-                                    libraryEntry(navigator)
-                                    albumEntry(navigator)
-                                    artistEntry(navigator)
-                                    playlistEntry(navigator)
-                                    searchEntry(navigator)
-                                    downloadsEntry()
-                                    addToPlaylistEntry(navigator)
-                                    placeholders(
-                                        navigator,
-                                        onLogout = viewModel::logout,
-                                        includeLibrary = false,
-                                        includeSearch = false,
-                                        includeDownloads = false,
-                                    )
+                        is SessionState.LoggedIn -> {
+                            val navigator = rememberTabNavigator()
+                            val snackbar = remember { SnackbarHostState() }
+                            UserDataErrorMessages(viewModel.userDataError, viewModel::dismissUserDataError, snackbar)
+                            val entries =
+                                remember(navigator) {
+                                    entryProvider {
+                                        libraryEntry(navigator)
+                                        albumEntry(navigator)
+                                        artistEntry(navigator)
+                                        playlistEntry(navigator)
+                                        searchEntry(navigator)
+                                        downloadsEntry()
+                                        addToPlaylistEntry(navigator)
+                                        placeholders(
+                                            navigator,
+                                            onLogout = viewModel::logout,
+                                            includeLibrary = false,
+                                            includeSearch = false,
+                                            includeDownloads = false,
+                                        )
+                                    }
                                 }
-                            }
-                        val online by viewModel.online.collectAsStateWithLifecycle()
-                        NowPlayingHost(
-                            content = { miniPlayer ->
-                                AppShell(
-                                    navigator,
-                                    entries,
-                                    offline = !online,
-                                    miniPlayer = miniPlayer,
-                                    snackbarHostState = snackbar,
-                                )
-                            },
-                            snackbarHost = { SnackbarHost(snackbar) },
-                        )
+                            val online by viewModel.online.collectAsStateWithLifecycle()
+                            NowPlayingHost(
+                                content = { miniPlayer ->
+                                    AppShell(
+                                        navigator,
+                                        entries,
+                                        offline = !online,
+                                        miniPlayer = miniPlayer,
+                                        snackbarHostState = snackbar,
+                                    )
+                                },
+                                snackbarHost = { SnackbarHost(snackbar) },
+                            )
+                        }
                     }
                 }
             }
