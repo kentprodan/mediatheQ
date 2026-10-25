@@ -8,6 +8,15 @@
     <string name="nowplaying_queue_remove">Remove from queue</string>
     <string name="nowplaying_queue_move_up">Move up</string>
     <string name="nowplaying_queue_move_down">Move down</string>
+    <string name="nowplaying_lyrics">Lyrics</string>
+    <string name="nowplaying_lyrics_open">Show lyrics</string>
+    <string name="nowplaying_lyrics_close">Close lyrics</string>
+    <string name="nowplaying_lyrics_play_from">Play from here</string>
+    <string name="nowplaying_lyrics_none">No lyrics</string>
+    <string name="nowplaying_lyrics_none_body">The server has no lyrics for this track.</string>
+    <string name="nowplaying_lyrics_error">Couldn\'t load lyrics</string>
+    <string name="nowplaying_lyrics_error_body">Check the connection to the server and try again.</string>
+    <string name="nowplaying_lyrics_retry">Try again</string>
     <string name="nowplaying_audio">Audio</string>
     <string name="nowplaying_audio_open">Audio settings</string>
     <string name="nowplaying_audio_close">Close audio settings</string>

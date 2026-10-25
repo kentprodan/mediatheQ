@@ -67,6 +67,9 @@ object MqIcons {
     val QueueMusic: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_queue_music)
 
+    val Lyrics: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_lyrics)
+
     val PlayArrow: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_play_arrow)
 

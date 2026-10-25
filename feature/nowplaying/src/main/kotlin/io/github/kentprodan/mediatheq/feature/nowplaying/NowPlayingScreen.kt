@@ -62,6 +62,7 @@ fun NowPlayingScreen(
     modifier: Modifier = Modifier,
     onOpenQueue: () -> Unit = {},
     onOpenAudio: () -> Unit = {},
+    onOpenLyrics: () -> Unit = {},
     cover: Any? = state.artwork,
     coverModifier: Modifier = Modifier,
 ) {
@@ -76,6 +77,7 @@ fun NowPlayingScreen(
             onCollapse,
             onOpenQueue,
             onOpenAudio,
+            onOpenLyrics,
             modifier.semantics { this.paneTitle = paneTitle },
             cover,
             coverModifier,
@@ -91,6 +93,7 @@ private fun NowPlayingContent(
     onCollapse: () -> Unit,
     onOpenQueue: () -> Unit,
     onOpenAudio: () -> Unit,
+    onOpenLyrics: () -> Unit,
     modifier: Modifier,
     cover: Any?,
     coverModifier: Modifier,
@@ -144,7 +147,7 @@ private fun NowPlayingContent(
             onPlayPause = { onAction(NowPlayingAction.TogglePlayPause) },
             onNext = { onAction(NowPlayingAction.Next) },
         )
-        // The secondary row (expressive-design section 5); lyrics and output come in their issues.
+        // The secondary row (expressive-design section 5); output comes in its issue.
         Row(
             Modifier.fillMaxWidth().padding(bottom = MediatheqSpacing.l),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -152,6 +155,9 @@ private fun NowPlayingContent(
             MqFavoriteToggle(state.isFavorite, onToggle = { onAction(NowPlayingAction.SetFavorite(it)) })
             IconButton(onClick = onOpenAudio) {
                 Icon(MqIcons.Tune, contentDescription = stringResource(R.string.nowplaying_audio_open))
+            }
+            IconButton(onClick = onOpenLyrics) {
+                Icon(MqIcons.Lyrics, contentDescription = stringResource(R.string.nowplaying_lyrics_open))
             }
             IconButton(onClick = onOpenQueue) {
                 Icon(MqIcons.QueueMusic, contentDescription = stringResource(R.string.nowplaying_queue_open))
