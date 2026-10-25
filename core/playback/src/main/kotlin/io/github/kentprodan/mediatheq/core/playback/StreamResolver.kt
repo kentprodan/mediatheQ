@@ -104,7 +104,7 @@ class StreamResolver
                     if (result.value.playMethod == PlayMethod.DirectPlay) {
                         result
                     } else {
-                        // shortcut: no converted downloads (e.g. Atmos E-AC-3 JOC on a Pixel); add when #24 needs them.
+                        // shortcut: no converted downloads (e.g. Atmos E-AC-3 JOC on a Pixel); #68.
                         MqResult.Failure(MqError.Client(0, "download: the device cannot play the original"))
                     }
                 }

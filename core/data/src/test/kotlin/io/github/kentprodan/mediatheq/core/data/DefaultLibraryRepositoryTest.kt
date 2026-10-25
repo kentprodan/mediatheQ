@@ -14,13 +14,17 @@ import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
+import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.SpatialFormat
+import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
+import kotlin.time.Duration.Companion.minutes
 
 class DefaultLibraryRepositoryTest {
     private val database = inMemoryDatabase()
@@ -59,6 +63,20 @@ class DefaultLibraryRepositoryTest {
             assertThat(track?.userData?.isFavorite).isTrue()
             assertThat(track?.userData?.stars).isEqualTo(4)
             assertThat(repository.track(MediaId(ServerId("s"), "gone")).first()).isNull()
+        }
+
+    @Test
+    fun `the audio format and its spatial format survive the database`() =
+        runTest {
+            val id = MediaId(ServerId("s"), "t0")
+            val format =
+                AudioFormat("eac3", sampleRateHz = 48_000, channels = 6, spatialFormat = SpatialFormat.DolbyAtmos)
+            database.syncDao().stageTracks(
+                listOf(TrackStaging(Track(id, "Atmos", emptyList(), 4.minutes, audioFormat = format).toEntity())),
+            )
+            database.syncDao().swap(1, "s", "user-1")
+
+            assertThat(repository.track(id).first()?.audioFormat).isEqualTo(format)
         }
 
     @Test
