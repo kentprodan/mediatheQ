@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.playback
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -151,8 +152,9 @@ internal class MediaControllerPlaybackConnection
                         connect().await()
                     } catch (e: CancellationException) {
                         throw e
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
                         // Rejected or the service died while connecting: try again on the next command.
+                        Log.w(TAG, "Could not connect to the playback service", e)
                         controller = null
                         return@launch
                     }
@@ -189,6 +191,7 @@ internal class MediaControllerPlaybackConnection
             }
 
         private companion object {
+            const val TAG = "PlaybackConnection"
             val POSITION_TICK = 250.milliseconds
             const val STOP_TIMEOUT_MS = 5_000L
         }

@@ -201,21 +201,19 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     private inner class LibraryCallback : MediaLibrarySession.Callback {
         /** Our app, the media notification and trusted system controllers only. */
-        override fun onConnect(
+        override fun onConnectAsync(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
-        ): MediaSession.ConnectionResult =
-            if (controller.packageName == packageName || controller.isTrusted ||
-                session.isMediaNotificationController(controller)
-            ) {
-                val accepted = super.onConnect(session, controller)
-                MediaSession.ConnectionResult.accept(
-                    accepted.availableSessionCommands,
-                    withoutPlayerVolume(accepted.availablePlayerCommands),
-                )
-            } else {
-                MediaSession.ConnectionResult.reject()
-            }
+        ): ListenableFuture<MediaSession.ConnectionResult> =
+            Futures.immediateFuture(
+                if (controller.packageName == packageName || controller.isTrusted ||
+                    session.isMediaNotificationController(controller)
+                ) {
+                    acceptWithoutPlayerVolume(session, controller)
+                } else {
+                    MediaSession.ConnectionResult.reject()
+                },
+            )
 
         override fun onAddMediaItems(
             mediaSession: MediaSession,

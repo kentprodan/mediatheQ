@@ -105,3 +105,7 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: queue a quiet album, then a loud one, screen off -> both play at a similar loudness; note whether the first second of the loud album is louder (accepted lag with offload)
 - [ ] Pixel 9: play a few tracks on Wi-Fi, then turn on airplane mode and play them again -> they play from the start to the end with no error; tracks never played fail at once
 - [ ] Pixel 9: on Wi-Fi start an album and wait ~1 minute -> the next track starts instantly; Jellyfin's dashboard shows the sessions as Direct Play
+
+## #53 Playback does not start: Play, Shuffle and track taps do nothing
+- [x] Pixel 9: album -> Play, Shuffle, tap a track, mini player play/pause and next -> playback starts and the buttons work - passed 2026-10-25
+- [ ] Pixel 9: while playing, the notification and the lock screen play/pause, next and previous work; a Bluetooth headset play/pause works
