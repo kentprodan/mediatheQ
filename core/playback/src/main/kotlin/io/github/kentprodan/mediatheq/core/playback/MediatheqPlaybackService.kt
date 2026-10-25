@@ -117,8 +117,12 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 ).build()
         // shortcut: default settings until the Settings screen exists (#25); then re-apply the mode when they change.
         val audioSettings = AudioSettings()
-        player.applyAudioMode(AudioPolicy.decide(audioSettings))
-        player.addListener(NormalizationListener(player) { audioSettings })
+        player.applyOffload(AudioPolicy.offload(audioSettings, AudioRoute.Other))
+        player.addListener(
+            NormalizationListener(player, { audioSettings }) {
+                AudioPolicy.decide(audioSettings, AudioRoute.Other, bitPerfectFormat = false)
+            },
+        )
         reporter =
             PlaybackReporter(
                 repository = playbackRepository,

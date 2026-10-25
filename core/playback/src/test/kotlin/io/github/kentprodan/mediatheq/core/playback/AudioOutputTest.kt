@@ -25,10 +25,10 @@ import kotlin.time.Duration.Companion.minutes
 @RunWith(RobolectricTestRunner::class)
 class AudioOutputTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
+    private var mode = AudioMode.Offload
     private val player: ExoPlayer =
-        TestExoPlayerBuilder(context).setMediaSourceFactory(FakeMediaSourceFactory()).build().apply {
-            addListener(NormalizationListener(this) { AudioSettings() })
-        }
+        TestExoPlayerBuilder(context).setMediaSourceFactory(FakeMediaSourceFactory()).build()
+    private val normalization = NormalizationListener(player, { AudioSettings() }, { mode }).also(player::addListener)
 
     @After
     fun release() = player.release()
@@ -62,6 +62,19 @@ class AudioOutputTest {
     }
 
     @Test
+    fun `bit-perfect plays at full volume at once, and normalization comes back after`() {
+        player.setMediaItems(listOf(item(1, albumDb = -6.0)))
+
+        mode = AudioMode.BitPerfect
+        normalization.apply()
+        assertThat(player.volume).isEqualTo(1f)
+
+        mode = AudioMode.Offload
+        normalization.apply()
+        assertThat(player.volume).isWithin(0.001f).of(0.501f)
+    }
+
+    @Test
     fun `a controller connects with the default commands, except setting the player volume`() {
         val session =
             MediaSession
@@ -88,13 +101,13 @@ class AudioOutputTest {
     }
 
     @Test
-    fun `offload is enabled with gapless required, or disabled when processing`() {
-        player.applyAudioMode(AudioMode.Offload)
+    fun `offload is enabled with gapless required, or disabled`() {
+        player.applyOffload(true)
         val offload = player.trackSelectionParameters.audioOffloadPreferences
         assertThat(offload.audioOffloadMode).isEqualTo(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED)
         assertThat(offload.isGaplessSupportRequired).isTrue()
 
-        player.applyAudioMode(AudioMode.Processed)
+        player.applyOffload(false)
         assertThat(player.trackSelectionParameters.audioOffloadPreferences.audioOffloadMode)
             .isEqualTo(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED)
     }

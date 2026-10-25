@@ -4,48 +4,118 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class AudioPolicyTest {
+    private val bitPerfect = AudioSettings(bitPerfectUsb = true)
+
     @Test
     fun `nothing needs the samples, so audio is offloaded`() {
-        assertThat(AudioPolicy.decide(AudioSettings())).isEqualTo(AudioMode.Offload)
+        assertThat(AudioPolicy.decide(AudioSettings(), AudioRoute.Other, bitPerfectFormat = false))
+            .isEqualTo(AudioMode.Offload)
+        assertThat(AudioPolicy.offload(AudioSettings(), AudioRoute.Other)).isTrue()
     }
 
     @Test
-    fun `the equalizer needs the samples, so audio is processed`() {
-        assertThat(AudioPolicy.decide(AudioSettings(equalizerOn = true))).isEqualTo(AudioMode.Processed)
+    fun `the equalizer needs the samples, so audio is processed and not offloaded`() {
+        val eq = AudioSettings(equalizerOn = true)
+
+        assertThat(AudioPolicy.decide(eq, AudioRoute.Other, bitPerfectFormat = false)).isEqualTo(AudioMode.Processed)
+        assertThat(AudioPolicy.offload(eq, AudioRoute.Other)).isFalse()
     }
 
     @Test
-    fun `album normalization uses the album gain`() {
-        assertThat(AudioPolicy.volume(ItemGains(albumDb = -6.0, trackDb = -12.0), Normalization.Album))
+    fun `a DAC with the setting on and a matching format plays bit-perfect`() {
+        assertThat(AudioPolicy.decide(bitPerfect, AudioRoute.UsbDac, bitPerfectFormat = true))
+            .isEqualTo(AudioMode.BitPerfect)
+    }
+
+    @Test
+    fun `bit-perfect wins over the equalizer`() {
+        val both = bitPerfect.copy(equalizerOn = true)
+
+        assertThat(AudioPolicy.decide(both, AudioRoute.UsbDac, bitPerfectFormat = true)).isEqualTo(AudioMode.BitPerfect)
+    }
+
+    @Test
+    fun `a DAC with the setting on is never offloaded, so the bit-perfect mixer can be reached`() {
+        assertThat(AudioPolicy.offload(bitPerfect, AudioRoute.UsbDac)).isFalse()
+    }
+
+    @Test
+    fun `without a matching format the track plays normally, with the equalizer`() {
+        val both = bitPerfect.copy(equalizerOn = true)
+
+        assertThat(AudioPolicy.decide(bitPerfect, AudioRoute.UsbDac, bitPerfectFormat = false))
+            .isEqualTo(AudioMode.Offload)
+        assertThat(AudioPolicy.decide(both, AudioRoute.UsbDac, bitPerfectFormat = false))
+            .isEqualTo(AudioMode.Processed)
+    }
+
+    @Test
+    fun `the bit-perfect setting is ignored without a DAC`() {
+        assertThat(AudioPolicy.wantsBitPerfect(bitPerfect, AudioRoute.Other)).isFalse()
+        assertThat(AudioPolicy.decide(bitPerfect, AudioRoute.Other, bitPerfectFormat = true))
+            .isEqualTo(AudioMode.Offload)
+        assertThat(AudioPolicy.offload(bitPerfect, AudioRoute.Other)).isTrue()
+    }
+
+    @Test
+    fun `a DAC with the setting off plays like any output`() {
+        assertThat(AudioPolicy.wantsBitPerfect(AudioSettings(), AudioRoute.UsbDac)).isFalse()
+        assertThat(AudioPolicy.decide(AudioSettings(), AudioRoute.UsbDac, bitPerfectFormat = true))
+            .isEqualTo(AudioMode.Offload)
+        assertThat(AudioPolicy.offload(AudioSettings(), AudioRoute.UsbDac)).isTrue()
+    }
+
+    @Test
+    fun `bit-perfect ignores normalization`() {
+        assertThat(AudioPolicy.volume(ItemGains(-6.0, -6.0), Normalization.Album, AudioMode.BitPerfect)).isEqualTo(1f)
+    }
+
+    @Test
+    fun `processed audio is still normalized`() {
+        assertThat(AudioPolicy.volume(ItemGains(-6.0, null), Normalization.Album, AudioMode.Processed))
             .isWithin(0.001f)
             .of(0.501f)
     }
 
     @Test
+    fun `album normalization uses the album gain`() {
+        assertThat(
+            AudioPolicy.volume(ItemGains(albumDb = -6.0, trackDb = -12.0), Normalization.Album, AudioMode.Offload),
+        ).isWithin(0.001f)
+            .of(0.501f)
+    }
+
+    @Test
     fun `album normalization falls back to the track gain`() {
-        assertThat(AudioPolicy.volume(ItemGains(albumDb = null, trackDb = -20.0), Normalization.Album))
-            .isWithin(0.001f)
+        assertThat(
+            AudioPolicy.volume(ItemGains(albumDb = null, trackDb = -20.0), Normalization.Album, AudioMode.Offload),
+        ).isWithin(0.001f)
             .of(0.1f)
     }
 
     @Test
     fun `track normalization prefers the track gain, then the album gain`() {
-        assertThat(AudioPolicy.volume(ItemGains(-6.0, -20.0), Normalization.Track)).isWithin(0.001f).of(0.1f)
-        assertThat(AudioPolicy.volume(ItemGains(-20.0, null), Normalization.Track)).isWithin(0.001f).of(0.1f)
+        assertThat(AudioPolicy.volume(ItemGains(-6.0, -20.0), Normalization.Track, AudioMode.Offload))
+            .isWithin(0.001f)
+            .of(0.1f)
+        assertThat(AudioPolicy.volume(ItemGains(-20.0, null), Normalization.Track, AudioMode.Offload))
+            .isWithin(0.001f)
+            .of(0.1f)
     }
 
     @Test
     fun `no gain plays at full volume`() {
-        assertThat(AudioPolicy.volume(ItemGains(null, null), Normalization.Album)).isEqualTo(1f)
+        assertThat(AudioPolicy.volume(ItemGains(null, null), Normalization.Album, AudioMode.Offload)).isEqualTo(1f)
     }
 
     @Test
     fun `a positive gain never boosts above full volume`() {
-        assertThat(AudioPolicy.volume(ItemGains(albumDb = 4.0, trackDb = null), Normalization.Album)).isEqualTo(1f)
+        assertThat(AudioPolicy.volume(ItemGains(albumDb = 4.0, trackDb = null), Normalization.Album, AudioMode.Offload))
+            .isEqualTo(1f)
     }
 
     @Test
     fun `normalization off ignores the gains`() {
-        assertThat(AudioPolicy.volume(ItemGains(-6.0, -6.0), Normalization.Off)).isEqualTo(1f)
+        assertThat(AudioPolicy.volume(ItemGains(-6.0, -6.0), Normalization.Off, AudioMode.Offload)).isEqualTo(1f)
     }
 }
