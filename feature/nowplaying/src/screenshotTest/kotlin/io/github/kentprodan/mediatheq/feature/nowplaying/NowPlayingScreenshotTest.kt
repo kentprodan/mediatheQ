@@ -84,7 +84,7 @@ private const val PREVIEW_COVER_SEED = 0xFFC2185B.toInt()
 @MqPreviews
 @Composable
 fun NowPlayingFavoriteRatedScreenshot() {
-    MediatheqTheme { Screen(playing.copy(isFavorite = true, stars = 4)) }
+    MediatheqTheme { Screen(playing.copy(isFavorite = true, halfStars = 8)) }
 }
 
 /** A Dolby Atmos track this phone cannot play: the server's stereo version, and the note saying so. */

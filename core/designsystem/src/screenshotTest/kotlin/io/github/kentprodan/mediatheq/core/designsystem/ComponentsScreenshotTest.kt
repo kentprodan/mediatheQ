@@ -139,7 +139,7 @@ fun MqDialogScreenshot() {
     }
 }
 
-/** The heart off and on, and stars unrated, 1, 3 and 5. */
+/** The heart off and on, and stars unrated, 1, 3 and 5, then 0.5 and 3.5 with half stars. */
 @PreviewTest
 @MqPreviews
 @Composable
@@ -151,7 +151,8 @@ fun FavoriteAndRatingScreenshot() {
                     MqFavoriteToggle(isFavorite = false, onToggle = {})
                     MqFavoriteToggle(isFavorite = true, onToggle = {})
                 }
-                listOf(null, 1, 3, 5).forEach { MqStarRating(stars = it, onRate = {}) }
+                listOf(null, 2, 6, 10).forEach { MqStarRating(halfStars = it, onRate = {}) }
+                listOf(1, 7).forEach { MqStarRating(halfStars = it, onRate = {}, allowHalf = true) }
             }
         }
     }

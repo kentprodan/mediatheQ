@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.album
 
+import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -17,6 +18,7 @@ sealed interface AlbumUiState {
         val discs: List<Disc>,
         /** The track the player is on, marked in the list (any album's; only this album's shows). */
         val currentTrackId: MediaId? = null,
+        val ratingMode: RatingMode = RatingMode.WholeStars,
     ) : AlbumUiState {
         /** All tracks in play order, the queue Play and Shuffle start. */
         val tracks: List<Track> get() = discs.flatMap { it.tracks }
@@ -63,9 +65,9 @@ sealed interface AlbumAction {
         val isFavorite: Boolean,
     ) : AlbumAction
 
-    /** Rate the album with 1-5 [stars]; `null` clears the rating. */
+    /** Rate the album with [halfStars], 1-10; `null` clears the rating. */
     data class Rate(
-        val stars: Int?,
+        val halfStars: Int?,
     ) : AlbumAction
 
     /** Download one track, or the whole album when [trackId] is `null`. */

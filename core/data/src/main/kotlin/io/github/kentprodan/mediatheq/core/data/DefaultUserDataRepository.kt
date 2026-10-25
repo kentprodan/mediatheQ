@@ -64,9 +64,10 @@ class DefaultUserDataRepository
 
         override suspend fun setRating(
             id: MediaId,
-            stars: Int?,
+            halfStars: Int?,
         ): MqResult<Unit> {
-            val rating = stars?.let(UserData::ratingOf)
+            require(halfStars == null || halfStars in 1..10) { "halfStars must be 1-10" }
+            val rating = halfStars?.toDouble()
             return write(id, Change(setsRating = true, rating = rating)) { sink.setRating(it, id, rating) }
         }
 

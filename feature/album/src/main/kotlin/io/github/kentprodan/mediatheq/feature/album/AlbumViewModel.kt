@@ -7,6 +7,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
+import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -29,6 +30,7 @@ class AlbumViewModel
         private val playback: PlaybackConnection,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
+        preferences: LibraryPreferencesRepository,
     ) : ViewModel() {
         val uiState: StateFlow<AlbumUiState> =
             combine(
@@ -36,7 +38,8 @@ class AlbumViewModel
                 libraryRepository.albumTracks(albumId),
                 // Only the track id: position ticks and play/pause must not rebuild the list.
                 playback.state.map { it.item?.id }.distinctUntilChanged(),
-            ) { album, tracks, currentTrackId ->
+                preferences.preferences.map { it.ratingMode }.distinctUntilChanged(),
+            ) { album, tracks, currentTrackId, ratingMode ->
                 if (album == null) {
                     AlbumUiState.NotFound
                 } else {
@@ -44,7 +47,7 @@ class AlbumViewModel
                         tracks.groupBy { it.discNumber ?: 1 }.map { (number, discTracks) ->
                             Disc(number, discTracks)
                         }
-                    AlbumUiState.Content(album, discs, currentTrackId)
+                    AlbumUiState.Content(album, discs, currentTrackId, ratingMode)
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AlbumUiState.Loading)
 
@@ -79,7 +82,7 @@ class AlbumViewModel
 
                 // An album without tracks can still be rated.
                 is AlbumAction.Rate -> {
-                    viewModelScope.launch { userData.setRating(albumId, action.stars) }
+                    viewModelScope.launch { userData.setRating(albumId, action.halfStars) }
                 }
 
                 is AlbumAction.Download -> {

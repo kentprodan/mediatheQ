@@ -43,11 +43,14 @@ class ArtistViewModel
         val uiState: StateFlow<ArtistUiState> =
             combine(
                 content,
-                preferencesRepository.preferences.map { it.albumColumns }.distinctUntilChanged(),
+                preferencesRepository.preferences
+                    .map { it.albumColumns to it.ratingMode }
+                    .distinctUntilChanged(),
                 // Only the track id: position ticks and play/pause must not rebuild the page.
                 playback.state.map { it.item?.id }.distinctUntilChanged(),
-            ) { content, columns, currentTrackId ->
-                content?.copy(albumColumns = columns, currentTrackId = currentTrackId) ?: ArtistUiState.NotFound
+            ) { content, (columns, ratingMode), currentTrackId ->
+                content?.copy(albumColumns = columns, currentTrackId = currentTrackId, ratingMode = ratingMode)
+                    ?: ArtistUiState.NotFound
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ArtistUiState.Loading)
 
         fun onAction(action: ArtistAction) {
@@ -72,7 +75,7 @@ class ArtistViewModel
                 }
 
                 is ArtistAction.Rate -> {
-                    viewModelScope.launch { userData.setRating(artistId, action.stars) }
+                    viewModelScope.launch { userData.setRating(artistId, action.halfStars) }
                 }
             }
         }

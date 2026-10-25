@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.artist
 
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
+import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -26,6 +27,7 @@ sealed interface ArtistUiState {
         /** The album grid columns the Library uses. */
         val albumColumns: Int = LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
         val currentTrackId: MediaId? = null,
+        val ratingMode: RatingMode = RatingMode.WholeStars,
     ) : ArtistUiState {
         /** Nothing to show or play: the page shows the empty state. */
         val isEmpty: Boolean get() = albums.isEmpty() && appearsOn.isEmpty() && tracks.isEmpty()
@@ -46,8 +48,8 @@ sealed interface ArtistAction {
         val isFavorite: Boolean,
     ) : ArtistAction
 
-    /** Rate the artist with 1-5 [stars]; `null` clears the rating. */
+    /** Rate the artist with [halfStars], 1-10; `null` clears the rating. */
     data class Rate(
-        val stars: Int?,
+        val halfStars: Int?,
     ) : ArtistAction
 }

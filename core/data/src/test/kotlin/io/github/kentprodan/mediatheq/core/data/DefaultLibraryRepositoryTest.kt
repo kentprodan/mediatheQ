@@ -61,7 +61,7 @@ class DefaultLibraryRepositoryTest {
             val track = repository.track(MediaId(ServerId("s"), "t0")).first()
             assertThat(track?.title).isEqualTo("Pe-o margine")
             assertThat(track?.userData?.isFavorite).isTrue()
-            assertThat(track?.userData?.stars).isEqualTo(4)
+            assertThat(track?.userData?.halfStars).isEqualTo(8)
             assertThat(repository.track(MediaId(ServerId("s"), "gone")).first()).isNull()
         }
 

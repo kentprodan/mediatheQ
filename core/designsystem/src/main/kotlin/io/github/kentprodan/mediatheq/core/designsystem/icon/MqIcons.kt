@@ -155,6 +155,9 @@ object MqIcons {
     val Star: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_star)
 
+    val StarHalf: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_star_half)
+
     val StarFilled: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_star_filled)
 }

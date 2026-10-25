@@ -23,15 +23,19 @@ class MqRatingControlsTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun stars(initial: Int?): List<Int?> {
+    /** Shows the stars at [initial] (half stars) and returns what each tap rates. */
+    private fun stars(
+        initial: Int?,
+        allowHalf: Boolean = false,
+    ): List<Int?> {
         val rated = mutableListOf<Int?>()
         composeRule.setContent {
-            var stars by remember { mutableStateOf(initial) }
+            var halfStars by remember { mutableStateOf(initial) }
             MediatheqTheme {
-                MqStarRating(stars, onRate = {
+                MqStarRating(halfStars, onRate = {
                     rated += it
-                    stars = it
-                })
+                    halfStars = it
+                }, allowHalf = allowHalf)
             }
         }
         return rated
@@ -45,12 +49,12 @@ class MqRatingControlsTest {
 
         composeRule.onNodeWithContentDescription("Rate 4 stars").performClick()
 
-        assertThat(rated).containsExactly(4)
+        assertThat(rated).containsExactly(8)
     }
 
     @Test
     fun `tapping the current star clears the rating`() {
-        val rated = stars(3)
+        val rated = stars(6)
 
         composeRule.onNodeWithContentDescription("Clear rating").performClick()
 
@@ -60,10 +64,36 @@ class MqRatingControlsTest {
 
     @Test
     fun `the rating is read as a state`() {
-        stars(1)
+        stars(2)
 
         composeRule.onNode(hasState("1 of 5 stars")).assertExists()
         composeRule.onNodeWithContentDescription("Rate 2 stars").assertExists()
+    }
+
+    @Test
+    fun `with half stars, tapping the current star makes it half, then clears it`() {
+        val rated = stars(null, allowHalf = true)
+
+        repeat(3) { composeRule.onNodeWithContentDescription(nextLabel(it)).performClick() }
+
+        assertThat(rated).containsExactly(6, 5, null).inOrder()
+        composeRule.onNode(hasState("Not rated")).assertExists()
+    }
+
+    private fun nextLabel(tap: Int) = listOf("Rate 3 stars", "Rate 2.5 stars", "Clear rating")[tap]
+
+    @Test
+    fun `a half star rating is read as such`() {
+        stars(7, allowHalf = true)
+
+        composeRule.onNode(hasState("3.5 of 5 stars")).assertExists()
+    }
+
+    @Test
+    fun `whole stars show a half star rating set elsewhere rounded`() {
+        stars(7)
+
+        composeRule.onNode(hasState("4 of 5 stars")).assertExists()
     }
 
     @Test

@@ -5,26 +5,17 @@ import org.junit.Test
 
 class UserDataTest {
     @Test
-    fun `stars are the server rating halved`() {
-        assertThat(UserData(rating = 8.0).stars).isEqualTo(4)
-        assertThat(UserData(rating = 10.0).stars).isEqualTo(5)
-        assertThat(UserData(rating = null).stars).isNull()
+    fun `half stars are the server rating`() {
+        assertThat(UserData(rating = 8.0).halfStars).isEqualTo(8)
+        assertThat(UserData(rating = 7.0).halfStars).isEqualTo(7)
+        assertThat(UserData(rating = 10.0).halfStars).isEqualTo(10)
+        assertThat(UserData(rating = null).halfStars).isNull()
     }
 
     @Test
-    fun `ratings set elsewhere round to 1-5 stars`() {
-        assertThat(UserData(rating = 7.0).stars).isEqualTo(4)
-        assertThat(UserData(rating = 0.5).stars).isEqualTo(1)
-        assertThat(UserData(rating = 12.0).stars).isEqualTo(5)
-    }
-
-    @Test
-    fun `ratingOf maps stars back to the server scale`() {
-        assertThat((1..5).map { UserData.ratingOf(it) }).containsExactly(2.0, 4.0, 6.0, 8.0, 10.0).inOrder()
-    }
-
-    @Test(expected = IllegalArgumentException::class)
-    fun `ratingOf rejects 0 stars`() {
-        UserData.ratingOf(0)
+    fun `ratings set elsewhere round to half stars, at least half a star`() {
+        assertThat(UserData(rating = 6.6).halfStars).isEqualTo(7)
+        assertThat(UserData(rating = 0.4).halfStars).isEqualTo(1)
+        assertThat(UserData(rating = 12.0).halfStars).isEqualTo(10)
     }
 }

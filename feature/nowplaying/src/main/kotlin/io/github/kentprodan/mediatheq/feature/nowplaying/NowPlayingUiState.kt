@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.nowplaying
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.EqPreset
+import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
@@ -27,8 +28,9 @@ sealed interface NowPlayingUiState {
         /** Shuffled queues cannot be reordered. */
         val shuffle: Boolean = false,
         val isFavorite: Boolean = false,
-        /** 1-5, `null` when unrated. */
-        val stars: Int? = null,
+        /** 1-10 half stars, `null` when unrated. */
+        val halfStars: Int? = null,
+        val ratingMode: RatingMode = RatingMode.WholeStars,
         /** The sample rate sent unchanged to a USB DAC; `null` when not bit-perfect. */
         val bitPerfectSampleRateHz: Int? = null,
         /** The track is Dolby Atmos but plays as a stereo conversion: this device and output cannot play Atmos. */
@@ -91,9 +93,9 @@ sealed interface NowPlayingAction {
         val isFavorite: Boolean,
     ) : NowPlayingAction
 
-    /** Rate the playing track with 1-5 [stars]; `null` clears the rating. */
+    /** Rate the playing track with [halfStars], 1-10; `null` clears the rating. */
     data class Rate(
-        val stars: Int?,
+        val halfStars: Int?,
     ) : NowPlayingAction
 
     /** Move the entry to position [to] of the queue. */

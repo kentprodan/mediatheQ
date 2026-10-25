@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayerCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqSeekBar
@@ -137,7 +138,13 @@ private fun NowPlayingContent(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            MqStarRating(stars = state.stars, onRate = { onAction(NowPlayingAction.Rate(it)) })
+            if (state.ratingMode != RatingMode.Off) {
+                MqStarRating(
+                    halfStars = state.halfStars,
+                    onRate = { onAction(NowPlayingAction.Rate(it)) },
+                    allowHalf = state.ratingMode == RatingMode.HalfStars,
+                )
+            }
             state.bitPerfectSampleRateHz?.let { BitPerfectBadge(it) }
             if (state.atmosConverted) AtmosConvertedNote()
         }
