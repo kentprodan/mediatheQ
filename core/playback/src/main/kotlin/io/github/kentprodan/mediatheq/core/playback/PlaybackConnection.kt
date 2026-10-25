@@ -13,7 +13,7 @@ interface PlaybackConnection {
     val state: StateFlow<PlayerUiModel>
 
     /**
-     * The playing position, sampled a few times a second while playing (so composables never poll); keeps the last
+     * The playing position, sampled every 100 ms while playing (so composables never poll); keeps the last
      * known value, so a screen that opens shows it at once.
      */
     val position: StateFlow<Duration>

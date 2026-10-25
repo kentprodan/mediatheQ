@@ -153,7 +153,7 @@ AlbumEntry.kt          Navigation 3 entry registration for AlbumKey
 - UI talks to playback through `PlaybackConnection` (wraps an async `MediaController`) exposing:
   - `state: StateFlow<PlayerUiModel>` (current item, position, isPlaying, queue snapshot, output format incl. Atmos flag)
   - commands: `play(queue, startIndex)`, `pause()`, `seekTo()`, `skip()`, `setShuffle()`, ...
-- Position updates are sampled (e.g. 4 Hz) inside `PlaybackConnection`, not polled by composables.
+- Position updates are sampled (10 Hz, for synced lyrics) inside `PlaybackConnection`, not polled by composables.
 - Stream URL resolution, transcoding choice and Atmos preference are decided in `:core:playback` via `:core:data` + `PlaybackSource`, unit-tested without a device.
 - Playback progress reporting to the server happens in the service, not the UI.
 
