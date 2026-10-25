@@ -34,6 +34,8 @@ internal fun streamDataSourceFactory(
     downloadCache: Cache,
     streamingCache: Cache,
     isOnline: () -> Boolean,
+    /** Called when the player starts loading a track (the prefetcher then leaves it alone). */
+    onOpen: (MediaId) -> Unit = {},
 ): DataSource.Factory {
     val streamed =
         CacheDataSource
@@ -49,6 +51,7 @@ internal fun streamDataSourceFactory(
             .setCacheWriteDataSinkFactory(null)
     return ResolvingDataSource.Factory(cached) { dataSpec ->
         val itemId = dataSpec.uri.trackId() ?: return@Factory dataSpec
+        onOpen(itemId)
         if (downloads.isDownloaded(itemId)) {
             resolver.playLocal(itemId)
             return@Factory dataSpec.buildUpon().setKey(downloadCacheKey(itemId)).build()

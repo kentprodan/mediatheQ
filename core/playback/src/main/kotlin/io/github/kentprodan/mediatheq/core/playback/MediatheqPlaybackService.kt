@@ -19,6 +19,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.DownloadCache
+import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
@@ -26,6 +27,7 @@ import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -75,6 +77,12 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var signOutWatch: Job? = null
     private lateinit var persistence: QueuePersistence
     private var persistJob: Job? = null
+    private lateinit var prefetcher: Prefetcher
+    private var prefetchJob: Job? = null
+
+    @Inject
+    @IoDispatcher
+    lateinit var ioDispatcher: CoroutineDispatcher
 
     override fun onCreate() {
         super.onCreate()
@@ -100,6 +108,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                             downloadCache,
                             streamingCache,
                             networkMonitor::isOnline,
+                            onOpen = { prefetcher.cancel(it) },
                         ),
                     ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
                 ).build()
@@ -123,6 +132,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 artworkUrl = { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) },
             )
         persistJob = persistence.start()
+        prefetcher =
+            Prefetcher(
+                player = player,
+                scope = applicationScope + Dispatchers.Main,
+                ioDispatcher = ioDispatcher,
+                resolver = streamResolver,
+                downloads = downloads,
+                cache = streamingCache,
+                upstream = OkHttpDataSource.Factory(okHttpClient),
+                network = networkMonitor,
+            )
+        prefetchJob = prefetcher.start()
         session =
             MediaLibrarySession
                 .Builder(this, QueuePlayer(player), LibraryCallback())
@@ -162,6 +183,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     override fun onDestroy() {
         signOutWatch?.cancel()
         persistJob?.cancel()
+        prefetchJob?.cancel()
         session?.run {
             persistence.saveNow()
             reporter.ended(player.currentPosition.milliseconds)
