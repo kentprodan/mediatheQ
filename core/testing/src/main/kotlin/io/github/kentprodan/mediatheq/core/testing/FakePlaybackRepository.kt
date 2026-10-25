@@ -15,6 +15,9 @@ class FakePlaybackRepository : PlaybackRepository {
     /** How the server delivers the streams it gives. */
     var playMethod = PlayMethod.DirectPlay
 
+    /** The server gives HLS playlists for its converted streams (R15). */
+    var segmented = false
+
     /** The file size the server reports for its streams. */
     var sizeBytes: Long? = null
 
@@ -30,7 +33,12 @@ class FakePlaybackRepository : PlaybackRepository {
     ) = failure
         ?: MqResult
             .Success(
-                FakePlaybackSource.fakeStream(itemId).copy(playMethod = playMethod, sizeBytes = sizeBytes),
+                FakePlaybackSource.fakeStream(itemId).copy(
+                    playMethod = playMethod,
+                    sizeBytes = sizeBytes,
+                    segmented = segmented,
+                    canSeek = playMethod == PlayMethod.DirectPlay || segmented,
+                ),
             ).also {
                 streamRequests +=
                     itemId to profile

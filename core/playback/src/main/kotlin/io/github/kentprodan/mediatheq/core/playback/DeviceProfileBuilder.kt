@@ -11,8 +11,9 @@ import io.github.kentprodan.mediatheq.core.model.TranscodingTarget
  * - formats the device cannot decode are left out, so the server converts them (Opus 256 when there is no cap).
  */
 object DeviceProfileBuilder {
-    /** Opus in Ogg (ADR 0016) at [bitrate]; stereo is enough for music on a phone. */
-    fun opus(bitrate: Int) = TranscodingTarget(container = "ogg", codec = "opus", bitrate = bitrate, maxChannels = 2)
+    /** Opus at [bitrate] in HLS fMP4 segments, so converted tracks can be seeked (ADR 0019); stereo is enough on a phone. */
+    fun opus(bitrate: Int) =
+        TranscodingTarget(container = "mp4", codec = "opus", bitrate = bitrate, maxChannels = 2, segmented = true)
 
     val OPUS_256 = opus(256_000)
 

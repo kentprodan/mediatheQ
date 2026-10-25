@@ -18,12 +18,14 @@ class DeviceProfileBuilderTest {
     }
 
     @Test
-    fun `256 kbps caps the stream and converts to Opus 256 in Ogg`() {
+    fun `256 kbps caps the stream and converts to Opus 256 in HLS segments`() {
         val profile = DeviceProfileBuilder.build(pixel, StreamingQuality.Kbps256)
 
         assertThat(profile.maxStreamingBitrate).isEqualTo(256_000)
         assertThat(profile.transcoding).isEqualTo(DeviceProfileBuilder.OPUS_256)
         assertThat(profile.transcoding.bitrate).isAtMost(256_000)
+        assertThat(profile.transcoding.segmented).isTrue()
+        assertThat(profile.transcoding.container).isEqualTo("mp4")
     }
 
     @Test
