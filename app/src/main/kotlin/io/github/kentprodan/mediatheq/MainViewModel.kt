@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
+import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
@@ -25,6 +26,7 @@ class MainViewModel
         private val sessionRepository: SessionRepository,
         private val userDataRepository: UserDataRepository,
         networkMonitor: NetworkMonitor,
+        private val librarySync: LibrarySyncRepository,
     ) : ViewModel() {
         val session: StateFlow<SessionState?> =
             sessionRepository.session.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -37,6 +39,11 @@ class MainViewModel
         // Starts online: a wrong "offline" flash would hide the tabs for nothing.
         val online: StateFlow<Boolean> =
             networkMonitor.online.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+        /** Local network access was just granted: a sync that failed without it runs now, not at the next start. */
+        fun onLocalNetworkGranted() {
+            viewModelScope.launch { librarySync.sync() }
+        }
 
         fun logout() {
             viewModelScope.launch { sessionRepository.logout() }
