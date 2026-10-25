@@ -18,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.download.resumeDownloads
 import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.artist.artistEntry
+import io.github.kentprodan.mediatheq.feature.downloads.downloadsEntry
 import io.github.kentprodan.mediatheq.feature.library.libraryEntry
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingHost
 import io.github.kentprodan.mediatheq.feature.playlist.addToPlaylistEntry
@@ -60,12 +61,14 @@ class MainActivity : ComponentActivity() {
                                     artistEntry(navigator)
                                     playlistEntry(navigator)
                                     searchEntry(navigator)
+                                    downloadsEntry()
                                     addToPlaylistEntry(navigator)
                                     placeholders(
                                         navigator,
                                         onLogout = viewModel::logout,
                                         includeLibrary = false,
                                         includeSearch = false,
+                                        includeDownloads = false,
                                     )
                                 }
                             }

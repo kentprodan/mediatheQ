@@ -40,6 +40,8 @@ fun TrackRow(
     onLongClick: (() -> Unit)? = null,
     /** In a multi-select list: whether this row is selected (shown with a check). `null` outside selection. */
     selected: Boolean? = null,
+    /** Replaces the artists line, e.g. with a download's progress; `null` keeps the artists. */
+    supportingContent: (@Composable () -> Unit)? = null,
 ) {
     val trackNumber = track.trackNumber.takeIf { showTrackNumber && !showCover }
     val nowPlaying = stringResource(R.string.core_ui_now_playing)
@@ -79,9 +81,10 @@ fun TrackRow(
                 }
             }
         }
-    val supporting: @Composable () -> Unit = {
-        Text(track.artists.joinToString { it.name }, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
+    val supporting: @Composable () -> Unit =
+        supportingContent ?: {
+            Text(track.artists.joinToString { it.name }, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     val trailing: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(formatDuration(track.duration), style = MaterialTheme.typography.bodySmall)
