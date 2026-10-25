@@ -195,5 +195,6 @@ private fun PlayerUiModel.toUiState(userData: UserData?): NowPlayingUiState {
         isFavorite = userData?.isFavorite == true,
         stars = userData?.stars,
         bitPerfectSampleRateHz = output.bitPerfectSampleRateHz,
+        atmosConverted = output.atmosConverted,
     )
 }

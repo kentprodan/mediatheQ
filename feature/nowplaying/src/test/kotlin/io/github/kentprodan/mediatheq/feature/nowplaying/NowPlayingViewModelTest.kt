@@ -221,6 +221,16 @@ class NowPlayingViewModelTest {
     }
 
     @Test
+    fun `an Atmos track playing converted says so on the player`() =
+        runTest {
+            playback.state.value = playing.copy(output = AudioOutputInfo(atmosConverted = true))
+
+            NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics).uiState.test {
+                assertThat((awaitItem() as NowPlayingUiState.Playing).atmosConverted).isTrue()
+            }
+        }
+
+    @Test
     fun `bit-perfect output shows its sample rate on the player`() =
         runTest {
             val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)

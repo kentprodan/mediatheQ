@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +44,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqSeekBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqTransportControls
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.ui.formatDuration
 import io.github.kentprodan.mediatheq.core.ui.formatFrequency
@@ -137,6 +139,7 @@ private fun NowPlayingContent(
             )
             MqStarRating(stars = state.stars, onRate = { onAction(NowPlayingAction.Rate(it)) })
             state.bitPerfectSampleRateHz?.let { BitPerfectBadge(it) }
+            if (state.atmosConverted) AtmosConvertedNote()
         }
         SeekSection(state, position, onAction)
         MqTransportControls(
@@ -184,6 +187,30 @@ private fun BitPerfectBadge(sampleRateHz: Int) {
             stringResource(R.string.nowplaying_bit_perfect_volume),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Why Atmos is not playing: the device and output cannot play it, so the server sent a stereo version. */
+@Composable
+private fun AtmosConvertedNote() {
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        Modifier.padding(top = MediatheqSpacing.s).semantics(mergeDescendants = true) {},
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(MqIcons.FormatDolbyAtmos, contentDescription = null, Modifier.size(MediatheqSizes.formatBadge), color)
+            Text(stringResource(R.string.nowplaying_atmos_unavailable), style = MaterialTheme.typography.labelLarge)
+        }
+        Text(
+            stringResource(R.string.nowplaying_atmos_stereo),
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+            textAlign = TextAlign.Center,
         )
     }
 }

@@ -36,5 +36,7 @@
     <string name="nowplaying_eq_vocal">Vocal</string>
     <string name="nowplaying_eq_custom">Custom</string>
     <string name="nowplaying_bit_perfect_badge">Bit-perfect · %1$s</string>
+    <string name="nowplaying_atmos_unavailable">Dolby Atmos not available</string>
+    <string name="nowplaying_atmos_stereo">Playing in stereo on this output</string>
     <string name="nowplaying_bit_perfect_volume">Phone volume does not apply</string>
 </resources>

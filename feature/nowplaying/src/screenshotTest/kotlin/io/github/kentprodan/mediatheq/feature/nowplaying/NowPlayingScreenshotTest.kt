@@ -87,6 +87,14 @@ fun NowPlayingFavoriteRatedScreenshot() {
     MediatheqTheme { Screen(playing.copy(isFavorite = true, stars = 4)) }
 }
 
+/** A Dolby Atmos track this phone cannot play: the server's stereo version, and the note saying so. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingAtmosConvertedScreenshot() {
+    MediatheqTheme { Screen(playing.copy(atmosConverted = true)) }
+}
+
 /** Bit-perfect to a USB DAC: the sample rate and the volume note. */
 @PreviewTest
 @MqPreviews
