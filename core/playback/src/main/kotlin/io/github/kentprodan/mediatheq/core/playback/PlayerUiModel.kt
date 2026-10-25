@@ -31,6 +31,8 @@ data class AudioOutputInfo(
     val bitPerfectNoMatch: Boolean = false,
     /** Bit-perfect USB needs Android 14. */
     val bitPerfectSupported: Boolean = true,
+    /** The playing track is Dolby Atmos, but this device and output cannot play it: it plays as a stereo conversion. */
+    val atmosConverted: Boolean = false,
 ) {
     /** The equalizer is off while bit-perfect: the samples must reach the DAC unchanged. */
     val equalizerBlocked: Boolean get() = bitPerfectSampleRateHz != null

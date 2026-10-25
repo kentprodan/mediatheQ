@@ -79,7 +79,8 @@ Rules:
    - Never silently downgrade on a route that could do Atmos: if passthrough was expected and failed, surface an error state with a reason.
 3. Route changes (plug HDMI, connect BT, USB DAC) re-run stream selection **for the next track**; the current track continues unless playback fails.
 4. The Now Playing "Dolby Atmos" badge shows only when the **actual** output is Atmos (passthrough active), read from the player's current audio format + route, not from metadata alone.
-5. Atmos passthrough cannot be proven on JVM. Unit-test the decision; prove the output manually (`/test`: soundbar display shows Atmos).
+5. **Phone (#24):** no passthrough routes yet (they come with F2). `DeviceProfileBuilder` declares `eac3` only with an `audio/eac3-joc` decoder and never `truehd`, so on the Pixel 9 the server converts Atmos to the usual stereo Opus 256 (also on Wi-Fi). The track carries its spatial format in the media item extras; `AudioPolicy.atmosConverted(isAtmos, playMethod)` (unknown stream = no note) feeds `AudioOutputState.atmosConverted` -> `AudioOutputInfo` -> Now Playing's note "Dolby Atmos not available · Playing in stereo on this output". A "stereo version" of an album is a later feature; converted downloads are #68.
+6. Atmos passthrough cannot be proven on JVM. Unit-test the decision; prove the output manually (`/test`: soundbar display shows Atmos).
 
 ## 5. Audio offload (battery)
 
@@ -115,7 +116,7 @@ Rules:
 - **EQ:** `android.media.audiofx.DynamicsProcessing` attached to the player's audio session ID (`ExoPlayer.audioSessionId`). Bands and presets stored in DataStore. EQ on -> offload off (section 5). EQ is disabled in bit-perfect and passthrough modes, and the UI says why.
 - **Normalization (default: Album):** ReplayGain album gain (fallback track gain) from server metadata (Jellyfin `NormalizationGain`, the album's via a Room relation on track rows), carried in the media item extras and applied with `player.volume` on each item transition (`NormalizationListener`; clamped, no boost above 0 dB unless the setting allows it with a limiter). Controllers cannot set the player volume (`COMMAND_SET_VOLUME` removed), it carries the gain. Off in bit-perfect and passthrough modes.
 - **Crossfade:** off by default and not implemented in F1. If added later it needs PCM processing (disables offload).
-- `AudioPolicy` (pure, exhaustively unit tested, including every conflict above): `decide(settings, route, bitPerfectFormat): AudioMode` (`Offload` | `Processed` | `BitPerfect`; #24 adds `Passthrough`), `offload(settings, route)` (per route, so it does not flip per track), `wantsBitPerfect(settings, route)`, `volume(gains, normalization, mode)` (1 in bit-perfect).
+- `AudioPolicy` (pure, exhaustively unit tested, including every conflict above): `decide(settings, route, bitPerfectFormat): AudioMode` (`Offload` | `Processed` | `BitPerfect`; F2 adds `Passthrough`), `atmosConverted(isAtmos, playMethod)`, `offload(settings, route)` (per route, so it does not flip per track), `wantsBitPerfect(settings, route)`, `volume(gains, normalization, mode)` (1 in bit-perfect).
 - **EQ (#22):** five bands (centers 60/230/910/3600/14000 Hz, +-12 dB, presets Flat, Bass boost, Treble boost, Vocal, Custom) in `AudioPreferences`. `DynamicsProcessing` pre-EQ bands are set by **upper edge**: `EqualizerCurve` puts the edges at the geometric midpoints between centers (last at 20 kHz) and lowers the input gain by the largest boost so nothing clips. `EqualizerEffect` is re-created when the audio session id changes and enabled only in `Processed`.
 
 ## 8. Gapless
@@ -136,7 +137,7 @@ Rules:
 
 - Media3 `DownloadManager` + `MediatheqDownloadService` (foreground `dataSync`, progress notification), separate `SimpleCache` in `filesDir/downloads` with **`NoOpCacheEvictor`** (downloads are never evicted). Media3's own `StandaloneDatabaseProvider` (SQLite, not Room) holds the download index; #21 shares it for the streaming cache.
 - Download id = custom cache key = `MediaId.toString()`. The request URI is a placeholder; the `@DownloadSource` data source finds the track by the key.
-- Quality: the original file only. `StreamResolver.downloadStream` asks with the unmetered profile and accepts only direct play (a converted stream cannot resume at a byte offset); anything else fails the download. Transcoded downloads come with #24 if needed. Downloads never share the player's streams or play sessions.
+- Quality: the original file only. `StreamResolver.downloadStream` asks with the unmetered profile and accepts only direct play (a converted stream cannot resume at a byte offset); anything else fails the download. Converted downloads (Atmos on a Pixel) are #68. Downloads never share the player's streams or play sessions.
 - Wiring without a module edge: `:core:download` provides `@DownloadCache Cache`, `:core:playback` provides `@DownloadSource DataSource.Factory` (it knows the decoders); both qualifiers live in `:core:common`.
 - Playback: the player's data source is `ResolvingDataSource` over a **read-only** `CacheDataSource` on the download cache. A track that `DownloadRepository.isDownloaded` gets the download key and plays with no network at all; any other track resolves its stream (its cache key never hits). Downloaded plays still report to the server with a direct-play session of our own (`StreamResolver.playLocal`).
 - Offline (`NetworkMonitor.isOnline`), tracks that are not downloaded fail at once and the load error policy never retries, so the queue does not stall.

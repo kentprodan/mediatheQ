@@ -16,4 +16,14 @@
     <string name="core_ui_remove_favorite">Remove from favorites</string>
     <string name="core_ui_download">Download</string>
     <string name="core_ui_remove_download">Remove download</string>
+    <string name="core_ui_format_dolby_atmos">Dolby Atmos</string>
+    <string name="core_ui_format_dts_x">DTS:X</string>
+    <string name="core_ui_format_surround_5_1">Surround 5.1</string>
+    <string name="core_ui_format_surround_7_1">Surround 7.1</string>
+    <plurals name="core_ui_format_channels">
+        <item quantity="one">%1$d channel</item>
+        <item quantity="other">%1$d channels</item>
+    </plurals>
+    <string name="core_ui_format_stereo">Stereo</string>
+    <string name="core_ui_format_mono">Mono</string>
 </resources>

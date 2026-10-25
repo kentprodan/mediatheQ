@@ -31,6 +31,8 @@ sealed interface NowPlayingUiState {
         val stars: Int? = null,
         /** The sample rate sent unchanged to a USB DAC; `null` when not bit-perfect. */
         val bitPerfectSampleRateHz: Int? = null,
+        /** The track is Dolby Atmos but plays as a stereo conversion: this device and output cannot play Atmos. */
+        val atmosConverted: Boolean = false,
     ) : NowPlayingUiState
 }
 

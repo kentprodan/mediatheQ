@@ -1,8 +1,9 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import kotlin.math.pow
 
-/** How the player outputs audio (media3 skill, section 7). #24 adds Atmos passthrough. */
+/** How the player outputs audio (media3 skill, section 7). Atmos passthrough comes with the TV phase (F2). */
 internal enum class AudioMode {
     /** Decoded on the audio DSP to save battery; volume (normalization) still applies. */
     Offload,
@@ -17,7 +18,7 @@ internal enum class AudioMode {
 /** Which ReplayGain-style gain sets the volume of a track. */
 internal enum class Normalization { Album, Track, Off }
 
-/** The current audio output, as far as the policy cares. #24 adds HDMI. */
+/** The current audio output, as far as the policy cares. HDMI comes with the TV phase (F2). */
 internal enum class AudioRoute { UsbDac, Other }
 
 /** The user's audio settings. Normalization keeps its default until the Settings screen exists (#25). */
@@ -58,6 +59,16 @@ internal object AudioPolicy {
         settings: AudioSettings,
         route: AudioRoute,
     ): Boolean = settings.bitPerfectUsb && route == AudioRoute.UsbDac
+
+    /**
+     * Whether a Dolby Atmos track plays as the server's stereo conversion (no JOC decoder or passthrough, or the
+     * metered bitrate cap; media3 skill, section 4), so Now Playing says Atmos is not available. `false` while the
+     * stream is not resolved yet or playback stopped ([playMethod] `null`): unknown is not a downgrade.
+     */
+    fun atmosConverted(
+        isAtmos: Boolean,
+        playMethod: PlayMethod?,
+    ): Boolean = isAtmos && playMethod != null && playMethod != PlayMethod.DirectPlay
 
     /**
      * Player volume for a track with these gains in [mode]: album gain with the track's as fallback (or the other way

@@ -137,3 +137,7 @@ Items are added by `/end` and run with `/test`.
 ## #23 Lyrics: synced and plain
 - [ ] Pixel 9: play a track with a `.lrc` file -> Now Playing -> lyrics button -> the sung line is marked and stays centered, in time with the voice by ear (note whether the LRC `[offset:]` tag is applied; if not, new R-line in the jellyfin skill); tap a later line -> playback jumps there; scroll by hand -> the list stays put ~3 s, then returns to the sung line; back -> the player
 - [ ] Pixel 9: a track with plain (`.txt`) lyrics -> lines show and scroll, none marked, taps do nothing; a track without lyrics -> "No lyrics"; airplane mode on a streamed track -> "Couldn't load lyrics" + Try again; light/dark and font size 200% look right
+
+## #24 Dolby Atmos on phone: detection, unavailable state, stereo fallback
+- [ ] Pixel 9: play an Atmos M4A (E-AC-3 JOC) track on Wi-Fi -> it plays (stereo, no error, no silence); Now Playing shows the Dolby mark with "Dolby Atmos not available" / "Playing in stereo on this output"; Jellyfin's dashboard shows the session as Transcode; the next non-Atmos track hides the note
+- [ ] Pixel 9: album and search lists show the format badges (Dolby mark on Atmos tracks, two dots on stereo, five dots on multichannel); they read right in light/dark and at font size 200%; TalkBack reads "Dolby Atmos" / "Stereo" with the row

@@ -4,9 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -16,6 +19,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.preview.PREVIEW_BLUR_HAS
 import io.github.kentprodan.mediatheq.core.designsystem.preview.rememberPreviewCover
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.model.AudioFormat
+import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
 
 /** Track rows: with number, long title and artists (ellipsized, over an hour), without number. */
@@ -31,6 +36,36 @@ fun TrackRowScreenshot() {
                 TrackRow(PreviewData.track, onClick = {}, menuItems = {}, showTrackNumber = false)
                 TrackRow(PreviewData.track, onClick = {}, menuItems = {}, isCurrent = true)
                 TrackRow(PreviewData.track, onClick = {}, menuItems = {}, showCover = true, isCurrent = true)
+            }
+        }
+    }
+}
+
+/** Format badges: Dolby Atmos, surround 5.1, stereo, mono, then no badge (format unknown); with a cover too. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun TrackRowFormatBadgesScreenshot() {
+    val formats =
+        listOf(
+            AudioFormat("eac3", channels = 6, spatialFormat = SpatialFormat.DolbyAtmos),
+            AudioFormat("flac", channels = 6),
+            AudioFormat("flac", channels = 2),
+            AudioFormat("mp3", channels = 1),
+            null,
+        )
+    MediatheqTheme {
+        Surface {
+            Column {
+                formats.forEach { TrackRow(PreviewData.track.copy(audioFormat = it), onClick = {}, menuItems = {}) }
+                TrackRow(PreviewData.longTrack.copy(audioFormat = formats[0]), onClick = {}, showCover = true)
+                // Two-line supporting content (Downloads): the badge stays by the first line.
+                TrackRow(PreviewData.track.copy(audioFormat = formats[2]), onClick = {}, supportingContent = {
+                    Column {
+                        Text("Downloading 40%")
+                        LinearProgressIndicator(progress = { 0.4f }, Modifier.fillMaxWidth())
+                    }
+                })
             }
         }
     }

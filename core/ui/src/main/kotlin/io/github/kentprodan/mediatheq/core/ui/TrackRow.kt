@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -18,11 +19,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Track
 
 /**
- * One track in a list: optional track number or cover, title, artists, duration and an overflow button.
- * TalkBack reads the row as one item ("title, artists, duration"); the overflow button stays separately focusable.
+ * One track in a list: optional track number or cover, title, a format badge and the artists, duration and an overflow
+ * button. TalkBack reads the row as one item ("title, Stereo, artists, duration"); the overflow button stays separately
+ * focusable.
  * The playing track ([isCurrent]) shows an equalizer icon instead of its number or cover, a primary-colored title and
  * "Now playing" for TalkBack, so color is never the only signal.
  */
@@ -40,7 +43,7 @@ fun TrackRow(
     onLongClick: (() -> Unit)? = null,
     /** In a multi-select list: whether this row is selected (shown with a check). `null` outside selection. */
     selected: Boolean? = null,
-    /** Replaces the artists line, e.g. with a download's progress; `null` keeps the artists. */
+    /** Replaces the artists after the format badge, e.g. with a download's progress; `null` keeps the artists. */
     supportingContent: (@Composable () -> Unit)? = null,
 ) {
     val trackNumber = track.trackNumber.takeIf { showTrackNumber && !showCover }
@@ -81,10 +84,17 @@ fun TrackRow(
                 }
             }
         }
-    val supporting: @Composable () -> Unit =
-        supportingContent ?: {
-            Text(track.artists.joinToString { it.name }, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    val badge = track.audioFormat?.formatBadge()
+    val supporting: @Composable () -> Unit = {
+        // Top: next to the first line when the content has two (Downloads: text over a progress bar).
+        Row(verticalAlignment = Alignment.Top) {
+            badge?.let { FormatBadgeIcon(it, Modifier.padding(end = MediatheqSpacing.xs)) }
+            Box(Modifier.weight(1f)) {
+                supportingContent?.invoke()
+                    ?: Text(track.artists.joinToString { it.name }, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
+    }
     val trailing: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(formatDuration(track.duration), style = MaterialTheme.typography.bodySmall)

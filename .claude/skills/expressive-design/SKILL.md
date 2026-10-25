@@ -123,6 +123,7 @@ fun MediatheqTheme(
 | Simple screens (Settings) | `TopAppBar` / `MediumFlexibleTopAppBar` | |
 | Album grid | `LazyVerticalGrid(GridCells.Fixed(columns))` | `columns` from DataStore, range 2-4, default 2. |
 | Track rows | Expressive `ListItem` | Leading: track number or art. Trailing: duration + overflow menu. |
+| Audio format badge (track rows) | `FormatBadgeIcon` in `:core:ui` (icons `MqIcons.Format*`, `MediatheqSizes.formatBadge` 18 dp, content color) | Before the artists (also when the line is replaced, e.g. Downloads): Dolby double-D (Atmos), five dots (surround / DTS:X), two dots (stereo), one dot (mono); none when the channels are unknown. Filled shapes, 20 of 24 wide. Named for TalkBack ("Dolby Atmos", "Surround 5.1", "Stereo"). |
 | Grouped settings | Segmented list items | |
 | Play / Shuffle on album / artist header | `MqPlayShuffleButtons`: `Button` (Play, filled) + `FilledTonalButton` (Shuffle), half width each | Not the M3 `ButtonGroup` DSL: two plain buttons need no overflow menu and never collapse into one at fontScale 2.0. |
 | Artist picture (Artist header) | `MqArtistAvatar` in `:core:designsystem`: `MaterialShapes.Cookie9Sided`, person icon without a picture | Accent shape, artists only. |
@@ -146,6 +147,7 @@ fun MediatheqTheme(
 | Queue screen | `QueueScreen` in `:feature:nowplaying`, inside the player overlay | Opened by the queue button in Now Playing's secondary row; back closes it before the player. |
 | Lyrics screen | `LyricsScreen` in `:feature:nowplaying`, inside the player overlay, on a `Surface` | Opened by the lyrics button in Now Playing's secondary row (always shown; "No lyrics" state). Lines in `headlineSmall`; the sung line `primary` + emphasized, others `onSurfaceVariant`; plain lyrics all `onSurface`. Keeps the sung line centered, pauses 3 s after a manual scroll. Tap a line = seek (`onClickLabel` "Play from here"), off when the stream cannot be seeked. |
 | Audio screen (bit-perfect USB, equalizer) | `AudioScreen` in `:feature:nowplaying`, inside the player overlay, on a `Surface` | Opened by the Tune button in Now Playing's secondary row (until Settings, #25). Whole `ListItem` rows toggle (`Role.Switch`); presets as `FilterChip`s in a `FlowRow`; one `Slider` per band in 1 dB steps, set once on release. Disabled controls always say why in the supporting text. |
+| Atmos not available (Now Playing) | Dolby mark (`formatBadge` size) + `labelLarge` "Dolby Atmos not available", then `labelMedium` `onSurfaceVariant` "Playing in stereo on this output" | Only while an Atmos track plays converted; merged for TalkBack. The "Dolby Atmos" badge for real passthrough comes with F2. |
 | Bit-perfect indicator (Now Playing) | Tonal pill (`secondaryContainer`, `CircleShape`) "Bit-perfect · 96 kHz" + `labelMedium` note "Phone volume does not apply" | Only while the current track really plays bit-perfect; merged for TalkBack. |
 | Drag to reorder (queue, playlist) | `rememberMqReorderState` + `Modifier.mqReorderItem` / `mqReorderHandle` in `:core:designsystem` | Drag handle icon, not a button; haptics on pick-up, each swap and drop; one commit on drop. Rows also get Move up / Move down custom accessibility actions. Off while shuffled. |
 | Swipe to remove (queue) | `SwipeToDismissBox` | `errorContainer` background with a delete icon, drawn only while swiping (rows are rounded). |
@@ -189,7 +191,7 @@ If an element is not in this table, pick the closest M3 component, then add a ro
 - Background: vertical gradient from cover scheme (`primaryContainer` -> `surface`). No blur of the cover image (no Liquid Glass look).
 - Large cover `extraLarge` shape, max width 360 dp, centered.
 - Below: title (emphasized), artist, seek bar, transport `ButtonGroup`, secondary row (queue, lyrics, output device, Atmos badge when active).
-- Atmos badge: small tonal chip "Dolby Atmos" only when the current stream is E-AC-3 JOC or TrueHD Atmos.
+- Atmos badge: small tonal chip "Dolby Atmos" only when the current stream is E-AC-3 JOC or TrueHD Atmos passthrough (F2). Until then an Atmos track that plays converted shows the "Dolby Atmos not available" note (component map).
 
 ### Album grid
 

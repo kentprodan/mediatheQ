@@ -31,8 +31,9 @@ object DeviceProfileBuilder {
 
     /**
      * Jellyfin codec name -> decoder MIME type needed; `null` = Media3 handles it without a platform decoder (PCM).
-     * shortcut: E-AC-3 counts only with a JOC (Atmos) decoder - a plain E-AC-3 decoder (Pixel) fails on Atmos music
-     * since Media3 1.11 removed the fallback. Atmos detection and the stereo fallback come in #24.
+     * E-AC-3 counts only with a JOC (Atmos) decoder: a plain E-AC-3 decoder (Pixel) fails on Atmos music since Media3
+     * 1.11 removed the fallback, so the server converts it to stereo Opus (#24). TrueHD is never declared: phones have
+     * no decoder for it. shortcut: no passthrough routes (HDMI, eARC) yet; they come with the TV phase (F2).
      */
     private val CODECS =
         listOf(

@@ -39,6 +39,7 @@ internal fun AudioOutputInfo.toBundle(): Bundle =
         putBoolean(EXTRA_USB_DAC, usbDacConnected)
         putBoolean(EXTRA_BIT_PERFECT_NO_MATCH, bitPerfectNoMatch)
         putBoolean(EXTRA_BIT_PERFECT_SUPPORTED, bitPerfectSupported)
+        putBoolean(EXTRA_ATMOS_CONVERTED, atmosConverted)
     }
 
 internal fun Bundle.toAudioOutputInfo(): AudioOutputInfo =
@@ -47,12 +48,14 @@ internal fun Bundle.toAudioOutputInfo(): AudioOutputInfo =
         usbDacConnected = getBoolean(EXTRA_USB_DAC),
         bitPerfectNoMatch = getBoolean(EXTRA_BIT_PERFECT_NO_MATCH),
         bitPerfectSupported = getBoolean(EXTRA_BIT_PERFECT_SUPPORTED, true),
+        atmosConverted = getBoolean(EXTRA_ATMOS_CONVERTED),
     )
 
 private const val EXTRA_BIT_PERFECT_RATE = "io.github.kentprodan.mediatheq.BIT_PERFECT_RATE"
 private const val EXTRA_USB_DAC = "io.github.kentprodan.mediatheq.USB_DAC"
 private const val EXTRA_BIT_PERFECT_NO_MATCH = "io.github.kentprodan.mediatheq.BIT_PERFECT_NO_MATCH"
 private const val EXTRA_BIT_PERFECT_SUPPORTED = "io.github.kentprodan.mediatheq.BIT_PERFECT_SUPPORTED"
+private const val EXTRA_ATMOS_CONVERTED = "io.github.kentprodan.mediatheq.ATMOS_CONVERTED"
 
 /** The queue in play order (the shuffled order while shuffle is on), for the queue screen. */
 internal fun Player.toQueueItems(): List<QueueItem> =
