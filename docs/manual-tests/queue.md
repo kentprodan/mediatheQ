@@ -52,10 +52,10 @@ Items are added by `/end` and run with `/test`.
 - [x] Pixel 9 on mobile data (Tailscale on): play a FLAC track -> Jellyfin shows "Transcoding" to Opus ~256 kbps; `adb shell dumpsys connectivity | findstr METERED` shows the active network is metered (if Tailscale makes it look unmetered, note it in issue #12) - passed 2026-10-19
 - [x] Pixel 9 on mobile data: Opus/Ogg plays without errors (ADR 0016 device check); seeking is not possible yet (expected) - passed 2026-10-19
 - [x] Pixel 9: notification shows the track with cover; play/pause, next and previous work from the notification - passed 2026-10-19
-- [ ] Pixel 9: the same controls work from the lock screen (owner: run once the in-app player from #13 exists)
-- [ ] Pixel 9: unplug wired headphones (or disconnect Bluetooth) while playing -> playback pauses; a phone call -> music pauses and resumes after
+- [x] Pixel 9: the same controls work from the lock screen (owner: run once the in-app player from #13 exists) - passed 2026-10-25
+- [x] Pixel 9: unplug wired headphones (or disconnect Bluetooth) while playing -> playback pauses; a phone call -> music pauses and resumes after - passed 2026-10-25 (Bluetooth)
 - [x] Pixel 9: tapping the notification opens the app - passed 2026-10-19
-- [ ] Pixel 9: Jellyfin dashboard shows the playing track, its progress moving, and it disappears when playback stops (Stopped reported, transcode ended)
+- [x] Pixel 9: Jellyfin dashboard shows the playing track, its progress moving, and it disappears when playback stops (Stopped reported, transcode ended) - passed 2026-10-25
 - [x] Pixel 9: `.\gradlew.bat :app:connectedDebugAndroidTest` -> PlaybackServiceTest passes (service starts, controller connects) - passed 2026-10-25
 - [ ] Pixel 9: Home -> Log out while music plays -> playback stops
 
@@ -102,24 +102,24 @@ Items are added by `/end` and run with `/test`.
 - [x] Pixel 9 + server: add an album in Jellyfin (library scan) while the app is open -> it appears in Library within about 30 s without pull-to-refresh - passed 2026-10-25
 - [x] Pixel 9: heart toggle gives a toggle haptic and morphs round -> squarish; stars give no haptic; TalkBack reads "Favorite, on/off", "Rate 3 stars", "Clear rating" and the rating state "3 of 5 stars" - passed 2026-10-25
 ## #20 Downloads and offline mode
-- [ ] Pixel 9: on Wi-Fi, album menu -> Download -> the Downloads tab shows the album's tracks with progress, then done, and the storage line grows; turn on airplane mode -> Home/Library/Search show "You are offline"; Downloads -> tap the first track -> the whole downloaded album plays through, seeking works, no errors - failed 2026-10-25, see #58 (no LAN access on Android 17)
-- [ ] Pixel 9: in airplane mode, play a track that is not downloaded (e.g. from the restored queue) -> it fails at once with no long spinner, and the downloaded tracks still play
-- [ ] Pixel 9: on mobile data only (Wi-Fi off), download a track -> the row and the notification say "Waiting for Wi-Fi"; turn Wi-Fi on -> the download starts by itself
+- [x] Pixel 9: on Wi-Fi, album menu -> Download -> the Downloads tab shows the album's tracks with progress, then done, and the storage line grows; turn on airplane mode -> Home/Library/Search show "You are offline"; Downloads -> tap the first track -> the whole downloaded album plays through, seeking works, no errors - passed 2026-10-25 (after #58)
+- [x] Pixel 9: in airplane mode, play a track that is not downloaded (e.g. from the restored queue) -> it fails at once with no long spinner, and the downloaded tracks still play - passed 2026-10-25 (fails at once; no message shown, see #61)
+- [x] Pixel 9: on mobile data only (Wi-Fi off), download a track -> the row and the notification say "Waiting for Wi-Fi"; turn Wi-Fi on -> the download starts by itself - passed 2026-10-25
 - [ ] Pixel 9: start downloading a large album, reboot the phone mid-way, open the app -> the unfinished downloads continue (finished ones stay done)
-- [ ] Pixel 9: Downloads -> row menu -> Remove download -> the row goes away and the storage line shrinks; Jellyfin web still has the track (R5)
-- [ ] Pixel 9: play a downloaded album while online -> Jellyfin's dashboard shows the session as Direct Play and the play count goes up
+- [x] Pixel 9: Downloads -> row menu -> Remove download -> the row goes away and the storage line shrinks; Jellyfin web still has the track (R5) - passed 2026-10-25
+- [x] Pixel 9: play a downloaded album while online -> Jellyfin's dashboard shows the session as Direct Play and the play count goes up - passed 2026-10-25 (Direct Play; play count not checked)
 
 ## #21 Audio quality: offload, gapless, album normalization, prefetch and 2 GB cache
 - [ ] Pixel 9: on Wi-Fi play a gapless FLAC album (e.g. a live album) with the screen off for 15+ minutes -> no gaps or clicks between tracks; `adb shell dumpsys media.audio_flinger` shows an offloaded output while playing; battery use for the session is low (Settings -> Battery). Repeat with an MP3/AAC album and note whether it offloads (it may not, by design)
 - [ ] Pixel 9: queue a quiet album, then a loud one, screen off -> both play at a similar loudness; note whether the first second of the loud album is louder (accepted lag with offload)
-- [ ] Pixel 9: play a few tracks on Wi-Fi, then turn on airplane mode and play them again -> they play from the start to the end with no error; tracks never played fail at once
-- [ ] Pixel 9: on Wi-Fi start an album and wait ~1 minute -> the next track starts instantly; Jellyfin's dashboard shows the sessions as Direct Play
+- [x] Pixel 9: play a few tracks on Wi-Fi, then turn on airplane mode and play them again -> they play from the start to the end with no error; tracks never played fail at once - passed 2026-10-25
+- [x] Pixel 9: on Wi-Fi start an album and wait ~1 minute -> the next track starts instantly; Jellyfin's dashboard shows the sessions as Direct Play - passed 2026-10-25
 
 ## #53 Playback does not start: Play, Shuffle and track taps do nothing
 - [x] Pixel 9: album -> Play, Shuffle, tap a track, mini player play/pause and next -> playback starts and the buttons work - passed 2026-10-25
-- [ ] Pixel 9: while playing, the notification and the lock screen play/pause, next and previous work; a Bluetooth headset play/pause works
+- [x] Pixel 9: while playing, the notification and the lock screen play/pause, next and previous work; a Bluetooth headset play/pause works - passed 2026-10-25
 
 ## #58 Android 17 blocks all LAN connections: ACCESS_LOCAL_NETWORK is not declared or requested
 - [x] Pixel 9 (Android 17): open the app without the permission -> "Allow access to your home network" -> Allow -> system dialog -> Allow -> the app opens and reaches the LAN server (album downloads complete) - passed 2026-10-25
-- [ ] Pixel 9: Settings -> Apps -> mediatheQ -> Permissions -> Nearby devices -> Don't allow, back to the app -> the gate shows again; deny twice -> the button says "Open settings" and opens the app settings; allow there -> back in the app it opens
+- [x] Pixel 9: Settings -> Apps -> mediatheQ -> Permissions -> Nearby devices -> Don't allow, back to the app -> the gate shows again; deny twice -> the button says "Open settings" and opens the app settings; allow there -> back in the app it opens - passed 2026-10-25
 - [ ] Pixel 9 on mobile data with Tailscale on: sign-in, browse and playback over the Tailscale address work with the permission granted (and note whether they also work with it denied)
