@@ -1,4 +1,4 @@
-package io.github.kentprodan.mediatheq.feature.nowplaying
+package io.github.kentprodan.mediatheq.feature.settings
 
 import androidx.compose.runtime.Composable
 import com.android.tools.screenshot.PreviewTest
@@ -9,25 +9,30 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 
 @Composable
-private fun Screen(state: AudioUiState) {
-    MediatheqTheme { AudioScreen(state, onAction = {}, onClose = {}) }
+private fun Screen(state: SettingsUiState) {
+    MediatheqTheme { AudioSettingsScreen(state, onAction = {}, onBack = {}) }
 }
+
+private fun audioState(
+    audio: AudioPreferences = AudioPreferences(),
+    output: AudioOutputInfo = AudioOutputInfo(),
+) = SettingsUiState.Content("Home", "Ana", audio, output = output)
 
 /** Defaults: bit-perfect off, equalizer off (presets and bands disabled). */
 @PreviewTest
 @MqPreviews
 @Composable
-fun AudioDefaultScreenshot() {
-    Screen(AudioUiState())
+fun AudioSettingsDefaultScreenshot() {
+    Screen(audioState())
 }
 
 /** Equalizer on with custom bands. */
 @PreviewTest
 @MqPreviews
 @Composable
-fun AudioEqualizerOnScreenshot() {
+fun AudioSettingsEqualizerOnScreenshot() {
     Screen(
-        AudioUiState(
+        audioState(
             AudioPreferences(
                 equalizerOn = true,
                 eqPreset = EqPreset.Custom,
@@ -41,9 +46,9 @@ fun AudioEqualizerOnScreenshot() {
 @PreviewTest
 @MqPreviews
 @Composable
-fun AudioBitPerfectScreenshot() {
+fun AudioSettingsBitPerfectScreenshot() {
     Screen(
-        AudioUiState(
+        audioState(
             AudioPreferences(bitPerfectUsb = true, equalizerOn = true, eqPreset = EqPreset.BassBoost),
             AudioOutputInfo(bitPerfectSampleRateHz = 44_100, usbDacConnected = true),
         ),
@@ -54,6 +59,6 @@ fun AudioBitPerfectScreenshot() {
 @PreviewTest
 @MqPreviews
 @Composable
-fun AudioUnsupportedScreenshot() {
-    Screen(AudioUiState(output = AudioOutputInfo(bitPerfectSupported = false)))
+fun AudioSettingsUnsupportedScreenshot() {
+    Screen(audioState(output = AudioOutputInfo(bitPerfectSupported = false)))
 }

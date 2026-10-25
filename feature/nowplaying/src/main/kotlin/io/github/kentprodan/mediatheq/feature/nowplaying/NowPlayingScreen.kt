@@ -64,7 +64,6 @@ fun NowPlayingScreen(
     onCollapse: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenQueue: () -> Unit = {},
-    onOpenAudio: () -> Unit = {},
     onOpenLyrics: () -> Unit = {},
     cover: Any? = state.artwork,
     coverModifier: Modifier = Modifier,
@@ -79,7 +78,6 @@ fun NowPlayingScreen(
             onAction,
             onCollapse,
             onOpenQueue,
-            onOpenAudio,
             onOpenLyrics,
             modifier.semantics { this.paneTitle = paneTitle },
             cover,
@@ -95,7 +93,6 @@ private fun NowPlayingContent(
     onAction: (NowPlayingAction) -> Unit,
     onCollapse: () -> Unit,
     onOpenQueue: () -> Unit,
-    onOpenAudio: () -> Unit,
     onOpenLyrics: () -> Unit,
     modifier: Modifier,
     cover: Any?,
@@ -163,9 +160,6 @@ private fun NowPlayingContent(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             MqFavoriteToggle(state.isFavorite, onToggle = { onAction(NowPlayingAction.SetFavorite(it)) })
-            IconButton(onClick = onOpenAudio) {
-                Icon(MqIcons.Tune, contentDescription = stringResource(R.string.nowplaying_audio_open))
-            }
             IconButton(onClick = onOpenLyrics) {
                 Icon(MqIcons.Lyrics, contentDescription = stringResource(R.string.nowplaying_lyrics_open))
             }

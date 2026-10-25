@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_title">Home</string>
-    <string name="home_more">More options</string>
-    <string name="home_theme_showcase">Theme showcase</string>
-    <string name="home_log_out">Log out</string>
+    <string name="home_settings">Settings</string>
     <string name="home_shuffle_all">Shuffle all</string>
     <string name="home_recently_played">Recently played</string>
     <string name="home_recently_added">Recently added</string>

@@ -1,4 +1,4 @@
-package io.github.kentprodan.mediatheq.feature.nowplaying
+package io.github.kentprodan.mediatheq.feature.settings
 
 import android.app.Application
 import androidx.activity.ComponentActivity
@@ -27,38 +27,43 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, qualifiers = "w412dp-h915dp-xxhdpi")
-class AudioScreenTest {
+class AudioSettingsScreenTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val actions = mutableListOf<NowPlayingAction>()
+    private val actions = mutableListOf<SettingsAction>()
     private var closed = false
 
-    private fun setContent(state: AudioUiState) {
+    private fun setContent(state: SettingsUiState) {
         composeRule.setContent {
-            MediatheqTheme { AudioScreen(state, onAction = { actions += it }, onClose = { closed = true }) }
+            MediatheqTheme { AudioSettingsScreen(state, onAction = { actions += it }, onBack = { closed = true }) }
         }
     }
+
+    private fun audioState(
+        audio: AudioPreferences = AudioPreferences(),
+        output: AudioOutputInfo = AudioOutputInfo(),
+    ) = SettingsUiState.Content("Home", "Ana", audio, output = output)
 
     private fun switch(title: String) = composeRule.onNode(isToggleable() and hasText(title))
 
     @Test
     fun `the switches send their actions and the back button closes`() {
-        setContent(AudioUiState())
+        setContent(audioState())
 
         switch("Bit-perfect USB").performClick()
         switch("Equalizer").performClick()
-        composeRule.onNodeWithContentDescription("Close audio settings").performClick()
+        composeRule.onNodeWithContentDescription("Back").performClick()
 
         assertThat(actions)
-            .containsExactly(NowPlayingAction.SetBitPerfectUsb(true), NowPlayingAction.SetEqualizerOn(true))
+            .containsExactly(SettingsAction.SetBitPerfectUsb(true), SettingsAction.SetEqualizerOn(true))
             .inOrder()
         assertThat(closed).isTrue()
     }
 
     @Test
     fun `presets and bands are adjustable only while the equalizer is on`() {
-        setContent(AudioUiState())
+        setContent(audioState())
 
         composeRule.onNodeWithText("Vocal").assertIsNotEnabled()
         composeRule.onNode(hasContentDescription("60 Hz")).assertIsNotEnabled()
@@ -66,17 +71,17 @@ class AudioScreenTest {
 
     @Test
     fun `a preset is chosen with its chip`() {
-        setContent(AudioUiState(AudioPreferences(equalizerOn = true)))
+        setContent(audioState(AudioPreferences(equalizerOn = true)))
 
         composeRule.onNodeWithText("Vocal").assertIsEnabled().performClick()
 
-        assertThat(actions).containsExactly(NowPlayingAction.SetEqPreset(EqPreset.Vocal))
+        assertThat(actions).containsExactly(SettingsAction.SetEqPreset(EqPreset.Vocal))
     }
 
     @Test
     fun `while bit-perfect plays, the equalizer is unavailable and the screen says why`() {
         setContent(
-            AudioUiState(
+            audioState(
                 AudioPreferences(bitPerfectUsb = true, equalizerOn = true),
                 AudioOutputInfo(bitPerfectSampleRateHz = 96_000, usbDacConnected = true),
             ),
@@ -94,7 +99,7 @@ class AudioScreenTest {
     @Test
     fun `a DAC without a matching format says the track plays normally`() {
         setContent(
-            AudioUiState(
+            audioState(
                 AudioPreferences(bitPerfectUsb = true),
                 AudioOutputInfo(usbDacConnected = true, bitPerfectNoMatch = true),
             ),
@@ -108,7 +113,7 @@ class AudioScreenTest {
 
     @Test
     fun `a DAC with nothing playing does not claim a mismatch`() {
-        setContent(AudioUiState(AudioPreferences(bitPerfectUsb = true), AudioOutputInfo(usbDacConnected = true)))
+        setContent(audioState(AudioPreferences(bitPerfectUsb = true), AudioOutputInfo(usbDacConnected = true)))
 
         composeRule
             .onNodeWithText("The DAC does not take this track's format unchanged, so it plays normally.")
@@ -117,7 +122,7 @@ class AudioScreenTest {
 
     @Test
     fun `below Android 14 bit-perfect is off and says why`() {
-        setContent(AudioUiState(AudioPreferences(bitPerfectUsb = true), AudioOutputInfo(bitPerfectSupported = false)))
+        setContent(audioState(AudioPreferences(bitPerfectUsb = true), AudioOutputInfo(bitPerfectSupported = false)))
 
         switch("Bit-perfect USB").assertIsNotEnabled().assertIsOff()
         assertThat(composeRule.onAllNodesWithText("Needs Android 14 or newer.").fetchSemanticsNodes()).hasSize(1)

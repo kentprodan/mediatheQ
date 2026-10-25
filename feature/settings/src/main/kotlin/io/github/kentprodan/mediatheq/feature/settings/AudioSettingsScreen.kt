@@ -1,13 +1,13 @@
-package io.github.kentprodan.mediatheq.feature.nowplaying
+package io.github.kentprodan.mediatheq.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
@@ -17,12 +17,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,9 +33,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
@@ -44,92 +44,105 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.ui.formatFrequency
 import kotlin.math.roundToInt
 
+@Composable
+internal fun AudioSettingsRoute(
+    onBack: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    AudioSettingsScreen(state, viewModel::onAction, onBack)
+}
+
 /**
- * Audio settings, opened from Now Playing until the Settings screen exists (#25): bit-perfect USB and the equalizer
- * (presets and five bands). The equalizer is unavailable while bit-perfect plays, and the screen says why.
+ * Settings -> Audio: bit-perfect USB and the equalizer (presets and five bands). The equalizer is unavailable while
+ * bit-perfect plays, and the screen says why.
  */
 @Composable
-fun AudioScreen(
-    state: AudioUiState,
-    onAction: (NowPlayingAction) -> Unit,
-    onClose: () -> Unit,
-    modifier: Modifier = Modifier,
+fun AudioSettingsScreen(
+    state: SettingsUiState,
+    onAction: (SettingsAction) -> Unit,
+    onBack: () -> Unit,
 ) {
-    val title = stringResource(R.string.nowplaying_audio)
-    // A Surface, not a background: the band labels need its content color too.
-    Surface(modifier.fillMaxSize()) {
-        Column(Modifier.safeDrawingPadding().semantics { paneTitle = title }) {
+    Scaffold(
+        topBar = {
             TopAppBar(
-                title = { Text(title) },
+                title = { Text(stringResource(R.string.settings_audio)) },
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
-                        Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.nowplaying_audio_close))
+                    IconButton(onClick = onBack) {
+                        Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.settings_audio_close))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             )
-            Column(
-                Modifier.verticalScroll(rememberScrollState()).padding(bottom = MediatheqSpacing.l),
-            ) {
-                BitPerfectItem(state, onAction)
-                EqualizerSection(state, onAction)
-            }
+        },
+        // The app shell already pads for the navigation bar.
+        contentWindowInsets = WindowInsets(0),
+    ) { padding ->
+        val content = state as? SettingsUiState.Content ?: return@Scaffold
+        Column(
+            Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = MediatheqSpacing.l),
+        ) {
+            BitPerfectItem(content, onAction)
+            EqualizerSection(content, onAction)
         }
     }
 }
 
 @Composable
 private fun BitPerfectItem(
-    state: AudioUiState,
-    onAction: (NowPlayingAction) -> Unit,
+    state: SettingsUiState.Content,
+    onAction: (SettingsAction) -> Unit,
 ) {
     val output = state.output
     val rate = output.bitPerfectSampleRateHz
     SwitchItem(
-        title = stringResource(R.string.nowplaying_audio_bit_perfect),
+        title = stringResource(R.string.settings_audio_bit_perfect),
         supporting =
             when {
                 !output.bitPerfectSupported -> {
-                    stringResource(R.string.nowplaying_audio_bit_perfect_unsupported)
+                    stringResource(R.string.settings_audio_bit_perfect_unsupported)
                 }
 
                 rate != null -> {
-                    stringResource(R.string.nowplaying_audio_bit_perfect_active, formatFrequency(rate))
+                    stringResource(R.string.settings_audio_bit_perfect_active, formatFrequency(rate))
                 }
 
                 output.bitPerfectNoMatch -> {
-                    stringResource(R.string.nowplaying_audio_bit_perfect_no_match)
+                    stringResource(R.string.settings_audio_bit_perfect_no_match)
                 }
 
                 else -> {
-                    stringResource(R.string.nowplaying_audio_bit_perfect_summary)
+                    stringResource(R.string.settings_audio_bit_perfect_summary)
                 }
             },
-        checked = state.preferences.bitPerfectUsb && output.bitPerfectSupported,
+        checked = state.audio.bitPerfectUsb && output.bitPerfectSupported,
         enabled = output.bitPerfectSupported,
-        onCheckedChange = { onAction(NowPlayingAction.SetBitPerfectUsb(it)) },
+        onCheckedChange = { onAction(SettingsAction.SetBitPerfectUsb(it)) },
     )
 }
 
 @Composable
 private fun EqualizerSection(
-    state: AudioUiState,
-    onAction: (NowPlayingAction) -> Unit,
+    state: SettingsUiState.Content,
+    onAction: (SettingsAction) -> Unit,
 ) {
     val blocked = state.output.equalizerBlocked
-    val preferences = state.preferences
+    val preferences = state.audio
     val adjustable = preferences.equalizerOn && !blocked
     SwitchItem(
-        title = stringResource(R.string.nowplaying_audio_equalizer),
+        title = stringResource(R.string.settings_audio_equalizer),
         supporting =
             if (blocked) {
-                stringResource(R.string.nowplaying_audio_equalizer_blocked)
+                stringResource(R.string.settings_audio_equalizer_blocked)
             } else {
-                stringResource(R.string.nowplaying_audio_equalizer_summary)
+                stringResource(R.string.settings_audio_equalizer_summary)
             },
         checked = preferences.equalizerOn,
         enabled = !blocked,
-        onCheckedChange = { onAction(NowPlayingAction.SetEqualizerOn(it)) },
+        onCheckedChange = { onAction(SettingsAction.SetEqualizerOn(it)) },
     )
     FlowRow(
         Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l),
@@ -138,7 +151,7 @@ private fun EqualizerSection(
         EqPreset.entries.forEach { preset ->
             FilterChip(
                 selected = preset == preferences.eqPreset,
-                onClick = { onAction(NowPlayingAction.SetEqPreset(preset)) },
+                onClick = { onAction(SettingsAction.SetEqPreset(preset)) },
                 label = { Text(stringResource(preset.label)) },
                 enabled = adjustable,
             )
@@ -149,7 +162,7 @@ private fun EqualizerSection(
             label = formatFrequency(hz),
             gainDb = preferences.eqGainsDb[index],
             enabled = adjustable,
-            onGain = { onAction(NowPlayingAction.SetEqBand(index, it)) },
+            onGain = { onAction(SettingsAction.SetEqBand(index, it)) },
         )
     }
 }
@@ -182,7 +195,7 @@ private fun BandSlider(
 ) {
     var dragged by remember { mutableStateOf<Float?>(null) }
     val shown = dragged ?: gainDb
-    val gainLabel = stringResource(R.string.nowplaying_audio_gain_db, shown.roundToInt())
+    val gainLabel = stringResource(R.string.settings_audio_gain_db, shown.roundToInt())
     Column(Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label, style = MaterialTheme.typography.labelLarge)
@@ -210,9 +223,9 @@ private fun BandSlider(
 private val EqPreset.label: Int
     get() =
         when (this) {
-            EqPreset.Flat -> R.string.nowplaying_eq_flat
-            EqPreset.BassBoost -> R.string.nowplaying_eq_bass
-            EqPreset.TrebleBoost -> R.string.nowplaying_eq_treble
-            EqPreset.Vocal -> R.string.nowplaying_eq_vocal
-            EqPreset.Custom -> R.string.nowplaying_eq_custom
+            EqPreset.Flat -> R.string.settings_eq_flat
+            EqPreset.BassBoost -> R.string.settings_eq_bass
+            EqPreset.TrebleBoost -> R.string.settings_eq_treble
+            EqPreset.Vocal -> R.string.settings_eq_vocal
+            EqPreset.Custom -> R.string.settings_eq_custom
         }

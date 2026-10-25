@@ -16,8 +16,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,10 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -53,12 +48,11 @@ import io.github.kentprodan.mediatheq.core.ui.TrackRow
 @Composable
 internal fun HomeRoute(
     onOpenAlbum: (MediaId) -> Unit,
-    onLogout: () -> Unit,
-    onOpenShowcase: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreen(state, viewModel::onAction, onOpenAlbum, onLogout, onOpenShowcase)
+    HomeScreen(state, viewModel::onAction, onOpenAlbum, onOpenSettings)
 }
 
 /** Stateless Home tab: Shuffle all, then album rows and favorite songs; empty sections are left out. */
@@ -67,13 +61,12 @@ fun HomeScreen(
     state: HomeUiState,
     onAction: (HomeAction) -> Unit,
     onOpenAlbum: (MediaId) -> Unit,
-    onLogout: () -> Unit,
-    onOpenShowcase: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { HomeTopBar(onLogout, onOpenShowcase) },
+        topBar = { HomeTopBar(onOpenSettings) },
         // The app shell already pads for the navigation bar.
         contentWindowInsets = WindowInsets(0),
     ) { padding ->
@@ -121,35 +114,12 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeTopBar(
-    onLogout: () -> Unit,
-    onOpenShowcase: () -> Unit,
-) {
-    var menu by rememberSaveable { mutableStateOf(false) }
+private fun HomeTopBar(onOpenSettings: () -> Unit) {
     TopAppBar(
         title = { Text(stringResource(R.string.home_title)) },
         actions = {
-            // shortcut: Log out and the showcase live here until the Settings screen exists (#25).
-            Box {
-                IconButton(onClick = { menu = true }) {
-                    Icon(MqIcons.MoreVert, contentDescription = stringResource(R.string.home_more))
-                }
-                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.home_theme_showcase)) },
-                        onClick = {
-                            menu = false
-                            onOpenShowcase()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.home_log_out)) },
-                        onClick = {
-                            menu = false
-                            onLogout()
-                        },
-                    )
-                }
+            IconButton(onClick = onOpenSettings) {
+                Icon(MqIcons.Settings, contentDescription = stringResource(R.string.home_settings))
             }
         },
     )

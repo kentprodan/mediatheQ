@@ -25,7 +25,7 @@ import javax.inject.Inject
 class MainViewModel
     @Inject
     constructor(
-        private val sessionRepository: SessionRepository,
+        sessionRepository: SessionRepository,
         private val userDataRepository: UserDataRepository,
         networkMonitor: NetworkMonitor,
         private val librarySync: LibrarySyncRepository,
@@ -52,9 +52,5 @@ class MainViewModel
         /** Local network access was just granted: a sync that failed without it runs now, not at the next start. */
         fun onLocalNetworkGranted() {
             viewModelScope.launch { librarySync.sync() }
-        }
-
-        fun logout() {
-            viewModelScope.launch { sessionRepository.logout() }
         }
     }

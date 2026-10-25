@@ -49,16 +49,6 @@ class MainViewModelTest {
         }
 
     @Test
-    fun `logout signs out`() =
-        runTest {
-            repository.session.value = SessionState.LoggedIn("Home", "Ana")
-
-            viewModel.logout()
-
-            assertThat(repository.session.value).isEqualTo(SessionState.LoggedOut())
-        }
-
-    @Test
     fun `online follows the network`() =
         runTest {
             viewModel.online.test {

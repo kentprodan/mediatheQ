@@ -27,6 +27,7 @@ import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingHost
 import io.github.kentprodan.mediatheq.feature.playlist.addToPlaylistEntry
 import io.github.kentprodan.mediatheq.feature.playlist.playlistEntry
 import io.github.kentprodan.mediatheq.feature.search.searchEntry
+import io.github.kentprodan.mediatheq.feature.settings.settingsEntry
 import io.github.kentprodan.mediatheq.navigation.AppShell
 import io.github.kentprodan.mediatheq.navigation.OnboardingHost
 import io.github.kentprodan.mediatheq.navigation.ThemeShowcaseKey
@@ -71,9 +72,10 @@ class MainActivity : ComponentActivity() {
                             val entries =
                                 remember(navigator) {
                                     entryProvider {
-                                        homeEntry(
+                                        homeEntry(navigator)
+                                        settingsEntry(
                                             navigator,
-                                            onLogout = viewModel::logout,
+                                            versionName = versionName(),
                                             onOpenShowcase = { navigator.navigateTo(ThemeShowcaseKey) },
                                         )
                                         libraryEntry(navigator)
@@ -112,3 +114,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+/** The app's version, for Settings -> About. */
+private fun android.app.Activity.versionName(): String =
+    packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
