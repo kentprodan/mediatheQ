@@ -10,10 +10,12 @@ import java.util.TreeSet
 /**
  * Least-recently-used eviction like Media3's own, but with a size that can change while the app runs (the streaming
  * cache setting). A smaller size takes effect at the next write into the cache. Called by the cache on its own thread.
+ * Unbounded until the size is set: on a cold start the cache reloads its files before the setting is read, and a
+ * default size would delete what a larger setting allowed.
  */
 @UnstableApi
 internal class ResizableLruCacheEvictor(
-    @Volatile var maxBytes: Long,
+    @Volatile var maxBytes: Long = Long.MAX_VALUE,
 ) : CacheEvictor {
     private val spans = TreeSet(compareBy<CacheSpan> { it.lastTouchTimestamp }.thenBy { it })
     private var currentBytes = 0L

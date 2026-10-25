@@ -13,7 +13,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.kentprodan.mediatheq.core.common.DownloadSource
-import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import okhttp3.OkHttpClient
 import java.io.File
 import javax.inject.Singleton
@@ -36,8 +35,7 @@ internal object PlaybackCachesModule {
     /** The streaming cache's eviction; the service sets its size from the settings (1-8 GB). */
     @Provides
     @Singleton
-    fun streamingCacheEvictor(): ResizableLruCacheEvictor =
-        ResizableLruCacheEvictor(gibibytes(AudioPreferences.DEFAULT_CACHE_GB))
+    fun streamingCacheEvictor(): ResizableLruCacheEvictor = ResizableLruCacheEvictor()
 
     /**
      * In cacheDir: the system may clear it under storage pressure, which only costs fetching the files again. The

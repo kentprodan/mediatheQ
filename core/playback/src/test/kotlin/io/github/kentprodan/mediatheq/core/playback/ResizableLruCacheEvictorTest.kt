@@ -16,13 +16,10 @@ import java.nio.file.Files
 @UnstableApi
 @RunWith(RobolectricTestRunner::class)
 class ResizableLruCacheEvictorTest {
-    private val evictor = ResizableLruCacheEvictor(maxBytes = 250)
-    private val cache =
-        SimpleCache(
-            Files.createTempDirectory("media").toFile(),
-            evictor,
-            StandaloneDatabaseProvider(ApplicationProvider.getApplicationContext<Context>()),
-        )
+    private val folder = Files.createTempDirectory("media").toFile()
+    private val database = StandaloneDatabaseProvider(ApplicationProvider.getApplicationContext<Context>())
+    private var evictor = ResizableLruCacheEvictor(maxBytes = 250)
+    private var cache = SimpleCache(folder, evictor, database)
 
     @After
     fun release() = cache.release()
@@ -65,6 +62,19 @@ class ResizableLruCacheEvictorTest {
     fun `a larger size keeps more`() {
         evictor.maxBytes = 400
         listOf("a", "b", "c").forEach(::write)
+
+        assertThat(cache.cacheSpace).isEqualTo(300)
+    }
+
+    @Test
+    fun `reopening the cache before the size setting is read keeps every file`() {
+        evictor.maxBytes = 400
+        listOf("a", "b", "c").forEach(::write)
+        cache.release()
+
+        // A cold start: the cache reloads its files before the service has read the setting.
+        evictor = ResizableLruCacheEvictor()
+        cache = SimpleCache(folder, evictor, database)
 
         assertThat(cache.cacheSpace).isEqualTo(300)
     }
