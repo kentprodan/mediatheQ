@@ -127,10 +127,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 playerDispatcher = Dispatchers.Main,
             )
         player.addListener(ReportingListener(player, reporter))
-        // Live updates keep going in the background while music plays (issue #18).
+        // Live updates keep going in the background while music plays (issue #18): while it is meant to play, so a
+        // buffering stall does not drop and reopen the connection.
         player.addListener(
             object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) = liveSync.setPlaying(isPlaying)
+                override fun onEvents(
+                    player: Player,
+                    events: Player.Events,
+                ) {
+                    if (events.containsAny(Player.EVENT_PLAY_WHEN_READY_CHANGED, Player.EVENT_PLAYBACK_STATE_CHANGED)) {
+                        liveSync.setPlaying(player.wantsToPlay())
+                    }
+                }
             },
         )
         persistence =
@@ -241,3 +249,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         }
     }
 }
+
+/** Music is meant to play: play was asked for and the player has something to play (buffering counts). */
+internal fun Player.wantsToPlay(): Boolean =
+    playWhenReady && playbackState != Player.STATE_IDLE && playbackState != Player.STATE_ENDED

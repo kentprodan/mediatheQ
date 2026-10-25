@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.server.LiveEvent
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
 import io.github.kentprodan.mediatheq.core.testing.FakeLiveEvents
+import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataSink
@@ -38,6 +39,7 @@ class LiveSyncTest {
     private val accountStore = AccountStore(InMemoryPreferencesDataStore(), FakeTokenCipher())
     private val session = FakeSessionRepository()
     private val events = FakeLiveEvents()
+    private val network = FakeNetworkMonitor()
     private val source = FakeLibrarySource()
     private val track = MediaId(server, "t1")
 
@@ -68,7 +70,7 @@ class LiveSyncTest {
                 backgroundScope,
                 userData,
             )
-        return LiveSync(events, accountStore, session, userData, librarySync, backgroundScope).apply {
+        return LiveSync(events, accountStore, session, userData, librarySync, network, backgroundScope).apply {
             random = noJitter
             setForeground(true)
             start()
@@ -203,6 +205,23 @@ class LiveSyncTest {
             liveSync.setForeground(true)
             runCurrent()
             assertThat(events.open.value).isEqualTo(1)
+        }
+
+    @Test
+    fun `offline the socket closes, and it comes back at once with the network`() =
+        runTest(dispatcher) {
+            liveSync()
+            runCurrent()
+
+            network.online.value = false
+            runCurrent()
+            assertThat(events.open.value).isEqualTo(0)
+
+            // No waiting for a backoff: the network itself says when to try again.
+            network.online.value = true
+            runCurrent()
+            assertThat(events.open.value).isEqualTo(1)
+            assertThat(events.opened.value).isEqualTo(2)
         }
 
     @Test

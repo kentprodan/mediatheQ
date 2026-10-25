@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.data
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.server.LiveEvent
 import io.github.kentprodan.mediatheq.core.server.LiveEvents
@@ -31,7 +32,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Keeps Room in step with the server's live events (jellyfin skill, section 9): user data changes are written at once,
- * library changes start a full sync. Listens while signed in and the app is in the foreground or playing; a dropped
+ * library changes start a full sync. Listens while signed in, online, and the app is in the foreground or playing; a dropped
  * connection comes back after 1, 2, 4 ... 60 s (with jitter), and a 401 signs out instead.
  * shortcut: events missed while not listening wait for the next full sync; sync on reconnect if that shows up.
  */
@@ -44,6 +45,7 @@ class LiveSync
         private val sessionRepository: SessionRepository,
         private val userData: DefaultUserDataRepository,
         private val librarySync: DefaultLibrarySyncRepository,
+        private val networkMonitor: NetworkMonitor,
         @param:ApplicationScope private val scope: CoroutineScope,
     ) {
         private val foreground = MutableStateFlow(false)
@@ -67,8 +69,14 @@ class LiveSync
         @OptIn(ExperimentalCoroutinesApi::class)
         fun start() {
             scope.launch {
-                combine(accountStore.account, foreground, playing) { account, isForeground, isPlaying ->
-                    (account as? MqResult.Success)?.value?.takeIf { isForeground || isPlaying }
+                // Offline there is nothing to listen to; coming back online connects at once, without a backoff wait.
+                combine(accountStore.account, foreground, playing, networkMonitor.online) {
+                    account,
+                    isForeground,
+                    isPlaying,
+                    isOnline,
+                    ->
+                    (account as? MqResult.Success)?.value?.takeIf { isOnline && (isForeground || isPlaying) }
                 }.mapLatest { account -> account?.let { accountStore.signedInServer(it) } }
                     .distinctUntilChanged()
                     .collectLatest { server -> if (server != null) listen(server) }
