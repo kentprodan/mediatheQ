@@ -141,3 +141,11 @@ Items are added by `/end` and run with `/test`.
 ## #24 Dolby Atmos on phone: detection, unavailable state, stereo fallback
 - [ ] Pixel 9: play an Atmos M4A (E-AC-3 JOC) track on Wi-Fi -> it plays (stereo, no error, no silence); Now Playing shows the Dolby mark with "Dolby Atmos not available" / "Playing in stereo on this output"; Jellyfin's dashboard shows the session as Transcode; the next non-Atmos track hides the note
 - [ ] Pixel 9: album and search lists show the format badges (Dolby mark on Atmos tracks, two dots on stereo, five dots on multichannel); they read right in light/dark and at font size 200%; TalkBack reads "Dolby Atmos" / "Stereo" with the row
+
+## #25 Settings screen
+- [ ] Pixel 9: Home -> gear -> Settings: every group shows (Account, Playback, Downloads and storage, Appearance, Ratings, About), light/dark and font size 200% read right; Audio opens bit-perfect and the equalizer; Theme showcase opens; back returns; Now Playing has no Tune button any more
+- [ ] Pixel 9 on mobile data: Quality on mobile data 128 kbps, play a FLAC album -> Jellyfin's dashboard shows a 128 kbps Opus transcode; back on Wi-Fi with Original -> the next track direct plays
+- [ ] Pixel 9: turn Download on Wi-Fi only off, on mobile data download an album -> it downloads (on: it says Waiting for Wi-Fi)
+- [ ] Pixel 9: Material You on -> colors follow the wallpaper at once, and after a cold start with no Iris flash; off -> Iris
+- [ ] Pixel 9: Ratings -> Half stars: on Now Playing tap a star (whole), again (half), again (cleared); the rating shows the same in Jellyfin's web; Off hides the stars on Now Playing, album and artist pages
+- [ ] Pixel 9: Volume normalization Off -> a quiet and a loud album play at their own loudness; Album -> evened out, without restarting playback
