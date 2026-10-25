@@ -3,42 +3,42 @@
 Items are added by `/end` and run with `/test`.
 
 ## #1 Project skeleton: Gradle, version catalog, convention plugins, empty app
-- [ ] Pixel 9: `.\gradlew.bat installDebug`, open mediatheQ from the launcher -> app opens and shows "mediatheQ" centered, no crash
+- [x] Pixel 9: `.\gradlew.bat installDebug`, open mediatheQ from the launcher -> app opens and shows "mediatheQ" centered, no crash - passed 2026-10-25
 - [ ] MacBook Air M1: fresh clone, `./gradlew assembleDebug` -> BUILD SUCCESSFUL
 
 ## #8 ADR: role of GitHub Copilot and copilot-instructions.md
 - [ ] GitHub: open the next PR -> a Copilot code review appears on it (needs automatic Copilot review enabled in the repo settings)
 
 ## #4 Design system foundation: MediatheqTheme, Iris colors, type, shapes, spacing, motion, screenshot setup
-- [ ] Pixel 9: install, open the app, Home -> "Open theme showcase", scroll through colors, type and shapes in light mode -> readable, Iris violet, no clipped text
-- [ ] Pixel 9: switch the system to dark mode, reopen -> dark Iris scheme, readable
+- [x] Pixel 9: install, open the app, Home -> "Open theme showcase", scroll through colors, type and shapes in light mode -> readable, Iris violet, no clipped text - passed 2026-10-25
+- [x] Pixel 9: switch the system to dark mode, reopen -> dark Iris scheme, readable - passed 2026-10-25
 
 ## #6 Navigation shell: Navigation 3, four tabs with own back stacks, mini player slot
-- [ ] Pixel 9: Library -> Open detail -> Open next; switch to Search and back to Library -> still on "Library 2"
-- [ ] Pixel 9: in "Library 2", swipe back slowly from the screen edge -> the predictive back preview shows "Library 1", releasing goes there; at the Library root, back returns to Home; at the Home root, back closes the app
+- [x] Pixel 9: Library -> Open detail -> Open next; switch to Search and back to Library -> still on "Library 2" - passed 2026-10-25
+- [x] Pixel 9: in "Library 2", swipe back slowly from the screen edge -> the predictive back preview shows "Library 1", releasing goes there; at the Library root, back returns to Home; at the Home root, back closes the app - passed 2026-10-25
 
 ## #7 Connect to Jellyfin and log in (password + Quick Connect)
-- [ ] Pixel 9 on home Wi-Fi: fresh install, enter `192.168.178.34:8096` -> "Sign in to trueNAS"; wrong password -> "Wrong username or password."; right password -> the tab shell opens
+- [x] Pixel 9 on home Wi-Fi: fresh install, enter `192.168.178.34:8096` -> "Sign in to trueNAS"; wrong password -> "Wrong username or password."; right password -> the tab shell opens - passed 2026-10-25
 - [x] Pixel 9 on mobile data with Tailscale on: fresh install, enter the server's Tailscale address (100.x or MagicDNS name) with port 8096 -> sign-in works over http - passed 2026-10-19
-- [ ] Pixel 9: Sign in -> "Use Quick Connect" -> approve the code from the Jellyfin web UI (Settings -> Quick Connect) -> the tab shell opens within ~5 s
-- [ ] Pixel 9: Home -> "Log out" -> back at "Welcome to mediatheQ"; Jellyfin dashboard -> Devices no longer shows an active session for the phone
-- [ ] Pixel 9: sign in, force-stop the app, reopen -> goes straight to the tab shell (token read back and decrypted)
-- [ ] Pixel 9: `.\gradlew.bat :core:datastore:connectedDebugAndroidTest` -> AndroidKeystoreTokenCipherTest passes (Keystore round trip, fresh IV)
-- [ ] Pixel 9: on the server screen enter `http://example.com` -> "Use https:// for servers outside your home network or Tailscale."
+- [x] Pixel 9: Sign in -> "Use Quick Connect" -> approve the code from the Jellyfin web UI (Settings -> Quick Connect) -> the tab shell opens within ~5 s - passed 2026-10-25
+- [x] Pixel 9: Home -> "Log out" -> back at "Welcome to mediatheQ"; Jellyfin dashboard -> Devices no longer shows an active session for the phone - passed 2026-10-25
+- [x] Pixel 9: sign in, force-stop the app, reopen -> goes straight to the tab shell (token read back and decrypted) - passed 2026-10-25
+- [x] Pixel 9: `.\gradlew.bat :core:datastore:connectedDebugAndroidTest` -> AndroidKeystoreTokenCipherTest passes (Keystore round trip, fresh IV) - passed 2026-10-25
+- [x] Pixel 9: on the server screen enter `http://example.com` -> "Use https:// for servers outside your home network or Tailscale." - passed 2026-10-25
 
 ## #9 Library sync: Room 3 database, full sync from Jellyfin, FTS5 search index
-- [ ] Pixel 9 on home Wi-Fi: fresh install, sign in -> the first sync runs by itself; measure the time from sign-in until it finishes (JVM check on the dev PC: 5.8 s) and note it in issue #9
-- [ ] Pixel 9: after the sync, Library counts match the server: 455 album artists, 989 albums, 2729 tracks, 11 playlists (642 entries). Until #10 there is no Library screen: check with App Inspection -> Database Inspector on `mediatheq.db`
-- [ ] Pixel 9: start a fresh sync, swipe the app away mid-sync, reopen within an hour -> the sync continues and ends with the same counts
-- [ ] Pixel 9: Home -> Log out -> Database Inspector shows every table empty
+- [x] Pixel 9 on home Wi-Fi: fresh install, sign in -> the first sync runs by itself; measure the time from sign-in until it finishes (JVM check on the dev PC: 5.8 s) and note it in issue #9 - passed 2026-10-25
+- [x] Pixel 9: after the sync, Library counts match the server: 455 album artists, 989 albums, 2729 tracks, 11 playlists (642 entries). Until #10 there is no Library screen: check with App Inspection -> Database Inspector on `mediatheq.db` - passed 2026-10-25
+- [x] Pixel 9: start a fresh sync, swipe the app away mid-sync, reopen within an hour -> the sync continues and ends with the same counts - passed 2026-10-25
+- [ ] Pixel 9: Home -> Log out -> Database Inspector shows every table empty - failed 2026-10-25, see #51
 
 ## #10 Library screen: albums grid, artists, playlists, songs
 - [ ] Pixel 9, **release build** (`.\gradlew.bat installRelease` or a signed R8 build), synced library (989 albums): Library -> Albums, fling the grid top to bottom and back with 2, 3 and 4 columns -> no visible stutter; covers fade in from their BlurHash
-- [ ] Pixel 9: the Library title sits right under the status bar (no double gap), the last row is not hidden behind the navigation bar
-- [ ] Pixel 9: change columns to 4 and sort Albums by Year, switch to Songs and back, force-stop and reopen -> 4 columns and Year are kept, the scroll position per tab is kept while the app runs
-- [ ] Pixel 9: view menu -> Connected buttons -> the filters become connected buttons; reopen the app -> still connected buttons
-- [ ] Pixel 9: pull down on Albums -> the refresh spinner shows while the sync runs, then hides
-- [ ] Pixel 9: Artists tab lists only album artists (455 on the test server)
+- [x] Pixel 9: the Library title sits right under the status bar (no double gap), the last row is not hidden behind the navigation bar - passed 2026-10-25
+- [x] Pixel 9: change columns to 4 and sort Albums by Year, switch to Songs and back, force-stop and reopen -> 4 columns and Year are kept, the scroll position per tab is kept while the app runs - passed 2026-10-25
+- [x] Pixel 9: view menu -> Connected buttons -> the filters become connected buttons; reopen the app -> still connected buttons - passed 2026-10-25 (chips flash first, see #52)
+- [x] Pixel 9: pull down on Albums -> the refresh spinner shows while the sync runs, then hides - passed 2026-10-25
+- [x] Pixel 9: Artists tab lists only album artists (455 on the test server) - passed 2026-10-25
 
 ## #11 Album screen: header, track list, play and shuffle
 - [ ] Pixel 9: Library -> tap an album -> the cover flies from the grid into the album header and back on Back; it feels smooth (corners go from rounded to more rounded during the flight; a BlurHash flash is acceptable while the larger cover loads)
@@ -56,7 +56,7 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: unplug wired headphones (or disconnect Bluetooth) while playing -> playback pauses; a phone call -> music pauses and resumes after
 - [x] Pixel 9: tapping the notification opens the app - passed 2026-10-19
 - [ ] Pixel 9: Jellyfin dashboard shows the playing track, its progress moving, and it disappears when playback stops (Stopped reported, transcode ended)
-- [ ] Pixel 9: `.\gradlew.bat :app:connectedDebugAndroidTest` -> PlaybackServiceTest passes (service starts, controller connects)
+- [x] Pixel 9: `.\gradlew.bat :app:connectedDebugAndroidTest` -> PlaybackServiceTest passes (service starts, controller connects) - passed 2026-10-25
 - [ ] Pixel 9: Home -> Log out while music plays -> playback stops
 
 
