@@ -75,6 +75,7 @@ internal fun downloadCacheKey(itemId: MediaId): String = itemId.toString()
 // Lookups of streamed tracks never hit (no download has this key) and keep stream URLs out of cache keys.
 private const val STREAM_CACHE_KEY = "stream"
 
+@UnstableApi
 private fun resolveStream(
     dataSpec: DataSpec,
     itemId: MediaId,

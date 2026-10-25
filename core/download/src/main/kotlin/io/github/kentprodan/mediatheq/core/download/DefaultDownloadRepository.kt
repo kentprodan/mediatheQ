@@ -174,6 +174,7 @@ internal class DefaultDownloadRepository
         }
     }
 
+@UnstableApi
 private fun Download.trackId(): MediaId? = runCatching { MediaId.parse(request.id) }.getOrNull()
 
 /**
@@ -181,6 +182,7 @@ private fun Download.trackId(): MediaId? = runCatching { MediaId.parse(request.i
  * known, from the request.
  * shortcut: title only, no album or artists; store more in the request data if such downloads turn out common.
  */
+@UnstableApi
 private fun Download.fallbackTrack(id: MediaId) =
     Track(
         id = id,
