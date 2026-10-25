@@ -23,6 +23,7 @@ import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
+import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
@@ -89,6 +90,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private lateinit var usbAudio: UsbAudioPort
     private lateinit var audioOutput: AudioOutputController
     private var audioSettingsJob: Job? = null
+    private val equalizer = EqualizerEffect(AudioPreferences.EQ_BANDS_HZ)
 
     @Inject
     @IoDispatcher
@@ -197,7 +199,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
         // shortcut: normalization keeps its default until the Settings screen exists (#25).
         var settings = AudioSettings()
         var offload: Boolean? = null
+        var eqGains = AudioPreferences().eqGainsDb
         lateinit var normalization: NormalizationListener
+
+        fun applyEqualizer() =
+            equalizer.apply(player.audioSessionId, audioOutput.state.mode == AudioMode.Processed, eqGains)
         usbAudio = UsbAudioPort.create(getSystemService(AudioManager::class.java))
         audioOutput =
             AudioOutputController(
@@ -210,6 +216,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             ) { state ->
                 if (state.offload != offload) player.applyOffload(state.offload).also { offload = state.offload }
                 normalization.apply()
+                applyEqualizer()
             }
         normalization = NormalizationListener(player, { settings }) { audioOutput.state.mode }
         player.addListener(normalization)
@@ -224,6 +231,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         audioOutput.refresh()
                     }
                 }
+
+                override fun onAudioSessionIdChanged(audioSessionId: Int) = applyEqualizer()
             },
         )
         usbAudio.watch(audioOutput::refresh)
@@ -231,7 +240,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
             applicationScope.launch(Dispatchers.Main) {
                 audioPreferences.preferences.collect {
                     settings = settings.copy(equalizerOn = it.equalizerOn, bitPerfectUsb = it.bitPerfectUsb)
+                    eqGains = it.eqGainsDb
                     audioOutput.setSettings(settings)
+                    applyEqualizer()
                 }
             }
     }
@@ -256,6 +267,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         audioSettingsJob?.cancel()
         audioOutput.release()
         usbAudio.release()
+        equalizer.release()
         session?.run {
             persistence.saveNow()
             reporter.ended(player.currentPosition.milliseconds)
