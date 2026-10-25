@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
@@ -26,6 +27,7 @@ class PlaylistViewModelTest {
 
     private val repository = FakePlaylistRepository()
     private val playback = FakePlaybackConnection()
+    private val downloads = FakeDownloadRepository()
     private val playlistId = MediaId(ServerId("s"), "p1")
 
     private fun track(id: String) = Track(MediaId(ServerId("s"), id), id, emptyList(), 3.minutes)
@@ -42,7 +44,7 @@ class PlaylistViewModelTest {
     private fun TestScope.viewModel(): PlaylistViewModel {
         repository.playlists.value = listOf(Playlist(playlistId, "Drum"))
         repository.items.value = mapOf(playlistId to items)
-        val viewModel = PlaylistViewModel(playlistId, repository, playback)
+        val viewModel = PlaylistViewModel(playlistId, repository, playback, downloads)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -51,7 +53,7 @@ class PlaylistViewModelTest {
 
     @Test
     fun `starts loading`() {
-        assertThat(PlaylistViewModel(playlistId, repository, playback).uiState.value)
+        assertThat(PlaylistViewModel(playlistId, repository, playback, downloads).uiState.value)
             .isEqualTo(PlaylistUiState.Loading)
     }
 
@@ -88,6 +90,18 @@ class PlaylistViewModelTest {
             assertThat(playback.plays)
                 .containsExactly(PlayCall(tracks, 0, false), PlayCall(tracks, 0, true), PlayCall(tracks, 1, false))
                 .inOrder()
+        }
+
+    @Test
+    fun `download takes one item from its menu, or the whole playlist`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+
+            viewModel.onAction(PlaylistAction.Download(3))
+            assertThat(downloads.downloads.value.map { it.track }).containsExactly(tracks[2])
+
+            viewModel.onAction(PlaylistAction.Download())
+            assertThat(downloads.downloads.value.map { it.track }).containsExactlyElementsIn(tracks)
         }
 
     @Test

@@ -8,6 +8,7 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -29,6 +30,7 @@ class PlaylistViewModel
         @Assisted private val playlistId: MediaId,
         private val repository: PlaylistRepository,
         private val playback: PlaybackConnection,
+        private val downloads: DownloadRepository,
     ) : ViewModel() {
         private val selected = MutableStateFlow(emptySet<String>())
         private val error = MutableStateFlow<MqError?>(null)
@@ -81,6 +83,18 @@ class PlaylistViewModel
                 is PlaylistAction.PlayItem -> {
                     val index = items.indexOfFirst { it.position == action.position }
                     if (index >= 0) playback.play(items.map { it.track }, startIndex = index)
+                }
+
+                is PlaylistAction.Download -> {
+                    val tracks =
+                        if (action.position ==
+                            null
+                        ) {
+                            items.map { it.track }
+                        } else {
+                            listOfNotNull(item(action.position)?.track)
+                        }
+                    downloads.download(tracks)
                 }
 
                 is PlaylistAction.PlayNext -> {
