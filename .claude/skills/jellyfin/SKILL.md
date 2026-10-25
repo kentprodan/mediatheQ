@@ -72,7 +72,7 @@ Jellyfin 12 disables legacy authorization by default (also on upgraded servers).
   - Wi-Fi: original quality -> declare all decodable codecs/containers as direct play.
   - Mobile data: max 256 kbps -> transcoding profile `opus` (container per Media3 support), so lossless/high-bitrate sources transcode.
   - Rare formats the device cannot decode -> server transcodes.
-- **Atmos rule:** a track whose audio stream has `AudioSpatialFormat == DolbyAtmos` (enum values `None` / `DolbyAtmos` / `DTSX`) must **never** be transcoded when "Prefer Dolby Atmos" is on and the output supports passthrough. Declare `eac3` (and `truehd` where supported) as direct play for that path. If direct play is impossible, play the fallback and set a visible "Atmos unavailable" state - never silently downgrade.
+- **Atmos rule:** a track whose audio stream has `AudioSpatialFormat == DolbyAtmos` (enum values `None` / `DolbyAtmos` / `DTSX`) must **never** be transcoded when "Prefer Dolby Atmos" is on and the output supports passthrough. Declare `eac3` (and `truehd` where supported) as direct play for that path. If direct play is impossible, play the fallback and set a visible "Atmos unavailable" state - never silently downgrade. On the phone (#24, no passthrough yet) `eac3` is declared only with a JOC decoder and `truehd` never, so the server converts Atmos (media3 skill, section 4).
 - Ticks: Jellyfin uses 100-ns ticks. Convert only in mappers (`ticks / 10_000 = ms`).
 - Stream URLs carry `PlaySessionId` and `MediaSourceId` from `PlaybackInfo`; keep them for reporting.
 
