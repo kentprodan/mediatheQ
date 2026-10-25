@@ -86,12 +86,12 @@ Rules:
 - Enable via track selection parameters:
   ```kotlin
   TrackSelectionParameters.AudioOffloadPreferences.Builder()
-      .setAudioOffloadMode(AUDIO_OFFLOAD_MODE_PREFERENCE_ENABLED)
+      .setAudioOffloadMode(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED)
       .setIsGaplessSupportRequired(true)     // we promise gapless albums
       .setIsSpeedChangeSupportRequired(false)
       .build()
   ```
-  Verify constant names in the pinned version.
+  (`AUDIO_OFFLOAD_MODE_DISABLED` / `ENABLED` / `REQUIRED` in 1.11.) Set it once at start and again only when settings change (`Player.applyAudioMode`): changing track selection parameters re-selects tracks and drops the next item buffered for gapless. With gapless required, formats with encoder delay (MP3/AAC) offload only where the device reports gapless offload; FLAC usually offloads.
 - `ENABLED` (not `REQUIRED`): fall back to normal playback when offload is unavailable.
 - Offload is **off** when: EQ is active, bit-perfect USB is active, passthrough is active, or a feature needs PCM access (visualizer, crossfade, waveform). `AudioPolicy` decides; one place only.
 - Volume-based normalization (ReplayGain via player volume) works with offload.
@@ -112,9 +112,9 @@ Rules:
 ## 7. EQ, normalization, crossfade
 
 - **EQ:** `android.media.audiofx.DynamicsProcessing` attached to the player's audio session ID (`ExoPlayer.audioSessionId`). Bands and presets stored in DataStore. EQ on -> offload off (section 5). EQ is disabled in bit-perfect and passthrough modes, and the UI says why.
-- **Normalization (default: Album):** ReplayGain album gain (fallback track gain) from server metadata, applied with `player.volume` per item (clamped, no boost above 0 dB unless the setting allows it with a limiter). Off in bit-perfect and passthrough modes.
+- **Normalization (default: Album):** ReplayGain album gain (fallback track gain) from server metadata (Jellyfin `NormalizationGain`, the album's via a Room relation on track rows), carried in the media item extras and applied with `player.volume` on each item transition (`NormalizationListener`; clamped, no boost above 0 dB unless the setting allows it with a limiter). Controllers cannot set the player volume (`COMMAND_SET_VOLUME` removed), it carries the gain. Off in bit-perfect and passthrough modes.
 - **Crossfade:** off by default and not implemented in F1. If added later it needs PCM processing (disables offload).
-- `AudioPolicy.decide(route, settings, trackFormat): AudioMode` returns one of `Passthrough`, `BitPerfect`, `Offload`, `Processed(eq, normalization)` - exhaustively unit tested, including every conflict above.
+- `AudioPolicy.decide(route, settings, trackFormat): AudioMode` returns one of `Passthrough`, `BitPerfect`, `Offload`, `Processed(eq, normalization)` - exhaustively unit tested, including every conflict above. #21 implements the subset `decide(settings)` -> `Offload` | `Processed` (EQ, #22) plus `volume(gains, normalization)`; #22 adds `BitPerfect` and the route, #24 `Passthrough`.
 
 ## 8. Gapless
 
@@ -124,19 +124,22 @@ Rules:
 
 ## 9. Prefetch and cache (streaming)
 
-- One `SimpleCache` for streaming in `cacheDir/media`, `LeastRecentlyUsedCacheEvictor(2 GB)` (size from settings), database provider shared with downloads.
-- `CacheDataSource.Factory` wrapping the OkHttp data source (`OkHttpDataSource.Factory` with the shared client, so the Jellyfin auth header is applied).
-- Cache key = stable track ID + quality (not the URL with session params), via a custom `CacheKeyFactory`, so the same track at the same quality is reused across sessions.
-- Prefetch: the next 1-2 queue items on Wi-Fi (whole track for music), only the next item on cellular. Use `DefaultPreloadManager` (`TargetPreloadStatusControl` returning `PreloadStatus.specifiedRangeCached(...)`) or a `CacheWriter` job; choose one in an ADR and stick to it.
+- One `SimpleCache` for streaming in `cacheDir/media`, `LeastRecentlyUsedCacheEvictor(2 GB)` (size from settings, #25), on the database provider `:core:download` provides (ADR 0018).
+- Data source: `ResolvingDataSource` -> read-only `CacheDataSource` (downloads) -> `CacheDataSource` (streaming) -> `OkHttpDataSource` with the shared client. The resolver picks, in order: download, complete streaming copy (both with no network), offline failure, server stream.
+- Cache keys (ADR 0018): `<MediaId>:original` for a direct play; `transcode:<playSessionId>` for anything else (never written: no length). Never a URL or token. A partial copy whose length differs from the server's `MediaSource.Size` is dropped.
+- Prefetch (ADR 0018): `Prefetcher` with `CacheWriter` - next 2 items in play order on unmetered networks, 1 on metered; original files only; skips downloaded/cached tracks before any server request; only while playing and online; never replaces the stream the player knows (`StreamResolver.prefetchStream`); cancelled when the player opens the same track.
 - Never prefetch on metered networks when "Save data" is on.
 
 ## 10. Downloads (:core:download)
 
-- Media3 `DownloadManager` + `DownloadService` (foreground, with notification), separate `SimpleCache` in `filesDir/downloads` with **`NoOpCacheEvictor`** (downloads are never evicted).
-- Download quality setting: Original (default) or a transcoded quality; the chosen stream URL comes from `StreamResolver` with a "download" context.
-- Download state goes into Room via `DownloadIndex` -> repository -> UI (Downloads tab).
-- Playback prefers the download cache automatically (same cache key scheme).
-- Requirements: Wi-Fi only by default; resumes after reboot; removing a download never touches the server (see `jellyfin` R5).
+- Media3 `DownloadManager` + `MediatheqDownloadService` (foreground `dataSync`, progress notification), separate `SimpleCache` in `filesDir/downloads` with **`NoOpCacheEvictor`** (downloads are never evicted). Media3's own `StandaloneDatabaseProvider` (SQLite, not Room) holds the download index; #21 shares it for the streaming cache.
+- Download id = custom cache key = `MediaId.toString()`. The request URI is a placeholder; the `@DownloadSource` data source finds the track by the key.
+- Quality: the original file only. `StreamResolver.downloadStream` asks with the unmetered profile and accepts only direct play (a converted stream cannot resume at a byte offset); anything else fails the download. Transcoded downloads come with #24 if needed. Downloads never share the player's streams or play sessions.
+- Wiring without a module edge: `:core:download` provides `@DownloadCache Cache`, `:core:playback` provides `@DownloadSource DataSource.Factory` (it knows the decoders); both qualifiers live in `:core:common`.
+- Playback: the player's data source is `ResolvingDataSource` over a **read-only** `CacheDataSource` on the download cache. A track that `DownloadRepository.isDownloaded` gets the download key and plays with no network at all; any other track resolves its stream (its cache key never hits). Downloaded plays still report to the server with a direct-play session of our own (`StreamResolver.playLocal`).
+- Offline (`NetworkMonitor.isOnline`), tracks that are not downloaded fail at once and the load error policy never retries, so the queue does not stall.
+- State: `DefaultDownloadRepository` (in `:core:download`) keeps every download from the index plus the manager's events; progress is read once a second while someone watches. Actions go through `DownloadService.sendAddDownload/sendRemoveDownload`.
+- Requirements: Wi-Fi only (`NETWORK_UNMETERED`; the toggle comes with Settings, #25). No scheduler: on API 31+ Media3 cannot restart the service from the background, so unfinished downloads resume when the app opens (`resumeDownloads` in `MainActivity`). Android 15+ limits `dataSync` to 6 h a day; a stopped batch resumes at the next app start. Removing a download never touches the server (see `jellyfin` R5).
 
 ## 11. Queue, session and system integration
 

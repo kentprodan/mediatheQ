@@ -6,6 +6,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -27,6 +28,7 @@ class AlbumViewModel
         libraryRepository: LibraryRepository,
         private val playback: PlaybackConnection,
         private val userData: UserDataRepository,
+        private val downloads: DownloadRepository,
     ) : ViewModel() {
         val uiState: StateFlow<AlbumUiState> =
             combine(
@@ -78,6 +80,10 @@ class AlbumViewModel
                 // An album without tracks can still be rated.
                 is AlbumAction.Rate -> {
                     viewModelScope.launch { userData.setRating(albumId, action.stars) }
+                }
+
+                is AlbumAction.Download -> {
+                    downloads.download(tracks.pick(action.trackId))
                 }
             }
         }

@@ -47,6 +47,10 @@ sealed interface SearchAction {
         val track: Track,
     ) : SearchAction
 
+    data class Download(
+        val track: Track,
+    ) : SearchAction
+
     data class AddToQueue(
         val track: Track,
     ) : SearchAction

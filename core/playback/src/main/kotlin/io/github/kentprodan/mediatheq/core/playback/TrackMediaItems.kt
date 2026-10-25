@@ -52,8 +52,12 @@ internal fun Track.toMediaItem(
                 .setDiscNumber(discNumber)
                 .setDurationMs(duration.inWholeMilliseconds)
                 .setArtworkUri(artworkUrl?.toUri())
-                .setExtras(Bundle().apply { putQueueExtras(entryId, artwork) })
-                .setIsPlayable(true)
+                .setExtras(
+                    Bundle().apply {
+                        putQueueExtras(entryId, artwork)
+                        putGains(this@toMediaItem)
+                    },
+                ).setIsPlayable(true)
                 .setIsBrowsable(false)
                 .build(),
         ).build()
@@ -83,6 +87,26 @@ private const val EXTRA_ENTRY_ID = "io.github.kentprodan.mediatheq.ENTRY_ID"
 private const val EXTRA_ARTWORK_ID = "io.github.kentprodan.mediatheq.ARTWORK_ID"
 private const val EXTRA_ARTWORK_TAG = "io.github.kentprodan.mediatheq.ARTWORK_TAG"
 private const val EXTRA_ARTWORK_BLUR_HASH = "io.github.kentprodan.mediatheq.ARTWORK_BLUR_HASH"
+private const val EXTRA_ALBUM_GAIN = "io.github.kentprodan.mediatheq.ALBUM_GAIN"
+private const val EXTRA_TRACK_GAIN = "io.github.kentprodan.mediatheq.TRACK_GAIN"
+
+/** The normalization gains (dB) a queue item carries, so the service sets its volume without a lookup. */
+internal data class ItemGains(
+    val albumDb: Double?,
+    val trackDb: Double?,
+)
+
+private fun Bundle.putGains(track: Track) {
+    track.albumNormalizationGainDb?.let { putDouble(EXTRA_ALBUM_GAIN, it) }
+    track.normalizationGainDb?.let { putDouble(EXTRA_TRACK_GAIN, it) }
+}
+
+internal fun MediaItem.gains(): ItemGains {
+    val extras = mediaMetadata.extras ?: return ItemGains(null, null)
+
+    fun gain(key: String) = if (extras.containsKey(key)) extras.getDouble(key) else null
+    return ItemGains(gain(EXTRA_ALBUM_GAIN), gain(EXTRA_TRACK_GAIN))
+}
 
 private fun Bundle.putQueueExtras(
     entryId: String,

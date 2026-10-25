@@ -7,6 +7,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSourceBitmapLoader
+import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -17,12 +18,17 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
+import io.github.kentprodan.mediatheq.core.common.DownloadCache
+import io.github.kentprodan.mediatheq.core.common.IoDispatcher
+import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
+import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -53,6 +59,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var liveSync: LiveSync
 
+    @Inject lateinit var downloads: DownloadRepository
+
+    @Inject
+    @DownloadCache
+    lateinit var downloadCache: Cache
+
+    @Inject lateinit var networkMonitor: NetworkMonitor
+
+    @Inject
+    @StreamingCache
+    lateinit var streamingCache: Cache
+
     @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
@@ -62,6 +80,12 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var signOutWatch: Job? = null
     private lateinit var persistence: QueuePersistence
     private var persistJob: Job? = null
+    private lateinit var prefetcher: Prefetcher
+    private var prefetchJob: Job? = null
+
+    @Inject
+    @IoDispatcher
+    lateinit var ioDispatcher: CoroutineDispatcher
 
     override fun onCreate() {
         super.onCreate()
@@ -79,9 +103,22 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 ).setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setMediaSourceFactory(
-                    DefaultMediaSourceFactory(streamDataSourceFactory(okHttpClient, streamResolver))
-                        .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
+                    DefaultMediaSourceFactory(
+                        streamDataSourceFactory(
+                            okHttpClient,
+                            streamResolver,
+                            downloads,
+                            downloadCache,
+                            streamingCache,
+                            networkMonitor::isOnline,
+                            onOpen = { prefetcher.cancel(it) },
+                        ),
+                    ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
                 ).build()
+        // shortcut: default settings until the Settings screen exists (#25); then re-apply the mode when they change.
+        val audioSettings = AudioSettings()
+        player.applyAudioMode(AudioPolicy.decide(audioSettings))
+        player.addListener(NormalizationListener(player) { audioSettings })
         reporter =
             PlaybackReporter(
                 repository = playbackRepository,
@@ -104,6 +141,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 artworkUrl = { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) },
             )
         persistJob = persistence.start()
+        prefetcher =
+            Prefetcher(
+                player = player,
+                scope = applicationScope + Dispatchers.Main,
+                ioDispatcher = ioDispatcher,
+                resolver = streamResolver,
+                downloads = downloads,
+                cache = streamingCache,
+                upstream = OkHttpDataSource.Factory(okHttpClient),
+                network = networkMonitor,
+            )
+        prefetchJob = prefetcher.start()
         session =
             MediaLibrarySession
                 .Builder(this, QueuePlayer(player), LibraryCallback())
@@ -143,6 +192,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     override fun onDestroy() {
         signOutWatch?.cancel()
         persistJob?.cancel()
+        prefetchJob?.cancel()
+        prefetcher.stop()
         session?.run {
             persistence.saveNow()
             reporter.ended(player.currentPosition.milliseconds)
@@ -161,17 +212,19 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     private inner class LibraryCallback : MediaLibrarySession.Callback {
         /** Our app, the media notification and trusted system controllers only. */
-        override fun onConnect(
+        override fun onConnectAsync(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
-        ): MediaSession.ConnectionResult =
-            if (controller.packageName == packageName || controller.isTrusted ||
-                session.isMediaNotificationController(controller)
-            ) {
-                super.onConnect(session, controller)
-            } else {
-                MediaSession.ConnectionResult.reject()
-            }
+        ): ListenableFuture<MediaSession.ConnectionResult> =
+            Futures.immediateFuture(
+                if (controller.packageName == packageName || controller.isTrusted ||
+                    session.isMediaNotificationController(controller)
+                ) {
+                    acceptWithoutPlayerVolume(session, controller)
+                } else {
+                    MediaSession.ConnectionResult.reject()
+                },
+            )
 
         override fun onAddMediaItems(
             mediaSession: MediaSession,

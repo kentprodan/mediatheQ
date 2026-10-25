@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -31,18 +32,23 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.scene.DialogSceneStrategy
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigation3.ui.NavDisplay
+import io.github.kentprodan.mediatheq.R
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
+import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.motion.LocalNavAnimatedVisibilityScope
 import io.github.kentprodan.mediatheq.core.designsystem.motion.LocalSharedTransitionScope
 
 /**
  * The app shell: the current tab's screens, the floating [miniPlayer] slot and the bottom navigation bar.
  * The Scaffold's bottom padding includes the mini player, so content is never hidden behind it.
+ * While [offline], every tab but Downloads shows the offline state (only downloads play then).
  */
 @Composable
 fun AppShell(
     navigator: TabNavigator,
     entryProvider: (NavKey) -> NavEntry<NavKey>,
     modifier: Modifier = Modifier,
+    offline: Boolean = false,
     miniPlayer: (@Composable () -> Unit)? = null,
     snackbarHostState: SnackbarHostState? = null,
 ) {
@@ -95,6 +101,22 @@ fun AppShell(
                     entryProvider = entryProvider,
                 )
             }
+        if (offline && navigator.currentTab != TopLevelTab.Downloads) {
+            // The tabs' stacks and saved state stay as they are; they come back with the network. Back still walks
+            // them (NavDisplay, which handles it otherwise, is not composed meanwhile).
+            BackHandler(navigator.stack(navigator.currentTab).size > 1 || navigator.currentTab != TopLevelTab.Home) {
+                navigator.back()
+            }
+            MqEmptyState(
+                icon = MqIcons.CloudOff,
+                title = stringResource(R.string.offline_title),
+                modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+                body = stringResource(R.string.offline_body),
+                actionLabel = stringResource(R.string.offline_open_downloads),
+                onAction = { navigator.select(TopLevelTab.Downloads) },
+            )
+            return@Scaffold
+        }
         // Covers fly between screens of a tab (grid -> album). Inside the Scaffold, so they never draw over the bar.
         SharedTransitionLayout(Modifier.padding(padding).consumeWindowInsets(padding)) {
             CompositionLocalProvider(LocalSharedTransitionScope provides this) {

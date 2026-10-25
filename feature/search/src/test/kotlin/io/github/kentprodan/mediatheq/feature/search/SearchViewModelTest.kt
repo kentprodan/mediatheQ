@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
@@ -30,7 +31,8 @@ class SearchViewModelTest {
     private val userData = FakeUserDataRepository()
 
     // Lazy: viewModelScope must be created after the rule replaced the main dispatcher.
-    private val viewModel by lazy { SearchViewModel(library, preferences, playback, userData) }
+    private val downloads = FakeDownloadRepository()
+    private val viewModel by lazy { SearchViewModel(library, preferences, playback, userData, downloads) }
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
@@ -168,6 +170,14 @@ class SearchViewModelTest {
 
             assertThat(playback.plays.single()).isEqualTo(FakePlaybackConnection.PlayCall(listOf(track), 0, false))
             assertThat(preferences.recentSearches.value).containsExactly("mo")
+        }
+
+    @Test
+    fun `a song can be downloaded`() =
+        test {
+            viewModel.onAction(SearchAction.Download(track))
+
+            assertThat(downloads.downloads.value.map { it.track }).containsExactly(track)
         }
 
     @Test

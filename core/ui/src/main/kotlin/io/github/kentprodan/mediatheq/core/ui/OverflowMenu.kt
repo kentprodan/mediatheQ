@@ -104,3 +104,35 @@ fun FavoriteMenuItem(
         },
     )
 }
+
+/** "Download", for track, album and playlist menus. */
+@Composable
+fun DownloadMenuItem(
+    onClick: () -> Unit,
+    close: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(stringResource(R.string.core_ui_download)) },
+        leadingIcon = { Icon(MqIcons.Download, contentDescription = null) },
+        onClick = {
+            onClick()
+            close()
+        },
+    )
+}
+
+/** "Remove download": deletes the copy on this device only, never anything on the server (jellyfin R5). */
+@Composable
+fun RemoveDownloadMenuItem(
+    onClick: () -> Unit,
+    close: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(stringResource(R.string.core_ui_remove_download)) },
+        leadingIcon = { Icon(MqIcons.Delete, contentDescription = null) },
+        onClick = {
+            onClick()
+            close()
+        },
+    )
+}

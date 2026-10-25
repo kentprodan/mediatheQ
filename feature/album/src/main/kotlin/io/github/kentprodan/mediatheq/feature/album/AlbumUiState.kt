@@ -67,4 +67,9 @@ sealed interface AlbumAction {
     data class Rate(
         val stars: Int?,
     ) : AlbumAction
+
+    /** Download one track, or the whole album when [trackId] is `null`. */
+    data class Download(
+        val trackId: MediaId? = null,
+    ) : AlbumAction
 }

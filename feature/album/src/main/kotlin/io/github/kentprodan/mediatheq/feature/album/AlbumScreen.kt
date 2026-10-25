@@ -40,6 +40,7 @@ import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.AddToPlaylistMenuItem
 import io.github.kentprodan.mediatheq.core.ui.DiscHeader
+import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
@@ -102,6 +103,7 @@ fun AlbumScreen(
                                 close = close,
                             )
                             AddToPlaylistMenuItem({ onAddToPlaylist(state.tracks.map { it.id }) }, close)
+                            DownloadMenuItem({ onAction(AlbumAction.Download()) }, close)
                         }
                     }
                 },
@@ -159,6 +161,7 @@ fun AlbumScreen(
                                         { onAction(AlbumAction.SetFavorite(track.id, it)) },
                                         close,
                                     )
+                                    DownloadMenuItem({ onAction(AlbumAction.Download(track.id)) }, close)
                                 },
                             )
                         }

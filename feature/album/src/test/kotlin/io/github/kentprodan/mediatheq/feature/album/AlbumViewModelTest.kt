@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
@@ -47,15 +48,19 @@ class AlbumViewModelTest {
     private val disc1 = listOf(track("d1t1", 1, 1), track("d1t2", 1, 2))
     private val disc2 = listOf(track("d2t1", 2, 1))
 
+    private val downloads = FakeDownloadRepository()
+
     private fun TestScope.viewModel(): AlbumViewModel {
-        val viewModel = AlbumViewModel(albumId, library, playback, userData)
+        val viewModel = AlbumViewModel(albumId, library, playback, userData, downloads)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
 
     @Test
     fun `starts loading`() {
-        assertThat(AlbumViewModel(albumId, library, playback, userData).uiState.value).isEqualTo(AlbumUiState.Loading)
+        assertThat(
+            AlbumViewModel(albumId, library, playback, userData, downloads).uiState.value,
+        ).isEqualTo(AlbumUiState.Loading)
     }
 
     @Test
@@ -124,6 +129,20 @@ class AlbumViewModelTest {
             viewModel.onAction(AlbumAction.PlayTrack(disc2.first().id))
 
             assertThat(playback.plays).containsExactly(PlayCall(disc1 + disc2, disc1.size, false))
+        }
+
+    @Test
+    fun `download takes the whole album, or one track from its menu`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albums.value = listOf(album)
+            library.tracks.value = disc1 + disc2
+            val viewModel = viewModel()
+
+            viewModel.onAction(AlbumAction.Download(disc2[0].id))
+            assertThat(downloads.downloads.value.map { it.track }).containsExactly(disc2[0])
+
+            viewModel.onAction(AlbumAction.Download())
+            assertThat(downloads.downloads.value.map { it.track }).containsExactlyElementsIn(disc1 + disc2)
         }
 
     @Test

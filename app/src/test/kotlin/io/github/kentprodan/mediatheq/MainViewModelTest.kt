@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
@@ -17,7 +18,8 @@ class MainViewModelTest {
 
     private val repository = FakeSessionRepository()
     private val userData = FakeUserDataRepository()
-    private val viewModel by lazy { MainViewModel(repository, userData) }
+    private val network = FakeNetworkMonitor()
+    private val viewModel by lazy { MainViewModel(repository, userData, network) }
 
     @Test
     fun `the session is unknown until read, then follows the repository`() =
@@ -50,5 +52,15 @@ class MainViewModelTest {
             viewModel.logout()
 
             assertThat(repository.session.value).isEqualTo(SessionState.LoggedOut())
+        }
+
+    @Test
+    fun `online follows the network`() =
+        runTest {
+            viewModel.online.test {
+                assertThat(awaitItem()).isTrue()
+                network.online.value = false
+                assertThat(awaitItem()).isFalse()
+            }
         }
 }

@@ -46,6 +46,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.ui.AlbumRow
 import io.github.kentprodan.mediatheq.core.ui.ArtistRow
+import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
@@ -251,6 +252,7 @@ private fun Results(
                         { onAction(SearchAction.SetFavorite(track, it)) },
                         close,
                     )
+                    DownloadMenuItem({ onAction(SearchAction.Download(track)) }, close)
                 },
             )
         }

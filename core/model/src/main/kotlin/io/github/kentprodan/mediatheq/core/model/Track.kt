@@ -18,6 +18,8 @@ data class Track(
     val dateAdded: Instant? = null,
     /** Track ReplayGain-style gain in dB. */
     val normalizationGainDb: Double? = null,
+    /** Its album's gain in dB (album normalization); `null` without an album gain. */
+    val albumNormalizationGainDb: Double? = null,
     val artwork: Artwork? = null,
     val userData: UserData = UserData(),
 )

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloads_title">Downloads</string>
+    <string name="downloads_storage_used">%1$s on this device</string>
+    <string name="downloads_empty_title">No downloads yet</string>
+    <string name="downloads_empty_body">Download albums, playlists or tracks from their menus to play them without a network.</string>
+    <string name="downloads_unknown_album">Unknown album</string>
+    <string name="downloads_queued">Queued</string>
+    <string name="downloads_waiting_for_wifi">Waiting for Wi-Fi</string>
+    <string name="downloads_downloading">Downloading</string>
+    <string name="downloads_downloading_percent">Downloading %1$d%%</string>
+    <string name="downloads_failed">Download failed</string>
+    <string name="downloads_retry">Download again</string>
+</resources>

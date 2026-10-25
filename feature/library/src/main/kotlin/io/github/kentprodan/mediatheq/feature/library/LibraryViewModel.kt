@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
@@ -43,6 +44,7 @@ class LibraryViewModel
         private val preferencesRepository: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
         private val userData: UserDataRepository,
+        private val downloads: DownloadRepository,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
         // Saved, so the tab (and its restored scroll position) comes back after process death.
@@ -114,6 +116,7 @@ class LibraryViewModel
                 is LibraryAction.PlayNext -> playback.playNext(listOf(action.track))
                 is LibraryAction.AddToQueue -> playback.addToQueue(listOf(action.track))
                 is LibraryAction.SetFavorite -> launch { userData.setFavorite(action.track.id, action.isFavorite) }
+                is LibraryAction.Download -> downloads.download(listOf(action.track))
             }
         }
 
