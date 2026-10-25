@@ -21,6 +21,7 @@ import io.github.kentprodan.mediatheq.core.download.resumeDownloads
 import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.artist.artistEntry
 import io.github.kentprodan.mediatheq.feature.downloads.downloadsEntry
+import io.github.kentprodan.mediatheq.feature.home.homeEntry
 import io.github.kentprodan.mediatheq.feature.library.libraryEntry
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingHost
 import io.github.kentprodan.mediatheq.feature.playlist.addToPlaylistEntry
@@ -28,6 +29,7 @@ import io.github.kentprodan.mediatheq.feature.playlist.playlistEntry
 import io.github.kentprodan.mediatheq.feature.search.searchEntry
 import io.github.kentprodan.mediatheq.navigation.AppShell
 import io.github.kentprodan.mediatheq.navigation.OnboardingHost
+import io.github.kentprodan.mediatheq.navigation.ThemeShowcaseKey
 import io.github.kentprodan.mediatheq.navigation.placeholders
 import io.github.kentprodan.mediatheq.navigation.rememberTabNavigator
 
@@ -67,6 +69,11 @@ class MainActivity : ComponentActivity() {
                             val entries =
                                 remember(navigator) {
                                     entryProvider {
+                                        homeEntry(
+                                            navigator,
+                                            onLogout = viewModel::logout,
+                                            onOpenShowcase = { navigator.navigateTo(ThemeShowcaseKey) },
+                                        )
                                         libraryEntry(navigator)
                                         albumEntry(navigator)
                                         artistEntry(navigator)
@@ -76,7 +83,7 @@ class MainActivity : ComponentActivity() {
                                         addToPlaylistEntry(navigator)
                                         placeholders(
                                             navigator,
-                                            onLogout = viewModel::logout,
+                                            includeHome = false,
                                             includeLibrary = false,
                                             includeSearch = false,
                                             includeDownloads = false,
