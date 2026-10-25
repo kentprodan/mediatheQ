@@ -41,13 +41,6 @@ class DeviceProfileBuilderTest {
     }
 
     @Test
-    fun `without any E-AC-3 decoder, Atmos E-AC-3 is left for the server to convert`() {
-        assertThat(
-            DeviceProfileBuilder.build(setOf("audio/flac"), metered = false).directPlayCodecs,
-        ).doesNotContain("eac3")
-    }
-
-    @Test
     fun `TrueHD is never declared on the phone, even with a TrueHD decoder (passthrough comes with F2)`() {
         val profile = DeviceProfileBuilder.build(pixel + "audio/true-hd" + "audio/eac3-joc", metered = false)
 

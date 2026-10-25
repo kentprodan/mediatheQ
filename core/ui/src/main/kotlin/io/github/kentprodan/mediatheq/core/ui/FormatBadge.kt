@@ -13,7 +13,7 @@ import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 
 /** The kind of audio a track is, shown as a small badge in track lists. */
-sealed interface FormatBadge {
+internal sealed interface FormatBadge {
     data object DolbyAtmos : FormatBadge
 
     data object DtsX : FormatBadge
@@ -28,7 +28,7 @@ sealed interface FormatBadge {
 }
 
 /** The badge for this format: spatial audio first, then by channels; `null` when the server did not say. */
-fun AudioFormat.formatBadge(): FormatBadge? {
+internal fun AudioFormat.formatBadge(): FormatBadge? {
     val channels = channels
     return when {
         spatialFormat == SpatialFormat.DolbyAtmos -> FormatBadge.DolbyAtmos
@@ -43,7 +43,7 @@ fun AudioFormat.formatBadge(): FormatBadge? {
 
 /** The badge as an icon in the content color, named for TalkBack ("Stereo", "Surround 5.1", "Dolby Atmos"). */
 @Composable
-fun FormatBadgeIcon(
+internal fun FormatBadgeIcon(
     badge: FormatBadge,
     modifier: Modifier = Modifier,
 ) {

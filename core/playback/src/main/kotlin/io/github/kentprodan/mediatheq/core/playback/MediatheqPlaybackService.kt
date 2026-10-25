@@ -208,21 +208,20 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
         fun applyEqualizer() =
             equalizer.apply(player.audioSessionId, audioOutput.state.mode == AudioMode.Processed, eqGains)
+
+        // How the playing track is delivered; `null` when stopped or not resolved yet (the ready refresh catches it).
+        fun currentPlayMethod(): PlayMethod? {
+            if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) return null
+            val id = player.currentMediaItem?.let { runCatching { MediaId.parse(it.mediaId) }.getOrNull() }
+            return id?.let { streamResolver.current(it)?.playMethod }
+        }
         usbAudio = UsbAudioPort.create(getSystemService(AudioManager::class.java))
         audioOutput =
             AudioOutputController(
                 port = usbAudio,
                 currentFormat = {
-                    val stopped =
-                        player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED
-                    val item = player.currentMediaItem
                     // A transcode has another format than the file: only a direct play can be bit-perfect.
-                    val direct =
-                        item != null &&
-                            runCatching { MediaId.parse(item.mediaId) }
-                                .getOrNull()
-                                ?.let { streamResolver.current(it)?.playMethod } == PlayMethod.DirectPlay
-                    if (stopped || !direct) null else item.outputFormat()
+                    if (currentPlayMethod() == PlayMethod.DirectPlay) player.currentMediaItem?.outputFormat() else null
                 },
                 onChange = { state ->
                     if (state.offload != offload) player.applyOffload(state.offload).also { offload = state.offload }
@@ -230,14 +229,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     applyEqualizer()
                     session?.sessionExtras = state.toInfo().toBundle()
                 },
-                // The stream is resolved when the player opens it: the refresh when it is ready catches it.
                 atmosConverted = {
-                    val item = player.currentMediaItem
-                    val id = item?.let { runCatching { MediaId.parse(it.mediaId) }.getOrNull() }
-                    AudioPolicy.atmosConverted(
-                        isAtmos = item?.isDolbyAtmos() == true,
-                        playMethod = id?.let { streamResolver.current(it)?.playMethod },
-                    )
+                    AudioPolicy.atmosConverted(player.currentMediaItem?.isDolbyAtmos() == true, currentPlayMethod())
                 },
             )
         normalization = NormalizationListener(player, { settings }) { audioOutput.state.mode }

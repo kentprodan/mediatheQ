@@ -23,7 +23,7 @@ internal class AudioOutputController(
     private val currentFormat: () -> PcmFormat?,
     private val onChange: (AudioOutputState) -> Unit,
     /** Whether the playing track is a converted Dolby Atmos track; asked on every refresh. */
-    private val atmosConverted: () -> Boolean = { false },
+    private val atmosConverted: () -> Boolean,
 ) {
     private var settings = AudioSettings()
     private var preferred: MixerCapability? = null

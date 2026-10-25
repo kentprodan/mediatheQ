@@ -86,7 +86,8 @@ fun TrackRow(
         }
     val badge = track.audioFormat?.formatBadge()
     val supporting: @Composable () -> Unit = {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Top: next to the first line when the content has two (Downloads: text over a progress bar).
+        Row(verticalAlignment = Alignment.Top) {
             badge?.let { FormatBadgeIcon(it, Modifier.padding(end = MediatheqSpacing.xs)) }
             Box(Modifier.weight(1f)) {
                 supportingContent?.invoke()

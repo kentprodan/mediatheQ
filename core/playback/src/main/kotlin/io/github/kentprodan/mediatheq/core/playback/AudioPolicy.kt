@@ -61,9 +61,9 @@ internal object AudioPolicy {
     ): Boolean = settings.bitPerfectUsb && route == AudioRoute.UsbDac
 
     /**
-     * Whether a Dolby Atmos track plays as the server's stereo conversion: the device has no JOC decoder and the route
-     * no passthrough (media3 skill, section 4), so Now Playing says Atmos is not available. `false` while the stream is
-     * not resolved yet ([playMethod] `null`): unknown is not a downgrade.
+     * Whether a Dolby Atmos track plays as the server's stereo conversion (no JOC decoder or passthrough, or the
+     * metered bitrate cap; media3 skill, section 4), so Now Playing says Atmos is not available. `false` while the
+     * stream is not resolved yet or playback stopped ([playMethod] `null`): unknown is not a downgrade.
      */
     fun atmosConverted(
         isAtmos: Boolean,
