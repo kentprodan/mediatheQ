@@ -61,22 +61,22 @@ Items are added by `/end` and run with `/test`.
 
 
 ## #13 Mini player and Now Playing with cover colors
-- [ ] Pixel 9: play an album -> the mini player slides in above the nav bar with cover, title, artist; play/pause and next work from it; the list above is not hidden behind it - failed 2026-10-25, see #53 (fixed; retest)
-- [ ] Pixel 9: tap the mini player, and separately swipe it up -> Now Playing opens, the cover flies from the pill into the large cover; swipe down, the close button and Back each return to the mini player with the cover flying back
-- [ ] Pixel 9: Now Playing colors follow the cover (try 3 albums with very different covers); changing track to another album blends the colors, no snap; an album without cover stays Iris
-- [ ] Pixel 9 on Wi-Fi: the seek bar moves smoothly, dragging it seeks; on mobile data (transcode) it is disabled
-- [ ] Pixel 9: on the album page the playing track shows the equalizer icon and a colored title; it moves to the next track when the player advances
-- [ ] Pixel 9: motion feels right (no jank opening/closing Now Playing, mini player enter/exit) and there are no haptics on plain taps
-- [ ] Pixel 9: TalkBack on the album page reads "Now playing" on the playing track; the mini player announces "Open player"
+- [x] Pixel 9: play an album -> the mini player slides in above the nav bar with cover, title, artist; play/pause and next work from it; the list above is not hidden behind it - passed 2026-10-25
+- [x] Pixel 9: tap the mini player, and separately swipe it up -> Now Playing opens, the cover flies from the pill into the large cover; swipe down, the close button and Back each return to the mini player with the cover flying back - passed 2026-10-25
+- [x] Pixel 9: Now Playing colors follow the cover (try 3 albums with very different covers); changing track to another album blends the colors, no snap; an album without cover stays Iris - passed 2026-10-25
+- [x] Pixel 9 on Wi-Fi: the seek bar moves smoothly, dragging it seeks; on mobile data (transcode) it is disabled - passed 2026-10-25 (Wi-Fi part)
+- [x] Pixel 9: on the album page the playing track shows the equalizer icon and a colored title; it moves to the next track when the player advances - passed 2026-10-25
+- [x] Pixel 9: motion feels right (no jank opening/closing Now Playing, mini player enter/exit) and there are no haptics on plain taps - passed 2026-10-25
+- [x] Pixel 9: TalkBack on the album page reads "Now playing" on the playing track; the mini player announces "Open player" - passed 2026-10-25
 
 ## #14 Queue: view, reorder, remove, persistence and restore
-- [ ] Pixel 9: play an album, seek into track 3, then reboot the phone -> open the app: the mini player shows track 3 paused; Play continues at about the same position; the queue screen lists the whole album
-- [ ] Pixel 9: play an album, wait 15 s, `adb shell am force-stop io.github.kentprodan.mediatheq` -> reopen: same queue, same track, paused, position at most ~10 s behind
-- [ ] Pixel 9: Now Playing -> queue button -> drag a track by its handle up and down (also past the screen edge so the list scrolls) -> a light tick on pick-up and each swap, the order changes and the player plays in the new order; no jumps or flicker
-- [ ] Pixel 9: swipe a queue entry left and right -> it is removed; removing the playing entry continues with the next; Back closes the queue, a second Back closes the player
-- [ ] Pixel 9: album track menu -> Play next / Add to queue, album top bar menu -> Play next (whole album), Songs tab menu -> Add to queue -> the queue screen shows them in the right places; with nothing playing, Play next starts playback
-- [ ] Pixel 9: album started with Shuffle -> the queue shows the shuffled order without drag handles; Play next on a track plays right after the current one
-- [ ] Pixel 9: TalkBack on the queue: rows read "Now playing" for the current one and offer Move up / Move down / Remove from queue actions
+- [x] Pixel 9: play an album, seek into track 3, then reboot the phone -> open the app: the mini player shows track 3 paused; Play continues at about the same position; the queue screen lists the whole album - passed 2026-10-25
+- [x] Pixel 9: play an album, wait 15 s, `adb shell am force-stop io.github.kentprodan.mediatheq` -> reopen: same queue, same track, paused, position at most ~10 s behind - passed 2026-10-25
+- [x] Pixel 9: Now Playing -> queue button -> drag a track by its handle up and down (also past the screen edge so the list scrolls) -> a light tick on pick-up and each swap, the order changes and the player plays in the new order; no jumps or flicker - passed 2026-10-25
+- [x] Pixel 9: swipe a queue entry left and right -> it is removed; removing the playing entry continues with the next; Back closes the queue, a second Back closes the player - passed 2026-10-25
+- [x] Pixel 9: album track menu -> Play next / Add to queue, album top bar menu -> Play next (whole album), Songs tab menu -> Add to queue -> the queue screen shows them in the right places; with nothing playing, Play next starts playback - passed 2026-10-25
+- [x] Pixel 9: album started with Shuffle -> the queue shows the shuffled order without drag handles; Play next on a track plays right after the current one - passed 2026-10-25
+- [x] Pixel 9: TalkBack on the queue: rows read "Now playing" for the current one and offer Move up / Move down / Remove from queue actions - passed 2026-10-25
 
 ## #16 Playlist screen and editing
 - [ ] Pixel 9: open an album with 300+ tracks (or the largest album) -> top bar menu -> Add to playlist -> pick a playlist -> the dialog closes, the playlist shows all tracks in album order (count matches), no error; the server's playlist (Jellyfin web) has the same count
@@ -93,14 +93,14 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: motion feels right (keyboard and results, no jank while typing) and there are no haptics on plain taps; TalkBack reads the clear-text button label
 
 ## #18 Favorites, ratings and live updates via WebSocket
-- [ ] Pixel 9: app open on an album page -> in Jellyfin web mark that album and one of its tracks as favorite -> within a few seconds the album heart fills and the track menu says "Remove from favorites"
-- [ ] Pixel 9: play a track, tap the heart and give it 4 stars in Now Playing, let it play to the end (or skip) -> in Jellyfin web (or `GET /UserItems/{id}/UserData`) the track is still a favorite with Rating 8 (R2)
+- [x] Pixel 9: app open on an album page -> in Jellyfin web mark that album and one of its tracks as favorite -> within a few seconds the album heart fills and the track menu says "Remove from favorites" - passed 2026-10-25
+- [x] Pixel 9: play a track, tap the heart and give it 4 stars in Now Playing, let it play to the end (or skip) -> in Jellyfin web (or `GET /UserItems/{id}/UserData`) the track is still a favorite with Rating 8 (R2) - passed 2026-10-25
 - [ ] Pixel 9 + server: rate a track 3 stars, then tap the 3rd star again -> the stars clear in the app; the server's user data shows Rating 0 or none, and Jellyfin web shows it unrated (R14 confirmation)
-- [ ] Pixel 9: airplane mode, tap the heart on an album -> it fills, then goes back with "Could not save that change"; same with Now Playing open (message shows over the player)
-- [ ] Pixel 9: app open, restart the Jellyfin server -> after it is back, a favorite set in Jellyfin web still reaches the app within a few seconds (reconnect)
-- [ ] Pixel 9: press Home with nothing playing, wait 1 min, change a favorite in Jellyfin web -> it is not live (socket closed); open the app again -> socket reconnects; with music playing in the background the change shows live
-- [ ] Pixel 9 + server: add an album in Jellyfin (library scan) while the app is open -> it appears in Library within about 30 s without pull-to-refresh
-- [ ] Pixel 9: heart toggle gives a toggle haptic and morphs round -> squarish; stars give no haptic; TalkBack reads "Favorite, on/off", "Rate 3 stars", "Clear rating" and the rating state "3 of 5 stars"
+- [x] Pixel 9: airplane mode, tap the heart on an album -> it fills, then goes back with "Could not save that change"; same with Now Playing open (message shows over the player) - passed 2026-10-25 (owner wants offline changes kept, see #56)
+- [x] Pixel 9: app open, restart the Jellyfin server -> after it is back, a favorite set in Jellyfin web still reaches the app within a few seconds (reconnect) - passed 2026-10-25
+- [x] Pixel 9: press Home with nothing playing, wait 1 min, change a favorite in Jellyfin web -> it is not live (socket closed); open the app again -> socket reconnects; with music playing in the background the change shows live - passed 2026-10-25
+- [x] Pixel 9 + server: add an album in Jellyfin (library scan) while the app is open -> it appears in Library within about 30 s without pull-to-refresh - passed 2026-10-25
+- [x] Pixel 9: heart toggle gives a toggle haptic and morphs round -> squarish; stars give no haptic; TalkBack reads "Favorite, on/off", "Rate 3 stars", "Clear rating" and the rating state "3 of 5 stars" - passed 2026-10-25
 ## #20 Downloads and offline mode
 - [ ] Pixel 9: on Wi-Fi, album menu -> Download -> the Downloads tab shows the album's tracks with progress, then done, and the storage line grows; turn on airplane mode -> Home/Library/Search show "You are offline"; Downloads -> tap the first track -> the whole downloaded album plays through, seeking works, no errors
 - [ ] Pixel 9: in airplane mode, play a track that is not downloaded (e.g. from the restored queue) -> it fails at once with no long spinner, and the downloaded tracks still play
