@@ -56,6 +56,7 @@ internal fun Track.toMediaItem(
                     Bundle().apply {
                         putQueueExtras(entryId, artwork)
                         putGains(this@toMediaItem)
+                        putOutputFormat(this@toMediaItem)
                     },
                 ).setIsPlayable(true)
                 .setIsBrowsable(false)
@@ -89,6 +90,8 @@ private const val EXTRA_ARTWORK_TAG = "io.github.kentprodan.mediatheq.ARTWORK_TA
 private const val EXTRA_ARTWORK_BLUR_HASH = "io.github.kentprodan.mediatheq.ARTWORK_BLUR_HASH"
 private const val EXTRA_ALBUM_GAIN = "io.github.kentprodan.mediatheq.ALBUM_GAIN"
 private const val EXTRA_TRACK_GAIN = "io.github.kentprodan.mediatheq.TRACK_GAIN"
+private const val EXTRA_SAMPLE_RATE = "io.github.kentprodan.mediatheq.SAMPLE_RATE"
+private const val EXTRA_CHANNELS = "io.github.kentprodan.mediatheq.CHANNELS"
 
 /** The normalization gains (dB) a queue item carries, so the service sets its volume without a lookup. */
 internal data class ItemGains(
@@ -106,6 +109,23 @@ internal fun MediaItem.gains(): ItemGains {
 
     fun gain(key: String) = if (extras.containsKey(key)) extras.getDouble(key) else null
     return ItemGains(gain(EXTRA_ALBUM_GAIN), gain(EXTRA_TRACK_GAIN))
+}
+
+private fun Bundle.putOutputFormat(track: Track) {
+    track.audioFormat?.sampleRateHz?.let { putInt(EXTRA_SAMPLE_RATE, it) }
+    track.audioFormat?.channels?.let { putInt(EXTRA_CHANNELS, it) }
+}
+
+/**
+ * The PCM format this item reaches the sink in, from the file's metadata (for bit-perfect USB); `null` when unknown.
+ * shortcut: a transcoded stream (metered network) has another format, so its mixer attribute will not match and it
+ * plays normally; read the decoder's format if bit-perfect on mobile data is ever wanted.
+ */
+internal fun MediaItem.outputFormat(): PcmFormat? {
+    val extras = mediaMetadata.extras ?: return null
+
+    fun int(key: String) = if (extras.containsKey(key)) extras.getInt(key) else null
+    return MixerAttributeSelector.outputFormat(int(EXTRA_SAMPLE_RATE), int(EXTRA_CHANNELS))
 }
 
 private fun Bundle.putQueueExtras(

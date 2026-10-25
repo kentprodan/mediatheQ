@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import android.app.PendingIntent
+import android.media.AudioManager
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -22,6 +23,7 @@ import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
+import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
@@ -67,6 +69,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var networkMonitor: NetworkMonitor
 
+    @Inject lateinit var audioPreferences: AudioPreferencesRepository
+
     @Inject
     @StreamingCache
     lateinit var streamingCache: Cache
@@ -82,6 +86,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var persistJob: Job? = null
     private lateinit var prefetcher: Prefetcher
     private var prefetchJob: Job? = null
+    private lateinit var usbAudio: UsbAudioPort
+    private lateinit var audioOutput: AudioOutputController
+    private var audioSettingsJob: Job? = null
 
     @Inject
     @IoDispatcher
@@ -115,14 +122,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         ),
                     ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
                 ).build()
-        // shortcut: default settings until the Settings screen exists (#25); then re-apply the mode when they change.
-        val audioSettings = AudioSettings()
-        player.applyOffload(AudioPolicy.offload(audioSettings, AudioRoute.Other))
-        player.addListener(
-            NormalizationListener(player, { audioSettings }) {
-                AudioPolicy.decide(audioSettings, AudioRoute.Other, bitPerfectFormat = false)
-            },
-        )
+        startAudioOutput(player)
         reporter =
             PlaybackReporter(
                 repository = playbackRepository,
@@ -189,6 +189,53 @@ class MediatheqPlaybackService : MediaLibraryService() {
             }
     }
 
+    /**
+     * Offload, bit-perfect USB and normalization follow the settings, the output device and the playing track (media3
+     * skill, sections 5-7).
+     */
+    private fun startAudioOutput(player: ExoPlayer) {
+        // shortcut: normalization keeps its default until the Settings screen exists (#25).
+        var settings = AudioSettings()
+        var offload: Boolean? = null
+        lateinit var normalization: NormalizationListener
+        usbAudio = UsbAudioPort.create(getSystemService(AudioManager::class.java))
+        audioOutput =
+            AudioOutputController(
+                port = usbAudio,
+                currentFormat = {
+                    val stopped =
+                        player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED
+                    if (stopped) null else player.currentMediaItem?.outputFormat()
+                },
+            ) { state ->
+                if (state.offload != offload) player.applyOffload(state.offload).also { offload = state.offload }
+                normalization.apply()
+            }
+        normalization = NormalizationListener(player, { settings }) { audioOutput.state.mode }
+        player.addListener(normalization)
+        player.applyOffload(audioOutput.state.offload).also { offload = audioOutput.state.offload }
+        player.addListener(
+            object : Player.Listener {
+                override fun onEvents(
+                    player: Player,
+                    events: Player.Events,
+                ) {
+                    if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_PLAYBACK_STATE_CHANGED)) {
+                        audioOutput.refresh()
+                    }
+                }
+            },
+        )
+        usbAudio.watch(audioOutput::refresh)
+        audioSettingsJob =
+            applicationScope.launch(Dispatchers.Main) {
+                audioPreferences.preferences.collect {
+                    settings = settings.copy(equalizerOn = it.equalizerOn, bitPerfectUsb = it.bitPerfectUsb)
+                    audioOutput.setSettings(settings)
+                }
+            }
+    }
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 
     /** Stops with the task only when nothing is playing; otherwise music keeps going (with its notification). */
@@ -206,6 +253,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
         persistJob?.cancel()
         prefetchJob?.cancel()
         prefetcher.stop()
+        audioSettingsJob?.cancel()
+        audioOutput.release()
+        usbAudio.release()
         session?.run {
             persistence.saveNow()
             reporter.ended(player.currentPosition.milliseconds)
