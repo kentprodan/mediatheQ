@@ -1,6 +1,6 @@
 # 0016. Opus in Ogg for streaming on metered networks
 
-- Status: Accepted
+- Status: Superseded by 0019
 - Date: 2026-10-19
 
 ## Context

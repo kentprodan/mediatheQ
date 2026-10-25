@@ -55,6 +55,9 @@ class ChooseStreamSourceTest {
 
             assertThat(choose())
                 .isEqualTo(StreamSource.Hls(resolver.current(itemId)!!.url, mapOf("Authorization" to "fake")))
+            // Reports find this stream, with its play session (PlaybackReporter asks the resolver).
+            assertThat(resolver.current(itemId)?.playSessionId).isEqualTo("session-t1")
+            assertThat(resolver.current(itemId)?.canSeek).isTrue()
         }
 
     @Test
