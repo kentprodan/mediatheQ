@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <!-- Multichannel as a speaker layout: left, center and right in front, two surrounds behind; 20 wide. -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M2,7.5a2.75,2.75 0,1 0,5.5 0a2.75,2.75 0,1 0,-5.5 0z
+          M9.25,6.5a2.75,2.75 0,1 0,5.5 0a2.75,2.75 0,1 0,-5.5 0z
+          M16.5,7.5a2.75,2.75 0,1 0,5.5 0a2.75,2.75 0,1 0,-5.5 0z
+          M4.75,16.5a2.75,2.75 0,1 0,5.5 0a2.75,2.75 0,1 0,-5.5 0z
+          M13.75,16.5a2.75,2.75 0,1 0,5.5 0a2.75,2.75 0,1 0,-5.5 0z" />
+</vector>

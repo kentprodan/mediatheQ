@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <!-- The Dolby double-D mark (Dolby Laboratories trademark), without the wordmark: 20 wide, centered. -->
+  <group
+      android:scaleX="3.6212"
+      android:scaleY="3.6212"
+      android:translateX="-5.2423"
+      android:translateY="-25.052">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M2.573,8.291H2v3.882h0.573a1.941,1.941 0,1 0,0 -3.882z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M7.523,12.173V8.291h-0.572a1.941,1.941 0,1 0,0 3.882z" />
+  </group>
+</vector>

@@ -70,6 +70,21 @@ object MqIcons {
     val Lyrics: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_lyrics)
 
+    // Audio format badges: drawn for mediatheQ (dots, 20 wide like the Dolby mark), not Material Symbols. The Dolby
+    // double-D is a Dolby Laboratories trademark (THIRD_PARTY.md).
+
+    val FormatDolbyAtmos: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_format_dolby_atmos)
+
+    val FormatSurround: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_format_surround)
+
+    val FormatStereo: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_format_stereo)
+
+    val FormatMono: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_format_mono)
+
     val PlayArrow: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_play_arrow)
 
