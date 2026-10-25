@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import android.content.Context
+import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -55,6 +56,14 @@ class AudioOutputTest {
 
         player.seekToNextMediaItem()
         assertThat(player.volume).isEqualTo(1f)
+    }
+
+    @Test
+    fun `controllers may not set the player volume, which carries the gain`() {
+        val commands = withoutPlayerVolume(player.availableCommands)
+
+        assertThat(commands.contains(Player.COMMAND_SET_VOLUME)).isFalse()
+        assertThat(commands.contains(Player.COMMAND_PLAY_PAUSE)).isTrue()
     }
 
     @Test

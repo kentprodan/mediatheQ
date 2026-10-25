@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.model.DeviceProfile
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
+import java.util.concurrent.CopyOnWriteArrayList
 
 /** [PlaybackRepository] that records what is asked and reported. */
 class FakePlaybackRepository : PlaybackRepository {
@@ -16,7 +17,9 @@ class FakePlaybackRepository : PlaybackRepository {
 
     /** The file size the server reports for its streams. */
     var sizeBytes: Long? = null
-    val streamRequests = mutableListOf<Pair<MediaId, DeviceProfile>>()
+
+    // Thread-safe: the prefetcher asks from an IO thread while tests read on the main thread.
+    val streamRequests: MutableList<Pair<MediaId, DeviceProfile>> = CopyOnWriteArrayList()
 
     /** "start t1 @12s paused", "progress ...", "stopped ... failed" in call order. */
     val reports = mutableListOf<String>()

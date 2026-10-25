@@ -4,7 +4,6 @@ import android.app.PendingIntent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSourceBitmapLoader
 import androidx.media3.datasource.cache.Cache
@@ -184,6 +183,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         signOutWatch?.cancel()
         persistJob?.cancel()
         prefetchJob?.cancel()
+        prefetcher.stop()
         session?.run {
             persistence.saveNow()
             reporter.ended(player.currentPosition.milliseconds)
@@ -208,14 +208,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
             if (controller.packageName == packageName || controller.isTrusted ||
                 session.isMediaNotificationController(controller)
             ) {
-                // The player volume carries the normalization gain; controllers change the device volume instead.
                 val accepted = super.onConnect(session, controller)
                 MediaSession.ConnectionResult.accept(
                     accepted.availableSessionCommands,
-                    accepted.availablePlayerCommands
-                        .buildUpon()
-                        .remove(Player.COMMAND_SET_VOLUME)
-                        .build(),
+                    withoutPlayerVolume(accepted.availablePlayerCommands),
                 )
             } else {
                 MediaSession.ConnectionResult.reject()

@@ -19,10 +19,13 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.io.InterruptedIOException
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Caches the next tracks in play order while the current one plays (media3 skill, section 9; ADR 0018): two on an
@@ -40,16 +43,26 @@ internal class Prefetcher(
     private val upstream: DataSource.Factory,
     private val network: NetworkMonitor,
 ) : Player.Listener {
-    private var job: Job? = null
+    @Volatile private var job: Job? = null
     private var targets: List<MediaId> = emptyList()
 
-    /** The track being written right now, so the player can take it over ([cancel]). */
-    @Volatile private var writing: MediaId? = null
+    /** The track being written right now and the job writing it, so the player can take it over ([cancel]). */
+    @Volatile private var writing: Pair<MediaId, Job>? = null
+
+    /** Tracks the player started loading itself since the last transition: never fetched a second time. */
+    private val taken = ConcurrentHashMap.newKeySet<MediaId>()
 
     fun start(): Job {
         player.addListener(this)
-        // Coming online or onto Wi-Fi is a reason to look again; the first value is the current state.
+        // Coming back online is a reason to look again; the first value is the current state.
+        // shortcut: a move from cellular to Wi-Fi is noticed at the next player event, not at once.
         return scope.launch { network.online.drop(1).collect { restart() } }
+    }
+
+    /** Stops for good (service destroyed): no download goes on without a player. */
+    fun stop() {
+        player.removeListener(this)
+        job?.cancel()
     }
 
     override fun onEvents(
@@ -65,6 +78,8 @@ internal class Prefetcher(
                 Player.EVENT_REPEAT_MODE_CHANGED,
             )
         ) {
+            // The player's own loads before a transition (the next track, for gapless) are now behind it.
+            if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) taken.clear()
             restart()
         }
     }
@@ -74,7 +89,8 @@ internal class Prefetcher(
      * (Media3 lets the second one read from the server without caching). Safe from the loader thread.
      */
     fun cancel(itemId: MediaId) {
-        if (writing == itemId) job?.cancel()
+        taken += itemId
+        writing?.let { (id, writer) -> if (id == itemId) writer.cancel() }
     }
 
     private fun restart() {
@@ -102,7 +118,7 @@ internal class Prefetcher(
             if (index == C.INDEX_UNSET) return result
             val item = player.getMediaItemAt(index)
             val id = runCatching { MediaId.parse(item.mediaId) }.getOrNull()
-            if (id != null && item.mediaId != current && id !in result) result += id
+            if (id != null && item.mediaId != current && id !in result && id !in taken) result += id
         }
         return result
     }
@@ -124,16 +140,22 @@ internal class Prefetcher(
                     .setFlags(DataSpec.FLAG_DONT_CACHE_IF_LENGTH_UNKNOWN)
                     .build()
             val writer = CacheWriter(CacheDataSource(cache, upstream.createDataSource()), spec, null, null)
-            writing = itemId
+            val mine = itemId to coroutineContext.job
+            writing = mine
             try {
+                // The player may have opened it while the stream was being resolved.
+                if (itemId in taken) return@withContext
                 // CacheWriter blocks; cancelling the job interrupts it.
                 runInterruptible { writer.cache() }
+            } catch (_: InterruptedIOException) {
+                // Cancelled mid-transfer (pause, skip, the player taking over): nothing to report.
             } catch (e: IOException) {
                 // The player loads the track itself later; nothing is lost.
                 Log.w(TAG, "Prefetch of $itemId failed", e)
             } finally {
                 writer.cancel()
-                writing = null
+                // A newer prefetch may already be writing; its entry stays.
+                if (writing === mine) writing = null
             }
         }
 

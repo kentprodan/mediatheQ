@@ -39,3 +39,8 @@ internal class NormalizationListener(
         player.volume = AudioPolicy.volume(mediaItem?.gains() ?: ItemGains(null, null), settings().normalization)
     }
 }
+
+/** [commands] without setting the player volume, which carries the normalization gain (controllers use the device's). */
+@UnstableApi
+internal fun withoutPlayerVolume(commands: Player.Commands): Player.Commands =
+    commands.buildUpon().remove(Player.COMMAND_SET_VOLUME).build()

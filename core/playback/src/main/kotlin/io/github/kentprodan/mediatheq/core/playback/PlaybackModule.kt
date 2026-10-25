@@ -36,6 +36,8 @@ internal object PlaybackCachesModule {
     /**
      * In cacheDir: the system may clear it under storage pressure, which only costs fetching the files again. The
      * Media3 database is the one `:core:download` provides (one index for both caches, no module edge).
+     * shortcut: the constructor reads the cache index on the injecting thread (the service's main thread), like the
+     * download cache; inject it lazily off the main thread if service start ever stutters.
      */
     @Provides
     @Singleton

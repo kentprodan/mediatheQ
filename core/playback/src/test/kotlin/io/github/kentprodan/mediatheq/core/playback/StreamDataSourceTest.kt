@@ -113,6 +113,8 @@ class StreamDataSourceTest {
         assertThat(play()).hasLength(10)
         assertThat(requests).hasSize(1)
         assertThat(repository.streamRequests).hasSize(1)
+        // Reported as a direct play of its own session, not the server stream of the first play.
+        assertThat(resolver.current(itemId)?.url).isEmpty()
     }
 
     @Test

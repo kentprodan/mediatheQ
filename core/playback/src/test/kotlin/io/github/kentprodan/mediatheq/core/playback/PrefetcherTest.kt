@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import android.content.Context
 import android.net.Uri
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.BaseDataSource
@@ -36,6 +37,7 @@ import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.io.InterruptedIOException
 import java.nio.file.Files
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -172,45 +174,64 @@ class PrefetcherTest {
         assertThat(requested()).isEmpty()
     }
 
-    @Test
-    fun `the player opening a track stops its prefetch`() {
-        val opened = CountDownLatch(1)
-        val interrupted = CountDownLatch(1)
-        // A server that never answers until the prefetch is stopped.
-        val stalled =
-            DataSource.Factory {
-                object : BaseDataSource(true) {
-                    override fun open(dataSpec: DataSpec): Long {
-                        opened.countDown()
-                        try {
-                            Thread.sleep(60_000)
-                        } catch (e: InterruptedException) {
-                            interrupted.countDown()
-                            throw java.io.InterruptedIOException()
-                        }
-                        return 0
+    private val opened = CountDownLatch(1)
+    private val interrupted = CountDownLatch(1)
+
+    /** A server that never answers until the prefetch is stopped. */
+    private val stalled =
+        DataSource.Factory {
+            object : BaseDataSource(true) {
+                override fun open(dataSpec: DataSpec): Long {
+                    opened.countDown()
+                    try {
+                        Thread.sleep(60_000)
+                    } catch (e: InterruptedException) {
+                        interrupted.countDown()
+                        throw InterruptedIOException()
                     }
-
-                    override fun read(
-                        buffer: ByteArray,
-                        offset: Int,
-                        length: Int,
-                    ) = 0
-
-                    override fun getUri(): Uri? = null
-
-                    override fun close() = Unit
+                    return 0
                 }
+
+                override fun read(
+                    buffer: ByteArray,
+                    offset: Int,
+                    length: Int,
+                ) = 0
+
+                override fun getUri(): Uri? = null
+
+                override fun close() = Unit
             }
+        }
+
+    private fun startStalled(): Prefetcher {
         val prefetcher = prefetcher(stalled)
-        player.setMediaItems(items(1, 2, 3))
+        player.setMediaItems(items(1, 2, 3, 4))
         player.prepare()
         player.play()
         TestPlayerRunHelper.run(player).untilPendingCommandsAreFullyHandled()
         assertThat(opened.await(5, TimeUnit.SECONDS)).isTrue()
+        return prefetcher
+    }
+
+    @Test
+    fun `the player opening a track stops its prefetch`() {
+        val prefetcher = startStalled()
 
         prefetcher.cancel(id(2))
 
         assertThat(interrupted.await(5, TimeUnit.SECONDS)).isTrue()
+    }
+
+    @Test
+    fun `a track the player took over is not prefetched again before the transition`() {
+        val prefetcher = startStalled()
+        prefetcher.cancel(id(2))
+
+        // Any event (here a repeat mode change) looks for tracks to prefetch again.
+        player.repeatMode = Player.REPEAT_MODE_ALL
+        RobolectricUtil.runMainLooperUntil { "t3" in requested() }
+
+        assertThat(requested().count { it == "t2" }).isEqualTo(1)
     }
 }
