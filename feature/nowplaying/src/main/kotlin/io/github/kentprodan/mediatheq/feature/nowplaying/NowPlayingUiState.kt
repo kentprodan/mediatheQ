@@ -1,8 +1,10 @@
 package io.github.kentprodan.mediatheq.feature.nowplaying
 
+import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import kotlin.time.Duration
 
@@ -38,6 +40,23 @@ data class AudioUiState(
     val output: AudioOutputInfo = AudioOutputInfo(),
 )
 
+/** What the Lyrics screen shows for the playing track. */
+sealed interface LyricsUiState {
+    data object Loading : LyricsUiState
+
+    /** Synced or plain: see [Lyrics.isSynced]. */
+    data class Content(
+        val lyrics: Lyrics,
+    ) : LyricsUiState
+
+    /** The track has no lyrics. */
+    data object None : LyricsUiState
+
+    data class Error(
+        val error: MqError,
+    ) : LyricsUiState
+}
+
 sealed interface NowPlayingAction {
     data object TogglePlayPause : NowPlayingAction
 
@@ -49,6 +68,14 @@ sealed interface NowPlayingAction {
     data class SeekTo(
         val fraction: Float,
     ) : NowPlayingAction
+
+    /** Seek to [position] of the current track (a tapped lyrics line). */
+    data class SeekToTime(
+        val position: Duration,
+    ) : NowPlayingAction
+
+    /** Ask for the playing track's lyrics again after an error. */
+    data object RetryLyrics : NowPlayingAction
 
     data class SkipToQueueItem(
         val entryId: String,

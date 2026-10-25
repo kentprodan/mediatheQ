@@ -1,10 +1,14 @@
 package io.github.kentprodan.mediatheq.feature.nowplaying
 
+import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.LyricLine
+import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -15,9 +19,11 @@ import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLyricsRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -33,6 +39,7 @@ class NowPlayingViewModelTest {
     private val library = FakeLibraryRepository()
     private val userData = FakeUserDataRepository()
     private val audioPreferences = FakeAudioPreferencesRepository()
+    private val lyrics = FakeLyricsRepository()
     private val artwork = Artwork("al1", "tag")
     private val playing =
         PlayerUiModel(
@@ -53,7 +60,7 @@ class NowPlayingViewModelTest {
     @Test
     fun `nothing queued hides the player`() =
         runTest {
-            NowPlayingViewModel(playback, library, userData, audioPreferences).uiState.test {
+            NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics).uiState.test {
                 assertThat(awaitItem()).isEqualTo(NowPlayingUiState.Hidden)
             }
         }
@@ -61,7 +68,7 @@ class NowPlayingViewModelTest {
     @Test
     fun `the queue entry shows with its cover and controls, and follows pause`() =
         runTest {
-            val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences)
+            val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)
             viewModel.uiState.test {
                 assertThat(awaitItem()).isEqualTo(NowPlayingUiState.Hidden)
 
@@ -90,7 +97,7 @@ class NowPlayingViewModelTest {
 
     @Test
     fun `transport actions reach the player`() {
-        val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences)
+        val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)
 
         viewModel.onAction(NowPlayingAction.TogglePlayPause)
         viewModel.onAction(NowPlayingAction.Next)
@@ -102,7 +109,7 @@ class NowPlayingViewModelTest {
     @Test
     fun `seeking turns the fraction into a position in the current track`() {
         playback.state.value = playing
-        val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences)
+        val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)
 
         viewModel.onAction(NowPlayingAction.SeekTo(0.25f))
         viewModel.onAction(NowPlayingAction.SeekTo(1.5f))
@@ -115,7 +122,7 @@ class NowPlayingViewModelTest {
         runTest {
             playback.state.value = playing.copy(currentEntryId = "e2", shuffle = true)
 
-            NowPlayingViewModel(playback, library, userData, audioPreferences).uiState.test {
+            NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics).uiState.test {
                 val state = awaitItem() as NowPlayingUiState.Playing
                 assertThat(state.currentEntryId).isEqualTo("e2")
                 assertThat(state.shuffle).isTrue()
@@ -127,12 +134,14 @@ class NowPlayingViewModelTest {
         val queue = listOf(QueueItem("e1", MediaId(ServerId("s"), "t1"), "Strobe", "deadmau5"))
         playback.queue.value = queue
 
-        assertThat(NowPlayingViewModel(playback, library, userData, audioPreferences).queue.value).isEqualTo(queue)
+        assertThat(
+            NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics).queue.value,
+        ).isEqualTo(queue)
     }
 
     @Test
     fun `queue actions reach the player by entry`() {
-        val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences)
+        val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)
 
         viewModel.onAction(NowPlayingAction.SkipToQueueItem("e1"))
         viewModel.onAction(NowPlayingAction.RemoveQueueItem("e2"))
@@ -145,7 +154,13 @@ class NowPlayingViewModelTest {
     fun `seeking without a known duration does nothing`() {
         playback.state.value = playing.copy(duration = Duration.ZERO)
 
-        NowPlayingViewModel(playback, library, userData, audioPreferences).onAction(NowPlayingAction.SeekTo(0.5f))
+        NowPlayingViewModel(
+            playback,
+            library,
+            userData,
+            audioPreferences,
+            lyrics,
+        ).onAction(NowPlayingAction.SeekTo(0.5f))
 
         assertThat(playback.commands).isEmpty()
     }
@@ -158,7 +173,7 @@ class NowPlayingViewModelTest {
             library.tracks.value = listOf(track.copy(userData = UserData(isFavorite = true, rating = 8.0)))
             playback.state.value = playing
 
-            NowPlayingViewModel(playback, library, userData, audioPreferences).uiState.test {
+            NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics).uiState.test {
                 val state = awaitItem() as NowPlayingUiState.Playing
                 assertThat(state.isFavorite).isTrue()
                 assertThat(state.stars).isEqualTo(4)
@@ -175,7 +190,7 @@ class NowPlayingViewModelTest {
         runTest {
             playback.state.value = playing
 
-            NowPlayingViewModel(playback, library, userData, audioPreferences).uiState.test {
+            NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics).uiState.test {
                 val state = awaitItem() as NowPlayingUiState.Playing
                 assertThat(state.isFavorite).isFalse()
                 assertThat(state.stars).isNull()
@@ -186,7 +201,7 @@ class NowPlayingViewModelTest {
     fun `favorite and rating change the playing track`() =
         runTest {
             playback.state.value = playing
-            val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences)
+            val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)
 
             viewModel.onAction(NowPlayingAction.SetFavorite(true))
             viewModel.onAction(NowPlayingAction.Rate(3))
@@ -197,7 +212,7 @@ class NowPlayingViewModelTest {
 
     @Test
     fun `with nothing playing, favorite and rating do nothing`() {
-        val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences)
+        val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)
 
         viewModel.onAction(NowPlayingAction.SetFavorite(true))
         viewModel.onAction(NowPlayingAction.Rate(3))
@@ -208,7 +223,7 @@ class NowPlayingViewModelTest {
     @Test
     fun `bit-perfect output shows its sample rate on the player`() =
         runTest {
-            val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences)
+            val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)
             playback.state.value = playing.copy(output = AudioOutputInfo(bitPerfectSampleRateHz = 96_000))
 
             viewModel.uiState.test {
@@ -219,7 +234,7 @@ class NowPlayingViewModelTest {
     @Test
     fun `the audio screen shows the settings and the output`() =
         runTest {
-            val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences)
+            val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)
             viewModel.audio.test {
                 assertThat(awaitItem()).isEqualTo(AudioUiState())
 
@@ -232,7 +247,7 @@ class NowPlayingViewModelTest {
     @Test
     fun `audio actions change the audio settings`() =
         runTest {
-            val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences)
+            val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)
 
             viewModel.onAction(NowPlayingAction.SetBitPerfectUsb(true))
             viewModel.onAction(NowPlayingAction.SetEqualizerOn(true))
@@ -249,4 +264,115 @@ class NowPlayingViewModelTest {
                     ),
                 )
         }
+
+    private val syncedLyrics = Lyrics(listOf(LyricLine("one", 1.seconds), LyricLine("two", 4.seconds)))
+
+    private suspend fun ReceiveTurbine<LyricsUiState>.awaitLoaded(): LyricsUiState {
+        var item = awaitItem()
+        while (item == LyricsUiState.Loading) item = awaitItem()
+        return item
+    }
+
+    @Test
+    fun `lyrics show loading until the server answers`() =
+        runTest {
+            playback.state.value = playing
+            lyrics.gate = CompletableDeferred()
+            lyrics.lyrics[track.id] = syncedLyrics
+
+            NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics).lyrics.test {
+                assertThat(awaitItem()).isEqualTo(LyricsUiState.Loading)
+                lyrics.gate!!.complete(Unit)
+                assertThat(awaitItem()).isEqualTo(LyricsUiState.Content(syncedLyrics))
+            }
+        }
+
+    @Test
+    fun `plain lyrics show as content`() =
+        runTest {
+            playback.state.value = playing
+            val plain = Lyrics(listOf(LyricLine("one")))
+            lyrics.lyrics[track.id] = plain
+
+            NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics).lyrics.test {
+                assertThat(awaitLoaded()).isEqualTo(LyricsUiState.Content(plain))
+            }
+        }
+
+    @Test
+    fun `a track without lyrics shows none`() =
+        runTest {
+            playback.state.value = playing
+
+            NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics).lyrics.test {
+                assertThat(awaitLoaded()).isEqualTo(LyricsUiState.None)
+            }
+        }
+
+    @Test
+    fun `nothing playing shows no lyrics and asks nothing`() =
+        runTest {
+            NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics).lyrics.test {
+                assertThat(awaitLoaded()).isEqualTo(LyricsUiState.None)
+            }
+            assertThat(lyrics.calls).isEmpty()
+        }
+
+    @Test
+    fun `a failure shows the error and retry asks again`() =
+        runTest {
+            playback.state.value = playing
+            lyrics.failure = MqError.Network
+            lyrics.lyrics[track.id] = syncedLyrics
+            val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)
+
+            viewModel.lyrics.test {
+                assertThat(awaitLoaded()).isEqualTo(LyricsUiState.Error(MqError.Network))
+
+                lyrics.failure = null
+                viewModel.onAction(NowPlayingAction.RetryLyrics)
+                assertThat(awaitLoaded()).isEqualTo(LyricsUiState.Content(syncedLyrics))
+            }
+            assertThat(lyrics.calls).hasSize(2)
+        }
+
+    @Test
+    fun `the next track's lyrics replace the previous ones, asked once per track`() =
+        runTest {
+            playback.state.value = playing
+            val next = MediaId(ServerId("s"), "t2")
+            val nextLyrics = Lyrics(listOf(LyricLine("next")))
+            lyrics.lyrics[track.id] = syncedLyrics
+            lyrics.lyrics[next] = nextLyrics
+
+            NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics).lyrics.test {
+                assertThat(awaitLoaded()).isEqualTo(LyricsUiState.Content(syncedLyrics))
+                // Pausing is not a new track.
+                playback.state.value = playing.copy(isPlaying = false)
+                playback.state.value = playing.copy(item = playing.item!!.copy(id = next))
+                assertThat(awaitLoaded()).isEqualTo(LyricsUiState.Content(nextLyrics))
+            }
+            assertThat(lyrics.calls).containsExactly(track.id, next).inOrder()
+        }
+
+    @Test
+    fun `a tapped line seeks to its start, within the track`() {
+        playback.state.value = playing
+        val viewModel = NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)
+
+        viewModel.onAction(NowPlayingAction.SeekToTime(42.seconds))
+        viewModel.onAction(NowPlayingAction.SeekToTime(20.minutes))
+
+        assertThat(playback.commands).containsExactly("seekTo ${42.seconds}", "seekTo ${10.minutes}").inOrder()
+    }
+
+    @Test
+    fun `R12 a tapped line does not seek a stream that cannot be seeked`() {
+        playback.state.value = playing.copy(isSeekable = false)
+
+        NowPlayingViewModel(playback, library, userData, audioPreferences, lyrics)
+            .onAction(NowPlayingAction.SeekToTime(42.seconds))
+
+        assertThat(playback.commands).isEmpty()
+    }
 }
