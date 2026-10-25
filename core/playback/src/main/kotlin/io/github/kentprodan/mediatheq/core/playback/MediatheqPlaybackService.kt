@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSourceBitmapLoader
 import androidx.media3.datasource.cache.Cache
@@ -97,6 +98,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         ),
                     ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
                 ).build()
+        // shortcut: default settings until the Settings screen exists (#25); then re-apply the mode when they change.
+        val audioSettings = AudioSettings()
+        player.applyAudioMode(AudioPolicy.decide(audioSettings))
+        player.addListener(NormalizationListener(player) { audioSettings })
         reporter =
             PlaybackReporter(
                 repository = playbackRepository,
@@ -176,7 +181,15 @@ class MediatheqPlaybackService : MediaLibraryService() {
             if (controller.packageName == packageName || controller.isTrusted ||
                 session.isMediaNotificationController(controller)
             ) {
-                super.onConnect(session, controller)
+                // The player volume carries the normalization gain; controllers change the device volume instead.
+                val accepted = super.onConnect(session, controller)
+                MediaSession.ConnectionResult.accept(
+                    accepted.availableSessionCommands,
+                    accepted.availablePlayerCommands
+                        .buildUpon()
+                        .remove(Player.COMMAND_SET_VOLUME)
+                        .build(),
+                )
             } else {
                 MediaSession.ConnectionResult.reject()
             }
