@@ -1,0 +1,186 @@
+package io.github.kentprodan.mediatheq.core.download
+
+import android.app.Application
+import android.content.Intent
+import android.net.Uri
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.cache.NoOpCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
+import androidx.media3.exoplayer.offline.DefaultDownloadIndex
+import androidx.media3.exoplayer.offline.Download
+import androidx.media3.exoplayer.offline.DownloadManager
+import androidx.media3.exoplayer.offline.DownloadRequest
+import androidx.media3.exoplayer.offline.DownloadService
+import androidx.media3.test.utils.robolectric.RobolectricUtil
+import androidx.test.core.app.ApplicationProvider
+import app.cash.turbine.test
+import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.model.DownloadState
+import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
+import java.nio.file.Files
+import kotlin.time.Duration.Companion.minutes
+
+/** The repository over a real DownloadManager whose index the test fills; nothing is ever downloaded. */
+@UnstableApi
+@RunWith(RobolectricTestRunner::class)
+class DefaultDownloadRepositoryTest {
+    private val context = ApplicationProvider.getApplicationContext<Application>()
+    private val database = StandaloneDatabaseProvider(context)
+    private val index = DefaultDownloadIndex(database)
+    private val cache = SimpleCache(Files.createTempDirectory("downloads").toFile(), NoOpCacheEvictor(), database)
+    private val library = FakeLibraryRepository()
+
+    private val done = track("t1", "Album A", 2)
+    private val failed = track("t2", "Album A", 1)
+    private val waiting = track("t3", "Album B", 1)
+
+    @After
+    fun release() {
+        cache.release()
+    }
+
+    @Test
+    fun `downloads join the library tracks, in album order`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done, Download.STATE_FAILED to failed)
+
+            repository.downloads.test {
+                assertThat(expectMostRecentItem())
+                    .containsExactly(
+                        TrackDownload(failed, DownloadState.Failed),
+                        TrackDownload(done, DownloadState.Completed),
+                    ).inOrder()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a download whose track left the library keeps its title`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done)
+            library.tracks.value = emptyList()
+
+            repository.downloads.test {
+                val row = expectMostRecentItem().single()
+                assertThat(row.track.id).isEqualTo(done.id)
+                assertThat(row.track.title).isEqualTo(done.title)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `only completed downloads count as on the device`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done, Download.STATE_QUEUED to waiting)
+
+            assertThat(repository.isDownloaded(done.id)).isTrue()
+            assertThat(repository.isDownloaded(waiting.id)).isFalse()
+        }
+
+    @Test
+    fun `downloading again skips tracks finished or under way, and retries failed ones`() =
+        runTest {
+            val fresh = track("t4", "Album C", 1)
+            val repository =
+                repository(
+                    Download.STATE_COMPLETED to done,
+                    Download.STATE_FAILED to failed,
+                    Download.STATE_QUEUED to waiting,
+                )
+
+            repository.download(listOf(done, failed, waiting, fresh))
+
+            val requests = startedIntents().map { it.request() }
+            assertThat(requests.map { it.id }).containsExactly(failed.id.toString(), fresh.id.toString()).inOrder()
+            assertThat(requests.map { it.customCacheKey }).containsExactly(failed.id.toString(), fresh.id.toString())
+        }
+
+    @Test
+    fun `R5 removing a download never calls the server`() =
+        runTest {
+            // The repository has no server dependency at all; removal is one local intent to the download service.
+            val repository = repository(Download.STATE_COMPLETED to done)
+
+            repository.remove(listOf(done.id))
+
+            val intent = startedIntents().single()
+            assertThat(intent.component?.className).isEqualTo(MediatheqDownloadService::class.java.name)
+            assertThat(intent.action).isEqualTo(DownloadService.ACTION_REMOVE_DOWNLOAD)
+            assertThat(intent.getStringExtra(DownloadService.KEY_CONTENT_ID)).isEqualTo(done.id.toString())
+        }
+
+    @Test
+    fun `before the stored downloads are read, a completed download already counts as on the device`() =
+        runTest {
+            // The index read is queued but not run yet: the player started the process (e.g. offline, cold start).
+            val repository =
+                repository(Download.STATE_COMPLETED to done, dispatcher = StandardTestDispatcher(testScheduler))
+
+            assertThat(repository.isDownloaded(done.id)).isTrue()
+            assertThat(repository.isDownloaded(waiting.id)).isFalse()
+        }
+
+    private fun TestScope.repository(
+        vararg stored: Pair<Int, Track>,
+        dispatcher: CoroutineDispatcher = UnconfinedTestDispatcher(testScheduler),
+    ): DefaultDownloadRepository {
+        library.tracks.value = listOf(done, failed, waiting)
+        stored.forEach { (state, track) -> index.putDownload(download(track, state)) }
+        val manager =
+            DownloadManager(context, index) { error("nothing is downloaded in these tests") }
+                .apply { pauseDownloads() }
+        RobolectricUtil.runMainLooperUntil { manager.isInitialized }
+        return DefaultDownloadRepository(context, manager, cache, library, backgroundScope, dispatcher, dispatcher)
+    }
+
+    private fun startedIntents(): List<Intent> = generateSequence { shadowOf(context).nextStartedService }.toList()
+
+    @Suppress("DEPRECATION")
+    private fun Intent.request(): DownloadRequest = getParcelableExtra(DownloadService.KEY_DOWNLOAD_REQUEST)!!
+
+    private fun download(
+        track: Track,
+        state: Int,
+    ) = Download(
+        DownloadRequest
+            .Builder(track.id.toString(), Uri.parse("mediatheq://download"))
+            .setCustomCacheKey(track.id.toString())
+            .setData(track.title.encodeToByteArray())
+            .build(),
+        state,
+        0,
+        0,
+        0,
+        0,
+        if (state == Download.STATE_FAILED) Download.FAILURE_REASON_UNKNOWN else Download.FAILURE_REASON_NONE,
+    )
+
+    private fun track(
+        id: String,
+        album: String,
+        number: Int,
+    ) = Track(
+        id = MediaId(ServerId("server-1"), id),
+        title = "Track $id",
+        artists = emptyList(),
+        duration = 3.minutes,
+        albumId = MediaId(ServerId("server-1"), album),
+        albumTitle = album,
+        trackNumber = number,
+    )
+}

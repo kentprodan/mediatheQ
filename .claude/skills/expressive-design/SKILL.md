@@ -149,6 +149,9 @@ fun MediatheqTheme(
 | Dialogs (rename, delete confirm, new playlist) | `MqDialog` in `:core:designsystem` (wraps `BasicAlertDialog`) | Title, optional content, text buttons. Screenshot `MqDialogContent` in place: dialog windows render blank. |
 | Add to playlist (track / album menus, Library "New playlist") | `AddToPlaylistKey` dialog entry (Navigation 3 `DialogSceneStrategy`) showing `MqDialogContent`: playlist rows, "New playlist" switches to a name field | Menu item `AddToPlaylistMenuItem` in `:core:ui`. Library Playlists tab: "+" in the top bar opens it with no tracks. |
 | Pull to refresh (Library) | `PullToRefreshBox` | |
+| Downloads tab | `TopAppBar` + storage line + album section titles (`titleMedium`, heading) + `TrackRow(supportingContent = ...)` | Supporting line shows Queued / Waiting for Wi-Fi / Download failed (`error` color) or "Downloading n%" over a `LinearWavyProgressIndicator` (indeterminate without a size). Row menu: queue items, Download again (failed), Remove download. |
+| Download (album, playlist, track menus) | `DownloadMenuItem` / `RemoveDownloadMenuItem` in `:core:ui` | Remove only in the Downloads tab. Header toggle later (after #48). |
+| Offline state (tabs other than Downloads) | `MqEmptyState` in `AppShell` (cloud-off icon, "Open Downloads" action) | Replaces the tab's content while offline; its back stack stays. |
 
 If an element is not in this table, pick the closest M3 component, then add a row here in the same PR.
 

@@ -56,4 +56,9 @@ sealed interface AlbumAction {
     data class AddToQueue(
         val trackId: MediaId? = null,
     ) : AlbumAction
+
+    /** Download one track, or the whole album when [trackId] is `null`. */
+    data class Download(
+        val trackId: MediaId? = null,
+    ) : AlbumAction
 }

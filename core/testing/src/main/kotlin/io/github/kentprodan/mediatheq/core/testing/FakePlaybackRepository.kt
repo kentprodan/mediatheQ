@@ -4,11 +4,15 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.model.DeviceProfile
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 
 /** [PlaybackRepository] that records what is asked and reported. */
 class FakePlaybackRepository : PlaybackRepository {
     var failure: MqResult.Failure? = null
+
+    /** How the server delivers the streams it gives. */
+    var playMethod = PlayMethod.DirectPlay
     val streamRequests = mutableListOf<Pair<MediaId, DeviceProfile>>()
 
     /** "start t1 @12s paused", "progress ...", "stopped ... failed" in call order. */
@@ -17,7 +21,11 @@ class FakePlaybackRepository : PlaybackRepository {
     override suspend fun stream(
         itemId: MediaId,
         profile: DeviceProfile,
-    ) = failure ?: MqResult.Success(FakePlaybackSource.fakeStream(itemId)).also { streamRequests += itemId to profile }
+    ) = failure
+        ?: MqResult.Success(FakePlaybackSource.fakeStream(itemId).copy(playMethod = playMethod)).also {
+            streamRequests +=
+                itemId to profile
+        }
 
     override suspend fun streamHeaders() = mapOf("Authorization" to "fake")
 

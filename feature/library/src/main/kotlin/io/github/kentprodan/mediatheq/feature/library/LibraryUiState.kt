@@ -86,6 +86,10 @@ sealed interface LibraryAction {
         val track: Track,
     ) : LibraryAction
 
+    data class Download(
+        val track: Track,
+    ) : LibraryAction
+
     /** Queue the song at the end. */
     data class AddToQueue(
         val track: Track,

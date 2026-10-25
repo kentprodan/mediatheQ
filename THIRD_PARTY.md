@@ -4,4 +4,4 @@ Code or assets copied into this repository from other projects (ADR 0001). Libra
 
 | What | Where | Source | License |
 |---|---|---|---|
-| Material Symbols (Rounded) icons, vector drawables | `core/designsystem/src/main/res/drawable/mq_ic_*.xml` | https://github.com/google/material-design-icons | Apache-2.0 |
+| Material Symbols (Rounded) icons, vector drawables | `core/designsystem/src/main/res/drawable/mq_ic_*.xml`, `core/download/src/main/res/drawable/ic_download_notification.xml` | https://github.com/google/material-design-icons | Apache-2.0 |

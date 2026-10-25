@@ -12,4 +12,6 @@ dependencies {
     api(libs.kotlinx.serialization.json)
     implementation(projects.core.common)
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(projects.core.testing)
+    testImplementation(libs.robolectric)
 }

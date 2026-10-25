@@ -6,6 +6,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -24,6 +25,7 @@ class AlbumViewModel
         @Assisted albumId: MediaId,
         libraryRepository: LibraryRepository,
         private val playback: PlaybackConnection,
+        private val downloads: DownloadRepository,
     ) : ViewModel() {
         val uiState: StateFlow<AlbumUiState> =
             combine(
@@ -67,6 +69,10 @@ class AlbumViewModel
 
                 is AlbumAction.AddToQueue -> {
                     playback.addToQueue(tracks.pick(action.trackId))
+                }
+
+                is AlbumAction.Download -> {
+                    downloads.download(tracks.pick(action.trackId))
                 }
             }
         }

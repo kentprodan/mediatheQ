@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
@@ -38,6 +39,7 @@ class LibraryViewModelTest {
     private val sync = FakeLibrarySyncRepository()
     private val preferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
+    private val downloads = FakeDownloadRepository()
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
@@ -104,7 +106,15 @@ class LibraryViewModelTest {
         library.tracks.value = tracks
         sync.status.value = status
         val viewModel =
-            LibraryViewModel(savedState, library, sync, preferences, playback, mainDispatcherRule.testDispatcher)
+            LibraryViewModel(
+                savedState,
+                library,
+                sync,
+                preferences,
+                playback,
+                downloads,
+                mainDispatcherRule.testDispatcher,
+            )
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -116,6 +126,14 @@ class LibraryViewModelTest {
             is LibraryContent.Playlists -> content.playlists.map { it.id.itemId }
             is LibraryContent.Songs -> content.tracks.map { it.id.itemId }
             else -> error("no items: $content")
+        }
+
+    @Test
+    fun `a song's menu downloads it`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel().onAction(LibraryAction.Download(tracks[0]))
+
+            assertThat(downloads.downloads.value.map { it.track }).containsExactly(tracks[0])
         }
 
     @Test
@@ -302,7 +320,8 @@ class LibraryViewModelTest {
             library.tracks.value = tracks
             sync.status.value = SyncStatus.Idle(day(10))
             val sorting = StandardTestDispatcher(testScheduler)
-            val viewModel = LibraryViewModel(SavedStateHandle(), library, sync, preferences, playback, sorting)
+            val viewModel =
+                LibraryViewModel(SavedStateHandle(), library, sync, preferences, playback, downloads, sorting)
             backgroundScope.launch { viewModel.uiState.collect() }
             sorting.scheduler.runCurrent()
 

@@ -56,6 +56,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.rememberMqReor
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
@@ -122,6 +123,7 @@ fun PlaylistScreen(
                 actions = {
                     if (content != null) {
                         OverflowMenu(stringResource(R.string.playlist_more_options, content.playlist.name)) { close ->
+                            DownloadMenuItem({ onAction(PlaylistAction.Download()) }, close)
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.playlist_rename)) },
                                 leadingIcon = { Icon(MqIcons.Edit, contentDescription = null) },
@@ -340,6 +342,7 @@ private fun PlaylistRow(
                             onAddToQueue = { onAction(PlaylistAction.AddToQueue(item.position)) },
                             close = close,
                         )
+                        DownloadMenuItem({ onAction(PlaylistAction.Download(item.position)) }, close)
                         if (canEditItem) {
                             DropdownMenuItem(
                                 text = { Text(remove) },

@@ -15,8 +15,10 @@ import androidx.navigation3.runtime.entryProvider
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.download.resumeDownloads
 import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.artist.artistEntry
+import io.github.kentprodan.mediatheq.feature.downloads.downloadsEntry
 import io.github.kentprodan.mediatheq.feature.library.libraryEntry
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingHost
 import io.github.kentprodan.mediatheq.feature.playlist.addToPlaylistEntry
@@ -33,6 +35,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Unfinished downloads (after a reboot or a killed process) go on once the app is open (#20).
+        resumeDownloads(this)
         enableEdgeToEdge()
         setContent {
             MediatheqTheme {
@@ -57,17 +61,20 @@ class MainActivity : ComponentActivity() {
                                     artistEntry(navigator)
                                     playlistEntry(navigator)
                                     searchEntry(navigator)
+                                    downloadsEntry()
                                     addToPlaylistEntry(navigator)
                                     placeholders(
                                         navigator,
                                         onLogout = viewModel::logout,
                                         includeLibrary = false,
                                         includeSearch = false,
+                                        includeDownloads = false,
                                     )
                                 }
                             }
+                        val online by viewModel.online.collectAsStateWithLifecycle()
                         NowPlayingHost(content = { miniPlayer ->
-                            AppShell(navigator, entries, miniPlayer = miniPlayer)
+                            AppShell(navigator, entries, offline = !online, miniPlayer = miniPlayer)
                         })
                     }
                 }

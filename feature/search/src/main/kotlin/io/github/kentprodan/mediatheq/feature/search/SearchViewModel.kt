@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
@@ -29,6 +30,7 @@ class SearchViewModel
         private val libraryRepository: LibraryRepository,
         private val preferencesRepository: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
+        private val downloads: DownloadRepository,
     ) : ViewModel() {
         // The search field restores its own text after process death and sends it again, so this is not saved.
         private val query = MutableStateFlow("")
@@ -60,6 +62,10 @@ class SearchViewModel
                 is SearchAction.PlayTrack -> {
                     playback.play(listOf(action.track))
                     saveQuery()
+                }
+
+                is SearchAction.Download -> {
+                    downloads.download(listOf(action.track))
                 }
 
                 is SearchAction.PlayNext -> {

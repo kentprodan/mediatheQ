@@ -91,3 +91,11 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: Search tab on the real library -> type "mosoi" letter by letter -> results update while typing with no visible lag (~100 ms) and "Moșoi" appears; Artists / Albums / Tracks / Playlists groups in that order
 - [ ] Pixel 9: open a result, then come back -> the query stays; clear the field -> recent searches show; Clear -> the list is empty and stays empty after restarting the app
 - [ ] Pixel 9: motion feels right (keyboard and results, no jank while typing) and there are no haptics on plain taps; TalkBack reads the clear-text button label
+
+## #20 Downloads and offline mode
+- [ ] Pixel 9: on Wi-Fi, album menu -> Download -> the Downloads tab shows the album's tracks with progress, then done, and the storage line grows; turn on airplane mode -> Home/Library/Search show "You are offline"; Downloads -> tap the first track -> the whole downloaded album plays through, seeking works, no errors
+- [ ] Pixel 9: in airplane mode, play a track that is not downloaded (e.g. from the restored queue) -> it fails at once with no long spinner, and the downloaded tracks still play
+- [ ] Pixel 9: on mobile data only (Wi-Fi off), download a track -> the row and the notification say "Waiting for Wi-Fi"; turn Wi-Fi on -> the download starts by itself
+- [ ] Pixel 9: start downloading a large album, reboot the phone mid-way, open the app -> the unfinished downloads continue (finished ones stay done)
+- [ ] Pixel 9: Downloads -> row menu -> Remove download -> the row goes away and the storage line shrinks; Jellyfin web still has the track (R5)
+- [ ] Pixel 9: play a downloaded album while online -> Jellyfin's dashboard shows the session as Direct Play and the play count goes up

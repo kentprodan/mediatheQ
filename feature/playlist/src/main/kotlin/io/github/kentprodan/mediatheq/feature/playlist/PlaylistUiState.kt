@@ -55,6 +55,11 @@ sealed interface PlaylistAction {
         val position: Int,
     ) : PlaylistAction
 
+    /** Download one item, or the whole playlist when [position] is `null`. */
+    data class Download(
+        val position: Int? = null,
+    ) : PlaylistAction
+
     /** Starts selecting, or adds/removes an item from the selection. */
     data class ToggleSelection(
         val position: Int,

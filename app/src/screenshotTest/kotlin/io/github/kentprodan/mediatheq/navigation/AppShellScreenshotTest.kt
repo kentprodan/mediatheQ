@@ -18,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 @Composable
 private fun Shell(
     tab: TopLevelTab,
+    offline: Boolean = false,
     miniPlayer: (@Composable () -> Unit)? = null,
 ) {
     // Layoutlib has no Activity, so provide the back-event dispatcher NavDisplay expects.
@@ -29,7 +30,7 @@ private fun Shell(
         MediatheqTheme {
             val navigator =
                 TabNavigator(TopLevelTab.entries.associateWith { mutableListOf(it.rootKey) }, mutableStateOf(tab))
-            AppShell(navigator, placeholderEntries(navigator), miniPlayer = miniPlayer)
+            AppShell(navigator, placeholderEntries(navigator), offline = offline, miniPlayer = miniPlayer)
         }
     }
 }
@@ -53,6 +54,12 @@ fun ShellSearchScreenshot() = Shell(TopLevelTab.Search)
 @MqPreviews
 @Composable
 fun ShellDownloadsScreenshot() = Shell(TopLevelTab.Downloads)
+
+/** Offline, a tab other than Downloads (all of them look the same). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun ShellOfflineScreenshot() = Shell(TopLevelTab.Library, offline = true)
 
 /** The mini player slot in use, with the real pill as the player host places it. */
 @PreviewTest

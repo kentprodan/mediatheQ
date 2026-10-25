@@ -1,10 +1,13 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -25,6 +28,8 @@ class StreamResolver
         private class Resolved(
             val stream: PlaybackStream,
             val metered: Boolean,
+            /** Played from the download, not from the server. */
+            val local: Boolean = false,
         )
 
         private val decoderMimeTypes by lazy { decoders.mimeTypes() }
@@ -32,18 +37,63 @@ class StreamResolver
 
         /**
          * The stream for [itemId]. [continuing] (reading on from a byte offset) always reuses the known stream; a fresh
-         * load reuses it unless the network kind changed since (e.g. home Wi-Fi to cellular).
+         * load reuses it unless the network kind changed since (e.g. home Wi-Fi to cellular). Reading on from a download
+         * that was removed meanwhile asks for the original file: the bytes already played came from it.
          */
         suspend fun resolve(
             itemId: MediaId,
             continuing: Boolean = false,
         ): MqResult<PlaybackStream> {
-            val metered = networkMonitor.isMetered()
-            streams[itemId]?.let { if (continuing || it.metered == metered) return MqResult.Success(it.stream) }
+            val known = streams[itemId]
+            val fromDownload = continuing && known?.local == true
+            val metered = !fromDownload && networkMonitor.isMetered()
+            known?.takeUnless { it.local }?.let {
+                if (continuing || it.metered == metered) return MqResult.Success(it.stream)
+            }
             val result = playbackRepository.stream(itemId, DeviceProfileBuilder.build(decoderMimeTypes, metered))
             if (result is MqResult.Success) streams[itemId] = Resolved(result.value, metered)
             return result
         }
+
+        /**
+         * Records that [itemId] plays from its download, so progress reports still reach the server: a direct play with
+         * a play session of our own (no server stream was asked for).
+         */
+        fun playLocal(itemId: MediaId) {
+            if (streams[itemId]?.local == true) return
+            val stream =
+                PlaybackStream(
+                    itemId = itemId,
+                    url = "",
+                    playMethod = PlayMethod.DirectPlay,
+                    // Jellyfin's media source of a single-file item has the item's own id.
+                    mediaSourceId = itemId.itemId,
+                    playSessionId = UUID.randomUUID().toString().replace("-", ""),
+                    canSeek = true,
+                )
+            streams[itemId] = Resolved(stream, metered = false, local = true)
+        }
+
+        /**
+         * The original file of [itemId] for a download: unmetered profile, and only when the device plays it as it is
+         * (a converted stream cannot resume at a byte offset). Not remembered: downloads never share the player's
+         * streams or play sessions.
+         */
+        suspend fun downloadStream(itemId: MediaId): MqResult<PlaybackStream> =
+            when (val result = playbackRepository.stream(itemId, DeviceProfileBuilder.build(decoderMimeTypes, false))) {
+                is MqResult.Failure -> {
+                    result
+                }
+
+                is MqResult.Success -> {
+                    if (result.value.playMethod == PlayMethod.DirectPlay) {
+                        result
+                    } else {
+                        // shortcut: no converted downloads (e.g. Atmos E-AC-3 JOC on a Pixel); add when #24 needs them.
+                        MqResult.Failure(MqError.Client(0, "download: the device cannot play the original"))
+                    }
+                }
+            }
 
         /** The stream the player uses for [itemId], or `null` if it was never resolved. */
         fun current(itemId: MediaId): PlaybackStream? = streams[itemId]?.stream

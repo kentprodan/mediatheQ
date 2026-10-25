@@ -3,7 +3,10 @@ package io.github.kentprodan.mediatheq.navigation
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -33,10 +36,13 @@ class AppShellTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @Composable
-    private fun Shell(onLogout: () -> Unit = {}) {
+    private fun Shell(
+        onLogout: () -> Unit = {},
+        offline: Boolean = false,
+    ) {
         MediatheqTheme {
             val navigator = rememberTabNavigator()
-            AppShell(navigator, remember(navigator) { placeholderEntries(navigator, onLogout) })
+            AppShell(navigator, remember(navigator) { placeholderEntries(navigator, onLogout) }, offline = offline)
         }
     }
 
@@ -49,6 +55,33 @@ class AppShellTest {
     private fun pressBack() {
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
         composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `offline the tabs show the offline state, and its button opens Downloads, which works`() {
+        composeRule.setContent { Shell(offline = true) }
+        composeRule.onNodeWithText("You are offline").assertExists()
+
+        composeRule.onNodeWithText("Open Downloads").performClick()
+
+        composeRule.onNodeWithText("You are offline").assertDoesNotExist()
+        composeRule.onNode(hasText("Downloads") and hasClickAction()).assertIsSelected()
+    }
+
+    @Test
+    fun `offline, back still pops the tab`() {
+        var offline by mutableStateOf(false)
+        composeRule.setContent { Shell(offline = offline) }
+        openLibraryDetail()
+        offline = true
+        composeRule.waitForIdle()
+
+        pressBack()
+        offline = false
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Library 1").assertDoesNotExist()
+        composeRule.onNodeWithText("Open detail").assertExists()
     }
 
     @Test
