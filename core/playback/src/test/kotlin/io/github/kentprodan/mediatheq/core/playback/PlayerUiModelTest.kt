@@ -142,7 +142,8 @@ class PlayerUiModelTest {
 
     @Test
     fun `the audio output reaches controllers through the session extras, and its changes too`() {
-        val bitPerfect = AudioOutputInfo(bitPerfectSampleRateHz = 96_000, usbDacConnected = true)
+        val bitPerfect =
+            AudioOutputInfo(bitPerfectSampleRateHz = 96_000, usbDacConnected = true, atmosConverted = true)
         val session = MediaSession.Builder(context, player).setSessionExtras(AudioOutputInfo().toBundle()).build()
         var heard: AudioOutputInfo? = null
         val future =

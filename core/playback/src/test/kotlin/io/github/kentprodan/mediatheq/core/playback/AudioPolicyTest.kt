@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import org.junit.Test
 
 class AudioPolicyTest {
@@ -117,5 +118,26 @@ class AudioPolicyTest {
     @Test
     fun `normalization off ignores the gains`() {
         assertThat(AudioPolicy.volume(ItemGains(-6.0, -6.0), Normalization.Off, AudioMode.Offload)).isEqualTo(1f)
+    }
+
+    @Test
+    fun `an Atmos track the server converts is a converted Atmos track`() {
+        assertThat(AudioPolicy.atmosConverted(isAtmos = true, PlayMethod.Transcode)).isTrue()
+        assertThat(AudioPolicy.atmosConverted(isAtmos = true, PlayMethod.DirectStream)).isTrue()
+    }
+
+    @Test
+    fun `an Atmos track played as it is (a JOC decoder) is not converted`() {
+        assertThat(AudioPolicy.atmosConverted(isAtmos = true, PlayMethod.DirectPlay)).isFalse()
+    }
+
+    @Test
+    fun `an Atmos track whose stream is not resolved yet says nothing`() {
+        assertThat(AudioPolicy.atmosConverted(isAtmos = true, playMethod = null)).isFalse()
+    }
+
+    @Test
+    fun `a converted track without Atmos is not an Atmos downgrade`() {
+        assertThat(AudioPolicy.atmosConverted(isAtmos = false, PlayMethod.Transcode)).isFalse()
     }
 }

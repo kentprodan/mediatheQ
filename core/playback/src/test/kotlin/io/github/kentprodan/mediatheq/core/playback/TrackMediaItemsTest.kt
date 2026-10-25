@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.Track
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,6 +21,22 @@ class TrackMediaItemsTest {
         val item = track.copy(normalizationGainDb = -6.0, albumNormalizationGainDb = -7.5).toMediaItem(null)
 
         assertThat(item.withTrackUri()!!.gains()).isEqualTo(ItemGains(albumDb = -7.5, trackDb = -6.0))
+    }
+
+    @Test
+    fun `Atmos tracks are marked, also through the session`() {
+        val atmos = AudioFormat("eac3", channels = 6, spatialFormat = SpatialFormat.DolbyAtmos)
+        val dtsX = atmos.copy(spatialFormat = SpatialFormat.DtsX)
+
+        assertThat(
+            track
+                .copy(audioFormat = atmos)
+                .toMediaItem(null)
+                .withTrackUri()!!
+                .isDolbyAtmos(),
+        ).isTrue()
+        assertThat(track.copy(audioFormat = dtsX).toMediaItem(null).isDolbyAtmos()).isFalse()
+        assertThat(track.toMediaItem(null).isDolbyAtmos()).isFalse()
     }
 
     @Test

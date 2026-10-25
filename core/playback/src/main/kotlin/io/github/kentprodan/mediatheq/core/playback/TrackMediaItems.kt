@@ -7,6 +7,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.Track
 import java.util.UUID
 
@@ -92,6 +93,7 @@ private const val EXTRA_ALBUM_GAIN = "io.github.kentprodan.mediatheq.ALBUM_GAIN"
 private const val EXTRA_TRACK_GAIN = "io.github.kentprodan.mediatheq.TRACK_GAIN"
 private const val EXTRA_SAMPLE_RATE = "io.github.kentprodan.mediatheq.SAMPLE_RATE"
 private const val EXTRA_CHANNELS = "io.github.kentprodan.mediatheq.CHANNELS"
+private const val EXTRA_SPATIAL = "io.github.kentprodan.mediatheq.SPATIAL"
 
 /** The normalization gains (dB) a queue item carries, so the service sets its volume without a lookup. */
 internal data class ItemGains(
@@ -114,7 +116,12 @@ internal fun MediaItem.gains(): ItemGains {
 private fun Bundle.putOutputFormat(track: Track) {
     track.audioFormat?.sampleRateHz?.let { putInt(EXTRA_SAMPLE_RATE, it) }
     track.audioFormat?.channels?.let { putInt(EXTRA_CHANNELS, it) }
+    track.audioFormat?.spatialFormat?.let { putString(EXTRA_SPATIAL, it.name) }
 }
+
+/** Whether the file is Dolby Atmos (as the server reports it), so the service can tell when it plays converted. */
+internal fun MediaItem.isDolbyAtmos(): Boolean =
+    mediaMetadata.extras?.getString(EXTRA_SPATIAL) == SpatialFormat.DolbyAtmos.name
 
 /**
  * The PCM format this item reaches the sink in when direct played, from the file's metadata (for bit-perfect USB);

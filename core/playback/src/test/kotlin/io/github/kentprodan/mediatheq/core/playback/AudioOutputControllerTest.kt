@@ -10,7 +10,8 @@ class AudioOutputControllerTest {
     private val port = FakeUsbAudioPort()
     private var format: PcmFormat? = cd
     private val changes = mutableListOf<AudioOutputState>()
-    private val controller = AudioOutputController(port, { format }, changes::add)
+    private var atmosConverted = false
+    private val controller = AudioOutputController(port, { format }, changes::add) { atmosConverted }
     private val bitPerfectOn = AudioSettings(bitPerfectUsb = true)
 
     @Test
@@ -175,5 +176,16 @@ class AudioOutputControllerTest {
         override fun watch(onChange: () -> Unit) = Unit
 
         override fun release() = Unit
+    }
+
+    @Test
+    fun `an Atmos track starting to play converted is published on its own`() {
+        controller.refresh()
+        changes.clear()
+
+        atmosConverted = true
+        controller.refresh()
+
+        assertThat(changes).containsExactly(AudioOutputState(atmosConverted = true))
     }
 }

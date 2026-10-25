@@ -9,6 +9,8 @@ internal data class AudioOutputState(
     val bitPerfectFormat: PcmFormat? = null,
     /** Bit-perfect was wanted for a known track format, but the DAC has no matching attribute or refused it. */
     val bitPerfectNoMatch: Boolean = false,
+    /** The playing track is Dolby Atmos but plays as the server's stereo conversion ([AudioPolicy.atmosConverted]). */
+    val atmosConverted: Boolean = false,
 )
 
 /**
@@ -20,6 +22,8 @@ internal class AudioOutputController(
     /** The playing track's output format; `null` when stopped or unknown. */
     private val currentFormat: () -> PcmFormat?,
     private val onChange: (AudioOutputState) -> Unit,
+    /** Whether the playing track is a converted Dolby Atmos track; asked on every refresh. */
+    private val atmosConverted: () -> Boolean = { false },
 ) {
     private var settings = AudioSettings()
     private var preferred: MixerCapability? = null
@@ -32,7 +36,7 @@ internal class AudioOutputController(
         refresh()
     }
 
-    /** Decides again: call on a track change, a playback stop and a device change. */
+    /** Decides again: call on a track change, a playback state change and a device change. */
     fun refresh() {
         val capabilities = port.dacCapabilities()
         val route = if (capabilities != null) AudioRoute.UsbDac else AudioRoute.Other
@@ -48,6 +52,7 @@ internal class AudioOutputController(
                 mode = AudioPolicy.decide(settings, route, bitPerfectFormat = chosen != null),
                 bitPerfectFormat = chosen?.format,
                 bitPerfectNoMatch = format != null && chosen == null,
+                atmosConverted = atmosConverted(),
             )
         if (next != state) {
             state = next
