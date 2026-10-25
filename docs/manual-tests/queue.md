@@ -41,11 +41,11 @@ Items are added by `/end` and run with `/test`.
 - [x] Pixel 9: Artists tab lists only album artists (455 on the test server) - passed 2026-10-25
 
 ## #11 Album screen: header, track list, play and shuffle
-- [ ] Pixel 9: Library -> tap an album -> the cover flies from the grid into the album header and back on Back; it feels smooth (corners go from rounded to more rounded during the flight; a BlurHash flash is acceptable while the larger cover loads)
-- [ ] Pixel 9: force-stop the app, reopen, open an album at once (cold database) -> the cover still flies; if it jumps or only fades, note it in issue #11
-- [ ] Pixel 9: on an album page, start a predictive back gesture halfway and cancel -> the page stays, no stuck cover; complete it -> the cover flies back into the grid
-- [ ] Pixel 9: a multi-disc album shows "Disc 1", "Disc 2" headers; scrolling collapses the large title into the top bar
-- [ ] Pixel 9 (after #12): Play starts track 1, tapping a track starts there, Shuffle does not always start at track 1
+- [x] Pixel 9: Library -> tap an album -> the cover flies from the grid into the album header and back on Back; it feels smooth (corners go from rounded to more rounded during the flight; a BlurHash flash is acceptable while the larger cover loads) - passed 2026-10-25
+- [x] Pixel 9: force-stop the app, reopen, open an album at once (cold database) -> the cover still flies; if it jumps or only fades, note it in issue #11 - passed 2026-10-25
+- [x] Pixel 9: on an album page, start a predictive back gesture halfway and cancel -> the page stays, no stuck cover; complete it -> the cover flies back into the grid - passed 2026-10-25
+- [x] Pixel 9: a multi-disc album shows "Disc 1", "Disc 2" headers; scrolling collapses the large title into the top bar - passed 2026-10-25
+- [ ] Pixel 9 (after #12): Play starts track 1, tapping a track starts there, Shuffle does not always start at track 1 - failed 2026-10-25, see #53
 
 ## #12 Playback core: MediaLibraryService, PlaybackConnection, stream selection, reporting
 - [x] Pixel 9 on home Wi-Fi: open a FLAC album -> Play -> music plays; Jellyfin dashboard -> Activity/Sessions shows "Direct playing" for the phone - passed 2026-10-19
@@ -61,7 +61,7 @@ Items are added by `/end` and run with `/test`.
 
 
 ## #13 Mini player and Now Playing with cover colors
-- [ ] Pixel 9: play an album -> the mini player slides in above the nav bar with cover, title, artist; play/pause and next work from it; the list above is not hidden behind it
+- [ ] Pixel 9: play an album -> the mini player slides in above the nav bar with cover, title, artist; play/pause and next work from it; the list above is not hidden behind it - failed 2026-10-25, see #53
 - [ ] Pixel 9: tap the mini player, and separately swipe it up -> Now Playing opens, the cover flies from the pill into the large cover; swipe down, the close button and Back each return to the mini player with the cover flying back
 - [ ] Pixel 9: Now Playing colors follow the cover (try 3 albums with very different covers); changing track to another album blends the colors, no snap; an album without cover stays Iris
 - [ ] Pixel 9 on Wi-Fi: the seek bar moves smoothly, dragging it seeks; on mobile data (transcode) it is disabled
