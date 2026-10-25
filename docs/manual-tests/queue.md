@@ -118,3 +118,8 @@ Items are added by `/end` and run with `/test`.
 ## #53 Playback does not start: Play, Shuffle and track taps do nothing
 - [x] Pixel 9: album -> Play, Shuffle, tap a track, mini player play/pause and next -> playback starts and the buttons work - passed 2026-10-25
 - [ ] Pixel 9: while playing, the notification and the lock screen play/pause, next and previous work; a Bluetooth headset play/pause works
+
+## #58 Android 17 blocks all LAN connections: ACCESS_LOCAL_NETWORK is not declared or requested
+- [x] Pixel 9 (Android 17): open the app without the permission -> "Allow access to your home network" -> Allow -> system dialog -> Allow -> the app opens and reaches the LAN server (album downloads complete) - passed 2026-10-25
+- [ ] Pixel 9: Settings -> Apps -> mediatheQ -> Permissions -> Nearby devices -> Don't allow, back to the app -> the gate shows again; deny twice -> the button says "Open settings" and opens the app settings; allow there -> back in the app it opens
+- [ ] Pixel 9 on mobile data with Tailscale on: sign-in, browse and playback over the Tailscale address work with the permission granted (and note whether they also work with it denied)

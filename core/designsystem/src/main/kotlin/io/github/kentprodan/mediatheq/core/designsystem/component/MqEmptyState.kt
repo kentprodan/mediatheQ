@@ -9,6 +9,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,8 +19,8 @@ import androidx.compose.ui.unit.dp
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 
 /**
- * The one empty / error / offline state for every screen: icon, title, optional body and optional action button
- * (shown when [actionLabel] is set).
+ * The one empty / error / offline state for every screen: icon, title, optional body, an optional action button
+ * (shown when [actionLabel] is set) and an optional quieter second action under it ([secondaryActionLabel]).
  */
 @Composable
 fun MqEmptyState(
@@ -29,6 +30,8 @@ fun MqEmptyState(
     body: String? = null,
     actionLabel: String? = null,
     onAction: () -> Unit = {},
+    secondaryActionLabel: String? = null,
+    onSecondaryAction: () -> Unit = {},
 ) {
     Column(
         modifier
@@ -54,6 +57,9 @@ fun MqEmptyState(
         }
         if (actionLabel != null) {
             Button(onClick = onAction, Modifier.padding(top = MediatheqSpacing.s)) { Text(actionLabel) }
+        }
+        if (secondaryActionLabel != null) {
+            TextButton(onClick = onSecondaryAction) { Text(secondaryActionLabel) }
         }
     }
 }
