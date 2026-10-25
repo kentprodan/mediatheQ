@@ -50,7 +50,7 @@ internal fun acceptWithoutPlayerVolume(
     session: MediaSession,
     controller: MediaSession.ControllerInfo,
 ): MediaSession.ConnectionResult {
-    // Not super.onConnect: since Media3 1.11 it returns a "not implemented" marker without any commands (#53).
+    // The defaults Media3 1.11 gives the controller (never the deprecated onConnect result: it has no commands, #53).
     val defaults = MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller).build()
     return MediaSession.ConnectionResult
         .AcceptedResultBuilder(session, controller)
