@@ -7,18 +7,19 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaSession
 
 /**
- * Applies [mode]'s offload preference. Only when settings change (once at start for now): a change makes the player
+ * Allows offload or not ([AudioPolicy.offload]). Only when settings or the route change: a change makes the player
  * select tracks again, which would drop the next item it buffered for a gapless transition.
  */
 @UnstableApi
-internal fun Player.applyAudioMode(mode: AudioMode) {
+internal fun Player.applyOffload(allowed: Boolean) {
     val preferences =
         AudioOffloadPreferences
             .Builder()
             .setAudioOffloadMode(
-                when (mode) {
-                    AudioMode.Offload -> AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
-                    AudioMode.Processed -> AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
+                if (allowed) {
+                    AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
+                } else {
+                    AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
                 },
             )
             // Albums play gapless: formats with encoder delay offload only where the device keeps them gapless.
@@ -28,16 +29,21 @@ internal fun Player.applyAudioMode(mode: AudioMode) {
     trackSelectionParameters = trackSelectionParameters.buildUpon().setAudioOffloadPreferences(preferences).build()
 }
 
-/** Sets each track's normalization volume when it becomes current. */
+/** Sets each track's normalization volume when it becomes current, and again when [apply] is called. */
 internal class NormalizationListener(
     private val player: Player,
     private val settings: () -> AudioSettings,
+    private val mode: () -> AudioMode,
 ) : Player.Listener {
     override fun onMediaItemTransition(
         mediaItem: MediaItem?,
         reason: Int,
-    ) {
-        player.volume = AudioPolicy.volume(mediaItem?.gains() ?: ItemGains(null, null), settings().normalization)
+    ) = apply()
+
+    /** Sets the current track's volume now, e.g. after the mode changed (bit-perfect plays at full volume). */
+    fun apply() {
+        val gains = player.currentMediaItem?.gains() ?: ItemGains(null, null)
+        player.volume = AudioPolicy.volume(gains, settings().normalization, mode())
     }
 }
 

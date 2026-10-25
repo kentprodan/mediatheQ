@@ -190,6 +190,43 @@ class NowPlayingLayoutTest {
         composeRule.onNode(playerPane).assertDoesNotExist()
     }
 
+    @Test
+    fun `the audio screen opens from the player, and back returns to the player`() {
+        val audioPane = SemanticsMatcher.expectValue(SemanticsProperties.PaneTitle, "Audio")
+        setContent()
+        composeRule.onNode(miniPlayer).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Audio settings").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNode(audioPane).assertExists()
+
+        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+        composeRule.onNode(audioPane).assertDoesNotExist()
+        composeRule.onNode(playerPane).assertExists()
+    }
+
+    @Test
+    fun `bit-perfect shows its sample rate and the volume note on the player`() {
+        state = playing.copy(bitPerfectSampleRateHz = 96_000)
+        setContent()
+        composeRule.onNode(miniPlayer).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNode(hasText("Bit-perfect · 96 kHz")).assertExists()
+        composeRule.onNode(hasText("Phone volume does not apply")).assertExists()
+    }
+
+    @Test
+    fun `without bit-perfect there is no indicator`() {
+        setContent()
+        composeRule.onNode(miniPlayer).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNode(hasText("Phone volume does not apply")).assertDoesNotExist()
+    }
+
     private companion object {
         const val SETTLE_FRAMES = 180
         const val SHELL_TEXT = "Shell content"

@@ -74,6 +74,7 @@ fun NowPlayingHost(
         viewModel::onAction,
         content,
         queue = viewModel.queue,
+        audio = viewModel.audio,
         snackbarHost = snackbarHost,
     )
 }
@@ -90,12 +91,13 @@ fun NowPlayingLayout(
     content: @Composable (miniPlayer: @Composable () -> Unit) -> Unit,
     expandedInitially: Boolean = false,
     queue: StateFlow<List<QueueItem>> = NoQueue,
+    audio: StateFlow<AudioUiState> = NoAudio,
     /** The app's messages, shown over the full player while it covers the shell. */
     snackbarHost: @Composable () -> Unit = {},
 ) {
     var expanded by rememberSaveable { mutableStateOf(expandedInitially) }
-    var showQueue by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(expanded) { if (!expanded) showQueue = false }
+    var panel by rememberSaveable { mutableStateOf(PlayerPanel.Player) }
+    LaunchedEffect(expanded) { if (!expanded) panel = PlayerPanel.Player }
     // Keeps showing the last track while the player animates away after the queue was cleared.
     var last by remember { mutableStateOf(state as? NowPlayingUiState.Playing) }
     LaunchedEffect(state) {
@@ -168,40 +170,56 @@ fun NowPlayingLayout(
             ) {
                 // Registered when the player opens, so it comes after the shell's own back handling and wins; back
                 // closes the queue first.
-                BackHandler(enabled = expanded) { if (showQueue) showQueue = false else expanded = false }
+                BackHandler(enabled = expanded) {
+                    if (panel != PlayerPanel.Player) panel = PlayerPanel.Player else expanded = false
+                }
                 // Collected while the full player is open, so the queue is current by the time it is opened.
                 val entries by queue.collectAsStateWithLifecycle()
+                val audioState by audio.collectAsStateWithLifecycle()
                 Box(Modifier.fillMaxSize()) {
                     PlayerScope(sharedScope, this@AnimatedVisibility) {
                         shown?.let { playing ->
                             MqCoverTheme(coverScheme) {
                                 AnimatedContent(
-                                    targetState = showQueue,
+                                    targetState = panel,
                                     transitionSpec = {
                                         fadeIn(motion.defaultEffectsSpec()) togetherWith
                                             fadeOut(motion.defaultEffectsSpec())
                                     },
-                                    label = "queue",
-                                ) { queueShown ->
-                                    if (queueShown) {
-                                        QueueScreen(
-                                            queue = entries,
-                                            currentEntryId = playing.currentEntryId,
-                                            canReorder = !playing.shuffle,
-                                            onAction = onAction,
-                                            onClose = { showQueue = false },
-                                        )
-                                    } else {
-                                        // Sampled only while the full player is open; the mini player shows no position.
-                                        val position = positions.collectAsStateWithLifecycle()
-                                        NowPlayingScreen(
-                                            state = playing,
-                                            position = { position.value },
-                                            onAction = onAction,
-                                            onCollapse = { expanded = false },
-                                            onOpenQueue = { showQueue = true },
-                                            coverModifier = Modifier.mqSharedCover(PLAYER_COVER_KEY),
-                                        )
+                                    label = "panel",
+                                ) { shownPanel ->
+                                    when (shownPanel) {
+                                        PlayerPanel.Queue -> {
+                                            QueueScreen(
+                                                queue = entries,
+                                                currentEntryId = playing.currentEntryId,
+                                                canReorder = !playing.shuffle,
+                                                onAction = onAction,
+                                                onClose = { panel = PlayerPanel.Player },
+                                            )
+                                        }
+
+                                        PlayerPanel.Audio -> {
+                                            AudioScreen(
+                                                state = audioState,
+                                                onAction = onAction,
+                                                onClose = { panel = PlayerPanel.Player },
+                                            )
+                                        }
+
+                                        PlayerPanel.Player -> {
+                                            // Sampled only while the full player is open; the mini player shows no position.
+                                            val position = positions.collectAsStateWithLifecycle()
+                                            NowPlayingScreen(
+                                                state = playing,
+                                                position = { position.value },
+                                                onAction = onAction,
+                                                onCollapse = { expanded = false },
+                                                onOpenQueue = { panel = PlayerPanel.Queue },
+                                                onOpenAudio = { panel = PlayerPanel.Audio },
+                                                coverModifier = Modifier.mqSharedCover(PLAYER_COVER_KEY),
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -270,3 +288,8 @@ private fun Modifier.swipeUpToExpand(onExpand: () -> Unit): Modifier {
 private const val PLAYER_COVER_KEY = "player-cover"
 
 private val NoQueue: StateFlow<List<QueueItem>> = MutableStateFlow(emptyList())
+
+private val NoAudio: StateFlow<AudioUiState> = MutableStateFlow(AudioUiState())
+
+/** What the full player shows: itself, or one of the screens opened from its secondary row. */
+private enum class PlayerPanel { Player, Queue, Audio }

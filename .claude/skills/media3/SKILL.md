@@ -101,12 +101,13 @@ Rules:
 
 - Android API: `AudioManager.getSupportedMixerAttributes(usbDevice)`, `setPreferredMixerAttributes(attrs, usbDevice, mixerAttributes)` with mixer behavior **BIT_PERFECT**, `clearPreferredMixerAttributes(...)`, `addOnPreferredMixerAttributesChangedListener(...)`. Usage must be `USAGE_MEDIA`.
 - Behavior: no mixing, no system volume, no effects; data goes as-is to the DAC. Playback attaches to that output only when **encoding, channel mask and sample rate match** the preferred mixer attributes.
-- Implementation:
-  1. `AudioRouteMonitor` detects a USB audio output and the setting "Bit-perfect USB" is on.
-  2. For each track, pick the supported mixer attribute matching the track's PCM format (sample rate, bit depth, channels); set it before the track starts; clear it when playback stops or the DAC disconnects.
-  3. Force: no offload, no EQ, no normalization (volume is controlled on the DAC). Show a "Bit-perfect" indicator and a note that phone volume does not apply.
-  4. If no matching mixer attribute exists -> normal playback, indicator off, no error.
-- Check the API level requirement in the reference before implementing and guard with `Build.VERSION.SDK_INT`.
+- Implementation (#22):
+  1. `UsbAudioPort` (platform side, API 34+, `NoUsbAudioPort` below) finds a `TYPE_USB_DEVICE`/`TYPE_USB_HEADSET` output, maps its mixer attributes to plain `MixerCapability` data and watches device changes. Needs `MODIFY_AUDIO_SETTINGS` (normal permission, declared in `:core:playback`).
+  2. `AudioOutputController` (pure, tested with a fake port) runs on every track change, playback stop, device change and settings change: `MixerAttributeSelector` picks the bit-perfect capability whose encoding, sample rate and channel mask equal the track's output format; it is set once per format and cleared when playback stops, the setting goes off or the DAC disconnects.
+  3. The output format comes from the file's metadata in the media item extras (`MediaItem.outputFormat()`), as **16-bit PCM**: Media3's default sink outputs 16-bit, so a 24-bit file keeps its sample rate but not its bit depth (float/24-bit output would need its own issue). Only a direct play is tried (`StreamResolver.current(...).playMethod`): a transcode has another format and plays normally. The DAC is the USB device media is routed to (`getAudioDevicesForAttributes`), not any plugged-in USB output. EQ off = effect released, so nothing stays on a bit-perfect session.
+  4. Offload is off whenever DAC + setting (decided per route, not per track). EQ off and volume 1 only while a mixer attribute is really set for the track (`AudioMode.BitPerfect`). The state reaches screens through the session extras (`AudioOutputInfo` in `PlayerUiModel`): Now Playing shows "Bit-perfect · 96 kHz" and that phone volume does not apply.
+  5. If no matching mixer attribute exists (or the platform refuses it) -> normal playback with EQ and normalization, indicator off, no error.
+- Known risk: the preference is set on the media item transition, which may be after the player opened the next track's `AudioTrack` (gapless 44.1 -> 96 kHz). Verify on a real DAC; if it is late, fixing it needs a `ForwardingAudioSink` and an ADR (section 14).
 - Manual test with the owner's DAC: indicator on, sample rate on the DAC display matches the file.
 
 ## 7. EQ, normalization, crossfade
@@ -114,7 +115,8 @@ Rules:
 - **EQ:** `android.media.audiofx.DynamicsProcessing` attached to the player's audio session ID (`ExoPlayer.audioSessionId`). Bands and presets stored in DataStore. EQ on -> offload off (section 5). EQ is disabled in bit-perfect and passthrough modes, and the UI says why.
 - **Normalization (default: Album):** ReplayGain album gain (fallback track gain) from server metadata (Jellyfin `NormalizationGain`, the album's via a Room relation on track rows), carried in the media item extras and applied with `player.volume` on each item transition (`NormalizationListener`; clamped, no boost above 0 dB unless the setting allows it with a limiter). Controllers cannot set the player volume (`COMMAND_SET_VOLUME` removed), it carries the gain. Off in bit-perfect and passthrough modes.
 - **Crossfade:** off by default and not implemented in F1. If added later it needs PCM processing (disables offload).
-- `AudioPolicy.decide(route, settings, trackFormat): AudioMode` returns one of `Passthrough`, `BitPerfect`, `Offload`, `Processed(eq, normalization)` - exhaustively unit tested, including every conflict above. #21 implements the subset `decide(settings)` -> `Offload` | `Processed` (EQ, #22) plus `volume(gains, normalization)`; #22 adds `BitPerfect` and the route, #24 `Passthrough`.
+- `AudioPolicy` (pure, exhaustively unit tested, including every conflict above): `decide(settings, route, bitPerfectFormat): AudioMode` (`Offload` | `Processed` | `BitPerfect`; #24 adds `Passthrough`), `offload(settings, route)` (per route, so it does not flip per track), `wantsBitPerfect(settings, route)`, `volume(gains, normalization, mode)` (1 in bit-perfect).
+- **EQ (#22):** five bands (centers 60/230/910/3600/14000 Hz, +-12 dB, presets Flat, Bass boost, Treble boost, Vocal, Custom) in `AudioPreferences`. `DynamicsProcessing` pre-EQ bands are set by **upper edge**: `EqualizerCurve` puts the edges at the geometric midpoints between centers (last at 20 kHz) and lowers the input gain by the largest boost so nothing clips. `EqualizerEffect` is re-created when the audio session id changes and enabled only in `Processed`.
 
 ## 8. Gapless
 

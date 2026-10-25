@@ -31,4 +31,7 @@ internal interface DataModule {
 
     @Binds
     fun libraryPreferencesRepository(repository: DefaultLibraryPreferencesRepository): LibraryPreferencesRepository
+
+    @Binds
+    fun audioPreferencesRepository(repository: DefaultAudioPreferencesRepository): AudioPreferencesRepository
 }

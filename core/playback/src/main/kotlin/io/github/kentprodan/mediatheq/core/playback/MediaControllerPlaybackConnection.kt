@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.playback
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
+import android.os.Bundle
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -67,10 +69,15 @@ internal class MediaControllerPlaybackConnection
         // The connected controller, null while disconnected; the screens' flows follow it across reconnects.
         private val connected = MutableStateFlow<MediaController?>(null)
 
+        // The service's audio output state (bit-perfect, DAC), from the session extras.
+        private val output = MutableStateFlow(AudioOutputInfo())
+
         override val state: StateFlow<PlayerUiModel> =
             connected
-                .flatMapLatest { c -> c?.changes()?.map { c.toPlayerUiModel() } ?: flowOf(PlayerUiModel()) }
-                .onStart { command {} }
+                .flatMapLatest { c ->
+                    c?.let { combine(c.changes(), output) { _, output -> c.toPlayerUiModel(output) } }
+                        ?: flowOf(PlayerUiModel())
+                }.onStart { command {} }
                 .flowOn(Dispatchers.Main.immediate)
                 .stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), PlayerUiModel())
 
@@ -158,6 +165,7 @@ internal class MediaControllerPlaybackConnection
                         controller = null
                         return@launch
                     }
+                output.value = controller.sessionExtras.toAudioOutputInfo()
                 connected.value = controller
                 block(controller)
             }
@@ -167,6 +175,13 @@ internal class MediaControllerPlaybackConnection
                 .Builder(context, SessionToken(context, ComponentName(context, MediatheqPlaybackService::class.java)))
                 .setListener(
                     object : MediaController.Listener {
+                        override fun onExtrasChanged(
+                            controller: MediaController,
+                            extras: Bundle,
+                        ) {
+                            output.value = extras.toAudioOutputInfo()
+                        }
+
                         // The service went away (e.g. stopped after the task was removed): connect again next time.
                         override fun onDisconnected(controller: MediaController) {
                             this@MediaControllerPlaybackConnection.controller = null

@@ -139,4 +139,42 @@ class PlayerUiModelTest {
         controller.release()
         session.release()
     }
+
+    @Test
+    fun `the audio output reaches controllers through the session extras, and its changes too`() {
+        val bitPerfect = AudioOutputInfo(bitPerfectSampleRateHz = 96_000, usbDacConnected = true)
+        val session = MediaSession.Builder(context, player).setSessionExtras(AudioOutputInfo().toBundle()).build()
+        var heard: AudioOutputInfo? = null
+        val future =
+            MediaController
+                .Builder(context, session.token)
+                .setListener(
+                    object : MediaController.Listener {
+                        override fun onExtrasChanged(
+                            controller: MediaController,
+                            extras: android.os.Bundle,
+                        ) {
+                            heard = extras.toAudioOutputInfo()
+                        }
+                    },
+                ).buildAsync()
+        RobolectricUtil.runMainLooperUntil { future.isDone }
+        val controller = future.get()
+        assertThat(controller.sessionExtras.toAudioOutputInfo()).isEqualTo(AudioOutputInfo())
+
+        session.sessionExtras = bitPerfect.toBundle()
+        RobolectricUtil.runMainLooperUntil { heard != null }
+
+        assertThat(heard).isEqualTo(bitPerfect)
+        assertThat(heard!!.equalizerBlocked).isTrue()
+        assertThat(controller.toPlayerUiModel(heard!!).output).isEqualTo(bitPerfect)
+        controller.release()
+        session.release()
+    }
+
+    @Test
+    fun `missing extras mean a plain output where bit-perfect is possible`() {
+        assertThat(android.os.Bundle().toAudioOutputInfo()).isEqualTo(AudioOutputInfo())
+        assertThat(AudioOutputInfo().equalizerBlocked).isFalse()
+    }
 }
