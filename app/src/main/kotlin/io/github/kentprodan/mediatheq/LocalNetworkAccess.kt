@@ -14,7 +14,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -29,19 +31,36 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 
 /**
  * Shows [content] once the app may reach devices on the local network. Since Android 17 an app targeting SDK 37 needs
- * ACCESS_LOCAL_NETWORK for that; without it every connection to a home server just times out (#58). The permission is
- * read again on every resume, so a change in the system settings applies when the user comes back.
+ * ACCESS_LOCAL_NETWORK for that; without it every connection to a home server just times out (#58). "Not now" opens
+ * the app anyway (downloads still play); the screen comes back at the next start. The permission is read again on
+ * every resume, so a change in the system settings applies when the user comes back.
+ *
+ * [onAccess] runs whenever the app may use the network: at once when access is already there, and again with
+ * `justGranted = true` when the user grants it here or in the settings.
  */
 @Composable
 fun LocalNetworkGate(
     requiresPermission: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN,
+    onAccess: (justGranted: Boolean) -> Unit = {},
     content: @Composable () -> Unit,
 ) {
-    if (!requiresPermission) return content()
+    if (!requiresPermission) {
+        LaunchedEffect(Unit) { onAccess(false) }
+        return content()
+    }
     val context = LocalContext.current
     var granted by remember { mutableStateOf(context.hasLocalNetworkAccess()) }
-    // After a refusal the system may stop asking; then only the app settings can turn it on.
+    var notNow by rememberSaveable { mutableStateOf(false) }
     var deniedForGood by rememberSaveable { mutableStateOf(false) }
+    var silentDenials by rememberSaveable { mutableIntStateOf(0) }
+    var rationaleBefore by remember { mutableStateOf(false) }
+    val startedGranted = remember { granted }
+    LaunchedEffect(granted) {
+        if (granted) {
+            deniedForGood = false
+            onAccess(!startedGranted)
+        }
+    }
     LifecycleResumeEffect(Unit) {
         granted = context.hasLocalNetworkAccess()
         onPauseOrDispose {}
@@ -49,18 +68,37 @@ fun LocalNetworkGate(
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             granted = isGranted
-            deniedForGood = !isGranted && context.activity?.shouldShowRequestPermissionRationale(PERMISSION) == false
+            if (!isGranted) {
+                val rationaleAfter = context.shouldShowRationale()
+                if (!rationaleBefore && !rationaleAfter) silentDenials++
+                deniedForGood = isDeniedForGood(rationaleBefore, rationaleAfter, silentDenials)
+            }
         }
-    if (granted) {
+    if (granted || notNow) {
         content()
     } else {
         LocalNetworkRequired(
             deniedForGood = deniedForGood,
-            onAllow = { launcher.launch(PERMISSION) },
+            onAllow = {
+                rationaleBefore = context.shouldShowRationale()
+                launcher.launch(PERMISSION)
+            },
             onOpenSettings = { context.openAppSettings() },
+            onNotNow = { notNow = true },
         )
     }
 }
+
+/**
+ * Whether the system will not show the permission dialog again, so only the app settings can grant it. A refusal after
+ * a rationale turns the rationale off for good; a dialog closed without an answer leaves both off, which is why only a
+ * second silent result in a row counts (the first may just have been dismissed).
+ */
+internal fun isDeniedForGood(
+    rationaleBefore: Boolean,
+    rationaleAfter: Boolean,
+    silentDenials: Int,
+): Boolean = (rationaleBefore && !rationaleAfter) || silentDenials >= 2
 
 /** Why the app needs the local network, with the one action that can grant it. */
 @Composable
@@ -68,6 +106,7 @@ fun LocalNetworkRequired(
     deniedForGood: Boolean,
     onAllow: () -> Unit,
     onOpenSettings: () -> Unit,
+    onNotNow: () -> Unit,
 ) {
     Surface(Modifier.fillMaxSize()) {
         MqEmptyState(
@@ -82,11 +121,15 @@ fun LocalNetworkRequired(
                     if (deniedForGood) R.string.local_network_open_settings else R.string.local_network_allow,
                 ),
             onAction = if (deniedForGood) onOpenSettings else onAllow,
+            secondaryActionLabel = stringResource(R.string.local_network_not_now),
+            onSecondaryAction = onNotNow,
         )
     }
 }
 
 private const val PERMISSION = Manifest.permission.ACCESS_LOCAL_NETWORK
+
+private fun Context.shouldShowRationale() = activity?.shouldShowRequestPermissionRationale(PERMISSION) == true
 
 private fun Context.hasLocalNetworkAccess() =
     ContextCompat.checkSelfPermission(this, PERMISSION) == PackageManager.PERMISSION_GRANTED

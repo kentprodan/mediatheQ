@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
@@ -19,7 +20,8 @@ class MainViewModelTest {
     private val repository = FakeSessionRepository()
     private val userData = FakeUserDataRepository()
     private val network = FakeNetworkMonitor()
-    private val viewModel by lazy { MainViewModel(repository, userData, network) }
+    private val sync = FakeLibrarySyncRepository()
+    private val viewModel by lazy { MainViewModel(repository, userData, network, sync) }
 
     @Test
     fun `the session is unknown until read, then follows the repository`() =
@@ -62,5 +64,13 @@ class MainViewModelTest {
                 network.online.value = false
                 assertThat(awaitItem()).isFalse()
             }
+        }
+
+    @Test
+    fun `local network access granted now syncs the library at once`() =
+        runTest {
+            viewModel.onLocalNetworkGranted()
+
+            assertThat(sync.syncCalls).isEqualTo(1)
         }
 }

@@ -8,9 +8,9 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 @PreviewTest
 @MqPreviews
 @Composable
-fun LocalNetworkRequiredScreenshot() = MediatheqTheme { LocalNetworkRequired(false, {}, {}) }
+fun LocalNetworkRequiredScreenshot() = MediatheqTheme { LocalNetworkRequired(false, {}, {}, {}) }
 
 @PreviewTest
 @MqPreviews
 @Composable
-fun LocalNetworkDeniedScreenshot() = MediatheqTheme { LocalNetworkRequired(true, {}, {}) }
+fun LocalNetworkDeniedScreenshot() = MediatheqTheme { LocalNetworkRequired(true, {}, {}, {}) }
