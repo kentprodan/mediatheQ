@@ -1,0 +1,13 @@
+#EXTM3U
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-VERSION:7
+#EXT-X-TARGETDURATION:3
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-MAP:URI="hls1/main/-1.mp4?DeviceId=test-device-id&MediaSourceId=bb3a3eca20f7fe27bfba701c68fc454b&AudioCodec=opus&AudioBitrate=256000&SegmentContainer=mp4&PlaySessionId=1649c76af3da475fba26af9f3cc04bac&TranscodingMaxAudioChannels=2&RequireAvc=false&EnableAudioVbrEncoding=true&Tag=318afea93a1647577f7522989bfaed6d&TranscodeReasons=ContainerBitrateExceedsLimit&runtimeTicks=0&actualSegmentLengthTicks=0"
+#EXTINF:3.000000, nodesc
+hls1/main/0.mp4?DeviceId=test-device-id&MediaSourceId=bb3a3eca20f7fe27bfba701c68fc454b&AudioCodec=opus&AudioBitrate=256000&SegmentContainer=mp4&PlaySessionId=1649c76af3da475fba26af9f3cc04bac&TranscodingMaxAudioChannels=2&RequireAvc=false&EnableAudioVbrEncoding=true&Tag=318afea93a1647577f7522989bfaed6d&TranscodeReasons=ContainerBitrateExceedsLimit&runtimeTicks=0&actualSegmentLengthTicks=30000000
+#EXTINF:3.000000, nodesc
+hls1/main/1.mp4?DeviceId=test-device-id&MediaSourceId=bb3a3eca20f7fe27bfba701c68fc454b&AudioCodec=opus&AudioBitrate=256000&SegmentContainer=mp4&PlaySessionId=1649c76af3da475fba26af9f3cc04bac&TranscodingMaxAudioChannels=2&RequireAvc=false&EnableAudioVbrEncoding=true&Tag=318afea93a1647577f7522989bfaed6d&TranscodeReasons=ContainerBitrateExceedsLimit&runtimeTicks=30000000&actualSegmentLengthTicks=30000000
+#EXTINF:3.000000, nodesc
+hls1/main/2.mp4?DeviceId=test-device-id&MediaSourceId=bb3a3eca20f7fe27bfba701c68fc454b&AudioCodec=opus&AudioBitrate=256000&SegmentContainer=mp4&PlaySessionId=1649c76af3da475fba26af9f3cc04bac&TranscodingMaxAudioChannels=2&RequireAvc=false&EnableAudioVbrEncoding=true&Tag=318afea93a1647577f7522989bfaed6d&TranscodeReasons=ContainerBitrateExceedsLimit&runtimeTicks=60000000&actualSegmentLengthTicks=30000000
+#EXT-X-ENDLIST

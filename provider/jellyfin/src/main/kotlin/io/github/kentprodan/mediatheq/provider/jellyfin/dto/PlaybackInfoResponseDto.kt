@@ -18,6 +18,8 @@ internal data class MediaSourceDto(
     @SerialName("SupportsDirectPlay") val supportsDirectPlay: Boolean = false,
     @SerialName("SupportsDirectStream") val supportsDirectStream: Boolean = false,
     @SerialName("TranscodingUrl") val transcodingUrl: String? = null,
+    /** `http` (one live stream) or `hls` (a playlist of segments). */
+    @SerialName("TranscodingSubProtocol") val transcodingSubProtocol: String? = null,
     @SerialName("Size") val size: Long? = null,
 ) {
     override fun toString(): String = "MediaSourceDto(id=$id, supportsDirectPlay=$supportsDirectPlay)"
