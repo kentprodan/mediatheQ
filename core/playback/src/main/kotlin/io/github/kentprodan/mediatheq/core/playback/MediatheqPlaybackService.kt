@@ -63,6 +63,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var networkMonitor: NetworkMonitor
 
     @Inject
+    @StreamingCache
+    lateinit var streamingCache: Cache
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -94,6 +98,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                             streamResolver,
                             downloads,
                             downloadCache,
+                            streamingCache,
                             networkMonitor::isOnline,
                         ),
                     ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),

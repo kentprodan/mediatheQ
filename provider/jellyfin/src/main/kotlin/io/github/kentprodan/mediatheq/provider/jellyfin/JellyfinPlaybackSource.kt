@@ -79,6 +79,7 @@ class JellyfinPlaybackSource internal constructor(
                         mediaSourceId = sourceId,
                         playSessionId = playSessionId,
                         canSeek = true,
+                        sizeBytes = source.size,
                     ),
                 )
             }

@@ -15,4 +15,6 @@ data class PlaybackStream(
     val playSessionId: String,
     /** Live transcodes cannot be seeked (the server sends no byte ranges). */
     val canSeek: Boolean,
+    /** The original file's size for a direct play, to spot a cached copy of a file changed on the server. */
+    val sizeBytes: Long? = null,
 )
