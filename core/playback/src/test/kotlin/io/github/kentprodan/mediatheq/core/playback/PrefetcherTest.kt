@@ -147,7 +147,8 @@ class PrefetcherTest {
         repository.playMethod = PlayMethod.Transcode
         prefetcher()
 
-        play(1, 2, 3) { requested().size == 2 }
+        // Both upcoming tracks asked for (in order): an exact count would race with repeated player events.
+        play(1, 2, 3) { "t3" in requested() }
 
         assertThat(cache.cacheSpace).isEqualTo(0)
     }
