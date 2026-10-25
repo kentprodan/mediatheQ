@@ -207,7 +207,9 @@ internal class MediaControllerPlaybackConnection
 
         private companion object {
             const val TAG = "PlaybackConnection"
-            val POSITION_TICK = 250.milliseconds
+
+            // Synced lyrics mark the sung line within ~100 ms of the audio (#23).
+            val POSITION_TICK = 100.milliseconds
             const val STOP_TIMEOUT_MS = 5_000L
         }
     }

@@ -208,6 +208,23 @@ class NowPlayingLayoutTest {
     }
 
     @Test
+    fun `lyrics open from the player, and back returns to the player`() {
+        val lyricsPane = SemanticsMatcher.expectValue(SemanticsProperties.PaneTitle, "Lyrics")
+        setContent()
+        composeRule.onNode(miniPlayer).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Show lyrics").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNode(lyricsPane).assertExists()
+
+        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+        composeRule.onNode(lyricsPane).assertDoesNotExist()
+        composeRule.onNode(playerPane).assertExists()
+    }
+
+    @Test
     fun `bit-perfect shows its sample rate and the volume note on the player`() {
         state = playing.copy(bitPerfectSampleRateHz = 96_000)
         setContent()
