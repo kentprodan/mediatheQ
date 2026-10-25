@@ -17,6 +17,10 @@ import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepositor
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.currentTime
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
@@ -54,7 +58,7 @@ class ChooseStreamSourceTest {
             repository.segmented = true
 
             assertThat(choose())
-                .isEqualTo(StreamSource.Hls(resolver.current(itemId)!!.url, mapOf("Authorization" to "fake")))
+                .isEqualTo(StreamSource.Hls(resolver.current(itemId)!!.url))
             // Reports find this stream, with its play session (PlaybackReporter asks the resolver).
             assertThat(resolver.current(itemId)?.playSessionId).isEqualTo("session-t1")
             assertThat(resolver.current(itemId)?.canSeek).isTrue()
@@ -90,10 +94,34 @@ class ChooseStreamSourceTest {
         }
 
     @Test
-    fun `a failed resolve leaves the retries to the data source`() =
+    fun `network trouble is retried here, so the HLS answer after it still plays as HLS`() =
+        runTest {
+            repository.failure = MqResult.Failure(MqError.Network)
+            repository.playMethod = PlayMethod.Transcode
+            repository.segmented = true
+
+            val choice = async { choose() }
+            runCurrent()
+            repository.failure = null
+            advanceUntilIdle()
+
+            assertThat(choice.await()).isInstanceOf(StreamSource.Hls::class.java)
+        }
+
+    @Test
+    fun `a lasting failure leaves the error to the item's data source`() =
         runTest {
             repository.failure = MqResult.Failure(MqError.Network)
 
             assertThat(choose()).isEqualTo(StreamSource.Progressive)
+        }
+
+    @Test
+    fun `an answer that will not change is not retried`() =
+        runTest {
+            repository.failure = MqResult.Failure(MqError.Forbidden)
+
+            assertThat(choose()).isEqualTo(StreamSource.Progressive)
+            assertThat(currentTime).isEqualTo(0)
         }
 }

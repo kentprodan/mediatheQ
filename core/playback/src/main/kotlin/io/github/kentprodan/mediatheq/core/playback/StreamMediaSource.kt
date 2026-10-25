@@ -5,6 +5,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
+import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -15,6 +16,7 @@ import androidx.media3.exoplayer.source.ForwardingTimeline
 import androidx.media3.exoplayer.source.MediaPeriod
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.upstream.Allocator
+import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -22,24 +24,26 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 
 /** How a queue item plays: through [streamDataSourceFactory] (download, cache, file, fallback), or as HLS. */
 internal sealed interface StreamSource {
     data object Progressive : StreamSource
 
-    /** A converted stream in segments (R15): [url] is its playlist, fetched with [headers] (no token in any URL). */
+    /** A converted stream in segments (R15): [url] is its playlist (no token in any URL). */
     data class Hls(
         val url: String,
-        val headers: Map<String, String>,
     ) : StreamSource
 }
 
 /**
  * Chooses how [itemId] plays before the player builds its source (ADR 0019): HLS only for a segmented stream; a
- * download, a cached original, offline, a failure, a file or a progressive transcode all go through the item's own
- * data source, which handles them (and their retries) as before.
+ * download, a cached original, offline, a file or a progressive transcode go through the item's own data source, which
+ * handles them as before. Network trouble is retried here first (1, 2, 4 s while online): the file source would get a
+ * playlist on its own retry, which it cannot play. Only a lasting failure falls back to it, failing as before.
  */
 @UnstableApi
 internal suspend fun chooseStreamSource(
@@ -52,9 +56,25 @@ internal suspend fun chooseStreamSource(
     if (downloads.isDownloaded(itemId) || streamingCache.isFullyCached(originalCacheKey(itemId)) || !isOnline()) {
         return StreamSource.Progressive
     }
-    val stream = (resolver.resolve(itemId) as? MqResult.Success)?.value ?: return StreamSource.Progressive
-    return if (stream.segmented) StreamSource.Hls(stream.url, resolver.headers()) else StreamSource.Progressive
+    var attempt = 0
+    while (true) {
+        when (val result = resolver.resolve(itemId)) {
+            is MqResult.Success -> {
+                return if (result.value.segmented) StreamSource.Hls(result.value.url) else StreamSource.Progressive
+            }
+
+            is MqResult.Failure -> {
+                val retryable = result.error == MqError.Network || result.error is MqError.Server
+                if (!retryable || attempt == CHOOSE_RETRIES || !isOnline()) return StreamSource.Progressive
+                delay(CHOOSE_RETRY_DELAY_MILLIS shl attempt)
+                attempt++
+            }
+        }
+    }
 }
+
+private const val CHOOSE_RETRIES = 3
+private const val CHOOSE_RETRY_DELAY_MILLIS = 1_000L
 
 /**
  * Builds the player's sources: `mediatheq://` tracks get a [LazyStreamMediaSource]; anything else goes to [progressive].
@@ -66,6 +86,8 @@ internal class StreamMediaSourceFactory(
     private val progressive: MediaSource.Factory,
     private val okHttpClient: OkHttpClient,
     private val choose: suspend (MediaId) -> StreamSource,
+    /** The auth header, read at every request: a new login replaces the token (R9). */
+    private val headers: suspend () -> Map<String, String>,
     private val dispatcher: CoroutineDispatcher,
     /** Called when the player starts loading an HLS track (the prefetcher then leaves it alone). */
     private val onOpen: (MediaId) -> Unit = {},
@@ -87,8 +109,12 @@ internal class StreamMediaSourceFactory(
 
             is StreamSource.Hls -> {
                 onOpen(itemId)
+                val authenticated =
+                    ResolvingDataSource.Factory(OkHttpDataSource.Factory(okHttpClient)) {
+                        it.withAdditionalHeaders(runBlocking { headers() })
+                    }
                 HlsMediaSource
-                    .Factory(OkHttpDataSource.Factory(okHttpClient).setDefaultRequestProperties(source.headers))
+                    .Factory(authenticated)
                     .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
                     .createMediaSource(
                         mediaItem

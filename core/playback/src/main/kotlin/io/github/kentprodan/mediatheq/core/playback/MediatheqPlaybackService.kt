@@ -133,6 +133,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         choose = {
                             chooseStreamSource(it, streamResolver, downloads, streamingCache, networkMonitor::isOnline)
                         },
+                        headers = streamResolver::headers,
                         dispatcher = ioDispatcher,
                         onOpen = { prefetcher.cancel(it) },
                     ),

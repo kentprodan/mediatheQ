@@ -40,10 +40,11 @@ class StreamResolver
         private val streams = ConcurrentHashMap<MediaId, Resolved>()
 
         /**
-         * The stream for [itemId]. [continuing] (reading on from a byte offset) always reuses the known stream; a fresh
-         * load reuses it unless the quality changed since (another network kind, e.g. home Wi-Fi to cellular, or another
-         * setting). Reading on from a download that was removed meanwhile asks for the original file: the bytes already
-         * played came from it.
+         * The stream for [itemId]. [continuing] always reuses the known stream: the player's file source passes it on
+         * every open, so it keeps the stream the item started with (ADR 0019). Otherwise (choosing the item's source) the
+         * known stream is reused unless the quality changed since (another network kind, e.g. home Wi-Fi to cellular, or
+         * another setting). Reading on from a download that was removed meanwhile asks for the original file: the bytes
+         * already played came from it.
          */
         suspend fun resolve(
             itemId: MediaId,

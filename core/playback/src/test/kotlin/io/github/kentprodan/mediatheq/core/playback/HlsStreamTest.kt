@@ -36,7 +36,9 @@ class HlsStreamTest {
     private val master =
         "http://nas/audio/bb3a3eca-20f7-fe27-bfba-701c68fc454b/master.m3u8?DeviceId=test-device-id" +
             "&SegmentContainer=mp4&PlaySessionId=1649c76af3da475fba26af9f3cc04bac"
-    private val auth = mapOf("Authorization" to "MediaBrowser Token=\"token-1\"")
+
+    /** The current auth header; a new login changes it. */
+    private var auth = mapOf("Authorization" to "MediaBrowser Token=\"token-1\"")
 
     /** Every request; playlists and the init segment answer with the fixtures, media segments with 404. */
     private val requests = CopyOnWriteArrayList<Request>()
@@ -51,7 +53,7 @@ class HlsStreamTest {
                     when {
                         path.endsWith("master.m3u8") -> fixture("master.m3u8").encodeToByteArray()
 
-                        path.endsWith("main.m3u8") -> fixture("variant.m3u8").encodeToByteArray()
+                        path.endsWith("main.m3u8") -> fixture("variant.m3u8").encodeToByteArray().also { onPlaylists() }
 
                         // The recorded init segment: the Opus track's setup, no audio.
                         path.endsWith("-1.mp4") -> javaClass.getResource("/hls/init.mp4")!!.readBytes()
@@ -68,7 +70,10 @@ class HlsStreamTest {
                     .build()
             }.build()
 
-    private var choice: suspend () -> StreamSource = { StreamSource.Hls(master, auth) }
+    private var choice: suspend () -> StreamSource = { StreamSource.Hls(master) }
+
+    /** Runs when the media playlist is served, e.g. to sign in again between the playlist and its segments. */
+    private var onPlaylists: () -> Unit = {}
     private val opened = mutableListOf<MediaId>()
     private val player: ExoPlayer =
         TestExoPlayerBuilder(context)
@@ -77,6 +82,7 @@ class HlsStreamTest {
                     FakeMediaSourceFactory(),
                     client,
                     choose = { choice() },
+                    headers = { auth },
                     dispatcher = Dispatchers.Unconfined,
                     onOpen = { opened += it },
                 ),
@@ -161,5 +167,17 @@ class HlsStreamTest {
         RobolectricUtil.runMainLooperUntil { !player.currentTimeline.isEmpty && !window().isPlaceholder }
         assertThat(requests).isEmpty()
         assertThat(opened).isEmpty()
+    }
+
+    @Test
+    fun `R9 a new login meanwhile gives the segments the new token`() {
+        onPlaylists = { auth = mapOf("Authorization" to "MediaBrowser Token=\"token-2\"") }
+
+        play(startMs = 4_000)
+
+        RobolectricUtil.runMainLooperUntil { requests.any { "/hls1/main/" in it.url.encodedPath } }
+        requests
+            .filter { "/hls1/main/" in it.url.encodedPath }
+            .forEach { assertThat(it.header("Authorization")).isEqualTo("MediaBrowser Token=\"token-2\"") }
     }
 }
