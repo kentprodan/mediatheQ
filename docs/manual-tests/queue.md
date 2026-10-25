@@ -102,7 +102,7 @@ Items are added by `/end` and run with `/test`.
 - [x] Pixel 9 + server: add an album in Jellyfin (library scan) while the app is open -> it appears in Library within about 30 s without pull-to-refresh - passed 2026-10-25
 - [x] Pixel 9: heart toggle gives a toggle haptic and morphs round -> squarish; stars give no haptic; TalkBack reads "Favorite, on/off", "Rate 3 stars", "Clear rating" and the rating state "3 of 5 stars" - passed 2026-10-25
 ## #20 Downloads and offline mode
-- [ ] Pixel 9: on Wi-Fi, album menu -> Download -> the Downloads tab shows the album's tracks with progress, then done, and the storage line grows; turn on airplane mode -> Home/Library/Search show "You are offline"; Downloads -> tap the first track -> the whole downloaded album plays through, seeking works, no errors
+- [ ] Pixel 9: on Wi-Fi, album menu -> Download -> the Downloads tab shows the album's tracks with progress, then done, and the storage line grows; turn on airplane mode -> Home/Library/Search show "You are offline"; Downloads -> tap the first track -> the whole downloaded album plays through, seeking works, no errors - failed 2026-10-25, see #58 (no LAN access on Android 17)
 - [ ] Pixel 9: in airplane mode, play a track that is not downloaded (e.g. from the restored queue) -> it fails at once with no long spinner, and the downloaded tracks still play
 - [ ] Pixel 9: on mobile data only (Wi-Fi off), download a track -> the row and the notification say "Waiting for Wi-Fi"; turn Wi-Fi on -> the download starts by itself
 - [ ] Pixel 9: start downloading a large album, reboot the phone mid-way, open the app -> the unfinished downloads continue (finished ones stay done)
