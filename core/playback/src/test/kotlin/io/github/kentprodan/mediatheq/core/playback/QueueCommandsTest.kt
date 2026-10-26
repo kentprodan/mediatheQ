@@ -22,6 +22,7 @@ import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 
 @UnstableApi
@@ -159,9 +160,9 @@ class QueueCommandsTest {
 
     @Test
     fun `while shuffled the queue shows the shuffled order`() {
-        exoPlayer.setShuffleOrder(FakeShuffleOrder(0)) // reversed
         player.setMediaItems(items(1, 2, 3))
         player.shuffleModeEnabled = true
+        exoPlayer.setShuffleOrder(FakeShuffleOrder(3)) // reversed
 
         assertThat(titles()).containsExactly("3", "2", "1").inOrder()
         assertThat(player.toPlayerUiModel().shuffle).isTrue()
@@ -182,6 +183,59 @@ class QueueCommandsTest {
         assertThat(after[after.indexOf(current) + 1]).isEqualTo("8")
         assertThat(after.last()).isEqualTo("9")
         assertThat(after - listOf("8", "9")).containsExactlyElementsIn(before).inOrder()
+    }
+
+    @Test
+    fun `shuffle turned on mid-queue goes on with the playing track and plays every other one after it`() {
+        player.playQueue(items(1, 2, 3, 4, 5, 6), startIndex = 3, shuffle = false)
+
+        player.shuffleModeEnabled = true
+
+        assertThat(currentTitle()).isEqualTo("4")
+        assertThat(titles().first()).isEqualTo("4")
+        assertThat(titles()).containsExactly("1", "2", "3", "4", "5", "6")
+        assertThat(player.hasNextMediaItem()).isTrue()
+    }
+
+    @Test
+    fun `shuffle turned off goes on in queue order from the playing track`() {
+        player.playQueue(items(1, 2, 3, 4), startIndex = 0, shuffle = true)
+        val current = currentTitle()
+
+        player.shuffleModeEnabled = false
+
+        assertThat(currentTitle()).isEqualTo(current)
+        assertThat(titles()).containsExactly("1", "2", "3", "4").inOrder()
+    }
+
+    @Test
+    fun `a shuffled album still starts at a random track`() {
+        // Seeded through the shuffle order the player draws for the new queue; 20 tries never all start at track 1.
+        val starts =
+            (1..20).map {
+                player.playQueue(items(1, 2, 3, 4, 5), startIndex = 0, shuffle = true)
+                currentTitle()
+            }
+
+        assertThat(starts.toSet().size).isGreaterThan(1)
+    }
+
+    @Test
+    fun `next on repeat one plays the next track`() {
+        player.playQueue(items(1, 2), startIndex = 0, shuffle = false)
+        player.repeatMode = Player.REPEAT_MODE_ONE
+
+        player.seekToNext()
+
+        assertThat(currentTitle()).isEqualTo("2")
+    }
+
+    @Test
+    fun `shuffle from puts the playing index first and keeps every index once`() {
+        val order = shuffleFrom(current = 2, count = 6, random = Random(7))
+
+        assertThat(order.first()).isEqualTo(2)
+        assertThat(order).containsExactly(0, 1, 2, 3, 4, 5)
     }
 
     @Test
@@ -234,12 +288,12 @@ class QueueCommandsTest {
 
     @Test
     fun `a controller sees the entries, the current one and the shuffled order`() {
-        exoPlayer.setShuffleOrder(FakeShuffleOrder(0))
         val controller = connect()
 
         controller.setMediaItems(items(1, 2, 3))
         controller.shuffleModeEnabled = true
         RobolectricUtil.runMainLooperUntil { player.mediaItemCount == 3 && player.shuffleModeEnabled }
+        exoPlayer.setShuffleOrder(FakeShuffleOrder(3)) // reversed
         RobolectricUtil.runMainLooperUntil { controller.toQueueItems() == player.toQueueItems() }
 
         assertThat(

@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.playback
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import kotlin.random.Random
 
 /**
  * Replaces the queue and starts playing (PlaybackConnection.play): at [startIndex], or, with [shuffle], at the first
@@ -69,6 +70,13 @@ internal fun Player.playOrder(shuffled: Boolean = shuffleModeEnabled): List<Int>
         }
     }
 }
+
+/** A shuffle order of [count] queue indices that starts with [current], the rest in random order. */
+internal fun shuffleFrom(
+    current: Int,
+    count: Int,
+    random: Random,
+): List<Int> = listOf(current) + (0 until count).filter { it != current }.shuffled(random)
 
 /**
  * The shuffle order after the [inserted] queue indices were added: right after [current] ("play next"), or at the end
