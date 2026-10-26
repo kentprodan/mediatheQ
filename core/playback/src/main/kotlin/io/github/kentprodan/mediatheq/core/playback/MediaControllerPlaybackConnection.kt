@@ -11,6 +11,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
 import androidx.media3.session.MediaController
+import androidx.media3.session.SessionError
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -72,6 +73,12 @@ internal class MediaControllerPlaybackConnection
 
         // The service's audio output state (bit-perfect, DAC), from the session extras.
         private val output = MutableStateFlow(AudioOutputInfo())
+
+        override val error = MutableStateFlow<PlaybackError?>(null)
+
+        override fun dismissError() {
+            error.value = null
+        }
 
         override val state: StateFlow<PlayerUiModel> =
             connected
@@ -189,6 +196,13 @@ internal class MediaControllerPlaybackConnection
                             extras: Bundle,
                         ) {
                             output.value = extras.toAudioOutputInfo()
+                        }
+
+                        override fun onError(
+                            controller: MediaController,
+                            sessionError: SessionError,
+                        ) {
+                            sessionError.extras.toPlaybackError()?.let { error.value = it }
                         }
 
                         // The service went away (e.g. stopped after the task was removed): connect again next time.

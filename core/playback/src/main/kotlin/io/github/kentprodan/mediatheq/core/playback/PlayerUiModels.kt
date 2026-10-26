@@ -68,6 +68,23 @@ internal fun Bundle.toAudioOutputInfo(): AudioOutputInfo =
         atmosConverted = getBoolean(EXTRA_ATMOS_CONVERTED),
     )
 
+/** A track that could not play, as the service sends it to the app's controller (#61). */
+internal fun PlaybackError.toBundle(): Bundle =
+    Bundle().apply {
+        putString(EXTRA_ERROR_TITLE, title)
+        putString(EXTRA_ERROR_REASON, reason.name)
+        putBoolean(EXTRA_ERROR_SKIPPED, skipped)
+    }
+
+/** `null` for errors that are not ours (another session's or Media3's own). */
+internal fun Bundle.toPlaybackError(): PlaybackError? {
+    val reason = getString(EXTRA_ERROR_REASON)?.let { runCatching { PlaybackError.Reason.valueOf(it) }.getOrNull() }
+    return reason?.let { PlaybackError(getString(EXTRA_ERROR_TITLE).orEmpty(), it, getBoolean(EXTRA_ERROR_SKIPPED)) }
+}
+
+private const val EXTRA_ERROR_TITLE = "io.github.kentprodan.mediatheq.ERROR_TITLE"
+private const val EXTRA_ERROR_REASON = "io.github.kentprodan.mediatheq.ERROR_REASON"
+private const val EXTRA_ERROR_SKIPPED = "io.github.kentprodan.mediatheq.ERROR_SKIPPED"
 private const val EXTRA_BIT_PERFECT_RATE = "io.github.kentprodan.mediatheq.BIT_PERFECT_RATE"
 private const val EXTRA_USB_DAC = "io.github.kentprodan.mediatheq.USB_DAC"
 private const val EXTRA_BIT_PERFECT_NO_MATCH = "io.github.kentprodan.mediatheq.BIT_PERFECT_NO_MATCH"

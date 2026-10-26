@@ -4,9 +4,11 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.playback.PlaybackError
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
+import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
@@ -23,7 +25,8 @@ class MainViewModelTest {
     private val network = FakeNetworkMonitor()
     private val sync = FakeLibrarySyncRepository()
     private val libraryPreferences = FakeLibraryPreferencesRepository()
-    private val viewModel by lazy { MainViewModel(repository, userData, network, sync, libraryPreferences) }
+    private val playback = FakePlaybackConnection()
+    private val viewModel by lazy { MainViewModel(repository, userData, network, sync, libraryPreferences, playback) }
 
     @Test
     fun `the session is unknown until read, then follows the repository`() =
@@ -47,6 +50,17 @@ class MainViewModelTest {
 
             assertThat(viewModel.userDataError.value).isNull()
         }
+
+    @Test
+    fun `a track that could not play is offered once, then dismissed`() {
+        val error = PlaybackError("Strobe", PlaybackError.Reason.NotDownloaded, skipped = true)
+        playback.error.value = error
+        assertThat(viewModel.playbackError.value).isEqualTo(error)
+
+        viewModel.dismissPlaybackError()
+
+        assertThat(viewModel.playbackError.value).isNull()
+    }
 
     @Test
     fun `online follows the network`() =

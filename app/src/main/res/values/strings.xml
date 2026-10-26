@@ -6,6 +6,10 @@
     <string name="tab_search">Search</string>
     <string name="tab_downloads">Downloads</string>
     <string name="user_data_save_failed">Could not save that change. Try again.</string>
+    <string name="playback_not_downloaded_skipped">“%1$s” is not downloaded, skipped</string>
+    <string name="playback_not_downloaded">“%1$s” is not downloaded and cannot play offline</string>
+    <string name="playback_failed_skipped">“%1$s” could not play, skipped</string>
+    <string name="playback_failed">“%1$s” could not play</string>
     <string name="offline_title">You are offline</string>
     <string name="offline_body">Downloaded music still plays.</string>
     <string name="offline_open_downloads">Open Downloads</string>

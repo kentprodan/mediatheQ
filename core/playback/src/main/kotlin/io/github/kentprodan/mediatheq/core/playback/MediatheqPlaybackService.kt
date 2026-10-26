@@ -17,6 +17,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.CacheBitmapLoader
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionError
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
@@ -153,6 +154,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 playerDispatcher = Dispatchers.Main,
             )
         player.addListener(ReportingListener(player, reporter))
+        player.addListener(SkipFailedTrackListener(player, ::sendPlaybackError))
         // Live updates keep going in the background while music plays (issue #18): while it is meant to play, so a
         // buffering stall does not drop and reopen the connection.
         player.addListener(
@@ -211,6 +213,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     }
                 }
             }
+    }
+
+    /**
+     * Tells the app's screens about a track that could not play. Only them: the media notification and cars would show
+     * it as their own error.
+     */
+    private fun sendPlaybackError(error: PlaybackError) {
+        val session = session ?: return
+        val message = SessionError(SessionError.ERROR_IO, "A track could not play", error.toBundle())
+        session.connectedControllers
+            .filter { it.packageName == packageName && !session.isMediaNotificationController(it) }
+            .forEach { session.sendError(it, message) }
     }
 
     /**

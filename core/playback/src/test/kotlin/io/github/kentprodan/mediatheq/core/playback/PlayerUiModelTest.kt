@@ -7,6 +7,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionError
 import androidx.media3.test.utils.FakeMediaSource
 import androidx.media3.test.utils.FakeMediaSourceFactory
 import androidx.media3.test.utils.FakeTimeline
@@ -182,6 +183,41 @@ class PlayerUiModelTest {
         assertThat(controller.toPlayerUiModel(heard!!).output).isEqualTo(bitPerfect)
         controller.release()
         session.release()
+    }
+
+    @Test
+    fun `a track that could not play reaches the controller through the session`() {
+        val error = PlaybackError("Strobe", PlaybackError.Reason.NotDownloaded, skipped = true)
+        val session = MediaSession.Builder(context, player).build()
+        var heard: PlaybackError? = null
+        val future =
+            MediaController
+                .Builder(context, session.token)
+                .setListener(
+                    object : MediaController.Listener {
+                        override fun onError(
+                            controller: MediaController,
+                            sessionError: SessionError,
+                        ) {
+                            heard = sessionError.extras.toPlaybackError()
+                        }
+                    },
+                ).buildAsync()
+        RobolectricUtil.runMainLooperUntil { future.isDone }
+
+        session.connectedControllers.forEach {
+            session.sendError(it, SessionError(SessionError.ERROR_IO, "A track could not play", error.toBundle()))
+        }
+        RobolectricUtil.runMainLooperUntil { heard != null }
+
+        assertThat(heard).isEqualTo(error)
+        future.get().release()
+        session.release()
+    }
+
+    @Test
+    fun `errors that are not ours carry no playback error`() {
+        assertThat(android.os.Bundle().toPlaybackError()).isNull()
     }
 
     @Test

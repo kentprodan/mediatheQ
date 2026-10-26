@@ -139,7 +139,14 @@ class SkipFailedTrackTest {
     private class FailingSource(
         item: MediaItem,
         private val error: IOException,
-    ) : FakeMediaSource(FakeTimeline(FakeTimeline.TimelineWindowDefinition.Builder().setMediaItem(item).build())) {
+    ) : FakeMediaSource(
+            FakeTimeline(
+                FakeTimeline.TimelineWindowDefinition
+                    .Builder()
+                    .setMediaItem(item)
+                    .build(),
+            ),
+        ) {
         override fun createMediaPeriod(
             id: MediaSource.MediaPeriodId,
             trackGroupArray: TrackGroupArray,
