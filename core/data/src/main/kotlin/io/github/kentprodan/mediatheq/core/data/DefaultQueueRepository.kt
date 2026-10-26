@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
 import io.github.kentprodan.mediatheq.core.database.dao.TrackWithArtists
 import io.github.kentprodan.mediatheq.core.database.entity.QueueEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.QueueStateEntity
+import io.github.kentprodan.mediatheq.core.datastore.SavedQueueFlag
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import javax.inject.Inject
 import kotlin.time.Duration
@@ -13,13 +14,16 @@ class DefaultQueueRepository
     @Inject
     constructor(
         private val queueDao: QueueDao,
+        private val savedFlag: SavedQueueFlag,
     ) : QueueRepository {
+        override val hasSavedQueue: Boolean get() = savedFlag.isSet
+
         override suspend fun saveQueue(
             entries: List<QueueEntryId>,
             shuffleOrder: List<Int>,
             place: QueuePlace,
         ) {
-            if (entries.isEmpty()) return queueDao.clear()
+            if (entries.isEmpty()) return clear()
             val shufflePositions = IntArray(entries.size) { it }
             shuffleOrder.forEachIndexed { playPosition, index -> shufflePositions[index] = playPosition }
             queueDao.replace(
@@ -34,6 +38,13 @@ class DefaultQueueRepository
                 },
                 place.toEntity(),
             )
+            savedFlag.isSet = true
+        }
+
+        override suspend fun clear() {
+            // The flag first: a media button must never start playback for a queue that is going away.
+            savedFlag.isSet = false
+            queueDao.clear()
         }
 
         override suspend fun savePlace(place: QueuePlace) = queueDao.saveState(place.toEntity())

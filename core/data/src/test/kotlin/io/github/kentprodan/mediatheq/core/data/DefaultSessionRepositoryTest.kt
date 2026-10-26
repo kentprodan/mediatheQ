@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.model.QuickConnectCode
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.ServerInfo
 import io.github.kentprodan.mediatheq.core.testing.FakeAuthSource
+import io.github.kentprodan.mediatheq.core.testing.FakeQueueRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +22,8 @@ class DefaultSessionRepositoryTest {
     private val cipher = FakeTokenCipher()
     private val dataStore = InMemoryPreferencesDataStore()
     private val accountStore = AccountStore(dataStore, cipher)
-    private val repository = DefaultSessionRepository(authSource, accountStore, Dispatchers.Unconfined)
+    private val queue = FakeQueueRepository()
+    private val repository = DefaultSessionRepository(authSource, accountStore, queue, Dispatchers.Unconfined)
 
     private suspend fun loginAs(token: String) {
         authSource.login = MqResult.Success(FakeAuthSource.session(token))
@@ -124,6 +126,18 @@ class DefaultSessionRepositoryTest {
             val result = repository.login("http://192.168.1.10:8096", "Home", "Ana", "pw")
 
             assertThat(result).isEqualTo(MqResult.Failure(MqError.Storage))
+        }
+
+    @Test
+    fun `logout and an expired session forget the saved queue`() =
+        runTest {
+            loginAs("token-1")
+            repository.logout()
+            assertThat(queue.clears).isEqualTo(1)
+
+            loginAs("token-2")
+            repository.onUnauthorized()
+            assertThat(queue.clears).isEqualTo(2)
         }
 
     @Test

@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.model.QuickConnectCode
 import io.github.kentprodan.mediatheq.core.server.AuthSession
 import io.github.kentprodan.mediatheq.core.server.AuthSource
 import io.github.kentprodan.mediatheq.core.server.ServerConnection
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +34,7 @@ class DefaultSessionRepository
     constructor(
         private val authSource: AuthSource,
         private val accountStore: AccountStore,
+        private val queue: QueueRepository,
         @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : SessionRepository {
         // Why the app signed out on its own; in memory only, a restart shows the plain onboarding.
@@ -125,6 +127,14 @@ class DefaultSessionRepository
                 // Nothing better to do; the session keeps showing what is on disk.
             }
             logoutReason.value = reason
+            // Nothing is left to resume once signed out (#43).
+            try {
+                queue.clear()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // The flag is already off, so a media button starts nothing; the rows go with the next save.
+            }
         }
 
         private suspend fun connection(baseUrl: String) = ServerConnection(baseUrl, accountStore.deviceId())

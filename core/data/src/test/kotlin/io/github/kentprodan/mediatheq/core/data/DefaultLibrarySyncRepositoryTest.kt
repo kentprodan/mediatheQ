@@ -434,6 +434,8 @@ class DefaultLibrarySyncRepositoryTest {
                     io.github.kentprodan.mediatheq.core.testing
                         .FakeAuthSource(),
                     accountStore,
+                    io.github.kentprodan.mediatheq.core.testing
+                        .FakeQueueRepository(),
                     dispatcher,
                 )
             val repository =

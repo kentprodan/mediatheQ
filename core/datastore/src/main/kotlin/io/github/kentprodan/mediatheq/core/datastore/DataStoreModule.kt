@@ -21,6 +21,9 @@ internal interface DataStoreModule {
     @Binds
     fun tokenCipher(cipher: AndroidKeystoreTokenCipher): TokenCipher
 
+    @Binds
+    fun savedQueueFlag(flag: SharedPreferencesSavedQueueFlag): SavedQueueFlag
+
     companion object {
         /** One instance per file: two DataStores on the same file throw at runtime. */
         @Provides

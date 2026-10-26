@@ -24,6 +24,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0017](0017-cover-colors.md) | Player colors from the cover with material-color-utilities | Accepted |
 | [0018](0018-streaming-cache-and-prefetch.md) | Streaming cache keys and prefetch with CacheWriter | Accepted |
 | [0019](0019-hls-for-converted-streams.md) | HLS for converted streams, chosen by a lazy media source | Accepted |
+| [0020](0020-saved-queue-flag-in-shared-preferences.md) | A saved-queue flag in SharedPreferences for media buttons | Accepted |
 
 Template for new ADRs:
 

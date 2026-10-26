@@ -78,6 +78,22 @@ internal fun MediaItem.withTrackUri(): MediaItem? {
     return builder.build()
 }
 
+/**
+ * The item with its cover's bytes in place of the cover URL, for System UI's media card at boot (it loads no server
+ * URL itself, and the network may be down); unchanged when [fetch] gets nothing.
+ */
+internal suspend fun MediaItem.withArtworkData(fetch: suspend (Uri) -> ByteArray?): MediaItem {
+    val bytes = mediaMetadata.artworkUri?.let { fetch(it) } ?: return this
+    return buildUpon()
+        .setMediaMetadata(
+            mediaMetadata
+                .buildUpon()
+                .setArtworkUri(null)
+                .setArtworkData(bytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                .build(),
+        ).build()
+}
+
 /** The queue entry this item is (see [toMediaItem]). */
 internal fun MediaItem.entryId(): String? = mediaMetadata.extras?.getString(EXTRA_ENTRY_ID)
 
