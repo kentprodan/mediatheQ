@@ -178,3 +178,7 @@ Items are added by `/end` and run with `/test`.
 - [x] Pixel 9: airplane mode on, favorite an album and rate a track (no error message, both stay); turn the network back on with the app in the foreground -> Jellyfin web shows both within a few seconds (a downloaded track instead of an album: offline only downloads show) (rating checked indirectly: Jellyfin web does not show user ratings) - passed 2026-10-26
 - [x] Pixel 9: airplane mode on, favorite a track, force-stop the app, reopen it (heart still filled), network back on -> Jellyfin web shows the favorite - passed 2026-10-26
 - [x] Pixel 9: airplane mode on, favorite a track, Home -> Log out, sign in again with network -> the track is not a favorite in the app or in Jellyfin web (logged out on mobile data with Tailscale off: offline the settings cannot be reached, see #80) - passed 2026-10-26
+
+## #80 Offline, Settings and Log out cannot be reached
+- [ ] Pixel 9: signed in with the library synced, airplane mode on, open the app -> Home shows "You are offline" with a gear in the top bar; gear -> Settings opens (and Audio inside it); Back -> offline state again
+- [ ] Pixel 9: still in airplane mode, gear -> Settings -> Log out -> onboarding shows at once; with the network back, sign in -> the library syncs from scratch (nothing from before shows before the sync)
