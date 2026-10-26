@@ -144,8 +144,7 @@ class PrefetcherTest {
 
         play(1, 2, 3, 4) { 3 in cached() }
 
-        // Not "only 3": the player moves on meanwhile, and track 4 may be fetched as well.
-        assertThat(cached()).doesNotContain(2)
+        assertThat(cached()).containsExactly(3)
         assertThat(requested()).doesNotContain("t2")
     }
 
