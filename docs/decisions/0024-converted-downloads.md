@@ -18,12 +18,17 @@ though, is one file the player reads back from the download cache by its key, sn
 - The download source writes `CONVERTED_DOWNLOAD` (1 or 0) into the download cache's content metadata of the key; the
   Downloads tab reads it and says "Converted copy". What really happened is recorded, not guessed from the codec.
 - A conversion has no length and no ranges, and each request makes other bytes (R12): the source refuses to continue a
-  converted copy, or to continue any copy as the other kind; "Download again" removes a converted partial copy first.
+  converted copy, or to continue any copy as the other kind; "Download again" of a failed download removes its partial
+  copy first, once even on repeated taps.
 - Opus 256 rather than FLAC: the source is lossy E-AC-3, and Opus 256 is transparent at a fraction of the size.
 
 ## Consequences
 
-- An interrupted converted download fails and starts over when downloaded again; originals still resume.
+- An interrupted converted download fails (after Media3's automatic retries, each refused without asking the server)
+  and starts over when downloaded again. "Download again" always starts a failed download over; originals interrupted
+  without failing still resume.
 - Its progress has no percentage (the size is unknown until it ends).
 - A complete Ogg file in the cache has its length, so it seeks offline.
+- Risk: with no length, a conversion the server cuts off but ends cleanly would be taken as complete (a short file). Not
+  seen so far; a check of the decoded duration against the track's would catch it if it ever shows.
 - Playing a converted Atmos download does not show the "Dolby Atmos not available" note yet (#89).

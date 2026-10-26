@@ -171,7 +171,7 @@ class DefaultDownloadRepositoryTest {
         }
 
     @Test
-    fun `downloading a failed conversion again starts over, a failed original goes on`() =
+    fun `downloading a failed download again starts over, whether it was converted or not`() =
         runTest {
             partial(failed, converted = true)
             partial(waiting, converted = false)
@@ -180,10 +180,24 @@ class DefaultDownloadRepositoryTest {
             repository.download(listOf(failed, waiting))
 
             assertThat(cache.getCachedBytes(failed.id.toString(), 0, C.LENGTH_UNSET.toLong())).isEqualTo(0)
-            assertThat(cache.getCachedBytes(waiting.id.toString(), 0, C.LENGTH_UNSET.toLong())).isEqualTo(100)
+            assertThat(cache.getCachedBytes(waiting.id.toString(), 0, C.LENGTH_UNSET.toLong())).isEqualTo(0)
             assertThat(
                 startedIntents().map { it.request().id },
             ).containsExactly(failed.id.toString(), waiting.id.toString())
+        }
+
+    @Test
+    fun `a second tap while a failed download starts over does not touch it again`() =
+        runTest {
+            val repository = repository(Download.STATE_FAILED to failed)
+
+            repository.download(listOf(failed))
+            // What the new run already wrote.
+            partial(failed, converted = true)
+            repository.download(listOf(failed))
+
+            assertThat(cache.getCachedBytes(failed.id.toString(), 0, C.LENGTH_UNSET.toLong())).isEqualTo(100)
+            assertThat(startedIntents()).hasSize(1)
         }
 
     @Test

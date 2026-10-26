@@ -230,6 +230,8 @@ class StreamDataSourceTest {
         )
 
         assertThrows(StreamUnavailableException::class.java) { openDownload(position = 500) }
+        // Refused before asking the server: every automatic retry would open a play session for nothing.
+        assertThat(repository.streamRequests).isEmpty()
     }
 
     @Test

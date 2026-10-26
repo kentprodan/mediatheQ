@@ -100,19 +100,22 @@ internal fun downloadDataSourceFactory(
         val itemId =
             runCatching { MediaId.parse(key) }.getOrNull()
                 ?: throw StreamUnavailableException(MqError.Client(0, "download: no track id"))
+        // A conversion is made anew by each request, with no length and no ranges (R12): it never continues a partial
+        // copy (refused before asking the server), and an original never continues a converted one. Downloading again
+        // starts over.
+        if (dataSpec.position > 0 && cache.isConvertedDownload(key)) throw cannotContinue()
         val stream = awaitStream { resolver.downloadStream(itemId) }
         val converted = stream.playMethod != PlayMethod.DirectPlay
-        // A conversion is made anew by each request, with no length and no ranges (R12): it never continues a partial
-        // copy, and an original never continues a converted one. Downloading again starts over.
-        if (dataSpec.position > 0 && (converted || cache.isConvertedDownload(key))) {
-            throw StreamUnavailableException(MqError.Client(0, "download: a converted copy cannot continue"))
-        }
+        if (dataSpec.position > 0 && converted) throw cannotContinue()
         cache.applyContentMetadataMutations(
             key,
             ContentMetadataMutations().set(CONVERTED_DOWNLOAD, if (converted) 1L else 0L),
         )
         dataSpec.withUri(stream.url.toUri()).withAdditionalHeaders(runBlocking { resolver.headers() })
     }
+
+private fun cannotContinue() =
+    StreamUnavailableException(MqError.Client(0, "download: a converted copy cannot continue"))
 
 /** Whether the download [key] in this download cache is (or began as) the server's conversion. */
 @UnstableApi

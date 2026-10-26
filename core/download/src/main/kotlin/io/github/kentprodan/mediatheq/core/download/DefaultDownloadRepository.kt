@@ -71,6 +71,9 @@ internal class DefaultDownloadRepository
         private val indexRead = MutableStateFlow(false)
         private val removedBeforeLoad = ConcurrentHashMap.newKeySet<MediaId>()
 
+        // Failed downloads being started over: a second tap meanwhile must not delete what the new run already wrote.
+        private val restarting = ConcurrentHashMap.newKeySet<MediaId>()
+
         init {
             manager.addListener(
                 object : DownloadManager.Listener {
@@ -80,6 +83,7 @@ internal class DefaultDownloadRepository
                         finalException: Exception?,
                     ) {
                         val id = download.trackId() ?: return
+                        if (download.state != Download.STATE_FAILED) restarting -= id
                         entries.update { it + (id to download) }
                     }
 
@@ -166,13 +170,21 @@ internal class DefaultDownloadRepository
             tracks
                 // Downloading again would restart a finished or running download; only failed ones retry.
                 .filter { known[it.id]?.state.let { state -> state == null || state == Download.STATE_FAILED } }
-                .forEach { track -> scope.launch(ioDispatcher) { start(track) } }
+                .forEach { track ->
+                    if (known[track.id]?.state != Download.STATE_FAILED) {
+                        enqueue(track)
+                    } else if (restarting.add(track.id)) {
+                        scope.launch(ioDispatcher) {
+                            // Its partial copy cannot always go on (a conversion never can, #68): it starts over.
+                            cache.removeResource(track.id.toString())
+                            enqueue(track)
+                        }
+                    }
+                }
         }
 
-        private fun start(track: Track) {
+        private fun enqueue(track: Track) {
             val key = track.id.toString()
-            // A conversion cannot continue mid-file (#68): its partial copy goes, so the retry starts over.
-            if (cache.getContentMetadata(key).get(CONVERTED_DOWNLOAD, 0L) == 1L) cache.removeResource(key)
             val request =
                 DownloadRequest
                     .Builder(key, DOWNLOAD_URI)
