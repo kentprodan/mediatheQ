@@ -54,7 +54,7 @@ fun SettingsAccountPlaybackScreenshot() {
 @Composable
 fun SettingsStorageAppearanceScreenshot() {
     Groups {
-        StorageGroup(content.audio) {}
+        StorageGroup(content.audio, content.library) {}
         AppearanceGroup(content.library) {}
     }
 }

@@ -48,6 +48,10 @@ sealed interface SettingsAction {
         val on: Boolean,
     ) : SettingsAction
 
+    data class SetOfflineMode(
+        val on: Boolean,
+    ) : SettingsAction
+
     data class SetAlbumColumns(
         val columns: Int,
     ) : SettingsAction

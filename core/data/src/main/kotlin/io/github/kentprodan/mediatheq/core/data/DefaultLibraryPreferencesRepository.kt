@@ -25,6 +25,7 @@ class DefaultLibraryPreferencesRepository
                             }.toMap(),
                     dynamicColor = stored.dynamicColor ?: false,
                     ratingMode = enumOrNull<RatingMode>(stored.ratingMode) ?: RatingMode.WholeStars,
+                    offlineMode = stored.offlineMode ?: false,
                 )
             }
 
@@ -37,6 +38,8 @@ class DefaultLibraryPreferencesRepository
         override suspend fun setDynamicColor(on: Boolean) = store.setDynamicColor(on)
 
         override suspend fun setRatingMode(mode: RatingMode) = store.setRatingMode(mode.name)
+
+        override suspend fun setOfflineMode(on: Boolean) = store.setOfflineMode(on)
 
         override suspend fun setSort(
             filter: LibraryFilter,

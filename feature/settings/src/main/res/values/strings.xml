@@ -23,6 +23,8 @@
     <string name="settings_audio_summary">Bit-perfect USB and the equalizer</string>
 
     <string name="settings_storage">Downloads and storage</string>
+    <string name="settings_offline_mode">Offline mode</string>
+    <string name="settings_offline_mode_summary">Show and play only downloads. On by itself without a network.</string>
     <string name="settings_downloads_unmetered">Download on Wi-Fi only</string>
     <string name="settings_downloads_unmetered_summary">Off: downloads also use mobile data.</string>
     <string name="settings_cache">Streaming cache</string>

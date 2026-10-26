@@ -35,6 +35,7 @@ class LibraryPreferencesStore
                         albumColumns = prefs[ALBUM_COLUMNS],
                         dynamicColor = prefs[DYNAMIC_COLOR],
                         ratingMode = prefs[RATING_MODE],
+                        offlineMode = prefs[OFFLINE_MODE],
                         sorts =
                             prefs
                                 .asMap()
@@ -58,6 +59,10 @@ class LibraryPreferencesStore
 
         suspend fun setRatingMode(name: String) {
             dataStore.edit { it[RATING_MODE] = name }
+        }
+
+        suspend fun setOfflineMode(on: Boolean) {
+            dataStore.edit { it[OFFLINE_MODE] = on }
         }
 
         /** Stores the sort [name] for the Library tab [tab]. */
@@ -97,6 +102,7 @@ class LibraryPreferencesStore
             val ALBUM_COLUMNS = intPreferencesKey("album_columns")
             val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
             val RATING_MODE = stringPreferencesKey("rating_mode")
+            val OFFLINE_MODE = booleanPreferencesKey("offline_mode")
             const val SORT_PREFIX = "sort_"
             val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
             const val SEPARATOR = "\n"
@@ -111,4 +117,5 @@ data class StoredLibraryPreferences(
     val sorts: Map<String, String> = emptyMap(),
     val dynamicColor: Boolean? = null,
     val ratingMode: String? = null,
+    val offlineMode: Boolean? = null,
 )

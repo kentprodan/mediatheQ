@@ -15,6 +15,8 @@ interface LibraryPreferencesRepository {
 
     suspend fun setRatingMode(mode: RatingMode)
 
+    suspend fun setOfflineMode(on: Boolean)
+
     /** Ignored when [filter] does not offer [sort]. */
     suspend fun setSort(
         filter: LibraryFilter,
