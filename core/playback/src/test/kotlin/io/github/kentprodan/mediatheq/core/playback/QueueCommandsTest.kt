@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import android.content.Context
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
@@ -14,6 +15,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.google.common.util.concurrent.Futures
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import org.junit.After
@@ -31,7 +33,10 @@ class QueueCommandsTest {
     private val player = QueuePlayer(exoPlayer)
 
     @After
-    fun release() = player.release()
+    fun release() {
+        session?.release()
+        player.release()
+    }
 
     private fun item(n: Int): MediaItem =
         Track(MediaId(ServerId("s"), "t$n"), "Track $n", emptyList(), 3.minutes).toMediaItem(null).withTrackUri()!!
@@ -192,10 +197,11 @@ class QueueCommandsTest {
             .inOrder()
     }
 
-    @Test
-    fun `a controller sees the entries, the current one and the shuffled order`() {
-        exoPlayer.setShuffleOrder(FakeShuffleOrder(0))
-        val session =
+    private var session: MediaSession? = null
+
+    /** A controller on a session over [player], the way screens reach it. */
+    private fun connect(): MediaController {
+        session =
             MediaSession
                 .Builder(context, player)
                 .setCallback(
@@ -207,9 +213,29 @@ class QueueCommandsTest {
                         ) = Futures.immediateFuture(mediaItems.map { it.withTrackUri()!! }.toMutableList())
                     },
                 ).build()
-        val future = MediaController.Builder(context, session.token).buildAsync()
+        val future = MediaController.Builder(context, session!!.token).buildAsync()
         RobolectricUtil.runMainLooperUntil { future.isDone }
-        val controller = future.get()
+        return future.get()
+    }
+
+    @Test
+    fun `shuffle and repeat set through a controller reach the player and come back in its state`() {
+        val controller = connect()
+        controller.setMediaItems(items(1, 2, 3))
+
+        controller.shuffleModeEnabled = true
+        controller.repeatMode = RepeatMode.One.toPlayerRepeatMode()
+
+        RobolectricUtil.runMainLooperUntil { player.shuffleModeEnabled && player.repeatMode == Player.REPEAT_MODE_ONE }
+        RobolectricUtil.runMainLooperUntil { controller.toPlayerUiModel().repeatMode == RepeatMode.One }
+        assertThat(controller.toPlayerUiModel().shuffle).isTrue()
+        controller.release()
+    }
+
+    @Test
+    fun `a controller sees the entries, the current one and the shuffled order`() {
+        exoPlayer.setShuffleOrder(FakeShuffleOrder(0))
+        val controller = connect()
 
         controller.setMediaItems(items(1, 2, 3))
         controller.shuffleModeEnabled = true
@@ -224,6 +250,5 @@ class QueueCommandsTest {
         RobolectricUtil.runMainLooperUntil { player.mediaItemCount == 2 }
         assertThat(titles()).containsExactly("2", "1").inOrder()
         controller.release()
-        session.release()
     }
 }

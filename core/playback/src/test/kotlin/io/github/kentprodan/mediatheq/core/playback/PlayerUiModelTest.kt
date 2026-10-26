@@ -19,6 +19,7 @@ import com.google.common.util.concurrent.Futures
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import org.junit.After
@@ -50,6 +51,16 @@ class PlayerUiModelTest {
 
     @After
     fun release() = player.release()
+
+    @Test
+    fun `each repeat mode reaches the player and maps back`() {
+        player.setMediaItems(items("1"))
+
+        RepeatMode.entries.forEach { mode ->
+            player.repeatMode = mode.toPlayerRepeatMode()
+            assertThat(player.toPlayerUiModel().repeatMode).isEqualTo(mode)
+        }
+    }
 
     @Test
     fun `nothing queued is an empty model`() {
