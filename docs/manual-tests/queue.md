@@ -182,3 +182,8 @@ Items are added by `/end` and run with `/test`.
 ## #80 Offline, Settings and Log out cannot be reached
 - [ ] Pixel 9: signed in with the library synced, airplane mode on, open the app -> Home shows "You are offline" with a gear in the top bar; gear -> Settings opens (and Audio inside it); Back -> offline state again
 - [ ] Pixel 9: still in airplane mode, gear -> Settings -> Log out -> onboarding shows at once; with the network back, sign in -> the library syncs from scratch (nothing from before shows before the sync)
+
+## #61 Offline: a track that is not downloaded fails silently and stops the queue
+- [ ] Pixel 9: Downloads -> play a downloaded album; with Wi-Fi on, Search -> a track never played -> menu -> Play next; airplane mode on, Wi-Fi off; Next in the mini player -> snackbar "“<title>” is not downloaded, skipped" and the next downloaded track plays
+- [ ] Pixel 9: same setup, let the downloaded track before the undownloaded one play to its end (screen off) -> playback goes on with the next downloaded track; on reopening, the snackbar shows (or has shown) once; the media notification shows no error
+- [ ] Pixel 9: airplane mode, a queue whose last track is not downloaded -> at its turn the snackbar says "“<title>” is not downloaded and cannot play offline" and playback stops; Play tries it again and shows the same message
