@@ -173,3 +173,8 @@ Items are added by `/end` and run with `/test`.
 
 ## #52 Library filters flash as chips on cold start when Connected buttons is chosen
 - [ ] Pixel 9: Library -> view menu -> Connected buttons; close the app from Recents, reopen, go to Library -> the filters show as connected buttons from the first frame, no chip row flashes (the bar may appear together with the list)
+
+## #56 Keep favorite and rating changes made offline and send them when back online
+- [ ] Pixel 9: airplane mode on, favorite an album and rate a track (no error message, both stay); turn the network back on with the app in the foreground -> Jellyfin web shows both within a few seconds
+- [ ] Pixel 9: airplane mode on, favorite a track, force-stop the app, reopen it (heart still filled), network back on -> Jellyfin web shows the favorite
+- [ ] Pixel 9: airplane mode on, favorite a track, Home -> Log out, sign in again with network -> the track is not a favorite in the app or in Jellyfin web
