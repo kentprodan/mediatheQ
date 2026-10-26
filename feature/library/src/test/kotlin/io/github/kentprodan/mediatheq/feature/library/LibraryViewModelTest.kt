@@ -101,6 +101,7 @@ class LibraryViewModelTest {
     private fun TestScope.viewModel(
         status: SyncStatus = SyncStatus.Idle(day(10)),
         savedState: SavedStateHandle = SavedStateHandle(),
+        collect: Boolean = true,
     ): LibraryViewModel {
         library.albums.value = albums
         library.albumArtists.value = listOf(bob, ada)
@@ -118,7 +119,7 @@ class LibraryViewModelTest {
                 downloads,
                 mainDispatcherRule.testDispatcher,
             )
-        backgroundScope.launch { viewModel.uiState.collect() }
+        if (collect) backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
 
@@ -159,6 +160,30 @@ class LibraryViewModelTest {
             viewModel.onAction(LibraryAction.SetFavorite(tracks[0], true))
 
             assertThat(userData.calls).containsExactly("favorite:${tracks[0].id.itemId}:true")
+        }
+
+    @Test
+    fun `R52 the first frame shows no filter style rather than the default, then the saved one`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            preferences.setFilterStyle(FilterControlStyle.ConnectedButtons)
+            val viewModel = viewModel(collect = false)
+
+            // What the screen draws before the state is collected: chips here would flash before the saved style.
+            assertThat(viewModel.uiState.value.filterStyle).isNull()
+
+            backgroundScope.launch { viewModel.uiState.collect() }
+            assertThat(viewModel.uiState.value.filterStyle).isEqualTo(FilterControlStyle.ConnectedButtons)
+        }
+
+    @Test
+    fun `R52 a tab restored after process death shows from the first frame`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val savedState = SavedStateHandle()
+            viewModel(savedState = savedState).onAction(LibraryAction.SelectFilter(LibraryFilter.Artists))
+
+            val restored = viewModel(savedState = savedState, collect = false)
+
+            assertThat(restored.uiState.value.filter).isEqualTo(LibraryFilter.Artists)
         }
 
     @Test

@@ -170,3 +170,6 @@ Items are added by `/end` and run with `/test`.
 ## #51 Log out leaves sync staging rows and the sync checkpoint in the database
 - [ ] Pixel 9: fresh sign-in on home Wi-Fi, let the first sync start, force-stop and reopen (sync resumes), Home -> Log out -> `adb exec-out run-as io.github.kentprodan.mediatheq cat databases/mediatheq.db` (+ `-wal`, `-shm`): every table empty, including the `*_staging` tables and `sync_state`
 - [ ] Pixel 9: during a sync, Log out and sign in again at once as the same user -> the library fills completely (album and track counts match the server), no partial library
+
+## #52 Library filters flash as chips on cold start when Connected buttons is chosen
+- [ ] Pixel 9: Library -> view menu -> Connected buttons; close the app from Recents, reopen, go to Library -> the filters show as connected buttons from the first frame, no chip row flashes (the bar may appear together with the list)
