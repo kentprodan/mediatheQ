@@ -45,8 +45,11 @@
 
     <string name="settings_about">About</string>
     <string name="settings_version">Version</string>
-    <string name="settings_license">License</string>
-    <string name="settings_license_summary">GPL-3.0-or-later. Open-source licenses come in a later version.</string>
+    <string name="settings_license">Open-source licenses</string>
+    <string name="settings_license_summary">mediatheQ is GPL-3.0-or-later. The libraries and assets it uses, with their licenses.</string>
+    <string name="licenses_title">Open-source licenses</string>
+    <string name="licenses_close">Back</string>
+    <string name="licenses_open_page">Open the project page</string>
     <string name="settings_showcase">Theme showcase</string>
     <string name="settings_showcase_summary">Design system components, for manual checks</string>
 

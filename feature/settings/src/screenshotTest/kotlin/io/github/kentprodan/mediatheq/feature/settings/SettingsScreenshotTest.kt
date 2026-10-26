@@ -66,6 +66,6 @@ fun SettingsStorageAppearanceScreenshot() {
 fun SettingsRatingsAboutScreenshot() {
     Groups {
         RatingsGroup(content.library.ratingMode) {}
-        AboutGroup("0.1.0") {}
+        AboutGroup("0.1.0", onOpenShowcase = {})
     }
 }

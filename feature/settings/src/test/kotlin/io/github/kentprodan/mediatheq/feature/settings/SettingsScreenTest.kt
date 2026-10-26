@@ -45,6 +45,7 @@ class SettingsScreenTest {
                     onOpenAudio = { events += "audio" },
                     onOpenShowcase = { events += "showcase" },
                     onBack = { events += "back" },
+                    onOpenLicenses = { events += "licenses" },
                 )
             }
         }
@@ -108,15 +109,17 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `audio, the showcase and back open their pages`() {
+    fun `audio, the licenses, the showcase and back open their pages`() {
         show()
 
         composeRule.onNodeWithText("Audio").performClick()
+        scrollTo("Open-source licenses")
+        composeRule.onNodeWithText("Open-source licenses").performClick()
         scrollTo("Theme showcase")
         composeRule.onNodeWithText("Theme showcase").performClick()
         composeRule.onNodeWithContentDescription("Back").performClick()
 
-        assertThat(events).containsExactly("audio", "showcase", "back").inOrder()
+        assertThat(events).containsExactly("audio", "licenses", "showcase", "back").inOrder()
     }
 
     @Test

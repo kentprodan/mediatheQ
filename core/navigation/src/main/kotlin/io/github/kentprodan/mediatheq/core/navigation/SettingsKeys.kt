@@ -10,3 +10,7 @@ data object SettingsKey : NavKey
 /** Settings -> Audio: bit-perfect USB and the equalizer. */
 @Serializable
 data object AudioSettingsKey : NavKey
+
+/** Settings -> About -> Open-source licenses (#70). */
+@Serializable
+data object LicensesKey : NavKey
