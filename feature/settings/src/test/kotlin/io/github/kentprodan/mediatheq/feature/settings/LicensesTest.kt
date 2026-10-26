@@ -24,7 +24,9 @@ class LicensesTest {
         }
         """.trimIndent()
 
-    private val entries = licenseEntries(report)
+    private val notices = """{"com.squareup.okhttp3:okhttp": "okhttp notice"}"""
+
+    private val entries = licenseEntries(report, notices)
 
     @Test
     fun `the app comes first, then the copied assets, then the libraries by name`() {
@@ -65,6 +67,15 @@ class LicensesTest {
         assertThat(media3.licenseText).isEqualTo("Apache text\n\nMIT text")
         assertThat(nameless.name).isEqualTo("org.example:nameless")
         assertThat(nameless.licenseName).isEqualTo("BSD-3-Clause")
+    }
+
+    @Test
+    fun `a library with a NOTICE file carries it, the others none`() {
+        val byId = entries.associateBy { it.id }
+
+        assertThat(byId.getValue("com.squareup.okhttp3:okhttp").notice).isEqualTo("okhttp notice")
+        assertThat(byId.getValue("androidx.media3:media3-exoplayer").notice).isNull()
+        assertThat(licenseEntries(report, "{}").none { it.notice != null }).isTrue()
     }
 
     @Test

@@ -1,3 +1,7 @@
+import io.github.kentprodan.mediatheq.buildlogic.CollectLicenseNoticesTask
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.type.ArtifactTypeDefinition
+
 plugins {
     alias(libs.plugins.mediatheq.android.application)
     alias(libs.plugins.mediatheq.android.hilt)
@@ -28,6 +32,33 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+}
+
+// NOTICE files of the shipped libraries, for the licenses screen (#87, ADR 0022): AboutLibraries does not carry them.
+androidComponents {
+    onVariants { variant ->
+        val libraryJars =
+            variant.runtimeConfiguration.incoming.artifactView {
+                attributes { attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, "android-classes-jar") }
+                // External libraries only: the project's own modules have no NOTICE, and need not be built first.
+                componentFilter { it is ModuleComponentIdentifier }
+            }
+        val notices =
+            tasks.register<CollectLicenseNoticesTask>(
+                "collect${variant.name.replaceFirstChar(Char::uppercase)}LicenseNotices",
+            ) {
+                jars.from(libraryJars.files)
+                libraries.set(
+                    libraryJars.artifacts.resolvedArtifacts.map { artifacts ->
+                        artifacts.associate { artifact ->
+                            val library = artifact.id.componentIdentifier as ModuleComponentIdentifier
+                            artifact.file.absolutePath to "${library.group}:${library.module}"
+                        }
+                    },
+                )
+            }
+        variant.sources.res?.addGeneratedSourceDirectory(notices, CollectLicenseNoticesTask::outputDirectory)
     }
 }
 
@@ -72,8 +103,10 @@ dependencies {
 tasks.withType<Test>().configureEach {
     val report = layout.buildDirectory.file("generated/aboutLibraries/release/res/raw/aboutlibraries.json")
     val license = rootProject.file("LICENSE")
-    dependsOn("prepareLibraryDefinitionsRelease")
+    val notices = layout.buildDirectory.file("generated/res/collectReleaseLicenseNotices/raw/license_notices.json")
+    dependsOn("prepareLibraryDefinitionsRelease", "collectReleaseLicenseNotices")
     inputs.file(report).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file(notices).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file(license).withPathSensitivity(PathSensitivity.RELATIVE)
     // Relative to the module, the tests' working directory: absolute paths would tie the build cache to this machine.
     systemProperty(
@@ -85,4 +118,12 @@ tasks.withType<Test>().configureEach {
             .invariantSeparatorsPath,
     )
     systemProperty("mediatheq.license", license.relativeTo(projectDir).invariantSeparatorsPath)
+    systemProperty(
+        "mediatheq.licenseNotices",
+        notices
+            .get()
+            .asFile
+            .relativeTo(projectDir)
+            .invariantSeparatorsPath,
+    )
 }

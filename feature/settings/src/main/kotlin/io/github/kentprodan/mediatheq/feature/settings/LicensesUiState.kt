@@ -11,6 +11,8 @@ data class LicenseEntry(
     val licenseText: String?,
     /** The project's page, or the source for the app itself. */
     val url: String?,
+    /** The library's NOTICE file, shown with its license (Apache-2.0 section 4(d), #87); most have none. */
+    val notice: String? = null,
 )
 
 /** What the licenses screen shows. */
