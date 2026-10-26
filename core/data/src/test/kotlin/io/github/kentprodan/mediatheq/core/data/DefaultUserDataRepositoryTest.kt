@@ -478,6 +478,45 @@ class DefaultUserDataRepositoryTest {
         }
 
     @Test
+    fun `signing out while waiting changes are sent stops sending them`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Network
+            repository.setFavorite(album, true)
+            repository.setRating(track, 8)
+            sink.failure = null
+            sink.calls.clear()
+            sink.gate = CompletableDeferred()
+            val flush = async { repository.flushPending() }
+            runCurrent()
+
+            // Log out: the account goes, then the wipe; the old token is revoked on the server.
+            accountStore.clear()
+            database.syncDao().clearAll()
+            sink.failure = MqError.Unauthorized
+            sink.gate!!.complete(Unit)
+            flush.await()
+
+            assertThat(sink.calls).containsExactly("favorite:al1:true")
+            assertThat(session.session.value).isNotEqualTo(SessionState.LoggedOut(LogoutReason.SessionExpired))
+        }
+
+    @Test
+    fun `a 401 on the favorite does not send the rating`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Network
+            repository.setFavorite(track, true)
+            repository.setRating(track, 8)
+            sink.failure = MqError.Unauthorized
+            sink.calls.clear()
+
+            repository.flushPending()
+
+            assertThat(sink.calls).containsExactly("favorite:t1:true")
+        }
+
+    @Test
     fun `a stop report does not wait for a slow write`() =
         runTest(dispatcher) {
             val userData = repository()

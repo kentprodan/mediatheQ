@@ -216,20 +216,42 @@ class DefaultUserDataRepository
             writeLock.withLock {
                 storageSafe {
                     var outcome: MqResult<Unit> = MqResult.Success(Unit)
-                    for (row in userDataDao.pendingChanges(server.serverId.value, server.userId)) {
+                    for (queued in userDataDao.pendingChanges(server.serverId.value, server.userId)) {
+                        // Signed out or another account meanwhile: the rest is not ours to send.
+                        if (accountStore.signedInServer() != server) break
+                        // Read again: the change may have been made again or settled since the list was read.
+                        val row = userDataDao.pendingChange(queued.serverId, queued.userId, queued.itemId) ?: continue
                         val id = MediaId(server.serverId, row.itemId)
                         val change = row.toChange()
                         val favorite = change.isFavorite?.let { sink.setFavorite(server, id, it) }
                         if (favorite.isNetworkFailure()) break
-                        val rating = if (change.setsRating) sink.setRating(server, id, change.rating) else null
+                        val rating =
+                            if (change.setsRating && (favorite as? MqResult.Failure)?.error != MqError.Unauthorized) {
+                                sink.setRating(server, id, change.rating)
+                            } else {
+                                null
+                            }
                         if (rating.isNetworkFailure()) break
                         val sent = change.only(favorite is MqResult.Success, rating is MqResult.Success)
-                        val refused = change.only(favorite is MqResult.Failure, rating is MqResult.Failure)
+                        val refused = change.only(favorite is MqResult.Failure, rating !is MqResult.Success)
                         val error = ((favorite as? MqResult.Failure) ?: (rating as? MqResult.Failure))?.error
-                        withContext(NonCancellable) {
-                            stateLock.withLock { settle(id, row, sent, refused) }
-                            if (error == MqError.Unauthorized) sessionRepository.onUnauthorized()
-                        }
+                        val stillSignedIn =
+                            withContext(NonCancellable) {
+                                // Checked under stateLock: signing out clears the account before the wipe takes it.
+                                stateLock
+                                    .withLock {
+                                        (accountStore.signedInServer() == server).also {
+                                            if (it) settle(id, row, sent, refused)
+                                        }
+                                    }.also {
+                                        if (it &&
+                                            error == MqError.Unauthorized
+                                        ) {
+                                            sessionRepository.onUnauthorized()
+                                        }
+                                    }
+                            }
+                        if (!stillSignedIn) break
                         if (error != null) {
                             surface(error)
                             if (id == target) outcome = MqResult.Failure(error)
