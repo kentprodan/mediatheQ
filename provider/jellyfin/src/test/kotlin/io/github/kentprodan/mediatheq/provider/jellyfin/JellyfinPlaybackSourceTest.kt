@@ -27,7 +27,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Duration.Companion.seconds
 
-/** Contract tests against `PlaybackInfo` answers recorded from Jellyfin 12.2.0 (token and ids replaced). */
+/** Contract tests against `PlaybackInfo` answers recorded from Jellyfin 12.2.0 and 12.3.0 (token and ids replaced). */
 class JellyfinPlaybackSourceTest {
     @get:Rule
     val serverRule = MockWebServerRule()
@@ -123,12 +123,35 @@ class JellyfinPlaybackSourceTest {
 
             assertThat(stream.playMethod).isEqualTo(PlayMethod.Transcode)
             assertThat(stream.canSeek).isFalse()
+            assertThat(stream.segmented).isFalse()
             assertThat(stream.url).contains("/stream.ogg?")
             assertThat(stream.url).contains("AudioCodec=opus")
             assertThat(stream.url).contains("AudioBitrate=256000")
             assertThat(stream.url).contains("PlaySessionId=${stream.playSessionId}")
             assertThat(stream.url).doesNotContain("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
             assertThat(stream.url.lowercase()).doesNotContain("apikey")
+        }
+
+    @Test
+    fun `R15 an HLS transcode is a seekable playlist, token stripped, play session kept`() =
+        runTest {
+            enqueue("items_playbackinfo/transcode_hls.json")
+            val hls = metered.copy(transcoding = opus.copy(container = "mp4", segmented = true))
+
+            val stream = (source.stream(server(), itemId, hls) as MqResult.Success).value
+
+            assertThat(stream.playMethod).isEqualTo(PlayMethod.Transcode)
+            assertThat(stream.segmented).isTrue()
+            assertThat(stream.canSeek).isTrue()
+            assertThat(stream.url).startsWith(mockServer.url("/audio/").toString())
+            assertThat(stream.url).contains("/master.m3u8?")
+            assertThat(stream.url).contains("SegmentContainer=mp4")
+            assertThat(stream.url).contains("PlaySessionId=${stream.playSessionId}")
+            assertThat(stream.url.lowercase()).doesNotContain("apikey")
+            assertThat(stream.url).doesNotContain("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+            val profile = body()["DeviceProfile"]!!.jsonObject["TranscodingProfiles"].toString()
+            assertThat(profile).contains("\"Protocol\":\"hls\"")
+            assertThat(profile).contains("\"Container\":\"mp4\"")
         }
 
     @Test

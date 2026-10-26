@@ -149,3 +149,10 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: Material You on -> colors follow the wallpaper at once, and after a cold start with no Iris flash; off -> Iris
 - [ ] Pixel 9: Ratings -> Half stars: on Now Playing tap a star (whole), again (half), again (cleared); the rating shows the same in Jellyfin's web; Off hides the stars on Now Playing, album and artist pages
 - [ ] Pixel 9: Volume normalization Off -> a quiet and a loud album play at their own loudness; Album -> evened out, without restarting playback
+
+## #38 Seekable streams on metered networks (HLS transcode)
+- [ ] Pixel 9 on mobile data (quality 256 kbps): play a FLAC album, drag the seek bar to the middle of a track -> playback jumps there within about a second and carries on; the seek bar is enabled; Jellyfin's dashboard shows a Transcode session
+- [ ] Pixel 9 on Wi-Fi with quality 128 kbps: the same seek works; with Original a FLAC track direct plays as before (seek works, cached replay without network)
+- [ ] Pixel 9: pause a converted track for 3+ minutes, then play -> it resumes (or restarts the track cleanly), no endless buffering
+- [ ] Pixel 9: repeat one on a converted track -> it replays from the start; turning Wi-Fi off/on mid-track keeps playing
+- [ ] Pixel 9: an Atmos M4A on Wi-Fi Original (converted to stereo) can be seeked

@@ -14,6 +14,7 @@ dependencies {
     // Media3 stays internal: screens only see PlaybackConnection (architecture skill, section 7).
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
+    implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.datasource.okhttp)
     implementation(libs.okhttp)
     implementation(libs.androidx.core.ktx)

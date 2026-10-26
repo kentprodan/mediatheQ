@@ -1,0 +1,3 @@
+#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=256000,AVERAGE-BANDWIDTH=256000,CODECS="Opus"
+main.m3u8?DeviceId=test-device-id&MediaSourceId=bb3a3eca20f7fe27bfba701c68fc454b&AudioCodec=opus&AudioBitrate=256000&SegmentContainer=mp4&PlaySessionId=1649c76af3da475fba26af9f3cc04bac&TranscodingMaxAudioChannels=2&RequireAvc=false&EnableAudioVbrEncoding=true&Tag=318afea93a1647577f7522989bfaed6d&TranscodeReasons=ContainerBitrateExceedsLimit

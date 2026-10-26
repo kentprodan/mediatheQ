@@ -85,6 +85,9 @@ class JellyfinPlaybackSource internal constructor(
             }
 
             transcodingUrl != null -> {
+                // HLS playlists list every segment, converted on demand, so they seek; a live progressive transcode
+                // answers "Accept-Ranges: none" (R12). The playlists carry no token once ApiKey is stripped (R15).
+                val segmented = source.transcodingSubProtocol == "hls"
                 MqResult.Success(
                     PlaybackStream(
                         itemId = itemId,
@@ -92,8 +95,8 @@ class JellyfinPlaybackSource internal constructor(
                         playMethod = PlayMethod.Transcode,
                         mediaSourceId = sourceId,
                         playSessionId = playSessionId,
-                        // Jellyfin answers live transcodes with "Accept-Ranges: none" (checked on 12.2.0, ADR 0016).
-                        canSeek = false,
+                        canSeek = segmented,
+                        segmented = segmented,
                     ),
                 )
             }
@@ -159,7 +162,7 @@ private fun DeviceProfile.toDto() =
                     type = "Audio",
                     container = transcoding.container,
                     audioCodec = transcoding.codec,
-                    protocol = "http",
+                    protocol = if (transcoding.segmented) "hls" else "http",
                     context = "Streaming",
                     maxAudioChannels = transcoding.maxChannels.toString(),
                 ),

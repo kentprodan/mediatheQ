@@ -5,7 +5,7 @@ description: Rules and known behaviors of the Jellyfin server API for mediatheQ'
 
 # mediatheQ - Jellyfin provider
 
-Target: **Jellyfin server 12.x** (12.1 is current stable as of 2026-10). No support for 10.x.
+Target: **Jellyfin server 12.x** (the owner's server runs 12.3.0 as of 2026-10-25; OpenAPI copies for 12.2.0 and 12.3.0 in `provider/jellyfin/api/`). No support for 10.x.
 All Jellyfin code lives in `:provider:jellyfin` and implements the interfaces in `:core:server` (see `architecture`).
 
 ## 0. Source of truth
@@ -16,6 +16,7 @@ All Jellyfin code lives in `:provider:jellyfin` and implements the interfaces in
 4. The regression list in section 12 (behaviors learned the hard way).
 
 Never invent an endpoint or parameter. If it is not in the OpenAPI document of the target version, it does not exist.
+Exception: URLs the server returns (a `TranscodingUrl`, the URIs inside an HLS playlist) are used as given, never built by us, even when their routes are missing from the OpenAPI (R15).
 
 ## 1. Client design
 
@@ -136,10 +137,11 @@ Logging: method + path + status + duration. Never headers, never query strings c
 
 - **R10 Transcoding URL carries the token:** `PlaybackInfo`'s `TranscodingUrl` includes `ApiKey=<token>` (12.2.0). Strip `ApiKey`/`api_key` in any case and send the header (R1); never keep a URL with the token.
 - **R11 Music transcodes default to 128 kbps:** without `DeviceProfile.MusicStreamingTranscodingBitrate` Jellyfin converts music at 128 kbps whatever `MaxStreamingBitrate` says (12.2.0). Always send it (256000 for Opus on metered networks).
-- **R12 Live transcodes cannot be seeked:** progressive transcodes answer `Accept-Ranges: none` with no length (12.2.0); direct-play files return 206. Mark such streams `canSeek = false` (ADR 0016).
+- **R12 Live transcodes cannot be seeked:** progressive transcodes answer `Accept-Ranges: none` with no length (12.2.0); direct-play files return 206. Mark such streams `canSeek = false`. Since #38 the app asks for HLS (R15), so this only applies when the server still answers with a progressive transcode.
 - **R13 Entry IDs are item IDs:** on 12.2.0 `PlaylistItemId` equals the track's item ID (checked 2026-10-22). Remove by entry ID removes **every** copy of that track in the playlist; Move by entry ID moves the **first** copy; Move past the last index answers 500. Mirror that locally and refresh the playlist after each edit.
 
 - **R14 Clearing a rating:** the server applies `Rating` in `UpdateUserItemDataDto` only when it has a value, and `/UserItems/{itemId}/Rating` changes `Likes`, not `Rating`. So a cleared rating is sent as `Rating: 0`, and the mapper reads 0 as unrated (socket messages too). To be confirmed on 12.2.0.
+- **R15 HLS audio is undocumented but works:** OpenAPI 12.3.0 lists no audio HLS routes, yet a `TranscodingProfile` with `Protocol: hls`, `Container: mp4` makes `PlaybackInfo` answer `TranscodingSubProtocol: hls` and `TranscodingUrl` `/audio/{id}/master.m3u8?...&SegmentContainer=mp4&PlaySessionId=...&ApiKey=...` (checked 2026-10-25 on 12.3.0). With `ApiKey` stripped and the `Authorization` header sent: the master playlist points to a relative `main.m3u8` (VOD, every 3 s segment listed, `EXT-X-MAP` init `hls1/main/-1.mp4`), no URL carries the token, segments answer 401 without the header, and any segment can be asked for directly (the server converts from there, ~0.6 s), so the stream seeks. TS segments exist too; the app uses fMP4 (Opus in fMP4). Fixtures: `items_playbackinfo/transcode_hls.json`, `core/playback` test resources `hls/`.
 
 New quirk found -> add `R<n>` here + fixture + test in the same PR.
 

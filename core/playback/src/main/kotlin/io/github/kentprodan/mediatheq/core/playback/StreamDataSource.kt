@@ -65,7 +65,11 @@ internal fun streamDataSourceFactory(
         }
         // Offline only downloads and cached tracks play; anything else fails at once, without retries.
         if (!isOnline()) throw OfflineException()
-        val stream = awaitStream { resolver.resolve(itemId, continuing = dataSpec.position > 0) }
+        // The item's source chose its stream when the player prepared it (LazyStreamMediaSource): reopening reuses
+        // it, so a replay after a network change never hands this file source another format.
+        val stream = awaitStream { resolver.resolve(itemId, continuing = true) }
+        // Only when the choice failed and a later resolve gave HLS: a playlist is not a file.
+        if (stream.segmented) throw StreamUnavailableException(MqError.Client(0, "segmented stream in a file source"))
         val key = streamCacheKey(stream)
         if (stream.playMethod == PlayMethod.DirectPlay) streamingCache.dropIfChanged(key, stream.sizeBytes)
         dataSpec

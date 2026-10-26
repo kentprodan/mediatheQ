@@ -23,6 +23,7 @@ MediatheqPlaybackService : MediaLibraryService      the only owner of the player
   ├─ ExoPlayer (built by PlayerFactory)              audio-only renderers in F1/F2
   ├─ MediaLibrarySession + LibraryCallback           browse tree for Auto/Wear later, queue commands
   ├─ StreamResolver                                  MediaItem -> playable URI + headers (asks PlaybackSource)
+  ├─ StreamMediaSourceFactory                        per item: HLS (converted) or the file data source (ADR 0019)
   ├─ AudioRouteMonitor                               output device: speaker, BT, USB DAC, HDMI/eARC, Cast
   ├─ AudioPolicy                                     decides offload / bit-perfect / EQ / normalization (pure Kotlin)
   ├─ ProgressReporter                                server reporting (jellyfin skill, section 6)
@@ -59,7 +60,7 @@ Input to `StreamResolver`: track, network type (Wi-Fi / Ethernet / cellular / me
 
 - Quality per network kind comes from Settings (#25): `StreamingQuality` Original / 256 / 128 kbps, defaults Original on unmetered and 256 on metered. `DeviceProfileBuilder.build(decoders, quality)`: Original = no cap (formats the device cannot decode still convert to Opus 256), otherwise the cap and Opus at that bitrate. `StreamResolver` keeps one stream per track and quality, so a new setting applies at the next load. Downloads always ask for the original. A fully cached original still plays at any quality, and prefetch only fetches originals.
 
-- Transcoding container for Opus: one that Media3 extracts reliably (Ogg or WebM/Matroska). Pick one in an ADR after a device test; do not mix.
+- Converted streams are **HLS** with Opus in fMP4 segments (ADR 0019, supersedes the Ogg stream of ADR 0016), so they seek. `StreamMediaSourceFactory` gives every `mediatheq://` item a `LazyStreamMediaSource`: when the player prepares the item it resolves the stream (`chooseStreamSource`, off the playback thread) and prepares either an `HlsMediaSource` on the playlist (segmented stream; app OkHttp client with the auth header, no cache) or the progressive source on the `mediatheq://` URI (download, cached original, offline, lasting failure, file, progressive fallback). Network/server errors are retried in the choice (1, 2, 4 s); HLS requests read the auth header at each request. The timeline keeps the queue item. The file data source reuses the stream the item started with and refuses a playlist.
 - The decision is a pure function `selectStream(track, context): StreamDecision` with exhaustive tests (one per row above plus Atmos rows in section 4).
 
 ## 4. Dolby Atmos (music)
@@ -131,7 +132,7 @@ Rules:
 
 - One `SimpleCache` for streaming in `cacheDir/media`, with `ResizableLruCacheEvictor` (least recently used, 1/2/4/8 GB from Settings, default 2; the service sets the size, a smaller one applies at the next write), on the database provider `:core:download` provides (ADR 0018).
 - Data source: `ResolvingDataSource` -> read-only `CacheDataSource` (downloads) -> `CacheDataSource` (streaming) -> `OkHttpDataSource` with the shared client. The resolver picks, in order: download, complete streaming copy (both with no network), offline failure, server stream.
-- Cache keys (ADR 0018): `<MediaId>:original` for a direct play; `transcode:<playSessionId>` for anything else (never written: no length). Never a URL or token. A partial copy whose length differs from the server's `MediaSource.Size` is dropped.
+- Cache keys (ADR 0018): `<MediaId>:original` for a direct play; `transcode:<playSessionId>` for anything else (never written: no length). HLS playlists and segments never pass through a cache (ADR 0019). Never a URL or token. A partial copy whose length differs from the server's `MediaSource.Size` is dropped.
 - Prefetch (ADR 0018): `Prefetcher` with `CacheWriter` - next 2 items in play order on unmetered networks, 1 on metered; original files only; skips downloaded/cached tracks before any server request; only while playing and online; never replaces the stream the player knows (`StreamResolver.prefetchStream`); cancelled when the player opens the same track.
 - Never prefetch on metered networks when "Save data" is on.
 

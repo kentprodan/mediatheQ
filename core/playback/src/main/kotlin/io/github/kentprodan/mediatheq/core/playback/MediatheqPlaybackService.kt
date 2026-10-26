@@ -117,17 +117,26 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 ).setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setMediaSourceFactory(
-                    DefaultMediaSourceFactory(
-                        streamDataSourceFactory(
-                            okHttpClient,
-                            streamResolver,
-                            downloads,
-                            downloadCache,
-                            streamingCache,
-                            networkMonitor::isOnline,
-                            onOpen = { prefetcher.cancel(it) },
-                        ),
-                    ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
+                    StreamMediaSourceFactory(
+                        DefaultMediaSourceFactory(
+                            streamDataSourceFactory(
+                                okHttpClient,
+                                streamResolver,
+                                downloads,
+                                downloadCache,
+                                streamingCache,
+                                networkMonitor::isOnline,
+                                onOpen = { prefetcher.cancel(it) },
+                            ),
+                        ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
+                        okHttpClient,
+                        choose = {
+                            chooseStreamSource(it, streamResolver, downloads, streamingCache, networkMonitor::isOnline)
+                        },
+                        headers = streamResolver::headers,
+                        dispatcher = ioDispatcher,
+                        onOpen = { prefetcher.cancel(it) },
+                    ),
                 ).build()
         startAudioOutput(player)
         reporter =

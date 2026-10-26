@@ -192,6 +192,27 @@ class StreamDataSourceTest {
     }
 
     @Test
+    fun `a replay after the network turned metered reuses the stream the item started with`() {
+        play()
+        network.metered = true
+        repository.playMethod = PlayMethod.Transcode
+        repository.segmented = true
+
+        play()
+
+        assertThat(repository.streamRequests).hasSize(1)
+    }
+
+    @Test
+    fun `a playlist never reaches the file source, it fails clearly instead`() {
+        repository.playMethod = PlayMethod.Transcode
+        repository.segmented = true
+
+        assertThrows(StreamUnavailableException::class.java) { play() }
+        assertThat(requests).isEmpty()
+    }
+
+    @Test
     fun `offline a track that is not downloaded fails without asking the server`() {
         network.online.value = false
 

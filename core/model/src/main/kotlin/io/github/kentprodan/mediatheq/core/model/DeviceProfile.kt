@@ -18,4 +18,6 @@ data class TranscodingTarget(
     val codec: String,
     val bitrate: Int,
     val maxChannels: Int,
+    /** As HLS segments (seekable: each segment is converted on demand) instead of one live stream. */
+    val segmented: Boolean = false,
 )
