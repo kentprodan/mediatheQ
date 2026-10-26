@@ -136,10 +136,11 @@ class PrefetcherTest {
             listOf(TrackDownload(Track(id(2), "Track 2", emptyList(), 3.minutes), DownloadState.Completed))
         prefetcher()
 
-        play(1, 2, 3, 4) { cached().isNotEmpty() }
+        play(1, 2, 3, 4) { 3 in cached() }
 
-        assertThat(cached()).containsExactly(3)
-        assertThat(requested()).containsExactly("t3")
+        // Not "only 3": the player moves on meanwhile, and track 4 may be fetched as well.
+        assertThat(cached()).doesNotContain(2)
+        assertThat(requested()).doesNotContain("t2")
     }
 
     @Test
