@@ -11,6 +11,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -23,6 +24,7 @@ import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
@@ -112,6 +114,22 @@ class NowPlayingLayoutTest {
             .containsExactly(NowPlayingAction.TogglePlayPause, NowPlayingAction.Next, NowPlayingAction.Previous)
             .inOrder()
         composeRule.onNode(miniPlayer).assertIsDisplayed()
+    }
+
+    @Test
+    fun `shuffle and repeat show their state to TalkBack and send their actions`() {
+        state = playing.copy(shuffle = true, repeatMode = RepeatMode.One)
+        setContent()
+        composeRule.onNode(miniPlayer).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Shuffle").assertIsOn().performClick()
+        composeRule
+            .onNodeWithContentDescription("Repeat")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "This track"))
+            .performClick()
+
+        assertThat(actions).containsExactly(NowPlayingAction.SetShuffle(false), NowPlayingAction.CycleRepeat).inOrder()
     }
 
     @Test

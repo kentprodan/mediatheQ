@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.data.LyricsRepository
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
@@ -130,6 +131,17 @@ class NowPlayingViewModel
                     }
                 }
 
+                is NowPlayingAction.SetShuffle -> {
+                    playback.setShuffle(action.enabled)
+                }
+
+                NowPlayingAction.CycleRepeat -> {
+                    playback.setRepeatMode(
+                        playback.state.value.repeatMode
+                            .next(),
+                    )
+                }
+
                 NowPlayingAction.RetryLyrics -> {
                     lyricsRetries.value++
                 }
@@ -163,6 +175,14 @@ class NowPlayingViewModel
         }
     }
 
+/** The mode the repeat button moves to. */
+internal fun RepeatMode.next(): RepeatMode =
+    when (this) {
+        RepeatMode.Off -> RepeatMode.All
+        RepeatMode.All -> RepeatMode.One
+        RepeatMode.One -> RepeatMode.Off
+    }
+
 private fun PlayerUiModel.toUiState(
     userData: UserData?,
     ratingMode: RatingMode,
@@ -179,6 +199,7 @@ private fun PlayerUiModel.toUiState(
         hasPrevious = hasPrevious,
         currentEntryId = currentEntryId,
         shuffle = shuffle,
+        repeatMode = repeatMode,
         isFavorite = userData?.isFavorite == true,
         halfStars = userData?.halfStars,
         ratingMode = ratingMode,

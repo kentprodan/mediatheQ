@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FilledTonalIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,12 +32,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.kentprodan.mediatheq.core.data.RatingMode
@@ -47,6 +53,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqTransportCon
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.ui.formatDuration
 import io.github.kentprodan.mediatheq.core.ui.formatFrequency
 import kotlin.time.Duration
@@ -154,11 +161,19 @@ private fun NowPlayingContent(
             onPlayPause = { onAction(NowPlayingAction.TogglePlayPause) },
             onNext = { onAction(NowPlayingAction.Next) },
         )
-        // The secondary row (expressive-design section 5); output comes in its issue.
+        // The secondary row (expressive-design section 5); output comes in its issue. Shuffle and repeat on the edges,
+        // under previous and next.
         Row(
             Modifier.fillMaxWidth().padding(bottom = MediatheqSpacing.l),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
+            ModeToggle(
+                checked = state.shuffle,
+                turnsOn = !state.shuffle,
+                onClick = { onAction(NowPlayingAction.SetShuffle(!state.shuffle)) },
+                icon = MqIcons.Shuffle,
+                description = stringResource(R.string.nowplaying_shuffle),
+            )
             MqFavoriteToggle(state.isFavorite, onToggle = { onAction(NowPlayingAction.SetFavorite(it)) })
             IconButton(onClick = onOpenLyrics) {
                 Icon(MqIcons.Lyrics, contentDescription = stringResource(R.string.nowplaying_lyrics_open))
@@ -166,7 +181,50 @@ private fun NowPlayingContent(
             IconButton(onClick = onOpenQueue) {
                 Icon(MqIcons.QueueMusic, contentDescription = stringResource(R.string.nowplaying_queue_open))
             }
+            ModeToggle(
+                checked = state.repeatMode != RepeatMode.Off,
+                turnsOn = state.repeatMode.next() != RepeatMode.Off,
+                onClick = { onAction(NowPlayingAction.CycleRepeat) },
+                // Repeat one has its own icon; all and off differ in shape too, not by color alone.
+                icon = if (state.repeatMode == RepeatMode.One) MqIcons.RepeatOne else MqIcons.Repeat,
+                description = stringResource(R.string.nowplaying_repeat),
+                state =
+                    stringResource(
+                        when (state.repeatMode) {
+                            RepeatMode.Off -> R.string.nowplaying_repeat_off
+                            RepeatMode.All -> R.string.nowplaying_repeat_all
+                            RepeatMode.One -> R.string.nowplaying_repeat_one
+                        },
+                    ),
+            )
         }
+    }
+}
+
+/**
+ * Shuffle or repeat: an icon toggle that is round when off and squarish when on, with toggle haptics on the way
+ * ([turnsOn]) (expressive-design, section 5). [state] replaces the on/off readout for TalkBack.
+ */
+@Composable
+private fun ModeToggle(
+    checked: Boolean,
+    turnsOn: Boolean,
+    onClick: () -> Unit,
+    icon: ImageVector,
+    description: String,
+    state: String? = null,
+) {
+    val haptics = LocalHapticFeedback.current
+    FilledTonalIconToggleButton(
+        checked = checked,
+        onCheckedChange = {
+            haptics.performHapticFeedback(if (turnsOn) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+            onClick()
+        },
+        shapes = IconButtonDefaults.toggleableShapes(),
+        modifier = if (state != null) Modifier.semantics { stateDescription = state } else Modifier,
+    ) {
+        Icon(icon, contentDescription = description)
     }
 }
 
