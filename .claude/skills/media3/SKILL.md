@@ -150,7 +150,8 @@ Rules:
 ## 11. Queue, session and system integration
 
 - Queue = Media3 playlist of `MediaItem`s with `mediaId = MediaId.toString()` and full `MediaMetadata` (title, artist, album, artwork URI sized for notification).
-- Persist queue + index + position in Room on every change (debounced) and on service destroy; restore on cold start (paused).
+- Persist queue + index + position + shuffle order + repeat mode in Room on every change (debounced) and on service destroy; restore on cold start (paused).
+- Shuffle turned on mid-queue (`QueuePlayer.setShuffleModeEnabled`): the playing track goes on and every other entry follows once in a new random order (`shuffleFrom`); ExoPlayer alone would reuse its old order, with the current track anywhere in it. Turning it off goes on in queue order. Next on repeat one plays the next track (Media3 default).
 - Notification via the default `MediaNotification.Provider`; custom buttons (favorite, shuffle) through session custom commands.
 - Audio focus: handled by ExoPlayer (`handleAudioFocus = true`); ducking allowed.
 - Sleep timer: lives in the service, survives UI death.
