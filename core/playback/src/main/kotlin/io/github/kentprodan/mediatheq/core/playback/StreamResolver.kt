@@ -96,28 +96,21 @@ class StreamResolver
         }
 
         /**
-         * The original file of [itemId] for a download, whatever the streaming quality, and only when the device plays it as it is
-         * (a converted stream cannot resume at a byte offset). Not remembered: downloads never share the player's
-         * streams or play sessions.
+         * The file to download [itemId] from, whatever the streaming quality: the original when the device plays it as it
+         * is, else one converted file (Opus 256 in Ogg, #68, ADR 0024). Never HLS: a download is one file. Not remembered:
+         * downloads never share the player's streams or play sessions.
          */
         suspend fun downloadStream(itemId: MediaId): MqResult<PlaybackStream> =
-            when (
-                val result =
-                    playbackRepository.stream(
-                        itemId,
-                        DeviceProfileBuilder.build(decoderMimeTypes, StreamingQuality.Original),
-                    )
-            ) {
+            when (val result = playbackRepository.stream(itemId, DeviceProfileBuilder.download(decoderMimeTypes))) {
                 is MqResult.Failure -> {
                     result
                 }
 
                 is MqResult.Success -> {
-                    if (result.value.playMethod == PlayMethod.DirectPlay) {
-                        result
+                    if (result.value.segmented) {
+                        MqResult.Failure(MqError.Client(0, "download: the server gave a playlist, not a file"))
                     } else {
-                        // shortcut: no converted downloads (e.g. Atmos E-AC-3 JOC on a Pixel); #68.
-                        MqResult.Failure(MqError.Client(0, "download: the device cannot play the original"))
+                        result
                     }
                 }
             }

@@ -99,9 +99,32 @@ class StreamResolverTest {
         }
 
     @Test
-    fun `a download that the server would convert fails (no converted downloads)`() =
+    fun `a download asks for the original, or one converted Opus file when the device cannot play it`() =
+        runTest {
+            resolver.downloadStream(itemId)
+
+            assertThat(
+                repository.streamRequests
+                    .single()
+                    .second.transcoding,
+            ).isEqualTo(DeviceProfileBuilder.OPUS_256_FILE)
+        }
+
+    @Test
+    fun `a download the server converts to one file is accepted`() =
         runTest {
             repository.playMethod = PlayMethod.Transcode
+
+            val result = resolver.downloadStream(itemId)
+
+            assertThat((result as MqResult.Success).value.playMethod).isEqualTo(PlayMethod.Transcode)
+        }
+
+    @Test
+    fun `a download the server answers with a playlist fails, a download is one file`() =
+        runTest {
+            repository.playMethod = PlayMethod.Transcode
+            repository.segmented = true
 
             assertThat(resolver.downloadStream(itemId)).isInstanceOf(MqResult.Failure::class.java)
         }

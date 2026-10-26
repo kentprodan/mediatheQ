@@ -7,6 +7,7 @@ import androidx.media3.datasource.DataSourceUtil
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheWriter
+import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.datasource.cache.ContentMetadataMutations
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
@@ -14,6 +15,7 @@ import androidx.media3.test.utils.FakeDataSet
 import androidx.media3.test.utils.FakeDataSource
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.CONVERTED_DOWNLOAD
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -167,7 +169,7 @@ class StreamDataSourceTest {
 
     @Test
     fun `a download reads the original file of its key, with the auth header`() {
-        val source = downloadDataSourceFactory(client, resolver).createDataSource()
+        val source = downloadDataSourceFactory(client, resolver, cache).createDataSource()
 
         source.open(
             DataSpec
@@ -181,9 +183,77 @@ class StreamDataSourceTest {
         assertThat(requests.single().header("Authorization")).isEqualTo("fake")
     }
 
+    private fun openDownload(position: Long = 0) =
+        downloadDataSourceFactory(client, resolver, cache).createDataSource().open(
+            DataSpec
+                .Builder()
+                .setUri("mediatheq://download")
+                .setKey(downloadCacheKey(itemId))
+                .setPosition(position)
+                .build(),
+        )
+
+    @Test
+    fun `a download records whether it is the original or the server's conversion`() {
+        openDownload()
+        assertThat(cache.isConvertedDownload(downloadCacheKey(itemId))).isFalse()
+
+        repository.playMethod = PlayMethod.Transcode
+        openDownload()
+        assertThat(cache.isConvertedDownload(downloadCacheKey(itemId))).isTrue()
+    }
+
+    @Test
+    fun `an original download continues where it stopped`() {
+        openDownload()
+
+        // The fake server cannot answer from a position; what matters is that the source asks it.
+        val failure = runCatching { openDownload(position = 500) }.exceptionOrNull()
+
+        assertThat(failure).isNotInstanceOf(StreamUnavailableException::class.java)
+        assertThat(requests).hasSize(2)
+    }
+
+    @Test
+    fun `a converted download never continues a partial copy, it has to start over`() {
+        repository.playMethod = PlayMethod.Transcode
+
+        assertThrows(StreamUnavailableException::class.java) { openDownload(position = 500) }
+        assertThat(requests).isEmpty()
+    }
+
+    @Test
+    fun `an original never continues a copy that began as a conversion`() {
+        cache.applyContentMetadataMutations(
+            downloadCacheKey(itemId),
+            ContentMetadataMutations().set(CONVERTED_DOWNLOAD, 1L),
+        )
+
+        assertThrows(StreamUnavailableException::class.java) { openDownload(position = 500) }
+        // Refused before asking the server: every automatic retry would open a play session for nothing.
+        assertThat(repository.streamRequests).isEmpty()
+    }
+
+    @Test
+    fun `a converted file of unknown length is complete in the cache with its length, so it seeks offline`() {
+        val key = downloadCacheKey(itemId)
+        val server = FakeDataSet().apply { newDefaultData().setSimulateUnknownLength(true).appendReadData(bytes) }
+        val spec =
+            DataSpec
+                .Builder()
+                .setUri("mediatheq://download")
+                .setKey(key)
+                .build()
+
+        CacheWriter(CacheDataSource(cache, FakeDataSource(server)), spec, null, null).cache()
+
+        assertThat(cache.isCached(key, 0, bytes.size.toLong())).isTrue()
+        assertThat(ContentMetadata.getContentLength(cache.getContentMetadata(key))).isEqualTo(bytes.size.toLong())
+    }
+
     @Test
     fun `a download without a track key fails`() {
-        val source = downloadDataSourceFactory(client, resolver).createDataSource()
+        val source = downloadDataSourceFactory(client, resolver, cache).createDataSource()
 
         assertThrows(
             StreamUnavailableException::class.java,

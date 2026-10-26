@@ -46,6 +46,8 @@ fun DownloadsContentScreenshot() =
                         TrackDownload(track(2, "Ghosts 'n' Stuff"), DownloadState.Downloading(0.42f)),
                         TrackDownload(track(3, "Moar Ghosts"), DownloadState.Downloading(null)),
                         TrackDownload(track(4, "Some Chords"), DownloadState.Queued),
+                        // An Atmos track the phone cannot play as it is (#68).
+                        TrackDownload(track(5, "Animal Rights"), DownloadState.Completed, converted = true),
                     ),
                 ),
                 DownloadedAlbum(

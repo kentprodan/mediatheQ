@@ -195,3 +195,7 @@ Items are added by `/end` and run with `/test`.
 
 ## #70 Open-source licenses screen
 - [ ] Pixel 9: Home gear -> Settings -> About -> Open-source licenses -> mediatheQ first (GPL notice, "Open the project page" opens the GitHub repo), then Material Symbols and the Dolby mark, then the libraries by name; open an Apache library -> its full license text shows; scrolling the whole list is smooth
+
+## #68 Download tracks the device can only play converted (Atmos on Pixel)
+- [ ] Pixel 9: download a Dolby Atmos album (E-AC-3 JOC) -> it completes (no "Download failed"), its rows say "Converted copy"; airplane mode on -> the album plays and seeks; a normal (FLAC/MP3) album downloaded the same way shows no "Converted copy"
+- [ ] Pixel 9: start downloading an Atmos album, turn airplane mode on mid-download -> the running track fails; network back, "Download again" -> it completes and plays

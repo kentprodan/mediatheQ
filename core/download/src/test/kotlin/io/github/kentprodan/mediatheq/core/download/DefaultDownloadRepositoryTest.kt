@@ -3,8 +3,13 @@ package io.github.kentprodan.mediatheq.core.download
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
+import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.CacheWriter
+import androidx.media3.datasource.cache.ContentMetadataMutations
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.offline.DefaultDownloadIndex
@@ -12,10 +17,13 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
+import androidx.media3.test.utils.FakeDataSet
+import androidx.media3.test.utils.FakeDataSource
 import androidx.media3.test.utils.robolectric.RobolectricUtil
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.CONVERTED_DOWNLOAD
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -125,6 +133,71 @@ class DefaultDownloadRepositoryTest {
             val requests = startedIntents().map { it.request() }
             assertThat(requests.map { it.id }).containsExactly(failed.id.toString(), fresh.id.toString()).inOrder()
             assertThat(requests.map { it.customCacheKey }).containsExactly(failed.id.toString(), fresh.id.toString())
+        }
+
+    /** Puts [size] bytes of [track]'s download in the cache, as the server's conversion or its original. */
+    private fun partial(
+        track: Track,
+        converted: Boolean,
+        size: Int = 100,
+    ) {
+        val key = track.id.toString()
+        val server = FakeDataSet().apply { newDefaultData().appendReadData(size) }
+        val spec =
+            DataSpec
+                .Builder()
+                .setUri("mediatheq://download")
+                .setKey(key)
+                .setLength(size.toLong())
+                .build()
+        CacheWriter(CacheDataSource(cache, FakeDataSource(server)), spec, null, null).cache()
+        cache.applyContentMetadataMutations(
+            key,
+            ContentMetadataMutations().set(CONVERTED_DOWNLOAD, if (converted) 1L else 0L),
+        )
+    }
+
+    @Test
+    fun `a converted download says so`() =
+        runTest {
+            partial(done, converted = true)
+            val repository = repository(Download.STATE_COMPLETED to done, Download.STATE_FAILED to failed)
+
+            repository.downloads.test {
+                assertThat(expectMostRecentItem().associate { it.track.id to it.converted })
+                    .containsExactly(done.id, true, failed.id, false)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `downloading a failed download again starts over, whether it was converted or not`() =
+        runTest {
+            partial(failed, converted = true)
+            partial(waiting, converted = false)
+            val repository = repository(Download.STATE_FAILED to failed, Download.STATE_FAILED to waiting)
+
+            repository.download(listOf(failed, waiting))
+
+            assertThat(cache.getCachedBytes(failed.id.toString(), 0, C.LENGTH_UNSET.toLong())).isEqualTo(0)
+            assertThat(cache.getCachedBytes(waiting.id.toString(), 0, C.LENGTH_UNSET.toLong())).isEqualTo(0)
+            assertThat(
+                startedIntents().map { it.request().id },
+            ).containsExactly(failed.id.toString(), waiting.id.toString())
+        }
+
+    @Test
+    fun `a second tap while a failed download starts over does not touch it again`() =
+        runTest {
+            val repository = repository(Download.STATE_FAILED to failed)
+
+            repository.download(listOf(failed))
+            // What the new run already wrote.
+            partial(failed, converted = true)
+            repository.download(listOf(failed))
+
+            assertThat(cache.getCachedBytes(failed.id.toString(), 0, C.LENGTH_UNSET.toLong())).isEqualTo(100)
+            assertThat(startedIntents()).hasSize(1)
         }
 
     @Test

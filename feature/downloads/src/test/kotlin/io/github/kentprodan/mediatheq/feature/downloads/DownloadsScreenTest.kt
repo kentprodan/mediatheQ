@@ -66,6 +66,18 @@ class DownloadsScreenTest {
     }
 
     @Test
+    fun `a converted download says it is a converted copy`() {
+        show(TrackDownload(done, DownloadState.Completed, converted = true))
+        composeRule.onNodeWithText("Converted copy").assertExists()
+    }
+
+    @Test
+    fun `a finished original shows no status`() {
+        show(TrackDownload(done, DownloadState.Completed))
+        composeRule.onNodeWithText("Converted copy").assertDoesNotExist()
+    }
+
+    @Test
     fun `waiting for Wi-Fi is shown on the row`() {
         show(TrackDownload(done, DownloadState.WaitingForWifi))
 

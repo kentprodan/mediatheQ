@@ -6,6 +6,7 @@
     <string name="downloads_empty_body">Download albums, playlists or tracks from their menus to play them without a network.</string>
     <string name="downloads_unknown_album">Unknown album</string>
     <string name="downloads_queued">Queued</string>
+    <string name="downloads_converted">Converted copy</string>
     <string name="downloads_waiting_for_wifi">Waiting for Wi-Fi</string>
     <string name="downloads_downloading">Downloading</string>
     <string name="downloads_downloading_percent">Downloading %1$d%%</string>

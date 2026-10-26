@@ -39,4 +39,6 @@ interface DownloadRepository {
 data class TrackDownload(
     val track: Track,
     val state: DownloadState,
+    /** The server's conversion, as the device cannot play the original (e.g. Dolby Atmos on a Pixel, #68). */
+    val converted: Boolean = false,
 )

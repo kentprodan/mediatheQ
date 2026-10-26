@@ -12,6 +12,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.DownloadSource
 import okhttp3.OkHttpClient
 import java.io.File
@@ -62,5 +63,6 @@ internal object PlaybackCachesModule {
     fun downloadSource(
         okHttpClient: OkHttpClient,
         resolver: StreamResolver,
-    ): DataSource.Factory = downloadDataSourceFactory(okHttpClient, resolver)
+        @DownloadCache cache: Cache,
+    ): DataSource.Factory = downloadDataSourceFactory(okHttpClient, resolver, cache)
 }
