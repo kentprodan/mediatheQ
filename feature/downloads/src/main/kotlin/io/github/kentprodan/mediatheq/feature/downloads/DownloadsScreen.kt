@@ -138,7 +138,12 @@ private fun DownloadRow(
         supportingContent =
             when (val state = download.state) {
                 DownloadState.Completed -> {
-                    null
+                    // The server's conversion (#68): the device cannot play the original, e.g. Dolby Atmos on a Pixel.
+                    if (download.converted) {
+                        { StatusText(stringResource(R.string.downloads_converted)) }
+                    } else {
+                        null
+                    }
                 }
 
                 is DownloadState.Downloading -> {

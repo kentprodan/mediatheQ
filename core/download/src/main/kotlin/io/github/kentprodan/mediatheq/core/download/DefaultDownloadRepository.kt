@@ -11,6 +11,7 @@ import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.scheduler.Requirements
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
+import io.github.kentprodan.mediatheq.core.common.CONVERTED_DOWNLOAD
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
@@ -56,8 +57,8 @@ internal class DefaultDownloadRepository
         @DownloadCache private val cache: Cache,
         libraryRepository: LibraryRepository,
         audioPreferences: AudioPreferencesRepository,
-        @ApplicationScope scope: CoroutineScope,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        @ApplicationScope private val scope: CoroutineScope,
+        @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
     ) : DownloadRepository {
         /** Every download by track: the stored index at start, then the manager's changes. */
@@ -146,7 +147,8 @@ internal class DefaultDownloadRepository
                     .mapNotNull { (id, download) ->
                         val live = current[download.request.id] ?: download
                         val state = downloadState(live.state, live.percentDownloaded, notMet) ?: return@mapNotNull null
-                        TrackDownload(tracks[id] ?: download.fallbackTrack(id), state)
+                        val converted = cache.getContentMetadata(download.request.id).get(CONVERTED_DOWNLOAD, 0L) == 1L
+                        TrackDownload(tracks[id] ?: download.fallbackTrack(id), state, converted)
                     }.sortedWith(ALBUM_ORDER)
             }.distinctUntilChanged()
                 .flowOn(defaultDispatcher)
@@ -164,16 +166,20 @@ internal class DefaultDownloadRepository
             tracks
                 // Downloading again would restart a finished or running download; only failed ones retry.
                 .filter { known[it.id]?.state.let { state -> state == null || state == Download.STATE_FAILED } }
-                .forEach { track ->
-                    val key = track.id.toString()
-                    val request =
-                        DownloadRequest
-                            .Builder(key, DOWNLOAD_URI)
-                            .setCustomCacheKey(key)
-                            .setData(track.title.encodeToByteArray())
-                            .build()
-                    DownloadService.sendAddDownload(context, MediatheqDownloadService::class.java, request, false)
-                }
+                .forEach { track -> scope.launch(ioDispatcher) { start(track) } }
+        }
+
+        private fun start(track: Track) {
+            val key = track.id.toString()
+            // A conversion cannot continue mid-file (#68): its partial copy goes, so the retry starts over.
+            if (cache.getContentMetadata(key).get(CONVERTED_DOWNLOAD, 0L) == 1L) cache.removeResource(key)
+            val request =
+                DownloadRequest
+                    .Builder(key, DOWNLOAD_URI)
+                    .setCustomCacheKey(key)
+                    .setData(track.title.encodeToByteArray())
+                    .build()
+            DownloadService.sendAddDownload(context, MediatheqDownloadService::class.java, request, false)
         }
 
         override fun remove(ids: List<MediaId>) {
