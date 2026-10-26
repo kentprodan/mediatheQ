@@ -27,6 +27,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0020](0020-saved-queue-flag-in-shared-preferences.md) | A saved-queue flag in SharedPreferences for media buttons | Accepted |
 | [0021](0021-offline-mode-filters-the-library.md) | Offline mode filters the library in the repositories | Accepted |
 | [0022](0022-open-source-licenses-at-build-time.md) | Open-source licenses generated at build time with AboutLibraries | Accepted |
+| [0024](0024-converted-downloads.md) | Converted downloads are one progressive Opus file | Accepted |
 
 Template for new ADRs:
 
