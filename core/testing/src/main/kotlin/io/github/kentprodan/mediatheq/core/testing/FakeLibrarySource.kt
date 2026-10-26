@@ -13,10 +13,14 @@ import io.github.kentprodan.mediatheq.core.server.LibraryPage
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 /**
  * [LibrarySource] over in-memory lists. [calls] records every request as "albums@500"; [failAt] fails the call with
- * that number (1-based) with [failure]; [pauseAt] suspends that call until [resume] completes.
+ * that number (1-based) with [failure]; [throwAt] throws [thrown] there instead (a bug, not a server answer);
+ * [pauseAt] suspends that call until [resume] completes, ignoring cancellation with [pauseIgnoresCancel] (like a blocking
+ * HTTP call already sent); [holdAt] does the same for a second call, until [release].
  */
 class FakeLibrarySource : LibrarySource {
     var albumArtists: List<Artist> = emptyList()
@@ -28,7 +32,13 @@ class FakeLibrarySource : LibrarySource {
     val calls = mutableListOf<String>()
     var failAt: Int? = null
     var failure: MqError = MqError.Network
+    var throwAt: Int? = null
+    var thrown: Exception = IllegalStateException("unexpected answer")
     var pauseAt: Int? = null
+    var pauseIgnoresCancel = false
+    var holdAt: Int? = null
+    val held = CompletableDeferred<Unit>()
+    val release = CompletableDeferred<Unit>()
     val paused = CompletableDeferred<Unit>()
     val resume = CompletableDeferred<Unit>()
 
@@ -101,8 +111,13 @@ class FakeLibrarySource : LibrarySource {
         calls += "$name@$startIndex"
         if (calls.size == pauseAt) {
             paused.complete(Unit)
-            resume.await()
+            if (pauseIgnoresCancel) withContext(NonCancellable) { resume.await() } else resume.await()
         }
+        if (calls.size == holdAt) {
+            held.complete(Unit)
+            release.await()
+        }
+        if (calls.size == throwAt) throw thrown
         if (calls.size == failAt) return MqResult.Failure(failure)
         val total = if (name in shortListings) all.size + 1 else all.size
         return MqResult.Success(LibraryPage(all.drop(startIndex).take(limit), total))

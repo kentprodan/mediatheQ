@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import org.junit.After
@@ -319,6 +320,55 @@ class DefaultLibrarySyncRepositoryTest {
         }
 
     @Test
+    fun `R51 an unexpected failure in a sync does not stop the account watch, so signing out still wipes`() =
+        runTest(dispatcher) {
+            fillSource()
+            signIn()
+            val repository = repository()
+            source.throwAt = 4
+            repository.start()
+            val failed = repository.status.first { it is SyncStatus.Failed } as SyncStatus.Failed
+            assertThat(failed.error).isInstanceOf(MqError.Unknown::class.java)
+            assertThat(count("track_staging")).isGreaterThan(0)
+
+            accountStore.clear()
+            repository.status.first { it == SyncStatus.Idle(null) }
+            advanceUntilIdle()
+
+            ALL_TABLES.forEach { assertThat(count(it)).isEqualTo(0) }
+        }
+
+    @Test
+    fun `R51 signing out and in again while a request is under way never mixes the two syncs`() =
+        runTest(dispatcher) {
+            fillSource()
+            signIn()
+            val repository = repository()
+            // The fourth request (tracks@500) is a blocking HTTP call already sent: cancelling does not stop it.
+            source.pauseAt = 4
+            source.pauseIgnoresCancel = true
+            // The next request (whichever sync makes it) waits too, so the wipe lands while a sync is mid-way.
+            source.holdAt = 5
+            repository.start()
+            source.paused.await()
+
+            accountStore.clear()
+            runCurrent()
+            signIn()
+            val second = async { repository.sync() }
+            runCurrent()
+            source.resume.complete(Unit)
+            runCurrent()
+            source.release.complete(Unit)
+            advanceUntilIdle()
+
+            assertThat(second.await()).isEqualTo(MqResult.Success(Unit))
+            assertThat(count("track")).isEqualTo(1_200)
+            assertThat(count("album")).isEqualTo(2)
+            STAGING_TABLES.forEach { assertThat(count(it)).isEqualTo(0) }
+        }
+
+    @Test
     fun `a playlist that is gone or hidden is kept empty and does not block the sync`() =
         runTest(dispatcher) {
             fillSource(trackCount = 10)
@@ -459,3 +509,29 @@ class DefaultLibrarySyncRepositoryTest {
             assertThat(count("sync_state")).isEqualTo(0)
         }
 }
+
+private val STAGING_TABLES =
+    listOf(
+        "artist_staging",
+        "album_staging",
+        "album_artist_staging",
+        "track_staging",
+        "track_artist_staging",
+        "playlist_staging",
+        "playlist_entry_staging",
+    )
+
+/** Every library table a sign-out empties (issue #51). */
+private val ALL_TABLES =
+    STAGING_TABLES +
+        listOf(
+            "artist",
+            "album",
+            "album_artist",
+            "track",
+            "track_artist",
+            "playlist",
+            "playlist_entry",
+            "search",
+            "sync_state",
+        )
