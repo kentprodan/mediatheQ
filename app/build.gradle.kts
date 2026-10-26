@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.mediatheq.android.screenshot)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.aboutlibraries.android)
+    alias(libs.plugins.baselineprofile)
 }
 
 // The open-source licenses screen (#70, ADR 0022): built without network, from what the app ships.
@@ -32,6 +33,19 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // The builds :baselineprofile generates and measures with (#71, ADR 0023). Declared here (the plugin then uses them
+    // as they are) to sign them with the debug key and make them a separate app on the phone.
+    buildTypes {
+        listOf("benchmarkRelease", "nonMinifiedRelease").forEach { name ->
+            create(name) {
+                initWith(getByName("release"))
+                signingConfig = signingConfigs.getByName("debug")
+                applicationIdSuffix = ".benchmark"
+                matchingFallbacks += "release"
+            }
+        }
     }
 }
 
@@ -88,6 +102,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    // Installs the baseline profile on release installs that do not come from the Play Store (#71).
+    implementation(libs.androidx.profileinstaller)
+    baselineProfile(projects.baselineprofile)
     testImplementation(projects.core.testing)
     testImplementation(projects.core.ui)
     testImplementation(libs.kotlinx.serialization.json)

@@ -36,6 +36,10 @@ gradlePlugin {
             id = "mediatheq.android.screenshot"
             implementationClass = "AndroidScreenshotConventionPlugin"
         }
+        register("androidTest") {
+            id = "mediatheq.android.test"
+            implementationClass = "AndroidTestConventionPlugin"
+        }
         register("androidHilt") {
             id = "mediatheq.android.hilt"
             implementationClass = "AndroidHiltConventionPlugin"
