@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.screenshot) apply false
     alias(libs.plugins.room3) apply false
+    alias(libs.plugins.aboutlibraries.android) apply false
     alias(libs.plugins.spotless)
 }
 

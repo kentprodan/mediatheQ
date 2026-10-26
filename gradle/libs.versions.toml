@@ -6,6 +6,8 @@ minSdk = "31"
 jdk = "21"
 
 agp = "9.4.1"
+# Open-source licenses, generated at build time (ADR 0022)
+aboutLibraries = "15.3.0"
 kotlin = "2.4.21"
 ksp = "2.3.12"
 hilt = "2.60.1"
@@ -106,6 +108,7 @@ hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 room3 = { id = "androidx.room3", version.ref = "room3" }
 screenshot = { id = "com.android.compose.screenshot", version.ref = "screenshot" }
+aboutlibraries-android = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutLibraries" }
 
 mediatheq-android-application = { id = "mediatheq.android.application" }
 mediatheq-android-library = { id = "mediatheq.android.library" }
