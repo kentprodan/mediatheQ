@@ -20,10 +20,14 @@ import io.github.kentprodan.mediatheq.core.server.LibraryPage
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
 import io.github.kentprodan.mediatheq.core.server.ServerConnection
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,7 +69,17 @@ class DefaultLibrarySyncRepository
         private val restartedSteps = mutableSetOf<SyncStep>()
         private var running: Deferred<MqResult<Unit>>? = null
 
-        override suspend fun sync(): MqResult<Unit> = join().await()
+        override suspend fun sync(): MqResult<Unit> {
+            val job = join()
+            return try {
+                job.await()
+            } catch (e: CancellationException) {
+                // The caller itself cancelled: pass it on. Otherwise signing out cancelled the sync: a plain failure, so
+                // whoever waited (e.g. live sync's loop) keeps going (#51).
+                currentCoroutineContext().ensureActive()
+                MqResult.Failure(MqError.Unauthorized)
+            }
+        }
 
         /** Like [sync], but never joins a sync that was already running: it may have read past the change. */
         internal suspend fun syncAfterChange(): MqResult<Unit> {
@@ -105,14 +119,18 @@ class DefaultLibrarySyncRepository
                 running?.takeIf { it.isActive } ?: scope.async { runSync() }.also { running = it }
             }
 
-        /** Cancels any sync, then forgets the library. Not cancellable itself: a half-done wipe would leak data. */
+        /**
+         * Cancels any sync, then forgets the library. Not cancellable itself: a half-done wipe would leak data. Holds the
+         * lock throughout, so no sync starts until the library is gone: one started meanwhile (a quick sign-in again)
+         * would have its first pages wiped and swap in the rest as a partial library (#51).
+         */
         private suspend fun wipe() =
             withContext(NonCancellable) {
-                val job = lock.withLock { running }
-                job?.cancel()
-                job?.join()
-                userData.forgetPending()
-                syncDao.clearAll()
+                lock.withLock {
+                    running?.cancelAndJoin()
+                    userData.forgetPending()
+                    syncDao.clearAll()
+                }
                 mutableStatus.value = SyncStatus.Idle(null)
             }
 
@@ -137,6 +155,12 @@ class DefaultLibrarySyncRepository
                     fetchAll(signedIn(account))
                 } catch (_: SQLiteException) {
                     MqResult.Failure(MqError.Storage)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // A bug, not a server answer: it fails this sync only. Thrown on, it would also stop [start] from
+                    // following the account, and the next sign-out would leave the library behind (#51).
+                    MqResult.Failure(MqError.Unknown(e))
                 }
             mutableStatus.value =
                 try {
