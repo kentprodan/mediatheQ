@@ -30,7 +30,7 @@ Items are added by `/end` and run with `/test`.
 - [x] Pixel 9 on home Wi-Fi: fresh install, sign in -> the first sync runs by itself; measure the time from sign-in until it finishes (JVM check on the dev PC: 5.8 s) and note it in issue #9 - passed 2026-10-25
 - [x] Pixel 9: after the sync, Library counts match the server: 455 album artists, 989 albums, 2729 tracks, 11 playlists (642 entries). Until #10 there is no Library screen: check with App Inspection -> Database Inspector on `mediatheq.db` - passed 2026-10-25
 - [x] Pixel 9: start a fresh sync, swipe the app away mid-sync, reopen within an hour -> the sync continues and ends with the same counts - passed 2026-10-25
-- [ ] Pixel 9: Home -> Log out -> Database Inspector shows every table empty - failed 2026-10-25, see #51
+- [x] Pixel 9: Home -> Log out -> Database Inspector shows every table empty - passed 2026-10-26 (via #51)
 
 ## #10 Library screen: albums grid, artists, playlists, songs
 - [ ] Pixel 9, **release build** (`.\gradlew.bat installRelease` or a signed R8 build), synced library (989 albums): Library -> Albums, fling the grid top to bottom and back with 2, 3 and 4 columns -> no visible stutter; covers fade in from their BlurHash
@@ -95,7 +95,7 @@ Items are added by `/end` and run with `/test`.
 ## #18 Favorites, ratings and live updates via WebSocket
 - [x] Pixel 9: app open on an album page -> in Jellyfin web mark that album and one of its tracks as favorite -> within a few seconds the album heart fills and the track menu says "Remove from favorites" - passed 2026-10-25
 - [x] Pixel 9: play a track, tap the heart and give it 4 stars in Now Playing, let it play to the end (or skip) -> in Jellyfin web (or `GET /UserItems/{id}/UserData`) the track is still a favorite with Rating 8 (R2) - passed 2026-10-25
-- [ ] Pixel 9 + server: rate a track 3 stars, then tap the 3rd star again -> the stars clear in the app; the server's user data shows Rating 0 or none, and Jellyfin web shows it unrated (R14 confirmation)
+- [x] Pixel 9 + server: rate a track 3 stars, then tap the 3rd star again -> the stars clear in the app; the server's user data shows Rating 0 or none, and Jellyfin web shows it unrated (R14 confirmation) (rating checked indirectly: Jellyfin web does not show user ratings) - passed 2026-10-26
 - [x] Pixel 9: airplane mode, tap the heart on an album -> it fills, then goes back with "Could not save that change"; same with Now Playing open (message shows over the player) - passed 2026-10-25 (owner wants offline changes kept, see #56)
 - [x] Pixel 9: app open, restart the Jellyfin server -> after it is back, a favorite set in Jellyfin web still reaches the app within a few seconds (reconnect) - passed 2026-10-25
 - [x] Pixel 9: press Home with nothing playing, wait 1 min, change a favorite in Jellyfin web -> it is not live (socket closed); open the app again -> socket reconnects; with music playing in the background the change shows live - passed 2026-10-25
@@ -147,7 +147,7 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9 on mobile data: Quality on mobile data 128 kbps, play a FLAC album -> Jellyfin's dashboard shows a 128 kbps Opus transcode; back on Wi-Fi with Original -> the next track direct plays
 - [ ] Pixel 9: turn Download on Wi-Fi only off, on mobile data download an album -> it downloads (on: it says Waiting for Wi-Fi)
 - [ ] Pixel 9: Material You on -> colors follow the wallpaper at once, and after a cold start with no Iris flash; off -> Iris
-- [ ] Pixel 9: Ratings -> Half stars: on Now Playing tap a star (whole), again (half), again (cleared); the rating shows the same in Jellyfin's web; Off hides the stars on Now Playing, album and artist pages
+- [x] Pixel 9: Ratings -> Half stars: on Now Playing tap a star (whole), again (half), again (cleared); the rating shows the same in Jellyfin's web; Off hides the stars on Now Playing, album and artist pages (rating checked indirectly: Jellyfin web does not show user ratings) - passed 2026-10-26
 - [ ] Pixel 9: Volume normalization Off -> a quiet and a loud album play at their own loudness; Album -> evened out, without restarting playback
 
 ## #38 Seekable streams on metered networks (HLS transcode)
@@ -158,18 +158,23 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: an Atmos M4A on Wi-Fi Original (converted to stereo) can be seeked
 
 ## #41 Shuffle and repeat toggles on Now Playing
-- [ ] Pixel 9: on Now Playing tap Shuffle on and off, then Repeat three times (off -> all -> one -> off) -> a subtle haptic tick on each tap; none with Settings -> Sound & vibration -> Vibration & haptics -> Touch feedback off
-- [ ] Pixel 9: play an album from track 4, turn Shuffle on -> track 4 keeps playing, Next goes through every other track once, the queue screen shows track 4 first
-- [ ] Pixel 9: set Repeat one, force-stop the app, reopen -> the repeat button still shows repeat one
+- [x] Pixel 9: on Now Playing tap Shuffle on and off, then Repeat three times (off -> all -> one -> off) -> a subtle haptic tick on each tap; none with Settings -> Sound & vibration -> Vibration & haptics -> Touch feedback off - passed 2026-10-26
+- [x] Pixel 9: play an album from track 4, turn Shuffle on -> track 4 keeps playing, Next goes through every other track once, the queue screen shows track 4 first - passed 2026-10-26
+- [x] Pixel 9: set Repeat one, force-stop the app, reopen -> the repeat button still shows repeat one - passed 2026-10-26
 
 ## #43 Playback resumption from the system (media card, headphone Play)
-- [ ] Pixel 9: play something, pause, reboot the phone -> after unlock the media card shows the last track (with its cover when the server was reachable) -> Play on the card resumes it at the saved position
-- [ ] Pixel 9 + Bluetooth headphones: playback paused, app swiped away from Recents -> Play on the headphones resumes the last queue at the saved track and position
-- [ ] Pixel 9 + Bluetooth headphones: log out, swipe the app away, press Play on the headphones -> nothing starts and the app does not crash
+- [x] Pixel 9: play something, pause, reboot the phone -> after unlock the media card shows the last track (with its cover when the server was reachable) -> Play on the card resumes it at the saved position - passed 2026-10-26
+- [x] Pixel 9 + Bluetooth headphones: playback paused, app swiped away from Recents -> Play on the headphones resumes the last queue at the saved track and position - passed 2026-10-26
+- [x] Pixel 9 + Bluetooth headphones: log out, swipe the app away, press Play on the headphones -> nothing starts and the app does not crash - passed 2026-10-26
 
 ## #51 Log out leaves sync staging rows and the sync checkpoint in the database
-- [ ] Pixel 9: fresh sign-in on home Wi-Fi, let the first sync start, force-stop and reopen (sync resumes), Home -> Log out -> `adb exec-out run-as io.github.kentprodan.mediatheq cat databases/mediatheq.db` (+ `-wal`, `-shm`): every table empty, including the `*_staging` tables and `sync_state`
-- [ ] Pixel 9: during a sync, Log out and sign in again at once as the same user -> the library fills completely (album and track counts match the server), no partial library
+- [x] Pixel 9: fresh sign-in on home Wi-Fi, let the first sync start, force-stop and reopen (sync resumes), Home -> Log out -> `adb exec-out run-as io.github.kentprodan.mediatheq cat databases/mediatheq.db` (+ `-wal`, `-shm`): every table empty, including the `*_staging` tables and `sync_state` - passed 2026-10-26
+- [x] Pixel 9: during a sync, Log out and sign in again at once as the same user -> the library fills completely (album and track counts match the server), no partial library - passed 2026-10-26
 
 ## #52 Library filters flash as chips on cold start when Connected buttons is chosen
-- [ ] Pixel 9: Library -> view menu -> Connected buttons; close the app from Recents, reopen, go to Library -> the filters show as connected buttons from the first frame, no chip row flashes (the bar may appear together with the list)
+- [x] Pixel 9: Library -> view menu -> Connected buttons; close the app from Recents, reopen, go to Library -> the filters show as connected buttons from the first frame, no chip row flashes (the bar may appear together with the list) - passed 2026-10-26
+
+## #56 Keep favorite and rating changes made offline and send them when back online
+- [x] Pixel 9: airplane mode on, favorite an album and rate a track (no error message, both stay); turn the network back on with the app in the foreground -> Jellyfin web shows both within a few seconds (a downloaded track instead of an album: offline only downloads show) (rating checked indirectly: Jellyfin web does not show user ratings) - passed 2026-10-26
+- [x] Pixel 9: airplane mode on, favorite a track, force-stop the app, reopen it (heart still filled), network back on -> Jellyfin web shows the favorite - passed 2026-10-26
+- [x] Pixel 9: airplane mode on, favorite a track, Home -> Log out, sign in again with network -> the track is not a favorite in the app or in Jellyfin web (logged out on mobile data with Tailscale off: offline the settings cannot be reached, see #80) - passed 2026-10-26

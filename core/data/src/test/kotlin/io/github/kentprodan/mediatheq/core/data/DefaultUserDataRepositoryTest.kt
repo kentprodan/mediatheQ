@@ -130,9 +130,9 @@ class DefaultUserDataRepositoryTest {
         runTest(dispatcher) {
             val repository = repository()
             repository.setFavorite(track, true)
-            sink.failure = MqError.Network
+            sink.failure = MqError.Server(500)
 
-            assertThat(repository.setRating(track, 10)).isEqualTo(MqResult.Failure(MqError.Network))
+            assertThat(repository.setRating(track, 10)).isEqualTo(MqResult.Failure(MqError.Server(500)))
             assertThat(stored(track)).isEqualTo(rated(6.0).copy(isFavorite = true))
         }
 
@@ -319,6 +319,201 @@ class DefaultUserDataRepositoryTest {
             runCurrent()
 
             assertThat(sink.calls).isEmpty()
+        }
+
+    private suspend fun waiting() = dao.pendingChanges("s", "user-1").map { it.itemId }
+
+    @Test
+    fun `offline a favorite stays, with no message, and waits for the server`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Network
+
+            assertThat(repository.setFavorite(album, true)).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(stored(album)?.isFavorite).isTrue()
+            assertThat(repository.error.value).isNull()
+            assertThat(waiting()).containsExactly("al1")
+        }
+
+    @Test
+    fun `waiting changes are sent oldest first once the server is back`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Network
+            repository.setFavorite(album, true)
+            repository.setRating(track, 8)
+            sink.failure = null
+            sink.calls.clear()
+
+            repository.flushPending()
+
+            assertThat(sink.calls).containsExactly("favorite:al1:true", "rating:t1:8.0").inOrder()
+            assertThat(waiting()).isEmpty()
+        }
+
+    @Test
+    fun `the last offline change to an item wins`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Network
+            repository.setFavorite(track, true)
+            repository.setRating(track, 4)
+            repository.setFavorite(track, false)
+            repository.setRating(track, 8)
+            sink.failure = null
+            sink.calls.clear()
+
+            repository.flushPending()
+
+            assertThat(sink.calls).containsExactly("favorite:t1:false", "rating:t1:8.0").inOrder()
+            assertThat(stored(track)).isEqualTo(rated(8.0))
+        }
+
+    @Test
+    fun `a waiting change the server refuses is undone with the message`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Network
+            repository.setFavorite(album, true)
+            sink.failure = MqError.Forbidden
+
+            repository.flushPending()
+
+            assertThat(stored(album)?.isFavorite).isFalse()
+            assertThat(repository.error.value).isEqualTo(MqError.Forbidden)
+            assertThat(waiting()).isEmpty()
+        }
+
+    @Test
+    fun `a half refused change undoes only the refused part`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Network
+            repository.setFavorite(track, true)
+            repository.setRating(track, 10)
+            sink.failure = null
+            sink.ratingFailure = MqError.Forbidden
+
+            repository.flushPending()
+
+            assertThat(stored(track)).isEqualTo(rated(6.0).copy(isFavorite = true))
+            assertThat(sink.serverState[track]?.isFavorite).isTrue()
+        }
+
+    @Test
+    fun `losing the network midway keeps the rest waiting`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Network
+            repository.setFavorite(album, true)
+            repository.setRating(track, 8)
+            sink.failure = null
+            sink.ratingFailure = MqError.Network
+
+            repository.flushPending()
+
+            assertThat(sink.serverState[album]?.isFavorite).isTrue()
+            assertThat(waiting()).containsExactly("t1")
+            assertThat(stored(track)?.rating).isEqualTo(8.0)
+            assertThat(repository.error.value).isNull()
+        }
+
+    @Test
+    fun `a change made while its item is being sent stays waiting and goes next`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Network
+            repository.setFavorite(track, true)
+            sink.failure = null
+            sink.gate = CompletableDeferred()
+            val flush = async { repository.flushPending() }
+            runCurrent()
+
+            val rating = async { repository.setRating(track, 8) }
+            runCurrent()
+            sink.gate!!.complete(Unit)
+            flush.await()
+
+            assertThat(rating.await()).isEqualTo(MqResult.Success(Unit))
+            assertThat(sink.serverState[track]).isEqualTo(UserData(isFavorite = true, rating = 8.0))
+            assertThat(waiting()).isEmpty()
+        }
+
+    @Test
+    fun `waiting changes survive a restart and its sync, then are sent`() =
+        runTest(dispatcher) {
+            sink.failure = MqError.Network
+            repository().setFavorite(track, true)
+            sink.failure = null
+            sink.calls.clear()
+
+            // The app starts again: a new repository over the same database, then a sync fetched before the change.
+            val restarted = repository()
+            restarted.onSyncStarted()
+            database.syncDao().stageTracks(
+                listOf(TrackStaging(TrackEntity("s", "t1", "Pe-o margine", "Pe-o margine", userData = rated(6.0)))),
+            )
+            database.syncDao().swap(2, "s", "user-1")
+            restarted.reapplyOverrides()
+            assertThat(stored(track)?.isFavorite).isTrue()
+
+            restarted.flushPending()
+            assertThat(sink.calls).containsExactly("favorite:t1:true")
+        }
+
+    @Test
+    fun `waiting changes of another account are not sent`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Network
+            repository.setFavorite(track, true)
+            sink.failure = null
+            sink.calls.clear()
+            accountStore.save(StoredAccount("http://nas:8096", server, "Home", "user-2", "Ion", accessToken = "other"))
+
+            repository.flushPending()
+
+            assertThat(sink.calls).isEmpty()
+        }
+
+    @Test
+    fun `signing out while waiting changes are sent stops sending them`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Network
+            repository.setFavorite(album, true)
+            repository.setRating(track, 8)
+            sink.failure = null
+            sink.calls.clear()
+            sink.gate = CompletableDeferred()
+            val flush = async { repository.flushPending() }
+            runCurrent()
+
+            // Log out: the account goes, then the wipe; the old token is revoked on the server.
+            accountStore.clear()
+            database.syncDao().clearAll()
+            sink.failure = MqError.Unauthorized
+            sink.gate!!.complete(Unit)
+            flush.await()
+
+            assertThat(sink.calls).containsExactly("favorite:al1:true")
+            assertThat(session.session.value).isNotEqualTo(SessionState.LoggedOut(LogoutReason.SessionExpired))
+        }
+
+    @Test
+    fun `a 401 on the favorite does not send the rating`() =
+        runTest(dispatcher) {
+            val repository = repository()
+            sink.failure = MqError.Network
+            repository.setFavorite(track, true)
+            repository.setRating(track, 8)
+            sink.failure = MqError.Unauthorized
+            sink.calls.clear()
+
+            repository.flushPending()
+
+            assertThat(sink.calls).containsExactly("favorite:t1:true")
         }
 
     @Test

@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.PendingUserDataEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryStaging
@@ -29,7 +30,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 3,
+    version = 4,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -49,12 +50,15 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
         SyncStateEntity::class,
         QueueEntryEntity::class,
         QueueStateEntity::class,
+        PendingUserDataEntity::class,
     ],
     autoMigrations = [
         // 2: the saved play queue (#14) and an index on track.album_id.
         AutoMigration(from = 1, to = 2),
         // 3: the saved repeat mode (#41).
         AutoMigration(from = 2, to = 3),
+        // 4: favorite and rating changes waiting for the server (#56).
+        AutoMigration(from = 3, to = 4),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

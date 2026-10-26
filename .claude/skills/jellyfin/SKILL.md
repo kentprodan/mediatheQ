@@ -88,6 +88,7 @@ Jellyfin 12 disables legacy authorization by default (also on upgraded servers).
 - Favorite and rating: `POST /UserItems/{itemId}/UserData?userId=...` with only the changed field (`{"IsFavorite": true}` or `{"Rating": 8.0}`); fields left out keep their value. `Rating` is 0-10; the app shows it in half stars (1-10, one half star = 1; whole-star mode sends even values), and 0 means unrated (R14). `/UserItems/{itemId}/Rating` is the like/dislike flag (`Likes`), not the rating: never used. Clearing sends `Rating: 0` (R14).
 - `/UserFavoriteItems/{itemId}` and `/UserPlayedItems/{itemId}` exist too; played state is not written yet.
 - Optimistic update in Room, then server call; revert on failure (`DefaultUserDataRepository`). A change waiting for the server stays on top of socket echoes and sync swaps.
+- Offline (#56): a change that fails with `MqError.Network` waits in `pending_user_data` (one merged row per item, last change wins) and is sent oldest first with the next change or when the WebSocket connects. Any HTTP answer settles it: 2xx deletes the row, 4xx/5xx undoes only the refused field and shows the message, 401 signs out.
 - See regression R2 (rating overwritten during playback).
 
 ## 8. Playlists
