@@ -79,17 +79,25 @@ class LibraryViewModel
         }
 
         val uiState: StateFlow<LibraryUiState> =
-            combine(filter, preferencesRepository.preferences, items, sync, shownFailure) {
+            combine(
+                filter,
+                preferencesRepository.preferences,
+                items,
+                combine(sync, libraryRepository.offline, ::Pair),
+                shownFailure,
+            ) {
                 filter,
                 preferences,
                 (itemsFilter, items),
-                (status, everSynced),
+                (sync, offline),
                 shown,
                 ->
+                val (status, everSynced) = sync
                 val content =
                     when {
                         itemsFilter != filter -> LibraryContent.Loading
                         items.isNotEmptyContent() -> items
+                        offline -> LibraryContent.NothingDownloaded
                         else -> emptyContent(status, everSynced)
                     }
                 val failureShownAsContent = content is LibraryContent.Offline || content is LibraryContent.Error
@@ -100,8 +108,11 @@ class LibraryViewModel
                     sort = preferences.sortFor(filter),
                     content = content,
                     refreshing = status is SyncStatus.Running,
+                    // Offline mode shows downloads: a sync failing for lack of network is expected, not news.
                     refreshError =
-                        (status as? SyncStatus.Failed)?.takeIf { !failureShownAsContent && it != shown }?.error,
+                        (status as? SyncStatus.Failed)
+                            ?.takeIf { !failureShownAsContent && !offline && it != shown }
+                            ?.error,
                 )
             }.stateIn(
                 viewModelScope,

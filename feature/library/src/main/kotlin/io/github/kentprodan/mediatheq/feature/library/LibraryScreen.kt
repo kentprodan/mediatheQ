@@ -61,6 +61,7 @@ import io.github.kentprodan.mediatheq.core.ui.AlbumCard
 import io.github.kentprodan.mediatheq.core.ui.ArtistRow
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
+import io.github.kentprodan.mediatheq.core.ui.NothingDownloaded
 import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
@@ -71,10 +72,19 @@ internal fun LibraryRoute(
     onOpenArtist: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
     onNewPlaylist: () -> Unit,
+    onOpenDownloads: () -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    LibraryScreen(state, viewModel::onAction, onOpenAlbum, onOpenArtist, onOpenPlaylist, onNewPlaylist = onNewPlaylist)
+    LibraryScreen(
+        state,
+        viewModel::onAction,
+        onOpenAlbum,
+        onOpenArtist,
+        onOpenPlaylist,
+        onNewPlaylist = onNewPlaylist,
+        onOpenDownloads = onOpenDownloads,
+    )
 }
 
 /** Stateless Library tab: top bar with sort and view menus, filter bar, pull-to-refresh list or grid. */
@@ -87,6 +97,7 @@ fun LibraryScreen(
     onOpenPlaylist: (MediaId) -> Unit,
     modifier: Modifier = Modifier,
     onNewPlaylist: () -> Unit = {},
+    onOpenDownloads: () -> Unit = {},
 ) {
     // One scroll state per tab, kept above the content so switching tabs and back keeps each position.
     val albumsState = rememberLazyGridState()
@@ -137,6 +148,7 @@ fun LibraryScreen(
                     onOpenAlbum = onOpenAlbum,
                     onOpenArtist = onOpenArtist,
                     onOpenPlaylist = onOpenPlaylist,
+                    onOpenDownloads = onOpenDownloads,
                 )
             }
         }
@@ -159,11 +171,16 @@ private fun LibraryContentView(
     onOpenAlbum: (MediaId) -> Unit,
     onOpenArtist: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
+    onOpenDownloads: () -> Unit,
 ) {
     val listPadding = PaddingValues(bottom = MediatheqSpacing.l)
     when (val content = state.content) {
         LibraryContent.Loading -> {
             MqLoadingIndicator(Modifier.fillMaxSize())
+        }
+
+        LibraryContent.NothingDownloaded -> {
+            ScrollableEmptyState { NothingDownloaded(onOpenDownloads) }
         }
 
         LibraryContent.Empty -> {

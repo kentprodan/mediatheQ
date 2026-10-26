@@ -53,11 +53,17 @@ class HomeViewModel
             }.flowOn(defaultDispatcher)
 
         val uiState: StateFlow<HomeUiState> =
-            combine(sections, sync) { content, (status, everSynced) ->
+            combine(sections, sync, libraryRepository.offline) { content, (status, everSynced), offline ->
                 when {
                     content != null -> content
+
+                    // Before the sync states: offline, a failed or unfinished sync is not what is missing.
+                    offline -> HomeUiState.NothingDownloaded
+
                     everSynced -> HomeUiState.Empty
+
                     status is SyncStatus.Failed -> HomeUiState.Error(status.error)
+
                     else -> HomeUiState.FirstSync
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState.Loading)

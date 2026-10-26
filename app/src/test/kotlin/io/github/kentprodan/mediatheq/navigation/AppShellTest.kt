@@ -38,20 +38,11 @@ class AppShellTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private lateinit var navigator: TabNavigator
-
     @Composable
-    private fun Shell(offline: Boolean = false) {
+    private fun Shell() {
         MediatheqTheme {
-            val navigator = rememberTabNavigator().also { navigator = it }
-            val entries =
-                remember(navigator) {
-                    entryProvider {
-                        placeholders(navigator)
-                        entry<SettingsKey> { Text("Settings page") }
-                    }
-                }
-            AppShell(navigator, entries, offline = offline)
+            val navigator = rememberTabNavigator()
+            AppShell(navigator, remember(navigator) { placeholderEntries(navigator) })
         }
     }
 
@@ -64,60 +55,6 @@ class AppShellTest {
     private fun pressBack() {
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
         composeRule.waitForIdle()
-    }
-
-    @Test
-    fun `offline the tabs show the offline state, and its button opens Downloads, which works`() {
-        composeRule.setContent { Shell(offline = true) }
-        composeRule.onNodeWithText("You are offline").assertExists()
-
-        composeRule.onNodeWithText("Open Downloads").performClick()
-
-        composeRule.onNodeWithText("You are offline").assertDoesNotExist()
-        composeRule.onNode(hasText("Downloads") and hasClickAction()).assertIsSelected()
-    }
-
-    @Test
-    fun `offline the gear opens Settings on the current tab, and back returns to the offline state`() {
-        composeRule.setContent { Shell(offline = true) }
-        composeRule.onNodeWithText("Library").performClick()
-
-        composeRule.onNodeWithContentDescription("Settings").performClick()
-
-        composeRule.onNodeWithText("Settings page").assertExists()
-        assertThat(navigator.stack(TopLevelTab.Library).last()).isEqualTo(SettingsKey)
-        pressBack()
-        composeRule.onNodeWithText("You are offline").assertExists()
-    }
-
-    @Test
-    fun `Settings open when the network drops stays on screen`() {
-        var offline by mutableStateOf(false)
-        composeRule.setContent { Shell(offline = offline) }
-        composeRule.runOnUiThread { navigator.navigateTo(SettingsKey) }
-        composeRule.onNodeWithText("Settings page").assertExists()
-
-        offline = true
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Settings page").assertExists()
-        composeRule.onNodeWithText("You are offline").assertDoesNotExist()
-    }
-
-    @Test
-    fun `offline, back still pops the tab`() {
-        var offline by mutableStateOf(false)
-        composeRule.setContent { Shell(offline = offline) }
-        openLibraryDetail()
-        offline = true
-        composeRule.waitForIdle()
-
-        pressBack()
-        offline = false
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Library 1").assertDoesNotExist()
-        composeRule.onNodeWithText("Open detail").assertExists()
     }
 
     @Test

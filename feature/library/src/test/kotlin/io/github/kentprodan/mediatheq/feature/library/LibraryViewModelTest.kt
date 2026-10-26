@@ -341,6 +341,28 @@ class LibraryViewModelTest {
         }
 
     @Test
+    fun `offline with nothing downloaded for the tab says so, whatever the sync did`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.offline.value = true
+            val viewModel = viewModel(SyncStatus.Failed(MqError.Network, null))
+            library.albums.value = emptyList()
+
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.NothingDownloaded)
+        }
+
+    @Test
+    fun `offline the downloads show, and a sync failing for lack of network is no message`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.offline.value = true
+            val viewModel = viewModel()
+
+            sync.status.value = SyncStatus.Failed(MqError.Network, day(10))
+
+            assertThat(viewModel.ids()).isNotEmpty()
+            assertThat(viewModel.uiState.value.refreshError).isNull()
+        }
+
+    @Test
     fun `the songs tab loads tracks only when opened`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel = viewModel()

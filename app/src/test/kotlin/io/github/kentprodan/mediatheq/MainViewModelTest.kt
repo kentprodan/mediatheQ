@@ -7,7 +7,6 @@ import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.playback.PlaybackError
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
-import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
@@ -22,11 +21,10 @@ class MainViewModelTest {
 
     private val repository = FakeSessionRepository()
     private val userData = FakeUserDataRepository()
-    private val network = FakeNetworkMonitor()
     private val sync = FakeLibrarySyncRepository()
     private val libraryPreferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
-    private val viewModel by lazy { MainViewModel(repository, userData, network, sync, libraryPreferences, playback) }
+    private val viewModel by lazy { MainViewModel(repository, userData, sync, libraryPreferences, playback) }
 
     @Test
     fun `the session is unknown until read, then follows the repository`() =
@@ -61,16 +59,6 @@ class MainViewModelTest {
 
         assertThat(viewModel.playbackError.value).isNull()
     }
-
-    @Test
-    fun `online follows the network`() =
-        runTest {
-            viewModel.online.test {
-                assertThat(awaitItem()).isTrue()
-                network.online.value = false
-                assertThat(awaitItem()).isFalse()
-            }
-        }
 
     @Test
     fun `local network access granted now syncs the library at once`() =

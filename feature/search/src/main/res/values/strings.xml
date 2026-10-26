@@ -8,6 +8,7 @@
     <string name="search_start_body">Artists, albums, songs and playlists. Accents are optional.</string>
     <string name="search_no_results_title">No results</string>
     <string name="search_no_results_body">Nothing in your library matches “%1$s”.</string>
+    <string name="search_no_downloads_body">Offline mode: nothing downloaded matches “%1$s”.</string>
     <string name="search_error_title">Search failed</string>
     <string name="search_error_body">The library on this phone could not be read.</string>
     <string name="search_retry">Retry</string>

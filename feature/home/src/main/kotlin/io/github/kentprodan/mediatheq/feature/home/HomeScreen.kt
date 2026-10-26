@@ -42,6 +42,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
+import io.github.kentprodan.mediatheq.core.ui.NothingDownloaded
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 
@@ -49,10 +50,11 @@ import io.github.kentprodan.mediatheq.core.ui.TrackRow
 internal fun HomeRoute(
     onOpenAlbum: (MediaId) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenDownloads: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreen(state, viewModel::onAction, onOpenAlbum, onOpenSettings)
+    HomeScreen(state, viewModel::onAction, onOpenAlbum, onOpenSettings, onOpenDownloads)
 }
 
 /** Stateless Home tab: Shuffle all, then album rows and favorite songs; empty sections are left out. */
@@ -62,6 +64,7 @@ fun HomeScreen(
     onAction: (HomeAction) -> Unit,
     onOpenAlbum: (MediaId) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenDownloads: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -92,6 +95,10 @@ fun HomeScreen(
                         actionLabel = stringResource(R.string.home_sync_now),
                         onAction = { onAction(HomeAction.Sync) },
                     )
+                }
+
+                HomeUiState.NothingDownloaded -> {
+                    NothingDownloaded(onOpenDownloads)
                 }
 
                 is HomeUiState.Error -> {

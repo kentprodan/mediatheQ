@@ -10,7 +10,7 @@ import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
 @Composable
 private fun Home(state: HomeUiState) =
     MediatheqTheme {
-        HomeScreen(state, {}, {}, {})
+        HomeScreen(state, {}, {}, {}, {})
     }
 
 private fun album(n: Int) =
@@ -55,6 +55,12 @@ fun HomeEmptyScreenshot() = Home(HomeUiState.Empty)
 @MqPreviews
 @Composable
 fun HomeOfflineScreenshot() = Home(HomeUiState.Error(MqError.Network))
+
+/** Offline mode with nothing downloaded (#63); with downloads, Home shows them like [HomeFullScreenshot]. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeNothingDownloadedScreenshot() = Home(HomeUiState.NothingDownloaded)
 
 @PreviewTest
 @MqPreviews

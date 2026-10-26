@@ -31,6 +31,7 @@ import io.github.kentprodan.mediatheq.feature.settings.settingsEntry
 import io.github.kentprodan.mediatheq.navigation.AppShell
 import io.github.kentprodan.mediatheq.navigation.OnboardingHost
 import io.github.kentprodan.mediatheq.navigation.ThemeShowcaseKey
+import io.github.kentprodan.mediatheq.navigation.TopLevelTab
 import io.github.kentprodan.mediatheq.navigation.placeholders
 import io.github.kentprodan.mediatheq.navigation.rememberTabNavigator
 
@@ -70,16 +71,17 @@ class MainActivity : ComponentActivity() {
                             val snackbar = remember { SnackbarHostState() }
                             UserDataErrorMessages(viewModel.userDataError, viewModel::dismissUserDataError, snackbar)
                             PlaybackErrorMessages(viewModel.playbackError, viewModel::dismissPlaybackError, snackbar)
+                            val openDownloads = { navigator.select(TopLevelTab.Downloads) }
                             val entries =
                                 remember(navigator) {
                                     entryProvider {
-                                        homeEntry(navigator)
+                                        homeEntry(navigator, onOpenDownloads = openDownloads)
                                         settingsEntry(
                                             navigator,
                                             versionName = versionName(),
                                             onOpenShowcase = { navigator.navigateTo(ThemeShowcaseKey) },
                                         )
-                                        libraryEntry(navigator)
+                                        libraryEntry(navigator, onOpenDownloads = openDownloads)
                                         albumEntry(navigator)
                                         artistEntry(navigator)
                                         playlistEntry(navigator)
@@ -95,13 +97,11 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
                                 }
-                            val online by viewModel.online.collectAsStateWithLifecycle()
                             NowPlayingHost(
                                 content = { miniPlayer ->
                                     AppShell(
                                         navigator,
                                         entries,
-                                        offline = !online,
                                         miniPlayer = miniPlayer,
                                         snackbarHostState = snackbar,
                                     )
