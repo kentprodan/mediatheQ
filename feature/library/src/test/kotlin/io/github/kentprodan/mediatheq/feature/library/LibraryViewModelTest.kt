@@ -176,6 +176,17 @@ class LibraryViewModelTest {
         }
 
     @Test
+    fun `R52 a tab restored after process death shows from the first frame`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val savedState = SavedStateHandle()
+            viewModel(savedState = savedState).onAction(LibraryAction.SelectFilter(LibraryFilter.Artists))
+
+            val restored = viewModel(savedState = savedState, collect = false)
+
+            assertThat(restored.uiState.value.filter).isEqualTo(LibraryFilter.Artists)
+        }
+
+    @Test
     fun `starts on albums by name, two columns, chips`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel = viewModel()

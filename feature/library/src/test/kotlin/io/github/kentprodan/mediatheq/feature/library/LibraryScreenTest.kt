@@ -78,6 +78,7 @@ class LibraryScreenTest {
             }
         }
 
+        composeRule.onNodeWithText("Library").assertExists()
         composeRule.onNodeWithText("Songs").assertDoesNotExist()
     }
 }

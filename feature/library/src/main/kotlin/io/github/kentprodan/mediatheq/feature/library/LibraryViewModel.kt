@@ -103,7 +103,12 @@ class LibraryViewModel
                     refreshError =
                         (status as? SyncStatus.Failed)?.takeIf { !failureShownAsContent && it != shown }?.error,
                 )
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState(filterStyle = null))
+            }.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                // The restored tab, not the default one, from the first frame (its top bar differs).
+                LibraryUiState(filter = filter.value, filterStyle = null),
+            )
 
         fun onAction(action: LibraryAction) {
             when (action) {
