@@ -33,7 +33,7 @@ class AddToPlaylistViewModel
 
         val uiState: StateFlow<AddToPlaylistUiState> =
             combine(
-                libraryRepository.playlists(),
+                libraryRepository.allPlaylists(),
                 creating,
                 busy,
                 error,

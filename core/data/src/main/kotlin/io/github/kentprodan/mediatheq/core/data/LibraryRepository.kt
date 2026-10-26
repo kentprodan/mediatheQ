@@ -46,6 +46,9 @@ interface LibraryRepository {
 
     fun playlists(): Flow<List<Playlist>>
 
+    /** Every playlist, also in offline mode: adding to one needs the server, not downloads (Add to playlist). */
+    fun allPlaylists(): Flow<List<Playlist>>
+
     /** Every track with its artists, by sort name. */
     fun tracks(): Flow<List<Track>>
 

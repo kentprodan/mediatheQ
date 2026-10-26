@@ -70,6 +70,9 @@ class DefaultLibraryRepository
                     libraryDao.artistTracks(artistId.serverId.value, artistId.itemId, all, downloaded)
                 }.map { rows -> rows.map { it.toDomain() } }
 
+        override fun allPlaylists(): Flow<List<Playlist>> =
+            libraryDao.playlists(all = true, downloaded = emptyList()).map { rows -> rows.map { it.toDomain() } }
+
         override fun playlists(): Flow<List<Playlist>> =
             filter.of(libraryDao::playlists).map { rows -> rows.map { it.toDomain() } }
 

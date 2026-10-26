@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
@@ -84,6 +85,16 @@ class DefaultLibraryRepositoryTest {
                 preferences.setOfflineMode(false)
                 assertThat(awaitItem().map { it.title }).hasSize(3)
             }
+        }
+
+    @Test
+    fun `add to playlist still sees every playlist in offline mode`() =
+        runTest {
+            database.playlistDao().replace(PlaylistEntity("s", "p1", "Drum", "Drum"), emptyList())
+            preferences.setOfflineMode(true)
+
+            assertThat(repository.playlists().first()).isEmpty()
+            assertThat(repository.allPlaylists().first().map { it.name }).containsExactly("Drum")
         }
 
     @Test
