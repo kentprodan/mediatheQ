@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.navigation
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,7 +16,10 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.navigation3.runtime.entryProvider
+import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.navigation.SettingsKey
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingLayout
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingUiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,11 +38,20 @@ class AppShellTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
+    private lateinit var navigator: TabNavigator
+
     @Composable
     private fun Shell(offline: Boolean = false) {
         MediatheqTheme {
-            val navigator = rememberTabNavigator()
-            AppShell(navigator, remember(navigator) { placeholderEntries(navigator) }, offline = offline)
+            val navigator = rememberTabNavigator().also { navigator = it }
+            val entries =
+                remember(navigator) {
+                    entryProvider {
+                        placeholders(navigator)
+                        entry<SettingsKey> { Text("Settings page") }
+                    }
+                }
+            AppShell(navigator, entries, offline = offline)
         }
     }
 
@@ -62,6 +75,33 @@ class AppShellTest {
 
         composeRule.onNodeWithText("You are offline").assertDoesNotExist()
         composeRule.onNode(hasText("Downloads") and hasClickAction()).assertIsSelected()
+    }
+
+    @Test
+    fun `offline the gear opens Settings on the current tab, and back returns to the offline state`() {
+        composeRule.setContent { Shell(offline = true) }
+        composeRule.onNodeWithText("Library").performClick()
+
+        composeRule.onNodeWithContentDescription("Settings").performClick()
+
+        composeRule.onNodeWithText("Settings page").assertExists()
+        assertThat(navigator.stack(TopLevelTab.Library).last()).isEqualTo(SettingsKey)
+        pressBack()
+        composeRule.onNodeWithText("You are offline").assertExists()
+    }
+
+    @Test
+    fun `Settings open when the network drops stays on screen`() {
+        var offline by mutableStateOf(false)
+        composeRule.setContent { Shell(offline = offline) }
+        composeRule.runOnUiThread { navigator.navigateTo(SettingsKey) }
+        composeRule.onNodeWithText("Settings page").assertExists()
+
+        offline = true
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Settings page").assertExists()
+        composeRule.onNodeWithText("You are offline").assertDoesNotExist()
     }
 
     @Test
