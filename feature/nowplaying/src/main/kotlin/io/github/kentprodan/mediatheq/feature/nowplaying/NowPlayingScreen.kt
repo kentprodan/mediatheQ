@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayerCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqSeekBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
@@ -47,6 +48,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqTransportCon
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.ui.formatDuration
 import io.github.kentprodan.mediatheq.core.ui.formatFrequency
 import kotlin.time.Duration
@@ -154,11 +156,18 @@ private fun NowPlayingContent(
             onPlayPause = { onAction(NowPlayingAction.TogglePlayPause) },
             onNext = { onAction(NowPlayingAction.Next) },
         )
-        // The secondary row (expressive-design section 5); output comes in its issue.
+        // The secondary row (expressive-design section 5); output comes in its issue. Shuffle and repeat on the edges,
+        // under previous and next.
         Row(
             Modifier.fillMaxWidth().padding(bottom = MediatheqSpacing.l),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
+            MqIconToggle(
+                checked = state.shuffle,
+                onClick = { onAction(NowPlayingAction.SetShuffle(!state.shuffle)) },
+                icon = MqIcons.Shuffle,
+                contentDescription = stringResource(R.string.nowplaying_shuffle),
+            )
             MqFavoriteToggle(state.isFavorite, onToggle = { onAction(NowPlayingAction.SetFavorite(it)) })
             IconButton(onClick = onOpenLyrics) {
                 Icon(MqIcons.Lyrics, contentDescription = stringResource(R.string.nowplaying_lyrics_open))
@@ -166,6 +175,24 @@ private fun NowPlayingContent(
             IconButton(onClick = onOpenQueue) {
                 Icon(MqIcons.QueueMusic, contentDescription = stringResource(R.string.nowplaying_queue_open))
             }
+            // The mode shown is the one cycled from, so quick taps step through every mode.
+            val nextRepeat = state.repeatMode.next()
+            MqIconToggle(
+                checked = state.repeatMode != RepeatMode.Off,
+                onClick = { onAction(NowPlayingAction.SetRepeatMode(nextRepeat)) },
+                // Repeat one has its own icon; all and off differ in shape too, not by color alone.
+                icon = if (state.repeatMode == RepeatMode.One) MqIcons.RepeatOne else MqIcons.Repeat,
+                contentDescription = stringResource(R.string.nowplaying_repeat),
+                turnsOn = nextRepeat != RepeatMode.Off,
+                stateDescription =
+                    stringResource(
+                        when (state.repeatMode) {
+                            RepeatMode.Off -> R.string.nowplaying_repeat_off
+                            RepeatMode.All -> R.string.nowplaying_repeat_all
+                            RepeatMode.One -> R.string.nowplaying_repeat_one
+                        },
+                    ),
+            )
         }
     }
 }

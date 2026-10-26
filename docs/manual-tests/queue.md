@@ -156,3 +156,8 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: pause a converted track for 3+ minutes, then play -> it resumes (or restarts the track cleanly), no endless buffering
 - [ ] Pixel 9: repeat one on a converted track -> it replays from the start; turning Wi-Fi off/on mid-track keeps playing
 - [ ] Pixel 9: an Atmos M4A on Wi-Fi Original (converted to stereo) can be seeked
+
+## #41 Shuffle and repeat toggles on Now Playing
+- [ ] Pixel 9: on Now Playing tap Shuffle on and off, then Repeat three times (off -> all -> one -> off) -> a subtle haptic tick on each tap; none with Settings -> Sound & vibration -> Vibration & haptics -> Touch feedback off
+- [ ] Pixel 9: play an album from track 4, turn Shuffle on -> track 4 keeps playing, Next goes through every other track once, the queue screen shows track 4 first
+- [ ] Pixel 9: set Repeat one, force-stop the app, reopen -> the repeat button still shows repeat one

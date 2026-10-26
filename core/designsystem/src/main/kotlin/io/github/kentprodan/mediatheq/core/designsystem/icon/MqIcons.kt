@@ -91,6 +91,12 @@ object MqIcons {
     val Shuffle: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_shuffle)
 
+    val Repeat: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_repeat)
+
+    val RepeatOne: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_repeat_one)
+
     val PlayFilled: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_play_arrow_filled)
 

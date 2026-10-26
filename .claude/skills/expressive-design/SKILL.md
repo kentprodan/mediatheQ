@@ -131,7 +131,9 @@ fun MediatheqTheme(
 | Disc headers (multi-disc albums) | `DiscHeader` in `:core:ui` (titleSmall, primary, heading semantics) | Only when the album has more than one disc. |
 | Cover flight grid -> album | `Modifier.mqSharedCover(sharedCoverKey(id))` in `:core:designsystem` | Slow spatial spec; inert in previews and tests. |
 | Like / Download toggles | Toggle buttons (icon) | Shape morphs on checked. |
-| Favorite (Now Playing, album / artist header) | `MqFavoriteToggle`: `FilledTonalIconToggleButton` + `IconButtonDefaults.toggleableShapes()` | Round off, squarish on; filled heart when on; toggle haptics. Track menus use `FavoriteMenuItem` in `:core:ui`. |
+| Icon toggles (favorite, shuffle, repeat) | `MqIconToggle`: `FilledTonalIconToggleButton` + `IconButtonDefaults.toggleableShapes()` | Round off, squarish on; ToggleOn haptics when the tap turns it on, ToggleOff otherwise; optional state description. |
+| Favorite (Now Playing, album / artist header) | `MqFavoriteToggle` (an `MqIconToggle`) | Filled heart when on. Track menus use `FavoriteMenuItem` in `:core:ui`. |
+| Shuffle / Repeat (Now Playing) | `MqIconToggle` | Ends of the secondary row (shuffle left, repeat right). Repeat cycles off -> all -> one from the mode shown; `MqIcons.RepeatOne` for one; state description "Off" / "All tracks" / "This track". |
 | Rating (Now Playing, album / artist header) | `MqStarRating(halfStars, allowHalf)`: five `IconButton` stars | Value in half stars (1-10, the server's 0-10). Filled / half (`StarHalf`, auto-mirrored) / outlined stars, filled in primary. Whole stars: tapping the current star clears it. Half stars: tap = whole, again = half, again = cleared. Each star says what a tap does; the row has a state description ("3.5 of 5 stars"). Hidden when the rating setting is Off. No haptics (plain taps). |
 | Player transport controls | `MqTransportControls`: `ButtonGroup` of large icon buttons (`customItem` + `animateWidth`) | Play/Pause is the largest (Wide), round while paused, squarish while playing. |
 | Context actions on long-press | Expressive `DropdownMenu` or `ModalBottomSheet` | Sheet for > 5 actions. |

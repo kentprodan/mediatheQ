@@ -9,12 +9,23 @@ import kotlin.random.Random
 
 /**
  * The player the session exposes: while shuffle is on, entries added through "play next" play right after the current
- * one and "add to queue" entries play last (see [shuffleWithInserted]), instead of landing at random places.
+ * one and "add to queue" entries play last (see [shuffleWithInserted]), instead of landing at random places. Shuffle
+ * turned on mid-queue goes on with the playing track and plays all the others after it (see [shuffleFrom]).
  */
 @UnstableApi
 internal class QueuePlayer(
     private val player: ExoPlayer,
 ) : ForwardingPlayer(player) {
+    override fun setShuffleModeEnabled(shuffleModeEnabled: Boolean) {
+        // Before the change, so its event already sees the new order. (Album Shuffle sets the mode before its new
+        // queue, which then gets an order of its own: reshuffling the old one here costs nothing.)
+        if (shuffleModeEnabled && !this.shuffleModeEnabled && mediaItemCount > 0) {
+            val order = shuffleFrom(currentMediaItemIndex, mediaItemCount, Random)
+            player.setShuffleOrder(DefaultShuffleOrder(order.toIntArray(), Random.nextLong()))
+        }
+        super.setShuffleModeEnabled(shuffleModeEnabled)
+    }
+
     override fun addMediaItem(mediaItem: MediaItem) = addMediaItems(mediaItemCount, listOf(mediaItem))
 
     override fun addMediaItem(

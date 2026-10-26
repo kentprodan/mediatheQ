@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import kotlin.time.Duration
 
 /** What the player is doing, for screens (architecture skill, section 7). The position comes separately, sampled. */
@@ -17,8 +18,9 @@ data class PlayerUiModel(
     val hasPrevious: Boolean = false,
     /** The queue entry playing, to mark it in [PlaybackConnection.queue]. */
     val currentEntryId: String? = null,
-    /** Shuffle on: the queue shows the shuffled order and cannot be reordered (#41 adds the toggle). */
+    /** Shuffle on: the queue shows the shuffled order and cannot be reordered. */
     val shuffle: Boolean = false,
+    val repeatMode: RepeatMode = RepeatMode.Off,
     val output: AudioOutputInfo = AudioOutputInfo(),
 )
 

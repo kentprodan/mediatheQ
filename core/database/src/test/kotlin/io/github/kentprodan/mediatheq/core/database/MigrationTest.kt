@@ -49,4 +49,23 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `2 to 3 keeps the saved queue state with repeat off`() =
+        runTest {
+            helper.createDatabase(2).apply {
+                execSQL("INSERT INTO queue_state (id, current_position, position_ms, shuffle) VALUES (0, 2, 5000, 1)")
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(3)
+
+            connection.prepare("SELECT current_position, shuffle, repeat_mode FROM queue_state").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(2)
+                assertThat(it.getLong(1)).isEqualTo(1)
+                assertThat(it.getLong(2)).isEqualTo(0)
+            }
+            connection.close()
+        }
 }

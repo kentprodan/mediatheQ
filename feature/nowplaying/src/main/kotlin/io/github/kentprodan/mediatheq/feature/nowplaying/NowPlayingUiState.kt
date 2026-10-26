@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.Lyrics
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import kotlin.time.Duration
 
 /** What the mini player and Now Playing show. */
@@ -24,6 +25,7 @@ sealed interface NowPlayingUiState {
         val currentEntryId: String? = null,
         /** Shuffled queues cannot be reordered. */
         val shuffle: Boolean = false,
+        val repeatMode: RepeatMode = RepeatMode.Off,
         val isFavorite: Boolean = false,
         /** 1-10 half stars, `null` when unrated. */
         val halfStars: Int? = null,
@@ -69,6 +71,14 @@ sealed interface NowPlayingAction {
         val position: Duration,
     ) : NowPlayingAction
 
+    data class SetShuffle(
+        val enabled: Boolean,
+    ) : NowPlayingAction
+
+    data class SetRepeatMode(
+        val mode: RepeatMode,
+    ) : NowPlayingAction
+
     /** Ask for the playing track's lyrics again after an error. */
     data object RetryLyrics : NowPlayingAction
 
@@ -95,3 +105,11 @@ sealed interface NowPlayingAction {
         val to: Int,
     ) : NowPlayingAction
 }
+
+/** The mode the repeat button moves to: off -> all -> one -> off. */
+internal fun RepeatMode.next(): RepeatMode =
+    when (this) {
+        RepeatMode.Off -> RepeatMode.All
+        RepeatMode.All -> RepeatMode.One
+        RepeatMode.One -> RepeatMode.Off
+    }

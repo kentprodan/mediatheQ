@@ -16,6 +16,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -149,6 +150,14 @@ internal class MediaControllerPlaybackConnection
 
         override fun seekTo(position: Duration) {
             command { it.seekTo(position.inWholeMilliseconds) }
+        }
+
+        override fun setShuffle(enabled: Boolean) {
+            command { it.shuffleModeEnabled = enabled }
+        }
+
+        override fun setRepeatMode(mode: RepeatMode) {
+            command { it.repeatMode = mode.toPlayerRepeatMode() }
         }
 
         /** Runs [block] with the connected controller on the main thread; a failed connection is retried next time. */

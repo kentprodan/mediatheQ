@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.LyricLine
 import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
@@ -124,9 +125,9 @@ class NowPlayingViewModelTest {
     }
 
     @Test
-    fun `the playing entry and shuffle reach the queue screen`() =
+    fun `the playing entry, shuffle and repeat reach the screens`() =
         runTest {
-            playback.state.value = playing.copy(currentEntryId = "e2", shuffle = true)
+            playback.state.value = playing.copy(currentEntryId = "e2", shuffle = true, repeatMode = RepeatMode.One)
 
             NowPlayingViewModel(
                 playback,
@@ -138,8 +139,26 @@ class NowPlayingViewModelTest {
                 val state = awaitItem() as NowPlayingUiState.Playing
                 assertThat(state.currentEntryId).isEqualTo("e2")
                 assertThat(state.shuffle).isTrue()
+                assertThat(state.repeatMode).isEqualTo(RepeatMode.One)
             }
         }
+
+    @Test
+    fun `shuffle and repeat reach the player`() {
+        val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences)
+
+        viewModel.onAction(NowPlayingAction.SetShuffle(true))
+        viewModel.onAction(NowPlayingAction.SetRepeatMode(RepeatMode.One))
+
+        assertThat(playback.commands).containsExactly("shuffle true", "repeat One").inOrder()
+    }
+
+    @Test
+    fun `repeat cycles off, all, one, off`() {
+        assertThat(RepeatMode.entries.map { it.next() })
+            .containsExactly(RepeatMode.All, RepeatMode.One, RepeatMode.Off)
+            .inOrder()
+    }
 
     @Test
     fun `the queue comes from the player`() {

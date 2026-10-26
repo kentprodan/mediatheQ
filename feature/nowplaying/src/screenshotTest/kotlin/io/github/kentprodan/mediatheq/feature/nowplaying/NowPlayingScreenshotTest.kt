@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.preview.rememberPreviewC
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqCoverTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.coverColorScheme
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -101,4 +102,20 @@ fun NowPlayingAtmosConvertedScreenshot() {
 @Composable
 fun NowPlayingBitPerfectScreenshot() {
     MediatheqTheme { Screen(playing.copy(bitPerfectSampleRateHz = 96_000)) }
+}
+
+/** Shuffle on and repeat all: both toggles squarish and filled. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingShuffleRepeatAllScreenshot() {
+    MediatheqTheme { Screen(playing.copy(shuffle = true, repeatMode = RepeatMode.All)) }
+}
+
+/** Repeat one: its own icon. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingRepeatOneScreenshot() {
+    MediatheqTheme { Screen(playing.copy(repeatMode = RepeatMode.One)) }
 }

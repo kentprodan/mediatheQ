@@ -7,6 +7,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -28,9 +29,25 @@ internal fun Player.toPlayerUiModel(output: AudioOutputInfo = AudioOutputInfo())
         hasPrevious = item != null,
         currentEntryId = current?.entryId(),
         shuffle = shuffleModeEnabled,
+        repeatMode = repeatMode.toRepeatMode(),
         output = output,
     )
 }
+
+internal fun Int.toRepeatMode(): RepeatMode =
+    when (this) {
+        Player.REPEAT_MODE_ALL -> RepeatMode.All
+        Player.REPEAT_MODE_ONE -> RepeatMode.One
+        else -> RepeatMode.Off
+    }
+
+@Player.RepeatMode
+internal fun RepeatMode.toPlayerRepeatMode(): Int =
+    when (this) {
+        RepeatMode.Off -> Player.REPEAT_MODE_OFF
+        RepeatMode.All -> Player.REPEAT_MODE_ALL
+        RepeatMode.One -> Player.REPEAT_MODE_ONE
+    }
 
 /** The output state as the service publishes it in the session extras. */
 internal fun AudioOutputInfo.toBundle(): Bundle =

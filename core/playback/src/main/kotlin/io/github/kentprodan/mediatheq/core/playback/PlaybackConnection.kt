@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.Duration
@@ -38,6 +39,11 @@ interface PlaybackConnection {
     fun previous()
 
     fun seekTo(position: Duration)
+
+    /** Turns shuffle on (the playing track goes on, the rest follows in a new random order) or off. */
+    fun setShuffle(enabled: Boolean)
+
+    fun setRepeatMode(mode: RepeatMode)
 
     /** The queue in play order; collecting it connects to the player. Changes only when the queue does. */
     val queue: StateFlow<List<QueueItem>>

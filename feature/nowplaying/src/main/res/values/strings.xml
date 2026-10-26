@@ -18,6 +18,11 @@
     <string name="nowplaying_lyrics_error">Couldn\'t load lyrics</string>
     <string name="nowplaying_lyrics_error_body">Check the connection to the server and try again.</string>
     <string name="nowplaying_lyrics_retry">Try again</string>
+    <string name="nowplaying_shuffle">Shuffle</string>
+    <string name="nowplaying_repeat">Repeat</string>
+    <string name="nowplaying_repeat_off">Off</string>
+    <string name="nowplaying_repeat_all">All tracks</string>
+    <string name="nowplaying_repeat_one">This track</string>
     <string name="nowplaying_bit_perfect_badge">Bit-perfect · %1$s</string>
     <string name="nowplaying_atmos_unavailable">Dolby Atmos not available</string>
     <string name="nowplaying_atmos_stereo">Playing a stereo version</string>

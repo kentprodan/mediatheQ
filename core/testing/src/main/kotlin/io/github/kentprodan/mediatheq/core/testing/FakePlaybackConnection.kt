@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.testing
 
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
@@ -45,6 +46,14 @@ class FakePlaybackConnection : PlaybackConnection {
 
     override fun seekTo(position: Duration) {
         commands += "seekTo $position"
+    }
+
+    override fun setShuffle(enabled: Boolean) {
+        commands += "shuffle $enabled"
+    }
+
+    override fun setRepeatMode(mode: RepeatMode) {
+        commands += "repeat $mode"
     }
 
     override val queue = MutableStateFlow<List<QueueItem>>(emptyList())
