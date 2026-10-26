@@ -25,11 +25,15 @@ private const val LIBRARY_TIMEOUT_MS = 5 * 60_000L
  */
 fun MacrobenchmarkScope.signInIfNeeded() {
     if (device.wait(Until.hasObject(By.text("Library")), 5_000)) return
+    // Android 17: on a fresh install the app first asks for local network access (#58), then Android does.
+    device.findObject(By.text("Allow access to your home network"))?.let {
+        device.findObject(By.text("Allow")).click()
+        device.wait(Until.findObject(By.res(LOCAL_NETWORK_ALLOW)), UI_TIMEOUT_MS)?.click()
+    }
+    if (device.wait(Until.hasObject(By.text("Library")), 5_000)) return
     check(device.wait(Until.hasObject(By.text("Connect")), UI_TIMEOUT_MS)) { "Neither the app nor onboarding showed" }
     device.findObject(By.clazz(EDIT_TEXT)).text = argument("benchmarkServer")
     device.findObject(By.text("Connect")).click()
-    // Android 17 asks before an app may reach the local network (the server on the LAN).
-    device.wait(Until.findObject(By.res(LOCAL_NETWORK_ALLOW)), 5_000)?.click()
     check(device.wait(Until.hasObject(By.text("Sign in")), UI_TIMEOUT_MS)) { "The server was not reached" }
     val (user, password) = device.findObjects(By.clazz(EDIT_TEXT))
     user.text = argument("benchmarkUser")
