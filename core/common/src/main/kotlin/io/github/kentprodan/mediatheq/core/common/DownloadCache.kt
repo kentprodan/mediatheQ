@@ -9,3 +9,9 @@ import javax.inject.Qualifier
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class DownloadCache
+
+/**
+ * Content metadata of a download in the [DownloadCache]: 1 when the file is the server's conversion (the device cannot
+ * play the original, #68), 0 for the original. Written by the download source, read for the Downloads tab.
+ */
+const val CONVERTED_DOWNLOAD = "mediatheq.converted"

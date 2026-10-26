@@ -7,9 +7,11 @@ import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.ContentMetadataMutations
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
+import io.github.kentprodan.mediatheq.core.common.CONVERTED_DOWNLOAD
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
@@ -82,21 +84,39 @@ internal fun streamDataSourceFactory(
 }
 
 /**
- * Data source for downloads: a download's cache key (see [downloadCacheKey]) becomes the original file's URL with the
- * auth header. Downloads never touch the player's streams.
+ * Data source for downloads: a download's cache key (see [downloadCacheKey]) becomes the URL of the original file, or of
+ * its conversion when the device cannot play it (#68), with the auth header; [cache] (the download cache) records which
+ * one in the download's [CONVERTED_DOWNLOAD] metadata. Downloads never touch the player's streams.
  */
 @UnstableApi
 internal fun downloadDataSourceFactory(
     okHttpClient: OkHttpClient,
     resolver: StreamResolver,
+    cache: Cache,
 ): DataSource.Factory =
     ResolvingDataSource.Factory(OkHttpDataSource.Factory(okHttpClient)) { dataSpec ->
+        val key =
+            dataSpec.key ?: throw StreamUnavailableException(MqError.Client(0, "download: no track id"))
         val itemId =
-            dataSpec.key?.let { runCatching { MediaId.parse(it) }.getOrNull() }
+            runCatching { MediaId.parse(key) }.getOrNull()
                 ?: throw StreamUnavailableException(MqError.Client(0, "download: no track id"))
         val stream = awaitStream { resolver.downloadStream(itemId) }
+        val converted = stream.playMethod != PlayMethod.DirectPlay
+        // A conversion is made anew by each request, with no length and no ranges (R12): it never continues a partial
+        // copy, and an original never continues a converted one. Downloading again starts over.
+        if (dataSpec.position > 0 && (converted || cache.isConvertedDownload(key))) {
+            throw StreamUnavailableException(MqError.Client(0, "download: a converted copy cannot continue"))
+        }
+        cache.applyContentMetadataMutations(
+            key,
+            ContentMetadataMutations().set(CONVERTED_DOWNLOAD, if (converted) 1L else 0L),
+        )
         dataSpec.withUri(stream.url.toUri()).withAdditionalHeaders(runBlocking { resolver.headers() })
     }
+
+/** Whether the download [key] in this download cache is (or began as) the server's conversion. */
+@UnstableApi
+internal fun Cache.isConvertedDownload(key: String): Boolean = getContentMetadata(key).get(CONVERTED_DOWNLOAD, 0L) == 1L
 
 /**
  * A download's key in the download cache: its track id. Downloads (`:core:download`) use [MediaId.toString] as
