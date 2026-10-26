@@ -211,7 +211,7 @@ If an element is not in this table, pick the closest M3 component, then add a ro
 
 - One `MqEmptyState(icon, title, body, action?)` component for all screens.
 - Errors: inline message with retry button; snackbar only for transient failures.
-- Offline: Downloads tab works fully; other tabs show the offline empty state.
+- Offline: Downloads tab works fully; other tabs show the offline empty state under a top bar whose gear opens Settings. Settings and its pages need no network and stay usable offline, so Log out is always reachable.
 
 ## 6. Accessibility (non-negotiable)
 
