@@ -56,10 +56,14 @@ internal val COPIED_ASSETS =
 
 /**
  * The licenses list: the app, then the copied assets, then every library of the build's report (AboutLibraries JSON,
- * ADR 0022) by name.
+ * ADR 0022) by name, each with its NOTICE from [noticesJson] (`{"group:name": text}`, #87) when it has one.
  */
-internal fun licenseEntries(reportJson: String): List<LicenseEntry> {
+internal fun licenseEntries(
+    reportJson: String,
+    noticesJson: String,
+): List<LicenseEntry> {
     val report = json.decodeFromString<Report>(reportJson)
+    val notices = json.decodeFromString<Map<String, String>>(noticesJson)
     val assets =
         COPIED_ASSETS.map { asset ->
             LicenseEntry(
@@ -82,6 +86,7 @@ internal fun licenseEntries(reportJson: String): List<LicenseEntry> {
                     licenseName = licenses.map { it.name }.ifEmpty { library.licenses }.joinToString(" / "),
                     licenseText = licenses.mapNotNull { it.content }.joinToString("\n\n").ifEmpty { null },
                     url = library.website,
+                    notice = notices[library.uniqueId],
                 )
             }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
     val appText = listOfNotNull(APP_ENTRY.licenseText, report.licenses[APP_LICENSE]?.content).joinToString("\n\n")

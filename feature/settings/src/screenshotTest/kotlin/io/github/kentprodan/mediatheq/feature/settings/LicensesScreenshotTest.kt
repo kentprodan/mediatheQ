@@ -9,6 +9,8 @@ private const val MIT_TEXT =
     "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated " +
         "documentation files (the \"Software\"), to deal in the Software without restriction."
 
+private const val NOTICE_TEXT = "# Notices for Media3\n\nThis content is produced and maintained by the project."
+
 private val entries =
     listOf(
         APP_ENTRY,
@@ -40,6 +42,24 @@ private fun Licenses(openId: String? = null) =
 @MqPreviews
 @Composable
 fun LicensesScreenshot() = Licenses()
+
+/** A library open with its NOTICE file under its license (#87). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LicensesOpenNoticeScreenshot() =
+    MediatheqTheme {
+        LicensesScreen(
+            LicensesUiState.Content(
+                entries.map {
+                    if (it.id == "androidx.media3:media3-exoplayer") it.copy(notice = NOTICE_TEXT) else it
+                },
+                openId = "androidx.media3:media3-exoplayer",
+            ),
+            {},
+            {},
+        )
+    }
 
 /** The app's own license open (GPL notice and source link). */
 @PreviewTest

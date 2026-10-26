@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
                                             versionName = versionName(),
                                             onOpenShowcase = { navigator.navigateTo(ThemeShowcaseKey) },
                                             licensesReport = applicationContext::licensesReport,
+                                            licenseNotices = applicationContext::licenseNotices,
                                         )
                                         libraryEntry(navigator, onOpenDownloads = openDownloads)
                                         albumEntry(navigator)
@@ -121,6 +122,10 @@ class MainActivity : ComponentActivity() {
  * the screen's ViewModel never holds an Activity. */
 private fun android.content.Context.licensesReport(): String =
     resources.openRawResource(R.raw.aboutlibraries).bufferedReader().use { it.readText() }
+
+/** The libraries' NOTICE files the build collected (#87), for Settings -> About. */
+private fun android.content.Context.licenseNotices(): String =
+    resources.openRawResource(R.raw.license_notices).bufferedReader().use { it.readText() }
 
 /** The app's version, for Settings -> About. */
 private fun android.app.Activity.versionName(): String =

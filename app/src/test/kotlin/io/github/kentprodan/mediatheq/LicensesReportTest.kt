@@ -46,6 +46,17 @@ class LicensesReportTest {
     }
 
     @Test
+    fun `the NOTICE files of shipped libraries are collected (#87)`() {
+        val notices =
+            Json.parseToJsonElement(File(System.getProperty("mediatheq.licenseNotices")).readText()).jsonObject
+
+        val jakarta = notices.getValue("jakarta.inject:jakarta.inject-api").jsonPrimitive.content
+        assertThat(jakarta).startsWith("# Notices for Eclipse Jakarta Dependency Injection")
+        // Every notice belongs to a library the app ships.
+        assertThat(ids).containsAtLeastElementsIn(notices.keys)
+    }
+
+    @Test
     fun `debug-only tools are not listed`() {
         assertThat(ids).containsNoneOf("androidx.compose.ui:ui-tooling", "androidx.compose.ui:ui-test-manifest")
     }

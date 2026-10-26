@@ -14,18 +14,19 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
 /**
- * The open-source licenses (#70). [report] reads the build's licenses report, which lives in the app (ADR 0022); it is
- * read and parsed once, off the main thread.
+ * The open-source licenses (#70). [report] and [notices] read the build's licenses report and the libraries' NOTICE
+ * files, which live in the app (ADR 0022); they are read and parsed once, off the main thread.
  */
 class LicensesViewModel(
     report: () -> String,
+    notices: () -> String,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
     private val openId = MutableStateFlow<String?>(null)
 
     // Lazily: the report is read and parsed once for the screen's life, not again after each 5 s away.
     val uiState: StateFlow<LicensesUiState> =
-        combine(flow { emit(licenseEntries(report())) }.flowOn(dispatcher), openId) { entries, open ->
+        combine(flow { emit(licenseEntries(report(), notices())) }.flowOn(dispatcher), openId) { entries, open ->
             LicensesUiState.Content(entries, open)
         }.stateIn(viewModelScope, SharingStarted.Lazily, LicensesUiState.Loading)
 

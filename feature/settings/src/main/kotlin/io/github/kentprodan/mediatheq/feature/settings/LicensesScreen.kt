@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,8 +32,9 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 @Composable
 internal fun LicensesRoute(
     report: () -> String,
+    notices: () -> String,
     onBack: () -> Unit,
-    viewModel: LicensesViewModel = viewModel { LicensesViewModel(report) },
+    viewModel: LicensesViewModel = viewModel { LicensesViewModel(report, notices) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LicensesScreen(state, viewModel::onAction, onBack)
@@ -99,6 +101,18 @@ private fun LicenseRow(
         if (open) {
             Column(Modifier.padding(horizontal = MediatheqSpacing.l)) {
                 entry.licenseText?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                entry.notice?.let {
+                    Text(
+                        stringResource(R.string.licenses_notice),
+                        Modifier.padding(top = MediatheqSpacing.l, bottom = MediatheqSpacing.s).semantics { heading() },
+                        style = MaterialTheme.typography.titleSmall,
+                    )
                     Text(
                         it,
                         style = MaterialTheme.typography.bodySmall,

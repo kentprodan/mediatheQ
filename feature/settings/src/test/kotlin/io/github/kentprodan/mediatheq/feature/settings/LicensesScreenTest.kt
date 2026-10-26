@@ -26,12 +26,34 @@ class LicensesScreenTest {
     private val actions = mutableListOf<LicensesAction>()
     private var closed = false
 
+    private val withNotice =
+        LicenseEntry("jakarta", "Jakarta Inject", "2.0.1", "Apache-2.0", "Apache text", null, notice = "Jakarta notice")
+
     private fun show(openId: String? = null) {
         composeRule.setContent {
             MediatheqTheme {
-                LicensesScreen(LicensesUiState.Content(listOf(APP_ENTRY), openId), { actions += it }, { closed = true })
+                LicensesScreen(
+                    LicensesUiState.Content(listOf(APP_ENTRY, withNotice), openId),
+                    { actions += it },
+                    { closed = true },
+                )
             }
         }
+    }
+
+    @Test
+    fun `an open library with a NOTICE shows it under its license`() {
+        show(openId = "jakarta")
+
+        composeRule.onNodeWithText("Notice").assertExists()
+        composeRule.onNodeWithText("Jakarta notice").assertExists()
+    }
+
+    @Test
+    fun `an open row without a NOTICE has no notice heading`() {
+        show(openId = "mediatheq")
+
+        composeRule.onNodeWithText("Notice").assertDoesNotExist()
     }
 
     @Test

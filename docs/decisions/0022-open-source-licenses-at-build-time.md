@@ -25,11 +25,14 @@ services at runtime, which the stack excludes.
   text is added and its compatibility with GPL-3.0 is checked.
 - No runtime library: `:feature:settings` parses the JSON with kotlinx.serialization; `:app` hands it over through
   `settingsEntry`, like the version name.
+- NOTICE files (Apache-2.0 section 4(d), added in #87): AboutLibraries does not collect them, so the
+  `CollectLicenseNoticesTask` (build-logic, registered per variant in `:app`) reads `NOTICE*` from the class jars of the
+  shipped external libraries into `R.raw.license_notices`; the screen shows a library's notice under its license.
 
 ## Consequences
 
 - A test in `:app` reads the release report: shipped libraries are there, debug-only tools are not, and every library
-  has a license with its full text.
+  has a license with its full text; the release notices hold `jakarta.inject-api`'s (the only one in October 2026).
 - Copied assets stay hand-listed (no tool can find them): `COPIED_ASSETS` mirrors `THIRD_PARTY.md`, checked by a test.
 - A new kind of license in a dependency update fails the build on purpose.
 - Plugin updates follow the usual rule: check the release notes, keep offline mode.

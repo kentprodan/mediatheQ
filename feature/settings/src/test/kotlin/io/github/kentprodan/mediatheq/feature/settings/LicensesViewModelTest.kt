@@ -14,7 +14,7 @@ class LicensesViewModelTest {
 
     private val report = """{"libraries": [], "licenses": {}}"""
 
-    private fun viewModel() = LicensesViewModel({ report }, mainDispatcherRule.testDispatcher)
+    private fun viewModel() = LicensesViewModel({ report }, { "{}" }, mainDispatcherRule.testDispatcher)
 
     @Test
     fun `before anything is collected the screen is loading`() {
@@ -26,7 +26,7 @@ class LicensesViewModelTest {
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel = viewModel()
             backgroundScope.launch { viewModel.uiState.collect() }
-            assertThat(viewModel.uiState.value).isEqualTo(LicensesUiState.Content(licenseEntries(report)))
+            assertThat(viewModel.uiState.value).isEqualTo(LicensesUiState.Content(licenseEntries(report, "{}")))
 
             viewModel.onAction(LicensesAction.Toggle("mediatheq"))
             assertThat((viewModel.uiState.value as LicensesUiState.Content).openId).isEqualTo("mediatheq")
