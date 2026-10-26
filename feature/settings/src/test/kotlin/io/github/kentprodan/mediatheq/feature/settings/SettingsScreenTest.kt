@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -84,6 +85,16 @@ class SettingsScreenTest {
         composeRule.onNode(isToggleable() and hasText("Download on Wi-Fi only")).assertIsOn().performClick()
 
         assertThat(actions).containsExactly(SettingsAction.SetDownloadsUnmeteredOnly(false))
+    }
+
+    @Test
+    fun `the offline mode switch sends its new state`() {
+        show()
+        scrollTo("Offline mode")
+
+        composeRule.onNode(isToggleable() and hasText("Offline mode")).assertIsOff().performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.SetOfflineMode(true))
     }
 
     @Test

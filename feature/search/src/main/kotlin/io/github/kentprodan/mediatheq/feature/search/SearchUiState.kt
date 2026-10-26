@@ -19,6 +19,8 @@ sealed interface SearchUiState {
 
     data class NoResults(
         val query: String,
+        /** Offline mode: only downloads were searched (#63). */
+        val offline: Boolean = false,
     ) : SearchUiState
 
     data class Error(

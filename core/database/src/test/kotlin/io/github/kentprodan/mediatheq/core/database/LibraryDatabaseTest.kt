@@ -99,7 +99,7 @@ class LibraryDatabaseTest {
     @Test
     fun `staged rows stay invisible until the swap`() =
         runTest {
-            libraryDao.albums().test {
+            libraryDao.albums(true, emptyList()).test {
                 assertThat(awaitItem()).isEmpty()
 
                 stageLibrary()
@@ -127,7 +127,7 @@ class LibraryDatabaseTest {
 
             assertThat(
                 libraryDao
-                    .albums()
+                    .albums(true, emptyList())
                     .first()
                     .single()
                     .album,
@@ -148,7 +148,7 @@ class LibraryDatabaseTest {
             stageLibrary()
             syncDao.swap(2, "s", "user-1")
 
-            assertThat(libraryDao.albums().first().map { it.album.id }).containsExactly("al1")
+            assertThat(libraryDao.albums(true, emptyList()).first().map { it.album.id }).containsExactly("al1")
             assertThat(database.rows("SELECT COUNT(*) FROM album_staging")).containsExactly(listOf("0"))
             assertThat(database.rows("SELECT COUNT(*) FROM search WHERE item_id = 'al2'")).containsExactly(listOf("0"))
         }
@@ -176,7 +176,7 @@ class LibraryDatabaseTest {
 
             // Staging was empty the second time, so the library is replaced by nothing - callers only swap after a
             // complete sync, and a crash mid-swap rolls the whole transaction back.
-            assertThat(libraryDao.albums().first()).isEmpty()
+            assertThat(libraryDao.albums(true, emptyList()).first()).isEmpty()
             assertThat(syncDao.state()?.lastFullSyncAtMillis).isEqualTo(2)
         }
 
@@ -192,7 +192,7 @@ class LibraryDatabaseTest {
 
             assertThat(
                 libraryDao
-                    .albums()
+                    .albums(true, emptyList())
                     .first()
                     .single()
                     .album.title,
@@ -236,7 +236,10 @@ class LibraryDatabaseTest {
             assertThat(syncDao.stagedPlaylistIds()).containsExactly("p1", "p2").inOrder()
         }
 
-    private suspend fun searchTrackIds(match: String) = libraryDao.search(match, 10).tracks.map { it.track.id }
+    private suspend fun searchTrackIds(match: String) =
+        libraryDao.search(match, 10, true, emptyList()).tracks.map {
+            it.track.id
+        }
 
     @Test
     fun `search ignores diacritics in both directions`() =
@@ -266,10 +269,14 @@ class LibraryDatabaseTest {
             )
             syncDao.swap(1, "s", "user-1")
 
-            assertThat(libraryDao.search("subcarpati", 10).artists.map { it.id }).containsExactly("ar1")
-            assertThat(libraryDao.search("satelit", 10).albums.map { it.album.id }).containsExactly("al1")
-            assertThat(libraryDao.search("drum", 10).playlists.map { it.id }).containsExactly("p1")
-            val rows = libraryDao.search("mos*", 10)
+            assertThat(
+                libraryDao.search("subcarpati", 10, true, emptyList()).artists.map { it.id },
+            ).containsExactly("ar1")
+            assertThat(
+                libraryDao.search("satelit", 10, true, emptyList()).albums.map { it.album.id },
+            ).containsExactly("al1")
+            assertThat(libraryDao.search("drum", 10, true, emptyList()).playlists.map { it.id }).containsExactly("p1")
+            val rows = libraryDao.search("mos*", 10, true, emptyList())
             assertThat(rows.tracks.map { it.track.id }).containsExactly("t1")
             assertThat(rows.artists + rows.albums + rows.playlists).isEmpty()
         }
@@ -280,7 +287,7 @@ class LibraryDatabaseTest {
             stageLibrary()
             syncDao.swap(1, "s", "user-1")
 
-            val rows = libraryDao.search("satelit", 10)
+            val rows = libraryDao.search("satelit", 10, true, emptyList())
 
             assertThat(
                 rows.albums
@@ -322,7 +329,7 @@ class LibraryDatabaseTest {
             stageLibrary(tracks = (1..5).map { track.copy(id = "t$it") })
             syncDao.swap(1, "s", "user-1")
 
-            assertThat(libraryDao.search("mos*", 2).tracks).hasSize(2)
+            assertThat(libraryDao.search("mos*", 2, true, emptyList()).tracks).hasSize(2)
         }
 
     @Test
@@ -351,7 +358,7 @@ class LibraryDatabaseTest {
             )
             syncDao.swap(1, "s", "user-1")
 
-            assertThat(libraryDao.albumArtists().first().map { it.id }).containsExactly("ar1")
+            assertThat(libraryDao.albumArtists(true, emptyList()).first().map { it.id }).containsExactly("ar1")
         }
 
     @Test
@@ -365,7 +372,9 @@ class LibraryDatabaseTest {
             )
             syncDao.swap(1, "s", "user-1")
 
-            assertThat(libraryDao.playlists().first().map { it.id }).containsExactly("p1", "p2").inOrder()
+            assertThat(
+                libraryDao.playlists(true, emptyList()).first().map { it.id },
+            ).containsExactly("p1", "p2").inOrder()
         }
 
     @Test
@@ -375,7 +384,7 @@ class LibraryDatabaseTest {
             syncDao.stageTrackArtistLinks(listOf(TrackArtistStaging(TrackArtistEntity("s", "t1", 1, "not-synced"))))
             syncDao.swap(1, "s", "user-1")
 
-            val row = libraryDao.tracks().first().single()
+            val row = libraryDao.tracks(true, emptyList()).first().single()
             assertThat(row.track).isEqualTo(track)
             assertThat(
                 row.credits.sortedBy { it.link.position }.map { it.artist?.id },
@@ -409,7 +418,7 @@ class LibraryDatabaseTest {
             syncDao.stageTracks(listOf(TrackStaging(track.copy(serverId = "other", id = "foreign"))))
             syncDao.swap(1, "s", "user-1")
 
-            val rows = libraryDao.albumTracks("s", "al1").first()
+            val rows = libraryDao.albumTracks("s", "al1", true, emptyList()).first()
 
             assertThat(rows.map { it.track.id }).containsExactly("nodisc-t1", "d1t2", "d1-none", "d2t1").inOrder()
             assertThat(rows.first().credits.map { it.artist?.id }).containsExactly("ar1")

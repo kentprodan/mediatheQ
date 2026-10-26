@@ -23,6 +23,9 @@ sealed interface HomeUiState {
     /** Synced, but the server has no music. */
     data object Empty : HomeUiState
 
+    /** Offline mode, and nothing for Home is on the phone (#63). */
+    data object NothingDownloaded : HomeUiState
+
     /** Nothing on the phone yet and the first sync failed ([MqError.Network]: the server cannot be reached). */
     data class Error(
         val error: MqError,

@@ -13,11 +13,16 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
+import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistEditor
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
@@ -37,6 +42,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 
 class DefaultPlaylistRepositoryTest {
     private val server = ServerId("s")
@@ -48,11 +54,14 @@ class DefaultPlaylistRepositoryTest {
     private val source = FakeLibrarySource()
     private val editor = FakePlaylistEditor()
     private val playlistId = MediaId(server, "p1")
+    private val preferences = FakeLibraryPreferencesRepository()
+    private val downloads = FakeDownloadRepository()
+    private val filter = OfflineFilter(preferences, FakeNetworkMonitor()) { downloads }
 
     private fun id(value: String) = MediaId(server, value)
 
     private fun TestScope.repository() =
-        DefaultPlaylistRepository(dao, source, editor, accountStore, session, backgroundScope)
+        DefaultPlaylistRepository(dao, source, editor, accountStore, session, backgroundScope, filter)
 
     @After
     fun close() = database.close()
@@ -91,6 +100,18 @@ class DefaultPlaylistRepositoryTest {
     private suspend fun entryIds() = dao.entryRows("s", "p1").map { it.entryId }
 
     private suspend fun DefaultPlaylistRepository.visible() = items(playlistId).first()
+
+    @Test
+    fun `in offline mode items are only the downloaded tracks, at their server positions`() =
+        runTest(dispatcher) {
+            downloads.downloads.value =
+                listOf(TrackDownload(Track(id("t2"), "Track 2", emptyList(), 1.minutes), DownloadState.Completed))
+            preferences.setOfflineMode(true)
+
+            val items = repository().visible()
+
+            assertThat(items.map { it.track.id.itemId to it.position }).containsExactly("t2" to 2)
+        }
 
     @Test
     fun `items skip tracks not in the library but keep server positions`() =

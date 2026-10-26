@@ -96,6 +96,20 @@ class DefaultDownloadRepositoryTest {
         }
 
     @Test
+    fun `completed ids hold only finished downloads, and only once the stored downloads are read`() =
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val repository =
+                repository(Download.STATE_COMPLETED to done, Download.STATE_QUEUED to waiting, dispatcher = dispatcher)
+
+            repository.completedIds.test {
+                expectNoEvents()
+                testScheduler.runCurrent()
+                assertThat(awaitItem()).containsExactly(done.id)
+            }
+        }
+
+    @Test
     fun `downloading again skips tracks finished or under way, and retries failed ones`() =
         runTest {
             val fresh = track("t4", "Album C", 1)

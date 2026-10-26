@@ -104,6 +104,7 @@ class DefaultLibraryPreferencesRepositoryTest {
             val preferences = repository.preferences.first()
 
             assertThat(preferences.dynamicColor).isFalse()
+            assertThat(preferences.offlineMode).isFalse()
             assertThat(preferences.ratingMode).isEqualTo(RatingMode.WholeStars)
         }
 
@@ -112,7 +113,9 @@ class DefaultLibraryPreferencesRepositoryTest {
         runTest {
             repository.setDynamicColor(true)
             repository.setRatingMode(RatingMode.HalfStars)
+            repository.setOfflineMode(true)
             assertThat(repository.preferences.first().dynamicColor).isTrue()
+            assertThat(repository.preferences.first().offlineMode).isTrue()
             assertThat(repository.preferences.first().ratingMode).isEqualTo(RatingMode.HalfStars)
 
             dataStore.edit { it[stringPreferencesKey("rating_mode")] = "Hearts" }

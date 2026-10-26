@@ -132,6 +132,23 @@ class SearchViewModelTest {
         }
 
     @Test
+    fun `turning offline mode on or off runs the query again and says what was searched`() =
+        test {
+            viewModel.uiState.test {
+                skipItems(1) // the recent searches
+                viewModel.onAction(SearchAction.QueryChanged("zzz"))
+                advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+                assertThat(awaitItem()).isEqualTo(SearchUiState.NoResults("zzz"))
+
+                library.offline.value = true
+                advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+
+                assertThat(awaitItem()).isEqualTo(SearchUiState.NoResults("zzz", offline = true))
+                assertThat(library.searches).containsExactly("zzz", "zzz")
+            }
+        }
+
+    @Test
     fun `a failed search shows the error and retry runs it again`() =
         test {
             library.searchError = MqError.Storage

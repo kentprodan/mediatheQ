@@ -6,6 +6,8 @@ import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 /** [DownloadRepository] in memory: [download] queues, tests move states with [setState]. */
@@ -14,6 +16,10 @@ class FakeDownloadRepository(
 ) : DownloadRepository {
     override val downloads = MutableStateFlow(initial)
     override val storageUsed = MutableStateFlow(0L)
+    override val completedIds =
+        downloads
+            .map { list -> list.filter { it.state == DownloadState.Completed }.mapTo(HashSet()) { it.track.id } }
+            .distinctUntilChanged()
 
     override fun download(tracks: List<Track>) {
         downloads.update { current ->

@@ -187,3 +187,8 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: Downloads -> play a downloaded album; with Wi-Fi on, Search -> a track never played -> menu -> Play next; airplane mode on, Wi-Fi off; Next in the mini player -> snackbar "“<title>” is not downloaded, skipped" and the next downloaded track plays
 - [ ] Pixel 9: same setup, let the downloaded track before the undownloaded one play to its end (screen off) -> playback goes on with the next downloaded track; on reopening, the snackbar shows (or has shown) once; the media notification shows no error
 - [ ] Pixel 9: airplane mode, a queue whose last track is not downloaded -> at its turn the snackbar says "“<title>” is not downloaded and cannot play offline" and playback stops; Play tries it again and shows the same message
+
+## #63 Offline mode: show only what is on the device
+- [ ] Pixel 9: airplane mode on (offline mode setting off) -> Home, Library (all four tabs) and Search list only downloaded albums, artists, playlists and songs; play a downloaded album from Home, an artist's song from Library and a search result -> they play; an album downloaded in part shows only its downloaded tracks
+- [ ] Pixel 9: on Wi-Fi, Settings -> Offline mode on -> the tabs show only downloads; a queue that holds a track that is not downloaded skips it with "is not downloaded, skipped"; turn the switch off -> the whole library is back at once (no sync spinner)
+- [ ] Pixel 9: offline mode on with nothing downloaded (or a tab with nothing) -> "Nothing downloaded"; "Open Downloads" switches to the Downloads tab; Home gear -> Settings -> Log out works in airplane mode

@@ -38,6 +38,9 @@ sealed interface LibraryContent {
     /** Nothing on the phone yet and the server cannot be reached. */
     data object Offline : LibraryContent
 
+    /** Offline mode, and nothing for this tab is downloaded (#63). */
+    data object NothingDownloaded : LibraryContent
+
     data class Error(
         val error: MqError,
     ) : LibraryContent

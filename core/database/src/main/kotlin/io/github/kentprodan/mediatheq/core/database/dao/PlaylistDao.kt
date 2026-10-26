@@ -28,19 +28,24 @@ interface PlaylistDao {
         playlistId: String,
     ): Flow<PlaylistEntity?>
 
-    /** The entries in playlist order with their tracks; entries whose track is not in the library are skipped. */
+    /**
+     * The entries in playlist order with their tracks; entries whose track is not in the library are skipped, and
+     * with `all` false those not in `downloaded` too (see [LibraryDao]).
+     */
     @Transaction
     @Query(
         """
         SELECT e.position AS entry_position, e.entry_id, t.* FROM playlist_entry e
         JOIN track t ON t.server_id = e.server_id AND t.id = e.track_id
-        WHERE e.server_id = :serverId AND e.playlist_id = :playlistId
+        WHERE e.server_id = :serverId AND e.playlist_id = :playlistId AND (:all OR t.id IN (:downloaded))
         ORDER BY e.position
         """,
     )
     fun tracks(
         serverId: String,
         playlistId: String,
+        all: Boolean,
+        downloaded: List<String>,
     ): Flow<List<PlaylistTrack>>
 
     @Query("SELECT * FROM playlist WHERE server_id = :serverId AND id = :playlistId")

@@ -39,7 +39,13 @@ class HomeScreenTest {
     private fun show(state: HomeUiState) {
         composeRule.setContent {
             MediatheqTheme {
-                HomeScreen(state, { actions += it }, { opened += it }, { events += "settings" })
+                HomeScreen(
+                    state,
+                    { actions += it },
+                    { opened += it },
+                    { events += "settings" },
+                    { events += "downloads" },
+                )
             }
         }
     }
@@ -80,6 +86,15 @@ class HomeScreenTest {
         composeRule.onNodeWithContentDescription("Settings").performClick()
 
         assertThat(events).containsExactly("settings")
+    }
+
+    @Test
+    fun `nothing downloaded opens the Downloads tab`() {
+        show(HomeUiState.NothingDownloaded)
+
+        composeRule.onNodeWithText("Open Downloads").performClick()
+
+        assertThat(events).containsExactly("downloads")
     }
 
     @Test

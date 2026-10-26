@@ -93,6 +93,12 @@ fun LibraryEmptyScreenshot() = Library(LibraryUiState(content = LibraryContent.E
 @Composable
 fun LibraryOfflineScreenshot() = Library(LibraryUiState(content = LibraryContent.Offline))
 
+/** Offline mode with nothing downloaded for the tab (#63); with downloads, the tab lists them as usual. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryNothingDownloadedScreenshot() = Library(LibraryUiState(content = LibraryContent.NothingDownloaded))
+
 @PreviewTest
 @MqPreviews
 @Composable

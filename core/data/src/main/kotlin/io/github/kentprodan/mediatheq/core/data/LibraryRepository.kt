@@ -11,6 +11,12 @@ import kotlinx.coroutines.flow.Flow
 
 /** Reads of the local library. Screens add what they need in their own issues (#10, #11, #15-#17). */
 interface LibraryRepository {
+    /**
+     * Offline mode is on (the setting, or no network, #63): every list below then holds only what is downloaded, and
+     * screens say "Nothing downloaded" instead of "empty library".
+     */
+    val offline: Flow<Boolean>
+
     /** All albums by sort name; emits again after each completed sync, never with a half-synced library. */
     fun albums(): Flow<List<Album>>
 
@@ -40,8 +46,14 @@ interface LibraryRepository {
 
     fun playlists(): Flow<List<Playlist>>
 
+    /** Every playlist, also in offline mode: adding to one needs the server, not downloads (Add to playlist). */
+    fun allPlaylists(): Flow<List<Playlist>>
+
     /** Every track with its artists, by sort name. */
     fun tracks(): Flow<List<Track>>
+
+    /** [tracks], also in offline mode: the Downloads tab names queued and failed downloads too. */
+    fun allTracks(): Flow<List<Track>>
 
     /**
      * Diacritic-insensitive search over names, at most [limitPerKind] of each kind; the last word matches as a prefix.

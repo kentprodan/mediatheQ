@@ -54,6 +54,12 @@ fun SearchResultsScreenshot() =
 @Composable
 fun SearchNoResultsScreenshot() = Search(SearchUiState.NoResults("zzz"), query = "zzz")
 
+/** Offline mode searched only downloads (#63); results look as usual. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SearchNoDownloadsScreenshot() = Search(SearchUiState.NoResults("zzz", offline = true), query = "zzz")
+
 @PreviewTest
 @MqPreviews
 @Composable

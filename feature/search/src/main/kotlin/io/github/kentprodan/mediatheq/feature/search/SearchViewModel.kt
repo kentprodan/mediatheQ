@@ -38,16 +38,18 @@ class SearchViewModel
         private val query = MutableStateFlow("")
         private val retries = MutableStateFlow(0)
 
-        // shortcut: a query runs once, so a sync finishing while results show does not refresh them; retype to see it.
+        // shortcut: a query runs once, so a sync finishing (or, in offline mode, a download completing) while results
+        // show does not refresh them; retype to see it.
         val uiState: StateFlow<SearchUiState> =
-            combine(query, retries) { query, _ -> query.trim() }
+            // Offline mode on or off runs the query again: it searches other items (#63).
+            combine(query, retries, libraryRepository.offline) { query, _, offline -> query.trim() to offline }
                 // Clearing the field shows the recent searches at once; typing waits for a short pause.
-                .debounce { if (it.isEmpty()) 0L else DEBOUNCE_MILLIS }
-                .flatMapLatest<String, SearchUiState> { query ->
+                .debounce { (query, _) -> if (query.isEmpty()) 0L else DEBOUNCE_MILLIS }
+                .flatMapLatest<Pair<String, Boolean>, SearchUiState> { (query, offline) ->
                     if (query.isEmpty()) {
                         preferencesRepository.recentSearches.map { SearchUiState.Recent(it) }
                     } else {
-                        flow { emit(search(query)) }
+                        flow { emit(search(query, offline)) }
                     }
                 }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState.Loading)
 
@@ -101,14 +103,21 @@ class SearchViewModel
             viewModelScope.launch { preferencesRepository.addRecentSearch(query) }
         }
 
-        private suspend fun search(query: String): SearchUiState =
+        private suspend fun search(
+            query: String,
+            offline: Boolean,
+        ): SearchUiState =
             when (val result = libraryRepository.search(query)) {
                 is MqResult.Failure -> {
                     SearchUiState.Error(result.error)
                 }
 
                 is MqResult.Success -> {
-                    if (result.value.isEmpty()) SearchUiState.NoResults(query) else SearchUiState.Results(result.value)
+                    if (result.value.isEmpty()) {
+                        SearchUiState.NoResults(query, offline)
+                    } else {
+                        SearchUiState.Results(result.value)
+                    }
                 }
             }
 

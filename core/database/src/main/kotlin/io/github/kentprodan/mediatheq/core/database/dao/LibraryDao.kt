@@ -13,25 +13,67 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import kotlinx.coroutines.flow.Flow
 
-/** Reads of the live library. Screens add their own queries in their issues. */
+/**
+ * Reads of the live library. Screens add their own queries in their issues.
+ *
+ * Lists take `all` and `downloaded` (#63): with `all` false they keep only what is on the device: tracks whose item
+ * id is in `downloaded`, and albums, artists and playlists holding such a track. Each id is a bound variable, so
+ * `downloaded` must stay below SQLite's 32766 (the library is under 10k tracks, ADR 0021).
+ */
 @Dao
 interface LibraryDao {
     /** @Transaction: albums and their artists come from one snapshot, never from both sides of a swap. */
     @Transaction
-    @Query("SELECT * FROM album ORDER BY sort_name, id")
-    fun albums(): Flow<List<AlbumWithArtists>>
+    @Query(
+        """
+        SELECT * FROM album WHERE (:all OR EXISTS (
+            SELECT 1 FROM track d
+            WHERE d.server_id = album.server_id AND d.album_id = album.id AND d.id IN (:downloaded)
+        ))
+        ORDER BY sort_name, id
+        """,
+    )
+    fun albums(
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<AlbumWithArtists>>
 
     /** The Library's Artists tab: album artists only (credit-only artists exist for track credits). */
-    @Query("SELECT * FROM artist WHERE is_album_artist ORDER BY sort_name, id")
-    fun albumArtists(): Flow<List<ArtistEntity>>
+    @Query(
+        """
+        SELECT * FROM artist WHERE is_album_artist AND (:all OR EXISTS (
+            SELECT 1 FROM album_artist aa JOIN track d ON d.server_id = aa.server_id AND d.album_id = aa.album_id
+            WHERE aa.server_id = artist.server_id AND aa.artist_id = artist.id AND d.id IN (:downloaded)
+        ))
+        ORDER BY sort_name, id
+        """,
+    )
+    fun albumArtists(
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<ArtistEntity>>
 
-    @Query("SELECT * FROM playlist ORDER BY sort_name, id")
-    fun playlists(): Flow<List<PlaylistEntity>>
+    @Query(
+        """
+        SELECT * FROM playlist WHERE (:all OR EXISTS (
+            SELECT 1 FROM playlist_entry e
+            WHERE e.server_id = playlist.server_id AND e.playlist_id = playlist.id AND e.track_id IN (:downloaded)
+        ))
+        ORDER BY sort_name, id
+        """,
+    )
+    fun playlists(
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<PlaylistEntity>>
 
     /** All tracks with their artist credits, from one snapshot. */
     @Transaction
-    @Query("SELECT * FROM track ORDER BY sort_name, id")
-    fun tracks(): Flow<List<TrackWithArtists>>
+    @Query("SELECT * FROM track WHERE (:all OR track.id IN (:downloaded)) ORDER BY sort_name, id")
+    fun tracks(
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<TrackWithArtists>>
 
     /** One track with its credits, `null` when it is not in the library. */
     @Transaction
@@ -55,13 +97,15 @@ interface LibraryDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM track WHERE server_id = :serverId AND album_id = :albumId
+        SELECT * FROM track WHERE server_id = :serverId AND album_id = :albumId AND (:all OR track.id IN (:downloaded))
         ORDER BY COALESCE(disc_number, 1), track_number IS NULL, track_number, sort_name, id
         """,
     )
     fun albumTracks(
         serverId: String,
         albumId: String,
+        all: Boolean,
+        downloaded: List<String>,
     ): Flow<List<TrackWithArtists>>
 
     /** One artist, album artist or credit-only, `null` when it is not in the library. */
@@ -77,13 +121,18 @@ interface LibraryDao {
         """
         SELECT * FROM album WHERE server_id = :serverId AND id IN (
             SELECT album_id FROM album_artist WHERE server_id = :serverId AND artist_id = :artistId
-        )
+        ) AND (:all OR EXISTS (
+            SELECT 1 FROM track d
+            WHERE d.server_id = album.server_id AND d.album_id = album.id AND d.id IN (:downloaded)
+        ))
         ORDER BY year IS NULL, year DESC, sort_name, id
         """,
     )
     fun artistAlbums(
         serverId: String,
         artistId: String,
+        all: Boolean,
+        downloaded: List<String>,
     ): Flow<List<AlbumWithArtists>>
 
     /** Albums with a track credited to the artist, other than the artist's own albums; same order as [artistAlbums]. */
@@ -95,13 +144,18 @@ interface LibraryDao {
             WHERE t.server_id = :serverId AND ta.artist_id = :artistId
         ) AND id NOT IN (
             SELECT album_id FROM album_artist WHERE server_id = :serverId AND artist_id = :artistId
-        )
+        ) AND (:all OR EXISTS (
+            SELECT 1 FROM track d
+            WHERE d.server_id = album.server_id AND d.album_id = album.id AND d.id IN (:downloaded)
+        ))
         ORDER BY year IS NULL, year DESC, sort_name, id
         """,
     )
     fun appearsOnAlbums(
         serverId: String,
         artistId: String,
+        all: Boolean,
+        downloaded: List<String>,
     ): Flow<List<AlbumWithArtists>>
 
     /**
@@ -119,7 +173,7 @@ interface LibraryDao {
                 SELECT 1 FROM track_artist ta
                 WHERE ta.server_id = track.server_id AND ta.track_id = track.id AND ta.artist_id = :artistId
             )
-        )
+        ) AND (:all OR track.id IN (:downloaded))
         ORDER BY track.album_id IS NULL,
             track.album_id NOT IN (
                 SELECT album_id FROM album_artist WHERE server_id = :serverId AND artist_id = :artistId
@@ -131,6 +185,8 @@ interface LibraryDao {
     fun artistTracks(
         serverId: String,
         artistId: String,
+        all: Boolean,
+        downloaded: List<String>,
     ): Flow<List<TrackWithArtists>>
 
     /**
@@ -141,25 +197,32 @@ interface LibraryDao {
     suspend fun search(
         match: String,
         limitPerKind: Int,
+        all: Boolean,
+        downloaded: List<String>,
     ): SearchRows =
         SearchRows(
-            artists = searchArtists(match, limitPerKind),
-            albums = searchAlbums(match, limitPerKind),
-            tracks = searchTracks(match, limitPerKind),
-            playlists = searchPlaylists(match, limitPerKind),
+            artists = searchArtists(match, limitPerKind, all, downloaded),
+            albums = searchAlbums(match, limitPerKind, all, downloaded),
+            tracks = searchTracks(match, limitPerKind, all, downloaded),
+            playlists = searchPlaylists(match, limitPerKind, all, downloaded),
         )
 
     @Query(
         """
         SELECT artist.* FROM search
         JOIN artist ON artist.server_id = search.server_id AND artist.id = search.item_id
-        WHERE search MATCH :match AND search.kind = 'artist'
+        WHERE search MATCH :match AND search.kind = 'artist' AND (:all OR EXISTS (
+            SELECT 1 FROM album_artist aa JOIN track d ON d.server_id = aa.server_id AND d.album_id = aa.album_id
+            WHERE aa.server_id = artist.server_id AND aa.artist_id = artist.id AND d.id IN (:downloaded)
+        ))
         ORDER BY search.rank, artist.sort_name, artist.id LIMIT :limit
         """,
     )
     suspend fun searchArtists(
         match: String,
         limit: Int,
+        all: Boolean,
+        downloaded: List<String>,
     ): List<ArtistEntity>
 
     @Transaction
@@ -167,13 +230,18 @@ interface LibraryDao {
         """
         SELECT album.* FROM search
         JOIN album ON album.server_id = search.server_id AND album.id = search.item_id
-        WHERE search MATCH :match AND search.kind = 'album'
+        WHERE search MATCH :match AND search.kind = 'album' AND (:all OR EXISTS (
+            SELECT 1 FROM track d
+            WHERE d.server_id = album.server_id AND d.album_id = album.id AND d.id IN (:downloaded)
+        ))
         ORDER BY search.rank, album.sort_name, album.id LIMIT :limit
         """,
     )
     suspend fun searchAlbums(
         match: String,
         limit: Int,
+        all: Boolean,
+        downloaded: List<String>,
     ): List<AlbumWithArtists>
 
     @Transaction
@@ -181,26 +249,33 @@ interface LibraryDao {
         """
         SELECT track.* FROM search
         JOIN track ON track.server_id = search.server_id AND track.id = search.item_id
-        WHERE search MATCH :match AND search.kind = 'track'
+        WHERE search MATCH :match AND search.kind = 'track' AND (:all OR track.id IN (:downloaded))
         ORDER BY search.rank, track.sort_name, track.id LIMIT :limit
         """,
     )
     suspend fun searchTracks(
         match: String,
         limit: Int,
+        all: Boolean,
+        downloaded: List<String>,
     ): List<TrackWithArtists>
 
     @Query(
         """
         SELECT playlist.* FROM search
         JOIN playlist ON playlist.server_id = search.server_id AND playlist.id = search.item_id
-        WHERE search MATCH :match AND search.kind = 'playlist'
+        WHERE search MATCH :match AND search.kind = 'playlist' AND (:all OR EXISTS (
+            SELECT 1 FROM playlist_entry e
+            WHERE e.server_id = playlist.server_id AND e.playlist_id = playlist.id AND e.track_id IN (:downloaded)
+        ))
         ORDER BY search.rank, playlist.sort_name, playlist.id LIMIT :limit
         """,
     )
     suspend fun searchPlaylists(
         match: String,
         limit: Int,
+        all: Boolean,
+        downloaded: List<String>,
     ): List<PlaylistEntity>
 }
 

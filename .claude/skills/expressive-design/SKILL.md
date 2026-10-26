@@ -162,7 +162,7 @@ fun MediatheqTheme(
 | Home tab | `TopAppBar` (Settings gear `IconButton`) + full-width `FilledTonalButton` "Shuffle all" + section titles (`titleMedium`, heading) + `LazyRow` of `AlbumCard` (width `MediatheqSizes.albumCardInRow`) + favorite songs as `TrackRow(showCover = true)` | Sections: Recently played, Recently added, Favorite albums, Favorite songs; empty ones hidden. An album in several rows: only its first card has `sharedCover`. |
 | Downloads tab | `TopAppBar` + storage line + album section titles (`titleMedium`, heading) + `TrackRow(supportingContent = ...)` | Supporting line shows Queued / Waiting for Wi-Fi / Download failed (`error` color) or "Downloading n%" over a `LinearWavyProgressIndicator` (indeterminate without a size). Row menu: queue items, Download again (failed), Remove download. |
 | Download (album, playlist, track menus) | `DownloadMenuItem` / `RemoveDownloadMenuItem` in `:core:ui` | Remove only in the Downloads tab. Header toggle later (after #48). |
-| Offline state (tabs other than Downloads) | `MqEmptyState` in `AppShell` (cloud-off icon, "Open Downloads" action) | Replaces the tab's content while offline; its back stack stays. |
+| Offline mode, nothing downloaded (Home, Library tab, Search) | `NothingDownloaded` in `:core:ui` (`MqEmptyState`: cloud-off icon, "Nothing downloaded", "Open Downloads" switches tab) | Offline mode (#63): the tabs list only downloads; this shows when a tab has none. Search says "Offline mode: nothing downloaded matches" in its no-results state. |
 
 If an element is not in this table, pick the closest M3 component, then add a row here in the same PR.
 
@@ -211,7 +211,7 @@ If an element is not in this table, pick the closest M3 component, then add a ro
 
 - One `MqEmptyState(icon, title, body, action?)` component for all screens.
 - Errors: inline message with retry button; snackbar only for transient failures.
-- Offline: Downloads tab works fully; other tabs show the offline empty state under a top bar whose gear opens Settings. Settings and its pages need no network and stay usable offline, so Log out is always reachable.
+- Offline (offline mode: the setting, or no network, #63): every tab works and lists only what is downloaded; a tab with nothing shows `NothingDownloaded`. Settings (Home gear) needs no network, so Log out is always reachable.
 
 ## 6. Accessibility (non-negotiable)
 

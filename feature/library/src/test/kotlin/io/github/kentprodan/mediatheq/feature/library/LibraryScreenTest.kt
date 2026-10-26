@@ -65,6 +65,27 @@ class LibraryScreenTest {
     }
 
     @Test
+    fun `nothing downloaded opens the Downloads tab`() {
+        var downloadsOpened = false
+        composeRule.setContent {
+            MediatheqTheme {
+                LibraryScreen(
+                    LibraryUiState(content = LibraryContent.NothingDownloaded),
+                    onAction = {},
+                    onOpenAlbum = {},
+                    onOpenArtist = {},
+                    onOpenPlaylist = {},
+                    onOpenDownloads = { downloadsOpened = true },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Open Downloads").performClick()
+
+        assertThat(downloadsOpened).isTrue()
+    }
+
+    @Test
     fun `R52 no filter bar until the saved style is known`() {
         composeRule.setContent {
             MediatheqTheme {

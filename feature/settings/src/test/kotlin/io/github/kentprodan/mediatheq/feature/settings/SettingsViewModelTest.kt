@@ -116,9 +116,17 @@ class SettingsViewModelTest {
             viewModel.onAction(SettingsAction.SetDynamicColor(true))
             viewModel.onAction(SettingsAction.SetAlbumColumns(3))
             viewModel.onAction(SettingsAction.SetRatingMode(RatingMode.Off))
+            viewModel.onAction(SettingsAction.SetOfflineMode(true))
 
             assertThat(library.preferences.value)
-                .isEqualTo(LibraryPreferences(albumColumns = 3, dynamicColor = true, ratingMode = RatingMode.Off))
+                .isEqualTo(
+                    LibraryPreferences(
+                        albumColumns = 3,
+                        dynamicColor = true,
+                        ratingMode = RatingMode.Off,
+                        offlineMode = true,
+                    ),
+                )
         }
 
     @Test

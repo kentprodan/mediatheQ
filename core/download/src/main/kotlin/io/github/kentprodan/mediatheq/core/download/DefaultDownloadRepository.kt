@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -66,6 +67,7 @@ internal class DefaultDownloadRepository
         // Until the stored index is in [entries], answers come from the index itself, and removals are remembered so
         // the late index read does not bring them back.
         @Volatile private var loaded = false
+        private val indexRead = MutableStateFlow(false)
         private val removedBeforeLoad = ConcurrentHashMap.newKeySet<MediaId>()
 
         init {
@@ -119,6 +121,7 @@ internal class DefaultDownloadRepository
                 // Changes the manager reported meanwhile are newer than the index.
                 entries.update { (stored - removedBeforeLoad) + it }
                 loaded = true
+                indexRead.value = true
             }
         }
 
@@ -136,7 +139,7 @@ internal class DefaultDownloadRepository
                 entries,
                 notMetRequirements,
                 ticks,
-                libraryRepository.tracks().map { tracks -> tracks.associateBy { it.id } },
+                libraryRepository.allTracks().map { tracks -> tracks.associateBy { it.id } },
             ) { entries, notMet, _, tracks ->
                 val current = manager.currentDownloads.associateBy { it.request.id }
                 entries
@@ -147,6 +150,11 @@ internal class DefaultDownloadRepository
                     }.sortedWith(ALBUM_ORDER)
             }.distinctUntilChanged()
                 .flowOn(defaultDispatcher)
+
+        override val completedIds: Flow<Set<MediaId>> =
+            combine(entries, indexRead) { entries, read ->
+                if (read) entries.filterValues { it.state == Download.STATE_COMPLETED }.keys else null
+            }.filterNotNull().distinctUntilChanged()
 
         override val storageUsed: Flow<Long> =
             combine(entries, ticks) { _, _ -> cache.cacheSpace }.distinctUntilChanged().flowOn(defaultDispatcher)

@@ -189,6 +189,25 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun `offline with nothing downloaded says so, before any sync state`() =
+        test {
+            library.offline.value = true
+
+            assertThat(viewModel(SyncStatus.Failed(MqError.Network, lastSyncedAt = null)).uiState.value)
+                .isEqualTo(HomeUiState.NothingDownloaded)
+        }
+
+    @Test
+    fun `offline with downloads shows them as usual`() =
+        test {
+            // The repository already holds only the downloads.
+            library.offline.value = true
+            val viewModel = withLibrary(SyncStatus.Failed(MqError.Network, lastSyncedAt = null))
+
+            assertThat(viewModel.content().recentlyAdded).isNotEmpty()
+        }
+
+    @Test
     fun `sync runs a sync`() =
         test {
             viewModel(SyncStatus.Failed(MqError.Network, lastSyncedAt = null)).onAction(HomeAction.Sync)

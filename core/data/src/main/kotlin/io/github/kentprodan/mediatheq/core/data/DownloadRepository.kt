@@ -13,6 +13,12 @@ interface DownloadRepository {
     /** Every download with its track, in album order (album, disc, track number). */
     val downloads: Flow<List<TrackDownload>>
 
+    /**
+     * The tracks fully on the device, once the stored downloads are read (never a too-early empty set); changes only
+     * when a download completes or goes away, not with progress.
+     */
+    val completedIds: Flow<Set<MediaId>>
+
     /** Bytes the downloads take on this device. */
     val storageUsed: Flow<Long>
 

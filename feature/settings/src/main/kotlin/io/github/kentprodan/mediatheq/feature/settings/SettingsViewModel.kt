@@ -49,6 +49,7 @@ class SettingsViewModel
                     is SettingsAction.SetStreamingCacheGb -> audio.setStreamingCacheGb(action.gb)
                     is SettingsAction.SetDownloadsUnmeteredOnly -> audio.setDownloadsUnmeteredOnly(action.on)
                     is SettingsAction.SetDynamicColor -> library.setDynamicColor(action.on)
+                    is SettingsAction.SetOfflineMode -> library.setOfflineMode(action.on)
                     is SettingsAction.SetAlbumColumns -> library.setAlbumColumns(action.columns)
                     is SettingsAction.SetRatingMode -> library.setRatingMode(action.mode)
                     is SettingsAction.SetBitPerfectUsb -> audio.setBitPerfectUsb(action.on)

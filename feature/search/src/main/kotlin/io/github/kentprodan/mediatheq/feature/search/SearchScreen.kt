@@ -125,7 +125,11 @@ private fun SearchContent(
                 MqEmptyState(
                     MqIcons.Search,
                     stringResource(R.string.search_no_results_title),
-                    body = stringResource(R.string.search_no_results_body, state.query),
+                    body =
+                        stringResource(
+                            if (state.offline) R.string.search_no_downloads_body else R.string.search_no_results_body,
+                            state.query,
+                        ),
                 )
             }
 

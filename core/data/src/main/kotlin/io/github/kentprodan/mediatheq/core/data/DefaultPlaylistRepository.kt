@@ -47,6 +47,7 @@ class DefaultPlaylistRepository
         private val accountStore: AccountStore,
         private val sessionRepository: SessionRepository,
         @param:ApplicationScope private val scope: CoroutineScope,
+        private val filter: OfflineFilter,
     ) : PlaylistRepository {
         private val lock = Mutex()
 
@@ -54,15 +55,21 @@ class DefaultPlaylistRepository
             playlistDao.playlist(id.serverId.value, id.itemId).map { it?.toDomain() }
 
         override fun items(id: MediaId): Flow<List<PlaylistItem>> =
-            playlistDao.tracks(id.serverId.value, id.itemId).map { rows ->
-                rows.map {
-                    PlaylistItem(
-                        it.entryId,
-                        it.position,
-                        TrackWithArtists(it.track, it.credits, it.album).toDomain(),
-                    )
+            filter
+                .of {
+                    all,
+                    downloaded,
+                    ->
+                    playlistDao.tracks(id.serverId.value, id.itemId, all, downloaded)
+                }.map { rows ->
+                    rows.map {
+                        PlaylistItem(
+                            it.entryId,
+                            it.position,
+                            TrackWithArtists(it.track, it.credits, it.album).toDomain(),
+                        )
+                    }
                 }
-            }
 
         override suspend fun create(name: String): MqResult<MediaId> =
             inAppScope {

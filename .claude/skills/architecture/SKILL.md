@@ -108,6 +108,7 @@ Each convention plugin declares the allowed dependencies for its module type. A 
 ### Repositories (offline-first)
 
 - UI reads from **Room** via `Flow`. The network only writes into Room. Library size (< 10k tracks) allows a full local copy.
+- Offline mode (#63, ADR 0021): `OfflineFilter` in `:core:data` (setting or no network) makes every `LibraryRepository` / `PlaylistRepository` list keep only completed downloads (`DownloadRepository.completedIds` passed to the DAO queries); `LibraryRepository.offline` tells screens. New list queries take the same `all` / `downloaded` parameters.
 - Sync = provider pages -> mapped -> upserted in a transaction. Live updates (WebSocket events): user data is written at once, library changes start a full sync (`LiveSync`, #18).
 - User actions (favorite, rating, playlist edit): optimistic write to Room, then server call; on failure revert and surface an error. Exception (#56): a favorite or rating that fails for lack of network (`MqError.Network`) is kept in Room (`pending_user_data`, per user, survives restarts) and sent when the server is reachable again; only a server answer reverts it. Sign-out drops waiting changes.
 - Repositories are interfaces in `:core:data` (`AlbumRepository`, ...) with one default implementation and one `Fake*` in `:core:testing`. The default implementation lives in `:core:data`, except when it needs a module `:core:data` cannot see: `DefaultDownloadRepository` lives in `:core:download` (Media3) and is bound there.

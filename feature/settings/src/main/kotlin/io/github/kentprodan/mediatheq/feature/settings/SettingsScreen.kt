@@ -89,7 +89,7 @@ fun SettingsScreen(
         ) {
             item(key = "account") { AccountGroup(content, onAction) }
             item(key = "playback") { PlaybackGroup(content.audio, onAction, onOpenAudio) }
-            item(key = "storage") { StorageGroup(content.audio, onAction) }
+            item(key = "storage") { StorageGroup(content.audio, content.library, onAction) }
             item(key = "appearance") { AppearanceGroup(content.library, onAction) }
             item(key = "ratings") { RatingsGroup(content.library.ratingMode, onAction) }
             item(key = "about") { AboutGroup(versionName, onOpenShowcase) }
@@ -164,9 +164,19 @@ internal fun PlaybackGroup(
 @Composable
 internal fun StorageGroup(
     audio: AudioPreferences,
+    library: LibraryPreferences,
     onAction: (SettingsAction) -> Unit,
 ) {
     Group(R.string.settings_storage) {
+        item { shapes ->
+            SwitchItem(
+                shapes,
+                stringResource(R.string.settings_offline_mode),
+                stringResource(R.string.settings_offline_mode_summary),
+                checked = library.offlineMode,
+                onCheckedChange = { onAction(SettingsAction.SetOfflineMode(it)) },
+            )
+        }
         item { shapes ->
             SwitchItem(
                 shapes,

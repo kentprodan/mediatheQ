@@ -18,8 +18,12 @@ class DefaultLibraryRepository
     @Inject
     constructor(
         private val libraryDao: LibraryDao,
+        private val filter: OfflineFilter,
     ) : LibraryRepository {
-        override fun albums(): Flow<List<Album>> = libraryDao.albums().map { rows -> rows.map { it.toDomain() } }
+        override val offline: Flow<Boolean> = filter.active
+
+        override fun albums(): Flow<List<Album>> =
+            filter.of(libraryDao::albums).map { rows -> rows.map { it.toDomain() } }
 
         override fun track(id: MediaId): Flow<Track?> =
             libraryDao.track(id.serverId.value, id.itemId).map { it?.toDomain() }
@@ -28,29 +32,55 @@ class DefaultLibraryRepository
             libraryDao.album(id.serverId.value, id.itemId).map { it?.toDomain() }
 
         override fun albumTracks(albumId: MediaId): Flow<List<Track>> =
-            libraryDao.albumTracks(albumId.serverId.value, albumId.itemId).map { rows -> rows.map { it.toDomain() } }
+            filter
+                .of {
+                    all,
+                    downloaded,
+                    ->
+                    libraryDao.albumTracks(albumId.serverId.value, albumId.itemId, all, downloaded)
+                }.map { rows -> rows.map { it.toDomain() } }
 
         override fun albumArtists(): Flow<List<Artist>> =
-            libraryDao.albumArtists().map { rows -> rows.map { it.toDomain() } }
+            filter.of(libraryDao::albumArtists).map { rows -> rows.map { it.toDomain() } }
 
         override fun artist(id: MediaId): Flow<Artist?> =
             libraryDao.artist(id.serverId.value, id.itemId).map { it?.toDomain() }
 
         override fun artistAlbums(artistId: MediaId): Flow<List<Album>> =
-            libraryDao.artistAlbums(artistId.serverId.value, artistId.itemId).map { rows -> rows.map { it.toDomain() } }
+            filter
+                .of {
+                    all,
+                    downloaded,
+                    ->
+                    libraryDao.artistAlbums(artistId.serverId.value, artistId.itemId, all, downloaded)
+                }.map { rows -> rows.map { it.toDomain() } }
 
         override fun appearsOn(artistId: MediaId): Flow<List<Album>> =
-            libraryDao.appearsOnAlbums(artistId.serverId.value, artistId.itemId).map { rows ->
-                rows.map { it.toDomain() }
-            }
+            filter
+                .of { all, downloaded ->
+                    libraryDao.appearsOnAlbums(artistId.serverId.value, artistId.itemId, all, downloaded)
+                }.map { rows -> rows.map { it.toDomain() } }
 
         override fun artistTracks(artistId: MediaId): Flow<List<Track>> =
-            libraryDao.artistTracks(artistId.serverId.value, artistId.itemId).map { rows -> rows.map { it.toDomain() } }
+            filter
+                .of {
+                    all,
+                    downloaded,
+                    ->
+                    libraryDao.artistTracks(artistId.serverId.value, artistId.itemId, all, downloaded)
+                }.map { rows -> rows.map { it.toDomain() } }
+
+        override fun allTracks(): Flow<List<Track>> =
+            libraryDao.tracks(all = true, downloaded = emptyList()).map { rows -> rows.map { it.toDomain() } }
+
+        override fun allPlaylists(): Flow<List<Playlist>> =
+            libraryDao.playlists(all = true, downloaded = emptyList()).map { rows -> rows.map { it.toDomain() } }
 
         override fun playlists(): Flow<List<Playlist>> =
-            libraryDao.playlists().map { rows -> rows.map { it.toDomain() } }
+            filter.of(libraryDao::playlists).map { rows -> rows.map { it.toDomain() } }
 
-        override fun tracks(): Flow<List<Track>> = libraryDao.tracks().map { rows -> rows.map { it.toDomain() } }
+        override fun tracks(): Flow<List<Track>> =
+            filter.of(libraryDao::tracks).map { rows -> rows.map { it.toDomain() } }
 
         override suspend fun search(
             query: String,
@@ -59,7 +89,7 @@ class DefaultLibraryRepository
             val match = ftsMatchExpression(query) ?: return MqResult.Success(SearchResults())
             val rows =
                 try {
-                    libraryDao.search(match, limitPerKind)
+                    filter.once { all, downloaded -> libraryDao.search(match, limitPerKind, all, downloaded) }
                 } catch (_: SQLiteException) {
                     return MqResult.Failure(MqError.Storage)
                 }

@@ -20,6 +20,9 @@ class FakeLibraryRepository : LibraryRepository {
     val playlists = MutableStateFlow<List<Playlist>>(emptyList())
     val tracks = MutableStateFlow<List<Track>>(emptyList())
 
+    /** Offline mode; the lists above are what screens get either way (set them to the downloaded ones). */
+    override val offline = MutableStateFlow(false)
+
     /** Every query [search] was called with, in order. */
     val searches = mutableListOf<String>()
 
@@ -55,6 +58,10 @@ class FakeLibraryRepository : LibraryRepository {
     override fun artistTracks(artistId: MediaId) = artistTracks.map { it[artistId].orEmpty() }
 
     override fun playlists() = playlists
+
+    override fun allPlaylists() = playlists
+
+    override fun allTracks() = tracks
 
     override fun tracks() = tracks
 
