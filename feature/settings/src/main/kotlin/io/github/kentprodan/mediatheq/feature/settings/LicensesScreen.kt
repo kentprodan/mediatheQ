@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
@@ -81,8 +83,10 @@ private fun LicenseRow(
     onToggle: () -> Unit,
 ) {
     Column {
+        val state = stringResource(if (open) R.string.licenses_expanded else R.string.licenses_collapsed)
         ListItem(
             onClick = onToggle,
+            modifier = Modifier.semantics { stateDescription = state },
             supportingContent = { Text(listOfNotNull(entry.detail, entry.licenseName).joinToString(" · ")) },
             trailingContent = {
                 Icon(
@@ -103,8 +107,9 @@ private fun LicenseRow(
                 }
                 entry.url?.let { url ->
                     val uriHandler = LocalUriHandler.current
+                    // No app may open links (no browser): then the button does nothing rather than crash.
                     TextButton(
-                        onClick = { uriHandler.openUri(url) },
+                        onClick = { runCatching { uriHandler.openUri(url) } },
                     ) { Text(stringResource(R.string.licenses_open_page)) }
                 }
             }

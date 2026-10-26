@@ -14,7 +14,9 @@ aboutLibraries {
     // A new kind of license stops the build: add its text above, after checking it is compatible with GPL-3.0.
     license {
         strictMode = com.mikepenz.aboutlibraries.plugin.StrictMode.FAIL
-        allowedLicenses.addAll("Apache-2.0", "BSD-3-Clause", "MIT")
+        allowedLicenses.addAll("Apache-2.0", "BSD-3-Clause", "MIT", "GPL-3.0-or-later")
+        // The app's own license ships with it too (GPL-3.0 section 4), from LICENSE (a test keeps them equal).
+        additionalLicenses.add("GPL-3.0-or-later")
     }
 }
 
@@ -69,7 +71,18 @@ dependencies {
 // LicensesReportTest checks what the release build ships, also when the unit tests run on debug (#70).
 tasks.withType<Test>().configureEach {
     val report = layout.buildDirectory.file("generated/aboutLibraries/release/res/raw/aboutlibraries.json")
+    val license = rootProject.file("LICENSE")
     dependsOn("prepareLibraryDefinitionsRelease")
-    inputs.file(report)
-    systemProperty("mediatheq.licensesReport", report.get().asFile.path)
+    inputs.file(report).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file(license).withPathSensitivity(PathSensitivity.RELATIVE)
+    // Relative to the module, the tests' working directory: absolute paths would tie the build cache to this machine.
+    systemProperty(
+        "mediatheq.licensesReport",
+        report
+            .get()
+            .asFile
+            .relativeTo(projectDir)
+            .invariantSeparatorsPath,
+    )
+    systemProperty("mediatheq.license", license.relativeTo(projectDir).invariantSeparatorsPath)
 }

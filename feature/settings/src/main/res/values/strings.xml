@@ -50,6 +50,8 @@
     <string name="licenses_title">Open-source licenses</string>
     <string name="licenses_close">Back</string>
     <string name="licenses_open_page">Open the project page</string>
+    <string name="licenses_expanded">License shown</string>
+    <string name="licenses_collapsed">License hidden</string>
     <string name="settings_showcase">Theme showcase</string>
     <string name="settings_showcase_summary">Design system components, for manual checks</string>
 

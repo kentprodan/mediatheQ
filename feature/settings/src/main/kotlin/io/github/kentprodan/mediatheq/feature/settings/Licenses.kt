@@ -3,7 +3,10 @@ package io.github.kentprodan.mediatheq.feature.settings
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** The app itself, first in the list (ADR 0001). */
+/** The app's license id in the build's report, which carries its full text (from LICENSE). */
+private const val APP_LICENSE = "GPL-3.0-or-later"
+
+/** The app itself, first in the list (ADR 0001); the full GPL text follows its notice in [licenseEntries]. */
 internal val APP_ENTRY =
     LicenseEntry(
         id = "mediatheq",
@@ -81,7 +84,9 @@ internal fun licenseEntries(reportJson: String): List<LicenseEntry> {
                     url = library.website,
                 )
             }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
-    return listOf(APP_ENTRY) + assets + libraries
+    val appText = listOfNotNull(APP_ENTRY.licenseText, report.licenses[APP_LICENSE]?.content).joinToString("\n\n")
+    val app = APP_ENTRY.copy(licenseText = appText)
+    return listOf(app) + assets + libraries
 }
 
 private val json = Json { ignoreUnknownKeys = true }

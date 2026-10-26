@@ -23,10 +23,11 @@ class LicensesViewModel(
 ) : ViewModel() {
     private val openId = MutableStateFlow<String?>(null)
 
+    // Lazily: the report is read and parsed once for the screen's life, not again after each 5 s away.
     val uiState: StateFlow<LicensesUiState> =
         combine(flow { emit(licenseEntries(report())) }.flowOn(dispatcher), openId) { entries, open ->
             LicensesUiState.Content(entries, open)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LicensesUiState.Loading)
+        }.stateIn(viewModelScope, SharingStarted.Lazily, LicensesUiState.Loading)
 
     fun onAction(action: LicensesAction) {
         when (action) {

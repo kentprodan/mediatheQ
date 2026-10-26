@@ -18,7 +18,8 @@ class LicensesTest {
           ],
           "licenses": {
             "Apache-2.0": {"name": "The Apache License, Version 2.0", "content": "Apache text", "hash": "Apache-2.0"},
-            "MIT": {"name": "MIT License", "content": "MIT text"}
+            "MIT": {"name": "MIT License", "content": "MIT text"},
+            "GPL-3.0-or-later": {"name": "GNU General Public License v3.0 or later", "content": "GPL text"}
           }
         }
         """.trimIndent()
@@ -39,8 +40,10 @@ class LicensesTest {
     }
 
     @Test
-    fun `the app shows its license and its source`() {
+    fun `the app shows its license with the notice and the full text, and its source`() {
         assertThat(entries.first().licenseName).isEqualTo("GPL-3.0-or-later")
+        assertThat(entries.first().licenseText).startsWith("mediatheQ is free software")
+        assertThat(entries.first().licenseText).endsWith("\n\nGPL text")
         assertThat(entries.first().url).isEqualTo("https://github.com/kentprodan/mediatheQ")
     }
 
@@ -70,9 +73,13 @@ class LicensesTest {
             File(System.getProperty("mediatheq.thirdParty"))
                 .readLines()
                 .filter { it.startsWith("| ") && !it.startsWith("| What") }
-                .map { it.removePrefix("| ").substringBefore(" |") }
+                .map { row -> row.trim('|').split(" | ").map { it.trim() } }
 
         assertThat(rows).hasSize(COPIED_ASSETS.size)
-        COPIED_ASSETS.forEach { asset -> assertThat(rows.any { it.startsWith(asset.name) }).isTrue() }
+        COPIED_ASSETS.forEach { asset ->
+            // Columns: What | Where | Source | License.
+            val row = rows.single { it.first().startsWith(asset.name) }
+            assertThat(row.last()).isEqualTo(asset.licenseName)
+        }
     }
 }

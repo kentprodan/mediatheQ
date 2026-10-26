@@ -61,7 +61,7 @@ fun SettingsScreen(
     onOpenAudio: () -> Unit,
     onOpenShowcase: () -> Unit,
     onBack: () -> Unit,
-    onOpenLicenses: () -> Unit = {},
+    onOpenLicenses: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -255,7 +255,7 @@ internal fun RatingsGroup(
 internal fun AboutGroup(
     versionName: String,
     onOpenShowcase: () -> Unit,
-    onOpenLicenses: () -> Unit = {},
+    onOpenLicenses: () -> Unit,
 ) {
     Group(R.string.settings_about) {
         item { shapes -> InfoItem(shapes, stringResource(R.string.settings_version), versionName) }

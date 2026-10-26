@@ -2,6 +2,9 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -32,10 +35,13 @@ class LicensesScreenTest {
     }
 
     @Test
-    fun `tapping a row asks to open its license`() {
+    fun `tapping a row asks to open its license, and TalkBack hears whether it is open`() {
         show()
 
-        composeRule.onNodeWithText("mediatheQ").performClick()
+        composeRule
+            .onNodeWithText("mediatheQ")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "License hidden"))
+            .performClick()
 
         assertThat(actions).containsExactly(LicensesAction.Toggle("mediatheq"))
     }

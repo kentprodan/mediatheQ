@@ -28,6 +28,24 @@ class LicensesReportTest {
     }
 
     @Test
+    fun `the app's own license ships with it, as in LICENSE`() {
+        val gpl =
+            report
+                .getValue("licenses")
+                .jsonObject
+                .getValue("GPL-3.0-or-later")
+                .jsonObject
+        val license = File(System.getProperty("mediatheq.license")).readText().replace("\r\n", "\n").trim()
+
+        assertThat(
+            gpl
+                .getValue("content")
+                .jsonPrimitive.content
+                .trim(),
+        ).isEqualTo(license)
+    }
+
+    @Test
     fun `debug-only tools are not listed`() {
         assertThat(ids).containsNoneOf("androidx.compose.ui:ui-tooling", "androidx.compose.ui:ui-test-manifest")
     }
