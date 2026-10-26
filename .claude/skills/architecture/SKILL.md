@@ -24,6 +24,7 @@ Base package placeholder below: `{base}` (decided in ADR 0001).
 | Network | OkHttp + kotlinx.serialization | own thin client, see `jellyfin` skill |
 | Images | Coil 3 | |
 | Playback | Media3 (ExoPlayer, session, downloads) | |
+| Licenses | AboutLibraries Gradle plugin (15.x), in `:app` only, offline | the app parses its JSON with kotlinx.serialization (ADR 0022) |
 | No | Firebase, analytics, crash SaaS, RxJava, LiveData, Gson, Moshi, KAPT, Room 2.x | |
 
 Any change to this table = ADR in `docs/decisions/`.

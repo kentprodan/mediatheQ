@@ -1,6 +1,6 @@
 # Third-party material
 
-Code or assets copied into this repository from other projects (ADR 0001). Libraries pulled in through Gradle are not listed here.
+Code or assets copied into this repository from other projects (ADR 0001). Libraries pulled in through Gradle are not listed here: the build lists them in the app (Settings -> About -> Open-source licenses, ADR 0022). The app shows this table too (`COPIED_ASSETS` in `:feature:settings`; a test keeps both in step).
 
 | What | Where | Source | License |
 |---|---|---|---|

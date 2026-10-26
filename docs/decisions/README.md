@@ -26,6 +26,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0019](0019-hls-for-converted-streams.md) | HLS for converted streams, chosen by a lazy media source | Accepted |
 | [0020](0020-saved-queue-flag-in-shared-preferences.md) | A saved-queue flag in SharedPreferences for media buttons | Accepted |
 | [0021](0021-offline-mode-filters-the-library.md) | Offline mode filters the library in the repositories | Accepted |
+| [0022](0022-open-source-licenses-at-build-time.md) | Open-source licenses generated at build time with AboutLibraries | Accepted |
 
 Template for new ADRs:
 
