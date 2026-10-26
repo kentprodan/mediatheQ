@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import android.app.PendingIntent
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -40,7 +41,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -326,6 +331,24 @@ class MediatheqPlaybackService : MediaLibraryService() {
             PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         }
 
+    /** The cover's bytes from the server (app client, ADR 0013), or `null` when it does not answer in time. */
+    private suspend fun fetchCover(uri: Uri): ByteArray? =
+        withContext(ioDispatcher) {
+            try {
+                okHttpClient
+                    .newBuilder()
+                    .callTimeout(COVER_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                    .build()
+                    .newCall(Request.Builder().url(uri.toString()).build())
+                    .execute()
+                    .use { if (it.isSuccessful) it.body.bytes() else null }
+            } catch (_: IOException) {
+                null
+            } catch (_: IllegalArgumentException) {
+                null // not an http(s) URL
+            }
+        }
+
     private inner class LibraryCallback : MediaLibrarySession.Callback {
         /** Our app, the media notification and trusted system controllers only. */
         override fun onConnectAsync(
@@ -341,6 +364,14 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     MediaSession.ConnectionResult.reject()
                 },
             )
+
+        /** The system asks to play with nothing queued (media button, media card): the saved queue (#43). */
+        override fun onPlaybackResumption(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            isForPlayback: Boolean,
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> =
+            persistence.resumptionFuture(isForPlayback, ::fetchCover)
 
         override fun onAddMediaItems(
             mediaSession: MediaSession,
@@ -361,3 +392,6 @@ class MediatheqPlaybackService : MediaLibraryService() {
 /** Music is meant to play: play was asked for and the player has something to play (buffering counts). */
 internal fun Player.wantsToPlay(): Boolean =
     playWhenReady && playbackState != Player.STATE_IDLE && playbackState != Player.STATE_ENDED
+
+// The boot card waits at most this long for its cover; without it the card shows title and artist only.
+private const val COVER_TIMEOUT_SECONDS = 2L
