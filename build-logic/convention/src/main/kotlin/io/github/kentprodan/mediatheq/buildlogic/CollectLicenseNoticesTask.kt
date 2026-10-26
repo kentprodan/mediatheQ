@@ -42,14 +42,18 @@ abstract class CollectLicenseNoticesTask : DefaultTask() {
     fun collect() {
         val notices = sortedMapOf<String, String>()
         libraries.get().forEach { (path, library) ->
-            ZipFile(path).use { zip ->
-                zip
-                    .entries()
-                    .asSequence()
-                    .filter { NOTICE.matches(it.name) }
-                    .map { zip.getInputStream(it).bufferedReader().use { reader -> reader.readText().trim() } }
-                    .forEach { text -> notices.merge(library, text) { old, new -> "$old\n\n$new" } }
-            }
+            val texts =
+                ZipFile(path).use { zip ->
+                    zip
+                        .entries()
+                        .asSequence()
+                        .filter { NOTICE.matches(it.name) }
+                        .map { zip.getInputStream(it).bufferedReader().use { reader -> reader.readText().trim() } }
+                        // The same text twice (NOTICE and NOTICE.txt) shows once.
+                        .distinct()
+                        .toList()
+                }
+            if (texts.isNotEmpty()) notices[library] = texts.joinToString("\n\n")
         }
         val raw = outputDirectory.dir("raw").get().asFile
         raw.mkdirs()
