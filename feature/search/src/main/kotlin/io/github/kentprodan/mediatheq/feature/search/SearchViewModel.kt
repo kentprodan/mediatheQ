@@ -38,7 +38,8 @@ class SearchViewModel
         private val query = MutableStateFlow("")
         private val retries = MutableStateFlow(0)
 
-        // shortcut: a query runs once, so a sync finishing while results show does not refresh them; retype to see it.
+        // shortcut: a query runs once, so a sync finishing (or, in offline mode, a download completing) while results
+        // show does not refresh them; retype to see it.
         val uiState: StateFlow<SearchUiState> =
             // Offline mode on or off runs the query again: it searches other items (#63).
             combine(query, retries, libraryRepository.offline) { query, _, offline -> query.trim() to offline }

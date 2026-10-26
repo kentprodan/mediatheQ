@@ -98,6 +98,16 @@ class DefaultLibraryRepositoryTest {
         }
 
     @Test
+    fun `the Downloads tab still names every track in offline mode`() =
+        runTest {
+            library("Pe-o margine", "Satele")
+            preferences.setOfflineMode(true)
+
+            assertThat(repository.tracks().first()).isEmpty()
+            assertThat(repository.allTracks().first()).hasSize(2)
+        }
+
+    @Test
     fun `without a network offline mode is on by itself`() =
         runTest {
             library("Pe-o margine", "Satele")

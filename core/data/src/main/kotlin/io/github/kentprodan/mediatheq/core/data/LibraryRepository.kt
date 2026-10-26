@@ -52,6 +52,9 @@ interface LibraryRepository {
     /** Every track with its artists, by sort name. */
     fun tracks(): Flow<List<Track>>
 
+    /** [tracks], also in offline mode: the Downloads tab names queued and failed downloads too. */
+    fun allTracks(): Flow<List<Track>>
+
     /**
      * Diacritic-insensitive search over names, at most [limitPerKind] of each kind; the last word matches as a prefix.
      * Any typed text is safe; a blank query finds nothing.

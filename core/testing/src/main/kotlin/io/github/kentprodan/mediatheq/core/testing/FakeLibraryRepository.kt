@@ -61,6 +61,8 @@ class FakeLibraryRepository : LibraryRepository {
 
     override fun allPlaylists() = playlists
 
+    override fun allTracks() = tracks
+
     override fun tracks() = tracks
 
     override suspend fun search(

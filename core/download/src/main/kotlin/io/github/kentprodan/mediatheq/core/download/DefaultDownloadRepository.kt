@@ -139,7 +139,7 @@ internal class DefaultDownloadRepository
                 entries,
                 notMetRequirements,
                 ticks,
-                libraryRepository.tracks().map { tracks -> tracks.associateBy { it.id } },
+                libraryRepository.allTracks().map { tracks -> tracks.associateBy { it.id } },
             ) { entries, notMet, _, tracks ->
                 val current = manager.currentDownloads.associateBy { it.request.id }
                 entries
