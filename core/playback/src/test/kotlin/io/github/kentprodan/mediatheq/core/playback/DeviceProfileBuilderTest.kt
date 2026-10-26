@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
+import io.github.kentprodan.mediatheq.core.model.TranscodingTarget
 import org.junit.Test
 
 class DeviceProfileBuilderTest {
@@ -62,6 +63,18 @@ class DeviceProfileBuilderTest {
 
         assertThat(profile.maxStreamingBitrate).isEqualTo(128_000)
         assertThat(profile.transcoding).isEqualTo(DeviceProfileBuilder.opus(128_000))
+    }
+
+    @Test
+    fun `a download plays what the device plays as it is, and converts the rest to one Opus 256 Ogg file`() {
+        val download = DeviceProfileBuilder.download(pixel)
+        val original = DeviceProfileBuilder.build(pixel, StreamingQuality.Original)
+
+        assertThat(download.directPlayCodecs).isEqualTo(original.directPlayCodecs)
+        assertThat(download.maxStreamingBitrate).isNull()
+        assertThat(download.transcoding)
+            .isEqualTo(TranscodingTarget(container = "ogg", codec = "opus", bitrate = 256_000, maxChannels = 2))
+        assertThat(download.transcoding.segmented).isFalse()
     }
 
     @Test

@@ -17,6 +17,12 @@ object DeviceProfileBuilder {
 
     val OPUS_256 = opus(256_000)
 
+    /**
+     * Opus 256 in one Ogg file, for downloads of tracks the device cannot play as they are (#68, ADR 0024): a download
+     * is a file, and Media3 seeks in a complete Ogg file.
+     */
+    val OPUS_256_FILE = TranscodingTarget(container = "ogg", codec = "opus", bitrate = 256_000, maxChannels = 2)
+
     /** Containers Media3's extractors read (Jellyfin names). */
     val CONTAINERS = listOf("flac", "mp3", "m4a", "mp4", "m4b", "aac", "ogg", "oga", "opus", "webm", "mka", "wav")
 
@@ -30,6 +36,10 @@ object DeviceProfileBuilder {
             transcoding = quality.bitrate?.let(::opus) ?: OPUS_256,
             maxStreamingBitrate = quality.bitrate,
         )
+
+    /** For a download: the original whenever the device plays it as it is, else one converted file. */
+    fun download(decoderMimeTypes: Set<String>): DeviceProfile =
+        build(decoderMimeTypes, StreamingQuality.Original).copy(transcoding = OPUS_256_FILE)
 
     /**
      * Jellyfin codec name -> decoder MIME type needed; `null` = Media3 handles it without a platform decoder (PCM).
