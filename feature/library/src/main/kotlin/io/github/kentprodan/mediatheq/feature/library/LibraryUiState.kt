@@ -16,7 +16,8 @@ import io.github.kentprodan.mediatheq.core.model.Track
  */
 data class LibraryUiState(
     val filter: LibraryFilter = LibraryFilter.Albums,
-    val filterStyle: FilterControlStyle = FilterControlStyle.Chips,
+    /** `null` until the saved style is read: no filter bar rather than the default style for a moment (#52). */
+    val filterStyle: FilterControlStyle? = FilterControlStyle.Chips,
     val albumColumns: Int = LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
     /** The current filter's sort. */
     val sort: LibrarySort = LibrarySort.Name,

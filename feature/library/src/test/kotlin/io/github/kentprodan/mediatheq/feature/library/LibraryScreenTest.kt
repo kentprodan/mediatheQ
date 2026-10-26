@@ -63,4 +63,21 @@ class LibraryScreenTest {
         assertThat(opened).isEqualTo(albums[1].id)
         assertThat(actions).contains(LibraryAction.SelectFilter(LibraryFilter.Songs))
     }
+
+    @Test
+    fun `R52 no filter bar until the saved style is known`() {
+        composeRule.setContent {
+            MediatheqTheme {
+                LibraryScreen(
+                    LibraryUiState(filterStyle = null),
+                    onAction = {},
+                    onOpenAlbum = {},
+                    onOpenArtist = {},
+                    onOpenPlaylist = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Songs").assertDoesNotExist()
+    }
 }

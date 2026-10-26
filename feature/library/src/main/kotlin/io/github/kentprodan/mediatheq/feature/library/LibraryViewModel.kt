@@ -103,7 +103,7 @@ class LibraryViewModel
                     refreshError =
                         (status as? SyncStatus.Failed)?.takeIf { !failureShownAsContent && it != shown }?.error,
                 )
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState(filterStyle = null))
 
         fun onAction(action: LibraryAction) {
             when (action) {

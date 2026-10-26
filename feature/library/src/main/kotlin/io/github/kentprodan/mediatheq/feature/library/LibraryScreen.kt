@@ -109,17 +109,20 @@ fun LibraryScreen(
         contentWindowInsets = WindowInsets(0),
     ) { padding ->
         Column(Modifier.padding(padding)) {
-            MqFilterBar(
-                labels = LibraryFilter.entries.map { stringResource(it.label) },
-                selectedIndex = state.filter.ordinal,
-                onSelect = { onAction(LibraryAction.SelectFilter(LibraryFilter.entries[it])) },
-                style =
-                    when (state.filterStyle) {
-                        FilterControlStyle.Chips -> MqFilterBarStyle.Chips
-                        FilterControlStyle.ConnectedButtons -> MqFilterBarStyle.ConnectedButtons
-                    },
-                modifier = Modifier.padding(bottom = MediatheqSpacing.s),
-            )
+            // Shown once the saved style is known; the list is still loading until then.
+            state.filterStyle?.let { filterStyle ->
+                MqFilterBar(
+                    labels = LibraryFilter.entries.map { stringResource(it.label) },
+                    selectedIndex = state.filter.ordinal,
+                    onSelect = { onAction(LibraryAction.SelectFilter(LibraryFilter.entries[it])) },
+                    style =
+                        when (filterStyle) {
+                            FilterControlStyle.Chips -> MqFilterBarStyle.Chips
+                            FilterControlStyle.ConnectedButtons -> MqFilterBarStyle.ConnectedButtons
+                        },
+                    modifier = Modifier.padding(bottom = MediatheqSpacing.s),
+                )
+            }
             PullToRefreshBox(
                 // The full-screen loading indicator already shows progress; no second spinner on top.
                 isRefreshing = state.refreshing && state.content !is LibraryContent.Loading,
