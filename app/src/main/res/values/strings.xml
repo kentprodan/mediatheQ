@@ -9,6 +9,7 @@
     <string name="offline_title">You are offline</string>
     <string name="offline_body">Downloaded music still plays.</string>
     <string name="offline_open_downloads">Open Downloads</string>
+    <string name="offline_settings">Settings</string>
     <string name="local_network_title">Allow access to your home network</string>
     <string name="local_network_body">mediatheQ reaches your Jellyfin server on your home network or through Tailscale. Android asks for your permission first.</string>
     <string name="local_network_allow">Allow</string>
