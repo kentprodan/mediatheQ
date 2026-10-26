@@ -1,12 +1,14 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import android.content.Context
+import android.os.Looper
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionError
 import androidx.media3.test.utils.FakeMediaSource
 import androidx.media3.test.utils.FakeMediaSourceFactory
 import androidx.media3.test.utils.FakeTimeline
@@ -26,6 +28,7 @@ import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import kotlin.time.Duration.Companion.minutes
 
 @UnstableApi
@@ -182,6 +185,66 @@ class PlayerUiModelTest {
         assertThat(controller.toPlayerUiModel(heard!!).output).isEqualTo(bitPerfect)
         controller.release()
         session.release()
+    }
+
+    @Test
+    fun `a track that could not play reaches the app's controller through the session`() {
+        val error = PlaybackError("Strobe", PlaybackError.Reason.NotDownloaded, skipped = true)
+        val session = MediaSession.Builder(context, player).build()
+        var heard: PlaybackError? = null
+        val future =
+            MediaController
+                .Builder(context, session.token)
+                .setListener(
+                    object : MediaController.Listener {
+                        override fun onError(
+                            controller: MediaController,
+                            sessionError: SessionError,
+                        ) {
+                            heard = sessionError.extras.toPlaybackError()
+                        }
+                    },
+                ).buildAsync()
+        RobolectricUtil.runMainLooperUntil { future.isDone }
+
+        session.sendPlaybackError(context.packageName, error)
+        RobolectricUtil.runMainLooperUntil { heard != null }
+
+        assertThat(heard).isEqualTo(error)
+        future.get().release()
+        session.release()
+    }
+
+    @Test
+    fun `controllers of other apps never hear about a track that could not play`() {
+        val session = MediaSession.Builder(context, player).build()
+        var heard = false
+        val future =
+            MediaController
+                .Builder(context, session.token)
+                .setListener(
+                    object : MediaController.Listener {
+                        override fun onError(
+                            controller: MediaController,
+                            sessionError: SessionError,
+                        ) {
+                            heard = true
+                        }
+                    },
+                ).buildAsync()
+        RobolectricUtil.runMainLooperUntil { future.isDone }
+
+        session.sendPlaybackError("com.example.car", PlaybackError("Strobe", PlaybackError.Reason.Failed, false))
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertThat(heard).isFalse()
+        future.get().release()
+        session.release()
+    }
+
+    @Test
+    fun `errors that are not ours carry no playback error`() {
+        assertThat(android.os.Bundle().toPlaybackError()).isNull()
     }
 
     @Test

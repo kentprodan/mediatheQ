@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.testing
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.PlaybackError
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +19,11 @@ class FakePlaybackConnection : PlaybackConnection {
 
     override val state = MutableStateFlow(PlayerUiModel())
     override val position = MutableStateFlow(Duration.ZERO)
+    override val error = MutableStateFlow<PlaybackError?>(null)
+
+    override fun dismissError() {
+        error.value = null
+    }
 
     val plays = mutableListOf<PlayCall>()
 

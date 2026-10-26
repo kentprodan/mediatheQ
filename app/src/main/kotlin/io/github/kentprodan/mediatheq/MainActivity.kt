@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
                             val navigator = rememberTabNavigator()
                             val snackbar = remember { SnackbarHostState() }
                             UserDataErrorMessages(viewModel.userDataError, viewModel::dismissUserDataError, snackbar)
+                            PlaybackErrorMessages(viewModel.playbackError, viewModel::dismissPlaybackError, snackbar)
                             val entries =
                                 remember(navigator) {
                                     entryProvider {

@@ -10,6 +10,8 @@ import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.PlaybackError
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -30,6 +32,7 @@ class MainViewModel
         networkMonitor: NetworkMonitor,
         private val librarySync: LibrarySyncRepository,
         libraryPreferences: LibraryPreferencesRepository,
+        private val playback: PlaybackConnection,
     ) : ViewModel() {
         /** Material You on or off; `null` while it is read, so the first frame never shows the wrong colors. */
         val dynamicColor: StateFlow<Boolean?> =
@@ -44,6 +47,11 @@ class MainViewModel
         val userDataError: StateFlow<MqError?> = userDataRepository.error
 
         fun dismissUserDataError() = userDataRepository.dismissError()
+
+        /** A track that could not play (skipped or stopped), for one app-wide message. */
+        val playbackError: StateFlow<PlaybackError?> = playback.error
+
+        fun dismissPlaybackError() = playback.dismissError()
 
         // Starts online: a wrong "offline" flash would hide the tabs for nothing.
         val online: StateFlow<Boolean> =

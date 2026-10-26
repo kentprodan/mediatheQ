@@ -153,6 +153,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 playerDispatcher = Dispatchers.Main,
             )
         player.addListener(ReportingListener(player, reporter))
+        player.addListener(SkipFailedTrackListener(player) { session?.sendPlaybackError(packageName, it) })
         // Live updates keep going in the background while music plays (issue #18): while it is meant to play, so a
         // buffering stall does not drop and reopen the connection.
         player.addListener(

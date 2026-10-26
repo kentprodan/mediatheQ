@@ -65,4 +65,10 @@ interface PlaybackConnection {
 
     /** Plays the queue entry from its start. */
     fun skipToQueueItem(entryId: String)
+
+    /** The last track that could not play, until [dismissError]; for a message on screen. */
+    val error: StateFlow<PlaybackError?>
+
+    /** Clears [error] once its message was shown. */
+    fun dismissError()
 }
