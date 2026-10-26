@@ -123,6 +123,28 @@ class SkipFailedTrackTest {
         assertThat(errors.map { it.skipped }).containsExactly(true, true, false).inOrder()
     }
 
+    @Test
+    fun `a dropped connection stops where it is, also when it shows while asking for the stream`() {
+        failures[1] = StreamUnavailableException(MqError.Network)
+        queue(1, 2)
+
+        runUntil { player.playerError != null }
+
+        assertThat(player.currentMediaItemIndex).isEqualTo(0)
+        assertThat(errors).containsExactly(PlaybackError("Track 1", Reason.Failed, skipped = false))
+    }
+
+    @Test
+    fun `a new queue starts a new lap`() {
+        listOf(1, 2, 4).forEach { failures[it] = OfflineException() }
+        queue(4)
+        runUntil { player.playerError != null }
+
+        queue(1, 2, 3)
+
+        runUntil { player.currentMediaItemIndex == 2 && player.isPlaying }
+    }
+
     private fun item(n: Int): MediaItem =
         Track(MediaId(ServerId("s"), "t$n"), "Track $n", emptyList(), 3.minutes).toMediaItem(null).withTrackUri()!!
 
