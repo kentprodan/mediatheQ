@@ -12,6 +12,7 @@ import androidx.media3.test.utils.TestExoPlayerBuilder
 import androidx.media3.test.utils.robolectric.RobolectricUtil
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.google.common.util.concurrent.ListenableFuture
 import io.github.kentprodan.mediatheq.core.data.QueuePlace
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.SavedEntry
@@ -60,6 +61,7 @@ class PlaybackResumptionTest {
         QueuePersistence(player, slowRepository, scope, artworkUrl = { "https://nas/art/${it.itemId}" })
     private var session: MediaSession? = null
     private var resumptions = 0
+    private var lastResumption: ListenableFuture<MediaSession.MediaItemsWithStartPosition>? = null
 
     @After
     fun release() {
@@ -72,7 +74,7 @@ class PlaybackResumptionTest {
         Track(MediaId(ServerId("s"), "t$n"), "Track $n", emptyList(), 3.minutes, artwork = Artwork("al$n", "tag"))
 
     private fun saved(place: QueuePlace = QueuePlace(1, 5.seconds, shuffle = false)) =
-        SavedQueue((1..3).map { SavedEntry("e$it", track(it)) }, listOf(2, 0, 1), place)
+        SavedQueue((1..8).map { SavedEntry("e$it", track(it)) }, listOf(2, 0, 7, 4, 1, 6, 3, 5), place)
 
     /** A controller on a session wired like the service's: resumption comes from [persistence]. */
     private fun connect(): MediaController {
@@ -85,7 +87,10 @@ class PlaybackResumptionTest {
                             mediaSession: MediaSession,
                             controller: MediaSession.ControllerInfo,
                             isForPlayback: Boolean,
-                        ) = persistence.resumptionFuture(isForPlayback) { null }.also { resumptions++ }
+                        ) = persistence.resumptionFuture(isForPlayback) { null }.also {
+                            resumptions++
+                            lastResumption = it
+                        }
                     },
                 ).build()
         val future = MediaController.Builder(context, session!!.token).buildAsync()
@@ -106,7 +111,7 @@ class PlaybackResumptionTest {
         RobolectricUtil.runMainLooperUntil { resumptions == 1 }
         restoreGate.complete(Unit)
 
-        RobolectricUtil.runMainLooperUntil { player.playWhenReady && player.mediaItemCount == 3 }
+        RobolectricUtil.runMainLooperUntil { player.playWhenReady && player.mediaItemCount == 8 }
         assertThat(player.currentMediaItem?.entryId()).isEqualTo("e2")
         assertThat(player.currentPosition).isAtLeast(5_000)
         assertThat(player.playbackState).isNotEqualTo(Player.STATE_IDLE)
@@ -124,9 +129,11 @@ class PlaybackResumptionTest {
         RobolectricUtil.runMainLooperUntil { resumptions == 1 }
         restoreGate.complete(Unit)
 
-        RobolectricUtil.runMainLooperUntil { player.playWhenReady && player.mediaItemCount == 3 }
+        RobolectricUtil.runMainLooperUntil { player.playWhenReady && player.mediaItemCount == 8 }
         assertThat(player.shuffleModeEnabled).isTrue()
-        assertThat(titles()).containsExactly("Track 3", "Track 1", "Track 2").inOrder()
+        assertThat(titles())
+            .containsExactly("Track 3", "Track 1", "Track 8", "Track 5", "Track 2", "Track 7", "Track 4", "Track 6")
+            .inOrder()
         assertThat(player.repeatMode).isEqualTo(Player.REPEAT_MODE_ONE)
         controller.release()
     }
@@ -140,10 +147,11 @@ class PlaybackResumptionTest {
         // The play reaches the session while the restore still runs, so the session asks for the resumption.
         RobolectricUtil.runMainLooperUntil { resumptions == 1 }
         restoreGate.complete(Unit)
-        RobolectricUtil.runMainLooperUntil { !controller.playWhenReady || player.mediaItemCount == 0 }
+        RobolectricUtil.runMainLooperUntil { lastResumption!!.isDone }
 
+        assertThat(lastResumption!!.get().mediaItems).isEmpty()
         assertThat(player.mediaItemCount).isEqualTo(0)
-        assertThat(persistence.resumptionFuture(isForPlayback = true) { null }.get().mediaItems).isEmpty()
+        assertThat(player.isPlaying).isFalse()
         controller.release()
     }
 

@@ -161,3 +161,8 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: on Now Playing tap Shuffle on and off, then Repeat three times (off -> all -> one -> off) -> a subtle haptic tick on each tap; none with Settings -> Sound & vibration -> Vibration & haptics -> Touch feedback off
 - [ ] Pixel 9: play an album from track 4, turn Shuffle on -> track 4 keeps playing, Next goes through every other track once, the queue screen shows track 4 first
 - [ ] Pixel 9: set Repeat one, force-stop the app, reopen -> the repeat button still shows repeat one
+
+## #43 Playback resumption from the system (media card, headphone Play)
+- [ ] Pixel 9: play something, pause, reboot the phone -> after unlock the media card shows the last track (with its cover when the server was reachable) -> Play on the card resumes it at the saved position
+- [ ] Pixel 9 + Bluetooth headphones: playback paused, app swiped away from Recents -> Play on the headphones resumes the last queue at the saved track and position
+- [ ] Pixel 9 + Bluetooth headphones: log out, swipe the app away, press Play on the headphones -> nothing starts and the app does not crash

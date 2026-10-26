@@ -21,8 +21,8 @@ class MediatheqMediaButtonReceiver : MediaButtonReceiver() {
         context: Context,
         intent: Intent,
     ): Boolean =
-        // shortcut: a saved queue whose tracks all left the library still starts the service with nothing to play;
-        // check the entries here if that ever shows up.
+        // shortcut: the flag can be stale once (e.g. every saved track left the library): that press starts the service
+        // with nothing to play, and its restore clears the flag (ADR 0020). Check the entries here if it ever shows up.
         EntryPointAccessors
             .fromApplication(context.applicationContext, ReceiverEntryPoint::class.java)
             .queueRepository()

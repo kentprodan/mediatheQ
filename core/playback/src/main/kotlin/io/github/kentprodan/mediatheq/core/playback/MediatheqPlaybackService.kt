@@ -39,6 +39,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.withContext
@@ -172,6 +173,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 repository = queueRepository,
                 scope = applicationScope + Dispatchers.Main,
                 artworkUrl = { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) },
+                isLoggedIn = { sessionRepository.session.first() is SessionState.LoggedIn },
             )
         persistJob = persistence.start()
         prefetcher =

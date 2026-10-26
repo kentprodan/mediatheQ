@@ -42,6 +42,8 @@ internal class QueuePersistence(
     private val repository: QueueRepository,
     private val scope: CoroutineScope,
     private val artworkUrl: suspend (Artwork) -> String?,
+    /** Nothing comes back while signed out (also when the token could not be read). */
+    private val isLoggedIn: suspend () -> Boolean = { true },
     private val debounce: Duration = 1.seconds,
     private val tick: Duration = 10.seconds,
 ) {
@@ -95,7 +97,7 @@ internal class QueuePersistence(
             try {
                 val saved =
                     try {
-                        repository.restore()
+                        if (isLoggedIn()) repository.restore() else null
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
@@ -103,6 +105,9 @@ internal class QueuePersistence(
                         Log.w(TAG, "Could not restore the saved queue", e)
                         null
                     }
+                // Nothing to bring back (none saved, signed out, every track gone, or unreadable): forget it, so the
+                // next media button with the app closed does not start a service with nothing to play (#43).
+                if (saved == null) forget()
                 if (saved != null && player.mediaItemCount == 0) {
                     val items =
                         saved.entries.map { entry ->
@@ -126,6 +131,16 @@ internal class QueuePersistence(
                 if (player.isPlaying) save()
             }
         }
+
+    private suspend fun forget() {
+        try {
+            repository.clear()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not forget the saved queue", e)
+        }
+    }
 
     /**
      * What the system resumes when it asks to play with nothing queued (a media button or the media card with the app

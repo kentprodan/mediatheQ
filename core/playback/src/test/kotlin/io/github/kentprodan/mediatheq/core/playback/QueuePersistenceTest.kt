@@ -116,6 +116,28 @@ class QueuePersistenceTest {
         }
 
     @Test
+    fun `signed out, nothing comes back and the saved queue is forgotten`() =
+        runTest {
+            repository.saved = saved(QueuePlace(1, 42.seconds, shuffle = false))
+
+            QueuePersistence(player, repository, backgroundScope, artworkUrl = { null }, isLoggedIn = { false }).start()
+            runCurrent()
+
+            assertThat(player.mediaItemCount).isEqualTo(0)
+            assertThat(repository.clears).isEqualTo(1)
+            assertThat(repository.hasSavedQueue).isFalse()
+        }
+
+    @Test
+    fun `nothing left to bring back forgets the saved queue, so a media button starts nothing`() =
+        runTest {
+            start()
+            runCurrent()
+
+            assertThat(repository.clears).isEqualTo(1)
+        }
+
+    @Test
     fun `the repeat mode comes back`() =
         runTest {
             repository.saved = saved(QueuePlace(0, Duration.ZERO, shuffle = false, repeatMode = RepeatMode.One))
