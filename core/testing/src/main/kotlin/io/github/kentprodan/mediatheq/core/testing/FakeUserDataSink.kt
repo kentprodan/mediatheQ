@@ -10,12 +10,14 @@ import kotlinx.coroutines.CompletableDeferred
 
 /**
  * [UserDataSink] that keeps what a server would store in [serverState] and records each call (e.g. "favorite:t1:true",
- * "rating:t1:8.0") in [calls]. [failure] makes every call fail; [gate], when set, holds every call until it completes.
+ * "rating:t1:8.0") in [calls]. [failure] makes every call fail, [ratingFailure] only rating calls; [gate], when set,
+ * holds every call until it completes.
  */
 class FakeUserDataSink : UserDataSink {
     val serverState = mutableMapOf<MediaId, UserData>()
     val calls = mutableListOf<String>()
     var failure: MqError? = null
+    var ratingFailure: MqError? = null
     var gate: CompletableDeferred<Unit>? = null
 
     override suspend fun setFavorite(
@@ -28,16 +30,17 @@ class FakeUserDataSink : UserDataSink {
         server: SignedInServer,
         itemId: MediaId,
         rating: Double?,
-    ) = call("rating:${itemId.itemId}:$rating", itemId) { it.copy(rating = rating) }
+    ) = call("rating:${itemId.itemId}:$rating", itemId, ratingFailure) { it.copy(rating = rating) }
 
     private suspend fun call(
         name: String,
         itemId: MediaId,
+        callFailure: MqError? = null,
         change: (UserData) -> UserData,
     ): MqResult<Unit> {
         calls += name
         gate?.await()
-        failure?.let { return MqResult.Failure(it) }
+        (failure ?: callFailure)?.let { return MqResult.Failure(it) }
         serverState[itemId] = change(serverState[itemId] ?: UserData())
         return MqResult.Success(Unit)
     }

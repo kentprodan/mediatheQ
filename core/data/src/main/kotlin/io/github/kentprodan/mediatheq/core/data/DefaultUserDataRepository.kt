@@ -4,9 +4,11 @@ import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.dao.UserDataDao
+import io.github.kentprodan.mediatheq.core.database.entity.PendingUserDataEntity
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import io.github.kentprodan.mediatheq.core.server.UserDataSink
@@ -24,12 +26,15 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Optimistic favorite and rating writes (architecture skill, section 4), one at a time. Until the server has a change
- * it is kept as an override, so neither a socket echo nor a sync swap can put the old value back. A change made while
- * its track plays stays an override until that play ends and is sent again after each progress and the stop report,
- * which may carry the server's older value over it (R2).
+ * Optimistic favorite and rating writes (architecture skill, section 4), one at a time. A change is stored in Room as
+ * waiting (pending_user_data) until the server answers it, and is kept as an override meanwhile, so neither a socket
+ * echo nor a sync swap can put the old value back. Without network it simply waits, also across restarts, and is sent
+ * oldest first with the next change or when [LiveSync] connects again (#56); only a server answer undoes it. A change
+ * made while its track plays stays an override until that play ends and is sent again after each progress and the stop
+ * report, which may carry the server's older value over it (R2).
  * shortcut: the R2 override lives in memory; if the app dies before the stop report the last re-send may be missing.
  * shortcut: while an R2 override is held, a change made to the same item in another client is hidden until stop.
+ * shortcut: back online in the background with nothing playing, waiting changes go only with the next connection.
  */
 @Singleton
 class DefaultUserDataRepository
@@ -44,7 +49,6 @@ class DefaultUserDataRepository
         // writeLock: one server write at a time, so answers cannot arrive out of order. stateLock: overrides and Room.
         private val writeLock = Mutex()
         private val stateLock = Mutex()
-        private val inFlight = mutableMapOf<MediaId, Change>()
         private val whilePlaying = mutableMapOf<MediaId, Change>()
 
         // Changes the server confirmed while a sync was fetching: its pages may hold the older value.
@@ -60,7 +64,7 @@ class DefaultUserDataRepository
         override suspend fun setFavorite(
             id: MediaId,
             isFavorite: Boolean,
-        ) = write(id, Change(isFavorite = isFavorite)) { sink.setFavorite(it, id, isFavorite) }
+        ) = write(id, Change(isFavorite = isFavorite))
 
         override suspend fun setRating(
             id: MediaId,
@@ -68,17 +72,18 @@ class DefaultUserDataRepository
         ): MqResult<Unit> {
             require(halfStars == null || halfStars in 1..10) { "halfStars must be 1-10" }
             val rating = halfStars?.toDouble()
-            return write(id, Change(setsRating = true, rating = rating)) { sink.setRating(it, id, rating) }
+            return write(id, Change(setsRating = true, rating = rating))
         }
 
         /** The server says [changes] are its user data now; pending overrides stay on top. */
         internal suspend fun applyFromServer(changes: Map<MediaId, UserData>) =
             stateLock.withLock {
                 storageSafe {
+                    val userId = accountStore.signedInServer()?.userId
                     changes.forEach { (id, data) ->
                         store(
                             id,
-                            overrideOf(id)?.applyTo(data.toColumns()) ?: data.toColumns(),
+                            overrideOf(id, userId)?.applyTo(data.toColumns()) ?: data.toColumns(),
                         )
                     }
                     MqResult.Success(Unit)
@@ -92,10 +97,16 @@ class DefaultUserDataRepository
         internal suspend fun reapplyOverrides() =
             stateLock.withLock {
                 storageSafe {
-                    (sinceSyncStart.keys + inFlight.keys + whilePlaying.keys).forEach { id ->
+                    val server = accountStore.signedInServer()
+                    val waiting =
+                        server
+                            ?.let { userDataDao.pendingChanges(it.serverId.value, it.userId) }
+                            .orEmpty()
+                            .map { MediaId(ServerId(it.serverId), it.itemId) }
+                    (sinceSyncStart.keys + waiting + whilePlaying.keys).forEach { id ->
                         val stored = userDataDao.userData(id.serverId.value, id.itemId) ?: return@forEach
                         val confirmed = sinceSyncStart[id]
-                        val pending = overrideOf(id)
+                        val pending = overrideOf(id, server?.userId)
                         val change =
                             if (confirmed != null &&
                                 pending != null
@@ -111,10 +122,9 @@ class DefaultUserDataRepository
                 }
             }
 
-        /** Signed out or another account: nothing pending belongs to the next user. */
+        /** Signed out or another account: nothing pending belongs to the next user (the wipe drops waiting rows). */
         internal suspend fun forgetPending() =
             stateLock.withLock {
-                inFlight.clear()
                 whilePlaying.clear()
                 sinceSyncStart.clear()
                 playing = null
@@ -148,59 +158,128 @@ class DefaultUserDataRepository
             }
         }
 
+        /** Sends the changes still waiting for the server, e.g. once it can be reached again (#56). */
+        internal suspend fun flushPending() {
+            accountStore.signedInServer()?.let { flush(it, target = null) }
+        }
+
         private suspend fun write(
             id: MediaId,
             change: Change,
-            call: suspend (SignedInServer) -> MqResult<Unit>,
         ): MqResult<Unit> =
             // In the app scope: leaving the screen must not stop a change between Room and the server.
             scope
                 .async {
-                    writeLock.withLock {
-                        storageSafe {
-                            // Signed out meanwhile: nothing to do, and not a session expiry.
-                            val server =
-                                accountStore.signedInServer()
-                                    ?: return@storageSafe MqResult.Failure(MqError.Unauthorized)
-                            val before =
-                                stateLock.withLock {
-                                    val stored =
-                                        userDataDao.userData(id.serverId.value, id.itemId)
-                                            ?: return@storageSafe MqResult.Failure(MqError.NotFound)
-                                    inFlight[id] = change
-                                    store(id, change.applyTo(stored))
-                                    stored
-                                }
-                            val result = call(server)
-                            withContext(NonCancellable) {
-                                stateLock.withLock {
-                                    inFlight.remove(id)
-                                    if (result is MqResult.Failure) {
-                                        userDataDao.userData(id.serverId.value, id.itemId)?.let { now ->
-                                            store(id, change.undo(before).applyTo(now))
-                                        }
-                                    } else {
-                                        sinceSyncStart[id] = sinceSyncStart[id]?.then(change) ?: change
-                                        if (id == playing) whilePlaying[id] = whilePlaying[id]?.then(change) ?: change
-                                    }
-                                }
-                                if ((result as? MqResult.Failure)?.error == MqError.Unauthorized) {
-                                    sessionRepository.onUnauthorized()
-                                }
-                            }
-                            result
-                        }
+                    // Signed out meanwhile: nothing to do, and not a session expiry.
+                    val server =
+                        accountStore.signedInServer() ?: return@async MqResult.Failure(MqError.Unauthorized)
+                    when (val queued = storageSafe { stateLock.withLock { queue(server, id, change) } }) {
+                        is MqResult.Failure -> queued.also { surface(it.error) }
+                        is MqResult.Success -> flush(server, target = id)
                     }
                 }.await()
-                .also { result ->
-                    // Unauthorized means signed out (or about to be): the login screen says it, not a message.
-                    val error = (result as? MqResult.Failure)?.error
-                    if (error != null && error != MqError.Unauthorized) mutableError.value = error
-                }
 
-        private fun overrideOf(id: MediaId): Change? {
+        /** Shows [change] in Room and stores it, merged with what [id] still has waiting, until the server has it. */
+        private suspend fun queue(
+            server: SignedInServer,
+            id: MediaId,
+            change: Change,
+        ): MqResult<Unit> {
+            val stored =
+                userDataDao.userData(id.serverId.value, id.itemId) ?: return MqResult.Failure(MqError.NotFound)
+            val queued = userDataDao.pendingChange(id.serverId.value, server.userId, id.itemId)
+            val merged = queued?.toChange()?.then(change) ?: change
+            val pending =
+                PendingUserDataEntity(
+                    serverId = id.serverId.value,
+                    userId = server.userId,
+                    itemId = id.itemId,
+                    isFavorite = merged.isFavorite,
+                    setsRating = merged.setsRating,
+                    rating = merged.rating,
+                    // Each field keeps what it had before its first unsent change.
+                    beforeFavorite = if (queued?.isFavorite != null) queued.beforeFavorite else stored.isFavorite,
+                    beforeRating = if (queued?.setsRating == true) queued.beforeRating else stored.rating,
+                )
+            userDataDao.setUserDataAndQueue(change.applyTo(stored), pending)
+            return MqResult.Success(Unit)
+        }
+
+        /**
+         * Sends the waiting changes of [server]'s user, oldest first, and returns how the change of [target] went. No
+         * network: the changes stay for later, and that is no failure. Any answer from the server settles a change.
+         */
+        private suspend fun flush(
+            server: SignedInServer,
+            target: MediaId?,
+        ): MqResult<Unit> =
+            writeLock.withLock {
+                storageSafe {
+                    var outcome: MqResult<Unit> = MqResult.Success(Unit)
+                    for (row in userDataDao.pendingChanges(server.serverId.value, server.userId)) {
+                        val id = MediaId(server.serverId, row.itemId)
+                        val change = row.toChange()
+                        val favorite = change.isFavorite?.let { sink.setFavorite(server, id, it) }
+                        if (favorite.isNetworkFailure()) break
+                        val rating = if (change.setsRating) sink.setRating(server, id, change.rating) else null
+                        if (rating.isNetworkFailure()) break
+                        val sent = change.only(favorite is MqResult.Success, rating is MqResult.Success)
+                        val refused = change.only(favorite is MqResult.Failure, rating is MqResult.Failure)
+                        val error = ((favorite as? MqResult.Failure) ?: (rating as? MqResult.Failure))?.error
+                        withContext(NonCancellable) {
+                            stateLock.withLock { settle(id, row, sent, refused) }
+                            if (error == MqError.Unauthorized) sessionRepository.onUnauthorized()
+                        }
+                        if (error != null) {
+                            surface(error)
+                            if (id == target) outcome = MqResult.Failure(error)
+                            // Signing out drops the rest.
+                            if (error == MqError.Unauthorized) break
+                        }
+                    }
+                    outcome
+                }.also { if ((it as? MqResult.Failure)?.error == MqError.Storage) surface(MqError.Storage) }
+            }
+
+        /** The server answered [row]: it took [sent] and refused [refused], which is undone. */
+        private suspend fun settle(
+            id: MediaId,
+            row: PendingUserDataEntity,
+            sent: Change,
+            refused: Change,
+        ) {
+            // Gone: signed out meanwhile, and nothing of it belongs to the next user.
+            val now = userDataDao.pendingChange(row.serverId, row.userId, row.itemId) ?: return
+            // Changed again meanwhile: the newer change goes next and decides, so nothing is undone.
+            // shortcut: if that newer change is refused, the item goes back to its values before the first change, not
+            // to what the server took from this row; fine while a refusal means the item cannot be changed at all.
+            if (now.seq == row.seq) {
+                userDataDao.deletePending(row.serverId, row.userId, row.itemId, row.seq)
+                if (refused != Change()) {
+                    val before = UserDataColumns(isFavorite = row.beforeFavorite, rating = row.beforeRating)
+                    userDataDao.userData(id.serverId.value, id.itemId)?.let { current ->
+                        store(id, refused.undo(before).applyTo(current))
+                    }
+                }
+            }
+            if (sent != Change()) {
+                sinceSyncStart[id] = sinceSyncStart[id]?.then(sent) ?: sent
+                if (id == playing) whilePlaying[id] = whilePlaying[id]?.then(sent) ?: sent
+            }
+        }
+
+        /** Offers [error] as the app-wide message; a 401 is not one, the login screen says it. */
+        private fun surface(error: MqError) {
+            if (error != MqError.Unauthorized) mutableError.value = error
+        }
+
+        /** The waiting change of [id] for [userId], on top of its R2 override. */
+        private suspend fun overrideOf(
+            id: MediaId,
+            userId: String?,
+        ): Change? {
             val playingChange = whilePlaying[id]
-            val pending = inFlight[id]
+            val pending = userId?.let { userDataDao.pendingChange(id.serverId.value, it, id.itemId) }?.toChange()
             return if (playingChange != null &&
                 pending != null
             ) {
@@ -215,6 +294,10 @@ class DefaultUserDataRepository
             data: UserDataColumns,
         ) = userDataDao.setUserData(id.serverId.value, id.itemId, data)
     }
+
+private fun MqResult<Unit>?.isNetworkFailure() = (this as? MqResult.Failure)?.error == MqError.Network
+
+private fun PendingUserDataEntity.toChange() = Change(isFavorite, setsRating, rating)
 
 /** What the user changed on an item: the favorite flag when [isFavorite] is set, the rating when [setsRating]. */
 private data class Change(
@@ -232,6 +315,12 @@ private data class Change(
             setsRating || next.setsRating,
             if (next.setsRating) next.rating else rating,
         )
+
+    /** The part of this change in the favorite (when [withFavorite]) and the rating (when [withRating]). */
+    fun only(
+        withFavorite: Boolean,
+        withRating: Boolean,
+    ) = Change(isFavorite.takeIf { withFavorite }, setsRating && withRating, rating.takeIf { withRating })
 
     /** The change that puts back what [before] had. */
     fun undo(before: UserDataColumns) = Change(isFavorite?.let { before.isFavorite }, setsRating, before.rating)
