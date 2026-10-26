@@ -166,3 +166,7 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: play something, pause, reboot the phone -> after unlock the media card shows the last track (with its cover when the server was reachable) -> Play on the card resumes it at the saved position
 - [ ] Pixel 9 + Bluetooth headphones: playback paused, app swiped away from Recents -> Play on the headphones resumes the last queue at the saved track and position
 - [ ] Pixel 9 + Bluetooth headphones: log out, swipe the app away, press Play on the headphones -> nothing starts and the app does not crash
+
+## #51 Log out leaves sync staging rows and the sync checkpoint in the database
+- [ ] Pixel 9: fresh sign-in on home Wi-Fi, let the first sync start, force-stop and reopen (sync resumes), Home -> Log out -> `adb exec-out run-as io.github.kentprodan.mediatheq cat databases/mediatheq.db` (+ `-wal`, `-shm`): every table empty, including the `*_staging` tables and `sync_state`
+- [ ] Pixel 9: during a sync, Log out and sign in again at once as the same user -> the library fills completely (album and track counts match the server), no partial library

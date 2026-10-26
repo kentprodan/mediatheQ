@@ -26,6 +26,8 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,7 +69,17 @@ class DefaultLibrarySyncRepository
         private val restartedSteps = mutableSetOf<SyncStep>()
         private var running: Deferred<MqResult<Unit>>? = null
 
-        override suspend fun sync(): MqResult<Unit> = join().await()
+        override suspend fun sync(): MqResult<Unit> {
+            val job = join()
+            return try {
+                job.await()
+            } catch (e: CancellationException) {
+                // The caller itself cancelled: pass it on. Otherwise signing out cancelled the sync: a plain failure, so
+                // whoever waited (e.g. live sync's loop) keeps going (#51).
+                currentCoroutineContext().ensureActive()
+                MqResult.Failure(MqError.Unauthorized)
+            }
+        }
 
         /** Like [sync], but never joins a sync that was already running: it may have read past the change. */
         internal suspend fun syncAfterChange(): MqResult<Unit> {

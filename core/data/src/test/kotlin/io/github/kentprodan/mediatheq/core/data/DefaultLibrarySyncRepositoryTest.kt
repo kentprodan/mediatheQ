@@ -339,6 +339,27 @@ class DefaultLibrarySyncRepositoryTest {
         }
 
     @Test
+    fun `R51 a caller waiting on a sync that signing out cancels gets a failure, not a cancellation`() =
+        runTest(dispatcher) {
+            fillSource()
+            signIn()
+            val repository = repository()
+            source.pauseAt = 3
+            repository.start()
+            source.paused.await()
+            // Like live sync's loop: a cancellation thrown at it would end it for the app's lifetime.
+            val waiting = async { runCatching { repository.sync() } }
+            runCurrent()
+
+            accountStore.clear()
+            repository.status.first { it == SyncStatus.Idle(null) }
+            source.resume.complete(Unit)
+            advanceUntilIdle()
+
+            assertThat(waiting.await().getOrNull()).isEqualTo(MqResult.Failure(MqError.Unauthorized))
+        }
+
+    @Test
     fun `R51 signing out and in again while a request is under way never mixes the two syncs`() =
         runTest(dispatcher) {
             fillSource()
