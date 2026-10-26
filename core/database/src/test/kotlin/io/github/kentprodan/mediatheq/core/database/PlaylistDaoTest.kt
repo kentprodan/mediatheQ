@@ -46,7 +46,7 @@ class PlaylistDaoTest {
 
             playlistDao.replace(playlist, entries("t2", "gone", "t1"))
 
-            val tracks = playlistDao.tracks("s", "p1").first()
+            val tracks = playlistDao.tracks("s", "p1", true, emptyList()).first()
             assertThat(tracks.map { it.track.id to it.position }).containsExactly("t2" to 0, "t1" to 2).inOrder()
             assertThat(
                 tracks
@@ -65,7 +65,7 @@ class PlaylistDaoTest {
             library("t1", "t2", "t3")
             playlistDao.replace(playlist, entries("t1", "t2", "t3"))
 
-            playlistDao.tracks("s", "p1").test {
+            playlistDao.tracks("s", "p1", true, emptyList()).test {
                 assertThat(awaitItem().map { it.track.id }).containsExactly("t1", "t2", "t3").inOrder()
 
                 playlistDao.replace(playlist.copy(name = "Nou", trackCount = 2), entries("t3", "t1"))
@@ -82,8 +82,8 @@ class PlaylistDaoTest {
 
             playlistDao.replace(playlist.copy(name = "Seară târzie"), emptyList())
 
-            assertThat(libraryDao.search("seara", 10).playlists.map { it.id }).containsExactly("p1")
-            assertThat(libraryDao.search("drum", 10).playlists).isEmpty()
+            assertThat(libraryDao.search("seara", 10, true, emptyList()).playlists.map { it.id }).containsExactly("p1")
+            assertThat(libraryDao.search("drum", 10, true, emptyList()).playlists).isEmpty()
         }
 
     @Test
@@ -96,7 +96,7 @@ class PlaylistDaoTest {
 
             assertThat(playlistDao.playlist("s", "p1").first()).isNull()
             assertThat(playlistDao.entryRows("s", "p1")).isEmpty()
-            assertThat(libraryDao.search("drum", 10).playlists).isEmpty()
-            assertThat(libraryDao.playlists().first()).isEmpty()
+            assertThat(libraryDao.search("drum", 10, true, emptyList()).playlists).isEmpty()
+            assertThat(libraryDao.playlists(true, emptyList()).first()).isEmpty()
         }
 }

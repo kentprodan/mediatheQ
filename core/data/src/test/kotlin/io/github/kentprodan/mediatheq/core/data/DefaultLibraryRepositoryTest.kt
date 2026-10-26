@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import androidx.room3.useWriterConnection
+import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.errorOrNull
@@ -15,10 +16,14 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
+import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -28,7 +33,11 @@ import kotlin.time.Duration.Companion.minutes
 
 class DefaultLibraryRepositoryTest {
     private val database = inMemoryDatabase()
-    private val repository = DefaultLibraryRepository(database.libraryDao())
+    private val preferences = FakeLibraryPreferencesRepository()
+    private val network = FakeNetworkMonitor()
+    private val downloads = FakeDownloadRepository()
+    private val repository =
+        DefaultLibraryRepository(database.libraryDao(), OfflineFilter(preferences, network) { downloads })
 
     @After
     fun close() = database.close()
@@ -51,6 +60,57 @@ class DefaultLibraryRepositoryTest {
             .getOrNull()!!
             .tracks
             .map { it.title }
+
+    private fun downloaded(vararg ids: String) {
+        downloads.downloads.value =
+            ids.map {
+                TrackDownload(
+                    Track(MediaId(ServerId("s"), it), it, emptyList(), 1.minutes),
+                    DownloadState.Completed,
+                )
+            }
+    }
+
+    @Test
+    fun `offline mode lists only downloads, and turning it off brings the whole library back`() =
+        runTest {
+            library("Pe-o margine", "Satele", "Drum")
+            downloaded("t1")
+
+            repository.tracks().test {
+                assertThat(awaitItem().map { it.title }).containsExactly("Drum", "Pe-o margine", "Satele").inOrder()
+                preferences.setOfflineMode(true)
+                assertThat(awaitItem().map { it.title }).containsExactly("Satele")
+                preferences.setOfflineMode(false)
+                assertThat(awaitItem().map { it.title }).hasSize(3)
+            }
+        }
+
+    @Test
+    fun `without a network offline mode is on by itself`() =
+        runTest {
+            library("Pe-o margine", "Satele")
+            downloaded("t0")
+
+            network.online.value = false
+
+            assertThat(repository.offline.first()).isTrue()
+            assertThat(repository.tracks().first().map { it.title }).containsExactly("Pe-o margine")
+            assertThat(searchTitles("sat")).isEmpty()
+        }
+
+    @Test
+    fun `a download that completes shows at once in offline mode`() =
+        runTest {
+            library("Pe-o margine", "Satele")
+            preferences.setOfflineMode(true)
+
+            repository.tracks().test {
+                assertThat(awaitItem()).isEmpty()
+                downloaded("t1")
+                assertThat(awaitItem().map { it.title }).containsExactly("Satele")
+            }
+        }
 
     @Test
     fun `track reads one track with its user data, null when missing`() =

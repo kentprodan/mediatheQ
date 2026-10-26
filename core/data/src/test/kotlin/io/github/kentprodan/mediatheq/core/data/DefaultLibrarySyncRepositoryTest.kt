@@ -13,7 +13,10 @@ import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
+import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataSink
@@ -46,7 +49,11 @@ class DefaultLibrarySyncRepositoryTest {
     private val session = FakeSessionRepository()
     private val clock = TestClock()
     private val source = FakeLibrarySource()
-    private val library = DefaultLibraryRepository(database.libraryDao())
+    private val library =
+        DefaultLibraryRepository(
+            database.libraryDao(),
+            OfflineFilter(FakeLibraryPreferencesRepository(), FakeNetworkMonitor()) { FakeDownloadRepository() },
+        )
 
     private fun id(value: String) = MediaId(server, value)
 

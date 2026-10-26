@@ -92,7 +92,7 @@ class ArtistQueriesTest {
     @Test
     fun `own albums come newest first with unknown year last`() =
         runTest {
-            assertThat(libraryDao.artistAlbums("s", "ar1").first().map { it.album.id })
+            assertThat(libraryDao.artistAlbums("s", "ar1", true, emptyList()).first().map { it.album.id })
                 .containsExactly("al2", "al1", "al3")
                 .inOrder()
         }
@@ -100,16 +100,20 @@ class ArtistQueriesTest {
     @Test
     fun `appears on lists albums with a credited track but not the artist's own`() =
         runTest {
-            assertThat(libraryDao.appearsOnAlbums("s", "ar1").first().map { it.album.id }).containsExactly("al4")
-            assertThat(libraryDao.appearsOnAlbums("s", "ar3").first().map { it.album.id }).containsExactly("al1")
-            assertThat(libraryDao.artistAlbums("s", "ar3").first()).isEmpty()
+            assertThat(
+                libraryDao.appearsOnAlbums("s", "ar1", true, emptyList()).first().map { it.album.id },
+            ).containsExactly("al4")
+            assertThat(
+                libraryDao.appearsOnAlbums("s", "ar3", true, emptyList()).first().map { it.album.id },
+            ).containsExactly("al1")
+            assertThat(libraryDao.artistAlbums("s", "ar3", true, emptyList()).first()).isEmpty()
         }
 
     @Test
     fun `artist tracks hold every track once, own albums first and albumless tracks last`() =
         runTest {
             // t2 credits only ar3 but is on ar1's album; t5 is on the compilation without ar1.
-            assertThat(libraryDao.artistTracks("s", "ar1").first().map { it.track.id })
+            assertThat(libraryDao.artistTracks("s", "ar1", true, emptyList()).first().map { it.track.id })
                 .containsExactly("t3", "t1", "t2", "t7", "t4", "t6")
                 .inOrder()
         }
@@ -117,6 +121,8 @@ class ArtistQueriesTest {
     @Test
     fun `a credit-only artist's tracks are the credited ones`() =
         runTest {
-            assertThat(libraryDao.artistTracks("s", "ar3").first().map { it.track.id }).containsExactly("t2")
+            assertThat(
+                libraryDao.artistTracks("s", "ar3", true, emptyList()).first().map { it.track.id },
+            ).containsExactly("t2")
         }
 }
