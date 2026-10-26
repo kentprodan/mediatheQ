@@ -27,7 +27,7 @@ private val content =
 @MqPreviews
 @Composable
 fun SettingsScreenshot() {
-    MediatheqTheme { SettingsScreen(content, "0.1.0", {}, {}, {}, {}) }
+    MediatheqTheme { SettingsScreen(content, "0.1.0", {}, {}, {}, {}, {}) }
 }
 
 @Composable
@@ -66,6 +66,6 @@ fun SettingsStorageAppearanceScreenshot() {
 fun SettingsRatingsAboutScreenshot() {
     Groups {
         RatingsGroup(content.library.ratingMode) {}
-        AboutGroup("0.1.0") {}
+        AboutGroup("0.1.0", onOpenShowcase = {}, onOpenLicenses = {})
     }
 }

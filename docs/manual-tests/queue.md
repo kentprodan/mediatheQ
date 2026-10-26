@@ -192,3 +192,6 @@ Items are added by `/end` and run with `/test`.
 - [ ] Pixel 9: airplane mode on (offline mode setting off) -> Home, Library (all four tabs) and Search list only downloaded albums, artists, playlists and songs; play a downloaded album from Home, an artist's song from Library and a search result -> they play; an album downloaded in part shows only its downloaded tracks
 - [ ] Pixel 9: on Wi-Fi, Settings -> Offline mode on -> the tabs show only downloads; a queue that holds a track that is not downloaded skips it with "is not downloaded, skipped"; turn the switch off -> the whole library is back at once (no sync spinner)
 - [ ] Pixel 9: offline mode on with nothing downloaded (or a tab with nothing) -> "Nothing downloaded"; "Open Downloads" switches to the Downloads tab; Home gear -> Settings -> Log out works in airplane mode
+
+## #70 Open-source licenses screen
+- [ ] Pixel 9: Home gear -> Settings -> About -> Open-source licenses -> mediatheQ first (GPL notice, "Open the project page" opens the GitHub repo), then Material Symbols and the Dolby mark, then the libraries by name; open an Apache library -> its full license text shows; scrolling the whole list is smooth

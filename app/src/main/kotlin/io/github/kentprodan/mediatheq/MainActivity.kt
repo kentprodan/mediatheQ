@@ -80,6 +80,7 @@ class MainActivity : ComponentActivity() {
                                             navigator,
                                             versionName = versionName(),
                                             onOpenShowcase = { navigator.navigateTo(ThemeShowcaseKey) },
+                                            licensesReport = applicationContext::licensesReport,
                                         )
                                         libraryEntry(navigator, onOpenDownloads = openDownloads)
                                         albumEntry(navigator)
@@ -115,6 +116,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+/** The build's open-source licenses report (#70, ADR 0022), for Settings -> About. Read through the application, so
+ * the screen's ViewModel never holds an Activity. */
+private fun android.content.Context.licensesReport(): String =
+    resources.openRawResource(R.raw.aboutlibraries).bufferedReader().use { it.readText() }
 
 /** The app's version, for Settings -> About. */
 private fun android.app.Activity.versionName(): String =

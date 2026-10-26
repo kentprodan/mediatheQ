@@ -41,11 +41,12 @@ internal fun SettingsRoute(
     versionName: String,
     onOpenAudio: () -> Unit,
     onOpenShowcase: () -> Unit,
+    onOpenLicenses: () -> Unit,
     onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    SettingsScreen(state, versionName, viewModel::onAction, onOpenAudio, onOpenShowcase, onBack)
+    SettingsScreen(state, versionName, viewModel::onAction, onOpenAudio, onOpenShowcase, onBack, onOpenLicenses)
 }
 
 /**
@@ -60,6 +61,7 @@ fun SettingsScreen(
     onOpenAudio: () -> Unit,
     onOpenShowcase: () -> Unit,
     onBack: () -> Unit,
+    onOpenLicenses: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -92,7 +94,7 @@ fun SettingsScreen(
             item(key = "storage") { StorageGroup(content.audio, content.library, onAction) }
             item(key = "appearance") { AppearanceGroup(content.library, onAction) }
             item(key = "ratings") { RatingsGroup(content.library.ratingMode, onAction) }
-            item(key = "about") { AboutGroup(versionName, onOpenShowcase) }
+            item(key = "about") { AboutGroup(versionName, onOpenShowcase, onOpenLicenses) }
         }
     }
 }
@@ -253,15 +255,17 @@ internal fun RatingsGroup(
 internal fun AboutGroup(
     versionName: String,
     onOpenShowcase: () -> Unit,
+    onOpenLicenses: () -> Unit,
 ) {
     Group(R.string.settings_about) {
         item { shapes -> InfoItem(shapes, stringResource(R.string.settings_version), versionName) }
         item { shapes ->
-            InfoItem(
-                shapes,
-                stringResource(R.string.settings_license),
-                stringResource(R.string.settings_license_summary),
-            )
+            SegmentedListItem(
+                onClick = onOpenLicenses,
+                shapes = shapes,
+                colors = settingsColors(),
+                supportingContent = { Text(stringResource(R.string.settings_license_summary)) },
+            ) { Text(stringResource(R.string.settings_license)) }
         }
         item { shapes ->
             SegmentedListItem(

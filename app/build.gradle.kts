@@ -3,6 +3,21 @@ plugins {
     alias(libs.plugins.mediatheq.android.hilt)
     alias(libs.plugins.mediatheq.android.screenshot)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.aboutlibraries.android)
+}
+
+// The open-source licenses screen (#70, ADR 0022): built without network, from what the app ships.
+aboutLibraries {
+    offlineMode = true
+    // The standard texts of the licenses in use: offline the plugin has only their names.
+    collect.configPath = file("aboutlibraries")
+    // A new kind of license stops the build: add its text above, after checking it is compatible with GPL-3.0.
+    license {
+        strictMode = com.mikepenz.aboutlibraries.plugin.StrictMode.FAIL
+        allowedLicenses.addAll("Apache-2.0", "BSD-3-Clause", "MIT", "GPL-3.0-or-later")
+        // The app's own license ships with it too (GPL-3.0 section 4), from LICENSE (a test keeps them equal).
+        additionalLicenses.add("GPL-3.0-or-later")
+    }
 }
 
 android {
@@ -44,10 +59,30 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     testImplementation(projects.core.testing)
     testImplementation(projects.core.ui)
+    testImplementation(libs.kotlinx.serialization.json)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.androidx.media3.session)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+}
+
+// LicensesReportTest checks what the release build ships, also when the unit tests run on debug (#70).
+tasks.withType<Test>().configureEach {
+    val report = layout.buildDirectory.file("generated/aboutLibraries/release/res/raw/aboutlibraries.json")
+    val license = rootProject.file("LICENSE")
+    dependsOn("prepareLibraryDefinitionsRelease")
+    inputs.file(report).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file(license).withPathSensitivity(PathSensitivity.RELATIVE)
+    // Relative to the module, the tests' working directory: absolute paths would tie the build cache to this machine.
+    systemProperty(
+        "mediatheq.licensesReport",
+        report
+            .get()
+            .asFile
+            .relativeTo(projectDir)
+            .invariantSeparatorsPath,
+    )
+    systemProperty("mediatheq.license", license.relativeTo(projectDir).invariantSeparatorsPath)
 }
