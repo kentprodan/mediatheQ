@@ -30,4 +30,15 @@ class FakeQueueRepository(
     }
 
     override suspend fun restore(): SavedQueue? = saved
+
+    override val hasSavedQueue: Boolean get() = saved != null || entries.isNotEmpty()
+
+    var clears = 0
+
+    override suspend fun clear() {
+        clears++
+        saved = null
+        entries = emptyList()
+        place = null
+    }
 }

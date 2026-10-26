@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.testing.FakeSavedQueueFlag
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -17,7 +18,8 @@ import kotlin.time.Duration.Companion.seconds
 
 class DefaultQueueRepositoryTest {
     private val database = inMemoryDatabase()
-    private val repository = DefaultQueueRepository(database.queueDao())
+    private val flag = FakeSavedQueueFlag()
+    private val repository = DefaultQueueRepository(database.queueDao(), flag)
 
     @After
     fun close() = database.close()
@@ -62,6 +64,24 @@ class DefaultQueueRepositoryTest {
                 repository.savePlace(QueuePlace(0, Duration.ZERO, false, mode))
                 assertThat(repository.restore()!!.place.repeatMode).isEqualTo(mode)
             }
+        }
+
+    @Test
+    fun `a saved queue sets the flag, and an empty one or clear unsets it`() =
+        runTest {
+            library("t1")
+            assertThat(repository.hasSavedQueue).isFalse()
+
+            repository.saveQueue(entries("t1"), listOf(0), QueuePlace(0, Duration.ZERO, false))
+            assertThat(repository.hasSavedQueue).isTrue()
+
+            repository.saveQueue(emptyList(), emptyList(), QueuePlace(0, Duration.ZERO, false))
+            assertThat(repository.hasSavedQueue).isFalse()
+
+            repository.saveQueue(entries("t1"), listOf(0), QueuePlace(0, Duration.ZERO, false))
+            repository.clear()
+            assertThat(repository.hasSavedQueue).isFalse()
+            assertThat(repository.restore()).isNull()
         }
 
     @Test

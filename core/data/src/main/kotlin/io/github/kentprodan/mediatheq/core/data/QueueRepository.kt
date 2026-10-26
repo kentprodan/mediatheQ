@@ -20,6 +20,12 @@ interface QueueRepository {
     /** Updates only where the player is (cheap; the entries stay). */
     suspend fun savePlace(place: QueuePlace)
 
+    /** Whether a queue is saved, answered at once without the database (for a media button with the app closed). */
+    val hasSavedQueue: Boolean
+
+    /** Forgets the saved queue (on logout: nothing is left to resume). */
+    suspend fun clear()
+
     /**
      * The saved queue with its tracks, or `null` when none; entries whose track left the library are dropped. When the
      * current entry is one of them, the next entry in queue order (not shuffle order) becomes current, from its start.
