@@ -11,6 +11,7 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
+import androidx.media3.test.utils.FakeClock
 import androidx.media3.test.utils.FakeDataSet
 import androidx.media3.test.utils.FakeDataSource
 import androidx.media3.test.utils.FakeMediaSourceFactory
@@ -48,7 +49,12 @@ import kotlin.time.Duration.Companion.minutes
 class PrefetcherTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val player: ExoPlayer =
-        TestExoPlayerBuilder(context).setMediaSourceFactory(FakeMediaSourceFactory()).build()
+        TestExoPlayerBuilder(context)
+            .setMediaSourceFactory(FakeMediaSourceFactory())
+            // A clock that only moves when told: the player stays on its first track however slow a prefetch is, so
+            // the tracks after it stay "next" (#83). No test here needs playback to advance.
+            .setClock(FakeClock(false))
+            .build()
     private val repository = FakePlaybackRepository()
     private val network = FakeNetworkMonitor()
     private val audioPreferences = FakeAudioPreferencesRepository()
