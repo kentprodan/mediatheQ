@@ -1,8 +1,11 @@
 package io.github.kentprodan.mediatheq.core.database.dao
 
 import androidx.room3.Dao
+import androidx.room3.Insert
+import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import androidx.room3.Transaction
+import io.github.kentprodan.mediatheq.core.database.entity.PendingUserDataEntity
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
 
 /**
@@ -42,6 +45,55 @@ interface UserDataDao {
         updateAlbumStaging(serverId, id, favorite, rating, playCount, lastPlayed, played)
         updateArtistStaging(serverId, id, favorite, rating, playCount, lastPlayed, played)
     }
+
+    /** Writes [data] on [id] and queues [pending] for the server in one transaction, so neither is lost alone. */
+    @Transaction
+    suspend fun setUserDataAndQueue(
+        data: UserDataColumns,
+        pending: PendingUserDataEntity,
+    ) {
+        setUserData(pending.serverId, pending.itemId, data)
+        queue(pending)
+    }
+
+    /** Stores [pending] (replacing the item's row) as the newest change. */
+    @Transaction
+    suspend fun queue(pending: PendingUserDataEntity) = insertPending(pending.copy(seq = nextSeq()))
+
+    /** The unsent change of [id] for [userId], if any. */
+    @Query("SELECT * FROM pending_user_data WHERE server_id = :serverId AND user_id = :userId AND item_id = :id")
+    suspend fun pendingChange(
+        serverId: String,
+        userId: String,
+        id: String,
+    ): PendingUserDataEntity?
+
+    /** Every unsent change of [userId], oldest first. */
+    @Query("SELECT * FROM pending_user_data WHERE server_id = :serverId AND user_id = :userId ORDER BY seq")
+    suspend fun pendingChanges(
+        serverId: String,
+        userId: String,
+    ): List<PendingUserDataEntity>
+
+    /** Drops the change of [id] unless it changed again since [seq] was read. Returns the rows deleted. */
+    @Query(
+        """
+        DELETE FROM pending_user_data
+        WHERE server_id = :serverId AND user_id = :userId AND item_id = :id AND seq = :seq
+        """,
+    )
+    suspend fun deletePending(
+        serverId: String,
+        userId: String,
+        id: String,
+        seq: Long,
+    ): Int
+
+    @Query("SELECT COALESCE(MAX(seq), 0) + 1 FROM pending_user_data")
+    suspend fun nextSeq(): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPending(pending: PendingUserDataEntity)
 
     @Query(
         """

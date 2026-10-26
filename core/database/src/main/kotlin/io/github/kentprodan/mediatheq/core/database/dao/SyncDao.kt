@@ -102,9 +102,13 @@ interface SyncDao {
         saveState(SyncStateEntity(0, state?.lastFullSyncAtMillis, state?.ownerServerId, state?.ownerUserId))
     }
 
-    /** Forgets the whole library: live tables, staging, search index, sync state and the saved queue (sign-out). */
+    /**
+     * Forgets the whole library: live tables, staging, search index, sync state, the saved queue and unsent favorite or
+     * rating changes (sign-out).
+     */
     @Transaction
     suspend fun clearAll() {
+        clearPendingUserData()
         clearStaging()
         replaceArtists()
         replaceAlbums()
@@ -118,6 +122,9 @@ interface SyncDao {
         clearQueueEntries()
         clearQueueState()
     }
+
+    @Query("DELETE FROM pending_user_data")
+    suspend fun clearPendingUserData()
 
     @Query("DELETE FROM queue_entry")
     suspend fun clearQueueEntries()
