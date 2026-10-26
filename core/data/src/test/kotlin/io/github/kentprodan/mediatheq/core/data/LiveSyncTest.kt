@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
+import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -19,6 +20,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeUserDataSink
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
 import io.github.kentprodan.mediatheq.core.testing.TestClock
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -42,6 +44,8 @@ class LiveSyncTest {
     private val network = FakeNetworkMonitor()
     private val source = FakeLibrarySource()
     private val track = MediaId(server, "t1")
+    private val sink = FakeUserDataSink()
+    private lateinit var userData: DefaultUserDataRepository
 
     /** A jitter of 0: every wait is exactly its base. */
     private val noJitter =
@@ -52,10 +56,10 @@ class LiveSyncTest {
         }
 
     private fun TestScope.liveSync(): LiveSync {
-        val userData =
+        userData =
             DefaultUserDataRepository(
                 database.userDataDao(),
-                FakeUserDataSink(),
+                sink,
                 accountStore,
                 session,
                 backgroundScope,
@@ -111,6 +115,41 @@ class LiveSyncTest {
             val stored = database.userDataDao().userData("s", "t1")
             assertThat(stored?.isFavorite).isTrue()
             assertThat(stored?.rating).isEqualTo(8.0)
+        }
+
+    @Test
+    fun `connecting sends the changes made offline`() =
+        runTest(dispatcher) {
+            liveSync()
+            runCurrent()
+            sink.failure = MqError.Network
+            userData.setFavorite(track, true)
+            sink.failure = null
+            sink.calls.clear()
+
+            events.send(LiveEvent.Connected)
+            runCurrent()
+
+            assertThat(sink.calls).containsExactly("favorite:t1:true")
+        }
+
+    @Test
+    fun `events keep coming while waiting changes are sent`() =
+        runTest(dispatcher) {
+            liveSync()
+            runCurrent()
+            sink.failure = MqError.Network
+            userData.setRating(track, 8)
+            sink.failure = null
+            sink.gate = CompletableDeferred()
+
+            events.send(LiveEvent.Connected)
+            events.send(LiveEvent.UserDataChanged(mapOf(track to UserData(isFavorite = true, rating = 4.0))))
+            runCurrent()
+
+            // The other client's favorite lands; the waiting rating stays on top until the server has it.
+            assertThat(database.userDataDao().userData("s", "t1")).isEqualTo(UserDataColumns(true, 8.0))
+            sink.gate!!.complete(Unit)
         }
 
     @Test

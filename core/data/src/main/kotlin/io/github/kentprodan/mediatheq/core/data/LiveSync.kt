@@ -32,7 +32,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Keeps Room in step with the server's live events (jellyfin skill, section 9): user data changes are written at once,
- * library changes start a full sync. Listens while signed in, online, and the app is in the foreground or playing; a dropped
+ * library changes start a full sync, and each connection sends the favorite and rating changes waiting for the server. Listens while signed in, online, and the app is in the foreground or playing; a dropped
  * connection comes back after 1, 2, 4 ... 60 s (with jitter), and a 401 signs out instead.
  * shortcut: events missed while not listening wait for the next full sync; sync on reconnect if that shows up.
  */
@@ -95,6 +95,9 @@ class LiveSync
                             // Only a connection that lasts resets the wait: a server that accepts and drops at once
                             // must not be called every second.
                             LiveEvent.Connected -> {
+                                // The server is reachable: send what waited for it (#56). In the app scope, so slow
+                                // writes neither hold up events nor stop when the socket closes.
+                                scope.launch { userData.flushPending() }
                                 stable =
                                     launch {
                                         delay(STABLE_AFTER)
