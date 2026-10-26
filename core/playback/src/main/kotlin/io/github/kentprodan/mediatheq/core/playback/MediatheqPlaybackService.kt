@@ -28,6 +28,7 @@ import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
+import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
@@ -40,6 +41,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.withContext
@@ -81,6 +83,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var audioPreferences: AudioPreferencesRepository
 
+    @Inject lateinit var libraryPreferences: LibraryPreferencesRepository
+
     @Inject
     @StreamingCache
     lateinit var streamingCache: Cache
@@ -109,6 +113,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     override fun onCreate() {
         super.onCreate()
+        val playerNetwork =
+            OfflineModeNetwork(networkMonitor, libraryPreferences.preferences.map { it.offlineMode }, applicationScope)
         val player =
             ExoPlayer
                 .Builder(this)
@@ -131,13 +137,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
                                 downloads,
                                 downloadCache,
                                 streamingCache,
-                                networkMonitor::isOnline,
+                                playerNetwork::isOnline,
                                 onOpen = { prefetcher.cancel(it) },
                             ),
                         ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
                         okHttpClient,
                         choose = {
-                            chooseStreamSource(it, streamResolver, downloads, streamingCache, networkMonitor::isOnline)
+                            chooseStreamSource(it, streamResolver, downloads, streamingCache, playerNetwork::isOnline)
                         },
                         headers = streamResolver::headers,
                         dispatcher = ioDispatcher,
@@ -186,7 +192,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 downloads = downloads,
                 cache = streamingCache,
                 upstream = OkHttpDataSource.Factory(okHttpClient),
-                network = networkMonitor,
+                network = playerNetwork,
             )
         prefetchJob = prefetcher.start()
         session =
