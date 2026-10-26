@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import kotlinx.coroutines.test.runTest
@@ -49,6 +50,18 @@ class DefaultQueueRepositoryTest {
             val gains = repository.restore()!!.entries.map { it.track.albumNormalizationGainDb }
 
             assertThat(gains).containsExactly(-7.5, null).inOrder()
+        }
+
+    @Test
+    fun `each repeat mode is saved and comes back`() =
+        runTest {
+            library("t1")
+            repository.saveQueue(entries("t1"), listOf(0), QueuePlace(0, Duration.ZERO, false))
+
+            RepeatMode.entries.forEach { mode ->
+                repository.savePlace(QueuePlace(0, Duration.ZERO, false, mode))
+                assertThat(repository.restore()!!.place.repeatMode).isEqualTo(mode)
+            }
         }
 
     @Test

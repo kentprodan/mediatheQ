@@ -96,6 +96,7 @@ internal class QueuePersistence(
                 player.setMediaItems(items, saved.place.index, saved.place.position.inWholeMilliseconds)
                 player.setShuffleOrder(DefaultShuffleOrder(saved.shuffleOrder.toIntArray(), Random.nextLong()))
                 player.shuffleModeEnabled = saved.place.shuffle
+                player.repeatMode = saved.place.repeatMode.toPlayerRepeatMode()
             }
             while (isActive) {
                 delay(tick)
@@ -138,6 +139,7 @@ internal class QueuePersistence(
                 index = player.currentMediaItemIndex,
                 position = player.currentPosition.milliseconds,
                 shuffle = player.shuffleModeEnabled,
+                repeatMode = player.repeatMode.toRepeatMode(),
             )
         // The shuffle order is saved also while shuffle is off, so the restored player has one of the right length.
         val shuffleOrder = entries?.let { player.playOrder(shuffled = true) }.orEmpty()
@@ -169,6 +171,7 @@ internal class QueuePersistence(
             intArrayOf(
                 Player.EVENT_TIMELINE_CHANGED,
                 Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED,
+                Player.EVENT_REPEAT_MODE_CHANGED,
                 Player.EVENT_MEDIA_ITEM_TRANSITION,
                 Player.EVENT_POSITION_DISCONTINUITY,
                 Player.EVENT_IS_PLAYING_CHANGED,

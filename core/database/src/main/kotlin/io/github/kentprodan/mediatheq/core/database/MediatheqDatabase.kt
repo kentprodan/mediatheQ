@@ -29,7 +29,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 2,
+    version = 3,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -53,6 +53,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
     autoMigrations = [
         // 2: the saved play queue (#14) and an index on track.album_id.
         AutoMigration(from = 1, to = 2),
+        // 3: the saved repeat mode (#41).
+        AutoMigration(from = 2, to = 3),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

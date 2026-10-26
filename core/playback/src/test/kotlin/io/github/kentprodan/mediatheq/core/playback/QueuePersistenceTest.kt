@@ -16,6 +16,7 @@ import io.github.kentprodan.mediatheq.core.data.SavedEntry
 import io.github.kentprodan.mediatheq.core.data.SavedQueue
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeQueueRepository
@@ -112,6 +113,33 @@ class QueuePersistenceTest {
 
             assertThat(player.shuffleModeEnabled).isTrue()
             assertThat(titles()).containsExactly("Track 3", "Track 1", "Track 2").inOrder()
+        }
+
+    @Test
+    fun `the repeat mode comes back`() =
+        runTest {
+            repository.saved = saved(QueuePlace(0, Duration.ZERO, shuffle = false, repeatMode = RepeatMode.One))
+
+            start()
+            runCurrent()
+
+            assertThat(player.repeatMode).isEqualTo(Player.REPEAT_MODE_ONE)
+        }
+
+    @Test
+    fun `a new repeat mode saves the place`() =
+        runTest {
+            start()
+            runCurrent()
+            player.playQueue(listOf(item(1), item(2)), 0, shuffle = false)
+            player.pause()
+            wait(2.seconds)
+
+            player.repeatMode = Player.REPEAT_MODE_ALL
+            wait(2.seconds)
+
+            assertThat(repository.place?.repeatMode).isEqualTo(RepeatMode.All)
+            assertThat(repository.queueWrites).isEqualTo(1)
         }
 
     @Test

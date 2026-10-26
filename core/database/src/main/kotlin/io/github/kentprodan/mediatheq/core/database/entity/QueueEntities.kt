@@ -16,7 +16,7 @@ data class QueueEntryEntity(
     @ColumnInfo(name = "shuffle_position") val shufflePosition: Int,
 )
 
-/** The single saved player state row: which entry plays, where, and whether shuffle is on. */
+/** The single saved player state row: which entry plays, where, whether shuffle is on and how it repeats. */
 @Entity(tableName = "queue_state")
 data class QueueStateEntity(
     @PrimaryKey val id: Int = 0,
@@ -24,4 +24,6 @@ data class QueueStateEntity(
     @ColumnInfo(name = "current_position") val currentPosition: Int,
     @ColumnInfo(name = "position_ms") val positionMillis: Long,
     val shuffle: Boolean,
+    /** 0 off, 1 the whole queue, 2 the current track. */
+    @ColumnInfo(name = "repeat_mode", defaultValue = "0") val repeatMode: Int = 0,
 )

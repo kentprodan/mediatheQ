@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlin.time.Duration
 
@@ -32,11 +33,12 @@ data class QueueEntryId(
     val trackId: MediaId,
 )
 
-/** Where the player is: the current entry's queue index, the position in it, and whether shuffle is on. */
+/** Where the player is: the current entry's queue index, the position in it, shuffle and repeat. */
 data class QueuePlace(
     val index: Int,
     val position: Duration,
     val shuffle: Boolean,
+    val repeatMode: RepeatMode = RepeatMode.Off,
 )
 
 data class SavedQueue(

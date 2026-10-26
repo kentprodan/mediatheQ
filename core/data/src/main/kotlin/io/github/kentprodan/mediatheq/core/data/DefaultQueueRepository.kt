@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
 import io.github.kentprodan.mediatheq.core.database.dao.TrackWithArtists
 import io.github.kentprodan.mediatheq.core.database.entity.QueueEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.QueueStateEntity
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import javax.inject.Inject
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -58,9 +59,33 @@ class DefaultQueueRepository
                         index = index,
                         position = if (sameEntry) state.positionMillis.milliseconds else Duration.ZERO,
                         shuffle = state.shuffle,
+                        repeatMode =
+                            when (state.repeatMode) {
+                                REPEAT_ALL -> RepeatMode.All
+                                REPEAT_ONE -> RepeatMode.One
+                                else -> RepeatMode.Off
+                            },
                     ),
             )
         }
 
-        private fun QueuePlace.toEntity() = QueueStateEntity(0, index, position.inWholeMilliseconds, shuffle)
+        private fun QueuePlace.toEntity() =
+            QueueStateEntity(
+                0,
+                index,
+                position.inWholeMilliseconds,
+                shuffle,
+                when (repeatMode) {
+                    RepeatMode.Off -> REPEAT_OFF
+                    RepeatMode.All -> REPEAT_ALL
+                    RepeatMode.One -> REPEAT_ONE
+                },
+            )
+
+        private companion object {
+            // The queue_state.repeat_mode values.
+            const val REPEAT_OFF = 0
+            const val REPEAT_ALL = 1
+            const val REPEAT_ONE = 2
+        }
     }
