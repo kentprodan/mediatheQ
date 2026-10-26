@@ -33,6 +33,7 @@ Any change to this table = ADR in `docs/decisions/`.
 
 ```
 :app                     phone app: Application, MainActivity, Hilt graph, NavDisplay host, nav shell
+:baselineprofile         (com.android.test) baseline profile generator + macrobenchmarks for :app (ADR 0023)
 :build-logic             (included build) convention plugins
 
 :core:model              pure Kotlin domain types. Depends on nothing.
@@ -170,7 +171,7 @@ AlbumEntry.kt          Navigation 3 entry registration for AlbumKey
 - Main thread: UI only. DB and network on injected dispatchers.
 - Lists use stable keys (`MediaId`) and immutable/stable models (Compose stability: prefer `ImmutableList` from kotlinx.collections.immutable or `@Immutable` wrappers).
 - Images: always request sized images from the server (thumbnail sizes), never full-size covers in lists.
-- Baseline profile for startup and library scroll (later issue, before first daily-use milestone).
+- Baseline profile (#71, ADR 0023): `:baselineprofile` generates it on the Pixel 9 (cold start, Library grid and songs scroll) into `app/src/release/generated/baselineProfiles/`, committed; `profileinstaller` installs it. Regenerate after big UI changes of those paths.
 
 ## 10. Security and privacy
 
