@@ -135,11 +135,8 @@ class NowPlayingViewModel
                     playback.setShuffle(action.enabled)
                 }
 
-                NowPlayingAction.CycleRepeat -> {
-                    playback.setRepeatMode(
-                        playback.state.value.repeatMode
-                            .next(),
-                    )
+                is NowPlayingAction.SetRepeatMode -> {
+                    playback.setRepeatMode(action.mode)
                 }
 
                 NowPlayingAction.RetryLyrics -> {
@@ -173,14 +170,6 @@ class NowPlayingViewModel
                 }
             }
         }
-    }
-
-/** The mode the repeat button moves to. */
-internal fun RepeatMode.next(): RepeatMode =
-    when (this) {
-        RepeatMode.Off -> RepeatMode.All
-        RepeatMode.All -> RepeatMode.One
-        RepeatMode.One -> RepeatMode.Off
     }
 
 private fun PlayerUiModel.toUiState(

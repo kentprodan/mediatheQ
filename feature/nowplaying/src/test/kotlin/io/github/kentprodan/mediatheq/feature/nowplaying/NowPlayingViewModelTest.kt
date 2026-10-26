@@ -144,17 +144,19 @@ class NowPlayingViewModelTest {
         }
 
     @Test
-    fun `shuffle reaches the player, and repeat cycles off, all, one, off`() {
+    fun `shuffle and repeat reach the player`() {
         val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences)
 
         viewModel.onAction(NowPlayingAction.SetShuffle(true))
-        RepeatMode.entries.forEach { mode ->
-            playback.state.value = playing.copy(repeatMode = mode)
-            viewModel.onAction(NowPlayingAction.CycleRepeat)
-        }
+        viewModel.onAction(NowPlayingAction.SetRepeatMode(RepeatMode.One))
 
-        assertThat(playback.commands)
-            .containsExactly("shuffle true", "repeat All", "repeat One", "repeat Off")
+        assertThat(playback.commands).containsExactly("shuffle true", "repeat One").inOrder()
+    }
+
+    @Test
+    fun `repeat cycles off, all, one, off`() {
+        assertThat(RepeatMode.entries.map { it.next() })
+            .containsExactly(RepeatMode.All, RepeatMode.One, RepeatMode.Off)
             .inOrder()
     }
 

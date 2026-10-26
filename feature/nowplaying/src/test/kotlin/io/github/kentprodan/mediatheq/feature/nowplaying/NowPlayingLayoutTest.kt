@@ -129,7 +129,9 @@ class NowPlayingLayoutTest {
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "This track"))
             .performClick()
 
-        assertThat(actions).containsExactly(NowPlayingAction.SetShuffle(false), NowPlayingAction.CycleRepeat).inOrder()
+        assertThat(
+            actions,
+        ).containsExactly(NowPlayingAction.SetShuffle(false), NowPlayingAction.SetRepeatMode(RepeatMode.Off)).inOrder()
     }
 
     @Test

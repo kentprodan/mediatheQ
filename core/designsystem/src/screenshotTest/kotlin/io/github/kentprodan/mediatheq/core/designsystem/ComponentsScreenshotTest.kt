@@ -19,6 +19,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBarStyle
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
@@ -135,6 +136,22 @@ fun MqDialogScreenshot() {
                 Text("The playlist is deleted from the server. Its tracks stay in your library.")
             }
             MqDialogContent("New playlist", "Create", {}, "Cancel", {}, confirmEnabled = false)
+        }
+    }
+}
+
+/** Icon toggles off and on (shuffle, repeat one). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun IconToggleScreenshot() {
+    MediatheqTheme {
+        Surface {
+            Row(Modifier.padding(MediatheqSpacing.l)) {
+                MqIconToggle(checked = false, onClick = {}, icon = MqIcons.Shuffle, contentDescription = "Shuffle")
+                MqIconToggle(checked = true, onClick = {}, icon = MqIcons.Shuffle, contentDescription = "Shuffle")
+                MqIconToggle(checked = true, onClick = {}, icon = MqIcons.RepeatOne, contentDescription = "Repeat")
+            }
         }
     }
 }

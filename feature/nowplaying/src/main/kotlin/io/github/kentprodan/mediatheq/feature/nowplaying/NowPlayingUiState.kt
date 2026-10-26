@@ -75,8 +75,9 @@ sealed interface NowPlayingAction {
         val enabled: Boolean,
     ) : NowPlayingAction
 
-    /** Repeat off -> all -> one -> off. */
-    data object CycleRepeat : NowPlayingAction
+    data class SetRepeatMode(
+        val mode: RepeatMode,
+    ) : NowPlayingAction
 
     /** Ask for the playing track's lyrics again after an error. */
     data object RetryLyrics : NowPlayingAction
@@ -104,3 +105,11 @@ sealed interface NowPlayingAction {
         val to: Int,
     ) : NowPlayingAction
 }
+
+/** The mode the repeat button moves to: off -> all -> one -> off. */
+internal fun RepeatMode.next(): RepeatMode =
+    when (this) {
+        RepeatMode.Off -> RepeatMode.All
+        RepeatMode.All -> RepeatMode.One
+        RepeatMode.One -> RepeatMode.Off
+    }
