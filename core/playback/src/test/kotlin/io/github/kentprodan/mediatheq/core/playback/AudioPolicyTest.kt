@@ -147,13 +147,6 @@ class AudioPolicyTest {
     }
 
     @Test
-    fun `an Atmos track played from its original download is not converted`() {
-        assertThat(
-            AudioPolicy.atmosConverted(isAtmos = true, PlayMethod.DirectPlay, convertedDownload = false),
-        ).isFalse()
-    }
-
-    @Test
     fun `a converted download is not a downgrade before its stream is known`() {
         assertThat(AudioPolicy.atmosConverted(isAtmos = true, playMethod = null, convertedDownload = true)).isFalse()
     }

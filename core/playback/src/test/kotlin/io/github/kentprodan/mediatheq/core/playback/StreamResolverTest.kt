@@ -169,6 +169,17 @@ class StreamResolverTest {
     }
 
     @Test
+    fun `a cached original replacing a converted download is no longer converted, in the same play session`() {
+        resolver.playLocal(itemId, converted = true)
+        val session = resolver.current(itemId)!!.playSessionId
+
+        resolver.playLocal(itemId)
+
+        assertThat(resolver.isConvertedDownload(itemId)).isFalse()
+        assertThat(resolver.current(itemId)!!.playSessionId).isEqualTo(session)
+    }
+
+    @Test
     fun `after the download is gone the track asks the server again`() =
         runTest {
             resolver.playLocal(itemId)
