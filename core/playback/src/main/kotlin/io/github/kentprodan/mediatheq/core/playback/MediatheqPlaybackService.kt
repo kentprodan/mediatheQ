@@ -233,19 +233,27 @@ class MediatheqPlaybackService : MediaLibraryService() {
         fun applyEqualizer() =
             equalizer.apply(player.audioSessionId, audioOutput.state.mode == AudioMode.Processed, eqGains)
 
+        fun currentId(): MediaId? =
+            player.currentMediaItem?.let { runCatching { MediaId.parse(it.mediaId) }.getOrNull() }
+
         // How the playing track is delivered; `null` when stopped or not resolved yet (the ready refresh catches it).
         fun currentPlayMethod(): PlayMethod? {
             if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED) return null
-            val id = player.currentMediaItem?.let { runCatching { MediaId.parse(it.mediaId) }.getOrNull() }
-            return id?.let { streamResolver.current(it)?.playMethod }
+            return currentId()?.let { streamResolver.current(it)?.playMethod }
         }
+
+        fun convertedDownload(): Boolean = currentId()?.let(streamResolver::isConvertedDownload) == true
         usbAudio = UsbAudioPort.create(getSystemService(AudioManager::class.java))
         audioOutput =
             AudioOutputController(
                 port = usbAudio,
                 currentFormat = {
-                    // A transcode has another format than the file: only a direct play can be bit-perfect.
-                    if (currentPlayMethod() == PlayMethod.DirectPlay) player.currentMediaItem?.outputFormat() else null
+                    // A transcode or a converted download has another format than the file: only the file can be.
+                    if (AudioPolicy.playsOriginal(currentPlayMethod(), convertedDownload())) {
+                        player.currentMediaItem?.outputFormat()
+                    } else {
+                        null
+                    }
                 },
                 onChange = { state ->
                     if (state.offload != offload) player.applyOffload(state.offload).also { offload = state.offload }
@@ -254,11 +262,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     session?.sessionExtras = state.toInfo().toBundle()
                 },
                 atmosConverted = {
-                    val id = player.currentMediaItem?.let { runCatching { MediaId.parse(it.mediaId) }.getOrNull() }
                     AudioPolicy.atmosConverted(
                         isAtmos = player.currentMediaItem?.isDolbyAtmos() == true,
                         playMethod = currentPlayMethod(),
-                        convertedDownload = id != null && streamResolver.isConvertedDownload(id),
+                        convertedDownload = convertedDownload(),
                     )
                 },
             )
