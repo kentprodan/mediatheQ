@@ -129,6 +129,8 @@ Rule: push every test as low in the pyramid as it can go. Device tests only for 
 - Only for: system integration (MediaSession/notification, audio focus, Android Auto browse tree via `MediaBrowser`), real decoder capability queries, and smoke test of app start.
 - Run on the Pixel 9 via adb over Wi-Fi/Tailscale: `.\gradlew.bat :app:connectedDebugAndroidTest`.
 - Keep the suite small (< 5 min). Use the test orchestrator.
+- Device runs leave the apps installed (`android.injected.androidTest.leaveApksInstalledAfterRun=true`), so they never wipe the phone's own mediatheQ.
+- Macrobenchmarks and the baseline profile generator live in `:baselineprofile` (ADR 0023) and run against the `.benchmark` build, a separate app with its own sign-in (the generator signs in from `android.testInstrumentationRunnerArguments.benchmark*` in `~/.gradle/gradle.properties`, never in the repo): `.\gradlew.bat :app:generateBaselineProfile`, then `:baselineprofile:connectedBenchmarkReleaseAndroidTest`. On API 37 AGP reports exit 1 even when tests pass: read the XML results.
 
 ## 10. Manual tests (`/test`)
 
@@ -143,7 +145,7 @@ Each manual item: device, steps, expected result, pass/fail, date. Results go in
 
 ## 11. CI
 
-- GitHub Actions on every PR: `assembleDebug`, `testDebugUnitTest`, `validateDebugScreenshotTest`, `lint`.
+- GitHub Actions on every PR: `assembleDebug`, `:baselineprofile:assembleBenchmarkRelease` (compiles the benchmarks; they never run on CI), `testDebugUnitTest`, `validateDebugScreenshotTest`, `lint`.
 - On screenshot failure, upload the HTML report as an artifact.
 - Red CI = no merge. Flaky test = bug: fix or delete within the same week, never retry-until-green.
 

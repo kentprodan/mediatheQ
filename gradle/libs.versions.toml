@@ -8,6 +8,10 @@ jdk = "21"
 agp = "9.4.1"
 # Open-source licenses, generated at build time (ADR 0022)
 aboutLibraries = "15.3.0"
+# Baseline profile and macrobenchmarks (ADR 0023)
+benchmark = "1.5.0"
+profileinstaller = "1.4.1"
+uiautomator = "2.4.0"
 kotlin = "2.4.21"
 ksp = "2.3.12"
 hilt = "2.60.1"
@@ -41,6 +45,9 @@ spotless = "8.10.4"
 ktlint = "1.8.0"
 
 [libraries]
+androidx-benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "benchmark" }
+androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
+androidx-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
@@ -100,6 +107,8 @@ hilt-gradlePlugin = { module = "com.google.dagger:hilt-android-gradle-plugin", v
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+baselineprofile = { id = "androidx.baselineprofile", version.ref = "benchmark" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
@@ -116,4 +125,5 @@ mediatheq-android-library-compose = { id = "mediatheq.android.library.compose" }
 mediatheq-android-feature = { id = "mediatheq.android.feature" }
 mediatheq-jvm-library = { id = "mediatheq.jvm.library" }
 mediatheq-android-hilt = { id = "mediatheq.android.hilt" }
+mediatheq-android-test = { id = "mediatheq.android.test" }
 mediatheq-android-screenshot = { id = "mediatheq.android.screenshot" }

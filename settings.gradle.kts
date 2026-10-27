@@ -24,6 +24,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "mediatheQ"
 include(":app")
+include(":baselineprofile")
 include(":core:model")
 include(":core:common")
 include(":core:testing")
