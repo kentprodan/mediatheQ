@@ -1,0 +1,33 @@
+{
+  "Items": [
+    {
+      "Name": "Satoshi",
+      "Id": "39192fd809e2c039000d4f21bae32b6b",
+      "SortName": "satoshi",
+      "ChannelId": null,
+      "RunTimeTicks": 0,
+      "IsFolder": true,
+      "Type": "MusicArtist",
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "Artist-Satoshi",
+        "ItemId": "39192fd809e2c039000d4f21bae32b6b"
+      },
+      "ImageTags": {
+        "Primary": "e1dcafc6543103cab3ceb8ba4ef17c9c"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "e1dcafc6543103cab3ceb8ba4ef17c9c": "eJEVZ;00F|^*r=oLx]WBs.t7JAsmnNIpf5X9ofxaWBNGf7t7axR*of"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown"
+    }
+  ],
+  "TotalRecordCount": 1,
+  "StartIndex": 0
+}

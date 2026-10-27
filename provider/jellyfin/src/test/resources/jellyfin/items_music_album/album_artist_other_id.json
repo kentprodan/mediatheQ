@@ -1,0 +1,57 @@
+{
+  "Items": [
+    {
+      "Name": "+373",
+      "Id": "ef7eceb44b14dfcb0796ea2eb72447c7",
+      "DateCreated": "2026-10-24T16:55:43.4749352Z",
+      "SortName": " 0000000373",
+      "PremiereDate": "2024-04-12T00:00:00.0000000Z",
+      "ChannelId": null,
+      "RunTimeTicks": 24003259580,
+      "ProductionYear": 2024,
+      "IsFolder": true,
+      "Type": "MusicAlbum",
+      "UserData": {
+        "Rating": 8,
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Likes": true,
+        "Played": false,
+        "Key": "Satoshi-+373",
+        "ItemId": "ef7eceb44b14dfcb0796ea2eb72447c7"
+      },
+      "ChildCount": 16,
+      "Artists": [
+        "Satoshi"
+      ],
+      "ArtistItems": [
+        {
+          "Name": "Satoshi",
+          "Id": "460cbff0ed0a8976732c1d572331ad3a"
+        }
+      ],
+      "AlbumArtist": "Satoshi",
+      "AlbumArtists": [
+        {
+          "Name": "Satoshi",
+          "Id": "460cbff0ed0a8976732c1d572331ad3a"
+        }
+      ],
+      "ImageTags": {
+        "Primary": "a9b6ba27f1c8dbd22950185a9d75d55c"
+      },
+      "BackdropImageTags": [],
+      "ImageBlurHashes": {
+        "Primary": {
+          "a9b6ba27f1c8dbd22950185a9d75d55c": "ecBh4nS4Dit9WAVXWVbboJWBDgV?x]fha~tma~j]kDj@oekCe;V@V@"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown",
+      "NormalizationGain": -9.4
+    }
+  ],
+  "TotalRecordCount": 1,
+  "StartIndex": 0
+}

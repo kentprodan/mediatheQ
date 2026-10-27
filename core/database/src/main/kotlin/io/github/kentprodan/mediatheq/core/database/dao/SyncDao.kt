@@ -74,6 +74,7 @@ interface SyncDao {
         ownerServerId: String,
         ownerUserId: String,
     ) {
+        mergeSameNameArtists()
         replaceArtists()
         copyArtists()
         replaceAlbums()
@@ -93,6 +94,80 @@ interface SyncDao {
         clearStaging()
         saveState(SyncStateEntity(0, finishedAtMillis, ownerServerId, ownerUserId))
     }
+
+    /**
+     * R16 (jellyfin skill): an artist with folders in two libraries is two server items, and albums and tracks may credit
+     * the one the album artist list leaves out. Credits of such a credit-only artist move to its one album artist
+     * namesake (the server ignores case; shortcut: NOCASE folds ASCII only, use a Unicode fold if an
+     * accented name ever shows twice), a credit that is then doubled is dropped, and a credit-only
+     * artist still credited by an album becomes an album artist.
+     */
+    @Transaction
+    suspend fun mergeSameNameArtists() {
+        moveAlbumCreditsToNamesake()
+        moveTrackCreditsToNamesake()
+        dropDoubledAlbumCredits()
+        dropDoubledTrackCredits()
+        markCreditedAlbumArtists()
+    }
+
+    @Query(
+        """
+        UPDATE album_artist_staging SET artist_id = COALESCE((
+            SELECT MIN(a.id) FROM artist_staging c
+            JOIN artist_staging a ON a.server_id = c.server_id AND a.is_album_artist AND a.name = c.name COLLATE NOCASE
+            WHERE c.server_id = album_artist_staging.server_id AND c.id = album_artist_staging.artist_id
+            AND NOT c.is_album_artist
+            GROUP BY c.id HAVING COUNT(*) = 1
+        ), artist_id)
+        """,
+    )
+    suspend fun moveAlbumCreditsToNamesake()
+
+    @Query(
+        """
+        UPDATE track_artist_staging SET artist_id = COALESCE((
+            SELECT MIN(a.id) FROM artist_staging c
+            JOIN artist_staging a ON a.server_id = c.server_id AND a.is_album_artist AND a.name = c.name COLLATE NOCASE
+            WHERE c.server_id = track_artist_staging.server_id AND c.id = track_artist_staging.artist_id
+            AND NOT c.is_album_artist
+            GROUP BY c.id HAVING COUNT(*) = 1
+        ), artist_id)
+        """,
+    )
+    suspend fun moveTrackCreditsToNamesake()
+
+    @Query(
+        """
+        DELETE FROM album_artist_staging WHERE EXISTS (
+            SELECT 1 FROM album_artist_staging e
+            WHERE e.server_id = album_artist_staging.server_id AND e.album_id = album_artist_staging.album_id
+            AND e.artist_id = album_artist_staging.artist_id AND e.position < album_artist_staging.position
+        )
+        """,
+    )
+    suspend fun dropDoubledAlbumCredits()
+
+    @Query(
+        """
+        DELETE FROM track_artist_staging WHERE EXISTS (
+            SELECT 1 FROM track_artist_staging e
+            WHERE e.server_id = track_artist_staging.server_id AND e.track_id = track_artist_staging.track_id
+            AND e.artist_id = track_artist_staging.artist_id AND e.position < track_artist_staging.position
+        )
+        """,
+    )
+    suspend fun dropDoubledTrackCredits()
+
+    @Query(
+        """
+        UPDATE artist_staging SET is_album_artist = 1 WHERE NOT is_album_artist AND EXISTS (
+            SELECT 1 FROM album_artist_staging l
+            WHERE l.server_id = artist_staging.server_id AND l.artist_id = artist_staging.id
+        )
+        """,
+    )
+    suspend fun markCreditedAlbumArtists()
 
     /** Drops a sync in progress (staging and checkpoint) but keeps the live library. */
     @Transaction
