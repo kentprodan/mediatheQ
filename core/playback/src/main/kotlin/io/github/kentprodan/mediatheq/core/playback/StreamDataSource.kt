@@ -55,8 +55,9 @@ internal fun streamDataSourceFactory(
         val itemId = dataSpec.uri.trackId() ?: return@Factory dataSpec
         onOpen(itemId)
         if (downloads.isDownloaded(itemId)) {
-            resolver.playLocal(itemId)
-            return@Factory dataSpec.buildUpon().setKey(downloadCacheKey(itemId)).build()
+            val key = downloadCacheKey(itemId)
+            resolver.playLocal(itemId, converted = downloadCache.isConvertedDownload(key))
+            return@Factory dataSpec.buildUpon().setKey(key).build()
         }
         val original = originalCacheKey(itemId)
         // shortcut: a complete copy plays as it is, even if the file changed on the server since; a partial replay

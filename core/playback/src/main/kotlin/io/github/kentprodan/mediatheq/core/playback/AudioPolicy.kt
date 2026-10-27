@@ -60,13 +60,15 @@ internal object AudioPolicy {
 
     /**
      * Whether a Dolby Atmos track plays as the server's stereo conversion (no JOC decoder or passthrough, or the
-     * metered bitrate cap; media3 skill, section 4), so Now Playing says Atmos is not available. `false` while the
-     * stream is not resolved yet or playback stopped ([playMethod] `null`): unknown is not a downgrade.
+     * metered bitrate cap; media3 skill, section 4), or plays from a [convertedDownload] (reported as a direct play,
+     * #89), so Now Playing says Atmos is not available. `false` while the stream is not resolved yet or playback stopped
+     * ([playMethod] `null`): unknown is not a downgrade.
      */
     fun atmosConverted(
         isAtmos: Boolean,
         playMethod: PlayMethod?,
-    ): Boolean = isAtmos && playMethod != null && playMethod != PlayMethod.DirectPlay
+        convertedDownload: Boolean,
+    ): Boolean = isAtmos && playMethod != null && (playMethod != PlayMethod.DirectPlay || convertedDownload)
 
     /**
      * Player volume for a track with these gains in [mode]: album gain with the track's as fallback (or the other way

@@ -157,6 +157,36 @@ class StreamDataSourceTest {
     }
 
     @Test
+    fun `a converted download plays offline and is known as converted`() {
+        download(converted = true)
+        network.online.value = false
+
+        factory.createDataSource().open(DataSpec(trackUri(itemId)))
+
+        assertThat(resolver.isConvertedDownload(itemId)).isTrue()
+        assertThat(resolver.current(itemId)?.playMethod).isEqualTo(PlayMethod.DirectPlay)
+    }
+
+    @Test
+    fun `a converted download is known as converted online too`() {
+        download(converted = true)
+
+        factory.createDataSource().open(DataSpec(trackUri(itemId)))
+
+        assertThat(resolver.isConvertedDownload(itemId)).isTrue()
+        assertThat(repository.streamRequests).isEmpty()
+    }
+
+    @Test
+    fun `an original download is not converted`() {
+        download()
+
+        factory.createDataSource().open(DataSpec(trackUri(itemId)))
+
+        assertThat(resolver.isConvertedDownload(itemId)).isFalse()
+    }
+
+    @Test
     fun `a track still downloading streams from the server, never from its partial copy`() {
         download(DownloadState.Downloading(0.5f))
 
@@ -294,7 +324,10 @@ class StreamDataSourceTest {
     }
 
     /** What `:core:download` leaves behind: the file under the track's key, and the track in [state]. */
-    private fun download(state: DownloadState = DownloadState.Completed) {
+    private fun download(
+        state: DownloadState = DownloadState.Completed,
+        converted: Boolean = false,
+    ) {
         val upstream = FakeDataSource(FakeDataSet().setData(trackUri(itemId), bytes))
         val spec =
             DataSpec
@@ -303,6 +336,9 @@ class StreamDataSourceTest {
                 .setKey(downloadCacheKey(itemId))
                 .build()
         CacheWriter(CacheDataSource(cache, upstream), spec, null, null).cache()
+        if (converted) {
+            cache.applyContentMetadataMutations(spec.key!!, ContentMetadataMutations().set(CONVERTED_DOWNLOAD, 1L))
+        }
         downloads.downloads.value =
             listOf(TrackDownload(Track(itemId, "Track", emptyList(), 3.minutes), state))
     }

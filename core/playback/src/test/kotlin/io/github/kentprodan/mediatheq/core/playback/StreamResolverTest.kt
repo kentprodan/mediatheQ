@@ -141,6 +141,45 @@ class StreamResolverTest {
     }
 
     @Test
+    fun `a converted download still reports as a direct play, but is known as converted`() {
+        resolver.playLocal(itemId, converted = true)
+
+        assertThat(resolver.current(itemId)?.playMethod).isEqualTo(PlayMethod.DirectPlay)
+        assertThat(resolver.isConvertedDownload(itemId)).isTrue()
+        assertThat(repository.streamRequests).isEmpty()
+    }
+
+    @Test
+    fun `an original download or a cached original is not converted`() {
+        resolver.playLocal(itemId)
+
+        assertThat(resolver.isConvertedDownload(itemId)).isFalse()
+    }
+
+    @Test
+    fun `a converted download replacing a local original is known as converted, in the same play session`() {
+        resolver.playLocal(itemId)
+        val session = resolver.current(itemId)!!.playSessionId
+
+        resolver.playLocal(itemId, converted = true)
+
+        assertThat(resolver.isConvertedDownload(itemId)).isTrue()
+        assertThat(resolver.current(itemId)!!.playSessionId).isEqualTo(session)
+        assertThat(resolver.current(itemId)!!.playMethod).isEqualTo(PlayMethod.DirectPlay)
+    }
+
+    @Test
+    fun `a cached original replacing a converted download is no longer converted, in the same play session`() {
+        resolver.playLocal(itemId, converted = true)
+        val session = resolver.current(itemId)!!.playSessionId
+
+        resolver.playLocal(itemId)
+
+        assertThat(resolver.isConvertedDownload(itemId)).isFalse()
+        assertThat(resolver.current(itemId)!!.playSessionId).isEqualTo(session)
+    }
+
+    @Test
     fun `after the download is gone the track asks the server again`() =
         runTest {
             resolver.playLocal(itemId)

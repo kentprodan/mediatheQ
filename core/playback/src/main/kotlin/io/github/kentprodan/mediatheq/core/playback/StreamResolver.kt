@@ -34,6 +34,8 @@ class StreamResolver
             val quality: StreamingQuality,
             /** Played from the download, not from the server. */
             val local: Boolean = false,
+            /** Played from a download that is the server's conversion, not the original file (#68). */
+            val converted: Boolean = false,
         )
 
         private val decoderMimeTypes by lazy { decoders.mimeTypes() }
@@ -78,10 +80,18 @@ class StreamResolver
 
         /**
          * Records that [itemId] plays from its download, so progress reports still reach the server: a direct play with
-         * a play session of our own (no server stream was asked for).
+         * a play session of our own (no server stream was asked for), also when the download is [converted].
          */
-        fun playLocal(itemId: MediaId) {
-            if (streams[itemId]?.local == true) return
+        fun playLocal(
+            itemId: MediaId,
+            converted: Boolean = false,
+        ) {
+            val known = streams[itemId]?.takeIf { it.local }
+            if (known != null) {
+                // A download that replaced the cached original (or the other way round) keeps the play session.
+                streams[itemId] = Resolved(known.stream, known.quality, local = true, converted = converted)
+                return
+            }
             val stream =
                 PlaybackStream(
                     itemId = itemId,
@@ -92,8 +102,11 @@ class StreamResolver
                     playSessionId = UUID.randomUUID().toString().replace("-", ""),
                     canSeek = true,
                 )
-            streams[itemId] = Resolved(stream, StreamingQuality.Original, local = true)
+            streams[itemId] = Resolved(stream, StreamingQuality.Original, local = true, converted = converted)
         }
+
+        /** Whether [itemId] plays from a download that is the server's conversion (still reported as a direct play). */
+        fun isConvertedDownload(itemId: MediaId): Boolean = streams[itemId]?.let { it.local && it.converted } == true
 
         /**
          * The file to download [itemId] from, whatever the streaming quality: the original when the device plays it as it
