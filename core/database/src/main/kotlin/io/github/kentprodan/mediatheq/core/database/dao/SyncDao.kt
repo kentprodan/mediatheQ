@@ -98,7 +98,8 @@ interface SyncDao {
     /**
      * R16 (jellyfin skill): an artist with folders in two libraries is two server items, and albums and tracks may credit
      * the one the album artist list leaves out. Credits of such a credit-only artist move to its one album artist
-     * namesake (the server matches names without case too), a credit that is then doubled is dropped, and a credit-only
+     * namesake (the server ignores case; shortcut: NOCASE folds ASCII only, use a Unicode fold if an
+     * accented name ever shows twice), a credit that is then doubled is dropped, and a credit-only
      * artist still credited by an album becomes an album artist.
      */
     @Transaction
