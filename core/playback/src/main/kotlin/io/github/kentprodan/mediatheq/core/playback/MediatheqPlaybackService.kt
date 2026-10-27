@@ -254,7 +254,12 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     session?.sessionExtras = state.toInfo().toBundle()
                 },
                 atmosConverted = {
-                    AudioPolicy.atmosConverted(player.currentMediaItem?.isDolbyAtmos() == true, currentPlayMethod())
+                    val id = player.currentMediaItem?.let { runCatching { MediaId.parse(it.mediaId) }.getOrNull() }
+                    AudioPolicy.atmosConverted(
+                        isAtmos = player.currentMediaItem?.isDolbyAtmos() == true,
+                        playMethod = currentPlayMethod(),
+                        convertedDownload = id != null && streamResolver.isConvertedDownload(id),
+                    )
                 },
             )
         normalization = NormalizationListener(player, { settings }) { audioOutput.state.mode }

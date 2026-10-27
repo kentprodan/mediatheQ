@@ -123,22 +123,45 @@ class AudioPolicyTest {
 
     @Test
     fun `an Atmos track the server converts is a converted Atmos track`() {
-        assertThat(AudioPolicy.atmosConverted(isAtmos = true, PlayMethod.Transcode)).isTrue()
-        assertThat(AudioPolicy.atmosConverted(isAtmos = true, PlayMethod.DirectStream)).isTrue()
+        assertThat(AudioPolicy.atmosConverted(isAtmos = true, PlayMethod.Transcode, convertedDownload = false)).isTrue()
+        assertThat(
+            AudioPolicy.atmosConverted(isAtmos = true, PlayMethod.DirectStream, convertedDownload = false),
+        ).isTrue()
     }
 
     @Test
     fun `an Atmos track played as it is (a JOC decoder) is not converted`() {
-        assertThat(AudioPolicy.atmosConverted(isAtmos = true, PlayMethod.DirectPlay)).isFalse()
+        assertThat(
+            AudioPolicy.atmosConverted(isAtmos = true, PlayMethod.DirectPlay, convertedDownload = false),
+        ).isFalse()
     }
 
     @Test
     fun `an Atmos track whose stream is not resolved yet says nothing`() {
-        assertThat(AudioPolicy.atmosConverted(isAtmos = true, playMethod = null)).isFalse()
+        assertThat(AudioPolicy.atmosConverted(isAtmos = true, playMethod = null, convertedDownload = false)).isFalse()
+    }
+
+    @Test
+    fun `an Atmos track played from a converted download is a converted Atmos track`() {
+        assertThat(AudioPolicy.atmosConverted(isAtmos = true, PlayMethod.DirectPlay, convertedDownload = true)).isTrue()
+    }
+
+    @Test
+    fun `an Atmos track played from its original download is not converted`() {
+        assertThat(
+            AudioPolicy.atmosConverted(isAtmos = true, PlayMethod.DirectPlay, convertedDownload = false),
+        ).isFalse()
+    }
+
+    @Test
+    fun `a converted download is not a downgrade before its stream is known`() {
+        assertThat(AudioPolicy.atmosConverted(isAtmos = true, playMethod = null, convertedDownload = true)).isFalse()
     }
 
     @Test
     fun `a converted track without Atmos is not an Atmos downgrade`() {
-        assertThat(AudioPolicy.atmosConverted(isAtmos = false, PlayMethod.Transcode)).isFalse()
+        assertThat(
+            AudioPolicy.atmosConverted(isAtmos = false, PlayMethod.Transcode, convertedDownload = false),
+        ).isFalse()
     }
 }

@@ -89,7 +89,11 @@ class StreamResolver
             val known = streams[itemId]?.takeIf { it.local }
             if (known != null) {
                 // A download that replaced the cached original (or the other way round) keeps the play session.
-                if (known.converted != converted) streams[itemId] = Resolved(known.stream, known.quality, true, converted)
+                if (known.converted !=
+                    converted
+                ) {
+                    streams[itemId] = Resolved(known.stream, known.quality, true, converted)
+                }
                 return
             }
             val stream =
