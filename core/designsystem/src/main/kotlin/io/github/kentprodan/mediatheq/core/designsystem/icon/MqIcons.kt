@@ -170,4 +170,19 @@ object MqIcons {
 
     val StarFilled: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_star_filled)
+
+    val TouchApp: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_touch_app)
+
+    val Radio: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_radio)
+
+    val DownloadForOffline: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_download_for_offline)
+
+    val Devices: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_devices)
+
+    val Info: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_info)
 }

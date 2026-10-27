@@ -1,7 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.settings
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,37 +37,86 @@ import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 
+/** The Settings pages with settings of their own (#120); they share [SettingsViewModel] until a page needs its own. */
+enum class SettingsPage(
+    @StringRes val title: Int,
+) {
+    Interface(R.string.settings_interface),
+    Playback(R.string.settings_playback),
+    Storage(R.string.settings_storage_page),
+    Providers(R.string.settings_providers),
+}
+
 @Composable
-internal fun SettingsRoute(
-    versionName: String,
+internal fun SettingsPageRoute(
+    page: SettingsPage,
     onOpenAudio: () -> Unit,
-    onOpenShowcase: () -> Unit,
-    onOpenLicenses: () -> Unit,
     onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    SettingsScreen(state, versionName, viewModel::onAction, onOpenAudio, onOpenShowcase, onBack, onOpenLicenses)
+    SettingsPageScreen(page, state, viewModel::onAction, onOpenAudio, onBack)
 }
 
 /**
- * Settings in groups of segmented list items (expressive-design, component map). Choices are chips under their title,
- * on/off settings are whole-row switches; everything applies at once.
+ * One Settings page: its groups of segmented list items (expressive-design, component map). Choices are chips under
+ * their title, on/off settings are whole-row switches; everything applies at once.
  */
 @Composable
-fun SettingsScreen(
+fun SettingsPageScreen(
+    page: SettingsPage,
     state: SettingsUiState,
-    versionName: String,
     onAction: (SettingsAction) -> Unit,
     onOpenAudio: () -> Unit,
-    onOpenShowcase: () -> Unit,
     onBack: () -> Unit,
+) {
+    SettingsScaffold(stringResource(page.title), onBack) {
+        val content = state as? SettingsUiState.Content ?: return@SettingsScaffold
+        when (page) {
+            SettingsPage.Interface -> {
+                item(key = "appearance") { AppearanceGroup(content.library, onAction) }
+                item(key = "ratings") { RatingsGroup(content.library.ratingMode, onAction) }
+            }
+
+            SettingsPage.Playback -> {
+                item(key = "playback") { PlaybackGroup(content.audio, onAction, onOpenAudio) }
+            }
+
+            SettingsPage.Storage -> {
+                item(key = "storage") { StorageGroup(content.audio, content.library, onAction) }
+            }
+
+            SettingsPage.Providers -> {
+                item(key = "account") { AccountGroup(content, onAction) }
+            }
+        }
+    }
+}
+
+/** Settings -> About: the version and the app's own pages; needs no settings. */
+@Composable
+fun AboutSettingsScreen(
+    versionName: String,
+    onOpenShowcase: () -> Unit,
     onOpenLicenses: () -> Unit,
+    onBack: () -> Unit,
+) {
+    SettingsScaffold(stringResource(R.string.settings_about), onBack) {
+        item(key = "about") { AboutGroup(versionName, onOpenShowcase, onOpenLicenses) }
+    }
+}
+
+/** The frame of the hub and every Settings page: top bar with back, then the groups. */
+@Composable
+internal fun SettingsScaffold(
+    title: String,
+    onBack: () -> Unit,
+    groups: LazyListScope.() -> Unit,
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings_title)) },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.settings_back))
@@ -77,7 +127,6 @@ fun SettingsScreen(
         // The app shell already pads for the navigation bar.
         contentWindowInsets = WindowInsets(0),
     ) { padding ->
-        val content = state as? SettingsUiState.Content ?: return@Scaffold Box(Modifier.padding(padding))
         LazyColumn(
             Modifier.fillMaxSize(),
             contentPadding =
@@ -88,14 +137,8 @@ fun SettingsScreen(
                     bottom = MediatheqSpacing.l,
                 ),
             verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
-        ) {
-            item(key = "account") { AccountGroup(content, onAction) }
-            item(key = "playback") { PlaybackGroup(content.audio, onAction, onOpenAudio) }
-            item(key = "storage") { StorageGroup(content.audio, content.library, onAction) }
-            item(key = "appearance") { AppearanceGroup(content.library, onAction) }
-            item(key = "ratings") { RatingsGroup(content.library.ratingMode, onAction) }
-            item(key = "about") { AboutGroup(versionName, onOpenShowcase, onOpenLicenses) }
-        }
+            content = groups,
+        )
     }
 }
 
@@ -283,7 +326,7 @@ internal fun AboutGroup(
  * as cards on the screen's surface.
  */
 @Composable
-private fun settingsColors() =
+internal fun settingsColors() =
     ListItemDefaults.segmentedColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         selectedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -294,7 +337,7 @@ private fun settingsColors() =
 
 /** A titled group: its items share the segmented shapes (rounded ends, small gaps). */
 @Composable
-private fun Group(
+internal fun Group(
     title: Int,
     items: GroupScope.() -> Unit,
 ) {
@@ -310,7 +353,7 @@ private fun Group(
     }
 }
 
-private class GroupScope {
+internal class GroupScope {
     val rows = mutableListOf<@Composable (ListItemShapes) -> Unit>()
 
     fun item(row: @Composable (ListItemShapes) -> Unit) {

@@ -1,17 +1,12 @@
 package io.github.kentprodan.mediatheq.feature.settings
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
-import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 
 private val content =
@@ -22,50 +17,47 @@ private val content =
         LibraryPreferences(albumColumns = 3, ratingMode = RatingMode.HalfStars),
     )
 
-/** The top of the screen: account and playback. */
+/** The hub: Settings, Miscellaneous and About groups. */
 @PreviewTest
 @MqPreviews
 @Composable
-fun SettingsScreenshot() {
-    MediatheqTheme { SettingsScreen(content, "0.1.0", {}, {}, {}, {}, {}) }
+fun SettingsHubScreenshot() {
+    MediatheqTheme { SettingsHubScreen(onOpen = {}, onBack = {}) }
 }
 
 @Composable
-private fun Groups(groups: @Composable () -> Unit) {
-    MediatheqTheme {
-        Surface { Column(Modifier.padding(horizontal = MediatheqSpacing.l)) { groups() } }
-    }
+private fun Page(page: SettingsPage) {
+    MediatheqTheme { SettingsPageScreen(page, content, {}, {}, {}) }
 }
 
-/** Account and Playback (qualities per network, normalization, the Audio page). */
+/** Interface: colors, album grid, ratings. */
 @PreviewTest
 @MqPreviews
 @Composable
-fun SettingsAccountPlaybackScreenshot() {
-    Groups {
-        AccountGroup(content) {}
-        PlaybackGroup(content.audio, {}) {}
-    }
-}
+fun SettingsInterfaceScreenshot() = Page(SettingsPage.Interface)
 
-/** Downloads and storage, Appearance. */
+/** Playback: qualities per network, normalization, the Audio page. */
 @PreviewTest
 @MqPreviews
 @Composable
-fun SettingsStorageAppearanceScreenshot() {
-    Groups {
-        StorageGroup(content.audio, content.library) {}
-        AppearanceGroup(content.library) {}
-    }
-}
+fun SettingsPlaybackScreenshot() = Page(SettingsPage.Playback)
 
-/** Ratings and About. */
+/** Offline, cache, and download. */
 @PreviewTest
 @MqPreviews
 @Composable
-fun SettingsRatingsAboutScreenshot() {
-    Groups {
-        RatingsGroup(content.library.ratingMode) {}
-        AboutGroup("0.1.0", onOpenShowcase = {}, onOpenLicenses = {})
-    }
+fun SettingsStorageScreenshot() = Page(SettingsPage.Storage)
+
+/** Manage media providers: the account and Log out. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsProvidersScreenshot() = Page(SettingsPage.Providers)
+
+/** About: version, licenses, showcase. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAboutScreenshot() {
+    MediatheqTheme { AboutSettingsScreen("0.1.0", {}, {}, {}) }
 }

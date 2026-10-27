@@ -2,6 +2,10 @@
 <resources>
     <string name="settings_title">Settings</string>
     <string name="settings_back">Back</string>
+    <string name="settings_group_misc">Miscellaneous</string>
+    <string name="settings_interface">Interface</string>
+    <string name="settings_storage_page">Offline, cache, and download</string>
+    <string name="settings_providers">Manage media providers</string>
 
     <string name="settings_account">Account</string>
     <string name="settings_server">Server</string>

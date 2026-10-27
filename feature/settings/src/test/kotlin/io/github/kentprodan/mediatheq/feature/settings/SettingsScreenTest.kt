@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -35,19 +36,41 @@ class SettingsScreenTest {
     private val actions = mutableListOf<SettingsAction>()
     private val events = mutableListOf<String>()
 
-    private fun show(content: SettingsUiState.Content = SettingsUiState.Content("Home", "Ana")) {
+    private fun show(
+        page: SettingsPage,
+        content: SettingsUiState = SettingsUiState.Content("Home", "Ana"),
+    ) {
         composeRule.setContent {
             MediatheqTheme {
-                SettingsScreen(
+                SettingsPageScreen(
+                    page,
                     content,
-                    "1.2.3",
                     { actions += it },
                     onOpenAudio = { events += "audio" },
-                    onOpenShowcase = { events += "showcase" },
                     onBack = { events += "back" },
-                    onOpenLicenses = { events += "licenses" },
                 )
             }
+        }
+    }
+
+    private fun showAbout() {
+        composeRule.setContent {
+            MediatheqTheme {
+                AboutSettingsScreen(
+                    "1.2.3",
+                    onOpenShowcase = { events += "showcase" },
+                    onOpenLicenses = { events += "licenses" },
+                    onBack = { events += "back" },
+                )
+            }
+        }
+    }
+
+    /** The titles of a page's rows, so every setting is on exactly one page. */
+    private fun assertRows(vararg titles: String) {
+        titles.forEach { title ->
+            scrollTo(title)
+            composeRule.onAllNodesWithText(title).assertCountEquals(1)
         }
     }
 
@@ -55,8 +78,8 @@ class SettingsScreenTest {
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(text, substring = true))
 
     @Test
-    fun `the account shows, and log out sends its action`() {
-        show()
+    fun `manage media providers shows the account, and log out sends its action`() {
+        show(SettingsPage.Providers)
 
         composeRule.onNodeWithText("Home").assertExists()
         composeRule.onNodeWithText("Ana").assertExists()
@@ -67,7 +90,10 @@ class SettingsScreenTest {
 
     @Test
     fun `each network has its own quality chips, the current one selected`() {
-        show(SettingsUiState.Content("Home", "Ana", AudioPreferences(meteredQuality = StreamingQuality.Kbps128)))
+        show(
+            SettingsPage.Playback,
+            SettingsUiState.Content("Home", "Ana", AudioPreferences(meteredQuality = StreamingQuality.Kbps128)),
+        )
 
         composeRule.onAllNodesWithText("Original")[0].assertIsSelected()
         composeRule.onAllNodesWithText("128 kbps")[1].assertIsSelected()
@@ -80,7 +106,7 @@ class SettingsScreenTest {
 
     @Test
     fun `switches are whole rows with their state`() {
-        show()
+        show(SettingsPage.Storage)
         scrollTo("Download on Wi-Fi only")
 
         composeRule.onNode(isToggleable() and hasText("Download on Wi-Fi only")).assertIsOn().performClick()
@@ -90,7 +116,7 @@ class SettingsScreenTest {
 
     @Test
     fun `the offline mode switch sends its new state`() {
-        show()
+        show(SettingsPage.Storage)
         scrollTo("Offline mode")
 
         composeRule.onNode(isToggleable() and hasText("Offline mode")).assertIsOff().performClick()
@@ -100,7 +126,7 @@ class SettingsScreenTest {
 
     @Test
     fun `the rating choice sends the mode`() {
-        show()
+        show(SettingsPage.Interface)
         scrollTo("Half stars")
 
         composeRule.onNodeWithText("Half stars").performClick()
@@ -109,32 +135,62 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `audio, the licenses, the showcase and back open their pages`() {
-        show()
+    fun `playback opens the audio page, and back works`() {
+        show(SettingsPage.Playback)
 
         composeRule.onNodeWithText("Audio").performClick()
-        scrollTo("Open-source licenses")
-        composeRule.onNodeWithText("Open-source licenses").performClick()
-        scrollTo("Theme showcase")
-        composeRule.onNodeWithText("Theme showcase").performClick()
         composeRule.onNodeWithContentDescription("Back").performClick()
 
-        assertThat(events).containsExactly("audio", "licenses", "showcase", "back").inOrder()
+        assertThat(events).containsExactly("audio", "back").inOrder()
     }
 
     @Test
-    fun `the version shows under About`() {
-        show()
-        scrollTo("1.2.3")
+    fun `about shows the version and opens the licenses and the showcase`() {
+        showAbout()
 
         composeRule.onNodeWithText("1.2.3").assertExists()
+        composeRule.onNodeWithText("Open-source licenses").performClick()
+        composeRule.onNodeWithText("Theme showcase").performClick()
+
+        assertThat(events).containsExactly("licenses", "showcase").inOrder()
+    }
+
+    @Test
+    fun `each page holds its own settings`() {
+        show(SettingsPage.Interface)
+        assertRows("Material You colors", "Album grid columns", "Star ratings")
+    }
+
+    @Test
+    fun `the playback page holds the qualities, normalization and audio`() {
+        show(SettingsPage.Playback)
+        assertRows("Quality on Wi-Fi", "Quality on mobile data", "Volume normalization", "Audio")
+    }
+
+    @Test
+    fun `the storage page holds offline mode, downloads and the cache`() {
+        show(SettingsPage.Storage)
+        assertRows("Offline mode", "Download on Wi-Fi only", "Streaming cache")
+    }
+
+    @Test
+    fun `the providers page holds the account and log out`() {
+        show(SettingsPage.Providers)
+        assertRows("Server", "Signed in as", "Log out")
+    }
+
+    @Test
+    fun `a page shows nothing until its settings are read`() {
+        show(SettingsPage.Interface, SettingsUiState.Loading)
+
+        composeRule.onNodeWithText("Material You colors").assertDoesNotExist()
     }
 
     @Test
     fun `group titles are headings`() {
-        show()
+        show(SettingsPage.Interface)
 
-        composeRule.onNode(isHeading() and hasText("Account")).assertExists()
-        composeRule.onNode(isHeading() and hasText("Playback")).assertExists()
+        composeRule.onNode(isHeading() and hasText("Appearance")).assertExists()
+        composeRule.onNode(isHeading() and hasText("Ratings")).assertExists()
     }
 }
