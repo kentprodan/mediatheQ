@@ -92,6 +92,22 @@ class JellyfinLibrarySourceTest {
         }
 
     @Test
+    fun `R16 an album may credit a namesake the album artist list leaves out, and keeps its id`() =
+        runTest {
+            enqueue("artists_album_artists/same_name.json")
+            enqueue("items_music_album/album_artist_other_id.json")
+
+            val listed = (source.albumArtists(server, 0, 500) as MqResult.Success).value.items.single()
+            val album = (source.albums(server, 0, 500) as MqResult.Success).value.items.single()
+
+            assertThat(listed.name).isEqualTo("Satoshi")
+            assertThat(album.albumArtists.single().name).isEqualTo("Satoshi")
+            // The sync merges the two by name (SyncDao.mergeSameNameArtists); the provider passes the ids on as sent.
+            assertThat(album.albumArtists.single().id).isEqualTo(MediaId(serverId, "460cbff0ed0a8976732c1d572331ad3a"))
+            assertThat(listed.id).isEqualTo(MediaId(serverId, "39192fd809e2c039000d4f21bae32b6b"))
+        }
+
+    @Test
     fun `R7 albums query sends type and recursive`() =
         runTest {
             enqueue("items_music_album/page.json")

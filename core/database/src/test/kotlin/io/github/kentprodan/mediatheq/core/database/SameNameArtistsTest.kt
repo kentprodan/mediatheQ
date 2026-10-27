@@ -154,7 +154,12 @@ class SameNameArtistsTest {
                 albumCredits = listOf("a", "c"),
             )
 
-            val credits = libraryDao.artistAlbums("s", "a", true, emptyList()).first().single().credits
+            val credits =
+                libraryDao
+                    .artistAlbums("s", "a", true, emptyList())
+                    .first()
+                    .single()
+                    .credits
             // Two namesakes: no way to tell which one "c" is, so it stays as the server sent it (and is linked, so listed).
             assertThat(credits.map { it.link.artistId }).containsExactly("a", "c").inOrder()
             assertThat(libraryDao.albumArtists(true, emptyList()).first().map { it.id }).containsExactly("a", "b", "c")
