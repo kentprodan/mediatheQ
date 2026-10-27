@@ -68,7 +68,16 @@ internal object AudioPolicy {
         isAtmos: Boolean,
         playMethod: PlayMethod?,
         convertedDownload: Boolean,
-    ): Boolean = isAtmos && playMethod != null && (playMethod != PlayMethod.DirectPlay || convertedDownload)
+    ): Boolean = isAtmos && playMethod != null && !playsOriginal(playMethod, convertedDownload)
+
+    /**
+     * Whether the player decodes the original file: a direct play, not a [convertedDownload] (which also reports as a
+     * direct play, #113). Only then does the file's format in the media item extras hold, e.g. for bit-perfect USB.
+     */
+    fun playsOriginal(
+        playMethod: PlayMethod?,
+        convertedDownload: Boolean,
+    ): Boolean = playMethod == PlayMethod.DirectPlay && !convertedDownload
 
     /**
      * Player volume for a track with these gains in [mode]: album gain with the track's as fallback (or the other way

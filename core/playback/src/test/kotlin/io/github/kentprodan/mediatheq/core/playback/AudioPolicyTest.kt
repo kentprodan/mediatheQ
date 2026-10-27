@@ -152,6 +152,23 @@ class AudioPolicyTest {
     }
 
     @Test
+    fun `a converted download is not bit-perfect capable`() {
+        assertThat(AudioPolicy.playsOriginal(PlayMethod.DirectPlay, convertedDownload = true)).isFalse()
+    }
+
+    @Test
+    fun `a direct play of the file, streamed, cached or an original download, plays the original`() {
+        assertThat(AudioPolicy.playsOriginal(PlayMethod.DirectPlay, convertedDownload = false)).isTrue()
+    }
+
+    @Test
+    fun `a server conversion or an unknown stream does not play the original`() {
+        assertThat(AudioPolicy.playsOriginal(PlayMethod.Transcode, convertedDownload = false)).isFalse()
+        assertThat(AudioPolicy.playsOriginal(PlayMethod.DirectStream, convertedDownload = false)).isFalse()
+        assertThat(AudioPolicy.playsOriginal(playMethod = null, convertedDownload = false)).isFalse()
+    }
+
+    @Test
     fun `a converted track without Atmos is not an Atmos downgrade`() {
         assertThat(
             AudioPolicy.atmosConverted(isAtmos = false, PlayMethod.Transcode, convertedDownload = false),
