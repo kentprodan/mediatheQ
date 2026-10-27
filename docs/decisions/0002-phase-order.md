@@ -1,6 +1,6 @@
 # 0002. Phase order: music phone, TV Atmos music, then video
 
-- Status: Accepted
+- Status: Superseded by 0025
 - Date: 2026-10-18
 
 ## Context

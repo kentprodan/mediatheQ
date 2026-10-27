@@ -6,7 +6,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | # | Title | Status |
 |---|---|---|
 | [0001](0001-fresh-start-and-project-identity.md) | Fresh start and project identity | Accepted |
-| [0002](0002-phase-order.md) | Phase order: music phone, TV Atmos music, then video | Accepted |
+| [0002](0002-phase-order.md) | Phase order: music phone, TV Atmos music, then video | Superseded by 0025 |
 | [0003](0003-build-toolchain.md) | Build toolchain: stable AGP, JDK 21, convention plugins | Accepted |
 | [0004](0004-material3-expressive-version.md) | Material 3 Expressive on material3 1.5.x | Accepted |
 | [0005](0005-navigation-3.md) | Navigation 3 | Accepted |
@@ -29,6 +29,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0022](0022-open-source-licenses-at-build-time.md) | Open-source licenses generated at build time with AboutLibraries | Accepted |
 | [0023](0023-baseline-profile-and-macrobenchmarks.md) | Baseline profile and macrobenchmarks in `:baselineprofile` | Accepted |
 | [0024](0024-converted-downloads.md) | Converted downloads are one progressive Opus file | Accepted |
+| [0025](0025-milestones-by-platform-and-tests.md) | Milestones by platform, a Polish milestone and a Tests milestone | Accepted |
 
 Template for new ADRs:
 

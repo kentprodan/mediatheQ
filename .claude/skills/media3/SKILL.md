@@ -5,7 +5,7 @@ description: Media3 playback rules for mediatheQ - MediaLibraryService and sessi
 
 # mediatheQ - Media3 playback
 
-Scope now: **music** (phases F1 phone, F2 TV). Video rules are added in F3 (new section or new skill).
+Scope now: **music** (milestones Mobile 1 phone, TV 1 TV; ADR 0025). Video rules are added with Mobile 3 / TV 2 Video (new section or new skill).
 Read together with `architecture` (section 7, playback boundary) and `jellyfin` (sections 5-6).
 
 ## 0. Version and sources of truth
@@ -20,7 +20,7 @@ Read together with `architecture` (section 7, playback boundary) and `jellyfin` 
 
 ```
 MediatheqPlaybackService : MediaLibraryService      the only owner of the player
-  ├─ ExoPlayer (built by PlayerFactory)              audio-only renderers in F1/F2
+  ├─ ExoPlayer (built by PlayerFactory)              audio-only renderers until Video
   ├─ MediaLibrarySession + LibraryCallback           browse tree for Auto/Wear later, queue commands
   ├─ StreamResolver                                  MediaItem -> playable URI + headers (asks PlaybackSource)
   ├─ StreamMediaSourceFactory                        per item: HLS (converted) or the file data source (ADR 0019)
@@ -43,7 +43,7 @@ PlaybackConnection (UI side)                         async MediaController -> St
   - `setHandleAudioBecomingNoisy(true)` (pause when headphones unplug)
   - `setWakeMode(C.WAKE_MODE_NETWORK)` for streaming
   - `setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))` (section 9)
-  - renderers: `DefaultRenderersFactory` with `setEnableDecoderFallback(true)`; no video renderers until F3
+  - renderers: `DefaultRenderersFactory` with `setEnableDecoderFallback(true)`; no video renderers until Video
   - audio sink: default `DefaultAudioSink` (passthrough + offload support built in). Only customize via `DefaultAudioSink.Builder` if a test proves it is needed; custom sinks break on media3 bumps.
 - One player for the whole app process. Rebuild only when the output policy requires it (section 7).
 
@@ -70,7 +70,7 @@ Jellyfin marks it as `AudioSpatialFormat = DolbyAtmos` (see `jellyfin` skill). M
 
 Two ways to play it:
 
-- **Passthrough (TV, F2):** the compressed bitstream goes untouched over HDMI/eARC to the soundbar/AVR (Streamer -> TV -> eARC -> LG DSN11RG; later Denon AVR). This is the only way to get real Atmos. Requires the output route to report the encoding as supported (`AudioCapabilities` for the current route: E-AC-3 JOC, TrueHD).
+- **Passthrough (TV, TV 1):** the compressed bitstream goes untouched over HDMI/eARC to the soundbar/AVR (Streamer -> TV -> eARC -> LG DSN11RG; later Denon AVR). This is the only way to get real Atmos. Requires the output route to report the encoding as supported (`AudioCapabilities` for the current route: E-AC-3 JOC, TrueHD).
 - **Decode (phone):** the device decodes to PCM. Media3 1.11 removed the E-AC-3 JOC -> E-AC-3 fallback on Pixel because Pixel's standard E-AC-3 decoders **cannot decode E-AC-3 JOC**. So on the Pixel 9, E-AC-3 JOC tracks must **not** be sent for direct play unless a JOC-capable decoder is detected on the device.
 
 Rules:
@@ -82,7 +82,7 @@ Rules:
    - Never silently downgrade on a route that could do Atmos: if passthrough was expected and failed, surface an error state with a reason.
 3. Route changes (plug HDMI, connect BT, USB DAC) re-run stream selection **for the next track**; the current track continues unless playback fails.
 4. The Now Playing "Dolby Atmos" badge shows only when the **actual** output is Atmos (passthrough active), read from the player's current audio format + route, not from metadata alone.
-5. **Phone (#24):** no passthrough routes yet (they come with F2). `DeviceProfileBuilder` declares `eac3` only with an `audio/eac3-joc` decoder and never `truehd`, so on the Pixel 9 the server converts Atmos to the usual stereo Opus 256 (also on Wi-Fi). The track carries its spatial format in the media item extras; `AudioPolicy.atmosConverted(isAtmos, playMethod)` (unknown stream = no note) feeds `AudioOutputState.atmosConverted` -> `AudioOutputInfo` -> Now Playing's note "Dolby Atmos not available · Playing in stereo on this output". A "stereo version" of an album is a later feature; a download of such a track is the server's conversion (#68, section 10).
+5. **Phone (#24):** no passthrough routes yet (they come with TV 1). `DeviceProfileBuilder` declares `eac3` only with an `audio/eac3-joc` decoder and never `truehd`, so on the Pixel 9 the server converts Atmos to the usual stereo Opus 256 (also on Wi-Fi). The track carries its spatial format in the media item extras; `AudioPolicy.atmosConverted(isAtmos, playMethod)` (unknown stream = no note) feeds `AudioOutputState.atmosConverted` -> `AudioOutputInfo` -> Now Playing's note "Dolby Atmos not available · Playing in stereo on this output". A "stereo version" of an album is a later feature; a download of such a track is the server's conversion (#68, section 10).
 6. Atmos passthrough cannot be proven on JVM. Unit-test the decision; prove the output manually (`/test`: soundbar display shows Atmos).
 
 ## 5. Audio offload (battery)
@@ -118,7 +118,7 @@ Rules:
 
 - **EQ:** `android.media.audiofx.DynamicsProcessing` attached to the player's audio session ID (`ExoPlayer.audioSessionId`). Bands and presets stored in DataStore. EQ on -> offload off (section 5). EQ is disabled in bit-perfect and passthrough modes, and the UI says why.
 - **Normalization (default: Album):** ReplayGain album gain (fallback track gain) from server metadata (Jellyfin `NormalizationGain`, the album's via a Room relation on track rows), carried in the media item extras and applied with `player.volume` on each item transition (`NormalizationListener`; clamped, no boost above 0 dB unless the setting allows it with a limiter). Controllers cannot set the player volume (`COMMAND_SET_VOLUME` removed), it carries the gain. Off in bit-perfect and passthrough modes.
-- **Crossfade:** off by default and not implemented in F1. If added later it needs PCM processing (disables offload).
+- **Crossfade:** off by default and not implemented in Mobile 1. If added later it needs PCM processing (disables offload).
 - `AudioPolicy` (pure, exhaustively unit tested, including every conflict above): `decide(settings, route, bitPerfectFormat): AudioMode` (`Offload` | `Processed` | `BitPerfect`; F2 adds `Passthrough`), `atmosConverted(isAtmos, playMethod)`, `offload(settings, route)` (per route, so it does not flip per track), `wantsBitPerfect(settings, route)`, `volume(gains, normalization, mode)` (1 in bit-perfect).
 - **EQ (#22):** five bands (centers 60/230/910/3600/14000 Hz, +-12 dB, presets Flat, Bass boost, Treble boost, Vocal, Custom) in `AudioPreferences`. `DynamicsProcessing` pre-EQ bands are set by **upper edge**: `EqualizerCurve` puts the edges at the geometric midpoints between centers (last at 20 kHz) and lowers the input gain by the largest boost so nothing clips. `EqualizerEffect` is re-created when the audio session id changes and enabled only in `Processed`.
 
@@ -157,7 +157,7 @@ Rules:
 - Notification via the default `MediaNotification.Provider`; custom buttons (favorite, shuffle) through session custom commands.
 - Audio focus: handled by ExoPlayer (`handleAudioFocus = true`); ducking allowed.
 - Sleep timer: lives in the service, survives UI death.
-- Android Auto browse tree (`LibraryCallback.onGetChildren`) is designed now, implemented in F5.
+- Android Auto browse tree (`LibraryCallback.onGetChildren`) is designed now, implemented in Auto & Wear 1.
 
 ## 12. Progress reporting and user data
 

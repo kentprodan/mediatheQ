@@ -1,6 +1,6 @@
 ---
 name: test
-description: Run queued manual tests on real devices (Pixel 9, Google TV Streamer, USB DAC, soundbar) over adb via Wi-Fi or Tailscale, guide the owner step by step, record results on the issues, and file bugs for failures. Invoked by the owner as /test.
+description: Run the open manual test issues (Tests milestone) on real devices (Pixel 9, Google TV Streamer, USB DAC, soundbar) over adb via Wi-Fi or Tailscale, guide the owner step by step, record results on the issues, and file bugs for failures. Invoked by the owner as /test.
 disable-model-invocation: true
 ---
 
@@ -10,8 +10,8 @@ Talk to the owner in Romanian. Questions via AskUserQuestion, recommended option
 
 ## 1. Choose what to test
 
-- Read `docs/manual-tests/queue.md`. If empty, say so and stop.
-- AskUserQuestion (multiSelect): which pending items to run now, grouped by issue; items for the same device first.
+- `gh issue list --milestone Tests --state open --json number,title,body`: each issue is one feature's manual test, its steps are the unticked checkboxes. If none, say so and stop.
+- AskUserQuestion (multiSelect): which test issues to run now; issues for the same device first. Say which steps you can run yourself over adb (UI, screenshots, airplane mode, playback state) and which need the owner (listening, feel, TalkBack, mobile data, extra hardware).
 
 ## 2. Connect the device
 
@@ -27,10 +27,10 @@ For each item:
 
 ## 4. Record results
 
-- For each issue tested, add a comment (`gh issue comment <n>`): date, device, app version/commit, each item with Pass/Fail/Skip and notes.
-- In `docs/manual-tests/queue.md`: tick passed items and append ` - passed YYYY-MM-DD`; keep skipped items unticked; failed items stay unticked with ` - failed YYYY-MM-DD, see #<bug>`.
-- For each Fail: create a bug issue with the bug template fields (what happened, expected, steps, device, logs), labels `type:bug` + matching `area:*`, milestone of the original issue, and link it.
-- Commit the queue file update on a short branch `manual-tests-YYYY-MM-DD`, open a PR, and merge it after CI passes if the owner agrees.
+- In each test issue tested: tick passed steps and append ` - passed YYYY-MM-DD` (`gh issue edit <n> --body-file ...`); skipped steps stay unticked; failed steps stay unticked with ` - failed YYYY-MM-DD, see #<bug>`.
+- Add a comment to each test issue: date, device, app version/commit, each step with Pass/Fail/Skip and notes.
+- For each Fail: create a bug issue with the bug template fields (what happened, expected, steps, device, logs), labels `type:bug` + matching `area:*`, the milestone of the feature the test belongs to, and link it.
+- Close a test issue when every step passed. Steps that turn out obsolete (the feature changed since) are ticked with ` - superseded by #<n>` and a one-line reason.
 
 ## 5. Wrap up
 
