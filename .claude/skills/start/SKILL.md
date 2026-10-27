@@ -13,7 +13,7 @@ Every question to the owner uses AskUserQuestion with the recommended option fir
 ## 1. Pick the issue
 
 - If an issue number was given (`/start 7`), use it.
-- Otherwise: `gh issue list --state open --milestone "<lowest open milestone>" --json number,title,body` and pick the lowest-numbered issue whose "Depends on" issues are all closed. Show it to the owner with AskUserQuestion (that issue recommended, plus up to 2 other ready issues).
+- Otherwise: `gh issue list --state open --milestone "<current milestone>" --json number,title,body`, where the current milestone is the first open one in the order of ADR 0025 (never `Tests`: test issues are run with `/test`), and pick the lowest-numbered issue whose "Depends on" issues are all closed. Show it to the owner with AskUserQuestion (that issue recommended, plus up to 2 other ready issues).
 - Read the full issue: `gh issue view <n> --comments`.
 - If any "Depends on" issue is still open: stop and say which one must be done first.
 

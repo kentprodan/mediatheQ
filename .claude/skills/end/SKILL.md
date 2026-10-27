@@ -1,6 +1,6 @@
 ---
 name: end
-description: Finish the current issue - run all checks, verify acceptance criteria and skill done checklists, get an independent code review, open the pull request, queue manual tests, and merge after approval. Invoked by the owner as /end.
+description: Finish the current issue - run all checks, verify acceptance criteria and skill done checklists, get an independent code review, open the pull request, open its manual test issue, and merge after approval. Invoked by the owner as /end.
 disable-model-invocation: true
 ---
 
@@ -36,12 +36,13 @@ Spawn one reviewer agent with fresh context. Give it: the issue, `git diff main.
 
 ## 5. Manual tests
 
-For each "Manual test" item of the issue, append an entry to `docs/manual-tests/queue.md` (create it if missing):
+If the issue has "Manual test" items (or anything only hardware can prove), open one test issue in the **Tests** milestone (ADR 0025):
 
 ```
-## #<n> <issue title>
-- [ ] <device>: <steps> -> <expected result>
+gh issue create --title "Test: #<n> <issue title>" --label type:test --milestone Tests --body-file <tmp file>
 ```
+Body: "Manual test of #<n> on real hardware.", then `## Steps` with one checkbox per step:
+`- [ ] <device>: <steps> -> <expected result>`, then the "How to run" paragraph of the existing test issues. The feature issue still closes with its PR; the test issue stays open until `/test` passes every step.
 
 ## 6. Pull request
 
@@ -55,7 +56,7 @@ PR body (English):
 - **Tests**: which were added
 - **Screenshots changed**: list or "none"
 - **Decisions**: ADRs added/changed or "none"
-- **Manual tests queued**: list or "none"
+- **Manual tests**: the test issue (`#<m>`) or "none"
 
 Then tick the completed checkboxes in the issue body (`gh issue edit <n> --body-file ...`).
 
@@ -66,4 +67,4 @@ Then AskUserQuestion: "CI e verde. Fac merge?"
 - "Da, squash merge (Recommended)" -> `gh pr merge --squash --delete-branch`, then `git switch main && git pull --ff-only`
 - "Nu încă" -> leave the PR open
 
-Finish with 2-3 lines in Romanian: what was delivered, manual tests waiting for `/test`, and the next ready issue.
+Finish with 2-3 lines in Romanian: what was delivered, the test issue waiting for `/test`, and the next ready issue.
