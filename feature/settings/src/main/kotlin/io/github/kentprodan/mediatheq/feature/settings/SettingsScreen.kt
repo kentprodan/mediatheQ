@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.settings
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -38,7 +39,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 
 /** The Settings pages with settings of their own (#120); they share [SettingsViewModel] until a page needs its own. */
 enum class SettingsPage(
-    val title: Int,
+    @StringRes val title: Int,
 ) {
     Interface(R.string.settings_interface),
     Playback(R.string.settings_playback),

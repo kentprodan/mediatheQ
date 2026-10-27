@@ -56,6 +56,11 @@ class SettingsHubScreenTest {
     }
 
     @Test
+    fun `the hub shows every entry exactly once`() {
+        assertThat(hubGroups.flatMap { it.second }).containsExactlyElementsIn(SettingsHubEntry.entries).inOrder()
+    }
+
+    @Test
     fun `each entry opens its own key`() {
         assertThat(SettingsHubEntry.entries.map { it.key })
             .containsExactly(

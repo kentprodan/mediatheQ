@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.settings
 
+import androidx.annotation.StringRes
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
@@ -10,7 +11,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 
 /** An entry of the Settings hub; each opens its own page. An entry is added when its page has content (#120). */
 enum class SettingsHubEntry(
-    val title: Int,
+    @StringRes val title: Int,
 ) {
     Interface(R.string.settings_interface),
     Playback(R.string.settings_playback),
@@ -19,7 +20,7 @@ enum class SettingsHubEntry(
     About(R.string.settings_about),
 }
 
-private val groups =
+internal val hubGroups =
     listOf(
         R.string.settings_title to
             listOf(SettingsHubEntry.Interface, SettingsHubEntry.Playback, SettingsHubEntry.Storage),
@@ -34,7 +35,7 @@ fun SettingsHubScreen(
     onBack: () -> Unit,
 ) {
     SettingsScaffold(stringResource(R.string.settings_title), onBack) {
-        groups.forEach { (title, entries) ->
+        hubGroups.forEach { (title, entries) ->
             item(key = title) {
                 Group(title) {
                     entries.forEach { entry ->

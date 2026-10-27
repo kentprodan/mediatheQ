@@ -10,6 +10,7 @@ The owner has Copilot Pro. Claude Code builds the app issue by issue (ADR 0009).
 ## Decision
 
 - **Copilot code review** runs on every pull request as a second opinion. Its comments are weighed like any review; they do not override the project skills or ADRs.
+  - Update 2026-10-27: there is no Copilot subscription, so Copilot review is **optional and off**; the independent reviewer agent of `/end` reviews every PR. Turn it back on with a ruleset on `main` when a subscription exists (test issue #93 closed).
 - **Copilot coding agent** only takes issues labeled `copilot`. Such issues must be:
   - small and fully specified (acceptance criteria and required tests written out),
   - in code already covered by tests,
