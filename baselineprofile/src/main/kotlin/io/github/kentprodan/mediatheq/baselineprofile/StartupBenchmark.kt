@@ -7,6 +7,7 @@ import androidx.benchmark.macro.StartupTimingMetric
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.Until
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,6 +38,6 @@ class StartupBenchmark {
         ) {
             startActivityAndWait()
             // Home of a signed-in app, not onboarding: otherwise the numbers measure another screen.
-            check(device.hasObject(By.text("Library"))) { "Not signed in: run the generator first" }
+            check(device.wait(Until.hasObject(By.text("Library")), 5_000)) { "Not signed in: run the generator first" }
         }
 }
