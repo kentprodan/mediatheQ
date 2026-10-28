@@ -24,12 +24,14 @@ import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.CONVERTED_DOWNLOAD
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadOrigins
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -54,6 +56,7 @@ class DefaultDownloadRepositoryTest {
     private val cache = SimpleCache(Files.createTempDirectory("downloads").toFile(), NoOpCacheEvictor(), database)
     private val library = FakeLibraryRepository()
     private val audioPreferences = FakeAudioPreferencesRepository()
+    private val origins = FakeDownloadOrigins()
     private lateinit var manager: DownloadManager
 
     private val done = track("t1", "Album A", 2)
@@ -71,11 +74,9 @@ class DefaultDownloadRepositoryTest {
             val repository = repository(Download.STATE_COMPLETED to done, Download.STATE_FAILED to failed)
 
             repository.downloads.test {
-                assertThat(expectMostRecentItem())
-                    .containsExactly(
-                        TrackDownload(failed, DownloadState.Failed),
-                        TrackDownload(done, DownloadState.Completed),
-                    ).inOrder()
+                assertThat(expectMostRecentItem().map { it.track to it.state })
+                    .containsExactly(failed to DownloadState.Failed, done to DownloadState.Completed)
+                    .inOrder()
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -201,6 +202,68 @@ class DefaultDownloadRepositoryTest {
         }
 
     @Test
+    fun `downloads from before origins existed count as their album's`() =
+        runTest {
+            repository(Download.STATE_COMPLETED to done, Download.STATE_QUEUED to waiting)
+
+            assertThat(origins.origins.value)
+                .containsExactly(
+                    done.id,
+                    setOf(DownloadOrigin.Album(done.albumId!!)),
+                    waiting.id,
+                    setOf(DownloadOrigin.Album(waiting.albumId!!)),
+                )
+        }
+
+    @Test
+    fun `downloading through a collection adds it to the track's origins, also for one already downloaded`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done)
+            val playlist = DownloadOrigin.Playlist(MediaId(ServerId("server-1"), "p1"))
+
+            repository.download(listOf(done, waiting), playlist)
+
+            assertThat(origins.origins.value[done.id]).containsExactly(DownloadOrigin.Album(done.albumId!!), playlist)
+            assertThat(origins.origins.value[waiting.id]).containsExactly(playlist)
+        }
+
+    @Test
+    fun `a retry leaves the origins alone`() =
+        runTest {
+            val repository = repository(Download.STATE_FAILED to failed)
+
+            repository.download(listOf(failed), origin = null)
+
+            assertThat(origins.origins.value[failed.id]).containsExactly(DownloadOrigin.Album(failed.albumId!!))
+        }
+
+    @Test
+    fun `removing a collection deletes only the tracks no other origin keeps`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done, Download.STATE_COMPLETED to waiting)
+            val playlist = DownloadOrigin.Playlist(MediaId(ServerId("server-1"), "p1"))
+            repository.download(listOf(done, waiting), playlist)
+            origins.removeCollection(DownloadOrigin.Album(waiting.albumId!!))
+            startedIntents()
+
+            repository.removeCollection(playlist)
+
+            val removed = startedIntents().map { it.getStringExtra(DownloadService.KEY_CONTENT_ID) }
+            assertThat(removed).containsExactly(waiting.id.toString())
+            assertThat(origins.origins.value).containsExactly(done.id, setOf(DownloadOrigin.Album(done.albumId!!)))
+        }
+
+    @Test
+    fun `removing a download forgets its origins`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done)
+
+            repository.remove(listOf(done.id))
+
+            assertThat(origins.origins.value).isEmpty()
+        }
+
+    @Test
     fun `R5 removing a download never calls the server`() =
         runTest {
             // The repository has no server dependency at all; removal is one local intent to the download service.
@@ -256,6 +319,7 @@ class DefaultDownloadRepositoryTest {
             context,
             manager,
             cache,
+            origins,
             library,
             audioPreferences,
             backgroundScope,

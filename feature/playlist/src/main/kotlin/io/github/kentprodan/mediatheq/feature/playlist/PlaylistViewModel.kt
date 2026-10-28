@@ -8,6 +8,7 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
@@ -96,7 +97,15 @@ class PlaylistViewModel
                         } else {
                             listOfNotNull(item(action.position)?.track)
                         }
-                    downloads.download(tracks)
+                    val origin =
+                        if (action.position ==
+                            null
+                        ) {
+                            DownloadOrigin.Playlist(playlistId)
+                        } else {
+                            DownloadOrigin.Single
+                        }
+                    downloads.download(tracks, origin)
                 }
 
                 is PlaylistAction.PlayNext -> {

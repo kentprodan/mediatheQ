@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.download
 
 import android.content.Context
+import android.os.StatFs
 import androidx.core.net.toUri
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.cache.Cache
@@ -16,6 +17,8 @@ import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigins
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
@@ -31,6 +34,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -55,7 +59,8 @@ internal class DefaultDownloadRepository
         @ApplicationContext private val context: Context,
         private val manager: DownloadManager,
         @DownloadCache private val cache: Cache,
-        libraryRepository: LibraryRepository,
+        private val origins: DownloadOrigins,
+        private val libraryRepository: LibraryRepository,
         audioPreferences: AudioPreferencesRepository,
         @ApplicationScope private val scope: CoroutineScope,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -127,6 +132,7 @@ internal class DefaultDownloadRepository
                 entries.update { (stored - removedBeforeLoad) + it }
                 loaded = true
                 indexRead.value = true
+                originless()
             }
         }
 
@@ -139,20 +145,45 @@ internal class DefaultDownloadRepository
                 }
             }
 
+        /**
+         * Downloads from before #168 have no origin: they count as their album's (the Downloads tab grouped them so), or
+         * alone without one. Written once, so a later playlist download of the same track keeps the album too.
+         */
+        private suspend fun originless() {
+            val known = origins.origins.first()
+            val tracks = libraryRepository.allTracks().first().associateBy { it.id }
+            entries.value.keys
+                .filter { it !in known }
+                .groupBy { tracks[it]?.albumId }
+                .forEach { (albumId, ids) ->
+                    origins.add(
+                        ids,
+                        albumId?.let(DownloadOrigin::Album) ?: DownloadOrigin.Single,
+                    )
+                }
+        }
+
         override val downloads: Flow<List<TrackDownload>> =
             combine(
                 entries,
                 notMetRequirements,
                 ticks,
                 libraryRepository.allTracks().map { tracks -> tracks.associateBy { it.id } },
-            ) { entries, notMet, _, tracks ->
+                origins.origins,
+            ) { entries, notMet, _, tracks, origins ->
                 val current = manager.currentDownloads.associateBy { it.request.id }
                 entries
                     .mapNotNull { (id, download) ->
                         val live = current[download.request.id] ?: download
                         val state = downloadState(live.state, live.percentDownloaded, notMet) ?: return@mapNotNull null
                         val converted = cache.getContentMetadata(download.request.id).get(CONVERTED_DOWNLOAD, 0L) == 1L
-                        TrackDownload(tracks[id] ?: download.fallbackTrack(id), state, converted)
+                        TrackDownload(
+                            tracks[id] ?: download.fallbackTrack(id),
+                            state,
+                            converted,
+                            live.bytesDownloaded,
+                            origins[id].orEmpty(),
+                        )
                     }.sortedWith(ALBUM_ORDER)
             }.distinctUntilChanged()
                 .flowOn(defaultDispatcher)
@@ -165,7 +196,16 @@ internal class DefaultDownloadRepository
         override val storageUsed: Flow<Long> =
             combine(entries, ticks) { _, _ -> cache.cacheSpace }.distinctUntilChanged().flowOn(defaultDispatcher)
 
-        override fun download(tracks: List<Track>) {
+        override val freeBytes: Flow<Long> =
+            combine(entries, ticks) { _, _ -> StatFs(context.filesDir.path).availableBytes }
+                .distinctUntilChanged()
+                .flowOn(ioDispatcher)
+
+        override fun download(
+            tracks: List<Track>,
+            origin: DownloadOrigin?,
+        ) {
+            if (origin != null) scope.launch(ioDispatcher) { origins.add(tracks.map { it.id }, origin) }
             val known = entries.value
             tracks
                 // Downloading again would restart a finished or running download; only failed ones retry.
@@ -194,7 +234,16 @@ internal class DefaultDownloadRepository
             DownloadService.sendAddDownload(context, MediatheqDownloadService::class.java, request, false)
         }
 
+        override fun removeCollection(origin: DownloadOrigin) {
+            scope.launch(ioDispatcher) {
+                val kept = origins.origins.first()
+                origins.removeCollection(origin)
+                remove(kept.filterValues { it == setOf(origin) }.keys.toList())
+            }
+        }
+
         override fun remove(ids: List<MediaId>) {
+            scope.launch(ioDispatcher) { origins.forget(ids) }
             ids.forEach {
                 DownloadService.sendRemoveDownload(context, MediatheqDownloadService::class.java, it.toString(), false)
             }

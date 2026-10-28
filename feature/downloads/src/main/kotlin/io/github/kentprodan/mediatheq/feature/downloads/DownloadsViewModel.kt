@@ -49,7 +49,7 @@ class DownloadsViewModel
                 }
 
                 is DownloadsAction.Retry -> {
-                    downloadRepository.download(listOf(action.track))
+                    downloadRepository.download(listOf(action.track), origin = null)
                 }
 
                 is DownloadsAction.Remove -> {

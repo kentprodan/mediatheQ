@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.testing
 
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.DownloadState
@@ -16,18 +17,31 @@ class FakeDownloadRepository(
 ) : DownloadRepository {
     override val downloads = MutableStateFlow(initial)
     override val storageUsed = MutableStateFlow(0L)
+    override val freeBytes = MutableStateFlow(0L)
     override val completedIds =
         downloads
             .map { list -> list.filter { it.state == DownloadState.Completed }.mapTo(HashSet()) { it.track.id } }
             .distinctUntilChanged()
 
-    override fun download(tracks: List<Track>) {
+    override fun download(
+        tracks: List<Track>,
+        origin: DownloadOrigin?,
+    ) {
         downloads.update { current ->
-            current +
+            val added = origin?.let(::setOf).orEmpty()
+            current.map { if (it.track in tracks) it.copy(origins = it.origins + added) else it } +
                 tracks
                     .filter { track ->
                         current.none { it.track.id == track.id }
-                    }.map { TrackDownload(it, DownloadState.Queued) }
+                    }.map { TrackDownload(it, DownloadState.Queued, origins = added) }
+        }
+    }
+
+    override fun removeCollection(origin: DownloadOrigin) {
+        downloads.update { current ->
+            current
+                .filterNot { it.origins == setOf(origin) }
+                .map { it.copy(origins = it.origins - origin) }
         }
     }
 

@@ -6,6 +6,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
@@ -86,7 +87,9 @@ class AlbumViewModel
                 }
 
                 is AlbumAction.Download -> {
-                    downloads.download(tracks.pick(action.trackId))
+                    // The whole album is downloaded as the album; one of its tracks on its own.
+                    val origin = if (action.trackId == null) DownloadOrigin.Album(albumId) else DownloadOrigin.Single
+                    downloads.download(tracks.pick(action.trackId), origin)
                 }
             }
         }
