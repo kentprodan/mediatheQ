@@ -6,9 +6,12 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.filterToOne
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
+import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -17,19 +20,16 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.google.common.truth.Truth.assertThat
-import io.github.kentprodan.mediatheq.core.data.AudioPreferences
-import io.github.kentprodan.mediatheq.core.data.RatingMode
-import io.github.kentprodan.mediatheq.core.data.StreamingQuality
-import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
-import androidx.compose.ui.test.filterToOne
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.isSelectable
 import io.github.kentprodan.mediatheq.core.data.AppFont
+import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.NowPlayingColors
+import io.github.kentprodan.mediatheq.core.data.RatingMode
+import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqSeedPresets
 import org.junit.Rule
 import org.junit.Test
@@ -266,7 +266,9 @@ class SettingsScreenTest {
         composeRule.onNodeWithText("Cover vibrant").performClick()
 
         assertThat(actions)
-            .containsExactly(SettingsAction.SetTheme(ThemePreferences(nowPlayingColors = NowPlayingColors.CoverVibrant)))
+            .containsExactly(
+                SettingsAction.SetTheme(ThemePreferences(nowPlayingColors = NowPlayingColors.CoverVibrant)),
+            )
         composeRule.onNodeWithText("Cover vibrant").assertDoesNotExist()
     }
 

@@ -187,7 +187,10 @@ fun FavoriteAndRatingScreenshot() {
 fun ColorSwatchesScreenshot() {
     MediatheqTheme {
         Surface {
-            FlowRow(Modifier.padding(MediatheqSpacing.l), horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s)) {
+            FlowRow(
+                Modifier.padding(MediatheqSpacing.l),
+                horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
+            ) {
                 MqColorSwatch(MaterialTheme.colorScheme.primary, "Primary")
                 MqColorSwatch(MaterialTheme.colorScheme.surface, "Surface")
                 MqSeedPresets.forEachIndexed { index, seed ->
