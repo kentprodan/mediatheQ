@@ -16,6 +16,8 @@ import io.github.kentprodan.mediatheq.core.common.MqError
  */
 internal class SkipFailedTrackListener(
     private val player: Player,
+    /** Handles an error that playback recovers from on its own (bit-perfect falling back, #65): nothing to report. */
+    private val recover: (PlaybackException) -> Boolean = { false },
     private val onError: (PlaybackError) -> Unit,
 ) : Player.Listener {
     private var failuresInARow = 0
@@ -32,6 +34,7 @@ internal class SkipFailedTrackListener(
     }
 
     override fun onPlayerError(error: PlaybackException) {
+        if (recover(error)) return
         val causes = generateSequence<Throwable>(error) { it.cause }
         val offline = causes.any { it is OfflineException }
         val trackAtFault = offline || causes.any { it is StreamUnavailableException && it.error.isTrackOnly() }

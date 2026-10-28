@@ -21,8 +21,14 @@ internal interface UsbAudioPort {
     /** Drops the preference set by [setPreferred]. */
     fun clearPreferred()
 
-    /** Calls [onChange] on the main thread when an output device is added or removed, until [release]. */
-    fun watch(onChange: () -> Unit)
+    /**
+     * Calls [onChange] on the main thread when an output device is added or removed, and [onPreferenceDropped] when
+     * the platform drops the preference set by [setPreferred] (not when we clear it), until [release].
+     */
+    fun watch(
+        onChange: () -> Unit,
+        onPreferenceDropped: () -> Unit,
+    )
 
     fun release()
 
@@ -44,7 +50,10 @@ private object NoUsbAudioPort : UsbAudioPort {
 
     override fun clearPreferred() = Unit
 
-    override fun watch(onChange: () -> Unit) = Unit
+    override fun watch(
+        onChange: () -> Unit,
+        onPreferenceDropped: () -> Unit,
+    ) = Unit
 
     override fun release() = Unit
 }
@@ -56,7 +65,9 @@ private class AndroidUsbAudioPort(
     private var dac: AudioDeviceInfo? = null
     private var attributes: Map<MixerCapability, AudioMixerAttributes> = emptyMap()
     private var preferredOn: AudioDeviceInfo? = null
+    private var preferredMixer: AudioMixerAttributes? = null
     private var callback: AudioDeviceCallback? = null
+    private var preferenceListener: AudioManager.OnPreferredMixerAttributesChangedListener? = null
 
     override fun dacCapabilities(): List<MixerCapability>? {
         // The device media plays on now: a DAC that is plugged in while music goes to Bluetooth does not count.
@@ -81,15 +92,39 @@ private class AndroidUsbAudioPort(
     override fun setPreferred(capability: MixerCapability): Boolean {
         val device = dac ?: return false
         val mixer = attributes[capability] ?: return false
-        return audioManager.setPreferredMixerAttributes(MEDIA, device, mixer).also { if (it) preferredOn = device }
+        return audioManager.setPreferredMixerAttributes(MEDIA, device, mixer).also {
+            if (it) {
+                preferredOn = device
+                preferredMixer = mixer
+            }
+        }
     }
 
     override fun clearPreferred() {
-        preferredOn?.let { audioManager.clearPreferredMixerAttributes(MEDIA, it) }
+        // Forgotten first: the listener then knows this clear is ours.
+        val device = preferredOn
         preferredOn = null
+        preferredMixer = null
+        device?.let { audioManager.clearPreferredMixerAttributes(MEDIA, it) }
     }
 
-    override fun watch(onChange: () -> Unit) {
+    override fun watch(
+        onChange: () -> Unit,
+        onPreferenceDropped: () -> Unit,
+    ) {
+        val main = Handler(Looper.getMainLooper())
+        preferenceListener =
+            AudioManager
+                .OnPreferredMixerAttributesChangedListener { attributes, device, mixer ->
+                    val ours = preferredOn
+                    if (attributes.usage == MEDIA.usage && ours != null && device.id == ours.id &&
+                        mixer != preferredMixer
+                    ) {
+                        preferredOn = null
+                        preferredMixer = null
+                        onPreferenceDropped()
+                    }
+                }.also { audioManager.addOnPreferredMixerAttributesChangedListener(main::post, it) }
         callback =
             object : AudioDeviceCallback() {
                 override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) = onChange()
@@ -101,6 +136,8 @@ private class AndroidUsbAudioPort(
     override fun release() {
         callback?.let(audioManager::unregisterAudioDeviceCallback)
         callback = null
+        preferenceListener?.let(audioManager::removeOnPreferredMixerAttributesChangedListener)
+        preferenceListener = null
         clearPreferred()
     }
 
