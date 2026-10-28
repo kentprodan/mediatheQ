@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -46,6 +47,7 @@ class DownloadedCoversTest {
         vararg tracks: Track,
         state: DownloadState = DownloadState.Completed,
     ) {
+        library.tracks.value = tracks.toList()
         downloads.downloads.value = tracks.map { TrackDownload(it, state) }
     }
 
@@ -154,6 +156,49 @@ class DownloadedCoversTest {
             runCurrent()
 
             assertThat(covers.file(Artwork("t1", "ttag1"))?.readText()).isEqualTo("cover t1")
+        }
+
+    @Test
+    fun `R154 kept covers survive the start, before the stored downloads are read`() =
+        runTest(dispatcher) {
+            signIn()
+            setUpAlbum()
+            covers()
+            download(track(1))
+            runCurrent()
+            // A new process: the download index is not read yet, so no download set has come.
+            val unread =
+                object : DownloadRepository by downloads {
+                    override val completedIds = MutableSharedFlow<Set<MediaId>>()
+                }
+
+            val restarted =
+                DownloadedCovers(unread, library, source, accountStore, folder.root, dispatcher, backgroundScope)
+                    .also { it.start() }
+            runCurrent()
+
+            assertThat(folder.root.list()).hasLength(1)
+            unread.completedIds.emit(setOf(track(1).id))
+            runCurrent()
+            assertThat(restarted.file(albumCover)).isNotNull()
+        }
+
+    @Test
+    fun `a new cover on the server replaces the kept one after the next sync`() =
+        runTest(dispatcher) {
+            signIn()
+            setUpAlbum()
+            val covers = covers()
+            download(track(1))
+            runCurrent()
+
+            val newCover = albumCover.copy(tag = "atag2")
+            library.albums.value = listOf(Album(MediaId(server, "al1"), "fruitcake", emptyList(), artwork = newCover))
+            runCurrent()
+
+            assertThat(source.imageCalls).containsExactly("al1|atag|1024", "al1|atag2|1024").inOrder()
+            assertThat(folder.root.list()).asList().containsExactly("s_al1_atag2.jpg")
+            assertThat(covers.file(newCover)).isNotNull()
         }
 
     @Test

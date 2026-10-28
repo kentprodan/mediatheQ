@@ -33,9 +33,11 @@ class ArtworkUrlResolver
         suspend fun url(
             artwork: Artwork,
             widthPx: Int?,
-        ): String =
-            downloadedCovers.file(artwork)?.toURI()?.toString()
+        ): String {
+            downloadedCovers.awaitFirstPass()
+            return downloadedCovers.file(artwork)?.toURI()?.toString()
                 ?: librarySource.imageUrl(baseUrl.filterNotNull().first(), artwork, artworkWidthBucket(widthPx))
+        }
     }
 
 /**

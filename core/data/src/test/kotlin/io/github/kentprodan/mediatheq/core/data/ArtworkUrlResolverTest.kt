@@ -64,19 +64,16 @@ class ArtworkUrlResolverTest {
             library.albums.value =
                 listOf(Album(MediaId(ServerId("s"), "al1"), "Satelit", emptyList(), artwork = artwork))
             val resolver = resolver()
-            downloads.downloads.value =
-                listOf(
-                    TrackDownload(
-                        Track(
-                            MediaId(ServerId("s"), "t1"),
-                            "Song",
-                            emptyList(),
-                            Duration.ZERO,
-                            albumId = MediaId(ServerId("s"), "al1"),
-                        ),
-                        DownloadState.Completed,
-                    ),
+            val track =
+                Track(
+                    MediaId(ServerId("s"), "t1"),
+                    "Song",
+                    emptyList(),
+                    Duration.ZERO,
+                    albumId = MediaId(ServerId("s"), "al1"),
                 )
+            library.tracks.value = listOf(track)
+            downloads.downloads.value = listOf(TrackDownload(track, DownloadState.Completed))
             runCurrent()
 
             val url = resolver.url(artwork, 300)
