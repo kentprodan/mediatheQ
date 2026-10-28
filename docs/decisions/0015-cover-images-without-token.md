@@ -16,4 +16,5 @@ The jellyfin skill said images must carry the `Authorization` header. Image load
 ## Consequences
 
 - If a future Jellyfin version protects images, covers fail visibly (placeholder stays) and this decision is revisited: add an OkHttp interceptor for image hosts that sets the header.
+- Update 2026-10-28 (#154): covers of downloaded albums are also kept as files on the device (one 1024 px image per album, fetched once through `LibrarySource.image`, still without a token) and preferred over the server URL, so they show offline.
 - The image URL is built by the provider (`LibrarySource.imageUrl`) and resolved in `:core:data` (`ArtworkUrlResolver`); screens only pass `Artwork`.

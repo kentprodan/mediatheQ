@@ -240,6 +240,30 @@ class JellyfinLibrarySourceTest {
         }
 
     @Test
+    fun `an image is fetched from its public url without a token`() =
+        runTest {
+            mockServer.enqueue(MockResponse(body = "jpeg"))
+
+            val bytes = source.image(mockServer.url("/").toString(), Artwork("al1", "tag", null), 1024)
+
+            assertThat((bytes as MqResult.Success).value.decodeToString()).isEqualTo("jpeg")
+            val request = mockServer.takeRequest()
+            assertThat(request.url.encodedPath).isEqualTo("/Items/al1/Images/Primary")
+            assertThat(request.query()).isEqualTo(mapOf("tag" to "tag", "fillWidth" to "1024", "quality" to "90"))
+            assertThat(request.headers["Authorization"]).isNull()
+        }
+
+    @Test
+    fun `a missing image fails with its http error`() =
+        runTest {
+            mockServer.enqueue(MockResponse(code = 404))
+
+            val result = source.image(mockServer.url("/").toString(), Artwork("al1", "tag", null), 1024)
+
+            assertThat(result).isEqualTo(MqResult.Failure(MqError.NotFound))
+        }
+
+    @Test
     fun `image urls are public, sized and versioned by tag`() {
         val url = source.imageUrl("http://nas:8096/jellyfin", Artwork("al1", "t a/g", null), 512)
 

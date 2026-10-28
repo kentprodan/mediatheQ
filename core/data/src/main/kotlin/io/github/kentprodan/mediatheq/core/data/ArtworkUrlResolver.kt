@@ -13,7 +13,10 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Turns an [Artwork] into an image URL for the image loader (wired in `:app`). */
+/**
+ * Turns an [Artwork] into an image URL for the image loader (wired in `:app`) and the media session: the kept cover of a
+ * download (a `file:` URI, so it shows offline, #154) or the server's image.
+ */
 @Singleton
 class ArtworkUrlResolver
     @Inject
@@ -21,6 +24,7 @@ class ArtworkUrlResolver
         accountStore: AccountStore,
         private val librarySource: LibrarySource,
         @ApplicationScope scope: CoroutineScope,
+        private val downloadedCovers: DownloadedCovers,
     ) {
         // Kept in memory: covers are resolved on the main thread while scrolling, so this must not touch disk.
         private val baseUrl: StateFlow<String?> = accountStore.baseUrl.stateIn(scope, SharingStarted.Eagerly, null)
@@ -29,7 +33,11 @@ class ArtworkUrlResolver
         suspend fun url(
             artwork: Artwork,
             widthPx: Int?,
-        ): String = librarySource.imageUrl(baseUrl.filterNotNull().first(), artwork, artworkWidthBucket(widthPx))
+        ): String {
+            downloadedCovers.awaitFirstPass()
+            return downloadedCovers.file(artwork)?.toURI()?.toString()
+                ?: librarySource.imageUrl(baseUrl.filterNotNull().first(), artwork, artworkWidthBucket(widthPx))
+        }
     }
 
 /**

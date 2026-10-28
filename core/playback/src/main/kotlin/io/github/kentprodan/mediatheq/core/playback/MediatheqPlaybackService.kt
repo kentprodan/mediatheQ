@@ -10,6 +10,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSourceBitmapLoader
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -47,6 +48,7 @@ import kotlinx.coroutines.plus
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -198,13 +200,15 @@ class MediatheqPlaybackService : MediaLibraryService() {
         session =
             MediaLibrarySession
                 .Builder(this, QueuePlayer(player), LibraryCallback())
-                // Notification artwork through the app client too (cleartext rule, ADR 0013).
+                // Notification artwork through the app client too (cleartext rule, ADR 0013); kept covers of downloads
+                // are `file:` URIs (#154), read locally.
                 .setBitmapLoader(
                     CacheBitmapLoader(
                         DataSourceBitmapLoader
                             .Builder(this)
-                            .setDataSourceFactory(OkHttpDataSource.Factory(okHttpClient))
-                            .build(),
+                            .setDataSourceFactory(
+                                DefaultDataSource.Factory(this, OkHttpDataSource.Factory(okHttpClient)),
+                            ).build(),
                     ),
                 ).apply { sessionActivity()?.let(::setSessionActivity) }
                 .setSessionExtras(audioOutput.state.toInfo().toBundle())
@@ -352,9 +356,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
             PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         }
 
-    /** The cover's bytes from the server (app client, ADR 0013), or `null` when it does not answer in time. */
+    /**
+     * The cover's bytes: a download's kept cover from the device (#154), else from the server (app client, ADR 0013);
+     * `null` when it does not answer in time.
+     */
     private suspend fun fetchCover(uri: Uri): ByteArray? =
         withContext(ioDispatcher) {
+            localCoverBytes(uri)?.let { return@withContext it }
             try {
                 okHttpClient
                     .newBuilder()
@@ -416,3 +424,13 @@ internal fun Player.wantsToPlay(): Boolean =
 
 // The boot card waits at most this long for its cover; without it the card shows title and artist only.
 private const val COVER_TIMEOUT_SECONDS = 2L
+
+/** The bytes of a `file:` cover (a download's kept cover, #154), or `null` for any other URI or a missing file. */
+internal fun localCoverBytes(uri: Uri): ByteArray? {
+    if (uri.scheme != "file") return null
+    return try {
+        uri.path?.let { File(it).readBytes() }
+    } catch (_: IOException) {
+        null
+    }
+}

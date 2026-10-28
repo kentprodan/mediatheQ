@@ -75,6 +75,29 @@ internal class JellyfinHttp(
         query: List<Pair<String, String>> = emptyList(),
     ): MqResult<Unit> = send(connection, "DELETE", path, query, body = null) { MqResult.Success(Unit) }
 
+    /**
+     * GET the bytes at [url], a full URL the server built or that [JellyfinLibrarySource.imageUrl] made. Untagged, so
+     * it carries no token (ADR 0015); not retried, the caller tries again later.
+     */
+    suspend fun bytes(url: String): MqResult<ByteArray> {
+        val httpUrl = url.toHttpUrlOrNull() ?: return MqResult.Failure(MqError.Client(0, "invalid url"))
+        return withContext(ioDispatcher) {
+            try {
+                client.newCall(Request.Builder().url(httpUrl).build()).execute().use { response ->
+                    if (response.isSuccessful) {
+                        MqResult.Success(
+                            response.body.bytes(),
+                        )
+                    } else {
+                        MqResult.Failure(httpError(response.code))
+                    }
+                }
+            } catch (_: IOException) {
+                MqResult.Failure(MqError.Network)
+            }
+        }
+    }
+
     fun <T> jsonBody(
         serializer: KSerializer<T>,
         value: T,

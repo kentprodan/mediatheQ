@@ -17,6 +17,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.kentprodan.mediatheq.core.common.DownloadCache
+import io.github.kentprodan.mediatheq.core.common.DownloadCoverDir
 import io.github.kentprodan.mediatheq.core.common.DownloadSource
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import java.io.File
@@ -52,6 +53,13 @@ internal interface DownloadModule {
             @ApplicationContext context: Context,
             databaseProvider: DatabaseProvider,
         ): Cache = SimpleCache(File(context.filesDir, "downloads"), NoOpCacheEvictor(), databaseProvider)
+
+        /** Covers of downloaded albums (#154), in files next to the downloads: never cleared by the system. */
+        @Provides
+        @DownloadCoverDir
+        fun downloadCoverDir(
+            @ApplicationContext context: Context,
+        ): File = File(context.filesDir, "download_covers")
 
         /** Created on the main thread (its callbacks run there); the service and the repository share it. */
         @Provides
