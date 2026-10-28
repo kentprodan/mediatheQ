@@ -105,7 +105,10 @@ fun rememberCoverColorScheme(
     }
     val colors = if (key == null) null else key.let { cache[it] } ?: loaded
     // Kept across recompositions: schemes compare by identity, and a new one would restart the blend.
-    return remember(colors, theme) { playerColorScheme(colors, theme) }
+    val options = theme.options
+    return remember(colors, theme.isDark, theme.isBlack, options.playerColors, options.ignoreSurfaces) {
+        playerColorScheme(colors, theme)
+    }
 }
 
 /**
@@ -149,7 +152,12 @@ internal fun animateColorScheme(
         progress.snapTo(0f)
         if (instant) progress.snapTo(1f) else progress.animateTo(1f, spec)
     }
-    return if (instant) target else shown
+    // At rest the target itself, not a fresh copy: schemes compare by identity downstream.
+    return when {
+        instant -> target
+        progress.value == 1f -> to
+        else -> shown
+    }
 }
 
 private fun Bitmap.pixels(): IntArray = IntArray(width * height).also { getPixels(it, 0, width, 0, 0, width, height) }

@@ -19,15 +19,25 @@ fun mediatheqTypography(font: MqFont): Typography {
     val (heading, body) =
         when (font) {
             MqFont.System -> return MediatheqTypography
+
             MqFont.Inter -> family("Inter").let { it to it }
+
             MqFont.Lato -> family("Lato").let { it to it }
+
             MqFont.Nunito -> family("Nunito").let { it to it }
+
             MqFont.Roboto -> family("Roboto").let { it to it }
+
             MqFont.RobotoSlab -> family("Roboto Slab").let { it to it }
+
             MqFont.LexendDeca -> family("Lexend Deca").let { it to it }
+
             MqFont.BitterRubik -> family("Bitter") to family("Rubik")
-            MqFont.BebasNeue -> family("Bebas Neue") to null
-            MqFont.CastoroTitling -> family("Castoro Titling") to null
+
+            // Display fonts exist in one weight only; asking for others could fail and mix in the system font.
+            MqFont.BebasNeue -> family("Bebas Neue", FontWeight.Normal) to null
+
+            MqFont.CastoroTitling -> family("Castoro Titling", FontWeight.Normal) to null
         }
     val base = body?.let { Typography(fontFamily = it) } ?: MediatheqTypography
     if (heading == body) return base
@@ -76,8 +86,8 @@ private val provider =
         certificates = R.array.com_google_android_gms_fonts_certs,
     )
 
-// The weights the type scale uses; a font without one gets the nearest.
-private fun family(name: String): FontFamily =
-    FontFamily(
-        listOf(FontWeight.Normal, FontWeight.Medium, FontWeight.Bold).map { Font(GoogleFont(name), provider, it) },
-    )
+// By default the weights the type scale uses; for a missing weight Compose picks the nearest one in the family.
+private fun family(
+    name: String,
+    vararg weights: FontWeight = arrayOf(FontWeight.Normal, FontWeight.Medium, FontWeight.Bold),
+): FontFamily = FontFamily(weights.map { Font(GoogleFont(name), provider, it) })
