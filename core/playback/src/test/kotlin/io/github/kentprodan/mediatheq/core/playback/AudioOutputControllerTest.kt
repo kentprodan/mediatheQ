@@ -310,4 +310,18 @@ class AudioOutputControllerTest {
 
         assertThat(controller.onBitPerfectFailed()).isFalse()
     }
+
+    @Test
+    fun `an old AudioTrack released after the next one opened does not make the next open look like the first`() {
+        port.capabilities = listOf(MixerCapability(cd, true))
+        controller.onAudioTrackOpened(44_100)
+        controller.setSettings(bitPerfectOn)
+
+        // Seeks: each opens a new AudioTrack before the old one's background release finishes.
+        controller.onAudioTrackOpened(44_100)
+        controller.onAudioTrackReleased()
+        controller.onAudioTrackOpened(44_100)
+
+        assertThat(controller.state.bitPerfectConfirmed).isFalse()
+    }
 }

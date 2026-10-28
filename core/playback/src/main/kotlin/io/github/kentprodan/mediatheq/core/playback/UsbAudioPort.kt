@@ -66,6 +66,10 @@ private class AndroidUsbAudioPort(
     private var attributes: Map<MixerCapability, AudioMixerAttributes> = emptyMap()
     private var preferredOn: AudioDeviceInfo? = null
     private var preferredMixer: AudioMixerAttributes? = null
+
+    // Our own changes come back through the listener later, possibly after the next one: never "dropped".
+    private val ownMixers = mutableSetOf<AudioMixerAttributes>()
+    private var ownClearsPending = 0
     private var callback: AudioDeviceCallback? = null
     private var preferenceListener: AudioManager.OnPreferredMixerAttributesChangedListener? = null
 
@@ -96,6 +100,7 @@ private class AndroidUsbAudioPort(
             if (it) {
                 preferredOn = device
                 preferredMixer = mixer
+                ownMixers += mixer
             }
         }
     }
@@ -105,7 +110,10 @@ private class AndroidUsbAudioPort(
         val device = preferredOn
         preferredOn = null
         preferredMixer = null
-        device?.let { audioManager.clearPreferredMixerAttributes(MEDIA, it) }
+        device?.let {
+            ownClearsPending++
+            audioManager.clearPreferredMixerAttributes(MEDIA, it)
+        }
     }
 
     override fun watch(
@@ -117,9 +125,13 @@ private class AndroidUsbAudioPort(
             AudioManager
                 .OnPreferredMixerAttributesChangedListener { attributes, device, mixer ->
                     val ours = preferredOn
-                    if (attributes.usage == MEDIA.usage && ours != null && device.id == ours.id &&
-                        mixer != preferredMixer
-                    ) {
+                    val ownEcho =
+                        if (mixer == null) {
+                            (ownClearsPending > 0).also { if (it) ownClearsPending-- }
+                        } else {
+                            mixer in ownMixers
+                        }
+                    if (attributes.usage == MEDIA.usage && ours != null && device.id == ours.id && !ownEcho) {
                         preferredOn = null
                         preferredMixer = null
                         onPreferenceDropped()

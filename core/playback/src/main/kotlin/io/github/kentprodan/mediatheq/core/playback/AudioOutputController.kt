@@ -37,8 +37,8 @@ internal class AudioOutputController(
     private var settings = AudioSettings()
     private var preferred: MixerCapability? = null
 
-    /** The sample rate of the player's open AudioTrack, `null` when none is open. */
-    private var openedRateHz: Int? = null
+    /** The player's open AudioTracks: an old one is released in the background, often after the next one opened. */
+    private var openTracks = 0
     private var confirmed = false
 
     /** Bit-perfect failed on this DAC ([onBitPerfectFailed]): normal playback until the device or the setting changes. */
@@ -100,16 +100,17 @@ internal class AudioOutputController(
 
     /** The player opened an AudioTrack at [sampleRateHz]. */
     fun onAudioTrackOpened(sampleRateHz: Int) {
-        confirmed = openedRateHz == null && preferred?.format?.sampleRateHz == sampleRateHz
-        openedRateHz = sampleRateHz
+        confirmed = openTracks == 0 && preferred?.format?.sampleRateHz == sampleRateHz
+        openTracks++
         log("AudioTrack opened at $sampleRateHz Hz, bit-perfect=$confirmed")
         publish(state.copy(bitPerfectConfirmed = confirmed && state.mode == AudioMode.BitPerfect))
     }
 
     fun onAudioTrackReleased() {
-        openedRateHz = null
-        confirmed = false
-        publish(state.copy(bitPerfectConfirmed = false))
+        openTracks = (openTracks - 1).coerceAtLeast(0)
+        // A confirmed track was opened with none before it, so it is the last one open.
+        if (openTracks == 0) confirmed = false
+        publish(state.copy(bitPerfectConfirmed = confirmed && state.mode == AudioMode.BitPerfect))
     }
 
     /** The platform dropped our preference (DAC re-enumerated, audio server restarted): set it again. */

@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSourceBitmapLoader
@@ -169,10 +170,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 player,
                 recover = { error ->
                     // The output refused the AudioTrack while bit-perfect was preferred: play on normally instead.
-                    val audioOutputError =
-                        generateSequence<Throwable>(error) { it.cause }
-                            .any { it is AudioSink.InitializationException || it is AudioSink.WriteException }
-                    (audioOutputError && audioOutput.onBitPerfectFailed()).also { if (it) player.prepare() }
+                    (error.isAudioOutputError() && audioOutput.onBitPerfectFailed()).also { if (it) player.prepare() }
                 },
             ) { session?.sendPlaybackError(packageName, it) },
         )
@@ -472,3 +470,9 @@ internal fun localCoverBytes(uri: Uri): ByteArray? {
 }
 
 private const val AUDIO_TAG = "MqAudioOutput"
+
+/** The audio output refused or lost the AudioTrack (not the stream or the decoder). */
+@UnstableApi
+internal fun PlaybackException.isAudioOutputError(): Boolean =
+    generateSequence<Throwable>(this) { it.cause }
+        .any { it is AudioSink.InitializationException || it is AudioSink.WriteException }
