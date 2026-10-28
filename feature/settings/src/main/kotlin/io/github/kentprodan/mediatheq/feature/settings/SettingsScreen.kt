@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.RatingMode
@@ -256,8 +257,11 @@ internal fun AppearanceGroup(
                 shapes,
                 stringResource(R.string.settings_dynamic_color),
                 stringResource(R.string.settings_dynamic_color_summary),
-                checked = library.dynamicColor,
-                onCheckedChange = { onAction(SettingsAction.SetDynamicColor(it)) },
+                checked = library.theme.colorSource == ColorSource.MaterialYou,
+                onCheckedChange = {
+                    val source = if (it) ColorSource.MaterialYou else ColorSource.Iris
+                    onAction(SettingsAction.SetTheme(library.theme.copy(colorSource = source)))
+                },
             )
         }
         item { shapes ->

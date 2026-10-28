@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
+import io.github.kentprodan.mediatheq.core.datastore.StoredTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -23,9 +24,9 @@ class DefaultLibraryPreferencesRepository
                                 val filter = enumOrNull<LibraryFilter>(tab) ?: return@mapNotNull null
                                 enumOrNull<LibrarySort>(sort)?.takeIf { it in filter.sorts }?.let { filter to it }
                             }.toMap(),
-                    dynamicColor = stored.dynamicColor ?: false,
                     ratingMode = enumOrNull<RatingMode>(stored.ratingMode) ?: RatingMode.WholeStars,
                     offlineMode = stored.offlineMode ?: false,
+                    theme = theme(stored.theme, stored.dynamicColor),
                 )
             }
 
@@ -35,7 +36,39 @@ class DefaultLibraryPreferencesRepository
             if (columns in LibraryPreferences.ALBUM_COLUMNS) store.setAlbumColumns(columns)
         }
 
-        override suspend fun setDynamicColor(on: Boolean) = store.setDynamicColor(on)
+        override suspend fun setTheme(theme: ThemePreferences) =
+            store.setTheme(
+                StoredTheme(
+                    mode = theme.mode.name,
+                    colorSource = theme.colorSource.name,
+                    customSeed = theme.customSeed,
+                    nowPlayingColors = theme.nowPlayingColors.name,
+                    ignoreSurfaces = theme.ignoreSurfaces,
+                    instantColors = theme.instantColors,
+                    font = theme.font.name,
+                ),
+            )
+
+        override suspend fun restoreThemeDefaults() = store.setTheme(StoredTheme())
+
+        private fun theme(
+            stored: StoredTheme,
+            dynamicColor: Boolean?,
+        ): ThemePreferences {
+            val defaults = ThemePreferences()
+            return ThemePreferences(
+                mode = enumOrNull<ThemeMode>(stored.mode) ?: defaults.mode,
+                // Before #121 a switch chose Material You; it carries over until a source is picked.
+                colorSource =
+                    enumOrNull<ColorSource>(stored.colorSource)
+                        ?: if (dynamicColor == true) ColorSource.MaterialYou else defaults.colorSource,
+                customSeed = stored.customSeed?.let { it or OPAQUE } ?: defaults.customSeed,
+                nowPlayingColors = enumOrNull<NowPlayingColors>(stored.nowPlayingColors) ?: defaults.nowPlayingColors,
+                ignoreSurfaces = stored.ignoreSurfaces ?: defaults.ignoreSurfaces,
+                instantColors = stored.instantColors ?: defaults.instantColors,
+                font = enumOrNull<AppFont>(stored.font) ?: defaults.font,
+            )
+        }
 
         override suspend fun setRatingMode(mode: RatingMode) = store.setRatingMode(mode.name)
 
@@ -60,4 +93,8 @@ class DefaultLibraryPreferencesRepository
                 it.name ==
                     name
             }
+
+        private companion object {
+            const val OPAQUE = 0xFF000000.toInt()
+        }
     }

@@ -4,6 +4,8 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.data.ThemeMode
+import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.playback.PlaybackError
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
@@ -69,14 +71,14 @@ class MainViewModelTest {
         }
 
     @Test
-    fun `Material You is unknown until read, then follows the setting`() =
+    fun `the theme is unknown until read, then follows the settings`() =
         runTest {
-            assertThat(viewModel.dynamicColor.value).isNull()
+            assertThat(viewModel.theme.value).isNull()
 
-            viewModel.dynamicColor.test {
-                assertThat(awaitItem()).isFalse()
-                libraryPreferences.setDynamicColor(true)
-                assertThat(awaitItem()).isTrue()
+            viewModel.theme.test {
+                assertThat(awaitItem()).isEqualTo(ThemePreferences())
+                libraryPreferences.setTheme(ThemePreferences(ThemeMode.Black))
+                assertThat(awaitItem()).isEqualTo(ThemePreferences(ThemeMode.Black))
             }
         }
 }

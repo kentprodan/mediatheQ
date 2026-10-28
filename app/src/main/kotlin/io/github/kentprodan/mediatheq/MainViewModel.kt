@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlaybackError
@@ -29,10 +30,10 @@ class MainViewModel
         libraryPreferences: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
     ) : ViewModel() {
-        /** Material You on or off; `null` while it is read, so the first frame never shows the wrong colors. */
-        val dynamicColor: StateFlow<Boolean?> =
+        /** Theme, font and colors; `null` while they are read, so the first frame never shows the wrong colors. */
+        val theme: StateFlow<ThemePreferences?> =
             libraryPreferences.preferences
-                .map { it.dynamicColor }
+                .map { it.theme }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
         val session: StateFlow<SessionState?> =

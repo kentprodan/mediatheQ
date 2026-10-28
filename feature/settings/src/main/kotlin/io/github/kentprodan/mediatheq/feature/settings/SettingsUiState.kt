@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
+import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 
 /** What Settings and its Audio page show. */
@@ -44,9 +45,12 @@ sealed interface SettingsAction {
         val on: Boolean,
     ) : SettingsAction
 
-    data class SetDynamicColor(
-        val on: Boolean,
+    /** Replaces every theme setting (#121); the screen sends the current ones with one changed. */
+    data class SetTheme(
+        val theme: ThemePreferences,
     ) : SettingsAction
+
+    data object RestoreThemeDefaults : SettingsAction
 
     data class SetOfflineMode(
         val on: Boolean,

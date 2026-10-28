@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.datastore
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -34,6 +35,16 @@ class LibraryPreferencesStore
                         filterStyle = prefs[FILTER_STYLE],
                         albumColumns = prefs[ALBUM_COLUMNS],
                         dynamicColor = prefs[DYNAMIC_COLOR],
+                        theme =
+                            StoredTheme(
+                                mode = prefs[THEME_MODE],
+                                colorSource = prefs[COLOR_SOURCE],
+                                customSeed = prefs[CUSTOM_SEED],
+                                nowPlayingColors = prefs[NOW_PLAYING_COLORS],
+                                ignoreSurfaces = prefs[IGNORE_SURFACES],
+                                instantColors = prefs[INSTANT_COLORS],
+                                font = prefs[FONT],
+                            ),
                         ratingMode = prefs[RATING_MODE],
                         offlineMode = prefs[OFFLINE_MODE],
                         sorts =
@@ -53,8 +64,25 @@ class LibraryPreferencesStore
             dataStore.edit { it[ALBUM_COLUMNS] = columns }
         }
 
-        suspend fun setDynamicColor(on: Boolean) {
-            dataStore.edit { it[DYNAMIC_COLOR] = on }
+        /** Stores every theme value at once (null removes it); the old Material You flag is dropped with it. */
+        suspend fun setTheme(theme: StoredTheme) {
+            dataStore.edit { prefs ->
+                prefs.remove(DYNAMIC_COLOR)
+                prefs.put(THEME_MODE, theme.mode)
+                prefs.put(COLOR_SOURCE, theme.colorSource)
+                prefs.put(CUSTOM_SEED, theme.customSeed)
+                prefs.put(NOW_PLAYING_COLORS, theme.nowPlayingColors)
+                prefs.put(IGNORE_SURFACES, theme.ignoreSurfaces)
+                prefs.put(INSTANT_COLORS, theme.instantColors)
+                prefs.put(FONT, theme.font)
+            }
+        }
+
+        private fun <T> MutablePreferences.put(
+            key: Preferences.Key<T>,
+            value: T?,
+        ) {
+            if (value == null) remove(key) else set(key, value)
         }
 
         suspend fun setRatingMode(name: String) {
@@ -103,6 +131,13 @@ class LibraryPreferencesStore
             val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
             val RATING_MODE = stringPreferencesKey("rating_mode")
             val OFFLINE_MODE = booleanPreferencesKey("offline_mode")
+            val THEME_MODE = stringPreferencesKey("theme_mode")
+            val COLOR_SOURCE = stringPreferencesKey("color_source")
+            val CUSTOM_SEED = intPreferencesKey("custom_seed")
+            val NOW_PLAYING_COLORS = stringPreferencesKey("now_playing_colors")
+            val IGNORE_SURFACES = booleanPreferencesKey("ignore_surfaces")
+            val INSTANT_COLORS = booleanPreferencesKey("instant_colors")
+            val FONT = stringPreferencesKey("font")
             const val SORT_PREFIX = "sort_"
             val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
             const val SEPARATOR = "\n"
@@ -118,4 +153,16 @@ data class StoredLibraryPreferences(
     val dynamicColor: Boolean? = null,
     val ratingMode: String? = null,
     val offlineMode: Boolean? = null,
+    val theme: StoredTheme = StoredTheme(),
+)
+
+/** Theme, font and color values as stored (#121); `null` = not set. */
+data class StoredTheme(
+    val mode: String? = null,
+    val colorSource: String? = null,
+    val customSeed: Int? = null,
+    val nowPlayingColors: String? = null,
+    val ignoreSurfaces: Boolean? = null,
+    val instantColors: Boolean? = null,
+    val font: String? = null,
 )

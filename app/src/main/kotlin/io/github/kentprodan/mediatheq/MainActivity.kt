@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.entryProvider
 import dagger.hilt.android.AndroidEntryPoint
+import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.download.resumeDownloads
@@ -44,8 +45,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             // Read from disk in a few milliseconds; until then nothing is drawn, rather than the wrong colors.
-            val dynamicColor = viewModel.dynamicColor.collectAsStateWithLifecycle().value ?: return@setContent
-            MediatheqTheme(useDynamicColor = dynamicColor) {
+            val theme = viewModel.theme.collectAsStateWithLifecycle().value ?: return@setContent
+            MediatheqTheme(useDynamicColor = theme.colorSource == ColorSource.MaterialYou) {
                 // Android 17: no server can be reached without local network access, so ask before anything else.
                 LocalNetworkGate(
                     onAccess = { justGranted ->

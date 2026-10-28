@@ -23,11 +23,10 @@ data class LibraryPreferences(
     val filterStyle: FilterControlStyle = FilterControlStyle.Chips,
     val albumColumns: Int = DEFAULT_ALBUM_COLUMNS,
     val sorts: Map<LibraryFilter, LibrarySort> = emptyMap(),
-    /** Material You colors from the wallpaper (Android 12+) instead of Iris. */
-    val dynamicColor: Boolean = false,
     val ratingMode: RatingMode = RatingMode.WholeStars,
     /** Only downloads show and play, also with a network (#63); without one, offline mode is on anyway. */
     val offlineMode: Boolean = false,
+    val theme: ThemePreferences = ThemePreferences(),
 ) {
     /** The sort of [filter]: the stored one when that tab offers it, else its default. */
     fun sortFor(filter: LibraryFilter): LibrarySort =
