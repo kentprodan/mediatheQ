@@ -205,6 +205,8 @@ class DefaultLibrarySyncRepository
             userData.onSyncStarted()
             var step = SyncStep.entries.first { it.name == state.checkpointStep }
             var index = state.checkpointIndex
+            // Running from the start, not from the first staged page: the first request can take seconds (#156).
+            mutableStatus.value = SyncStatus.Running(step, index, 0)
             while (true) {
                 when (val next = fetchPage(server, state, step, index)) {
                     is MqResult.Failure -> {
