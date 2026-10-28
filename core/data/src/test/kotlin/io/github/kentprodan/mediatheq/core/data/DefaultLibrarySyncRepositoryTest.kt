@@ -3,6 +3,12 @@ package io.github.kentprodan.mediatheq.core.data
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
+import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
+import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.SyncStateEntity
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
@@ -210,6 +216,77 @@ class DefaultLibrarySyncRepositoryTest {
             assertThat(secondSource.calls.first()).isEqualTo("tracks@500")
             assertThat(count("track")).isEqualTo(1_200)
             assertThat(library.albums().first()).hasSize(2)
+        }
+
+    /** R16 on the server: albums credit "other", the album artist list has "listed", both named Satoshi. */
+    private fun fillR16Source(into: FakeLibrarySource = source) {
+        val credited = Artist(id("other"), "Satoshi")
+        into.albumArtists = listOf(Artist(id("listed"), "Satoshi"))
+        into.albums = listOf(Album(id("al373"), "+373", listOf(credited)))
+        into.tracks = listOf(Track(id("t1"), "Song", listOf(credited), Duration.ZERO, albumId = id("al373")))
+    }
+
+    /** The live library as a build before #112 left it: the album linked to the credit-only "other". */
+    private suspend fun oldUnmergedLibrary() {
+        val dao = database.syncDao()
+        dao.stageAlbumArtists(listOf(ArtistStaging(ArtistEntity("s", "listed", "Satoshi", "Satoshi", true))))
+        dao.stageCreditedArtists(listOf(ArtistStaging(ArtistEntity("s", "other", "Satoshi", "Satoshi", false))))
+        dao.stageAlbums(listOf(AlbumStaging(AlbumEntity("s", "al373", "+373", "+373"))))
+        dao.stageAlbumArtistLinks(listOf(AlbumArtistStaging(AlbumArtistEntity("s", "al373", 0, "other"))))
+        dao.copyArtists()
+        dao.copyAlbums()
+        dao.copyAlbumArtists()
+        dao.clearStaging()
+        dao.saveState(
+            SyncStateEntity(
+                lastFullSyncAtMillis = clock.now.toEpochMilliseconds(),
+                ownerServerId = "s",
+                ownerUserId = "user-1",
+            ),
+        )
+    }
+
+    @Test
+    fun `R16 a full sync over a library from before the fix merges the same-name artists`() =
+        runTest(dispatcher) {
+            fillR16Source()
+            signIn()
+            oldUnmergedLibrary()
+            assertThat(library.artistAlbums(id("listed")).first()).isEmpty()
+
+            assertThat(repository().sync()).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(library.albumArtists().first().map { it.id }).containsExactly(id("listed"))
+            assertThat(library.artistAlbums(id("listed")).first().map { it.title }).containsExactly("+373")
+        }
+
+    @Test
+    fun `R16 a sync resumed from pages staged before the restart merges the same-name artists`() =
+        runTest(dispatcher) {
+            fillR16Source()
+            signIn()
+            val firstLife = CoroutineScope(backgroundScope.coroutineContext + Job())
+            source.pauseAt = 3 // tracks@0: album artists and albums are staged
+            firstLife.launch { repository(firstLife).sync() }
+            source.paused.await()
+            firstLife.cancel()
+            val secondSource = FakeLibrarySource().also { fillR16Source(it) }
+
+            val restarted =
+                DefaultLibrarySyncRepository(
+                    secondSource,
+                    accountStore,
+                    database.syncDao(),
+                    session,
+                    clock,
+                    backgroundScope,
+                    userData(backgroundScope),
+                )
+
+            assertThat(restarted.sync()).isEqualTo(MqResult.Success(Unit))
+            assertThat(secondSource.calls.first()).isEqualTo("tracks@0")
+            assertThat(library.albumArtists().first().map { it.id }).containsExactly(id("listed"))
+            assertThat(library.artistAlbums(id("listed")).first().map { it.title }).containsExactly("+373")
         }
 
     @Test
