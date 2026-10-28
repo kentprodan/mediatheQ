@@ -285,6 +285,7 @@ class DefaultLibrarySyncRepositoryTest {
 
             assertThat(restarted.sync()).isEqualTo(MqResult.Success(Unit))
             assertThat(secondSource.calls.first()).isEqualTo("tracks@0")
+            assertThat(library.albumArtists().first().map { it.id }).containsExactly(id("listed"))
             assertThat(library.artistAlbums(id("listed")).first().map { it.title }).containsExactly("+373")
         }
 
