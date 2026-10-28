@@ -4,9 +4,11 @@ import android.app.PendingIntent
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSourceBitmapLoader
@@ -14,6 +16,8 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.CacheBitmapLoader
 import androidx.media3.session.MediaLibraryService
@@ -161,7 +165,15 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 playerDispatcher = Dispatchers.Main,
             )
         player.addListener(ReportingListener(player, reporter))
-        player.addListener(SkipFailedTrackListener(player) { session?.sendPlaybackError(packageName, it) })
+        player.addListener(
+            SkipFailedTrackListener(
+                player,
+                recover = { error ->
+                    // The output refused the AudioTrack while bit-perfect was preferred: play on normally instead.
+                    (error.isAudioOutputError() && audioOutput.onBitPerfectFailed()).also { if (it) player.prepare() }
+                },
+            ) { session?.sendPlaybackError(packageName, it) },
+        )
         // Live updates keep going in the background while music plays (issue #18): while it is meant to play, so a
         // buffering stall does not drop and reopen the connection.
         player.addListener(
@@ -252,8 +264,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
             AudioOutputController(
                 port = usbAudio,
                 currentFormat = {
+                    val playing =
+                        player.playbackState != Player.STATE_IDLE && player.playbackState != Player.STATE_ENDED
+                    val method = currentPlayMethod()
                     // A transcode or a converted download has another format than the file: only the file can be.
-                    if (AudioPolicy.playsOriginal(currentPlayMethod(), convertedDownload())) {
+                    // Not resolved yet (just after a transition): assume the file, the ready refresh corrects it;
+                    // dropping the preference meanwhile put the next AudioTrack on the normal mixer (#65).
+                    if (playing && (method == null || AudioPolicy.playsOriginal(method, convertedDownload()))) {
                         player.currentMediaItem?.outputFormat()
                     } else {
                         null
@@ -272,6 +289,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         convertedDownload = convertedDownload(),
                     )
                 },
+                log = { Log.d(AUDIO_TAG, it) },
             )
         normalization = NormalizationListener(player, { settings }) { audioOutput.state.mode }
         player.addListener(normalization)
@@ -282,15 +300,30 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     player: Player,
                     events: Player.Events,
                 ) {
-                    if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_PLAYBACK_STATE_CHANGED)) {
-                        audioOutput.refresh()
+                    if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+                        audioOutput.refresh("transition")
+                    } else if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED)) {
+                        audioOutput.refresh("state ${player.playbackState}")
                     }
                 }
 
                 override fun onAudioSessionIdChanged(audioSessionId: Int) = applyEqualizer()
             },
         )
-        usbAudio.watch(audioOutput::refresh)
+        usbAudio.watch(audioOutput::onDeviceChanged, audioOutput::onPreferenceDropped)
+        player.addAnalyticsListener(
+            object : AnalyticsListener {
+                override fun onAudioTrackInitialized(
+                    eventTime: AnalyticsListener.EventTime,
+                    audioTrackConfig: AudioSink.AudioTrackConfig,
+                ) = audioOutput.onAudioTrackOpened(audioTrackConfig.sampleRate)
+
+                override fun onAudioTrackReleased(
+                    eventTime: AnalyticsListener.EventTime,
+                    audioTrackConfig: AudioSink.AudioTrackConfig,
+                ) = audioOutput.onAudioTrackReleased()
+            },
+        )
         audioSettingsJob =
             applicationScope.launch(Dispatchers.Main) {
                 audioPreferences.preferences.collect {
@@ -312,7 +345,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     private fun AudioOutputState.toInfo() =
         AudioOutputInfo(
-            bitPerfectSampleRateHz = bitPerfectFormat?.sampleRateHz,
+            // Only once an AudioTrack really opened on the bit-perfect output (#65).
+            bitPerfectSampleRateHz = bitPerfectFormat?.sampleRateHz?.takeIf { bitPerfectConfirmed },
             usbDacConnected = route == AudioRoute.UsbDac,
             bitPerfectNoMatch = bitPerfectNoMatch,
             bitPerfectSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
@@ -434,3 +468,11 @@ internal fun localCoverBytes(uri: Uri): ByteArray? {
         null
     }
 }
+
+private const val AUDIO_TAG = "MqAudioOutput"
+
+/** The audio output refused or lost the AudioTrack (not the stream or the decoder). */
+@UnstableApi
+internal fun PlaybackException.isAudioOutputError(): Boolean =
+    generateSequence<Throwable>(this) { it.cause }
+        .any { it is AudioSink.InitializationException || it is AudioSink.WriteException }

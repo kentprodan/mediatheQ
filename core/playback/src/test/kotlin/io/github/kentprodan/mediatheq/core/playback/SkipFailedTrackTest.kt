@@ -43,9 +43,10 @@ class SkipFailedTrackTest {
     private val player: ExoPlayer =
         TestExoPlayerBuilder(context).setMediaSourceFactory(FailingSourceFactory(failures)).build()
     private val errors = mutableListOf<PlaybackError>()
+    private var recovers = false
 
     init {
-        player.addListener(SkipFailedTrackListener(player, errors::add))
+        player.addListener(SkipFailedTrackListener(player, recover = { recovers }, onError = { errors += it }))
     }
 
     @After
@@ -89,6 +90,18 @@ class SkipFailedTrackTest {
         runUntil { player.currentMediaItemIndex == 1 && player.isPlaying }
 
         assertThat(errors).containsExactly(PlaybackError("Track 1", Reason.Failed, skipped = true))
+    }
+
+    @Test
+    fun `an error playback recovers from is neither reported nor skipped`() {
+        recovers = true
+        failures[1] = IOException("refused by the output")
+        queue(1, 2)
+
+        runUntil { player.playerError != null }
+
+        assertThat(player.currentMediaItemIndex).isEqualTo(0)
+        assertThat(errors).isEmpty()
     }
 
     @Test

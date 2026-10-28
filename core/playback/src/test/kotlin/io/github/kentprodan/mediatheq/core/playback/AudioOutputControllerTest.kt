@@ -11,7 +11,7 @@ class AudioOutputControllerTest {
     private var format: PcmFormat? = cd
     private val changes = mutableListOf<AudioOutputState>()
     private var atmosConverted = false
-    private val controller = AudioOutputController(port, { format }, changes::add) { atmosConverted }
+    private val controller = AudioOutputController(port, { format }, changes::add, { atmosConverted })
     private val bitPerfectOn = AudioSettings(bitPerfectUsb = true)
 
     @Test
@@ -61,7 +61,7 @@ class AudioOutputControllerTest {
         controller.setSettings(bitPerfectOn)
 
         format = hiRes
-        controller.refresh()
+        controller.refresh("test")
 
         assertThat(port.preferred).isEqualTo(MixerCapability(hiRes, true))
         assertThat(controller.state.bitPerfectFormat).isEqualTo(hiRes)
@@ -72,7 +72,7 @@ class AudioOutputControllerTest {
         port.capabilities = listOf(MixerCapability(cd, true))
         controller.setSettings(bitPerfectOn)
 
-        controller.refresh()
+        controller.refresh("test")
 
         assertThat(port.setCalls).isEqualTo(1)
     }
@@ -83,7 +83,7 @@ class AudioOutputControllerTest {
         controller.setSettings(bitPerfectOn)
 
         port.capabilities = null
-        controller.refresh()
+        controller.refresh("test")
 
         assertThat(port.preferred).isNull()
         assertThat(controller.state).isEqualTo(AudioOutputState())
@@ -106,7 +106,7 @@ class AudioOutputControllerTest {
         controller.setSettings(bitPerfectOn)
 
         format = null
-        controller.refresh()
+        controller.refresh("test")
 
         assertThat(port.preferred).isNull()
     }
@@ -118,7 +118,7 @@ class AudioOutputControllerTest {
         port.accepts = false
 
         format = hiRes
-        controller.refresh()
+        controller.refresh("test")
 
         assertThat(port.preferred).isNull()
         assertThat(controller.state.mode).isEqualTo(AudioMode.Offload)
@@ -148,9 +148,9 @@ class AudioOutputControllerTest {
 
     @Test
     fun `listeners hear only real changes`() {
-        controller.refresh()
+        controller.refresh("test")
         controller.setSettings(AudioSettings(equalizerOn = true))
-        controller.refresh()
+        controller.refresh("test")
 
         assertThat(changes).containsExactly(AudioOutputState(offload = false, mode = AudioMode.Processed))
     }
@@ -173,19 +173,155 @@ class AudioOutputControllerTest {
             preferred = null
         }
 
-        override fun watch(onChange: () -> Unit) = Unit
+        override fun watch(
+            onChange: () -> Unit,
+            onPreferenceDropped: () -> Unit,
+        ) = Unit
 
         override fun release() = Unit
     }
 
     @Test
     fun `an Atmos track starting to play converted is published on its own`() {
-        controller.refresh()
+        controller.refresh("test")
         changes.clear()
 
         atmosConverted = true
-        controller.refresh()
+        controller.refresh("test")
 
         assertThat(changes).containsExactly(AudioOutputState(atmosConverted = true))
+    }
+
+    @Test
+    fun `a new AudioTrack opened after the preference is confirmed bit-perfect, also after a rate change`() {
+        port.capabilities = listOf(MixerCapability(cd, true), MixerCapability(hiRes, true))
+        controller.setSettings(bitPerfectOn)
+        assertThat(controller.state.mode).isEqualTo(AudioMode.BitPerfect)
+        assertThat(controller.state.bitPerfectConfirmed).isFalse()
+
+        controller.onAudioTrackOpened(44_100)
+        assertThat(controller.state.bitPerfectConfirmed).isTrue()
+
+        // A rate change: the old AudioTrack plays out and is released, then the new rate opens its own.
+        format = hiRes
+        controller.refresh("transition")
+        assertThat(controller.state.bitPerfectConfirmed).isFalse()
+        controller.onAudioTrackReleased()
+        controller.onAudioTrackOpened(96_000)
+        assertThat(controller.state.bitPerfectConfirmed).isTrue()
+    }
+
+    @Test
+    fun `an AudioTrack already open when the setting is turned on is not claimed bit-perfect`() {
+        port.capabilities = listOf(MixerCapability(cd, true))
+        controller.onAudioTrackOpened(44_100)
+
+        controller.setSettings(bitPerfectOn)
+
+        assertThat(controller.state.mode).isEqualTo(AudioMode.BitPerfect)
+        assertThat(controller.state.bitPerfectConfirmed).isFalse()
+    }
+
+    @Test
+    fun `reopening without releasing first is not claimed bit-perfect either`() {
+        port.capabilities = listOf(MixerCapability(cd, true))
+        controller.onAudioTrackOpened(44_100)
+        controller.setSettings(bitPerfectOn)
+
+        controller.onAudioTrackOpened(44_100)
+
+        assertThat(controller.state.bitPerfectConfirmed).isFalse()
+    }
+
+    @Test
+    fun `without a preference an opened AudioTrack confirms nothing`() {
+        port.capabilities = listOf(MixerCapability(hiRes, true))
+        controller.setSettings(bitPerfectOn)
+
+        controller.onAudioTrackOpened(44_100)
+
+        assertThat(controller.state.bitPerfectConfirmed).isFalse()
+    }
+
+    @Test
+    fun `a released AudioTrack is no longer bit-perfect`() {
+        port.capabilities = listOf(MixerCapability(cd, true))
+        controller.setSettings(bitPerfectOn)
+        controller.onAudioTrackOpened(44_100)
+
+        controller.onAudioTrackReleased()
+
+        assertThat(controller.state.bitPerfectConfirmed).isFalse()
+    }
+
+    @Test
+    fun `a preference the platform dropped is set again`() {
+        port.capabilities = listOf(MixerCapability(cd, true))
+        controller.setSettings(bitPerfectOn)
+        port.preferred = null
+
+        controller.onPreferenceDropped()
+
+        assertThat(port.preferred).isEqualTo(MixerCapability(cd, true))
+        assertThat(port.setCalls).isEqualTo(2)
+    }
+
+    @Test
+    fun `a dropped preference after the setting went off is not set again`() {
+        port.capabilities = listOf(MixerCapability(cd, true))
+        controller.setSettings(AudioSettings())
+
+        controller.onPreferenceDropped()
+
+        assertThat(port.setCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun `when bit-perfect fails the preference goes and playback is normal until the device changes`() {
+        port.capabilities = listOf(MixerCapability(cd, true))
+        controller.setSettings(bitPerfectOn)
+
+        assertThat(controller.onBitPerfectFailed()).isTrue()
+
+        assertThat(port.preferred).isNull()
+        assertThat(controller.state.mode).isEqualTo(AudioMode.Offload)
+        controller.refresh("transition")
+        assertThat(port.preferred).isNull()
+
+        controller.onDeviceChanged()
+        assertThat(port.preferred).isEqualTo(MixerCapability(cd, true))
+    }
+
+    @Test
+    fun `turning the setting off and on again tries bit-perfect again after a failure`() {
+        port.capabilities = listOf(MixerCapability(cd, true))
+        controller.setSettings(bitPerfectOn)
+        controller.onBitPerfectFailed()
+
+        controller.setSettings(AudioSettings())
+        controller.setSettings(bitPerfectOn)
+
+        assertThat(port.preferred).isEqualTo(MixerCapability(cd, true))
+    }
+
+    @Test
+    fun `an error without a preference is not bit-perfect's to handle`() {
+        port.capabilities = listOf(MixerCapability(cd, true))
+
+        assertThat(controller.onBitPerfectFailed()).isFalse()
+    }
+
+    @Test
+    fun `an old AudioTrack released after the next one opened does not make the next open look like the first`() {
+        port.capabilities = listOf(MixerCapability(cd, true))
+        controller.onAudioTrackOpened(44_100)
+        controller.setSettings(bitPerfectOn)
+
+        // Seeks: each opens a new AudioTrack before the old one's background release finishes.
+        controller.onAudioTrackOpened(44_100)
+        controller.onAudioTrackReleased()
+        controller.onAudioTrackOpened(44_100)
+
+        assertThat(controller.state.bitPerfectConfirmed).isFalse()
     }
 }
