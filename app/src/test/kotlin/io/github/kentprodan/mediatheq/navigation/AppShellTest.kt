@@ -19,7 +19,6 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.entryProvider
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
-import io.github.kentprodan.mediatheq.core.navigation.SettingsKey
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingLayout
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingUiState
 import kotlinx.coroutines.flow.MutableStateFlow
