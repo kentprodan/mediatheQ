@@ -40,6 +40,8 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -75,6 +77,12 @@ internal class DefaultDownloadRepository
         @Volatile private var loaded = false
         private val indexRead = MutableStateFlow(false)
         private val removedBeforeLoad = ConcurrentHashMap.newKeySet<MediaId>()
+
+        // Origin changes read, then write: one at a time, so two quick removals never miss a shared track (#168).
+        private val originsLock = Mutex()
+
+        /** Tracks asked for since the app started: their origin is on its way, never guessed. */
+        private val requested = ConcurrentHashMap.newKeySet<MediaId>()
 
         // Failed downloads being started over: a second tap meanwhile must not delete what the new run already wrote.
         private val restarting = ConcurrentHashMap.newKeySet<MediaId>()
@@ -147,21 +155,24 @@ internal class DefaultDownloadRepository
 
         /**
          * Downloads from before #168 have no origin: they count as their album's (the Downloads tab grouped them so), or
-         * alone without one. Written once, so a later playlist download of the same track keeps the album too.
+         * alone without one. Written for those still without one, so a later playlist download of the same track keeps
+         * the album too. Not before the library is read: without it every download would count as alone.
          */
-        private suspend fun originless() {
-            val known = origins.origins.first()
-            val tracks = libraryRepository.allTracks().first().associateBy { it.id }
-            entries.value.keys
-                .filter { it !in known }
-                .groupBy { tracks[it]?.albumId }
-                .forEach { (albumId, ids) ->
-                    origins.add(
-                        ids,
-                        albumId?.let(DownloadOrigin::Album) ?: DownloadOrigin.Single,
-                    )
-                }
-        }
+        private suspend fun originless() =
+            originsLock.withLock {
+                val known = origins.origins.first()
+                val tracks = libraryRepository.allTracks().first().associateBy { it.id }
+                if (tracks.isEmpty()) return@withLock
+                entries.value.keys
+                    .filter { it !in known && it !in requested }
+                    .groupBy { tracks[it]?.albumId }
+                    .forEach { (albumId, ids) ->
+                        origins.add(
+                            ids,
+                            albumId?.let(DownloadOrigin::Album) ?: DownloadOrigin.Single,
+                        )
+                    }
+            }
 
         override val downloads: Flow<List<TrackDownload>> =
             combine(
@@ -193,9 +204,6 @@ internal class DefaultDownloadRepository
                 if (read) entries.filterValues { it.state == Download.STATE_COMPLETED }.keys else null
             }.filterNotNull().distinctUntilChanged()
 
-        override val storageUsed: Flow<Long> =
-            combine(entries, ticks) { _, _ -> cache.cacheSpace }.distinctUntilChanged().flowOn(defaultDispatcher)
-
         override val freeBytes: Flow<Long> =
             combine(entries, ticks) { _, _ -> StatFs(context.filesDir.path).availableBytes }
                 .distinctUntilChanged()
@@ -205,7 +213,10 @@ internal class DefaultDownloadRepository
             tracks: List<Track>,
             origin: DownloadOrigin?,
         ) {
-            if (origin != null) scope.launch(ioDispatcher) { origins.add(tracks.map { it.id }, origin) }
+            tracks.forEach { requested += it.id }
+            if (origin != null) {
+                scope.launch(ioDispatcher) { originsLock.withLock { origins.add(tracks.map { it.id }, origin) } }
+            }
             val known = entries.value
             tracks
                 // Downloading again would restart a finished or running download; only failed ones retry.
@@ -235,15 +246,38 @@ internal class DefaultDownloadRepository
         }
 
         override fun removeCollection(origin: DownloadOrigin) {
+            // Songs go one by one (removeSong): "every song" is no collection to remove.
+            if (origin == DownloadOrigin.Single) return
             scope.launch(ioDispatcher) {
-                val kept = origins.origins.first()
-                origins.removeCollection(origin)
-                remove(kept.filterValues { it == setOf(origin) }.keys.toList())
+                val orphans =
+                    originsLock.withLock {
+                        val kept = origins.origins.first()
+                        origins.removeCollection(origin)
+                        kept.filterValues { it == setOf(origin) }.keys.toList()
+                    }
+                delete(orphans)
+            }
+        }
+
+        override fun removeSong(id: MediaId) {
+            scope.launch(ioDispatcher) {
+                val orphan =
+                    originsLock.withLock {
+                        val left = origins.origins.first()[id].orEmpty() - DownloadOrigin.Single
+                        origins.remove(listOf(id), DownloadOrigin.Single)
+                        left.isEmpty()
+                    }
+                if (orphan) delete(listOf(id))
             }
         }
 
         override fun remove(ids: List<MediaId>) {
-            scope.launch(ioDispatcher) { origins.forget(ids) }
+            scope.launch(ioDispatcher) { delete(ids) }
+        }
+
+        private suspend fun delete(ids: List<MediaId>) {
+            if (ids.isEmpty()) return
+            originsLock.withLock { origins.forget(ids) }
             ids.forEach {
                 DownloadService.sendRemoveDownload(context, MediatheqDownloadService::class.java, it.toString(), false)
             }

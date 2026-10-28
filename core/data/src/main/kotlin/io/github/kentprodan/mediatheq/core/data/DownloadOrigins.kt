@@ -38,6 +38,12 @@ interface DownloadOrigins {
     /** Forgets [origin]; its tracks keep their other origins. */
     suspend fun removeCollection(origin: DownloadOrigin)
 
+    /** Forgets [origin] for [tracks] only (e.g. a song removed from the Songs list). */
+    suspend fun remove(
+        tracks: List<MediaId>,
+        origin: DownloadOrigin,
+    )
+
     /** Forgets every origin of [tracks] (their downloads are gone). */
     suspend fun forget(tracks: List<MediaId>)
 }
@@ -65,6 +71,11 @@ internal class DefaultDownloadOrigins
             // A Single origin belongs to its tracks: they are removed with forget.
             if (server != null) dao.removeCollection(origin.kind, server.value, origin.collectionId)
         }
+
+        override suspend fun remove(
+            tracks: List<MediaId>,
+            origin: DownloadOrigin,
+        ) = tracks.forEach { dao.removeOrigin(it.serverId.value, it.itemId, origin.kind, origin.collectionId) }
 
         override suspend fun forget(tracks: List<MediaId>) =
             tracks.groupBy { it.serverId }.forEach { (server, ids) ->

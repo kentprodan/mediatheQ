@@ -118,7 +118,7 @@ class DownloadsScreenTest {
         composeRule.onNodeWithContentDescription("More options for Strobe").performClick()
         composeRule.onNodeWithText("Remove download").performClick()
 
-        assertThat(actions).containsExactly(DownloadsAction.Play(done), DownloadsAction.Remove(done)).inOrder()
+        assertThat(actions).containsExactly(DownloadsAction.Play(done), DownloadsAction.RemoveSong(done)).inOrder()
     }
 
     @Test
@@ -146,5 +146,17 @@ class DownloadsScreenTest {
         scrollTo("Converted copy")
 
         composeRule.onNodeWithText("Converted copy").assertExists()
+    }
+
+    @Test
+    fun `a playlist gone from the library still has a name`() {
+        val state =
+            DownloadsUiState.Content(
+                DownloadTotals(0, 0.minutes, 0),
+                playlists = listOf(DownloadedPlaylist(Playlist(id("gone"), ""), listOf(done), 1, 1.minutes)),
+            )
+        composeRule.setContent { MediatheqTheme { DownloadsScreen(state, { actions += it }) } }
+
+        composeRule.onNodeWithText("Playlist").assertExists()
     }
 }

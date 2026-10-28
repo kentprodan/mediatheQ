@@ -171,4 +171,16 @@ class DownloadsViewModelTest {
         albumId = id(album),
         albumTitle = "Album $album",
     )
+
+    @Test
+    fun `removing a song an album keeps leaves it in the album`() =
+        runTest {
+            repository.download(listOf(a1), DownloadOrigin.Single)
+
+            viewModel.onAction(DownloadsAction.RemoveSong(a1))
+
+            val content = content()
+            assertThat(content.songs.map { it.track }).containsExactly(song)
+            assertThat(content.albums.single().tracks).containsExactly(a1)
+        }
 }

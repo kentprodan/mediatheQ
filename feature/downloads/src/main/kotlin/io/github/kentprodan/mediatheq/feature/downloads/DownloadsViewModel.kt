@@ -57,6 +57,10 @@ class DownloadsViewModel
                     downloadRepository.remove(listOf(action.track.id))
                 }
 
+                is DownloadsAction.RemoveSong -> {
+                    downloadRepository.removeSong(action.track.id)
+                }
+
                 is DownloadsAction.PlayCollection -> {
                     if (action.tracks.isNotEmpty()) playback.play(action.tracks, shuffle = action.shuffle)
                 }

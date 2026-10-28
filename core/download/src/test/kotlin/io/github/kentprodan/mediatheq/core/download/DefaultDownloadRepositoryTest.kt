@@ -254,6 +254,60 @@ class DefaultDownloadRepositoryTest {
         }
 
     @Test
+    fun `two collections removed at once delete their shared track`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done)
+            val playlist = DownloadOrigin.Playlist(MediaId(ServerId("server-1"), "p1"))
+            repository.download(listOf(done), playlist)
+            startedIntents()
+
+            repository.removeCollection(DownloadOrigin.Album(done.albumId!!))
+            repository.removeCollection(playlist)
+
+            val removed = startedIntents().map { it.getStringExtra(DownloadService.KEY_CONTENT_ID) }
+            assertThat(removed).containsExactly(done.id.toString())
+            assertThat(origins.origins.value).isEmpty()
+        }
+
+    @Test
+    fun `removing a song keeps it when its album keeps it, and deletes it when alone`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done, Download.STATE_COMPLETED to waiting)
+            repository.download(listOf(done), DownloadOrigin.Single)
+            origins.removeCollection(DownloadOrigin.Album(waiting.albumId!!))
+            origins.add(listOf(waiting.id), DownloadOrigin.Single)
+            startedIntents()
+
+            repository.removeSong(done.id)
+            repository.removeSong(waiting.id)
+
+            val removed = startedIntents().map { it.getStringExtra(DownloadService.KEY_CONTENT_ID) }
+            assertThat(removed).containsExactly(waiting.id.toString())
+            assertThat(origins.origins.value).containsExactly(done.id, setOf(DownloadOrigin.Album(done.albumId!!)))
+        }
+
+    @Test
+    fun `removing the songs as a collection does nothing`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done)
+            repository.download(listOf(done), DownloadOrigin.Single)
+            startedIntents()
+
+            repository.removeCollection(DownloadOrigin.Single)
+
+            assertThat(startedIntents()).isEmpty()
+        }
+
+    @Test
+    fun `without the library read yet, old downloads wait for their album`() =
+        runTest {
+            library.tracks.value = emptyList()
+            repository(Download.STATE_COMPLETED to done, keepLibrary = true)
+
+            assertThat(origins.origins.value).isEmpty()
+        }
+
+    @Test
     fun `removing a download forgets its origins`() =
         runTest {
             val repository = repository(Download.STATE_COMPLETED to done)
@@ -308,8 +362,9 @@ class DefaultDownloadRepositoryTest {
     private fun TestScope.repository(
         vararg stored: Pair<Int, Track>,
         dispatcher: CoroutineDispatcher = UnconfinedTestDispatcher(testScheduler),
+        keepLibrary: Boolean = false,
     ): DefaultDownloadRepository {
-        library.tracks.value = listOf(done, failed, waiting)
+        if (!keepLibrary) library.tracks.value = listOf(done, failed, waiting)
         stored.forEach { (state, track) -> index.putDownload(download(track, state)) }
         manager =
             DownloadManager(context, index) { error("nothing is downloaded in these tests") }

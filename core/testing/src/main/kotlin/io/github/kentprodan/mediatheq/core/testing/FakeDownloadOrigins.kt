@@ -20,5 +20,14 @@ class FakeDownloadOrigins : DownloadOrigins {
             current.mapValues { (_, origins) -> origins - origin }.filterValues { it.isNotEmpty() }
         }
 
+    override suspend fun remove(
+        tracks: List<MediaId>,
+        origin: DownloadOrigin,
+    ) = origins.update { current ->
+        current
+            .mapValues { (track, origins) -> if (track in tracks) origins - origin else origins }
+            .filterValues { it.isNotEmpty() }
+    }
+
     override suspend fun forget(tracks: List<MediaId>) = origins.update { it - tracks.toSet() }
 }

@@ -66,7 +66,13 @@ sealed interface DownloadsAction {
         val track: Track,
     ) : DownloadsAction
 
+    /** Cancels or deletes a download, whatever it was downloaded through. */
     data class Remove(
+        val track: Track,
+    ) : DownloadsAction
+
+    /** Removes a song downloaded on its own; an album or playlist that keeps it keeps it. */
+    data class RemoveSong(
         val track: Track,
     ) : DownloadsAction
 

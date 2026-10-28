@@ -103,7 +103,9 @@ private fun Content(
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l)) {
         item(key = "totals") { Totals(state.totals) }
         section(R.string.downloads_section_downloading, state.downloading.isNotEmpty()) {
-            items(state.downloading, key = { "downloading-${it.track.id}" }) { DownloadRow(it, onAction) }
+            items(state.downloading, key = { "downloading-${it.track.id}" }) {
+                DownloadRow(it, onAction, DownloadsAction::Remove)
+            }
         }
         section(R.string.downloads_section_albums, state.albums.isNotEmpty()) {
             items(state.albums, key = { "album-${it.album.id}" }) { downloaded ->
@@ -119,8 +121,10 @@ private fun Content(
         section(R.string.downloads_section_playlists, state.playlists.isNotEmpty()) {
             items(state.playlists, key = { "playlist-${it.playlist.id}" }) { downloaded ->
                 val origin = DownloadOrigin.Playlist(downloaded.playlist.id)
+                // A playlist gone from the library (deleted on the server) keeps a plain name.
+                val name = downloaded.playlist.name.ifBlank { stringResource(R.string.downloads_playlist) }
                 PlaylistRow(
-                    downloaded.playlist,
+                    downloaded.playlist.copy(name = name),
                     onClick = { onOpenPlaylist(downloaded.playlist.id) },
                     details = sizeAndDuration(downloaded.bytes, downloaded.duration),
                     menuItems = { close -> CollectionMenuItems(downloaded.tracks, origin, onAction, close) },
@@ -128,7 +132,10 @@ private fun Content(
             }
         }
         section(R.string.downloads_section_songs, state.songs.isNotEmpty()) {
-            items(state.songs, key = { "song-${it.track.id}" }) { DownloadRow(it, onAction) }
+            items(
+                state.songs,
+                key = { "song-${it.track.id}" },
+            ) { DownloadRow(it, onAction, DownloadsAction::RemoveSong) }
         }
     }
 }
@@ -217,6 +224,7 @@ private fun ColumnScope.CollectionMenuItems(
 private fun DownloadRow(
     download: TrackDownload,
     onAction: (DownloadsAction) -> Unit,
+    remove: (Track) -> DownloadsAction,
 ) {
     val track = download.track
     TrackRow(
@@ -240,7 +248,7 @@ private fun DownloadRow(
                     },
                 )
             }
-            RemoveDownloadMenuItem(onClick = { onAction(DownloadsAction.Remove(track)) }, close = close)
+            RemoveDownloadMenuItem(onClick = { onAction(remove(track)) }, close = close)
         },
         supportingContent =
             when (val state = download.state) {

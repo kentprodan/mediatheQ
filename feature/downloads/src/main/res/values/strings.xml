@@ -10,6 +10,7 @@
     <string name="downloads_size_duration">%1$s · %2$s</string>
     <string name="downloads_free_space">%1$s free on this device</string>
     <string name="downloads_play">Play</string>
+    <string name="downloads_playlist">Playlist</string>
     <string name="downloads_shuffle">Shuffle</string>
     <string name="downloads_queued">Queued</string>
     <string name="downloads_converted">Converted copy</string>

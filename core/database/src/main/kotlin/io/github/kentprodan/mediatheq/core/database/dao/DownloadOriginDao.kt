@@ -24,6 +24,18 @@ interface DownloadOriginDao {
         collectionId: String,
     )
 
+    /** Forgets one origin of one track. */
+    @Query(
+        "DELETE FROM download_origin WHERE server_id = :serverId AND track_id = :trackId AND kind = :kind " +
+            "AND collection_id = :collectionId",
+    )
+    suspend fun removeOrigin(
+        serverId: String,
+        trackId: String,
+        kind: String,
+        collectionId: String,
+    )
+
     /** Forgets every origin of these tracks of [serverId] (their downloads are gone). */
     @Query("DELETE FROM download_origin WHERE server_id = :serverId AND track_id IN (:trackIds)")
     suspend fun removeTracks(

@@ -19,9 +19,6 @@ interface DownloadRepository {
      */
     val completedIds: Flow<Set<MediaId>>
 
-    /** Bytes the downloads take on this device. */
-    val storageUsed: Flow<Long>
-
     /** Bytes still free where the downloads are kept. */
     val freeBytes: Flow<Long>
 
@@ -37,8 +34,11 @@ interface DownloadRepository {
     /** Deletes the local copies of [ids], whatever they were downloaded through. */
     fun remove(ids: List<MediaId>)
 
-    /** Forgets [origin] and deletes the tracks no other origin keeps. */
+    /** Forgets an album or playlist [origin] and deletes the tracks no other origin keeps; ignores [DownloadOrigin.Single]. */
     fun removeCollection(origin: DownloadOrigin)
+
+    /** Removes [id] from the songs downloaded on their own; deletes it only when no album or playlist keeps it. */
+    fun removeSong(id: MediaId)
 
     /**
      * True when [id] is fully on the device. Safe from any thread; right after app start it may read the disk, so call
