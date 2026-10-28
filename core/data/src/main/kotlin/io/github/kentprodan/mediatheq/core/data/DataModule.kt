@@ -9,6 +9,9 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 internal interface DataModule {
     @Binds
+    fun downloadOrigins(origins: DefaultDownloadOrigins): DownloadOrigins
+
+    @Binds
     fun sessionRepository(repository: DefaultSessionRepository): SessionRepository
 
     @Binds

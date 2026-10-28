@@ -94,4 +94,32 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `4 to 5 keeps pending user data and adds download origins`() =
+        runTest {
+            helper.createDatabase(4).apply {
+                execSQL(
+                    "INSERT INTO pending_user_data (server_id, user_id, item_id, is_favorite, sets_rating, rating, " +
+                        "before_favorite, before_rating, seq) VALUES ('s', 'u', 't1', 1, 0, NULL, 0, NULL, 1)",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(5)
+
+            connection.prepare("SELECT item_id FROM pending_user_data").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getText(0)).isEqualTo("t1")
+            }
+            connection.execSQL(
+                "INSERT INTO download_origin (server_id, track_id, kind, collection_id) VALUES ('s', 't1', 'Album', 'a1')",
+            )
+            connection.prepare("SELECT kind, collection_id FROM download_origin").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getText(0)).isEqualTo("Album")
+                assertThat(it.getText(1)).isEqualTo("a1")
+            }
+            connection.close()
+        }
 }

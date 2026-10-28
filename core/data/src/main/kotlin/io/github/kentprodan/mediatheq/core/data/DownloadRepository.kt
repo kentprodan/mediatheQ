@@ -19,14 +19,26 @@ interface DownloadRepository {
      */
     val completedIds: Flow<Set<MediaId>>
 
-    /** Bytes the downloads take on this device. */
-    val storageUsed: Flow<Long>
+    /** Bytes still free where the downloads are kept. */
+    val freeBytes: Flow<Long>
 
-    /** Queues [tracks] for download; tracks already downloaded or queued stay as they are. */
-    fun download(tracks: List<Track>)
+    /**
+     * Queues [tracks] for download through [origin] (#168); tracks already downloaded or queued stay as they are but
+     * gain the origin. `null` retries without touching the origins.
+     */
+    fun download(
+        tracks: List<Track>,
+        origin: DownloadOrigin? = DownloadOrigin.Single,
+    )
 
-    /** Deletes the local copies of [ids]. */
+    /** Deletes the local copies of [ids], whatever they were downloaded through. */
     fun remove(ids: List<MediaId>)
+
+    /** Forgets an album or playlist [origin] and deletes the tracks no other origin keeps; ignores [DownloadOrigin.Single]. */
+    fun removeCollection(origin: DownloadOrigin)
+
+    /** Removes [id] from the songs downloaded on their own; deletes it only when no album or playlist keeps it. */
+    fun removeSong(id: MediaId)
 
     /**
      * True when [id] is fully on the device. Safe from any thread; right after app start it may read the disk, so call
@@ -41,4 +53,8 @@ data class TrackDownload(
     val state: DownloadState,
     /** The server's conversion, as the device cannot play the original (e.g. Dolby Atmos on a Pixel, #68). */
     val converted: Boolean = false,
+    /** Bytes on the device so far. */
+    val bytes: Long = 0,
+    /** What it was downloaded through (#168). */
+    val origins: Set<DownloadOrigin> = emptySet(),
 )

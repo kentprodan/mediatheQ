@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
                                         artistEntry(navigator)
                                         playlistEntry(navigator)
                                         searchEntry(navigator)
-                                        downloadsEntry()
+                                        downloadsEntry(navigator)
                                         addToPlaylistEntry(navigator)
                                         placeholders(
                                             navigator,

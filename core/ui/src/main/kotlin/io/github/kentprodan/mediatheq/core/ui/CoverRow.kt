@@ -1,6 +1,8 @@
 package io.github.kentprodan.mediatheq.core.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -11,12 +13,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.model.Artwork
 
-/** List row with a small cover (or a placeholder icon), a title and an optional second line. */
+/**
+ * List row with a small cover (or a placeholder icon), a title, an optional second line and an optional third one
+ * ([details], e.g. a download's size and duration), and an optional overflow menu ([menuItems]).
+ */
 @Composable
 internal fun CoverRow(
     title: String,
@@ -26,12 +32,22 @@ internal fun CoverRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     coverShape: Shape = MaterialTheme.shapes.small,
+    details: String? = null,
+    menuItems: (@Composable ColumnScope.(close: () -> Unit) -> Unit)? = null,
 ) {
+    val lines = listOfNotNull(subtitle, details)
     ListItem(
         onClick = onClick,
         modifier = modifier,
         leadingContent = { RowCover(artwork, placeholderIcon, coverShape) },
-        supportingContent = subtitle?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
+        supportingContent =
+            lines.takeIf { it.isNotEmpty() }?.let {
+                { Column { it.forEach { line -> Text(line, maxLines = 1, overflow = TextOverflow.Ellipsis) } } }
+            },
+        trailingContent =
+            menuItems?.let {
+                { OverflowMenu(stringResource(R.string.core_ui_more_options, title), items = it) }
+            },
     ) {
         Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
