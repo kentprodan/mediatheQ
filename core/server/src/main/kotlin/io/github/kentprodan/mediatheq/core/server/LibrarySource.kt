@@ -51,6 +51,13 @@ interface LibrarySource {
         widthPx: Int,
     ): String
 
+    /** The bytes of [artwork] at least [widthPx] wide, from [imageUrl] (no token), e.g. to keep with a download. */
+    suspend fun image(
+        baseUrl: String,
+        artwork: Artwork,
+        widthPx: Int,
+    ): MqResult<ByteArray>
+
     /** The tracks of [playlistId] in playlist order. */
     suspend fun playlistEntries(
         server: SignedInServer,

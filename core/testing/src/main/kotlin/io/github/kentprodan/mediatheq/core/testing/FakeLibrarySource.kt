@@ -91,6 +91,19 @@ class FakeLibrarySource : LibrarySource {
         widthPx: Int,
     ) = "$baseUrl|${artwork.itemId}|${artwork.tag}|$widthPx"
 
+    /** Image requests as "itemId|tag|width"; [imageFailure] makes them fail. */
+    val imageCalls = mutableListOf<String>()
+    var imageFailure: MqError? = null
+
+    override suspend fun image(
+        baseUrl: String,
+        artwork: Artwork,
+        widthPx: Int,
+    ): MqResult<ByteArray> {
+        imageCalls += "${artwork.itemId}|${artwork.tag}|$widthPx"
+        return imageFailure?.let { MqResult.Failure(it) } ?: MqResult.Success("cover ${artwork.itemId}".toByteArray())
+    }
+
     override suspend fun playlistEntries(
         server: SignedInServer,
         playlistId: MediaId,

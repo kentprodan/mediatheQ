@@ -12,6 +12,7 @@ import coil3.serviceLoaderEnabled
 import dagger.hilt.android.HiltAndroidApp
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.DefaultLibrarySyncRepository
+import io.github.kentprodan.mediatheq.core.data.DownloadedCovers
 import io.github.kentprodan.mediatheq.core.data.LiveSync
 import okhttp3.OkHttpClient
 import javax.inject.Inject
@@ -32,12 +33,17 @@ class MediatheqApplication :
     @Inject
     lateinit var artworkUrls: ArtworkUrlResolver
 
+    @Inject
+    lateinit var downloadedCovers: DownloadedCovers
+
     override fun onCreate() {
         super.onCreate()
         // Syncs after login and when a day has passed; wipes the library on sign-out (issue #9).
         librarySync.start()
         // Live updates while the app is visible (or music plays, told by the playback service), issue #18.
         liveSync.start()
+        // Keeps the covers of downloaded albums on the device, so they show offline (#154).
+        downloadedCovers.start()
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) = liveSync.setForeground(true)

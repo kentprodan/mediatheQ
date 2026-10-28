@@ -113,6 +113,12 @@ class JellyfinLibrarySource internal constructor(
             .build()
             .toString()
 
+    override suspend fun image(
+        baseUrl: String,
+        artwork: Artwork,
+        widthPx: Int,
+    ): MqResult<ByteArray> = http.bytes(imageUrl(baseUrl, artwork, widthPx))
+
     override suspend fun playlistEntries(
         server: SignedInServer,
         playlistId: MediaId,
