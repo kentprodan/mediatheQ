@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="downloads_title">Downloads</string>
-    <string name="downloads_storage_used">%1$s on this device</string>
     <string name="downloads_empty_title">No downloads yet</string>
     <string name="downloads_empty_body">Download albums, playlists or tracks from their menus to play them without a network.</string>
-    <string name="downloads_unknown_album">Unknown album</string>
+    <string name="downloads_section_downloading">Downloading</string>
+    <string name="downloads_section_albums">Albums</string>
+    <string name="downloads_section_playlists">Playlists</string>
+    <string name="downloads_section_songs">Songs</string>
+    <string name="downloads_size_duration">%1$s · %2$s</string>
+    <string name="downloads_free_space">%1$s free on this device</string>
+    <string name="downloads_play">Play</string>
+    <string name="downloads_shuffle">Shuffle</string>
     <string name="downloads_queued">Queued</string>
     <string name="downloads_converted">Converted copy</string>
     <string name="downloads_waiting_for_wifi">Waiting for Wi-Fi</string>
