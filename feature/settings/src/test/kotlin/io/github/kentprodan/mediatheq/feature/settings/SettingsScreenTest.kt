@@ -21,6 +21,16 @@ import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import androidx.compose.ui.test.filterToOne
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.isSelectable
+import io.github.kentprodan.mediatheq.core.data.AppFont
+import io.github.kentprodan.mediatheq.core.data.ColorSource
+import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
+import io.github.kentprodan.mediatheq.core.data.NowPlayingColors
+import io.github.kentprodan.mediatheq.core.data.ThemeMode
+import io.github.kentprodan.mediatheq.core.data.ThemePreferences
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqSeedPresets
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,6 +58,7 @@ class SettingsScreenTest {
                     { actions += it },
                     onOpenAudio = { events += "audio" },
                     onBack = { events += "back" },
+                    onOpenTheme = { events += "theme" },
                 )
             }
         }
@@ -158,7 +169,7 @@ class SettingsScreenTest {
     @Test
     fun `each page holds its own settings`() {
         show(SettingsPage.Interface)
-        assertRows("Material You colors", "Album grid columns", "Star ratings")
+        assertRows("Theme, font and colors", "Album grid columns", "Star ratings")
     }
 
     @Test
@@ -183,7 +194,7 @@ class SettingsScreenTest {
     fun `a page shows nothing until its settings are read`() {
         show(SettingsPage.Interface, SettingsUiState.Loading)
 
-        composeRule.onNodeWithText("Material You colors").assertDoesNotExist()
+        composeRule.onNodeWithText("Theme, font and colors").assertDoesNotExist()
     }
 
     @Test
@@ -192,5 +203,106 @@ class SettingsScreenTest {
 
         composeRule.onNode(isHeading() and hasText("Appearance")).assertExists()
         composeRule.onNode(isHeading() and hasText("Ratings")).assertExists()
+    }
+
+    @Test
+    fun `the interface page opens Theme, font and colors`() {
+        show(SettingsPage.Interface)
+
+        composeRule.onNodeWithText("Theme, font and colors").performClick()
+
+        assertThat(events).containsExactly("theme")
+    }
+
+    @Test
+    fun `the theme page holds the theme, Now playing, typography and restore settings`() {
+        show(SettingsPage.Theme)
+        assertRows(
+            "Theme mode",
+            "Default color source",
+            "Selected theme colors",
+            "Now playing color source",
+            "Ignore background and surfaces",
+            "Instant color updates",
+            "Restore defaults",
+        )
+    }
+
+    @Test
+    fun `a theme choice sends every theme setting with the one changed`() {
+        show(SettingsPage.Theme)
+
+        composeRule.onNodeWithText("Black").performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.SetTheme(ThemePreferences(mode = ThemeMode.Black)))
+    }
+
+    @Test
+    fun `the custom color shows only with the custom color source`() {
+        show(SettingsPage.Theme)
+        composeRule.onNodeWithContentDescription("Hue").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Custom color").performClick()
+        assertThat(actions).containsExactly(SettingsAction.SetTheme(ThemePreferences(colorSource = ColorSource.Custom)))
+    }
+
+    @Test
+    fun `a preset seed sets the custom color`() {
+        val theme = ThemePreferences(colorSource = ColorSource.Custom)
+        show(SettingsPage.Theme, SettingsUiState.Content("Home", "Ana", library = LibraryPreferences(theme = theme)))
+
+        composeRule.onNodeWithContentDescription("Color 3 of 8").performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.SetTheme(theme.copy(customSeed = MqSeedPresets[2])))
+    }
+
+    @Test
+    fun `the Now playing dialog shows the current choice, and a tap applies another and closes`() {
+        show(SettingsPage.Theme)
+        scrollTo("Now playing color source")
+
+        composeRule.onNodeWithText("Now playing color source").performClick()
+        composeRule.onNode(isSelectable() and hasText("Cover")).assertIsSelected()
+        composeRule.onNodeWithText("Cover vibrant").performClick()
+
+        assertThat(actions)
+            .containsExactly(SettingsAction.SetTheme(ThemePreferences(nowPlayingColors = NowPlayingColors.CoverVibrant)))
+        composeRule.onNodeWithText("Cover vibrant").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the typography dialog sets the font`() {
+        show(SettingsPage.Theme)
+        scrollTo("Typography")
+
+        composeRule.onAllNodesWithText("Typography").filterToOne(hasClickAction()).performClick()
+        composeRule.onNodeWithText("Lato").performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.SetTheme(ThemePreferences(font = AppFont.Lato)))
+    }
+
+    @Test
+    fun `restore defaults asks first, and Cancel changes nothing`() {
+        show(SettingsPage.Theme)
+        scrollTo("Restore defaults")
+
+        composeRule.onNodeWithText("Restore defaults").performClick()
+        composeRule.onNodeWithText("Restore all options on this page to their default value?").assertExists()
+        composeRule.onNodeWithText("Cancel").performClick()
+
+        assertThat(actions).isEmpty()
+        composeRule.onNodeWithText("Restore all options on this page to their default value?").assertDoesNotExist()
+    }
+
+    @Test
+    fun `restore defaults resets the page after confirming`() {
+        show(SettingsPage.Theme)
+        scrollTo("Restore defaults")
+
+        composeRule.onNodeWithText("Restore defaults").performClick()
+        // The group title says "Restore" too: the dialog's button is the clickable one.
+        composeRule.onNode(hasText("Restore") and hasClickAction()).performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.RestoreThemeDefaults)
     }
 }

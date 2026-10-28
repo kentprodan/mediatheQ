@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ProvidersSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.SettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.StorageSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.ThemeSettingsKey
 
 /**
  * Registers the Settings hub, its pages, the Audio page and the open-source licenses. [versionName] is the app's;
@@ -27,7 +28,15 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     val back: () -> Unit = { navigator.back() }
     val openAudio: () -> Unit = { navigator.navigateTo(AudioSettingsKey) }
     entry<SettingsKey> { SettingsHubScreen(onOpen = { navigator.navigateTo(it.key) }, onBack = back) }
-    entry<InterfaceSettingsKey> { SettingsPageRoute(SettingsPage.Interface, openAudio, back) }
+    entry<InterfaceSettingsKey> {
+        SettingsPageRoute(
+            SettingsPage.Interface,
+            openAudio,
+            back,
+            onOpenTheme = { navigator.navigateTo(ThemeSettingsKey) },
+        )
+    }
+    entry<ThemeSettingsKey> { SettingsPageRoute(SettingsPage.Theme, openAudio, back) }
     entry<PlaybackSettingsKey> { SettingsPageRoute(SettingsPage.Playback, openAudio, back) }
     entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openAudio, back) }
     entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openAudio, back) }

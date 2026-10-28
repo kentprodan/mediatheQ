@@ -9,4 +9,10 @@ object MediatheqSizes {
 
     /** An audio format badge (stereo, Dolby Atmos, ...) before a track's artists. */
     val formatBadge = 18.dp
+
+    /** A color swatch (Settings -> Theme, font and colors). */
+    val colorSwatch = 40.dp
+
+    /** The outline of a [colorSwatch], so a swatch in the surface's own color still shows. */
+    val swatchOutline = 1.dp
 }

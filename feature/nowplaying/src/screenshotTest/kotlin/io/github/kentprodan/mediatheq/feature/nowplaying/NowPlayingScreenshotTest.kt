@@ -5,9 +5,15 @@ import androidx.compose.runtime.Composable
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.preview.rememberPreviewCover
+import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColors
+import io.github.kentprodan.mediatheq.core.designsystem.theme.LocalMqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqCoverTheme
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqPlayerColors
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeMode
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
 import io.github.kentprodan.mediatheq.core.designsystem.theme.coverColorScheme
+import io.github.kentprodan.mediatheq.core.designsystem.theme.playerColorScheme
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -119,3 +125,42 @@ fun NowPlayingShuffleRepeatAllScreenshot() {
 fun NowPlayingRepeatOneScreenshot() {
     MediatheqTheme { Screen(playing.copy(repeatMode = RepeatMode.One)) }
 }
+
+/** The player color options of Settings -> Theme, font and colors (#121), with a fixed seed for the cover. */
+@Composable
+private fun PlayerColors(options: MqThemeOptions) {
+    MediatheqTheme(options) {
+        val colors =
+            CoverColors(
+                coverColorScheme(PREVIEW_COVER_SEED, isDark = false),
+                coverColorScheme(PREVIEW_COVER_SEED, isDark = true),
+                coverColorScheme(PREVIEW_COVER_SEED, isDark = false, vibrant = true),
+                coverColorScheme(PREVIEW_COVER_SEED, isDark = true, vibrant = true),
+            )
+        MqCoverTheme(playerColorScheme(colors, LocalMqTheme.current)) { Screen(playing.copy(isPlaying = false)) }
+    }
+}
+
+/** Now playing color source Off: the app theme. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingColorsOffScreenshot() = PlayerColors(MqThemeOptions(playerColors = MqPlayerColors.Off))
+
+/** Cover vibrant: SchemeVibrant from the cover seed. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingCoverVibrantScreenshot() = PlayerColors(MqThemeOptions(playerColors = MqPlayerColors.CoverVibrant))
+
+/** Cover colors with background and surfaces from the app theme. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingIgnoreSurfacesScreenshot() = PlayerColors(MqThemeOptions(ignoreSurfaces = true))
+
+/** Black mode: cover accents on pure black. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingBlackScreenshot() = PlayerColors(MqThemeOptions(mode = MqThemeMode.Black))
