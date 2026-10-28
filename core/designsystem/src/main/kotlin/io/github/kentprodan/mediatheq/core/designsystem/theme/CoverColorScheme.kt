@@ -10,6 +10,7 @@ import com.materialkolor.hct.Hct
 import com.materialkolor.quantize.QuantizerCelebi
 import com.materialkolor.scheme.DynamicScheme
 import com.materialkolor.scheme.SchemeContent
+import com.materialkolor.scheme.SchemeVibrant
 import com.materialkolor.score.Score
 
 /**
@@ -22,19 +23,24 @@ fun coverSeedColor(pixels: IntArray): Int? {
     return Score.score(quantized, desired = 1, fallbackColorArgb = null, filter = true).firstOrNull()
 }
 
-/** The full color scheme built from a cover's [seed] (MCU `SchemeContent`, spec 2025, ADR 0017). */
+/**
+ * The full color scheme built from [seed] (spec 2025): MCU `SchemeContent` for covers (ADR 0017), or `SchemeVibrant`
+ * when [vibrant], like Iris (ADR 0012) and custom colors.
+ */
 fun coverColorScheme(
     seed: Int,
     isDark: Boolean,
+    vibrant: Boolean = false,
 ): ColorScheme {
+    val hct = Hct.fromInt(seed)
+    val spec = ColorSpec.SpecVersion.SPEC_2025
+    val platform = DynamicScheme.Platform.PHONE
     val scheme =
-        SchemeContent(
-            sourceColorHct = Hct.fromInt(seed),
-            isDark = isDark,
-            contrastLevel = 0.0,
-            specVersion = ColorSpec.SpecVersion.SPEC_2025,
-            platform = DynamicScheme.Platform.PHONE,
-        )
+        if (vibrant) {
+            SchemeVibrant(hct, isDark, contrastLevel = 0.0, specVersion = spec, platform = platform)
+        } else {
+            SchemeContent(hct, isDark, contrastLevel = 0.0, specVersion = spec, platform = platform)
+        }
     val colors = MaterialDynamicColors()
     // Every role is set, so lightColorScheme's defaults never apply (also for dark schemes).
     return lightColorScheme(
