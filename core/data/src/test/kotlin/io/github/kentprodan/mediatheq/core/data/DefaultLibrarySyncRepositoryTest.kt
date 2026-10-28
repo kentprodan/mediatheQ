@@ -341,6 +341,46 @@ class DefaultLibrarySyncRepositoryTest {
         }
 
     @Test
+    fun `a sync shows as running while its first request is still out`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 10)
+            signIn()
+            val repository = repository()
+            source.pauseAt = 1
+
+            val sync = async { repository.sync() }
+            source.paused.await()
+
+            assertThat(repository.status.value).isEqualTo(SyncStatus.Running(SyncStep.AlbumArtists, 0, 0))
+            source.resume.complete(Unit)
+            sync.await()
+        }
+
+    @Test
+    fun `a resumed sync shows as running at its checkpoint while the first request is still out`() =
+        runTest(dispatcher) {
+            fillSource()
+            signIn()
+            val firstLife = CoroutineScope(backgroundScope.coroutineContext + Job())
+            source.pauseAt = 4 // tracks@500
+            firstLife.launch { repository(firstLife).sync() }
+            source.paused.await()
+            firstLife.cancel()
+            source.calls.clear()
+            source.pauseAt = null
+            source.holdAt = 1
+            val repository = repository()
+
+            val sync = async { repository.sync() }
+            source.held.await()
+
+            assertThat(source.calls).containsExactly("tracks@500")
+            assertThat(repository.status.value).isEqualTo(SyncStatus.Running(SyncStep.Tracks, 500, 0))
+            source.release.complete(Unit)
+            sync.await()
+        }
+
+    @Test
     fun `signing in starts the first sync`() =
         runTest(dispatcher) {
             fillSource(trackCount = 10)
