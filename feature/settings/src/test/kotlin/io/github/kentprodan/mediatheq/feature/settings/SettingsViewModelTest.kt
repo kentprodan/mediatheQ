@@ -2,13 +2,17 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
+import io.github.kentprodan.mediatheq.core.data.ThemeMode
+import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
@@ -113,7 +117,6 @@ class SettingsViewModelTest {
     @Test
     fun `display actions reach the library preferences`() =
         runTest {
-            viewModel.onAction(SettingsAction.SetDynamicColor(true))
             viewModel.onAction(SettingsAction.SetAlbumColumns(3))
             viewModel.onAction(SettingsAction.SetRatingMode(RatingMode.Off))
             viewModel.onAction(SettingsAction.SetOfflineMode(true))
@@ -122,7 +125,6 @@ class SettingsViewModelTest {
                 .isEqualTo(
                     LibraryPreferences(
                         albumColumns = 3,
-                        dynamicColor = true,
                         ratingMode = RatingMode.Off,
                         offlineMode = true,
                     ),
@@ -137,5 +139,18 @@ class SettingsViewModelTest {
             viewModel.onAction(SettingsAction.LogOut)
 
             assertThat(session.session.value).isEqualTo(SessionState.LoggedOut())
+        }
+
+    @Test
+    fun `theme actions reach the library preferences, and restore resets only the theme`() =
+        runTest {
+            val theme = ThemePreferences(ThemeMode.Black, ColorSource.Custom, font = AppFont.Lato)
+            viewModel.onAction(SettingsAction.SetAlbumColumns(3))
+
+            viewModel.onAction(SettingsAction.SetTheme(theme))
+            assertThat(library.preferences.value.theme).isEqualTo(theme)
+
+            viewModel.onAction(SettingsAction.RestoreThemeDefaults)
+            assertThat(library.preferences.value).isEqualTo(LibraryPreferences(albumColumns = 3))
         }
 }

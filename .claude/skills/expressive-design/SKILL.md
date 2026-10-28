@@ -54,35 +54,22 @@ APIs that changed a lot during 1.5 alphas - always check the current signature:
 
 ## 2. Theme
 
-```kotlin
-@Composable
-fun MediatheqTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    useDynamicColor: Boolean = false,      // user setting "Material You", default OFF
-    content: @Composable () -> Unit,
-) {
-    val colorScheme = when {
-        useDynamicColor && Build.VERSION.SDK_INT >= 31 ->
-            if (darkTheme) dynamicDarkColorScheme(LocalContext.current)
-            else dynamicLightColorScheme(LocalContext.current)
-        darkTheme -> IrisDarkColorScheme
-        else -> IrisLightColorScheme
-    }
-    MaterialExpressiveTheme(
-        colorScheme = colorScheme,
-        motionScheme = MotionScheme.expressive(),
-        shapes = MediatheqShapes,
-        typography = MediatheqTypography,
-        content = content,
-    )
-}
-```
+`MediatheqTheme(options: MqThemeOptions = MqThemeOptions(), systemDark = isSystemInDarkTheme())` (#121):
+
+- `MqThemeOptions` (design system types; `:app` maps the stored `ThemePreferences` to them): mode (System, Light,
+  Dark, Black, System light/black), color source (Iris, Material You, Custom seed), player colors (Off, Cover, Cover
+  vibrant), ignore surfaces, instant colors, font.
+- `appColorScheme(...)` picks the scheme (pure, unit-tested); Black = the dark scheme with `background`, `surface`,
+  `surfaceDim`, `surfaceContainerLowest` pure black (containers keep their tones).
+- A scheme change blends app-wide with the effects spec, unless instant colors is on. Schemes compare by identity:
+  `remember` them, or every recomposition restarts the blend.
+- `LocalMqTheme` carries the options and the resolved dark/black state for parts with their own colors (the player).
 
 ### Color - Iris
 
 - Default palette: **Iris**. Seed `#5B45D6` (light), primary in dark `#A391FF`.
 - Generate the full tonal schemes once with Material Theme Builder (seed `#5B45D6`, scheme variant per ADR), export to Kotlin, store as `IrisLightColorScheme` / `IrisDarkColorScheme`. Do not hand-pick individual roles.
-- Material You (dynamic color) is optional, off by default, Android 12+.
+- Material You (dynamic color) and a custom seed (`SchemeVibrant`, like Iris) are the other color sources (#121).
 - Screens use **color roles only** (`MaterialTheme.colorScheme.primaryContainer`, etc.). No hex values outside `theme/`.
 - Contrast: keep text on its matching `on*` role. No custom alpha on text below 0.6.
 
@@ -91,12 +78,15 @@ fun MediatheqTheme(
 - The Now Playing background and the mini player tint come from the current album cover.
 - Pipeline (exact libraries in ADR): Coil 3 bitmap -> seed color (Palette or color-utilities) -> full `ColorScheme` from seed -> wrap the player subtree in its own `MaterialTheme(colorScheme = coverScheme)`.
 - Cache the scheme per album ID. Never recompute on recomposition.
+- Options (#121): Off (app theme), Cover (`SchemeContent`), Cover vibrant (`SchemeVibrant`); "ignore background and
+  surfaces" keeps those roles from the app theme (merged after the blend); Black keeps the player black.
 - Fallback: Iris scheme when no cover or extraction fails.
 - Color changes between tracks animate with the **effects** spec (section 4), never snap.
 
 ### Typography
 
-- System font. No custom font files.
+- The system font by default; the user may pick a downloadable Google Font (ADR 0026), built in one place by
+  `mediatheqTypography(font)`. Display-only fonts apply to display/headline/title styles. No font files in the APK.
 - Use the default M3 type scale. For emphasis (album titles on Now Playing, hero headers) use the **emphasized** text styles if present in the pinned version; otherwise `FontWeight` bump in one central place in `MediatheqTypography`.
 - Never set `fontSize` inline in screens. Use `MaterialTheme.typography.*`.
 
@@ -126,6 +116,8 @@ fun MediatheqTheme(
 | Audio format badge (track rows) | `FormatBadgeIcon` in `:core:ui` (icons `MqIcons.Format*`, `MediatheqSizes.formatBadge` 18 dp, content color) | Before the artists (also when the line is replaced, e.g. Downloads): Dolby double-D (Atmos), five dots (surround / DTS:X), two dots (stereo), one dot (mono); none when the channels are unknown. Filled shapes, 20 of 24 wide. Named for TalkBack ("Dolby Atmos", "Surround 5.1", "Stereo"). |
 | Grouped settings | `SegmentedListItem` with `ListItemDefaults.segmentedShapes(index, count)`, `SegmentedGap` between rows, one tonal container (`surfaceContainerHigh`, also when checked) | Group title `titleMedium` primary, heading. Choices: `FilterChip`s in a `FlowRow` under the title and summary, selected one with a check. On/off: the checkable overload (whole row toggles) + `Switch(onCheckedChange = null)`. Log out in `error` color. |
 | Settings hub (#120) | `SettingsHubScreen` in `:feature:settings`: groups (Settings, Miscellaneous, About) of `SegmentedListItem` rows, leading icon (Material Symbols, `contentDescription = null`), whole row opens the page | Pages share `SettingsScaffold` (top bar with back + `LazyColumn` of groups). An entry is added in the issue that gives its page content; every page later gets "Restore defaults" (#121). |
+| Theme, font and colors (Settings -> Interface, #121) | Settings page (`SettingsPage.Theme`): chips for mode and color source, custom color = `MqColorSwatch` presets (`MqSeedPresets`) + hue `Slider` (saved on release), read-only swatches of the scheme on screen, choice dialogs (`MqDialog`, one row per option with a check, a tap applies and closes) | Swatches are `MqColorSwatch` (round, outlined, check when selected, radio semantics). |
+| Restore defaults (every settings page) | `restoreDefaultsGroup` + `RestoreDefaultsDialog` in `:feature:settings`: own group at the bottom, `MqIcons.Restore` leading; `MqDialog` with no title, Cancel / Restore | Resets only that page's settings. |
 | Play / Shuffle on album / artist header | `MqPlayShuffleButtons`: `Button` (Play, filled) + `FilledTonalButton` (Shuffle), half width each | Not the M3 `ButtonGroup` DSL: two plain buttons need no overflow menu and never collapse into one at fontScale 2.0. |
 | Artist picture (Artist header) | `MqArtistAvatar` in `:core:designsystem`: `MaterialShapes.Cookie9Sided`, person icon without a picture | Accent shape, artists only. |
 | Artist page sections (top tracks, albums, appears on) | `TrackRow(showCover = true)` + `AlbumCard` rows chunked by the Library column setting, inside one `LazyColumn` | Section titles: `titleMedium`, heading semantics. |
@@ -241,7 +233,7 @@ If an element is not in this table, pick the closest M3 component, then add a ro
 - No hex colors, raw `.dp`, `fontSize`, or custom `tween`/`spring` in feature modules.
 - No `@OptIn(ExperimentalMaterial3ExpressiveApi::class)` outside `:core:designsystem`.
 - No Liquid Glass / heavy blur / iOS-style translucency.
-- No custom fonts.
+- No font files and no per-screen fonts (fonts come only from `mediatheqTypography`, ADR 0026).
 - No `MaterialShapes` on album art.
 - No Material 2 (`androidx.compose.material`) imports.
 - No ripple/indication removal to "look cleaner".

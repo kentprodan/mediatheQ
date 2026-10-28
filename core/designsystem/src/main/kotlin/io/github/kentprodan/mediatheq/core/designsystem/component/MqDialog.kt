@@ -21,14 +21,15 @@ import androidx.compose.ui.semantics.semantics
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 
 /**
- * A basic dialog: [title], optional [content] (a text field, a message), then dismiss and confirm text buttons.
- * Dismissing also happens on back and on a tap outside.
+ * A basic dialog: [title] (none for a plain question), optional [content] (a text field, a message, a list of
+ * choices), then dismiss and confirm text buttons (no confirm button without [confirmLabel], e.g. when a choice applies
+ * on tap). Dismissing also happens on back and on a tap outside.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MqDialog(
-    title: String,
-    confirmLabel: String,
+    title: String?,
+    confirmLabel: String?,
     onConfirm: () -> Unit,
     dismissLabel: String,
     onDismiss: () -> Unit,
@@ -43,8 +44,8 @@ fun MqDialog(
 /** What [MqDialog] shows inside its window; on its own for screenshot tests (dialog windows render blank there). */
 @Composable
 fun MqDialogContent(
-    title: String,
-    confirmLabel: String,
+    title: String?,
+    confirmLabel: String?,
     onConfirm: () -> Unit,
     dismissLabel: String,
     onDismiss: () -> Unit,
@@ -53,13 +54,13 @@ fun MqDialogContent(
     content: @Composable () -> Unit = {},
 ) {
     Surface(
-        modifier.semantics { paneTitle = title },
+        modifier.semantics { title?.let { paneTitle = it } },
         shape = AlertDialogDefaults.shape,
         color = AlertDialogDefaults.containerColor,
         tonalElevation = AlertDialogDefaults.TonalElevation,
     ) {
         Column(Modifier.padding(MediatheqSpacing.xl), verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.l)) {
-            Text(title, style = MaterialTheme.typography.headlineSmall)
+            title?.let { Text(it, style = MaterialTheme.typography.headlineSmall) }
             // A long list scrolls inside the dialog instead of pushing the buttons out.
             Box(Modifier.weight(1f, fill = false)) { content() }
             Row(
@@ -67,7 +68,7 @@ fun MqDialogContent(
                 horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s, Alignment.End),
             ) {
                 TextButton(onClick = onDismiss) { Text(dismissLabel) }
-                TextButton(onClick = onConfirm, enabled = confirmEnabled) { Text(confirmLabel) }
+                confirmLabel?.let { TextButton(onClick = onConfirm, enabled = confirmEnabled) { Text(it) } }
             }
         }
     }

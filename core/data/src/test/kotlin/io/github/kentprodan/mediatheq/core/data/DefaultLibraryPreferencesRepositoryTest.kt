@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -103,7 +104,6 @@ class DefaultLibraryPreferencesRepositoryTest {
         runTest {
             val preferences = repository.preferences.first()
 
-            assertThat(preferences.dynamicColor).isFalse()
             assertThat(preferences.offlineMode).isFalse()
             assertThat(preferences.ratingMode).isEqualTo(RatingMode.WholeStars)
         }
@@ -111,14 +111,104 @@ class DefaultLibraryPreferencesRepositoryTest {
     @Test
     fun `display choices are kept, and an unknown rating mode means whole stars`() =
         runTest {
-            repository.setDynamicColor(true)
             repository.setRatingMode(RatingMode.HalfStars)
             repository.setOfflineMode(true)
-            assertThat(repository.preferences.first().dynamicColor).isTrue()
             assertThat(repository.preferences.first().offlineMode).isTrue()
             assertThat(repository.preferences.first().ratingMode).isEqualTo(RatingMode.HalfStars)
 
             dataStore.edit { it[stringPreferencesKey("rating_mode")] = "Hearts" }
             assertThat(repository.preferences.first().ratingMode).isEqualTo(RatingMode.WholeStars)
+        }
+
+    @Test
+    fun `the theme defaults to system mode, Iris, cover colors and the system font`() =
+        runTest {
+            assertThat(repository.preferences.first().theme)
+                .isEqualTo(
+                    ThemePreferences(
+                        mode = ThemeMode.System,
+                        colorSource = ColorSource.Iris,
+                        customSeed = 0xFF5B45D6.toInt(),
+                        nowPlayingColors = NowPlayingColors.Cover,
+                        ignoreSurfaces = false,
+                        instantColors = false,
+                        font = AppFont.System,
+                    ),
+                )
+        }
+
+    @Test
+    fun `every theme choice is kept, and a seed is made opaque`() =
+        runTest {
+            val theme =
+                ThemePreferences(
+                    ThemeMode.Black,
+                    ColorSource.Custom,
+                    0x00336699,
+                    NowPlayingColors.CoverVibrant,
+                    ignoreSurfaces = true,
+                    instantColors = true,
+                    font = AppFont.BebasNeue,
+                )
+
+            repository.setTheme(theme)
+
+            assertThat(repository.preferences.first().theme).isEqualTo(theme.copy(customSeed = 0xFF336699.toInt()))
+        }
+
+    @Test
+    fun `unknown theme values fall back to their defaults`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("theme_mode")] = "Sepia"
+                it[stringPreferencesKey("font")] = "Comic Sans"
+            }
+
+            assertThat(repository.preferences.first().theme).isEqualTo(ThemePreferences())
+        }
+
+    @Test
+    fun `the old Material You switch carries over until a color source is picked`() =
+        runTest {
+            dataStore.edit { it[booleanPreferencesKey("dynamic_color")] = true }
+            assertThat(
+                repository.preferences
+                    .first()
+                    .theme.colorSource,
+            ).isEqualTo(ColorSource.MaterialYou)
+
+            repository.setTheme(ThemePreferences(colorSource = ColorSource.Iris))
+            assertThat(
+                repository.preferences
+                    .first()
+                    .theme.colorSource,
+            ).isEqualTo(ColorSource.Iris)
+        }
+
+    @Test
+    fun `restoring the theme defaults resets only the theme`() =
+        runTest {
+            dataStore.edit { it[booleanPreferencesKey("dynamic_color")] = true }
+            repository.setTheme(ThemePreferences(ThemeMode.Dark, font = AppFont.Inter))
+            repository.setAlbumColumns(3)
+            repository.setRatingMode(RatingMode.Off)
+            repository.setOfflineMode(true)
+            repository.setSort(LibraryFilter.Albums, LibrarySort.Year)
+            repository.addRecentSearch("mosoi")
+
+            repository.restoreThemeDefaults()
+
+            val preferences = repository.preferences.first()
+            assertThat(preferences.theme).isEqualTo(ThemePreferences())
+            assertThat(preferences)
+                .isEqualTo(
+                    LibraryPreferences(
+                        albumColumns = 3,
+                        sorts = mapOf(LibraryFilter.Albums to LibrarySort.Year),
+                        ratingMode = RatingMode.Off,
+                        offlineMode = true,
+                    ),
+                )
+            assertThat(repository.recentSearches.first()).containsExactly("mosoi")
         }
 }

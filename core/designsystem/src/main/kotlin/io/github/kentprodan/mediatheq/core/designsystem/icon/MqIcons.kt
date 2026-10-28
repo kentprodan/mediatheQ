@@ -185,4 +185,10 @@ object MqIcons {
 
     val Info: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_info)
+
+    val Palette: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_palette)
+
+    val Restore: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_settings_backup_restore)
 }

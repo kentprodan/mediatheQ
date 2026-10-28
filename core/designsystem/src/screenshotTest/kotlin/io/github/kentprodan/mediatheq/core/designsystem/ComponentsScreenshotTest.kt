@@ -2,17 +2,21 @@ package io.github.kentprodan.mediatheq.core.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqArtistAvatar
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqColorSwatch
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialogContent
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
@@ -28,6 +32,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.preview.PREVIEW_BLUR_HAS
 import io.github.kentprodan.mediatheq.core.designsystem.preview.rememberPreviewCover
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqSeedPresets
 
 @PreviewTest
 @MqPreviews
@@ -171,6 +176,40 @@ fun FavoriteAndRatingScreenshot() {
                 listOf(null, 2, 6, 10).forEach { MqStarRating(halfStars = it, onRate = {}) }
                 listOf(1, 7).forEach { MqStarRating(halfStars = it, onRate = {}, allowHalf = true) }
             }
+        }
+    }
+}
+
+/** Color swatches: read-only samples, then choices with the selected one checked (light and dark colors). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun ColorSwatchesScreenshot() {
+    MediatheqTheme {
+        Surface {
+            FlowRow(
+                Modifier.padding(MediatheqSpacing.l),
+                horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
+            ) {
+                MqColorSwatch(MaterialTheme.colorScheme.primary, "Primary")
+                MqColorSwatch(MaterialTheme.colorScheme.surface, "Surface")
+                MqSeedPresets.forEachIndexed { index, seed ->
+                    MqColorSwatch(Color(seed), "Preset $index", selected = index == 0, onClick = {})
+                }
+                MqColorSwatch(Color.White, "White", selected = true, onClick = {})
+            }
+        }
+    }
+}
+
+/** A dialog without a title (a plain question, e.g. Restore defaults). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun DialogWithoutTitleScreenshot() {
+    MediatheqTheme {
+        MqDialogContent(null, "Restore", {}, "Cancel", {}) {
+            Text("Restore all options on this page to their default value?")
         }
     }
 }

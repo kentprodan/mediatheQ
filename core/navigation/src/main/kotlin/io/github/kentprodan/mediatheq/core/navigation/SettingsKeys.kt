@@ -11,6 +11,10 @@ data object SettingsKey : NavKey
 @Serializable
 data object InterfaceSettingsKey : NavKey
 
+/** Settings -> Interface -> Theme, font and colors (#121). */
+@Serializable
+data object ThemeSettingsKey : NavKey
+
 /** Settings -> Playback: streaming quality, normalization, Audio. */
 @Serializable
 data object PlaybackSettingsKey : NavKey

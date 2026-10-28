@@ -23,6 +23,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -42,6 +45,7 @@ enum class SettingsPage(
     @StringRes val title: Int,
 ) {
     Interface(R.string.settings_interface),
+    Theme(R.string.settings_theme),
     Playback(R.string.settings_playback),
     Storage(R.string.settings_storage_page),
     Providers(R.string.settings_providers),
@@ -52,10 +56,11 @@ internal fun SettingsPageRoute(
     page: SettingsPage,
     onOpenAudio: () -> Unit,
     onBack: () -> Unit,
+    onOpenTheme: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    SettingsPageScreen(page, state, viewModel::onAction, onOpenAudio, onBack)
+    SettingsPageScreen(page, state, viewModel::onAction, onOpenAudio, onBack, onOpenTheme)
 }
 
 /**
@@ -69,13 +74,20 @@ fun SettingsPageScreen(
     onAction: (SettingsAction) -> Unit,
     onOpenAudio: () -> Unit,
     onBack: () -> Unit,
+    onOpenTheme: () -> Unit = {},
 ) {
+    // Survives rotation; only the Theme page opens dialogs.
+    var dialog by rememberSaveable { mutableStateOf<ThemeDialog?>(null) }
     SettingsScaffold(stringResource(page.title), onBack) {
         val content = state as? SettingsUiState.Content ?: return@SettingsScaffold
         when (page) {
             SettingsPage.Interface -> {
-                item(key = "appearance") { AppearanceGroup(content.library, onAction) }
+                item(key = "appearance") { AppearanceGroup(content.library, onAction, onOpenTheme) }
                 item(key = "ratings") { RatingsGroup(content.library.ratingMode, onAction) }
+            }
+
+            SettingsPage.Theme -> {
+                themeGroups(content.library.theme, onAction) { dialog = it }
             }
 
             SettingsPage.Playback -> {
@@ -91,6 +103,8 @@ fun SettingsPageScreen(
             }
         }
     }
+    val theme = (state as? SettingsUiState.Content)?.library?.theme
+    if (theme != null) dialog?.let { ThemeDialogHost(it, theme, onAction) { dialog = null } }
 }
 
 /** Settings -> About: the version and the app's own pages; needs no settings. */
@@ -249,16 +263,17 @@ internal fun StorageGroup(
 internal fun AppearanceGroup(
     library: LibraryPreferences,
     onAction: (SettingsAction) -> Unit,
+    onOpenTheme: () -> Unit,
 ) {
     Group(R.string.settings_appearance) {
         item { shapes ->
-            SwitchItem(
-                shapes,
-                stringResource(R.string.settings_dynamic_color),
-                stringResource(R.string.settings_dynamic_color_summary),
-                checked = library.dynamicColor,
-                onCheckedChange = { onAction(SettingsAction.SetDynamicColor(it)) },
-            )
+            SegmentedListItem(
+                onClick = onOpenTheme,
+                shapes = shapes,
+                colors = settingsColors(),
+                supportingContent = { Text(stringResource(R.string.settings_theme_summary)) },
+                trailingContent = { Icon(MqIcons.Palette, contentDescription = null) },
+            ) { Text(stringResource(R.string.settings_theme)) }
         }
         item { shapes ->
             ChoiceItem(
@@ -376,7 +391,7 @@ private fun InfoItem(
 
 /** A whole-row switch: TalkBack reads title, summary and state as one control. */
 @Composable
-private fun SwitchItem(
+internal fun SwitchItem(
     shapes: ListItemShapes,
     title: String,
     summary: String,
@@ -395,7 +410,7 @@ private fun SwitchItem(
 
 /** A choice of a few values: the chips under the title, the selected one checked. */
 @Composable
-private fun <T> ChoiceItem(
+internal fun <T> ChoiceItem(
     shapes: ListItemShapes,
     title: String,
     summary: String?,

@@ -12,4 +12,6 @@ dependencies {
     implementation(libs.coil.compose)
     // Cover colors for the player (ADR 0017).
     implementation(libs.material.color.utilities)
+    // Downloadable fonts through Play services (ADR 0026).
+    implementation(libs.androidx.compose.ui.text.google.fonts)
 }

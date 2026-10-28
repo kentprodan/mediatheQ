@@ -11,7 +11,10 @@ interface LibraryPreferencesRepository {
     /** Ignored outside [LibraryPreferences.ALBUM_COLUMNS]. */
     suspend fun setAlbumColumns(columns: Int)
 
-    suspend fun setDynamicColor(on: Boolean)
+    suspend fun setTheme(theme: ThemePreferences)
+
+    /** Settings -> Theme, font and colors -> Restore defaults: only the theme goes back to [ThemePreferences]. */
+    suspend fun restoreThemeDefaults()
 
     suspend fun setRatingMode(mode: RatingMode)
 
