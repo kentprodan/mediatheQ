@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.database
 import androidx.room3.AutoMigration
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
+import io.github.kentprodan.mediatheq.core.database.dao.DownloadOriginDao
 import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
 import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
 import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
@@ -14,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.DownloadOriginEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PendingUserDataEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
@@ -30,7 +32,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 4,
+    version = 5,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -51,6 +53,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
         QueueEntryEntity::class,
         QueueStateEntity::class,
         PendingUserDataEntity::class,
+        DownloadOriginEntity::class,
     ],
     autoMigrations = [
         // 2: the saved play queue (#14) and an index on track.album_id.
@@ -59,6 +62,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
         AutoMigration(from = 2, to = 3),
         // 4: favorite and rating changes waiting for the server (#56).
         AutoMigration(from = 3, to = 4),
+        // 5: what each download was started from (#168).
+        AutoMigration(from = 4, to = 5),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {
@@ -71,4 +76,6 @@ abstract class MediatheqDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao
 
     abstract fun userDataDao(): UserDataDao
+
+    abstract fun downloadOriginDao(): DownloadOriginDao
 }

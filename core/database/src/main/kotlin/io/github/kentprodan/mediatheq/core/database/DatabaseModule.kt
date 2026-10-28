@@ -8,6 +8,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.github.kentprodan.mediatheq.core.database.dao.DownloadOriginDao
 import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
 import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
 import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
@@ -44,4 +45,7 @@ object DatabaseModule {
 
     @Provides
     fun userDataDao(database: MediatheqDatabase): UserDataDao = database.userDataDao()
+
+    @Provides
+    fun downloadOriginDao(database: MediatheqDatabase): DownloadOriginDao = database.downloadOriginDao()
 }
