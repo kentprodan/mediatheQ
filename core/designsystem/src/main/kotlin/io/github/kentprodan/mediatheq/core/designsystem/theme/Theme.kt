@@ -11,7 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * The app theme: colors per [options] ([appColorScheme]), expressive motion, [MediatheqTypography] and
+ * The app theme: colors per [options] ([appColorScheme]), expressive motion, [mediatheqTypography] and
  * [MediatheqShapes]. A color change blends app-wide unless [MqThemeOptions.instantColors].
  */
 @Composable
@@ -37,7 +37,7 @@ fun MediatheqTheme(
             colorScheme = colorScheme,
             motionScheme = motionScheme,
             shapes = MediatheqShapes,
-            typography = MediatheqTypography,
+            typography = remember(options.font) { mediatheqTypography(options.font) },
             content = content,
         )
     }

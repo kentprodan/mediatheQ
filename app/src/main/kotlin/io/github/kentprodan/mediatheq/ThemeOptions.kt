@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.data.NowPlayingColors
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqColorSource
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqFont
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqPlayerColors
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeMode
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
@@ -35,4 +36,5 @@ fun ThemePreferences.toThemeOptions(): MqThemeOptions =
             },
         ignoreSurfaces = ignoreSurfaces,
         instantColors = instantColors,
+        font = MqFont.valueOf(font.name),
     )

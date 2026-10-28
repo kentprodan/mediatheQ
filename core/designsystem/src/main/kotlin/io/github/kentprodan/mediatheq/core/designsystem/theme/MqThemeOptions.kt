@@ -12,6 +12,20 @@ enum class MqColorSource { Iris, MaterialYou, Custom }
 /** Where the player's colors come from: the app theme, or the cover (`SchemeContent`, or `SchemeVibrant`). */
 enum class MqPlayerColors { Off, Cover, CoverVibrant }
 
+/** The app font (ADR 0026): whole fonts, a heading/body pair, or display fonts for headings only. */
+enum class MqFont {
+    System,
+    Inter,
+    Lato,
+    Nunito,
+    Roboto,
+    RobotoSlab,
+    LexendDeca,
+    BitterRubik,
+    BebasNeue,
+    CastoroTitling,
+}
+
 /** What [MediatheqTheme] draws with (#121); `:app` maps the stored settings to it. */
 @Immutable
 data class MqThemeOptions(
@@ -24,6 +38,7 @@ data class MqThemeOptions(
     val ignoreSurfaces: Boolean = false,
     /** No color animation on theme or cover changes. */
     val instantColors: Boolean = false,
+    val font: MqFont = MqFont.System,
 ) {
     /** Whether the theme is dark when the system is [systemDark]. */
     fun isDark(systemDark: Boolean): Boolean =

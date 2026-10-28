@@ -30,6 +30,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0023](0023-baseline-profile-and-macrobenchmarks.md) | Baseline profile and macrobenchmarks in `:baselineprofile` | Accepted |
 | [0024](0024-converted-downloads.md) | Converted downloads are one progressive Opus file | Accepted |
 | [0025](0025-milestones-by-platform-and-tests.md) | Milestones by platform, a Polish milestone and a Tests milestone | Accepted |
+| [0026](0026-downloadable-google-fonts.md) | App fonts are downloadable Google Fonts | Accepted |
 
 Template for new ADRs:
 
