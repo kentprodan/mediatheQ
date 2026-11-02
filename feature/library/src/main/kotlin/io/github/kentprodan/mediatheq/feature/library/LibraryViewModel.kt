@@ -17,14 +17,18 @@ import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
+import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.tracksOfAlbums
 import io.github.kentprodan.mediatheq.core.data.tracksOfArtists
 import io.github.kentprodan.mediatheq.core.data.tracksOfPlaylists
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -67,6 +71,8 @@ class LibraryViewModel
             fixedFilter?.let { MutableStateFlow(it) } ?: savedStateHandle.getStateFlow(FILTER_KEY, LibraryFilter.Albums)
 
         private val listFilter = MutableStateFlow(LibraryListFilter())
+        private val selection = MutableStateFlow(ListSelection<MediaId>())
+        private val addToPlaylist = MutableStateFlow<List<MediaId>?>(null)
 
         // The failed sync the user already saw as a snackbar; the same failure is not shown twice.
         private val shownFailure = MutableStateFlow<SyncStatus.Failed?>(null)
@@ -112,13 +118,13 @@ class LibraryViewModel
                 preferencesRepository.preferences,
                 this.shown,
                 combine(sync, libraryRepository.offline, ::Pair),
-                shownFailure,
+                combine(shownFailure, selection, addToPlaylist, ::Triple),
             ) {
                 filter,
                 preferences,
                 items,
                 (sync, offline),
-                shown,
+                (shown, selection, addToPlaylist),
                 ->
                 val (status, everSynced) = sync
                 val content =
@@ -146,6 +152,9 @@ class LibraryViewModel
                     header = preferences.mediaLists,
                     listFilter = items.listFilter,
                     itemCount = content.itemCount,
+                    // Items can leave the list (a filter, a sync) while selected.
+                    selection = selection.retain(content.ids),
+                    addToPlaylist = addToPlaylist,
                 )
             }.stateIn(
                 viewModelScope,
@@ -158,6 +167,40 @@ class LibraryViewModel
             when (action) {
                 is LibraryAction.SelectFilter -> {
                     if (fixedFilter == null) savedStateHandle[FILTER_KEY] = action.filter
+                    selection.value = ListSelection()
+                }
+
+                is LibraryAction.ToggleSelection -> {
+                    selection.update { it.retain(uiState.value.content.ids).toggle(action.id) }
+                }
+
+                LibraryAction.SelectAll -> {
+                    selection.value = ListSelection<MediaId>().selectAll(uiState.value.content.ids)
+                }
+
+                LibraryAction.ClearSelection -> {
+                    selection.value = ListSelection()
+                }
+
+                is LibraryAction.OnSelection -> {
+                    val state = uiState.value
+                    val picked = state.content.picked(state.selection)
+                    selection.value = ListSelection()
+                    launch {
+                        val tracks = tracksOf(picked)
+                        when (action.command) {
+                            SelectionCommand.Play -> commands.run(TopButton.Play, tracks)
+                            SelectionCommand.PlayNext -> commands.run(TopButton.PlayNext, tracks)
+                            SelectionCommand.AddToQueue -> commands.run(TopButton.AddToQueue, tracks)
+                            SelectionCommand.Download -> commands.download(tracks)
+                            SelectionCommand.Favorite -> commands.toggleFavorite(tracks)
+                            SelectionCommand.AddToPlaylist -> addToPlaylist.value = tracks.map { it.id }
+                        }
+                    }
+                }
+
+                LibraryAction.AddToPlaylistShown -> {
+                    addToPlaylist.value = null
                 }
 
                 is LibraryAction.SetFavoritesOnly -> {

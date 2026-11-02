@@ -41,9 +41,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -59,6 +62,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBarStyle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
+import io.github.kentprodan.mediatheq.core.designsystem.component.bottomBarsPadding
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
@@ -71,6 +75,8 @@ import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.NothingDownloaded
 import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
+import io.github.kentprodan.mediatheq.core.ui.SelectionToolbar
+import io.github.kentprodan.mediatheq.core.ui.SelectionToolbarSpace
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 
@@ -117,8 +123,17 @@ fun LibraryScreen(
     /** Back from a list that is not a navigation tab; `null` hides the button. */
     onBack: (() -> Unit)? = null,
 ) {
-    // Back closes search in list first.
-    BackHandler(enabled = state.listFilter.search != null) { onAction(LibraryAction.Search(null)) }
+    // Back ends selecting first, then closes search in list.
+    BackHandler(enabled = state.selection.isActive) { onAction(LibraryAction.ClearSelection) }
+    BackHandler(enabled = state.listFilter.search != null && !state.selection.isActive) {
+        onAction(LibraryAction.Search(null))
+    }
+    LaunchedEffect(state.addToPlaylist) {
+        state.addToPlaylist?.let {
+            onAddToPlaylist(it)
+            onAction(LibraryAction.AddToPlaylistShown)
+        }
+    }
     val swipe =
         trackSwipes(
             onAddToPlaylist,
@@ -140,7 +155,15 @@ fun LibraryScreen(
     }
     Scaffold(
         modifier = modifier,
-        topBar = { LibraryHeader(state, onAction, onNewPlaylist, onBack, onSelect = null) },
+        topBar = {
+            LibraryHeader(
+                state,
+                onAction,
+                onNewPlaylist,
+                onBack,
+                onSelect = { onAction(LibraryAction.SelectAll) },
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         // The app shell already pads for the navigation bar.
         contentWindowInsets = WindowInsets(0),
@@ -178,6 +201,15 @@ fun LibraryScreen(
                     onOpenDownloads = onOpenDownloads,
                     onSwipe = swipe,
                 )
+                if (state.selection.isActive) {
+                    SelectionToolbar(
+                        state.selection.size,
+                        onCommand = { onAction(LibraryAction.OnSelection(it)) },
+                        onSelectAll = { onAction(LibraryAction.SelectAll) },
+                        onClear = { onAction(LibraryAction.ClearSelection) },
+                        modifier = Modifier.align(Alignment.BottomCenter).bottomBarsPadding(),
+                    )
+                }
             }
         }
     }
@@ -202,7 +234,25 @@ private fun LibraryContentView(
     onOpenDownloads: () -> Unit,
     onSwipe: (Track, Boolean) -> Unit,
 ) {
-    val listPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()
+    val selection = state.selection
+    // While selecting, the last items can scroll up from under the floating toolbar.
+    val bottom = if (selection.isActive) SelectionToolbarSpace else MediatheqSpacing.l
+    val listPadding = PaddingValues(bottom = bottom).plusBottomBars()
+    val haptics = LocalHapticFeedback.current
+    val longPress = { id: MediaId ->
+        {
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            onAction(LibraryAction.ToggleSelection(id))
+        }
+    }
+
+    /** A tap toggles while selecting, else [open]s. */
+    fun tap(
+        id: MediaId,
+        open: () -> Unit,
+    ): () -> Unit = { if (selection.isActive) onAction(LibraryAction.ToggleSelection(id)) else open() }
+
+    fun selected(id: MediaId): Boolean? = if (selection.isActive) id in selection else null
     when (val content = state.content) {
         LibraryContent.Loading -> {
             MqLoadingIndicator(Modifier.fillMaxSize())
@@ -262,14 +312,25 @@ private fun LibraryContentView(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(state.albumColumns),
                 state = states.albums,
-                contentPadding = PaddingValues(MediatheqSpacing.l).plusBottomBars(),
+                contentPadding =
+                    PaddingValues(
+                        start = MediatheqSpacing.l,
+                        top = MediatheqSpacing.l,
+                        end = MediatheqSpacing.l,
+                        bottom = bottom,
+                    ).plusBottomBars(),
                 horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
                 verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
                 modifier = Modifier.fillMaxSize(),
             ) {
                 // Keys must be saveable in a Bundle (scroll restoration), so the id goes in as text.
                 items(content.albums, key = { it.id.toString() }) { album ->
-                    AlbumCard(album, onClick = { onOpenAlbum(album.id) })
+                    AlbumCard(
+                        album,
+                        onClick = tap(album.id) { onOpenAlbum(album.id) },
+                        onLongClick = longPress(album.id),
+                        selected = selected(album.id),
+                    )
                 }
             }
         }
@@ -277,7 +338,12 @@ private fun LibraryContentView(
         is LibraryContent.Artists -> {
             LazyColumn(Modifier.fillMaxSize(), states.artists, contentPadding = listPadding) {
                 items(content.artists, key = { it.id.toString() }) { artist ->
-                    ArtistRow(artist, onClick = { onOpenArtist(artist.id) })
+                    ArtistRow(
+                        artist,
+                        onClick = tap(artist.id) { onOpenArtist(artist.id) },
+                        onLongClick = longPress(artist.id),
+                        selected = selected(artist.id),
+                    )
                 }
             }
         }
@@ -285,7 +351,12 @@ private fun LibraryContentView(
         is LibraryContent.Playlists -> {
             LazyColumn(Modifier.fillMaxSize(), states.playlists, contentPadding = listPadding) {
                 items(content.playlists, key = { it.id.toString() }) { playlist ->
-                    PlaylistRow(playlist, onClick = { onOpenPlaylist(playlist.id) })
+                    PlaylistRow(
+                        playlist,
+                        onClick = tap(playlist.id) { onOpenPlaylist(playlist.id) },
+                        onLongClick = longPress(playlist.id),
+                        selected = selected(playlist.id),
+                    )
                 }
             }
         }
@@ -293,23 +364,30 @@ private fun LibraryContentView(
         is LibraryContent.Songs -> {
             LazyColumn(Modifier.fillMaxSize(), states.songs, contentPadding = listPadding) {
                 items(content.tracks, key = { it.id.toString() }) { track ->
-                    TrackRow(track, onClick = {
-                        onAction(
-                            LibraryAction.PlayTrack(track),
-                        )
-                    }, showCover = true, menuItems = { close ->
-                        QueueMenuItems(
-                            onPlayNext = { onAction(LibraryAction.PlayNext(track)) },
-                            onAddToQueue = { onAction(LibraryAction.AddToQueue(track)) },
-                            close = close,
-                        )
-                        FavoriteMenuItem(
-                            track.userData.isFavorite,
-                            { onAction(LibraryAction.SetFavorite(track, it)) },
-                            close,
-                        )
-                        DownloadMenuItem({ onAction(LibraryAction.Download(track)) }, close)
-                    }, onSwipe = { onSwipe(track, it) })
+                    TrackRow(
+                        track,
+                        onClick =
+                            tap(track.id) {
+                                onAction(LibraryAction.PlayTrack(track))
+                            },
+                        showCover = true,
+                        onLongClick = longPress(track.id),
+                        selected = selected(track.id),
+                        menuItems = { close ->
+                            QueueMenuItems(
+                                onPlayNext = { onAction(LibraryAction.PlayNext(track)) },
+                                onAddToQueue = { onAction(LibraryAction.AddToQueue(track)) },
+                                close = close,
+                            )
+                            FavoriteMenuItem(
+                                track.userData.isFavorite,
+                                { onAction(LibraryAction.SetFavorite(track, it)) },
+                                close,
+                            )
+                            DownloadMenuItem({ onAction(LibraryAction.Download(track)) }, close)
+                        },
+                        onSwipe = { onSwipe(track, it) },
+                    )
                 }
             }
         }

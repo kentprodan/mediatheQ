@@ -12,6 +12,20 @@ fun ArtistRow(
     artist: Artist,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Long press, e.g. to start selecting; `null` for none. */
+    onLongClick: (() -> Unit)? = null,
+    /** In a multi-select list: whether this row is selected. `null` outside selection. */
+    selected: Boolean? = null,
 ) {
-    CoverRow(artist.name, artist.artwork, MqIcons.Person, onClick, modifier, coverShape = CircleShape)
+    CoverRow(
+        artist.name,
+        artist.artwork,
+        MqIcons.Person,
+        onClick,
+        modifier,
+        coverShape = CircleShape,
+        isFavorite = artist.userData.isFavorite,
+        onLongClick = onLongClick,
+        selected = selected,
+    )
 }

@@ -31,6 +31,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -281,6 +282,61 @@ class LibraryViewModelTest {
                     .queue
                     .map { it.id.itemId }
             assertThat(queued).containsExactly("t2", "t1", "t3").inOrder()
+        }
+
+    @Test
+    fun `selection toggles, selects all, clears, and ends on a tab switch`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a1")))
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a2")))
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a1")))
+            assertThat(viewModel.uiState.value.selection.keys).containsExactly(id("a2"))
+
+            viewModel.onAction(LibraryAction.SelectAll)
+            assertThat(viewModel.uiState.value.selection.size).isEqualTo(3)
+
+            viewModel.onAction(LibraryAction.ClearSelection)
+            assertThat(viewModel.uiState.value.selection.isActive).isFalse()
+
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a1")))
+            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
+            assertThat(viewModel.uiState.value.selection.isActive).isFalse()
+        }
+
+    @Test
+    fun `a selection action runs on the selected albums' tracks in list order and ends selecting`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            library.tracks.value =
+                listOf(
+                    tracks[0].copy(albumId = id("a1")),
+                    tracks[1].copy(albumId = id("a3")),
+                    tracks[2].copy(albumId = id("a2")),
+                )
+
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a1")))
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a3")))
+            viewModel.onAction(LibraryAction.OnSelection(SelectionCommand.AddToQueue))
+
+            // By name: B (a3) before Moșoi (a1).
+            assertThat(playback.addedToQueue.single().map { it.id.itemId }).containsExactly("t2", "t1").inOrder()
+            assertThat(viewModel.uiState.value.selection.isActive).isFalse()
+        }
+
+    @Test
+    fun `add to playlist from a selection hands its tracks to the screen once`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
+
+            viewModel.onAction(LibraryAction.ToggleSelection(id("t3")))
+            viewModel.onAction(LibraryAction.OnSelection(SelectionCommand.AddToPlaylist))
+            assertThat(viewModel.uiState.value.addToPlaylist).containsExactly(id("t3"))
+
+            viewModel.onAction(LibraryAction.AddToPlaylistShown)
+            assertThat(viewModel.uiState.value.addToPlaylist).isNull()
         }
 
     @Test

@@ -9,8 +9,11 @@ import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 
 /**
  * The Library tab. The filter bar and top bar show in every state, so this wraps [content] instead of being a sealed
@@ -36,6 +39,10 @@ data class LibraryUiState(
     val listFilter: LibraryListFilter = LibraryListFilter(),
     /** Items in the list as filtered. */
     val itemCount: Int = 0,
+    /** Multi-select (#123): the selected albums, artists, playlists or songs of this tab. */
+    val selection: ListSelection<MediaId> = ListSelection(),
+    /** Tracks of a selection to add to a playlist: the picker opens, then [LibraryAction.AddToPlaylistShown]. */
+    val addToPlaylist: List<MediaId>? = null,
 )
 
 /** What the list area shows. */
@@ -136,6 +143,23 @@ sealed interface LibraryAction {
     data class Search(
         val text: String?,
     ) : LibraryAction
+
+    /** A long press starts selecting with an item; while selecting a tap toggles one. */
+    data class ToggleSelection(
+        val id: MediaId,
+    ) : LibraryAction
+
+    data object SelectAll : LibraryAction
+
+    /** Clear or Back: selecting ends. */
+    data object ClearSelection : LibraryAction
+
+    /** A selection toolbar action on the selected items (by their tracks); selecting ends. */
+    data class OnSelection(
+        val command: SelectionCommand,
+    ) : LibraryAction
+
+    data object AddToPlaylistShown : LibraryAction
 
     /** A top button of the header: acts on the whole list as filtered and sorted. */
     data class Top(

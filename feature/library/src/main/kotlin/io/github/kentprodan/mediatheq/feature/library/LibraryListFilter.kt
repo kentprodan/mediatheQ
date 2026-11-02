@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.library
 
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
 import java.text.Normalizer
 
 /**
@@ -78,6 +79,27 @@ internal fun LibraryContent.filtered(
         }
     }
 }
+
+/** The ids of [this] content's items, in list order. */
+internal val LibraryContent.ids: List<MediaId>
+    get() =
+        when (this) {
+            is LibraryContent.Albums -> albums.map { it.id }
+            is LibraryContent.Artists -> artists.map { it.id }
+            is LibraryContent.Playlists -> playlists.map { it.id }
+            is LibraryContent.Songs -> tracks.map { it.id }
+            else -> emptyList()
+        }
+
+/** [this] content with only the [selection]'s items, in list order. */
+internal fun LibraryContent.picked(selection: ListSelection<MediaId>): LibraryContent =
+    when (this) {
+        is LibraryContent.Albums -> LibraryContent.Albums(selection.pick(albums) { it.id })
+        is LibraryContent.Artists -> LibraryContent.Artists(selection.pick(artists) { it.id })
+        is LibraryContent.Playlists -> LibraryContent.Playlists(selection.pick(playlists) { it.id })
+        is LibraryContent.Songs -> LibraryContent.Songs(selection.pick(tracks) { it.id })
+        else -> this
+    }
 
 /** How many items [this] content lists; 0 for the states without items. */
 internal val LibraryContent.itemCount: Int

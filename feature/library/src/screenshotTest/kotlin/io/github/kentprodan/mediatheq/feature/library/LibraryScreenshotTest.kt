@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
 
 private val albums =
@@ -178,3 +179,28 @@ fun LibraryHeaderHiddenButtonsScreenshot() =
 @Composable
 fun LibraryNoMatchesScreenshot() =
     Library(LibraryUiState(content = LibraryContent.NoMatches, listFilter = LibraryListFilter(search = "zzz")))
+
+/** Selecting (#123): two albums checked, the selection toolbar at the bottom. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibrarySelectionScreenshot() =
+    Library(
+        LibraryUiState(
+            content = LibraryContent.Albums(albums),
+            selection = ListSelection(setOf(albums[0].id, albums[3].id)),
+        ),
+    )
+
+/** Selecting songs: checked rows, no menus. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibrarySongsSelectionScreenshot() =
+    Library(
+        LibraryUiState(
+            filter = LibraryFilter.Songs,
+            content = LibraryContent.Songs(songs),
+            selection = ListSelection(setOf(songs[1].id)),
+        ),
+    )
