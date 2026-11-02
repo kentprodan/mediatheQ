@@ -124,11 +124,14 @@ internal class MediaControllerPlaybackConnection
 
         override fun playNext(tracks: List<Track>) {
             if (tracks.isEmpty()) return
+            // A play that never produced a track must not open the player for this one.
+            expandRequested.value = false
             command { it.playNext(tracks.toMediaItems()) }
         }
 
         override fun addToQueue(tracks: List<Track>) {
             if (tracks.isEmpty()) return
+            expandRequested.value = false
             command { it.addToQueue(tracks.toMediaItems()) }
         }
 

@@ -77,10 +77,12 @@ class FakePlaybackConnection : PlaybackConnection {
 
     override fun playNext(tracks: List<Track>) {
         playedNext += tracks
+        expandRequested.value = false
     }
 
     override fun addToQueue(tracks: List<Track>) {
         addedToQueue += tracks
+        expandRequested.value = false
     }
 
     override fun moveQueueItem(

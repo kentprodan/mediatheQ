@@ -15,7 +15,8 @@ val SLOW_START_THRESHOLD = 3.seconds
 
 /**
  * The tracks whose start is slow (e.g. the server converting them, #122): buffering for [threshold] since they became
- * current, before they were ever ready. Rebuffering in the middle of a track is not a slow start. Once per queue entry.
+ * current, before they were ever ready, while the player wants to play (a restored queue prepared paused does not
+ * count). Rebuffering in the middle of a track is not a slow start. Once per queue entry.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 fun Flow<PlayerUiModel>.slowStarts(threshold: Duration = SLOW_START_THRESHOLD): Flow<NowPlayingItem> =
@@ -46,7 +47,11 @@ private data class StartWatch(
         return StartWatch(
             entry,
             started,
-            if (entry != null && item != null && !started && state.isBuffering) Preparing(entry, item) else null,
+            if (entry != null && item != null && !started && state.isBuffering && state.isPlaying) {
+                Preparing(entry, item)
+            } else {
+                null
+            },
         )
     }
 }

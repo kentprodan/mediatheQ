@@ -95,7 +95,8 @@ class MainViewModelTest {
         runTest(mainDispatcherRule.testDispatcher) {
             viewModel.slowStart.test {
                 assertThat(awaitItem()).isNull()
-                playback.state.value = PlayerUiModel(item = strobe, currentEntryId = "e1", isBuffering = true)
+                playback.state.value =
+                    PlayerUiModel(item = strobe, currentEntryId = "e1", isPlaying = true, isBuffering = true)
                 advanceTimeBy(SLOW_START_THRESHOLD + 1.seconds)
                 assertThat(awaitItem()).isEqualTo(strobe)
 
@@ -110,7 +111,8 @@ class MainViewModelTest {
             libraryPreferences.setNavigation(NavigationPreferences(slowStartMessages = false))
             viewModel.slowStart.test {
                 assertThat(awaitItem()).isNull()
-                playback.state.value = PlayerUiModel(item = strobe, currentEntryId = "e1", isBuffering = true)
+                playback.state.value =
+                    PlayerUiModel(item = strobe, currentEntryId = "e1", isPlaying = true, isBuffering = true)
                 advanceTimeBy(SLOW_START_THRESHOLD + 1.seconds)
                 expectNoEvents()
             }

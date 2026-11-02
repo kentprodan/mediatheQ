@@ -472,5 +472,21 @@ class NowPlayingViewModelTest {
             }
         }
 
+    @Test
+    fun `a play that produced no track does not open the player when something is queued later`() =
+        runTest {
+            libraryPreferences.setNavigation(NavigationPreferences(expandPlayer = true))
+            val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences)
+            viewModel.autoExpand.test {
+                assertThat(awaitItem()).isFalse()
+
+                playback.play(listOf(track()))
+                playback.addToQueue(listOf(track()))
+                playback.state.value = playing
+
+                expectNoEvents()
+            }
+        }
+
     private fun track() = Track(MediaId(ServerId("s"), "t1"), "Strobe", emptyList(), 10.minutes)
 }

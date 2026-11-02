@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FloatingToolbarDefaults
@@ -95,7 +95,7 @@ fun AppShell(
             modifier =
                 if (rail) {
                     Modifier.consumeWindowInsets(
-                        WindowInsets.systemBars.only(WindowInsetsSides.Start),
+                        WindowInsets.safeDrawing.only(WindowInsetsSides.Start),
                     )
                 } else {
                     Modifier
@@ -176,7 +176,8 @@ private fun ShellContent(
             end = padding.calculateEndPadding(direction),
         )
     // Covers fly between screens of a tab (grid -> album). Inside the Scaffold, so they never draw over the bar.
-    SharedTransitionLayout(Modifier.padding(aboveBars).consumeWindowInsets(aboveBars)) {
+    // The bottom inset is consumed too: screens get it through LocalBottomBarsPadding, never twice.
+    SharedTransitionLayout(Modifier.padding(aboveBars).consumeWindowInsets(padding)) {
         CompositionLocalProvider(
             LocalSharedTransitionScope provides this,
             LocalBottomBarsPadding provides padding.calculateBottomPadding(),

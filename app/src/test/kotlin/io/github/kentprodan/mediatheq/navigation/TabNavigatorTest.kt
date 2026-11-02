@@ -108,6 +108,25 @@ class TabNavigatorTest {
     }
 
     @Test
+    fun `a removed selected tab does not come back by itself when re-added`() {
+        var tabs by mutableStateOf(listOf(TopLevelTab.Home, TopLevelTab.Tracks))
+        val navigator =
+            TabNavigator(
+                TopLevelTab.entries.associateWith { mutableListOf(it.rootKey) },
+                mutableStateOf(TopLevelTab.Home),
+            ) {
+                tabs
+            }
+        navigator.select(TopLevelTab.Tracks)
+
+        tabs = listOf(TopLevelTab.Home)
+        navigator.forgetRemovedTab()
+        tabs = listOf(TopLevelTab.Home, TopLevelTab.Tracks)
+
+        assertThat(navigator.currentTab).isEqualTo(TopLevelTab.Home)
+    }
+
+    @Test
     fun `changing the tabs keeps the stacks of the remaining ones`() {
         var tabs by mutableStateOf(DefaultTabs)
         val navigator =

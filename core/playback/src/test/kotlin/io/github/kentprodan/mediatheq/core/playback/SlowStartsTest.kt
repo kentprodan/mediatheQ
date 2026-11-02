@@ -31,8 +31,16 @@ class SlowStartsTest {
         entry: String,
         buffering: Boolean = false,
         ready: Boolean = false,
+        playing: Boolean = true,
     ) {
-        state.value = PlayerUiModel(item = item, currentEntryId = entry, isBuffering = buffering, isReady = ready)
+        state.value =
+            PlayerUiModel(
+                item = item,
+                currentEntryId = entry,
+                isPlaying = playing,
+                isBuffering = buffering,
+                isReady = ready,
+            )
         runCurrent()
     }
 
@@ -93,6 +101,17 @@ class SlowStartsTest {
             wait(3.seconds)
 
             assertThat(seen).containsExactly(ghosts)
+        }
+
+    @Test
+    fun `a restored queue loading while paused is not a slow start`() =
+        runTest {
+            val seen = slowStarts()
+
+            current(strobe, "e1", buffering = true, playing = false)
+            wait(10.seconds)
+
+            assertThat(seen).isEmpty()
         }
 
     @Test

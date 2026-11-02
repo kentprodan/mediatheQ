@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +44,11 @@ class TabNavigator(
     /** The back stack of [tab]. */
     fun stack(tab: TopLevelTab): List<NavKey> = stacks.getValue(tab)
 
+    /** After [tabs] changed: a selected tab that was removed is forgotten, so re-adding it later does not open it. */
+    fun forgetRemovedTab() {
+        if (selectedTab !in tabs) selectedTab = TopLevelTab.Home
+    }
+
     /** Navigation click: switch to [tab], or pop it to its root when it is already selected. */
     fun select(tab: TopLevelTab) {
         if (tab == currentTab) {
@@ -83,5 +89,7 @@ fun rememberTabNavigator(tabs: List<TopLevelTab> = DefaultTabs): TabNavigator {
     val stacks = TopLevelTab.entries.associateWith { rememberNavBackStack(it.rootKey) }
     val selectedTab = rememberSaveable { mutableStateOf(TopLevelTab.Home) }
     val currentTabs by rememberUpdatedState(tabs)
-    return remember(stacks, selectedTab) { TabNavigator(stacks, selectedTab) { currentTabs } }
+    val navigator = remember(stacks, selectedTab) { TabNavigator(stacks, selectedTab) { currentTabs } }
+    LaunchedEffect(navigator, tabs) { navigator.forgetRemovedTab() }
+    return navigator
 }
