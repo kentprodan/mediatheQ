@@ -34,12 +34,14 @@ internal fun CoverRow(
     coverShape: Shape = MaterialTheme.shapes.small,
     details: String? = null,
     menuItems: (@Composable ColumnScope.(close: () -> Unit) -> Unit)? = null,
+    isFavorite: Boolean = false,
+    isDownloaded: Boolean = false,
 ) {
     val lines = listOfNotNull(subtitle, details)
     ListItem(
         onClick = onClick,
         modifier = modifier,
-        leadingContent = { RowCover(artwork, placeholderIcon, coverShape) },
+        leadingContent = { RowCover(artwork, placeholderIcon, coverShape, isFavorite, isDownloaded) },
         supportingContent =
             lines.takeIf { it.isNotEmpty() }?.let {
                 { Column { it.forEach { line -> Text(line, maxLines = 1, overflow = TextOverflow.Ellipsis) } } }
@@ -53,19 +55,25 @@ internal fun CoverRow(
     }
 }
 
-/** A row-sized cover (48 dp); [placeholderIcon] shows when the item has no image. */
+/**
+ * A row-sized cover (48 dp); [placeholderIcon] shows when the item has no image. Favorite and downloaded marks show
+ * as [LocalMediaListStyle] says.
+ */
 @Composable
 fun RowCover(
     artwork: Artwork?,
     placeholderIcon: ImageVector,
     shape: Shape = MaterialTheme.shapes.small,
+    isFavorite: Boolean = false,
+    isDownloaded: Boolean = false,
 ) {
-    if (artwork != null) {
-        MqCover(artwork, contentDescription = null, Modifier.size(ROW_COVER_SIZE), artwork.blurHash, shape)
-    } else {
-        Box(Modifier.size(ROW_COVER_SIZE), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(ROW_COVER_SIZE), contentAlignment = Alignment.Center) {
+        if (artwork != null) {
+            MqCover(artwork, contentDescription = null, Modifier.size(ROW_COVER_SIZE), artwork.blurHash, shape)
+        } else {
             Icon(placeholderIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        CoverOverlays(isFavorite, isDownloaded, compact = true)
     }
 }
 

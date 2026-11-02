@@ -23,8 +23,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Track
 
 /**
- * One track in a list: optional track number or cover, title, a format badge and the artists, duration and an overflow
- * button. TalkBack reads the row as one item ("title, Stereo, artists, duration"); the overflow button stays separately
+ * One track in a list: optional track number or cover, title, a format badge and the artists, the details chosen in
+ * Settings -> Media lists ([LocalMediaListStyle], duration by default) and an overflow button. TalkBack reads the row as one item ("title, Stereo, artists, duration"); the overflow button stays separately
  * focusable.
  * The playing track ([isCurrent]) shows an equalizer icon instead of its number or cover, a primary-colored title and
  * "Now playing" for TalkBack, so color is never the only signal.
@@ -68,7 +68,14 @@ fun TrackRow(
         } else if (isCurrent) {
             { Icon(MqIcons.GraphicEq, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
         } else if (showCover) {
-            { RowCover(track.artwork, MqIcons.MusicNote) }
+            {
+                RowCover(
+                    track.artwork,
+                    MqIcons.MusicNote,
+                    isFavorite = track.userData.isFavorite,
+                    isDownloaded = track.id in LocalMediaListStyle.current.downloaded,
+                )
+            }
         } else {
             trackNumber?.let {
                 {
@@ -97,7 +104,7 @@ fun TrackRow(
     }
     val trailing: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(formatDuration(track.duration), style = MaterialTheme.typography.bodySmall)
+            TrackDetails(track)
             if (menuItems != null) {
                 OverflowMenu(stringResource(R.string.core_ui_more_options, track.title), items = menuItems)
             }

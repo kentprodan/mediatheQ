@@ -18,4 +18,10 @@ object MediatheqSizes {
 
     /** The tallest a list inside a dialog grows before it scrolls (navigation entries). */
     val dialogListMaxHeight = 420.dp
+
+    /** An icon among a track row's trailing details (favorite, downloaded, rating stars). */
+    val trackDetailIcon = 14.dp
+
+    /** A favorite or downloaded mark on a cover. */
+    val coverOverlayIcon = 16.dp
 }

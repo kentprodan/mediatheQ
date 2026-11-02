@@ -24,6 +24,8 @@ fun PlaylistRow(
         modifier = modifier,
         details = details,
         menuItems = menuItems,
+        isFavorite = playlist.userData.isFavorite,
+        isDownloaded = playlist.id in LocalMediaListStyle.current.downloaded,
         subtitle = formatTrackCount(playlist.trackCount),
     )
 }

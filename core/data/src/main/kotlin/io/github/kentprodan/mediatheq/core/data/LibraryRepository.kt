@@ -17,6 +17,9 @@ interface LibraryRepository {
      */
     val offline: Flow<Boolean>
 
+    /** Albums and playlists whose every track is downloaded (the offline overlay, #123). */
+    val fullyDownloaded: Flow<Set<MediaId>>
+
     /** All albums by sort name; emits again after each completed sync, never with a half-synced library. */
     fun albums(): Flow<List<Album>>
 

@@ -59,7 +59,7 @@ class DefaultLibrarySyncRepositoryTest {
         DefaultLibraryRepository(
             database.libraryDao(),
             OfflineFilter(FakeLibraryPreferencesRepository(), FakeNetworkMonitor()) { FakeDownloadRepository() },
-        )
+        ) { FakeDownloadRepository() }
 
     private fun id(value: String) = MediaId(server, value)
 

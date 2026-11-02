@@ -24,6 +24,8 @@ fun AlbumRow(
         modifier = modifier,
         details = details,
         menuItems = menuItems,
+        isFavorite = album.userData.isFavorite,
+        isDownloaded = album.id in LocalMediaListStyle.current.downloaded,
         subtitle = album.albumArtists.joinToString { it.name },
     )
 }

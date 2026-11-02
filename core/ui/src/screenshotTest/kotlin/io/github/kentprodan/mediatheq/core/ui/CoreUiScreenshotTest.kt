@@ -11,6 +11,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
@@ -21,6 +22,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
+import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
 
 /** Track rows: with number, long title and artists (ellipsized, over an hour), without number. */
@@ -169,6 +171,72 @@ fun LibraryRowsScreenshot() {
                     menuItems = {},
                 )
                 TrackRow(PreviewData.longTrack, onClick = {}, showCover = true, menuItems = {})
+            }
+        }
+    }
+}
+
+/** Track rows with each trailing detail of Settings -> Media lists (#123), and two details stacked. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun TrackRowDetailsScreenshot() {
+    val track =
+        PreviewData.track.copy(
+            audioFormat = AudioFormat("flac", channels = 2, bitrateKbps = 1411),
+            userData = UserData(isFavorite = true, rating = 7.0, playCount = 12),
+        )
+    val style = MediaListStyle(halfStars = true, downloaded = setOf(track.id))
+    MediatheqTheme {
+        Surface {
+            Column {
+                (
+                    listOf(emptyList<TrackDetail>()) + TrackDetail.entries.map { listOf(it) } +
+                        listOf(listOf(TrackDetail.Codec, TrackDetail.Rating))
+                ).forEach { details ->
+                    CompositionLocalProvider(LocalMediaListStyle provides style.copy(trackDetails = details)) {
+                        TrackRow(track, onClick = {}, menuItems = {})
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Album cards with text centered or not, favorite and offline overlays on and off; rows with the overlays. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun MediaListOverlaysScreenshot() {
+    val album = PreviewData.album.copy(userData = UserData(isFavorite = true))
+    val track = PreviewData.track.copy(artwork = PreviewData.artwork, userData = UserData(isFavorite = true))
+    val playlist = PreviewData.playlist.copy(userData = UserData(isFavorite = true))
+    val downloaded = setOf(album.id, track.id, playlist.id)
+    val all = MediaListStyle(offlineOverlay = true, downloaded = downloaded)
+    val none = MediaListStyle(centerGridText = false, favoriteOverlay = false, downloaded = downloaded)
+    MediatheqTheme {
+        Surface {
+            Column {
+                Row(
+                    Modifier.padding(MediatheqSpacing.l),
+                    horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
+                ) {
+                    listOf(all, none).forEach { style ->
+                        CompositionLocalProvider(LocalMediaListStyle provides style) {
+                            AlbumCard(
+                                album,
+                                onClick = {},
+                                Modifier.width(CardWidth),
+                                coverModel = rememberPreviewCover(),
+                            )
+                        }
+                    }
+                }
+                CompositionLocalProvider(LocalMediaListStyle provides all) {
+                    TrackRow(track, onClick = {}, showCover = true)
+                    AlbumRow(album.copy(artwork = PreviewData.artwork), onClick = {})
+                    PlaylistRow(playlist, onClick = {})
+                }
             }
         }
     }

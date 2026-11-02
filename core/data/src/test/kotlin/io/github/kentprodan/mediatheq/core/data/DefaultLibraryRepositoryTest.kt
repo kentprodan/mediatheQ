@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
+import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
@@ -38,7 +39,7 @@ class DefaultLibraryRepositoryTest {
     private val network = FakeNetworkMonitor()
     private val downloads = FakeDownloadRepository()
     private val repository =
-        DefaultLibraryRepository(database.libraryDao(), OfflineFilter(preferences, network) { downloads })
+        DefaultLibraryRepository(database.libraryDao(), OfflineFilter(preferences, network) { downloads }) { downloads }
 
     @After
     fun close() = database.close()
@@ -118,6 +119,23 @@ class DefaultLibraryRepositoryTest {
             assertThat(repository.offline.first()).isTrue()
             assertThat(repository.tracks().first().map { it.title }).containsExactly("Pe-o margine")
             assertThat(searchTitles("sat")).isEmpty()
+        }
+
+    @Test
+    fun `a playlist becomes fully downloaded when its last track is`() =
+        runTest {
+            library("Pe-o margine", "Satele")
+            database.playlistDao().replace(
+                PlaylistEntity("s", "p1", "Drum", "Drum"),
+                listOf(PlaylistEntryEntity("s", "p1", 0, "e0", "t0"), PlaylistEntryEntity("s", "p1", 1, "e1", "t1")),
+            )
+
+            repository.fullyDownloaded.test {
+                downloaded("t0")
+                assertThat(expectMostRecentItem()).isEmpty()
+                downloaded("t0", "t1")
+                assertThat(awaitItem()).containsExactly(MediaId(ServerId("s"), "p1"))
+            }
         }
 
     @Test
