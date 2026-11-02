@@ -31,6 +31,8 @@ internal fun Player.toPlayerUiModel(output: AudioOutputInfo = AudioOutputInfo())
         shuffle = shuffleModeEnabled,
         repeatMode = repeatMode.toRepeatMode(),
         output = output,
+        isBuffering = playbackState == Player.STATE_BUFFERING,
+        isReady = playbackState == Player.STATE_READY,
     )
 }
 

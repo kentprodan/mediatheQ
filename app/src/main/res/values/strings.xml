@@ -10,6 +10,7 @@
     <string name="playback_not_downloaded">“%1$s” is not downloaded and cannot play offline</string>
     <string name="playback_failed_skipped">“%1$s” could not play, skipped</string>
     <string name="playback_failed">“%1$s” could not play</string>
+    <string name="playback_slow_start">Preparing “%1$s” takes longer than usual</string>
     <string name="local_network_title">Allow access to your home network</string>
     <string name="local_network_body">mediatheQ reaches your Jellyfin server on your home network or through Tailscale. Android asks for your permission first.</string>
     <string name="local_network_allow">Allow</string>

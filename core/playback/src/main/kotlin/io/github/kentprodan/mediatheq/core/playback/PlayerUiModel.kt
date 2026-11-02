@@ -22,6 +22,10 @@ data class PlayerUiModel(
     val shuffle: Boolean = false,
     val repeatMode: RepeatMode = RepeatMode.Off,
     val output: AudioOutputInfo = AudioOutputInfo(),
+    /** Loading the stream before it can play (Media3 buffering). */
+    val isBuffering: Boolean = false,
+    /** Able to play at once (Media3 ready); see [slowStarts]. */
+    val isReady: Boolean = false,
 )
 
 /** The audio output, for the bit-perfect indicator and the Audio sheet (media3 skill, sections 6 and 7). */

@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity() {
                             val snackbar = remember { SnackbarHostState() }
                             UserDataErrorMessages(viewModel.userDataError, viewModel::dismissUserDataError, snackbar)
                             PlaybackErrorMessages(viewModel.playbackError, viewModel::dismissPlaybackError, snackbar)
+                            SlowStartMessages(viewModel.slowStart, viewModel::dismissSlowStart, snackbar)
                             val openDownloads = { navigator.select(TopLevelTab.Downloads) }
                             val entries =
                                 remember(navigator) {
