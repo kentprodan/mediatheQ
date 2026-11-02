@@ -18,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -205,5 +206,25 @@ class ArtistViewModelTest {
 
             assertThat(playback.addedToQueue).containsExactly(listOf(tracks.first()))
             assertThat(userData.calls).contains("rating:${tracks.first().id.itemId}:4")
+        }
+
+    @Test
+    fun `selected tracks toggle, select all, and a toolbar action runs on them and ends selecting`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            withArtist()
+            val viewModel = viewModel()
+            val list = viewModel.content.topTracks
+
+            viewModel.onAction(ArtistAction.ToggleSelection(list[0].id))
+            viewModel.onAction(ArtistAction.ToggleSelection(list[1].id))
+            viewModel.onAction(ArtistAction.ToggleSelection(list[0].id))
+            assertThat((viewModel.uiState.value as ArtistUiState.Content).selection.keys).containsExactly(list[1].id)
+
+            viewModel.onAction(ArtistAction.SelectAll)
+            assertThat((viewModel.uiState.value as ArtistUiState.Content).selection.size).isEqualTo(list.size)
+
+            viewModel.onAction(ArtistAction.OnSelection(SelectionCommand.PlayNext))
+            assertThat(playback.playedNext).containsExactly(list)
+            assertThat((viewModel.uiState.value as ArtistUiState.Content).selection.isActive).isFalse()
         }
 }

@@ -17,6 +17,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCa
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -249,5 +250,22 @@ class PlaylistViewModelTest {
 
             assertThat(playback.addedToQueue).containsExactly(listOf(tracks.first()))
             assertThat(userData.calls).contains("rating:${tracks.first().id.itemId}:4")
+        }
+
+    @Test
+    fun `select all and a toolbar action run on the selected tracks and end selecting`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+
+            viewModel.onAction(PlaylistAction.SelectAll)
+            assertThat(viewModel.content.selected).hasSize(items.size)
+            viewModel.onAction(PlaylistAction.ClearSelection)
+
+            viewModel.onAction(PlaylistAction.ToggleSelection(items[2].position))
+            viewModel.onAction(PlaylistAction.ToggleSelection(items[0].position))
+            viewModel.onAction(PlaylistAction.OnSelection(SelectionCommand.AddToQueue))
+
+            assertThat(playback.addedToQueue).containsExactly(listOf(tracks[0], tracks[2]))
+            assertThat(viewModel.content.isSelecting).isFalse()
         }
 }

@@ -6,6 +6,8 @@ import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 
 sealed interface ArtistUiState {
     /** Before the first database read; shows only the top bar. */
@@ -28,6 +30,8 @@ sealed interface ArtistUiState {
         val albumColumns: Int = LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
         val currentTrackId: MediaId? = null,
         val ratingMode: RatingMode = RatingMode.WholeStars,
+        /** Multi-select of the shown tracks (#123). */
+        val selection: ListSelection<MediaId> = ListSelection(),
     ) : ArtistUiState {
         /** Nothing to show or play: the page shows the empty state. */
         val isEmpty: Boolean get() = albums.isEmpty() && appearsOn.isEmpty() && tracks.isEmpty()
@@ -63,5 +67,20 @@ sealed interface ArtistAction {
     data class RateTrack(
         val track: Track,
         val halfStars: Int?,
+    ) : ArtistAction
+
+    /** A long press starts selecting tracks (#123); while selecting a tap toggles one. */
+    data class ToggleSelection(
+        val id: MediaId,
+    ) : ArtistAction
+
+    data object SelectAll : ArtistAction
+
+    /** Clear or Back: selecting ends. */
+    data object ClearSelection : ArtistAction
+
+    /** A selection toolbar action on the selected tracks (Add to playlist is the screen's); selecting ends. */
+    data class OnSelection(
+        val command: SelectionCommand,
     ) : ArtistAction
 }

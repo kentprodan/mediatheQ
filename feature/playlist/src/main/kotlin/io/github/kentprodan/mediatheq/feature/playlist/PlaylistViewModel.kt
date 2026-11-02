@@ -12,11 +12,13 @@ import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
+import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -144,6 +146,29 @@ class PlaylistViewModel
 
                 PlaylistAction.ClearSelection -> {
                     selected.value = emptySet()
+                }
+
+                PlaylistAction.SelectAll -> {
+                    selected.value = items.filterNot { it.isPending }.map { it.entryId }.toSet()
+                }
+
+                is PlaylistAction.OnSelection -> {
+                    val picked = items.filter { it.entryId in content.selected }.map { it.track }
+                    selected.value = emptySet()
+                    when (action.command) {
+                        SelectionCommand.Play -> commands.run(TopButton.Play, picked)
+
+                        SelectionCommand.PlayNext -> commands.run(TopButton.PlayNext, picked)
+
+                        SelectionCommand.AddToQueue -> commands.run(TopButton.AddToQueue, picked)
+
+                        SelectionCommand.Download -> commands.download(picked)
+
+                        SelectionCommand.Favorite -> viewModelScope.launch { commands.toggleFavorite(picked) }
+
+                        // The screen opens the playlist picker with the tracks it shows.
+                        SelectionCommand.AddToPlaylist -> Unit
+                    }
                 }
 
                 PlaylistAction.RemoveSelected -> {

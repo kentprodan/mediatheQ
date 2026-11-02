@@ -1,8 +1,11 @@
 package io.github.kentprodan.mediatheq.feature.search
 
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 
 /** What the Search tab shows below the search field. */
 sealed interface SearchUiState {
@@ -15,7 +18,17 @@ sealed interface SearchUiState {
 
     data class Results(
         val results: SearchResults,
-    ) : SearchUiState
+        /** Multi-select over every kind of result (#123). */
+        val selection: ListSelection<MediaId> = ListSelection(),
+        /** Tracks of a selection to add to a playlist: the picker opens, then [SearchAction.AddToPlaylistShown]. */
+        val addToPlaylist: List<MediaId>? = null,
+    ) : SearchUiState {
+        /** Every result's id, in the order shown: artists, albums, songs, playlists. */
+        val ids: List<MediaId>
+            get() =
+                results.artists.map { it.id } + results.albums.map { it.id } + results.tracks.map { it.id } +
+                    results.playlists.map { it.id }
+    }
 
     data class NoResults(
         val query: String,
@@ -78,4 +91,21 @@ sealed interface SearchAction {
         val track: Track,
         val halfStars: Int?,
     ) : SearchAction
+
+    /** A long press starts selecting results (#123); while selecting a tap toggles one. */
+    data class ToggleSelection(
+        val id: MediaId,
+    ) : SearchAction
+
+    data object SelectAll : SearchAction
+
+    /** Clear or Back: selecting ends. */
+    data object ClearSelection : SearchAction
+
+    /** A selection toolbar action on the selected results' tracks; selecting ends. */
+    data class OnSelection(
+        val command: SelectionCommand,
+    ) : SearchAction
+
+    data object AddToPlaylistShown : SearchAction
 }

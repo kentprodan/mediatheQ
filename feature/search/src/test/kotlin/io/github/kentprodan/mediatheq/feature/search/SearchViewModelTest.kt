@@ -15,8 +15,12 @@ import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -36,8 +40,9 @@ class SearchViewModelTest {
 
     // Lazy: viewModelScope must be created after the rule replaced the main dispatcher.
     private val downloads = FakeDownloadRepository()
+    private val playlists = FakePlaylistRepository()
     private val viewModel by lazy {
-        SearchViewModel(library, preferences, playback, trackTaps, commands, userData, downloads)
+        SearchViewModel(library, preferences, playback, trackTaps, commands, userData, downloads, playlists)
     }
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
@@ -239,6 +244,28 @@ class SearchViewModelTest {
             viewModel.onAction(SearchAction.ClearRecent)
 
             assertThat(preferences.recentSearches.value).isEmpty()
+        }
+
+    @Test
+    fun `selected results act by their tracks in the order shown, and a new query drops the selection`() =
+        test {
+            backgroundScope.launch { viewModel.uiState.collect() }
+            viewModel.onAction(SearchAction.QueryChanged("mo"))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            val other = Track(id("t2"), "Other", listOf(ada), Duration.ZERO, albumId = album.id)
+            library.tracks.value = listOf(track, other)
+
+            viewModel.onAction(SearchAction.ToggleSelection(track.id))
+            viewModel.onAction(SearchAction.ToggleSelection(album.id))
+            assertThat((viewModel.uiState.value as SearchUiState.Results).selection.size).isEqualTo(2)
+            viewModel.onAction(SearchAction.OnSelection(SelectionCommand.PlayNext))
+
+            // The album (shown before songs) first, then the song.
+            assertThat(playback.playedNext.single().map { it.id.itemId }).containsExactly("t2", "t1").inOrder()
+
+            viewModel.onAction(SearchAction.ToggleSelection(track.id))
+            viewModel.onAction(SearchAction.QueryChanged("mos"))
+            assertThat((viewModel.uiState.value as SearchUiState.Results).selection.isActive).isFalse()
         }
 
     @Test

@@ -45,8 +45,12 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
+import io.github.kentprodan.mediatheq.core.ui.SelectableList
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
+import io.github.kentprodan.mediatheq.core.ui.rememberSelectLongPress
+import io.github.kentprodan.mediatheq.core.ui.stateOf
 import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 
 @Composable
@@ -74,6 +78,7 @@ fun ArtistScreen(
     modifier: Modifier = Modifier,
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
 ) {
+    val longPress = rememberSelectLongPress<MediaId> { onAction(ArtistAction.ToggleSelection(it)) }
     val swipe =
         trackSwipes(
             onAddToPlaylist,
@@ -124,36 +129,58 @@ fun ArtistScreen(
             }
 
             else -> {
-                LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding =
-                        PaddingValues(
-                            top = padding.calculateTopPadding(),
-                            bottom = MediatheqSpacing.l,
-                        ).plusBottomBars(),
-                ) {
-                    item(key = "header") { ArtistHeader(content, onAction) }
-                    item(key = "buttons") {
-                        MqPlayShuffleButtons(
-                            enabled = content.tracks.isNotEmpty(),
-                            onPlay = { onAction(ArtistAction.Play) },
-                            onShuffle = { onAction(ArtistAction.Shuffle) },
-                        )
-                    }
-                    if (content.topTracks.isNotEmpty()) {
-                        item(key = "top-title") { SectionTitle(R.string.artist_top_tracks) }
-                        items(content.topTracks, key = { "top-${it.id}" }) { track ->
-                            TrackRow(
-                                track,
-                                onClick = { onAction(ArtistAction.PlayTopTrack(track.id)) },
-                                onSwipe = { swipe(track, it) },
-                                showCover = true,
-                                isCurrent = track.id == content.currentTrackId,
+                SelectableList(
+                    content.selection,
+                    onCommand = { command ->
+                        if (command == SelectionCommand.AddToPlaylist) {
+                            onAddToPlaylist(content.selection.pick(content.topTracks) { it.id }.map { it.id })
+                            onAction(ArtistAction.ClearSelection)
+                        } else {
+                            onAction(ArtistAction.OnSelection(command))
+                        }
+                    },
+                    onSelectAll = { onAction(ArtistAction.SelectAll) },
+                    onClear = { onAction(ArtistAction.ClearSelection) },
+                ) { bottomSpace ->
+                    LazyColumn(
+                        Modifier.fillMaxSize(),
+                        contentPadding =
+                            PaddingValues(
+                                top = padding.calculateTopPadding(),
+                                bottom = bottomSpace,
+                            ).plusBottomBars(),
+                    ) {
+                        item(key = "header") { ArtistHeader(content, onAction) }
+                        item(key = "buttons") {
+                            MqPlayShuffleButtons(
+                                enabled = content.tracks.isNotEmpty(),
+                                onPlay = { onAction(ArtistAction.Play) },
+                                onShuffle = { onAction(ArtistAction.Shuffle) },
                             )
                         }
+                        if (content.topTracks.isNotEmpty()) {
+                            item(key = "top-title") { SectionTitle(R.string.artist_top_tracks) }
+                            items(content.topTracks, key = { "top-${it.id}" }) { track ->
+                                TrackRow(
+                                    track,
+                                    onClick = {
+                                        if (content.selection.isActive) {
+                                            onAction(ArtistAction.ToggleSelection(track.id))
+                                        } else {
+                                            onAction(ArtistAction.PlayTopTrack(track.id))
+                                        }
+                                    },
+                                    onLongClick = longPress(track.id),
+                                    selected = content.selection.stateOf(track.id),
+                                    onSwipe = { swipe(track, it) },
+                                    showCover = true,
+                                    isCurrent = track.id == content.currentTrackId,
+                                )
+                            }
+                        }
+                        albumGrid("albums", R.string.artist_albums, content.albums, content, onOpenAlbum)
+                        albumGrid("appears-on", R.string.artist_appears_on, content.appearsOn, content, onOpenAlbum)
                     }
-                    albumGrid("albums", R.string.artist_albums, content.albums, content, onOpenAlbum)
-                    albumGrid("appears-on", R.string.artist_appears_on, content.appearsOn, content, onOpenAlbum)
                 }
             }
         }

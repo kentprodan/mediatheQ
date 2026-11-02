@@ -7,10 +7,18 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
+import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
+import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.tracksOfAlbums
+import io.github.kentprodan.mediatheq.core.data.tracksOfArtists
+import io.github.kentprodan.mediatheq.core.data.tracksOfPlaylists
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +30,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -37,7 +46,11 @@ class SearchViewModel
         private val commands: TrackCommands,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
+        private val playlists: PlaylistRepository,
     ) : ViewModel() {
+        private val selection = MutableStateFlow(ListSelection<MediaId>())
+        private val addToPlaylist = MutableStateFlow<List<MediaId>?>(null)
+
         // The search field restores its own text after process death and sends it again, so this is not saved.
         private val query = MutableStateFlow("")
         private val retries = MutableStateFlow(0)
@@ -55,11 +68,19 @@ class SearchViewModel
                     } else {
                         flow { emit(search(query, offline)) }
                     }
+                }.combine(combine(selection, addToPlaylist, ::Pair)) { state, (selection, addToPlaylist) ->
+                    // Results can change (a favorite read again) while selected.
+                    if (state is SearchUiState.Results) {
+                        state.copy(selection = selection.retain(state.ids), addToPlaylist = addToPlaylist)
+                    } else {
+                        state
+                    }
                 }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState.Loading)
 
         fun onAction(action: SearchAction) {
             when (action) {
                 is SearchAction.QueryChanged -> {
+                    if (action.query != query.value) selection.value = ListSelection()
                     query.value = action.query
                 }
 
@@ -96,6 +117,65 @@ class SearchViewModel
                         commands.rate(action.track, action.halfStars)
                         retries.value++
                     }
+                }
+
+                is SearchAction.ToggleSelection -> {
+                    selection.update { it.toggle(action.id) }
+                }
+
+                SearchAction.SelectAll -> {
+                    (uiState.value as? SearchUiState.Results)?.let {
+                        selection.value =
+                            ListSelection<MediaId>().selectAll(it.ids)
+                    }
+                }
+
+                SearchAction.ClearSelection -> {
+                    selection.value = ListSelection()
+                }
+
+                is SearchAction.OnSelection -> {
+                    val state = uiState.value as? SearchUiState.Results ?: return
+                    val picked = state.selection
+                    selection.value = ListSelection()
+                    viewModelScope.launch {
+                        val results = state.results
+                        val tracks =
+                            libraryRepository.tracksOfArtists(picked.pick(results.artists) { it.id }.map { it.id }) +
+                                libraryRepository.tracksOfAlbums(picked.pick(results.albums) { it.id }.map { it.id }) +
+                                picked.pick(results.tracks) { it.id } +
+                                playlists.tracksOfPlaylists(picked.pick(results.playlists) { it.id }.map { it.id })
+                        when (action.command) {
+                            SelectionCommand.Play -> {
+                                commands.run(TopButton.Play, tracks)
+                            }
+
+                            SelectionCommand.PlayNext -> {
+                                commands.run(TopButton.PlayNext, tracks)
+                            }
+
+                            SelectionCommand.AddToQueue -> {
+                                commands.run(TopButton.AddToQueue, tracks)
+                            }
+
+                            SelectionCommand.Download -> {
+                                commands.download(tracks)
+                            }
+
+                            SelectionCommand.AddToPlaylist -> {
+                                addToPlaylist.value = tracks.map { it.id }
+                            }
+
+                            SelectionCommand.Favorite -> {
+                                commands.toggleFavorite(tracks)
+                                retries.value++
+                            }
+                        }
+                    }
+                }
+
+                SearchAction.AddToPlaylistShown -> {
+                    addToPlaylist.value = null
                 }
 
                 is SearchAction.SetFavorite -> {

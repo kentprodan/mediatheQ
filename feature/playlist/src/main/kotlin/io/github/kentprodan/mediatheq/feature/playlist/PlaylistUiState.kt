@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlin.time.Duration
 
 sealed interface PlaylistUiState {
@@ -73,6 +74,13 @@ sealed interface PlaylistAction {
     ) : PlaylistAction
 
     data object ClearSelection : PlaylistAction
+
+    data object SelectAll : PlaylistAction
+
+    /** A selection toolbar action on the selected tracks (Add to playlist is the screen's); selecting ends (#123). */
+    data class OnSelection(
+        val command: SelectionCommand,
+    ) : PlaylistAction
 
     data object RemoveSelected : PlaylistAction
 

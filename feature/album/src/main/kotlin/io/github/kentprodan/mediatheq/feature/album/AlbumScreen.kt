@@ -46,9 +46,13 @@ import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
+import io.github.kentprodan.mediatheq.core.ui.SelectableList
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
+import io.github.kentprodan.mediatheq.core.ui.rememberSelectLongPress
+import io.github.kentprodan.mediatheq.core.ui.stateOf
 import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 import kotlin.time.Duration
 
@@ -76,6 +80,7 @@ fun AlbumScreen(
     modifier: Modifier = Modifier,
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
 ) {
+    val longPress = rememberSelectLongPress<MediaId> { onAction(AlbumAction.ToggleSelection(it)) }
     val swipe =
         trackSwipes(
             onAddToPlaylist,
@@ -139,45 +144,67 @@ fun AlbumScreen(
             }
 
             is AlbumUiState.Content -> {
-                LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding =
-                        PaddingValues(
-                            top = padding.calculateTopPadding(),
-                            bottom = MediatheqSpacing.l,
-                        ).plusBottomBars(),
-                ) {
-                    item(key = "header") { AlbumHeader(albumId, state, onAction) }
-                    item(key = "buttons") {
-                        MqPlayShuffleButtons(
-                            enabled = state.tracks.isNotEmpty(),
-                            onPlay = { onAction(AlbumAction.Play) },
-                            onShuffle = { onAction(AlbumAction.Shuffle) },
-                        )
-                    }
-                    state.discs.forEach { disc ->
-                        if (state.showDiscHeaders) item(key = "disc-${disc.number}") { DiscHeader(disc.number) }
-                        items(disc.tracks, key = { it.id.toString() }) { track ->
-                            TrackRow(
-                                track,
-                                onClick = { onAction(AlbumAction.PlayTrack(track.id)) },
-                                onSwipe = { swipe(track, it) },
-                                isCurrent = track.id == state.currentTrackId,
-                                menuItems = { close ->
-                                    QueueMenuItems(
-                                        onPlayNext = { onAction(AlbumAction.PlayNext(track.id)) },
-                                        onAddToQueue = { onAction(AlbumAction.AddToQueue(track.id)) },
-                                        close = close,
-                                    )
-                                    AddToPlaylistMenuItem({ onAddToPlaylist(listOf(track.id)) }, close)
-                                    FavoriteMenuItem(
-                                        track.userData.isFavorite,
-                                        { onAction(AlbumAction.SetFavorite(track.id, it)) },
-                                        close,
-                                    )
-                                    DownloadMenuItem({ onAction(AlbumAction.Download(track.id)) }, close)
-                                },
+                SelectableList(
+                    state.selection,
+                    onCommand = { command ->
+                        if (command == SelectionCommand.AddToPlaylist) {
+                            onAddToPlaylist(state.selection.pick(state.tracks) { it.id }.map { it.id })
+                            onAction(AlbumAction.ClearSelection)
+                        } else {
+                            onAction(AlbumAction.OnSelection(command))
+                        }
+                    },
+                    onSelectAll = { onAction(AlbumAction.SelectAll) },
+                    onClear = { onAction(AlbumAction.ClearSelection) },
+                ) { bottomSpace ->
+                    LazyColumn(
+                        Modifier.fillMaxSize(),
+                        contentPadding =
+                            PaddingValues(
+                                top = padding.calculateTopPadding(),
+                                bottom = bottomSpace,
+                            ).plusBottomBars(),
+                    ) {
+                        item(key = "header") { AlbumHeader(albumId, state, onAction) }
+                        item(key = "buttons") {
+                            MqPlayShuffleButtons(
+                                enabled = state.tracks.isNotEmpty(),
+                                onPlay = { onAction(AlbumAction.Play) },
+                                onShuffle = { onAction(AlbumAction.Shuffle) },
                             )
+                        }
+                        state.discs.forEach { disc ->
+                            if (state.showDiscHeaders) item(key = "disc-${disc.number}") { DiscHeader(disc.number) }
+                            items(disc.tracks, key = { it.id.toString() }) { track ->
+                                TrackRow(
+                                    track,
+                                    onClick = {
+                                        if (state.selection.isActive) {
+                                            onAction(AlbumAction.ToggleSelection(track.id))
+                                        } else {
+                                            onAction(AlbumAction.PlayTrack(track.id))
+                                        }
+                                    },
+                                    onLongClick = longPress(track.id),
+                                    selected = state.selection.stateOf(track.id),
+                                    onSwipe = { swipe(track, it) },
+                                    isCurrent = track.id == state.currentTrackId,
+                                    menuItems = { close ->
+                                        QueueMenuItems(
+                                            onPlayNext = { onAction(AlbumAction.PlayNext(track.id)) },
+                                            onAddToQueue = { onAction(AlbumAction.AddToQueue(track.id)) },
+                                            close = close,
+                                        )
+                                        AddToPlaylistMenuItem({ onAddToPlaylist(listOf(track.id)) }, close)
+                                        FavoriteMenuItem(
+                                            track.userData.isFavorite,
+                                            { onAction(AlbumAction.SetFavorite(track.id, it)) },
+                                            close,
+                                        )
+                                        DownloadMenuItem({ onAction(AlbumAction.Download(track.id)) }, close)
+                                    },
+                                )
+                            }
                         }
                     }
                 }

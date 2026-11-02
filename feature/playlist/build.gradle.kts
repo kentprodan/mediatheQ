@@ -10,4 +10,5 @@ android {
 dependencies {
     // DialogSceneStrategy for the "Add to playlist" dialog entry.
     implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.activity.compose)
 }
