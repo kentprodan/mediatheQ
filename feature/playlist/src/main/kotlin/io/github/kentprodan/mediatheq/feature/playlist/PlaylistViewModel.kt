@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,7 @@ class PlaylistViewModel
         @Assisted private val playlistId: MediaId,
         private val repository: PlaylistRepository,
         private val playback: PlaybackConnection,
+        private val trackTaps: TrackTaps,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
     ) : ViewModel() {
@@ -85,7 +87,7 @@ class PlaylistViewModel
 
                 is PlaylistAction.PlayItem -> {
                     val index = items.indexOfFirst { it.position == action.position }
-                    if (index >= 0) playback.play(items.map { it.track }, startIndex = index)
+                    viewModelScope.launch { trackTaps.tap(items.map { it.track }, index) }
                 }
 
                 is PlaylistAction.Download -> {

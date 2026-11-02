@@ -27,6 +27,7 @@ data class LibraryPreferences(
     /** Only downloads show and play, also with a network (#63); without one, offline mode is on anyway. */
     val offlineMode: Boolean = false,
     val theme: ThemePreferences = ThemePreferences(),
+    val navigation: NavigationPreferences = NavigationPreferences(),
 ) {
     /** The sort of [filter]: the stored one when that tab offers it, else its default. */
     fun sortFor(filter: LibraryFilter): LibrarySort =

@@ -6,11 +6,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -20,6 +22,7 @@ class DownloadsViewModel
         private val downloadRepository: DownloadRepository,
         library: LibraryRepository,
         private val playback: PlaybackConnection,
+        private val trackTaps: TrackTaps,
     ) : ViewModel() {
         val uiState: StateFlow<DownloadsUiState> =
             combine(
@@ -75,6 +78,8 @@ class DownloadsViewModel
         private fun play(action: DownloadsAction.Play) {
             val songs = (uiState.value as? DownloadsUiState.Content)?.songs.orEmpty().map { it.track }
             val index = songs.indexOfFirst { it.id == action.track.id }
-            if (index >= 0) playback.play(songs, index) else playback.play(listOf(action.track))
+            viewModelScope.launch {
+                if (index >= 0) trackTaps.tap(songs, index) else trackTaps.tap(listOf(action.track), 0)
+            }
         }
     }

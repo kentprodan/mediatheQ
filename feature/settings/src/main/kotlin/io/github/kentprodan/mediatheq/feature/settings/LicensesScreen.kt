@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 
@@ -65,7 +66,7 @@ fun LicensesScreen(
         val content = state as? LicensesUiState.Content ?: return@Scaffold
         LazyColumn(
             Modifier.padding(padding).fillMaxSize(),
-            contentPadding = PaddingValues(bottom = MediatheqSpacing.l),
+            contentPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars(),
         ) {
             items(content.entries, key = { it.id }) { entry ->
                 LicenseRow(

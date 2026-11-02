@@ -4,8 +4,10 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import io.github.kentprodan.mediatheq.core.navigation.AboutSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AudioSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.InterfaceSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.LicensesKey
+import io.github.kentprodan.mediatheq.core.navigation.NavigationSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ProvidersSettingsKey
@@ -27,16 +29,18 @@ fun EntryProviderScope<NavKey>.settingsEntry(
 ) {
     val back: () -> Unit = { navigator.back() }
     val openAudio: () -> Unit = { navigator.navigateTo(AudioSettingsKey) }
-    entry<SettingsKey> { SettingsHubScreen(onOpen = { navigator.navigateTo(it.key) }, onBack = back) }
+    entry<SettingsKey> { SettingsHubRoute(onOpen = { navigator.navigateTo(it.key) }, onBack = back) }
     entry<InterfaceSettingsKey> {
         SettingsPageRoute(
             SettingsPage.Interface,
             openAudio,
             back,
             onOpenTheme = { navigator.navigateTo(ThemeSettingsKey) },
+            onOpenNavigation = { navigator.navigateTo(NavigationSettingsKey) },
         )
     }
     entry<ThemeSettingsKey> { SettingsPageRoute(SettingsPage.Theme, openAudio, back) }
+    entry<NavigationSettingsKey> { SettingsPageRoute(SettingsPage.Navigation, openAudio, back) }
     entry<PlaybackSettingsKey> { SettingsPageRoute(SettingsPage.Playback, openAudio, back) }
     entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openAudio, back) }
     entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openAudio, back) }
@@ -54,6 +58,7 @@ internal val SettingsHubEntry.key: NavKey
             SettingsHubEntry.Interface -> InterfaceSettingsKey
             SettingsHubEntry.Playback -> PlaybackSettingsKey
             SettingsHubEntry.Storage -> StorageSettingsKey
+            SettingsHubEntry.ManageOfflineFiles -> DownloadsKey
             SettingsHubEntry.Providers -> ProvidersSettingsKey
             SettingsHubEntry.About -> AboutSettingsKey
         }

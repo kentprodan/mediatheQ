@@ -104,10 +104,40 @@ class NowPlayingViewModel
         /** The queue in play order; collect it only while the queue screen shows. */
         val queue: StateFlow<List<QueueItem>> = playback.queue
 
+        private val expandPlayer =
+            libraryPreferences.preferences
+                .map { it.navigation.expandPlayer }
+                .distinctUntilChanged()
+
+        /**
+         * Now Playing should open by itself (#122): playback was just started from a list, the setting is on and the
+         * track is there to show. The player answers with [NowPlayingAction.AutoExpanded].
+         */
+        val autoExpand: StateFlow<Boolean> =
+            combine(
+                playback.expandRequested,
+                expandPlayer,
+                playback.state.map { it.item != null }.distinctUntilChanged(),
+            ) { requested, on, hasItem -> requested && on && hasItem }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+        init {
+            // With the setting off a request is dropped at once, so turning it on later never opens a stale one.
+            viewModelScope.launch {
+                combine(playback.expandRequested, expandPlayer, ::Pair).collect { (requested, on) ->
+                    if (requested && !on) playback.acknowledgeExpand()
+                }
+            }
+        }
+
         fun onAction(action: NowPlayingAction) {
             when (action) {
                 NowPlayingAction.TogglePlayPause -> {
                     playback.togglePlayPause()
+                }
+
+                NowPlayingAction.AutoExpanded -> {
+                    playback.acknowledgeExpand()
                 }
 
                 NowPlayingAction.Next -> {

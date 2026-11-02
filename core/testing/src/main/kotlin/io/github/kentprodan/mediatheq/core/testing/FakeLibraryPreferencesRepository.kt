@@ -5,8 +5,11 @@ import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
+import io.github.kentprodan.mediatheq.core.data.validNavEntries
+import io.github.kentprodan.mediatheq.core.data.validTransparency
 import io.github.kentprodan.mediatheq.core.data.withRecentSearch
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -42,6 +45,21 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
 
     override suspend fun restoreThemeDefaults() {
         preferences.value = preferences.value.copy(theme = ThemePreferences())
+    }
+
+    override suspend fun setNavigation(navigation: NavigationPreferences) {
+        preferences.value =
+            preferences.value.copy(
+                navigation =
+                    navigation.copy(
+                        entries = validNavEntries(navigation.entries),
+                        transparencyPercent = validTransparency(navigation.transparencyPercent),
+                    ),
+            )
+    }
+
+    override suspend fun restoreNavigationDefaults() {
+        preferences.value = preferences.value.copy(navigation = NavigationPreferences())
     }
 
     override suspend fun setOfflineMode(on: Boolean) {

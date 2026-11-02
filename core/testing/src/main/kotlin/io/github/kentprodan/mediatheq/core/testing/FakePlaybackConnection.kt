@@ -27,6 +27,12 @@ class FakePlaybackConnection : PlaybackConnection {
 
     val plays = mutableListOf<PlayCall>()
 
+    override val expandRequested = MutableStateFlow(false)
+
+    override fun acknowledgeExpand() {
+        expandRequested.value = false
+    }
+
     /** Every command other than [play], by name (e.g. `"seekTo 1m"`). */
     val commands = mutableListOf<String>()
 
@@ -36,6 +42,7 @@ class FakePlaybackConnection : PlaybackConnection {
         shuffle: Boolean,
     ) {
         plays += PlayCall(queue, startIndex, shuffle)
+        expandRequested.value = true
     }
 
     override fun togglePlayPause() {
@@ -70,10 +77,12 @@ class FakePlaybackConnection : PlaybackConnection {
 
     override fun playNext(tracks: List<Track>) {
         playedNext += tracks
+        expandRequested.value = false
     }
 
     override fun addToQueue(tracks: List<Track>) {
         addedToQueue += tracks
+        expandRequested.value = false
     }
 
     override fun moveQueueItem(

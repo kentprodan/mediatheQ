@@ -57,6 +57,9 @@ sealed interface LyricsUiState {
 sealed interface NowPlayingAction {
     data object TogglePlayPause : NowPlayingAction
 
+    /** The player opened by itself after playback started (#122). */
+    data object AutoExpanded : NowPlayingAction
+
     data object Next : NowPlayingAction
 
     data object Previous : NowPlayingAction

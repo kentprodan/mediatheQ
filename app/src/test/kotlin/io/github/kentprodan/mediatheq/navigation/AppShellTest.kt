@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -18,6 +19,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.entryProvider
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.MainNavEntry
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
+import io.github.kentprodan.mediatheq.core.data.PortraitNavStyle
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingLayout
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingUiState
@@ -126,5 +130,76 @@ class AppShellTest {
 
         composeRule.onNodeWithContentDescription("Close player").assertDoesNotExist()
         composeRule.onNodeWithText("Library 1").assertExists()
+    }
+
+    @Composable
+    private fun StyledShell(navigation: NavigationPreferences) {
+        MediatheqTheme {
+            val navigator = rememberTabNavigator(navigation.entries.map(TopLevelTab::of))
+            AppShell(navigator, remember(navigator) { placeholderEntries(navigator) }, navigation = navigation)
+        }
+    }
+
+    private val sixEntries =
+        listOf(
+            MainNavEntry.Home,
+            MainNavEntry.Library,
+            MainNavEntry.Albums,
+            MainNavEntry.Tracks,
+            MainNavEntry.Downloads,
+            MainNavEntry.Search,
+        )
+
+    @Test
+    fun `tapping a floating toolbar entry selects its tab`() {
+        composeRule.setContent {
+            StyledShell(NavigationPreferences(sixEntries, portraitStyle = PortraitNavStyle.FloatingToolbar))
+        }
+
+        composeRule.onNodeWithContentDescription("Tracks").performClick()
+
+        composeRule.onNodeWithContentDescription("Tracks").assertIsSelected()
+        composeRule.onNodeWithText("Tracks").assertExists()
+    }
+
+    @Test
+    fun `with a FAB the last entry is the FAB and selects its tab`() {
+        composeRule.setContent {
+            StyledShell(NavigationPreferences(sixEntries, portraitStyle = PortraitNavStyle.FloatingToolbarWithFab))
+        }
+
+        composeRule.onNodeWithContentDescription("Search").performClick()
+
+        composeRule.onNodeWithContentDescription("Search").assertIsSelected()
+        composeRule.onNodeWithText("Open detail").assertExists()
+        composeRule.onNodeWithContentDescription("Home").assertIsNotSelected()
+    }
+
+    @Test
+    fun `only Home hides the navigation`() {
+        composeRule.setContent { StyledShell(NavigationPreferences(listOf(MainNavEntry.Home))) }
+
+        composeRule.onNode(hasText("Home") and hasClickAction()).assertDoesNotExist()
+        composeRule.onNodeWithText("Open theme showcase").assertExists()
+    }
+
+    @Test
+    fun `the bottom bar shows the chosen entries in order`() {
+        composeRule.setContent {
+            StyledShell(NavigationPreferences(listOf(MainNavEntry.Home, MainNavEntry.Playlists, MainNavEntry.Search)))
+        }
+
+        val playlistsTab = hasText("Playlists") and hasClickAction()
+        composeRule.onNode(playlistsTab).performClick()
+
+        composeRule.onNode(playlistsTab).assertIsSelected()
+        composeRule.onNodeWithText("Library").assertDoesNotExist()
+    }
+
+    @Test
+    fun `labels hide only with many tabs and a large font`() {
+        assertThat(showsLabels(tabs = 6, fontScale = 1f)).isTrue()
+        assertThat(showsLabels(tabs = 4, fontScale = 2f)).isTrue()
+        assertThat(showsLabels(tabs = 5, fontScale = 2f)).isFalse()
     }
 }

@@ -6,14 +6,19 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlaybackError
+import io.github.kentprodan.mediatheq.core.playback.slowStarts
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -27,7 +32,7 @@ class MainViewModel
         sessionRepository: SessionRepository,
         private val userDataRepository: UserDataRepository,
         private val librarySync: LibrarySyncRepository,
-        libraryPreferences: LibraryPreferencesRepository,
+        private val libraryPreferences: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
     ) : ViewModel() {
         /** Theme, font and colors; `null` while they are read, so the first frame never shows the wrong colors. */
@@ -35,6 +40,12 @@ class MainViewModel
             libraryPreferences.preferences
                 .map { it.theme }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        /** Navigation and media start (#122): the shell's entries and styles. */
+        val navigation: StateFlow<NavigationPreferences> =
+            libraryPreferences.preferences
+                .map { it.navigation }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NavigationPreferences())
 
         val session: StateFlow<SessionState?> =
             sessionRepository.session.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -48,6 +59,28 @@ class MainViewModel
         val playbackError: StateFlow<PlaybackError?> = playback.error
 
         fun dismissPlaybackError() = playback.dismissError()
+
+        private val slowStartItem = MutableStateFlow<NowPlayingItem?>(null)
+
+        /** A track slow to start (#122), for one app-wide message; never while the setting is off. */
+        val slowStart: StateFlow<NowPlayingItem?> = slowStartItem
+
+        fun dismissSlowStart() {
+            slowStartItem.value = null
+        }
+
+        init {
+            viewModelScope.launch {
+                playback.state.slowStarts().collect { item ->
+                    if (libraryPreferences.preferences
+                            .first()
+                            .navigation.slowStartMessages
+                    ) {
+                        slowStartItem.value = item
+                    }
+                }
+            }
+        }
 
         /** Local network access was just granted: a sync that failed without it runs now, not at the next start. */
         fun onLocalNetworkGranted() {

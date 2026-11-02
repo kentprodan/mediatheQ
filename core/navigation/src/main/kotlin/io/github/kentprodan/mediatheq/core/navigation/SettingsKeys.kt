@@ -15,6 +15,10 @@ data object InterfaceSettingsKey : NavKey
 @Serializable
 data object ThemeSettingsKey : NavKey
 
+/** Settings -> Interface -> Navigation and media start (#122). */
+@Serializable
+data object NavigationSettingsKey : NavKey
+
 /** Settings -> Playback: streaming quality, normalization, Audio. */
 @Serializable
 data object PlaybackSettingsKey : NavKey

@@ -54,6 +54,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBarStyle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
+import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -73,7 +74,12 @@ internal fun LibraryRoute(
     onOpenPlaylist: (MediaId) -> Unit,
     onNewPlaylist: () -> Unit,
     onOpenDownloads: () -> Unit,
-    viewModel: LibraryViewModel = hiltViewModel(),
+    fixedFilter: LibraryFilter? = null,
+    viewModel: LibraryViewModel =
+        hiltViewModel<LibraryViewModel, LibraryViewModel.Factory>(
+            key = fixedFilter?.name ?: "library",
+            creationCallback = { it.create(fixedFilter) },
+        ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LibraryScreen(
@@ -121,7 +127,7 @@ fun LibraryScreen(
     ) { padding ->
         Column(Modifier.padding(padding)) {
             // Shown once the saved style is known; the list is still loading until then.
-            state.filterStyle?.let { filterStyle ->
+            state.filterStyle?.takeUnless { state.filterFixed }?.let { filterStyle ->
                 MqFilterBar(
                     labels = LibraryFilter.entries.map { stringResource(it.label) },
                     selectedIndex = state.filter.ordinal,
@@ -173,7 +179,7 @@ private fun LibraryContentView(
     onOpenPlaylist: (MediaId) -> Unit,
     onOpenDownloads: () -> Unit,
 ) {
-    val listPadding = PaddingValues(bottom = MediatheqSpacing.l)
+    val listPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()
     when (val content = state.content) {
         LibraryContent.Loading -> {
             MqLoadingIndicator(Modifier.fillMaxSize())
@@ -223,7 +229,7 @@ private fun LibraryContentView(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(state.albumColumns),
                 state = states.albums,
-                contentPadding = PaddingValues(MediatheqSpacing.l),
+                contentPadding = PaddingValues(MediatheqSpacing.l).plusBottomBars(),
                 horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
                 verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
                 modifier = Modifier.fillMaxSize(),
@@ -254,8 +260,11 @@ private fun LibraryContentView(
         is LibraryContent.Songs -> {
             LazyColumn(Modifier.fillMaxSize(), states.songs, contentPadding = listPadding) {
                 items(content.tracks, key = { it.id.toString() }) { track ->
-                    // shortcut: tapping a song does nothing yet; playing from the Songs tab needs its own queue rule.
-                    TrackRow(track, onClick = {}, showCover = true, menuItems = { close ->
+                    TrackRow(track, onClick = {
+                        onAction(
+                            LibraryAction.PlayTrack(track),
+                        )
+                    }, showCover = true, menuItems = { close ->
                         QueueMenuItems(
                             onPlayNext = { onAction(LibraryAction.PlayNext(track)) },
                             onAddToQueue = { onAction(LibraryAction.AddToQueue(track)) },
@@ -291,7 +300,7 @@ private fun LibraryTopBar(
     var sortMenu by rememberSaveable { mutableStateOf(false) }
     var viewMenu by rememberSaveable { mutableStateOf(false) }
     TopAppBar(
-        title = { Text(stringResource(R.string.library_title)) },
+        title = { Text(stringResource(if (state.filterFixed) state.filter.label else R.string.library_title)) },
         actions = {
             if (state.filter == LibraryFilter.Playlists) {
                 IconButton(onClick = onNewPlaylist) {

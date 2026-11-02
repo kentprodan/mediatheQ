@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import io.github.kentprodan.mediatheq.core.designsystem.component.bottomBarsPadding
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 
 /** Groups of color roles, small enough that each group fits one Pixel 9 screenshot at fontScale 2.0. */
@@ -40,7 +41,8 @@ fun ThemeShowcase(modifier: Modifier = Modifier) {
             Modifier
                 .verticalScroll(rememberScrollState())
                 .safeDrawingPadding()
-                .padding(MediatheqSpacing.l),
+                .padding(MediatheqSpacing.l)
+                .bottomBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.xl),
         ) {
             ColorRoleGroup.entries.forEach { ColorRolesShowcase(it) }

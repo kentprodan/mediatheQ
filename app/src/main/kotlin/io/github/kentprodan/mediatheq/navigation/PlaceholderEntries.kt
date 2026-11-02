@@ -8,11 +8,15 @@ import androidx.navigation3.runtime.entryProvider
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.preview.ThemeShowcase
+import io.github.kentprodan.mediatheq.core.navigation.AlbumArtistsKey
+import io.github.kentprodan.mediatheq.core.navigation.AlbumsKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
+import io.github.kentprodan.mediatheq.core.navigation.PlaylistsKey
 import io.github.kentprodan.mediatheq.core.navigation.SearchKey
+import io.github.kentprodan.mediatheq.core.navigation.TracksKey
 import kotlinx.serialization.Serializable
 
 // Placeholder tab roots exercise the per-tab back stacks in the shell tests; the app registers the real tabs.
@@ -46,7 +50,13 @@ fun EntryProviderScope<NavKey>.placeholders(
     if (includeHome) {
         entry<HomeKey> { Placeholder("Home", "Open theme showcase") { navigator.navigateTo(ThemeShowcaseKey) } }
     }
-    if (includeLibrary) entry<LibraryKey> { PlaceholderRoot("Library", navigator) }
+    if (includeLibrary) {
+        entry<LibraryKey> { PlaceholderRoot("Library", navigator) }
+        entry<AlbumsKey> { PlaceholderRoot("Albums", navigator) }
+        entry<AlbumArtistsKey> { PlaceholderRoot("Artists", navigator) }
+        entry<PlaylistsKey> { PlaceholderRoot("Playlists", navigator) }
+        entry<TracksKey> { PlaceholderRoot("Tracks", navigator) }
+    }
     if (includeSearch) entry<SearchKey> { PlaceholderRoot("Search", navigator) }
     if (includeDownloads) entry<DownloadsKey> { PlaceholderRoot("Downloads", navigator) }
     entry<PlaceholderDetailKey> { key ->

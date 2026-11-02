@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performScrollToNode
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.navigation.AboutSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.InterfaceSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ProvidersSettingsKey
@@ -32,9 +33,11 @@ class SettingsHubScreenTest {
     private val opened = mutableListOf<SettingsHubEntry>()
     private var back = 0
 
-    private fun show() =
+    private fun show(manageOfflineFiles: Boolean = false) =
         composeRule.setContent {
-            MediatheqTheme { SettingsHubScreen(onOpen = { opened += it }, onBack = { back++ }) }
+            MediatheqTheme {
+                SettingsHubScreen(onOpen = { opened += it }, onBack = { back++ }, manageOfflineFiles)
+            }
         }
 
     private fun row(title: String) = hasText(title) and hasClickAction()
@@ -46,13 +49,26 @@ class SettingsHubScreenTest {
 
     @Test
     fun `every entry opens its page, in the hub's order`() {
-        show()
+        show(manageOfflineFiles = true)
 
-        listOf("Interface", "Playback", "Offline, cache, and download", "Manage media providers").forEach(::open)
+        listOf(
+            "Interface",
+            "Playback",
+            "Offline, cache, and download",
+            "Manage offline files",
+            "Manage media providers",
+        ).forEach(::open)
         // "About" is both a group title and its entry: the clickable row is the entry.
         open("About")
 
         assertThat(opened).containsExactlyElementsIn(SettingsHubEntry.entries).inOrder()
+    }
+
+    @Test
+    fun `Manage offline files shows only when Downloads is not in the navigation`() {
+        show()
+
+        composeRule.onNode(row("Manage offline files")).assertDoesNotExist()
     }
 
     @Test
@@ -67,6 +83,7 @@ class SettingsHubScreenTest {
                 InterfaceSettingsKey,
                 PlaybackSettingsKey,
                 StorageSettingsKey,
+                DownloadsKey,
                 ProvidersSettingsKey,
                 AboutSettingsKey,
             ).inOrder()

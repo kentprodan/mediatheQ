@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
+import io.github.kentprodan.mediatheq.core.datastore.StoredNavigation
 import io.github.kentprodan.mediatheq.core.datastore.StoredTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -27,6 +28,7 @@ class DefaultLibraryPreferencesRepository
                     ratingMode = enumOrNull<RatingMode>(stored.ratingMode) ?: RatingMode.WholeStars,
                     offlineMode = stored.offlineMode ?: false,
                     theme = theme(stored.theme, stored.dynamicColor),
+                    navigation = navigation(stored.navigation),
                 )
             }
 
@@ -67,6 +69,38 @@ class DefaultLibraryPreferencesRepository
                 ignoreSurfaces = stored.ignoreSurfaces ?: defaults.ignoreSurfaces,
                 instantColors = stored.instantColors ?: defaults.instantColors,
                 font = enumOrNull<AppFont>(stored.font) ?: defaults.font,
+            )
+        }
+
+        override suspend fun setNavigation(navigation: NavigationPreferences) =
+            store.setNavigation(
+                StoredNavigation(
+                    entries = validNavEntries(navigation.entries).map { it.name },
+                    portraitStyle = navigation.portraitStyle.name,
+                    landscapeStyle = navigation.landscapeStyle.name,
+                    transparencyPercent = validTransparency(navigation.transparencyPercent),
+                    slowStartMessages = navigation.slowStartMessages,
+                    trackAction = navigation.trackAction.name,
+                    expandPlayer = navigation.expandPlayer,
+                ),
+            )
+
+        override suspend fun restoreNavigationDefaults() = store.setNavigation(StoredNavigation())
+
+        private fun navigation(stored: StoredNavigation): NavigationPreferences {
+            val defaults = NavigationPreferences()
+            return NavigationPreferences(
+                // Unknown names (an entry removed in a later version) are dropped.
+                entries =
+                    stored.entries?.let { names -> validNavEntries(names.mapNotNull { enumOrNull<MainNavEntry>(it) }) }
+                        ?: defaults.entries,
+                portraitStyle = enumOrNull<PortraitNavStyle>(stored.portraitStyle) ?: defaults.portraitStyle,
+                landscapeStyle = enumOrNull<LandscapeNavStyle>(stored.landscapeStyle) ?: defaults.landscapeStyle,
+                transparencyPercent =
+                    stored.transparencyPercent?.let(::validTransparency) ?: defaults.transparencyPercent,
+                slowStartMessages = stored.slowStartMessages ?: defaults.slowStartMessages,
+                trackAction = enumOrNull<TrackAction>(stored.trackAction) ?: defaults.trackAction,
+                expandPlayer = stored.expandPlayer ?: defaults.expandPlayer,
             )
         }
 

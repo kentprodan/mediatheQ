@@ -76,6 +76,12 @@ internal class MediaControllerPlaybackConnection
 
         override val error = MutableStateFlow<PlaybackError?>(null)
 
+        override val expandRequested = MutableStateFlow(false)
+
+        override fun acknowledgeExpand() {
+            expandRequested.value = false
+        }
+
         override fun dismissError() {
             error.value = null
         }
@@ -101,6 +107,7 @@ internal class MediaControllerPlaybackConnection
             shuffle: Boolean,
         ) {
             if (queue.isEmpty()) return
+            expandRequested.value = true
             playJob?.cancel()
             playJob = command { controller -> controller.playQueue(queue.toMediaItems(), startIndex, shuffle) }
         }
@@ -117,11 +124,14 @@ internal class MediaControllerPlaybackConnection
 
         override fun playNext(tracks: List<Track>) {
             if (tracks.isEmpty()) return
+            // A play that never produced a track must not open the player for this one.
+            expandRequested.value = false
             command { it.playNext(tracks.toMediaItems()) }
         }
 
         override fun addToQueue(tracks: List<Track>) {
             if (tracks.isEmpty()) return
+            expandRequested.value = false
             command { it.addToQueue(tracks.toMediaItems()) }
         }
 

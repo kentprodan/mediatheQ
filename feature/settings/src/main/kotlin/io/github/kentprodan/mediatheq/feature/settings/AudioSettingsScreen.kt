@@ -39,6 +39,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.EqPreset
+import io.github.kentprodan.mediatheq.core.designsystem.component.bottomBarsPadding
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.ui.formatFrequency
@@ -83,7 +84,8 @@ fun AudioSettingsScreen(
                 .padding(padding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = MediatheqSpacing.l),
+                .padding(bottom = MediatheqSpacing.l)
+                .bottomBarsPadding(),
         ) {
             BitPerfectItem(content, onAction)
             EqualizerSection(content, onAction)

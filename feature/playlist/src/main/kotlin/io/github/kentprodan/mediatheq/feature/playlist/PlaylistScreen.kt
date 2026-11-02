@@ -50,8 +50,10 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialog
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayShuffleButtons
+import io.github.kentprodan.mediatheq.core.designsystem.component.bottomBarsPadding
 import io.github.kentprodan.mediatheq.core.designsystem.component.mqReorderHandle
 import io.github.kentprodan.mediatheq.core.designsystem.component.mqReorderItem
+import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.component.rememberMqReorderState
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
@@ -179,10 +181,10 @@ fun PlaylistScreen(
                     PlaylistList(
                         state,
                         onAction,
-                        PaddingValues(top = padding.calculateTopPadding(), bottom = toolbarSpace),
+                        PaddingValues(top = padding.calculateTopPadding(), bottom = toolbarSpace).plusBottomBars(),
                     )
                     if (state.isSelecting) {
-                        SelectionToolbar(state, onAction, Modifier.align(Alignment.BottomCenter))
+                        SelectionToolbar(state, onAction, Modifier.align(Alignment.BottomCenter).bottomBarsPadding())
                     }
                 }
             }

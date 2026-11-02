@@ -144,7 +144,7 @@ AlbumEntry.kt          Navigation 3 entry registration for AlbumKey
 ## 6. Navigation (Navigation 3)
 
 - Every destination is a `@Serializable` `NavKey` in `:core:navigation` (e.g. `data class AlbumKey(val id: MediaId)`).
-- `:app` owns the back stack(s): one back stack per bottom tab (Home, Library, Search, Downloads), switching tabs swaps stacks and preserves them.
+- `:app` owns the back stack(s): one back stack per navigation tab (the entries chosen in Settings -> Navigation and media start, #122), switching tabs swaps stacks and preserves them.
 - Each feature exposes an `EntryProviderScope` extension (`fun EntryProviderScope<NavKey>.albumEntry(navigator: Navigator)`) registered in `:app`.
 - Features navigate through a small `Navigator` interface (`navigateTo(key)`, `back()`), never by touching the back stack list.
 - ViewModels are scoped to their nav entry (use the Navigation 3 ViewModel entry decorator); arguments come from the key via Hilt assisted injection. Verify the exact artifact/decorator names against current docs when implementing.

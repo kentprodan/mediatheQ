@@ -3,6 +3,9 @@ package io.github.kentprodan.mediatheq.feature.library
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.common.MqError
@@ -15,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -31,24 +35,27 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@HiltViewModel
+@HiltViewModel(assistedFactory = LibraryViewModel.Factory::class)
 class LibraryViewModel
-    @Inject
+    @AssistedInject
     constructor(
+        /** Set when the screen is a navigation entry of its own (Albums, Tracks, ..., #122); `null` for Library. */
+        @Assisted private val fixedFilter: LibraryFilter?,
         private val savedStateHandle: SavedStateHandle,
         private val libraryRepository: LibraryRepository,
         private val syncRepository: LibrarySyncRepository,
         private val preferencesRepository: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
+        private val trackTaps: TrackTaps,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
         // Saved, so the tab (and its restored scroll position) comes back after process death.
-        private val filter = savedStateHandle.getStateFlow(FILTER_KEY, LibraryFilter.Albums)
+        private val filter: StateFlow<LibraryFilter> =
+            fixedFilter?.let { MutableStateFlow(it) } ?: savedStateHandle.getStateFlow(FILTER_KEY, LibraryFilter.Albums)
 
         // The failed sync the user already saw as a snackbar; the same failure is not shown twice.
         private val shownFailure = MutableStateFlow<SyncStatus.Failed?>(null)
@@ -103,6 +110,7 @@ class LibraryViewModel
                 val failureShownAsContent = content is LibraryContent.Offline || content is LibraryContent.Error
                 LibraryUiState(
                     filter = filter,
+                    filterFixed = fixedFilter != null,
                     filterStyle = preferences.filterStyle,
                     albumColumns = preferences.albumColumns,
                     sort = preferences.sortFor(filter),
@@ -118,21 +126,56 @@ class LibraryViewModel
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
                 // The restored tab, not the default one, from the first frame (its top bar differs).
-                LibraryUiState(filter = filter.value, filterStyle = null),
+                LibraryUiState(filter = filter.value, filterFixed = fixedFilter != null, filterStyle = null),
             )
 
         fun onAction(action: LibraryAction) {
             when (action) {
-                is LibraryAction.SelectFilter -> savedStateHandle[FILTER_KEY] = action.filter
-                is LibraryAction.SelectSort -> launch { preferencesRepository.setSort(filter.value, action.sort) }
-                is LibraryAction.SetAlbumColumns -> launch { preferencesRepository.setAlbumColumns(action.columns) }
-                is LibraryAction.SetFilterStyle -> launch { preferencesRepository.setFilterStyle(action.style) }
-                LibraryAction.Refresh -> launch { syncRepository.sync() }
-                LibraryAction.ErrorShown -> shownFailure.value = syncRepository.status.value as? SyncStatus.Failed
-                is LibraryAction.PlayNext -> playback.playNext(listOf(action.track))
-                is LibraryAction.AddToQueue -> playback.addToQueue(listOf(action.track))
-                is LibraryAction.SetFavorite -> launch { userData.setFavorite(action.track.id, action.isFavorite) }
-                is LibraryAction.Download -> downloads.download(listOf(action.track))
+                is LibraryAction.SelectFilter -> {
+                    if (fixedFilter == null) savedStateHandle[FILTER_KEY] = action.filter
+                }
+
+                is LibraryAction.SelectSort -> {
+                    launch { preferencesRepository.setSort(filter.value, action.sort) }
+                }
+
+                is LibraryAction.SetAlbumColumns -> {
+                    launch { preferencesRepository.setAlbumColumns(action.columns) }
+                }
+
+                is LibraryAction.SetFilterStyle -> {
+                    launch { preferencesRepository.setFilterStyle(action.style) }
+                }
+
+                LibraryAction.Refresh -> {
+                    launch { syncRepository.sync() }
+                }
+
+                LibraryAction.ErrorShown -> {
+                    shownFailure.value = syncRepository.status.value as? SyncStatus.Failed
+                }
+
+                is LibraryAction.PlayTrack -> {
+                    // The whole sorted list becomes the queue with Play (owner, #122; under 10k tracks).
+                    val songs = (uiState.value.content as? LibraryContent.Songs)?.tracks.orEmpty()
+                    launch { trackTaps.tap(songs, songs.indexOf(action.track)) }
+                }
+
+                is LibraryAction.PlayNext -> {
+                    playback.playNext(listOf(action.track))
+                }
+
+                is LibraryAction.AddToQueue -> {
+                    playback.addToQueue(listOf(action.track))
+                }
+
+                is LibraryAction.SetFavorite -> {
+                    launch { userData.setFavorite(action.track.id, action.isFavorite) }
+                }
+
+                is LibraryAction.Download -> {
+                    downloads.download(listOf(action.track))
+                }
             }
         }
 
@@ -167,6 +210,11 @@ class LibraryViewModel
                     }
                 }
             }
+
+        @AssistedFactory
+        interface Factory {
+            fun create(fixedFilter: LibraryFilter?): LibraryViewModel
+        }
     }
 
 /** Sorts a tab's items into content. */

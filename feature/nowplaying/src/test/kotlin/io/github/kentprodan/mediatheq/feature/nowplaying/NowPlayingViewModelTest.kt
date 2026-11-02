@@ -4,6 +4,7 @@ import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.LyricLine
@@ -420,4 +421,72 @@ class NowPlayingViewModelTest {
                 assertThat((awaitItem() as NowPlayingUiState.Playing).ratingMode).isEqualTo(RatingMode.HalfStars)
             }
         }
+
+    @Test
+    fun `starting playback opens the player when the setting is on`() =
+        runTest {
+            libraryPreferences.setNavigation(NavigationPreferences(expandPlayer = true))
+            val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences)
+            viewModel.autoExpand.test {
+                assertThat(awaitItem()).isFalse()
+
+                playback.play(listOf(track()))
+                playback.state.value = playing
+                assertThat(awaitItem()).isTrue()
+
+                viewModel.onAction(NowPlayingAction.AutoExpanded)
+                assertThat(awaitItem()).isFalse()
+                assertThat(playback.expandRequested.value).isFalse()
+            }
+        }
+
+    @Test
+    fun `with the setting off starting playback never opens the player, now or later`() =
+        runTest {
+            val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences)
+            viewModel.autoExpand.test {
+                assertThat(awaitItem()).isFalse()
+
+                playback.play(listOf(track()))
+                playback.state.value = playing
+                libraryPreferences.setNavigation(NavigationPreferences(expandPlayer = true))
+
+                expectNoEvents()
+                assertThat(playback.expandRequested.value).isFalse()
+            }
+        }
+
+    @Test
+    fun `queueing next or last does not open the player`() =
+        runTest {
+            libraryPreferences.setNavigation(NavigationPreferences(expandPlayer = true))
+            playback.state.value = playing
+            val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences)
+            viewModel.autoExpand.test {
+                assertThat(awaitItem()).isFalse()
+
+                playback.playNext(listOf(track()))
+                playback.addToQueue(listOf(track()))
+
+                expectNoEvents()
+            }
+        }
+
+    @Test
+    fun `a play that produced no track does not open the player when something is queued later`() =
+        runTest {
+            libraryPreferences.setNavigation(NavigationPreferences(expandPlayer = true))
+            val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences)
+            viewModel.autoExpand.test {
+                assertThat(awaitItem()).isFalse()
+
+                playback.play(listOf(track()))
+                playback.addToQueue(listOf(track()))
+                playback.state.value = playing
+
+                expectNoEvents()
+            }
+        }
+
+    private fun track() = Track(MediaId(ServerId("s"), "t1"), "Strobe", emptyList(), 10.minutes)
 }

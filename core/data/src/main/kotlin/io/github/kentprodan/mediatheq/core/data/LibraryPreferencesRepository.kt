@@ -16,6 +16,12 @@ interface LibraryPreferencesRepository {
     /** Settings -> Theme, font and colors -> Restore defaults: only the theme goes back to [ThemePreferences]. */
     suspend fun restoreThemeDefaults()
 
+    /** Stored validated: see [validNavEntries] and [validTransparency]. */
+    suspend fun setNavigation(navigation: NavigationPreferences)
+
+    /** Settings -> Navigation and media start -> Restore defaults: only that page goes back to its defaults. */
+    suspend fun restoreNavigationDefaults()
+
     suspend fun setRatingMode(mode: RatingMode)
 
     suspend fun setOfflineMode(on: Boolean)

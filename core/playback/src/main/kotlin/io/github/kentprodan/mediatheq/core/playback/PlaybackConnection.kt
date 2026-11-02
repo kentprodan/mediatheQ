@@ -66,6 +66,15 @@ interface PlaybackConnection {
     /** Plays the queue entry from its start. */
     fun skipToQueueItem(entryId: String)
 
+    /**
+     * Playback was just started with [play] (from a list, a header's Play or Shuffle): Now Playing may open by itself
+     * (#122), until [acknowledgeExpand]. Queueing next or last does not ask for it and drops a pending request.
+     */
+    val expandRequested: StateFlow<Boolean>
+
+    /** Clears [expandRequested] once the player opened, or the setting said not to. */
+    fun acknowledgeExpand()
+
     /** The last track that could not play, until [dismissError]; for a message on screen. */
     val error: StateFlow<PlaybackError?>
 

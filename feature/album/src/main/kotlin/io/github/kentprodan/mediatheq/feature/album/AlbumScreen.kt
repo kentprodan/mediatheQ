@@ -33,6 +33,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayShuffleButtons
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
+import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedCover
 import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
@@ -133,7 +134,11 @@ fun AlbumScreen(
             is AlbumUiState.Content -> {
                 LazyColumn(
                     Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = MediatheqSpacing.l),
+                    contentPadding =
+                        PaddingValues(
+                            top = padding.calculateTopPadding(),
+                            bottom = MediatheqSpacing.l,
+                        ).plusBottomBars(),
                 ) {
                     item(key = "header") { AlbumHeader(albumId, state, onAction) }
                     item(key = "buttons") {

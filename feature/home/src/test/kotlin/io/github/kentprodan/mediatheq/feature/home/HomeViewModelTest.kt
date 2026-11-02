@@ -10,7 +10,9 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
@@ -33,6 +35,7 @@ class HomeViewModelTest {
     private val library = FakeLibraryRepository()
     private val sync = FakeLibrarySyncRepository()
     private val playback = FakePlaybackConnection()
+    private val trackTaps by lazy { TrackTaps(playback, FakeLibraryPreferencesRepository()) }
     private val userData = FakeUserDataRepository()
     private val downloads = FakeDownloadRepository()
 
@@ -77,7 +80,8 @@ class HomeViewModelTest {
 
     private fun TestScope.viewModel(status: SyncStatus = SyncStatus.Idle(day(10))): HomeViewModel {
         sync.status.value = status
-        val viewModel = HomeViewModel(library, sync, playback, userData, downloads, mainDispatcherRule.testDispatcher)
+        val viewModel =
+            HomeViewModel(library, sync, playback, trackTaps, userData, downloads, mainDispatcherRule.testDispatcher)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -96,7 +100,15 @@ class HomeViewModelTest {
     fun `before anything is collected the screen is loading`() =
         test {
             val viewModel =
-                HomeViewModel(library, sync, playback, userData, downloads, mainDispatcherRule.testDispatcher)
+                HomeViewModel(
+                    library,
+                    sync,
+                    playback,
+                    trackTaps,
+                    userData,
+                    downloads,
+                    mainDispatcherRule.testDispatcher,
+                )
 
             assertThat(viewModel.uiState.value).isEqualTo(HomeUiState.Loading)
         }

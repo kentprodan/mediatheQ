@@ -36,6 +36,8 @@ fun MqEmptyState(
     Column(
         modifier
             .fillMaxSize()
+            // Screens scroll under the app's bottom bars (#122); the state stays above them.
+            .bottomBarsPadding()
             .padding(MediatheqSpacing.xl),
         verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.m, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,

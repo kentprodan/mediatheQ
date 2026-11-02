@@ -16,6 +16,8 @@ import io.github.kentprodan.mediatheq.core.model.Track
  */
 data class LibraryUiState(
     val filter: LibraryFilter = LibraryFilter.Albums,
+    /** Opened as its own navigation entry (#122): one filter, no filter bar. */
+    val filterFixed: Boolean = false,
     /** `null` until the saved style is read: no filter bar rather than the default style for a moment (#52). */
     val filterStyle: FilterControlStyle? = FilterControlStyle.Chips,
     val albumColumns: Int = LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
@@ -84,6 +86,11 @@ sealed interface LibraryAction {
     data object Refresh : LibraryAction
 
     data object ErrorShown : LibraryAction
+
+    /** A tap on a song: the default track action (#122), with the shown songs as the list. */
+    data class PlayTrack(
+        val track: Track,
+    ) : LibraryAction
 
     /** Queue the song right after the playing one. */
     data class PlayNext(

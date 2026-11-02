@@ -10,7 +10,9 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
@@ -45,7 +47,8 @@ class DownloadsViewModelTest {
         )
     private val library = FakeLibraryRepository().apply { albums.value = listOf(albumA) }
     private val playback = FakePlaybackConnection()
-    private val viewModel by lazy { DownloadsViewModel(repository, library, playback) }
+    private val trackTaps by lazy { TrackTaps(playback, FakeLibraryPreferencesRepository()) }
+    private val viewModel by lazy { DownloadsViewModel(repository, library, playback, trackTaps) }
 
     private suspend fun content(): DownloadsUiState.Content {
         lateinit var content: DownloadsUiState.Content
