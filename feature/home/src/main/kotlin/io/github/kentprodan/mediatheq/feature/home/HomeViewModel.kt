@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,6 +37,7 @@ class HomeViewModel
         private val libraryRepository: LibraryRepository,
         private val syncRepository: LibrarySyncRepository,
         private val playback: PlaybackConnection,
+        private val trackTaps: TrackTaps,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
@@ -77,7 +79,8 @@ class HomeViewModel
                 is HomeAction.PlayFavorite -> {
                     launch {
                         val favorites = libraryRepository.tracks().first().filter { it.userData.isFavorite }
-                        playback.play(favorites, startIndex = favorites.indexOf(action.track).coerceAtLeast(0))
+                        val index = favorites.indexOf(action.track)
+                        if (index >= 0) trackTaps.tap(favorites, index) else trackTaps.tap(listOf(action.track), 0)
                     }
                 }
 

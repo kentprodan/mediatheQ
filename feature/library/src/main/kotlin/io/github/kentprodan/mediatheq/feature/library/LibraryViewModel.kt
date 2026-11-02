@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -43,6 +44,7 @@ class LibraryViewModel
         private val syncRepository: LibrarySyncRepository,
         private val preferencesRepository: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
+        private val trackTaps: TrackTaps,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
@@ -123,16 +125,51 @@ class LibraryViewModel
 
         fun onAction(action: LibraryAction) {
             when (action) {
-                is LibraryAction.SelectFilter -> savedStateHandle[FILTER_KEY] = action.filter
-                is LibraryAction.SelectSort -> launch { preferencesRepository.setSort(filter.value, action.sort) }
-                is LibraryAction.SetAlbumColumns -> launch { preferencesRepository.setAlbumColumns(action.columns) }
-                is LibraryAction.SetFilterStyle -> launch { preferencesRepository.setFilterStyle(action.style) }
-                LibraryAction.Refresh -> launch { syncRepository.sync() }
-                LibraryAction.ErrorShown -> shownFailure.value = syncRepository.status.value as? SyncStatus.Failed
-                is LibraryAction.PlayNext -> playback.playNext(listOf(action.track))
-                is LibraryAction.AddToQueue -> playback.addToQueue(listOf(action.track))
-                is LibraryAction.SetFavorite -> launch { userData.setFavorite(action.track.id, action.isFavorite) }
-                is LibraryAction.Download -> downloads.download(listOf(action.track))
+                is LibraryAction.SelectFilter -> {
+                    savedStateHandle[FILTER_KEY] = action.filter
+                }
+
+                is LibraryAction.SelectSort -> {
+                    launch { preferencesRepository.setSort(filter.value, action.sort) }
+                }
+
+                is LibraryAction.SetAlbumColumns -> {
+                    launch { preferencesRepository.setAlbumColumns(action.columns) }
+                }
+
+                is LibraryAction.SetFilterStyle -> {
+                    launch { preferencesRepository.setFilterStyle(action.style) }
+                }
+
+                LibraryAction.Refresh -> {
+                    launch { syncRepository.sync() }
+                }
+
+                LibraryAction.ErrorShown -> {
+                    shownFailure.value = syncRepository.status.value as? SyncStatus.Failed
+                }
+
+                is LibraryAction.PlayTrack -> {
+                    // The whole sorted list becomes the queue with Play (owner, #122; under 10k tracks).
+                    val songs = (uiState.value.content as? LibraryContent.Songs)?.tracks.orEmpty()
+                    launch { trackTaps.tap(songs, songs.indexOf(action.track)) }
+                }
+
+                is LibraryAction.PlayNext -> {
+                    playback.playNext(listOf(action.track))
+                }
+
+                is LibraryAction.AddToQueue -> {
+                    playback.addToQueue(listOf(action.track))
+                }
+
+                is LibraryAction.SetFavorite -> {
+                    launch { userData.setFavorite(action.track.id, action.isFavorite) }
+                }
+
+                is LibraryAction.Download -> {
+                    downloads.download(listOf(action.track))
+                }
             }
         }
 

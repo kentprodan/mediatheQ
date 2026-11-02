@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,7 @@ class SearchViewModel
         private val libraryRepository: LibraryRepository,
         private val preferencesRepository: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
+        private val trackTaps: TrackTaps,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
     ) : ViewModel() {
@@ -64,7 +66,7 @@ class SearchViewModel
                 }
 
                 is SearchAction.PlayTrack -> {
-                    playback.play(listOf(action.track))
+                    viewModelScope.launch { trackTaps.tap(listOf(action.track), 0) }
                     saveQuery()
                 }
 

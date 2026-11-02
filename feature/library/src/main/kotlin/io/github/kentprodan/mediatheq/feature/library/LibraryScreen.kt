@@ -254,8 +254,11 @@ private fun LibraryContentView(
         is LibraryContent.Songs -> {
             LazyColumn(Modifier.fillMaxSize(), states.songs, contentPadding = listPadding) {
                 items(content.tracks, key = { it.id.toString() }) { track ->
-                    // shortcut: tapping a song does nothing yet; playing from the Songs tab needs its own queue rule.
-                    TrackRow(track, onClick = {}, showCover = true, menuItems = { close ->
+                    TrackRow(track, onClick = {
+                        onAction(
+                            LibraryAction.PlayTrack(track),
+                        )
+                    }, showCover = true, menuItems = { close ->
                         QueueMenuItems(
                             onPlayNext = { onAction(LibraryAction.PlayNext(track)) },
                             onAddToQueue = { onAction(LibraryAction.AddToQueue(track)) },

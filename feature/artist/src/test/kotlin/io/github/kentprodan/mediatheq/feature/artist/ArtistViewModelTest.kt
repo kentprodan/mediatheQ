@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
@@ -30,6 +31,7 @@ class ArtistViewModelTest {
     private val library = FakeLibraryRepository()
     private val preferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
+    private val trackTaps by lazy { TrackTaps(playback, preferences) }
     private val userData = FakeUserDataRepository()
     private val artistId = MediaId(ServerId("s"), "ar1")
     private val artist = Artist(artistId, "Subcarpați")
@@ -52,7 +54,7 @@ class ArtistViewModelTest {
     }
 
     private fun TestScope.viewModel(): ArtistViewModel {
-        val viewModel = ArtistViewModel(artistId, library, preferences, playback, userData)
+        val viewModel = ArtistViewModel(artistId, library, preferences, playback, trackTaps, userData)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -61,7 +63,7 @@ class ArtistViewModelTest {
 
     @Test
     fun `starts loading`() {
-        assertThat(ArtistViewModel(artistId, library, preferences, playback, userData).uiState.value)
+        assertThat(ArtistViewModel(artistId, library, preferences, playback, trackTaps, userData).uiState.value)
             .isEqualTo(ArtistUiState.Loading)
     }
 

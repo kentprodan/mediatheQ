@@ -85,6 +85,11 @@ sealed interface LibraryAction {
 
     data object ErrorShown : LibraryAction
 
+    /** A tap on a song: the default track action (#122), with the shown songs as the list. */
+    data class PlayTrack(
+        val track: Track,
+    ) : LibraryAction
+
     /** Queue the song right after the playing one. */
     data class PlayNext(
         val track: Track,

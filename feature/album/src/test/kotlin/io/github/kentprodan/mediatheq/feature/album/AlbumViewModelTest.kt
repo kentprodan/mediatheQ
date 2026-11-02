@@ -1,12 +1,15 @@
 package io.github.kentprodan.mediatheq.feature.album
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
+import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
@@ -28,6 +31,7 @@ class AlbumViewModelTest {
 
     private val library = FakeLibraryRepository()
     private val playback = FakePlaybackConnection()
+    private val trackTaps by lazy { TrackTaps(playback, preferences) }
     private val userData = FakeUserDataRepository()
     private val albumId = MediaId(ServerId("s"), "al1")
     private val album = Album(albumId, "Satelit", emptyList(), year = 2016)
@@ -53,7 +57,7 @@ class AlbumViewModelTest {
     private val preferences = FakeLibraryPreferencesRepository()
 
     private fun TestScope.viewModel(): AlbumViewModel {
-        val viewModel = AlbumViewModel(albumId, library, playback, userData, downloads, preferences)
+        val viewModel = AlbumViewModel(albumId, library, playback, trackTaps, userData, downloads, preferences)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -61,7 +65,7 @@ class AlbumViewModelTest {
     @Test
     fun `starts loading`() {
         assertThat(
-            AlbumViewModel(albumId, library, playback, userData, downloads, preferences).uiState.value,
+            AlbumViewModel(albumId, library, playback, trackTaps, userData, downloads, preferences).uiState.value,
         ).isEqualTo(AlbumUiState.Loading)
     }
 
@@ -131,6 +135,20 @@ class AlbumViewModelTest {
             viewModel.onAction(AlbumAction.PlayTrack(disc2.first().id))
 
             assertThat(playback.plays).containsExactly(PlayCall(disc1 + disc2, disc1.size, false))
+        }
+
+    @Test
+    fun `tapping a track follows the default track action`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albums.value = listOf(album)
+            library.tracks.value = disc1 + disc2
+            preferences.setNavigation(NavigationPreferences(trackAction = TrackAction.PlayNext))
+            val viewModel = viewModel()
+
+            viewModel.onAction(AlbumAction.PlayTrack(disc2.first().id))
+
+            assertThat(playback.playedNext).containsExactly(listOf(disc2.first()))
+            assertThat(playback.plays).isEmpty()
         }
 
     @Test

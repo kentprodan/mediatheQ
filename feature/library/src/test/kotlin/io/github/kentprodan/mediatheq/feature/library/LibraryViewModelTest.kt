@@ -7,14 +7,17 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
+import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
@@ -40,6 +43,7 @@ class LibraryViewModelTest {
     private val sync = FakeLibrarySyncRepository()
     private val preferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
+    private val trackTaps by lazy { TrackTaps(playback, preferences) }
     private val userData = FakeUserDataRepository()
     private val downloads = FakeDownloadRepository()
 
@@ -115,6 +119,7 @@ class LibraryViewModelTest {
                 sync,
                 preferences,
                 playback,
+                trackTaps,
                 userData,
                 downloads,
                 mainDispatcherRule.testDispatcher,
@@ -138,6 +143,31 @@ class LibraryViewModelTest {
             viewModel().onAction(LibraryAction.Download(tracks[0]))
 
             assertThat(downloads.downloads.value.map { it.track }).containsExactly(tracks[0])
+        }
+
+    @Test
+    fun `tapping a song plays the sorted songs from it`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
+            val shown = (viewModel.uiState.value.content as LibraryContent.Songs).tracks
+
+            viewModel.onAction(LibraryAction.PlayTrack(shown[1]))
+
+            assertThat(playback.plays).containsExactly(FakePlaybackConnection.PlayCall(shown, 1, false))
+        }
+
+    @Test
+    fun `tapping a song follows the default track action`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            preferences.setNavigation(NavigationPreferences(trackAction = TrackAction.AddToQueue))
+            val viewModel = viewModel()
+            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
+
+            viewModel.onAction(LibraryAction.PlayTrack(tracks[0]))
+
+            assertThat(playback.addedToQueue).containsExactly(listOf(tracks[0]))
+            assertThat(playback.plays).isEmpty()
         }
 
     @Test
@@ -381,7 +411,17 @@ class LibraryViewModelTest {
             sync.status.value = SyncStatus.Idle(day(10))
             val sorting = StandardTestDispatcher(testScheduler)
             val viewModel =
-                LibraryViewModel(SavedStateHandle(), library, sync, preferences, playback, userData, downloads, sorting)
+                LibraryViewModel(
+                    SavedStateHandle(),
+                    library,
+                    sync,
+                    preferences,
+                    playback,
+                    trackTaps,
+                    userData,
+                    downloads,
+                    sorting,
+                )
             backgroundScope.launch { viewModel.uiState.collect() }
             sorting.scheduler.runCurrent()
 
