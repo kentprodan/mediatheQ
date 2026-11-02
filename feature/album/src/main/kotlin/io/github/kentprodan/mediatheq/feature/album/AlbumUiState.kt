@@ -74,4 +74,16 @@ sealed interface AlbumAction {
     data class Download(
         val trackId: MediaId? = null,
     ) : AlbumAction
+
+    /** A swipe on a track to the right (or left): the action chosen in Settings -> Media lists (#123). */
+    data class SwipeTrack(
+        val track: Track,
+        val right: Boolean,
+    ) : AlbumAction
+
+    /** Rates a track (a Rate swipe): [halfStars] 1-10, `null` clears. */
+    data class RateTrack(
+        val track: Track,
+        val halfStars: Int?,
+    ) : AlbumAction
 }

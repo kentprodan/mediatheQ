@@ -30,6 +30,7 @@
     <string name="core_ui_format_stereo">Stereo</string>
     <string name="core_ui_format_mono">Mono</string>
     <string name="core_ui_favorite">Favorite</string>
+    <string name="core_ui_rate">Rate</string>
     <string name="core_ui_downloaded">Downloaded</string>
     <string name="core_ui_rating">%1$.1f of 5 stars</string>
     <plurals name="core_ui_play_count">

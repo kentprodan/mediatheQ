@@ -52,4 +52,16 @@ sealed interface ArtistAction {
     data class Rate(
         val halfStars: Int?,
     ) : ArtistAction
+
+    /** A swipe on a track to the right (or left): the action chosen in Settings -> Media lists (#123). */
+    data class SwipeTrack(
+        val track: Track,
+        val right: Boolean,
+    ) : ArtistAction
+
+    /** Rates a track (a Rate swipe): [halfStars] 1-10, `null` clears. */
+    data class RateTrack(
+        val track: Track,
+        val halfStars: Int?,
+    ) : ArtistAction
 }

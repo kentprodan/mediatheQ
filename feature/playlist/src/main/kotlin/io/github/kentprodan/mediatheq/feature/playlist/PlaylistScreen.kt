@@ -58,6 +58,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.rememberMqReor
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
@@ -65,11 +66,13 @@ import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
+import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 
 @Composable
 internal fun PlaylistRoute(
     playlistId: MediaId,
     onBack: () -> Unit,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
     viewModel: PlaylistViewModel =
         hiltViewModel<PlaylistViewModel, PlaylistViewModel.Factory>(key = playlistId.toString(), creationCallback = {
             it.create(playlistId)
@@ -77,7 +80,7 @@ internal fun PlaylistRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(state) { if (state == PlaylistUiState.Deleted) onBack() }
-    PlaylistScreen(state, viewModel::onAction, onBack)
+    PlaylistScreen(state, viewModel::onAction, onBack, onAddToPlaylist = onAddToPlaylist)
 }
 
 /**
@@ -90,7 +93,14 @@ fun PlaylistScreen(
     onAction: (PlaylistAction) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onAddToPlaylist: (List<MediaId>) -> Unit = {},
 ) {
+    val swipe =
+        trackSwipes(
+            onAddToPlaylist,
+            onRate = { track, stars -> onAction(PlaylistAction.RateTrack(track, stars)) },
+            onCommand = { track, right -> onAction(PlaylistAction.SwipeTrack(track, right)) },
+        )
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val content = state as? PlaylistUiState.Content
     var dialog by rememberSaveable { mutableStateOf<PlaylistDialog?>(null) }
@@ -182,6 +192,7 @@ fun PlaylistScreen(
                         state,
                         onAction,
                         PaddingValues(top = padding.calculateTopPadding(), bottom = toolbarSpace).plusBottomBars(),
+                        swipe,
                     )
                     if (state.isSelecting) {
                         SelectionToolbar(state, onAction, Modifier.align(Alignment.BottomCenter).bottomBarsPadding())
@@ -228,6 +239,7 @@ private fun PlaylistList(
     state: PlaylistUiState.Content,
     onAction: (PlaylistAction) -> Unit,
     contentPadding: PaddingValues,
+    onSwipe: (Track, Boolean) -> Unit,
 ) {
     // A local copy follows the finger while dragging; the repository gets one move when it is dropped.
     var rows by remember(state.items) { mutableStateOf(state.items) }
@@ -275,6 +287,7 @@ private fun PlaylistList(
                     .mqReorderItem(reorder, item.position)
                     .then(if (reorder.draggedKey == item.position) Modifier else Modifier.animateItem()),
                 handle = Modifier.mqReorderHandle(reorder, item.position, enabled = canReorder),
+                onSwipe = onSwipe,
             )
         }
     }
@@ -289,6 +302,7 @@ private fun PlaylistRow(
     onAction: (PlaylistAction) -> Unit,
     modifier: Modifier,
     handle: Modifier,
+    onSwipe: (Track, Boolean) -> Unit,
 ) {
     val index = rows.indexOf(item)
     val moveUp = stringResource(R.string.playlist_move_up)
@@ -335,6 +349,7 @@ private fun PlaylistRow(
             isCurrent = item.track.id == state.currentTrackId,
             onLongClick = { if (canEditItem) onAction(PlaylistAction.ToggleSelection(item.position)) },
             selected = if (state.isSelecting) item.entryId in state.selected else null,
+            onSwipe = { onSwipe(item.track, it) },
             menuItems =
                 if (state.isSelecting) {
                     null

@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
@@ -31,6 +32,7 @@ class PlaylistViewModelTest {
     private val repository = FakePlaylistRepository()
     private val playback = FakePlaybackConnection()
     private val trackTaps by lazy { TrackTaps(playback, FakeLibraryPreferencesRepository()) }
+    private val commands by lazy { TrackCommands(playback, userData, downloads, FakeLibraryPreferencesRepository()) }
     private val userData = FakeUserDataRepository()
     private val downloads = FakeDownloadRepository()
     private val playlistId = MediaId(ServerId("s"), "p1")
@@ -49,7 +51,7 @@ class PlaylistViewModelTest {
     private fun TestScope.viewModel(): PlaylistViewModel {
         repository.playlists.value = listOf(Playlist(playlistId, "Drum"))
         repository.items.value = mapOf(playlistId to items)
-        val viewModel = PlaylistViewModel(playlistId, repository, playback, trackTaps, userData, downloads)
+        val viewModel = PlaylistViewModel(playlistId, repository, playback, trackTaps, commands, userData, downloads)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -58,8 +60,9 @@ class PlaylistViewModelTest {
 
     @Test
     fun `starts loading`() {
-        assertThat(PlaylistViewModel(playlistId, repository, playback, trackTaps, userData, downloads).uiState.value)
-            .isEqualTo(PlaylistUiState.Loading)
+        assertThat(
+            PlaylistViewModel(playlistId, repository, playback, trackTaps, commands, userData, downloads).uiState.value,
+        ).isEqualTo(PlaylistUiState.Loading)
     }
 
     @Test
@@ -234,5 +237,17 @@ class PlaylistViewModelTest {
             viewModel.onAction(PlaylistAction.Delete)
 
             assertThat(viewModel.content.error).isEqualTo(MqError.Forbidden)
+        }
+
+    @Test
+    fun `a swipe runs its action and a rating rates the track`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+
+            viewModel.onAction(PlaylistAction.SwipeTrack(tracks.first(), right = true))
+            viewModel.onAction(PlaylistAction.RateTrack(tracks.first(), 4))
+
+            assertThat(playback.addedToQueue).containsExactly(listOf(tracks.first()))
+            assertThat(userData.calls).contains("rating:${tracks.first().id.itemId}:4")
         }
 }

@@ -17,6 +17,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
@@ -46,6 +47,7 @@ class LibraryViewModelTest {
     private val trackTaps by lazy { TrackTaps(playback, preferences) }
     private val userData = FakeUserDataRepository()
     private val downloads = FakeDownloadRepository()
+    private val commands by lazy { TrackCommands(playback, userData, downloads, preferences) }
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
@@ -122,6 +124,7 @@ class LibraryViewModelTest {
                 preferences,
                 playback,
                 trackTaps,
+                commands,
                 userData,
                 downloads,
                 mainDispatcherRule.testDispatcher,
@@ -206,6 +209,20 @@ class LibraryViewModelTest {
             viewModel.onAction(LibraryAction.SetFavorite(tracks[0], true))
 
             assertThat(userData.calls).containsExactly("favorite:${tracks[0].id.itemId}:true")
+        }
+
+    @Test
+    fun `swipes run the chosen actions and Rate rates`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+
+            viewModel.onAction(LibraryAction.SwipeTrack(tracks[0], right = true))
+            viewModel.onAction(LibraryAction.SwipeTrack(tracks[1], right = false))
+            viewModel.onAction(LibraryAction.RateTrack(tracks[0], 6))
+
+            assertThat(playback.addedToQueue).containsExactly(listOf(tracks[0]))
+            assertThat(playback.playedNext).containsExactly(listOf(tracks[1]))
+            assertThat(userData.calls).containsExactly("rating:${tracks[0].id.itemId}:6")
         }
 
     @Test
@@ -435,6 +452,7 @@ class LibraryViewModelTest {
                     preferences,
                     playback,
                     trackTaps,
+                    commands,
                     userData,
                     downloads,
                     sorting,

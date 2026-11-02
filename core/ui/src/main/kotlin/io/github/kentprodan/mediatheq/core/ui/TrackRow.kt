@@ -24,8 +24,9 @@ import io.github.kentprodan.mediatheq.core.model.Track
 
 /**
  * One track in a list: optional track number or cover, title, a format badge and the artists, the details chosen in
- * Settings -> Media lists ([LocalMediaListStyle], duration by default) and an overflow button. TalkBack reads the row as one item ("title, Stereo, artists, duration"); the overflow button stays separately
- * focusable.
+ * Settings -> Media lists ([LocalMediaListStyle], duration by default) and an overflow button. TalkBack reads the row as
+ * one item ("title, Stereo, artists, duration"); the overflow button stays separately focusable.
+ * With [onSwipe], swiping runs the action chosen for each side ([SwipeableTrack]), also as an accessibility action.
  * The playing track ([isCurrent]) shows an equalizer icon instead of its number or cover, a primary-colored title and
  * "Now playing" for TalkBack, so color is never the only signal.
  */
@@ -45,7 +46,25 @@ fun TrackRow(
     selected: Boolean? = null,
     /** Replaces the artists after the format badge, e.g. with a download's progress; `null` keeps the artists. */
     supportingContent: (@Composable () -> Unit)? = null,
+    /** A swipe to the right (`true`) or left past the threshold; `null` = no swiping. Off while selecting. */
+    onSwipe: ((right: Boolean) -> Unit)? = null,
 ) {
+    val style = LocalMediaListStyle.current
+    if (onSwipe != null && selected == null && (style.swipeRight != null || style.swipeLeft != null)) {
+        SwipeableTrack(track, style.swipeRight, style.swipeLeft, onSwipe, modifier) {
+            TrackRow(
+                track,
+                onClick,
+                showTrackNumber = showTrackNumber,
+                showCover = showCover,
+                menuItems = menuItems,
+                isCurrent = isCurrent,
+                onLongClick = onLongClick,
+                supportingContent = supportingContent,
+            )
+        }
+        return
+    }
     val trackNumber = track.trackNumber.takeIf { showTrackNumber && !showCover }
     val nowPlaying = stringResource(R.string.core_ui_now_playing)
     val rowModifier = if (isCurrent) modifier.semantics { stateDescription = nowPlaying } else modifier

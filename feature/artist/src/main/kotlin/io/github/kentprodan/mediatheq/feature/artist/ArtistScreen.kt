@@ -47,12 +47,14 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
+import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 
 @Composable
 internal fun ArtistRoute(
     artistId: MediaId,
     onOpenAlbum: (MediaId) -> Unit,
     onBack: () -> Unit,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
     viewModel: ArtistViewModel =
         hiltViewModel<ArtistViewModel, ArtistViewModel.Factory>(key = artistId.toString(), creationCallback = {
             it.create(artistId)
@@ -70,7 +72,14 @@ fun ArtistScreen(
     onOpenAlbum: (MediaId) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onAddToPlaylist: (List<MediaId>) -> Unit = {},
 ) {
+    val swipe =
+        trackSwipes(
+            onAddToPlaylist,
+            onRate = { track, stars -> onAction(ArtistAction.RateTrack(track, stars)) },
+            onCommand = { track, right -> onAction(ArtistAction.SwipeTrack(track, right)) },
+        )
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val content = state as? ArtistUiState.Content
     Scaffold(
@@ -137,6 +146,7 @@ fun ArtistScreen(
                             TrackRow(
                                 track,
                                 onClick = { onAction(ArtistAction.PlayTopTrack(track.id)) },
+                                onSwipe = { swipe(track, it) },
                                 showCover = true,
                                 isCurrent = track.id == content.currentTrackId,
                             )

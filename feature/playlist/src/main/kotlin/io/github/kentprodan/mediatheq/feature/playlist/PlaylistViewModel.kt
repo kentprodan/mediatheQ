@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,6 +35,7 @@ class PlaylistViewModel
         private val repository: PlaylistRepository,
         private val playback: PlaybackConnection,
         private val trackTaps: TrackTaps,
+        private val commands: TrackCommands,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
     ) : ViewModel() {
@@ -116,6 +118,18 @@ class PlaylistViewModel
 
                 is PlaylistAction.AddToQueue -> {
                     item(action.position)?.let { playback.addToQueue(listOf(it.track)) }
+                }
+
+                is PlaylistAction.SwipeTrack -> {
+                    viewModelScope.launch {
+                        commands.swipe(action.track, action.right)
+                    }
+                }
+
+                is PlaylistAction.RateTrack -> {
+                    viewModelScope.launch {
+                        commands.rate(action.track, action.halfStars)
+                    }
                 }
 
                 is PlaylistAction.SetFavorite -> {

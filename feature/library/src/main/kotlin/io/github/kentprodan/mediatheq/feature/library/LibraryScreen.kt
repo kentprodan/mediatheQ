@@ -58,6 +58,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
 import io.github.kentprodan.mediatheq.core.ui.ArtistRow
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
@@ -66,6 +67,7 @@ import io.github.kentprodan.mediatheq.core.ui.NothingDownloaded
 import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
+import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 
 @Composable
 internal fun LibraryRoute(
@@ -74,6 +76,7 @@ internal fun LibraryRoute(
     onOpenPlaylist: (MediaId) -> Unit,
     onNewPlaylist: () -> Unit,
     onOpenDownloads: () -> Unit,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
     fixedFilter: LibraryFilter? = null,
     viewModel: LibraryViewModel =
         hiltViewModel<LibraryViewModel, LibraryViewModel.Factory>(
@@ -90,6 +93,7 @@ internal fun LibraryRoute(
         onOpenPlaylist,
         onNewPlaylist = onNewPlaylist,
         onOpenDownloads = onOpenDownloads,
+        onAddToPlaylist = onAddToPlaylist,
     )
 }
 
@@ -104,7 +108,14 @@ fun LibraryScreen(
     modifier: Modifier = Modifier,
     onNewPlaylist: () -> Unit = {},
     onOpenDownloads: () -> Unit = {},
+    onAddToPlaylist: (List<MediaId>) -> Unit = {},
 ) {
+    val swipe =
+        trackSwipes(
+            onAddToPlaylist,
+            onRate = { track, stars -> onAction(LibraryAction.RateTrack(track, stars)) },
+            onCommand = { track, right -> onAction(LibraryAction.SwipeTrack(track, right)) },
+        )
     // One scroll state per tab, kept above the content so switching tabs and back keeps each position.
     val albumsState = rememberLazyGridState()
     val artistsState = rememberLazyListState()
@@ -155,6 +166,7 @@ fun LibraryScreen(
                     onOpenArtist = onOpenArtist,
                     onOpenPlaylist = onOpenPlaylist,
                     onOpenDownloads = onOpenDownloads,
+                    onSwipe = swipe,
                 )
             }
         }
@@ -178,6 +190,7 @@ private fun LibraryContentView(
     onOpenArtist: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
     onOpenDownloads: () -> Unit,
+    onSwipe: (Track, Boolean) -> Unit,
 ) {
     val listPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()
     when (val content = state.content) {
@@ -276,7 +289,7 @@ private fun LibraryContentView(
                             close,
                         )
                         DownloadMenuItem({ onAction(LibraryAction.Download(track)) }, close)
-                    })
+                    }, onSwipe = { onSwipe(track, it) })
                 }
             }
         }

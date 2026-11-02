@@ -49,6 +49,7 @@ import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
+import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 import kotlin.time.Duration
 
 @Composable
@@ -75,6 +76,12 @@ fun AlbumScreen(
     modifier: Modifier = Modifier,
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
 ) {
+    val swipe =
+        trackSwipes(
+            onAddToPlaylist,
+            onRate = { track, stars -> onAction(AlbumAction.RateTrack(track, stars)) },
+            onCommand = { track, right -> onAction(AlbumAction.SwipeTrack(track, right)) },
+        )
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val album = (state as? AlbumUiState.Content)?.album
     Scaffold(
@@ -154,6 +161,7 @@ fun AlbumScreen(
                             TrackRow(
                                 track,
                                 onClick = { onAction(AlbumAction.PlayTrack(track.id)) },
+                                onSwipe = { swipe(track, it) },
                                 isCurrent = track.id == state.currentTrackId,
                                 menuItems = { close ->
                                     QueueMenuItems(

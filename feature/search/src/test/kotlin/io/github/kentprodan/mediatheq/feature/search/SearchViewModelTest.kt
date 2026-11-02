@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
@@ -30,11 +31,14 @@ class SearchViewModelTest {
     private val preferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
     private val trackTaps by lazy { TrackTaps(playback, preferences) }
+    private val commands by lazy { TrackCommands(playback, userData, downloads, preferences) }
     private val userData = FakeUserDataRepository()
 
     // Lazy: viewModelScope must be created after the rule replaced the main dispatcher.
     private val downloads = FakeDownloadRepository()
-    private val viewModel by lazy { SearchViewModel(library, preferences, playback, trackTaps, userData, downloads) }
+    private val viewModel by lazy {
+        SearchViewModel(library, preferences, playback, trackTaps, commands, userData, downloads)
+    }
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
@@ -235,5 +239,15 @@ class SearchViewModelTest {
             viewModel.onAction(SearchAction.ClearRecent)
 
             assertThat(preferences.recentSearches.value).isEmpty()
+        }
+
+    @Test
+    fun `a swipe runs its action and a rating rates the track`() =
+        test {
+            viewModel.onAction(SearchAction.SwipeTrack(track, right = false))
+            viewModel.onAction(SearchAction.RateTrack(track, 4))
+
+            assertThat(playback.playedNext).containsExactly(listOf(track))
+            assertThat(userData.calls).containsExactly("rating:${track.id.itemId}:4")
         }
 }

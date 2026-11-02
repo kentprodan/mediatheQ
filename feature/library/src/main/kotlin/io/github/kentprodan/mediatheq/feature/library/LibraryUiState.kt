@@ -110,4 +110,16 @@ sealed interface LibraryAction {
         val track: Track,
         val isFavorite: Boolean,
     ) : LibraryAction
+
+    /** A swipe on a song to the right (or left): the action chosen in Settings -> Media lists (#123). */
+    data class SwipeTrack(
+        val track: Track,
+        val right: Boolean,
+    ) : LibraryAction
+
+    /** [halfStars] 1-10, `null` clears the rating. */
+    data class RateTrack(
+        val track: Track,
+        val halfStars: Int?,
+    ) : LibraryAction
 }

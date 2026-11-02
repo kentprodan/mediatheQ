@@ -4,9 +4,11 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
+import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.TrackInfo
 import io.github.kentprodan.mediatheq.core.ui.MediaListStyle
 import io.github.kentprodan.mediatheq.core.ui.TrackDetail
+import io.github.kentprodan.mediatheq.core.ui.TrackSwipe
 import org.junit.Test
 
 class MediaListStylesTest {
@@ -38,6 +40,26 @@ class MediaListStylesTest {
             style(MediaListPreferences(trackInfo = TrackInfo.Codec, secondTrackInfo = TrackInfo.PlayCount)).trackDetails
 
         assertThat(details).containsExactly(TrackDetail.Codec, TrackDetail.PlayCount).inOrder()
+    }
+
+    @Test
+    fun `every swipe action maps to the swipe of the same name, Disabled to none`() {
+        SwipeAction.entries.forEach { action ->
+            val swipe = style(MediaListPreferences(swipeLeft = action)).swipeLeft
+            if (action == SwipeAction.Disabled) {
+                assertThat(swipe).isNull()
+            } else {
+                assertThat(swipe?.name).isEqualTo(action.name)
+            }
+        }
+    }
+
+    @Test
+    fun `Rate swipes are off while ratings are`() {
+        val lists = MediaListPreferences(swipeRight = SwipeAction.Rate)
+
+        assertThat(style(lists, RatingMode.Off).swipeRight).isNull()
+        assertThat(style(lists, RatingMode.HalfStars).swipeRight).isEqualTo(TrackSwipe.Rate)
     }
 
     @Test

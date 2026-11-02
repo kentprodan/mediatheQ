@@ -26,7 +26,14 @@ data class MediaListStyle(
      * UiState": every list shows it, and threading it through each screen adds nothing.
      */
     val downloaded: Set<MediaId> = emptySet(),
+    /** Swiping track rows to the right; `null` = disabled. */
+    val swipeRight: TrackSwipe? = TrackSwipe.AddToQueue,
+    /** Swiping track rows to the left; `null` = disabled. */
+    val swipeLeft: TrackSwipe? = TrackSwipe.PlayNext,
 )
+
+/** What swiping a track row one way does (Settings -> Media lists, #123). */
+enum class TrackSwipe { AddToQueue, PlayNext, AddToPlaylist, Download, ToggleFavorite, Rate }
 
 /** The [MediaListStyle] of the lists below; the defaults until `:app` provides the stored one. */
 val LocalMediaListStyle = compositionLocalOf { MediaListStyle() }

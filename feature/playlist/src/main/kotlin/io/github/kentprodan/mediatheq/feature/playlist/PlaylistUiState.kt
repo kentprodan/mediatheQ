@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.Track
 import kotlin.time.Duration
 
 sealed interface PlaylistUiState {
@@ -92,4 +93,16 @@ sealed interface PlaylistAction {
     data object Delete : PlaylistAction
 
     data object DismissError : PlaylistAction
+
+    /** A swipe on a track to the right (or left): the action chosen in Settings -> Media lists (#123). */
+    data class SwipeTrack(
+        val track: Track,
+        val right: Boolean,
+    ) : PlaylistAction
+
+    /** Rates a track (a Rate swipe): [halfStars] 1-10, `null` clears. */
+    data class RateTrack(
+        val track: Track,
+        val halfStars: Int?,
+    ) : PlaylistAction
 }

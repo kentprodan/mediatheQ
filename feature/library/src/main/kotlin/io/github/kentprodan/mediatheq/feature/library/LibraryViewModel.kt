@@ -18,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -49,6 +50,7 @@ class LibraryViewModel
         private val preferencesRepository: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
         private val trackTaps: TrackTaps,
+        private val commands: TrackCommands,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
@@ -175,6 +177,14 @@ class LibraryViewModel
 
                 is LibraryAction.Download -> {
                     downloads.download(listOf(action.track))
+                }
+
+                is LibraryAction.SwipeTrack -> {
+                    launch { commands.swipe(action.track, action.right) }
+                }
+
+                is LibraryAction.RateTrack -> {
+                    launch { commands.rate(action.track, action.halfStars) }
                 }
             }
         }

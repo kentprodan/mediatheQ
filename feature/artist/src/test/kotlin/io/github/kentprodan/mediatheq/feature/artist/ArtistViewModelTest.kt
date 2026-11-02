@@ -9,7 +9,9 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
@@ -32,6 +34,7 @@ class ArtistViewModelTest {
     private val preferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
     private val trackTaps by lazy { TrackTaps(playback, preferences) }
+    private val commands by lazy { TrackCommands(playback, userData, FakeDownloadRepository(), preferences) }
     private val userData = FakeUserDataRepository()
     private val artistId = MediaId(ServerId("s"), "ar1")
     private val artist = Artist(artistId, "Subcarpați")
@@ -54,7 +57,7 @@ class ArtistViewModelTest {
     }
 
     private fun TestScope.viewModel(): ArtistViewModel {
-        val viewModel = ArtistViewModel(artistId, library, preferences, playback, trackTaps, userData)
+        val viewModel = ArtistViewModel(artistId, library, preferences, playback, trackTaps, commands, userData)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -63,8 +66,9 @@ class ArtistViewModelTest {
 
     @Test
     fun `starts loading`() {
-        assertThat(ArtistViewModel(artistId, library, preferences, playback, trackTaps, userData).uiState.value)
-            .isEqualTo(ArtistUiState.Loading)
+        assertThat(
+            ArtistViewModel(artistId, library, preferences, playback, trackTaps, commands, userData).uiState.value,
+        ).isEqualTo(ArtistUiState.Loading)
     }
 
     @Test
@@ -188,5 +192,18 @@ class ArtistViewModelTest {
             viewModel.onAction(ArtistAction.Rate(4))
 
             assertThat(userData.calls).containsExactly("favorite:ar1:true", "rating:ar1:4").inOrder()
+        }
+
+    @Test
+    fun `a swipe runs its action and a rating rates the track`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albumArtists.value = listOf(artist)
+            val viewModel = viewModel()
+
+            viewModel.onAction(ArtistAction.SwipeTrack(tracks.first(), right = true))
+            viewModel.onAction(ArtistAction.RateTrack(tracks.first(), 4))
+
+            assertThat(playback.addedToQueue).containsExactly(listOf(tracks.first()))
+            assertThat(userData.calls).contains("rating:${tracks.first().id.itemId}:4")
         }
 }

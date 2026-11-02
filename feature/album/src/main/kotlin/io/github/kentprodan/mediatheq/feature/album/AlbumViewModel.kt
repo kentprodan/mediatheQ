@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +32,7 @@ class AlbumViewModel
         libraryRepository: LibraryRepository,
         private val playback: PlaybackConnection,
         private val trackTaps: TrackTaps,
+        private val commands: TrackCommands,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
         preferences: LibraryPreferencesRepository,
@@ -77,6 +79,18 @@ class AlbumViewModel
 
                 is AlbumAction.AddToQueue -> {
                     tracks.pick(action.trackId).takeIf { it.isNotEmpty() }?.let(playback::addToQueue)
+                }
+
+                is AlbumAction.SwipeTrack -> {
+                    viewModelScope.launch {
+                        commands.swipe(action.track, action.right)
+                    }
+                }
+
+                is AlbumAction.RateTrack -> {
+                    viewModelScope.launch {
+                        commands.rate(action.track, action.halfStars)
+                    }
                 }
 
                 is AlbumAction.SetFavorite -> {

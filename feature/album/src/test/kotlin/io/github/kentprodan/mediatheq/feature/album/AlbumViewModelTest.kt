@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
@@ -32,6 +33,7 @@ class AlbumViewModelTest {
     private val library = FakeLibraryRepository()
     private val playback = FakePlaybackConnection()
     private val trackTaps by lazy { TrackTaps(playback, preferences) }
+    private val commands by lazy { TrackCommands(playback, userData, downloads, preferences) }
     private val userData = FakeUserDataRepository()
     private val albumId = MediaId(ServerId("s"), "al1")
     private val album = Album(albumId, "Satelit", emptyList(), year = 2016)
@@ -57,7 +59,8 @@ class AlbumViewModelTest {
     private val preferences = FakeLibraryPreferencesRepository()
 
     private fun TestScope.viewModel(): AlbumViewModel {
-        val viewModel = AlbumViewModel(albumId, library, playback, trackTaps, userData, downloads, preferences)
+        val viewModel =
+            AlbumViewModel(albumId, library, playback, trackTaps, commands, userData, downloads, preferences)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -65,7 +68,16 @@ class AlbumViewModelTest {
     @Test
     fun `starts loading`() {
         assertThat(
-            AlbumViewModel(albumId, library, playback, trackTaps, userData, downloads, preferences).uiState.value,
+            AlbumViewModel(
+                albumId,
+                library,
+                playback,
+                trackTaps,
+                commands,
+                userData,
+                downloads,
+                preferences,
+            ).uiState.value,
         ).isEqualTo(AlbumUiState.Loading)
     }
 
@@ -251,5 +263,19 @@ class AlbumViewModelTest {
             viewModel.onAction(AlbumAction.Rate(null))
 
             assertThat(userData.calls).containsExactly("rating:al1:null")
+        }
+
+    @Test
+    fun `a swipe runs its action and a rating rates the track`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albums.value = listOf(album)
+            library.tracks.value = disc1
+            val viewModel = viewModel()
+
+            viewModel.onAction(AlbumAction.SwipeTrack(disc1.first(), right = true))
+            viewModel.onAction(AlbumAction.RateTrack(disc1.first(), 4))
+
+            assertThat(playback.addedToQueue).containsExactly(listOf(disc1.first()))
+            assertThat(userData.calls).contains("rating:${disc1.first().id.itemId}:4")
         }
 }

@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +31,7 @@ class ArtistViewModel
         preferencesRepository: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
         private val trackTaps: TrackTaps,
+        private val commands: TrackCommands,
         private val userData: UserDataRepository,
     ) : ViewModel() {
         private val content =
@@ -70,6 +72,18 @@ class ArtistViewModel
                 is ArtistAction.PlayTopTrack -> {
                     val index = state.topTracks.indexOfFirst { it.id == action.trackId }
                     viewModelScope.launch { trackTaps.tap(state.topTracks, index) }
+                }
+
+                is ArtistAction.SwipeTrack -> {
+                    viewModelScope.launch {
+                        commands.swipe(action.track, action.right)
+                    }
+                }
+
+                is ArtistAction.RateTrack -> {
+                    viewModelScope.launch {
+                        commands.rate(action.track, action.halfStars)
+                    }
                 }
 
                 is ArtistAction.SetFavorite -> {
