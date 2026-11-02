@@ -5,6 +5,8 @@ import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
+import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
+import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Playlist
@@ -28,6 +30,12 @@ data class LibraryUiState(
     val refreshing: Boolean = false,
     /** A failed sync while items are shown: a snackbar, acknowledged with [LibraryAction.ErrorShown]. */
     val refreshError: MqError? = null,
+    /** How the list header looks (Settings -> Media lists, #123). */
+    val header: MediaListPreferences = MediaListPreferences(),
+    /** The header's filter and search in list. */
+    val listFilter: LibraryListFilter = LibraryListFilter(),
+    /** Items in the list as filtered. */
+    val itemCount: Int = 0,
 )
 
 /** What the list area shows. */
@@ -42,6 +50,9 @@ sealed interface LibraryContent {
 
     /** Offline mode, and nothing for this tab is downloaded (#63). */
     data object NothingDownloaded : LibraryContent
+
+    /** The tab has items, but none passes the header's filter or search (#123). */
+    data object NoMatches : LibraryContent
 
     data class Error(
         val error: MqError,
@@ -109,6 +120,26 @@ sealed interface LibraryAction {
     data class SetFavorite(
         val track: Track,
         val isFavorite: Boolean,
+    ) : LibraryAction
+
+    /** The header's Favorites only filter. */
+    data class SetFavoritesOnly(
+        val on: Boolean,
+    ) : LibraryAction
+
+    /** The header's Downloaded only filter. */
+    data class SetDownloadedOnly(
+        val on: Boolean,
+    ) : LibraryAction
+
+    /** Opens search in list, or with `null` closes it (and drops its text). */
+    data class Search(
+        val text: String?,
+    ) : LibraryAction
+
+    /** A top button of the header: acts on the whole list as filtered and sorted. */
+    data class Top(
+        val button: TopButton,
     ) : LibraryAction
 
     /** A swipe on a song to the right (or left): the action chosen in Settings -> Media lists (#123). */

@@ -15,8 +15,13 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
+import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.tracksOfAlbums
+import io.github.kentprodan.mediatheq.core.data.tracksOfArtists
+import io.github.kentprodan.mediatheq.core.data.tracksOfPlaylists
+import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
@@ -35,6 +40,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -53,11 +59,14 @@ class LibraryViewModel
         private val commands: TrackCommands,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
+        private val playlists: PlaylistRepository,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
         // Saved, so the tab (and its restored scroll position) comes back after process death.
         private val filter: StateFlow<LibraryFilter> =
             fixedFilter?.let { MutableStateFlow(it) } ?: savedStateHandle.getStateFlow(FILTER_KEY, LibraryFilter.Albums)
+
+        private val listFilter = MutableStateFlow(LibraryListFilter())
 
         // The failed sync the user already saw as a snackbar; the same failure is not shown twice.
         private val shownFailure = MutableStateFlow<SyncStatus.Failed?>(null)
@@ -72,6 +81,16 @@ class LibraryViewModel
                     val sort = preferencesRepository.preferences.map { it.sortFor(filter) }.distinctUntilChanged()
                     itemsOf(filter).combine(sort) { items, sort -> filter to items(sort) }
                 }.flowOn(defaultDispatcher)
+
+        /** [items] narrowed by the header's filter and search (#123), with the unfiltered items' presence. */
+        private val shown: Flow<ShownItems> =
+            combine(
+                items,
+                listFilter,
+                combine(downloads.completedIds, libraryRepository.fullyDownloaded) { tracks, lists -> tracks + lists },
+            ) { (filter, items), listFilter, downloaded ->
+                ShownItems(filter, items, items.filtered(listFilter, downloaded), listFilter)
+            }.flowOn(defaultDispatcher)
 
         /** The sync status, and whether a full sync ever completed (then an empty tab is really empty). */
         private val sync: Flow<Pair<SyncStatus, Boolean>> =
@@ -91,21 +110,22 @@ class LibraryViewModel
             combine(
                 filter,
                 preferencesRepository.preferences,
-                items,
+                this.shown,
                 combine(sync, libraryRepository.offline, ::Pair),
                 shownFailure,
             ) {
                 filter,
                 preferences,
-                (itemsFilter, items),
+                items,
                 (sync, offline),
                 shown,
                 ->
                 val (status, everSynced) = sync
                 val content =
                     when {
-                        itemsFilter != filter -> LibraryContent.Loading
-                        items.isNotEmptyContent() -> items
+                        items.tab != filter -> LibraryContent.Loading
+                        items.filtered.isNotEmptyContent() -> items.filtered
+                        items.all.isNotEmptyContent() -> LibraryContent.NoMatches
                         offline -> LibraryContent.NothingDownloaded
                         else -> emptyContent(status, everSynced)
                     }
@@ -123,6 +143,9 @@ class LibraryViewModel
                         (status as? SyncStatus.Failed)
                             ?.takeIf { !failureShownAsContent && !offline && it != shown }
                             ?.error,
+                    header = preferences.mediaLists,
+                    listFilter = items.listFilter,
+                    itemCount = content.itemCount,
                 )
             }.stateIn(
                 viewModelScope,
@@ -135,6 +158,23 @@ class LibraryViewModel
             when (action) {
                 is LibraryAction.SelectFilter -> {
                     if (fixedFilter == null) savedStateHandle[FILTER_KEY] = action.filter
+                }
+
+                is LibraryAction.SetFavoritesOnly -> {
+                    listFilter.update { it.copy(favoritesOnly = action.on) }
+                }
+
+                is LibraryAction.SetDownloadedOnly -> {
+                    listFilter.update { it.copy(downloadedOnly = action.on) }
+                }
+
+                is LibraryAction.Search -> {
+                    listFilter.update { it.copy(search = action.text) }
+                }
+
+                is LibraryAction.Top -> {
+                    val content = uiState.value.content
+                    launch { commands.run(action.button, tracksOf(content)) }
                 }
 
                 is LibraryAction.SelectSort -> {
@@ -193,6 +233,16 @@ class LibraryViewModel
             viewModelScope.launch { block() }
         }
 
+        /** The tracks of the shown list, in its order: albums and playlists in their order, artists' own. */
+        private suspend fun tracksOf(content: LibraryContent): List<Track> =
+            when (content) {
+                is LibraryContent.Albums -> libraryRepository.tracksOfAlbums(content.albums.map { it.id })
+                is LibraryContent.Artists -> libraryRepository.tracksOfArtists(content.artists.map { it.id })
+                is LibraryContent.Playlists -> playlists.tracksOfPlaylists(content.playlists.map { it.id })
+                is LibraryContent.Songs -> content.tracks
+                else -> emptyList()
+            }
+
         /** Items of [filter], as a function that sorts them into content. */
         private fun itemsOf(filter: LibraryFilter): Flow<Sorter> =
             when (filter) {
@@ -226,6 +276,14 @@ class LibraryViewModel
             fun create(fixedFilter: LibraryFilter?): LibraryViewModel
         }
     }
+
+/** A tab's items, as filtered by the list header, and the header's filter. */
+private data class ShownItems(
+    val tab: LibraryFilter,
+    val all: LibraryContent,
+    val filtered: LibraryContent,
+    val listFilter: LibraryListFilter,
+)
 
 /** Sorts a tab's items into content. */
 private typealias Sorter = (LibrarySort) -> LibraryContent

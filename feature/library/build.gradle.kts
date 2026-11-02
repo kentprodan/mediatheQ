@@ -6,3 +6,7 @@ plugins {
 android {
     namespace = "io.github.kentprodan.mediatheq.feature.library"
 }
+
+dependencies {
+    implementation(libs.androidx.activity.compose)
+}

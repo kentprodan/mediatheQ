@@ -25,4 +25,22 @@
     <string name="library_retry">Try again</string>
     <string name="library_refresh_failed">Couldn\'t refresh the library</string>
     <string name="library_new_playlist">New playlist</string>
+    <string name="library_back">Back</string>
+    <string name="library_play">Play</string>
+    <string name="library_shuffle">Shuffle</string>
+    <string name="library_play_next">Play next</string>
+    <string name="library_add_to_queue">Add to queue</string>
+    <string name="library_filter">Filter</string>
+    <string name="library_filter_on">On</string>
+    <string name="library_favorites_only">Favorites only</string>
+    <string name="library_downloaded_only">Downloaded only</string>
+    <string name="library_select">Select</string>
+    <string name="library_search_in_list">Search in list</string>
+    <string name="library_close_search">Close search</string>
+    <string name="library_no_matches_title">No matches</string>
+    <string name="library_no_matches_body">Nothing in this list passes the filter or the search.</string>
+    <plurals name="library_items">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
 </resources>
