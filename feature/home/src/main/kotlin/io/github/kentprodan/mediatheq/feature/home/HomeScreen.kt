@@ -34,6 +34,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
+import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
@@ -140,7 +141,7 @@ private fun HomeContent(
 ) {
     val rows = listOf(content.recentlyPlayed, content.recentlyAdded, content.favoriteAlbums)
     val flying = remember(rows) { flyingCovers(rows) }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()) {
         item(key = "shuffle") {
             FilledTonalButton(
                 onClick = { onAction(HomeAction.ShuffleAll) },

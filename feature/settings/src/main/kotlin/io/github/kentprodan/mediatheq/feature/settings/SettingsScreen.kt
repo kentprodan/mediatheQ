@@ -37,6 +37,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
+import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 
@@ -149,7 +150,7 @@ internal fun SettingsScaffold(
                     end = MediatheqSpacing.l,
                     top = padding.calculateTopPadding(),
                     bottom = MediatheqSpacing.l,
-                ),
+                ).plusBottomBars(),
             verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
             content = groups,
         )

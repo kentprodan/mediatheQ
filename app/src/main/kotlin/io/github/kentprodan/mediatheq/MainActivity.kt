@@ -18,6 +18,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.download.resumeDownloads
+import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.artist.artistEntry
 import io.github.kentprodan.mediatheq.feature.downloads.downloadsEntry
@@ -67,12 +68,20 @@ class MainActivity : ComponentActivity() {
                         }
 
                         is SessionState.LoggedIn -> {
-                            val navigator = rememberTabNavigator()
+                            val navigation by viewModel.navigation.collectAsStateWithLifecycle()
+                            val navigator = rememberTabNavigator(navigation.entries.map(TopLevelTab::of))
                             val snackbar = remember { SnackbarHostState() }
                             UserDataErrorMessages(viewModel.userDataError, viewModel::dismissUserDataError, snackbar)
                             PlaybackErrorMessages(viewModel.playbackError, viewModel::dismissPlaybackError, snackbar)
                             SlowStartMessages(viewModel.slowStart, viewModel::dismissSlowStart, snackbar)
-                            val openDownloads = { navigator.select(TopLevelTab.Downloads) }
+                            // Downloads is optional in the navigation (#122); without its tab it opens on the current one.
+                            val openDownloads = {
+                                if (TopLevelTab.Downloads in navigator.tabs) {
+                                    navigator.select(TopLevelTab.Downloads)
+                                } else {
+                                    navigator.navigateTo(DownloadsKey)
+                                }
+                            }
                             val entries =
                                 remember(navigator) {
                                     entryProvider {
@@ -89,7 +98,7 @@ class MainActivity : ComponentActivity() {
                                         artistEntry(navigator)
                                         playlistEntry(navigator)
                                         searchEntry(navigator)
-                                        downloadsEntry(navigator)
+                                        downloadsEntry(navigator, isTab = { TopLevelTab.Downloads in navigator.tabs })
                                         addToPlaylistEntry(navigator)
                                         placeholders(
                                             navigator,
@@ -107,6 +116,7 @@ class MainActivity : ComponentActivity() {
                                         entries,
                                         miniPlayer = miniPlayer,
                                         snackbarHostState = snackbar,
+                                        navigation = navigation,
                                     )
                                 },
                                 snackbarHost = { SnackbarHost(snackbar) },

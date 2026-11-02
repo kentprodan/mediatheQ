@@ -54,6 +54,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBarStyle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
+import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -178,7 +179,7 @@ private fun LibraryContentView(
     onOpenPlaylist: (MediaId) -> Unit,
     onOpenDownloads: () -> Unit,
 ) {
-    val listPadding = PaddingValues(bottom = MediatheqSpacing.l)
+    val listPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()
     when (val content = state.content) {
         LibraryContent.Loading -> {
             MqLoadingIndicator(Modifier.fillMaxSize())
@@ -228,7 +229,7 @@ private fun LibraryContentView(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(state.albumColumns),
                 state = states.albums,
-                contentPadding = PaddingValues(MediatheqSpacing.l),
+                contentPadding = PaddingValues(MediatheqSpacing.l).plusBottomBars(),
                 horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
                 verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
                 modifier = Modifier.fillMaxSize(),

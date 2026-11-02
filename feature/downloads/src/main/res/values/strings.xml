@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="downloads_title">Downloads</string>
+    <string name="downloads_back">Back</string>
     <string name="downloads_empty_title">No downloads yet</string>
     <string name="downloads_empty_body">Download albums, playlists or tracks from their menus to play them without a network.</string>
     <string name="downloads_section_downloading">Downloading</string>

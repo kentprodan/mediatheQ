@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
+import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.DownloadState
@@ -51,10 +53,11 @@ import kotlin.time.Duration
 internal fun DownloadsRoute(
     onOpenAlbum: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
+    onBack: (() -> Unit)?,
     viewModel: DownloadsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    DownloadsScreen(state, viewModel::onAction, onOpenAlbum, onOpenPlaylist)
+    DownloadsScreen(state, viewModel::onAction, onOpenAlbum, onOpenPlaylist, onBack)
 }
 
 /**
@@ -67,10 +70,21 @@ internal fun DownloadsScreen(
     onAction: (DownloadsAction) -> Unit,
     onOpenAlbum: (MediaId) -> Unit = {},
     onOpenPlaylist: (MediaId) -> Unit = {},
+    /** Set when Downloads opens over another page instead of being a navigation tab (#122). */
+    onBack: (() -> Unit)? = null,
 ) {
     Surface(Modifier.fillMaxSize()) {
         Column {
-            TopAppBar(title = { Text(stringResource(R.string.downloads_title)) })
+            TopAppBar(
+                title = { Text(stringResource(R.string.downloads_title)) },
+                navigationIcon = {
+                    onBack?.let {
+                        IconButton(onClick = it) {
+                            Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.downloads_back))
+                        }
+                    }
+                },
+            )
             when (state) {
                 DownloadsUiState.Loading -> {
                     // A local read of a few milliseconds: nothing to show meanwhile.
@@ -100,7 +114,7 @@ private fun Content(
     onOpenAlbum: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
 ) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()) {
         item(key = "totals") { Totals(state.totals) }
         section(R.string.downloads_section_downloading, state.downloading.isNotEmpty()) {
             items(state.downloading, key = { "downloading-${it.track.id}" }) {

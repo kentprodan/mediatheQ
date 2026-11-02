@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
@@ -39,6 +40,12 @@ class MainViewModel
             libraryPreferences.preferences
                 .map { it.theme }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        /** Navigation and media start (#122): the shell's entries and styles. */
+        val navigation: StateFlow<NavigationPreferences> =
+            libraryPreferences.preferences
+                .map { it.navigation }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NavigationPreferences())
 
         val session: StateFlow<SessionState?> =
             sessionRepository.session.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

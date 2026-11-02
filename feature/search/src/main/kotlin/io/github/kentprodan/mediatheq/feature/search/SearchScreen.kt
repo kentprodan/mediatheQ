@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
+import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -199,7 +200,7 @@ private fun RecentSearches(
         )
         return
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()) {
         item(key = "recent-title") {
             Row(
                 Modifier.fillMaxWidth().padding(start = MediatheqSpacing.l, end = MediatheqSpacing.s),
@@ -233,7 +234,7 @@ private fun Results(
     onOpenArtist: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
 ) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()) {
         section("artists", R.string.search_artists, results.artists, { it.id }) { artist ->
             ArtistRow(artist, onClick = { onOpenArtist(artist.id) })
         }
