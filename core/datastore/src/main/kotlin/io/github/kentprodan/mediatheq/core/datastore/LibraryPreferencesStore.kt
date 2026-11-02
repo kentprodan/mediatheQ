@@ -46,6 +46,16 @@ class LibraryPreferencesStore
                                 font = prefs[FONT],
                             ),
                         ratingMode = prefs[RATING_MODE],
+                        navigation =
+                            StoredNavigation(
+                                entries = prefs[NAV_ENTRIES]?.split(LIST_SEPARATOR),
+                                portraitStyle = prefs[NAV_PORTRAIT_STYLE],
+                                landscapeStyle = prefs[NAV_LANDSCAPE_STYLE],
+                                transparencyPercent = prefs[NAV_TRANSPARENCY],
+                                slowStartMessages = prefs[SLOW_START_MESSAGES],
+                                trackAction = prefs[TRACK_ACTION],
+                                expandPlayer = prefs[EXPAND_PLAYER],
+                            ),
                         offlineMode = prefs[OFFLINE_MODE],
                         sorts =
                             prefs
@@ -75,6 +85,19 @@ class LibraryPreferencesStore
                 prefs.put(IGNORE_SURFACES, theme.ignoreSurfaces)
                 prefs.put(INSTANT_COLORS, theme.instantColors)
                 prefs.put(FONT, theme.font)
+            }
+        }
+
+        /** Stores every navigation and media start value at once (#122); null removes it. */
+        suspend fun setNavigation(navigation: StoredNavigation) {
+            dataStore.edit { prefs ->
+                prefs.put(NAV_ENTRIES, navigation.entries?.joinToString(LIST_SEPARATOR))
+                prefs.put(NAV_PORTRAIT_STYLE, navigation.portraitStyle)
+                prefs.put(NAV_LANDSCAPE_STYLE, navigation.landscapeStyle)
+                prefs.put(NAV_TRANSPARENCY, navigation.transparencyPercent)
+                prefs.put(SLOW_START_MESSAGES, navigation.slowStartMessages)
+                prefs.put(TRACK_ACTION, navigation.trackAction)
+                prefs.put(EXPAND_PLAYER, navigation.expandPlayer)
             }
         }
 
@@ -138,6 +161,14 @@ class LibraryPreferencesStore
             val IGNORE_SURFACES = booleanPreferencesKey("ignore_surfaces")
             val INSTANT_COLORS = booleanPreferencesKey("instant_colors")
             val FONT = stringPreferencesKey("font")
+            val NAV_ENTRIES = stringPreferencesKey("nav_entries")
+            val NAV_PORTRAIT_STYLE = stringPreferencesKey("nav_portrait_style")
+            val NAV_LANDSCAPE_STYLE = stringPreferencesKey("nav_landscape_style")
+            val NAV_TRANSPARENCY = intPreferencesKey("nav_transparency")
+            val SLOW_START_MESSAGES = booleanPreferencesKey("slow_start_messages")
+            val TRACK_ACTION = stringPreferencesKey("track_action")
+            val EXPAND_PLAYER = booleanPreferencesKey("expand_player")
+            const val LIST_SEPARATOR = ","
             const val SORT_PREFIX = "sort_"
             val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
             const val SEPARATOR = "\n"
@@ -154,6 +185,19 @@ data class StoredLibraryPreferences(
     val ratingMode: String? = null,
     val offlineMode: Boolean? = null,
     val theme: StoredTheme = StoredTheme(),
+    val navigation: StoredNavigation = StoredNavigation(),
+)
+
+/** Navigation and media start values as stored (#122); `null` = not set. */
+data class StoredNavigation(
+    /** Entry names in order. */
+    val entries: List<String>? = null,
+    val portraitStyle: String? = null,
+    val landscapeStyle: String? = null,
+    val transparencyPercent: Int? = null,
+    val slowStartMessages: Boolean? = null,
+    val trackAction: String? = null,
+    val expandPlayer: Boolean? = null,
 )
 
 /** Theme, font and color values as stored (#121); `null` = not set. */

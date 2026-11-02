@@ -211,4 +211,148 @@ class DefaultLibraryPreferencesRepositoryTest {
                 )
             assertThat(repository.recentSearches.first()).containsExactly("mosoi")
         }
+
+    @Test
+    fun `navigation defaults are today's bar, bottom bar, rail and Play`() =
+        runTest {
+            val navigation = repository.preferences.first().navigation
+
+            assertThat(navigation.entries)
+                .containsExactly(MainNavEntry.Home, MainNavEntry.Library, MainNavEntry.Search, MainNavEntry.Downloads)
+                .inOrder()
+            assertThat(navigation.portraitStyle).isEqualTo(PortraitNavStyle.BottomBar)
+            assertThat(navigation.landscapeStyle).isEqualTo(LandscapeNavStyle.NavigationRail)
+            assertThat(navigation.transparencyPercent).isEqualTo(0)
+            assertThat(navigation.slowStartMessages).isTrue()
+            assertThat(navigation.trackAction).isEqualTo(TrackAction.Play)
+            assertThat(navigation.expandPlayer).isFalse()
+        }
+
+    @Test
+    fun `every navigation choice is kept`() =
+        runTest {
+            val chosen =
+                NavigationPreferences(
+                    entries = listOf(MainNavEntry.Tracks, MainNavEntry.Home, MainNavEntry.Search),
+                    portraitStyle = PortraitNavStyle.FloatingToolbarWithFab,
+                    landscapeStyle = LandscapeNavStyle.SameAsPortrait,
+                    transparencyPercent = 50,
+                    slowStartMessages = false,
+                    trackAction = TrackAction.PlayNext,
+                    expandPlayer = true,
+                )
+
+            repository.setNavigation(chosen)
+
+            assertThat(repository.preferences.first().navigation).isEqualTo(chosen)
+        }
+
+    @Test
+    fun `entries keep Home, drop repeats and keep at most six`() =
+        runTest {
+            repository.setNavigation(
+                NavigationPreferences(
+                    entries =
+                        listOf(
+                            MainNavEntry.Albums,
+                            MainNavEntry.Albums,
+                            MainNavEntry.Library,
+                            MainNavEntry.AlbumArtists,
+                            MainNavEntry.Playlists,
+                            MainNavEntry.Tracks,
+                            MainNavEntry.Search,
+                            MainNavEntry.Downloads,
+                        ),
+                ),
+            )
+
+            assertThat(
+                repository.preferences
+                    .first()
+                    .navigation.entries,
+            ).containsExactly(
+                MainNavEntry.Home,
+                MainNavEntry.Albums,
+                MainNavEntry.Library,
+                MainNavEntry.AlbumArtists,
+                MainNavEntry.Playlists,
+                MainNavEntry.Tracks,
+            ).inOrder()
+        }
+
+    @Test
+    fun `transparency is clamped to 0-100 in steps of ten`() =
+        runTest {
+            repository.setNavigation(NavigationPreferences(transparencyPercent = 46))
+            assertThat(
+                repository.preferences
+                    .first()
+                    .navigation.transparencyPercent,
+            ).isEqualTo(50)
+
+            repository.setNavigation(NavigationPreferences(transparencyPercent = 140))
+            assertThat(
+                repository.preferences
+                    .first()
+                    .navigation.transparencyPercent,
+            ).isEqualTo(100)
+
+            repository.setNavigation(NavigationPreferences(transparencyPercent = -5))
+            assertThat(
+                repository.preferences
+                    .first()
+                    .navigation.transparencyPercent,
+            ).isEqualTo(0)
+        }
+
+    @Test
+    fun `unknown stored navigation values are dropped or fall back to defaults`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("nav_entries")] = "Genres,Search,Home,Years"
+                it[stringPreferencesKey("nav_portrait_style")] = "Drawer"
+                it[stringPreferencesKey("track_action")] = "Shuffle"
+                it[intPreferencesKey("nav_transparency")] = 33
+            }
+
+            val navigation = repository.preferences.first().navigation
+
+            assertThat(navigation.entries).containsExactly(MainNavEntry.Search, MainNavEntry.Home).inOrder()
+            assertThat(navigation.portraitStyle).isEqualTo(PortraitNavStyle.BottomBar)
+            assertThat(navigation.trackAction).isEqualTo(TrackAction.Play)
+            assertThat(navigation.transparencyPercent).isEqualTo(30)
+        }
+
+    @Test
+    fun `stored entries without Home get Home first`() =
+        runTest {
+            dataStore.edit { it[stringPreferencesKey("nav_entries")] = "Search,Tracks" }
+
+            assertThat(
+                repository.preferences
+                    .first()
+                    .navigation.entries,
+            ).containsExactly(MainNavEntry.Home, MainNavEntry.Search, MainNavEntry.Tracks)
+                .inOrder()
+        }
+
+    @Test
+    fun `restoring the navigation defaults resets only that page`() =
+        runTest {
+            val theme = ThemePreferences(ThemeMode.Dark)
+            repository.setTheme(theme)
+            repository.setAlbumColumns(3)
+            repository.setNavigation(
+                NavigationPreferences(
+                    entries = listOf(MainNavEntry.Home, MainNavEntry.Tracks),
+                    trackAction = TrackAction.AddToQueue,
+                    expandPlayer = true,
+                ),
+            )
+
+            repository.restoreNavigationDefaults()
+
+            assertThat(repository.preferences.first())
+                .isEqualTo(LibraryPreferences(albumColumns = 3, theme = theme))
+        }
 }
