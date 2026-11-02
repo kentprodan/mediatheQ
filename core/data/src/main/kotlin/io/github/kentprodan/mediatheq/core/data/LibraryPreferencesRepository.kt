@@ -22,6 +22,11 @@ interface LibraryPreferencesRepository {
     /** Settings -> Navigation and media start -> Restore defaults: only that page goes back to its defaults. */
     suspend fun restoreNavigationDefaults()
 
+    suspend fun setMediaLists(mediaLists: MediaListPreferences)
+
+    /** Settings -> Media lists -> Restore defaults: only that page goes back to its defaults. */
+    suspend fun restoreMediaListsDefaults()
+
     suspend fun setRatingMode(mode: RatingMode)
 
     suspend fun setOfflineMode(on: Boolean)

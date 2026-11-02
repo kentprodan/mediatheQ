@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
+import io.github.kentprodan.mediatheq.core.datastore.StoredMediaLists
 import io.github.kentprodan.mediatheq.core.datastore.StoredNavigation
 import io.github.kentprodan.mediatheq.core.datastore.StoredTheme
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +30,7 @@ class DefaultLibraryPreferencesRepository
                     offlineMode = stored.offlineMode ?: false,
                     theme = theme(stored.theme, stored.dynamicColor),
                     navigation = navigation(stored.navigation),
+                    mediaLists = mediaLists(stored.mediaLists),
                 )
             }
 
@@ -101,6 +103,46 @@ class DefaultLibraryPreferencesRepository
                 slowStartMessages = stored.slowStartMessages ?: defaults.slowStartMessages,
                 trackAction = enumOrNull<TrackAction>(stored.trackAction) ?: defaults.trackAction,
                 expandPlayer = stored.expandPlayer ?: defaults.expandPlayer,
+            )
+        }
+
+        override suspend fun setMediaLists(mediaLists: MediaListPreferences) =
+            store.setMediaLists(
+                StoredMediaLists(
+                    showItemCounts = mediaLists.showItemCounts,
+                    topButtonStyle = mediaLists.topButtonStyle.name,
+                    hiddenTopButtons = mediaLists.hiddenTopButtons.map { it.name },
+                    invertedSortArrows = mediaLists.invertedSortArrows,
+                    hideBackButton = mediaLists.hideBackButton,
+                    trackInfo = mediaLists.trackInfo.name,
+                    secondTrackInfo = mediaLists.secondTrackInfo.name,
+                    centerGridText = mediaLists.centerGridText,
+                    favoriteOverlay = mediaLists.favoriteOverlay,
+                    offlineOverlay = mediaLists.offlineOverlay,
+                    swipeRight = mediaLists.swipeRight.name,
+                    swipeLeft = mediaLists.swipeLeft.name,
+                ),
+            )
+
+        override suspend fun restoreMediaListsDefaults() = store.setMediaLists(StoredMediaLists())
+
+        private fun mediaLists(stored: StoredMediaLists): MediaListPreferences {
+            val defaults = MediaListPreferences()
+            return MediaListPreferences(
+                showItemCounts = stored.showItemCounts ?: defaults.showItemCounts,
+                topButtonStyle = enumOrNull<TopButtonStyle>(stored.topButtonStyle) ?: defaults.topButtonStyle,
+                hiddenTopButtons =
+                    stored.hiddenTopButtons?.mapNotNull { enumOrNull<TopButton>(it) }?.toSet()
+                        ?: defaults.hiddenTopButtons,
+                invertedSortArrows = stored.invertedSortArrows ?: defaults.invertedSortArrows,
+                hideBackButton = stored.hideBackButton ?: defaults.hideBackButton,
+                trackInfo = enumOrNull<TrackInfo>(stored.trackInfo) ?: defaults.trackInfo,
+                secondTrackInfo = enumOrNull<TrackInfo>(stored.secondTrackInfo) ?: defaults.secondTrackInfo,
+                centerGridText = stored.centerGridText ?: defaults.centerGridText,
+                favoriteOverlay = stored.favoriteOverlay ?: defaults.favoriteOverlay,
+                offlineOverlay = stored.offlineOverlay ?: defaults.offlineOverlay,
+                swipeRight = enumOrNull<SwipeAction>(stored.swipeRight) ?: defaults.swipeRight,
+                swipeLeft = enumOrNull<SwipeAction>(stored.swipeLeft) ?: defaults.swipeLeft,
             )
         }
 
