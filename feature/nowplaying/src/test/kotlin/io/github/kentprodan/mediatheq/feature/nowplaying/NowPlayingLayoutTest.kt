@@ -99,6 +99,29 @@ class NowPlayingLayoutTest {
     }
 
     @Test
+    fun `an auto expand request opens the full player and is acknowledged`() {
+        var autoExpand by mutableStateOf(false)
+        composeRule.setContent {
+            MediatheqTheme {
+                NowPlayingLayout(
+                    state,
+                    MutableStateFlow(150.seconds),
+                    { actions += it },
+                    content = { mini -> mini() },
+                    autoExpand = autoExpand,
+                )
+            }
+        }
+        composeRule.onNodeWithContentDescription(closeButton).assertDoesNotExist()
+
+        autoExpand = true
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription(closeButton).assertIsDisplayed()
+        assertThat(actions).containsExactly(NowPlayingAction.AutoExpanded)
+    }
+
+    @Test
     fun `the full player sends transport actions and closes with its button`() {
         setContent()
         composeRule.onNode(miniPlayer).performClick()

@@ -76,6 +76,7 @@ fun NowPlayingHost(
         queue = viewModel.queue,
         lyrics = viewModel.lyrics,
         snackbarHost = snackbarHost,
+        autoExpand = viewModel.autoExpand.collectAsStateWithLifecycle().value,
     )
 }
 
@@ -94,8 +95,16 @@ fun NowPlayingLayout(
     lyrics: StateFlow<LyricsUiState> = NoLyrics,
     /** The app's messages, shown over the full player while it covers the shell. */
     snackbarHost: @Composable () -> Unit = {},
+    /** Open the player now (playback just started, #122); acknowledged with [NowPlayingAction.AutoExpanded]. */
+    autoExpand: Boolean = false,
 ) {
     var expanded by rememberSaveable { mutableStateOf(expandedInitially) }
+    LaunchedEffect(autoExpand) {
+        if (autoExpand) {
+            expanded = true
+            onAction(NowPlayingAction.AutoExpanded)
+        }
+    }
     var panel by rememberSaveable { mutableStateOf(PlayerPanel.Player) }
     LaunchedEffect(expanded) { if (!expanded) panel = PlayerPanel.Player }
     // Keeps showing the last track while the player animates away after the queue was cleared.
