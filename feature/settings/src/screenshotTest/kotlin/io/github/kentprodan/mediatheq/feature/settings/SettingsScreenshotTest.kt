@@ -7,13 +7,18 @@ import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
+import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.PortraitNavStyle
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
+import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
+import io.github.kentprodan.mediatheq.core.data.TopButton
+import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.data.TrackAction
+import io.github.kentprodan.mediatheq.core.data.TrackInfo
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqColorSource
@@ -206,4 +211,74 @@ fun SettingsTrackActionDialogScreenshot() {
 @Composable
 fun SettingsPortraitStyleDialogScreenshot() {
     MediatheqTheme { NavigationChoiceDialogContent(NavigationDialog.PortraitStyle, NavigationPreferences()) }
+}
+
+/** Media lists with every default (#123). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsMediaListsScreenshot() = Page(SettingsPage.MediaLists)
+
+/** Media lists with choices made: large icons, two buttons hidden, codec and bitrate, Rate on swipe right. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsMediaListsChosenScreenshot() {
+    val lists =
+        MediaListPreferences(
+            showItemCounts = false,
+            topButtonStyle = TopButtonStyle.LargeIcons,
+            hiddenTopButtons = setOf(TopButton.Shuffle, TopButton.AddToQueue),
+            trackInfo = TrackInfo.CodecAndBitrate,
+            secondTrackInfo = TrackInfo.Rating,
+            offlineOverlay = true,
+            swipeRight = SwipeAction.Rate,
+            swipeLeft = SwipeAction.Disabled,
+        )
+    MediatheqTheme {
+        SettingsPageScreen(
+            SettingsPage.MediaLists,
+            content.copy(library = content.library.copy(mediaLists = lists)),
+            {},
+            {},
+            {},
+        )
+    }
+}
+
+/** The top button row style dialog, Small icons checked. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsMediaListsTopButtonStyleDialogScreenshot() {
+    MediatheqTheme { MediaListsDialogContent(MediaListsDialog.TopButtonStyle, MediaListPreferences()) }
+}
+
+/** The hidden top buttons dialog: checkboxes, Cancel and OK. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsMediaListsHiddenButtonsDialogScreenshot() {
+    MediatheqTheme {
+        MediaListsDialogContent(
+            MediaListsDialog.HiddenTopButtons,
+            MediaListPreferences(hiddenTopButtons = setOf(TopButton.PlayNext)),
+        )
+    }
+}
+
+/** The additional track information dialog, Duration checked. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsMediaListsTrackInfoDialogScreenshot() {
+    MediatheqTheme { MediaListsDialogContent(MediaListsDialog.TrackInfo, MediaListPreferences()) }
+}
+
+/** The swipe action dialog, Add to queue checked. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsMediaListsSwipeDialogScreenshot() {
+    MediatheqTheme { MediaListsDialogContent(MediaListsDialog.SwipeRight, MediaListPreferences()) }
 }
