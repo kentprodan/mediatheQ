@@ -31,6 +31,14 @@
     <string name="core_ui_format_mono">Mono</string>
     <string name="core_ui_favorite">Favorite</string>
     <string name="core_ui_rate">Rate</string>
+    <string name="core_ui_play">Play</string>
+    <string name="core_ui_clear_selection">Clear selection</string>
+    <string name="core_ui_more_actions">More actions</string>
+    <string name="core_ui_select_all">Select all</string>
+    <plurals name="core_ui_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
     <string name="core_ui_downloaded">Downloaded</string>
     <string name="core_ui_rating">%1$.1f of 5 stars</string>
     <plurals name="core_ui_play_count">
