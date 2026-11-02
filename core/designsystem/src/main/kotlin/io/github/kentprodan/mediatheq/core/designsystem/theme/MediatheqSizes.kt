@@ -15,4 +15,7 @@ object MediatheqSizes {
 
     /** The outline of a [colorSwatch], so a swatch in the surface's own color still shows. */
     val swatchOutline = 1.dp
+
+    /** The tallest a list inside a dialog grows before it scrolls (navigation entries). */
+    val dialogListMaxHeight = 420.dp
 }

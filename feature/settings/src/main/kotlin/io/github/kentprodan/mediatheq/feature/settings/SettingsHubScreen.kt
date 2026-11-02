@@ -5,8 +5,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 
 /** An entry of the Settings hub; each opens its own page. An entry is added when its page has content (#120). */
@@ -16,6 +19,7 @@ enum class SettingsHubEntry(
     Interface(R.string.settings_interface),
     Playback(R.string.settings_playback),
     Storage(R.string.settings_storage_page),
+    ManageOfflineFiles(R.string.settings_manage_offline),
     Providers(R.string.settings_providers),
     About(R.string.settings_about),
 }
@@ -24,18 +28,35 @@ internal val hubGroups =
     listOf(
         R.string.settings_title to
             listOf(SettingsHubEntry.Interface, SettingsHubEntry.Playback, SettingsHubEntry.Storage),
-        R.string.settings_group_misc to listOf(SettingsHubEntry.Providers),
+        R.string.settings_group_misc to listOf(SettingsHubEntry.ManageOfflineFiles, SettingsHubEntry.Providers),
         R.string.settings_about to listOf(SettingsHubEntry.About),
     )
 
-/** Settings: groups of categories (segmented rows with an icon); a row opens its page. Stateless. */
+/** The hub with the setting that decides whether "Manage offline files" shows. */
+@Composable
+internal fun SettingsHubRoute(
+    onOpen: (SettingsHubEntry) -> Unit,
+    onBack: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val content = state as? SettingsUiState.Content
+    SettingsHubScreen(onOpen, onBack, showsManageOfflineFiles = content?.showsManageOfflineFiles == true)
+}
+
+/**
+ * Settings: groups of categories (segmented rows with an icon); a row opens its page. Stateless.
+ * [showsManageOfflineFiles]: Downloads is not in the navigation, so it is reached from here (#122).
+ */
 @Composable
 fun SettingsHubScreen(
     onOpen: (SettingsHubEntry) -> Unit,
     onBack: () -> Unit,
+    showsManageOfflineFiles: Boolean = false,
 ) {
     SettingsScaffold(stringResource(R.string.settings_title), onBack) {
-        hubGroups.forEach { (title, entries) ->
+        hubGroups.forEach { (title, all) ->
+            val entries = all.filter { it != SettingsHubEntry.ManageOfflineFiles || showsManageOfflineFiles }
             item(key = title) {
                 Group(title) {
                     entries.forEach { entry ->
@@ -61,6 +82,7 @@ private val SettingsHubEntry.icon: ImageVector
             SettingsHubEntry.Interface -> MqIcons.TouchApp
             SettingsHubEntry.Playback -> MqIcons.Radio
             SettingsHubEntry.Storage -> MqIcons.DownloadForOffline
+            SettingsHubEntry.ManageOfflineFiles -> MqIcons.Download
             SettingsHubEntry.Providers -> MqIcons.Devices
             SettingsHubEntry.About -> MqIcons.Info
         }

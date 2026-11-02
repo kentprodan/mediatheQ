@@ -314,7 +314,7 @@ private fun ThemeColorsItem(shapes: ListItemShapes) {
 
 /** A row that opens a choice dialog; the summary is the current value. */
 @Composable
-private fun DialogItem(
+internal fun DialogItem(
     shapes: ListItemShapes,
     title: String,
     value: String,

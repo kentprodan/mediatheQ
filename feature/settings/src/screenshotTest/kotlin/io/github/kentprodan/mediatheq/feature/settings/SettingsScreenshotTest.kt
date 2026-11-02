@@ -6,10 +6,14 @@ import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
+import io.github.kentprodan.mediatheq.core.data.MainNavEntry
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
+import io.github.kentprodan.mediatheq.core.data.PortraitNavStyle
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
+import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqColorSource
@@ -119,4 +123,87 @@ fun SettingsNowPlayingColorsDialogScreenshot() {
 @Composable
 fun SettingsTypographyDialogScreenshot() {
     MediatheqTheme { ThemeChoiceDialogContent(ThemeDialog.Font, ThemePreferences(font = AppFont.Lato)) }
+}
+
+/** The hub with Downloads out of the navigation: "Manage offline files" shows (#122). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsHubManageOfflineFilesScreenshot() {
+    MediatheqTheme { SettingsHubScreen(onOpen = {}, onBack = {}, showsManageOfflineFiles = true) }
+}
+
+/** Navigation and media start with some choices made: six entries, floating toolbar + FAB, 50 % transparency. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsNavigationScreenshot() {
+    val navigation =
+        NavigationPreferences(
+            entries =
+                listOf(
+                    MainNavEntry.Home,
+                    MainNavEntry.Library,
+                    MainNavEntry.Albums,
+                    MainNavEntry.Tracks,
+                    MainNavEntry.Downloads,
+                    MainNavEntry.Search,
+                ),
+            portraitStyle = PortraitNavStyle.FloatingToolbarWithFab,
+            transparencyPercent = 50,
+            trackAction = TrackAction.PlayNext,
+        )
+    MediatheqTheme {
+        SettingsPageScreen(
+            SettingsPage.Navigation,
+            content.copy(
+                library = content.library.copy(navigation = navigation),
+            ),
+            {
+            },
+            {},
+            {},
+        )
+    }
+}
+
+/** "Organize your navigation": the default four checked first, the rest below. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsNavEntriesDialogScreenshot() {
+    MediatheqTheme { NavEntriesDialogContent(NavEntriesDraft.of(NavigationPreferences.DEFAULT_ENTRIES)) }
+}
+
+/** Six entries checked: the others cannot be checked. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsNavEntriesDialogFullScreenshot() {
+    val six =
+        listOf(
+            MainNavEntry.Home,
+            MainNavEntry.Tracks,
+            MainNavEntry.Albums,
+            MainNavEntry.AlbumArtists,
+            MainNavEntry.Playlists,
+            MainNavEntry.Search,
+        )
+    MediatheqTheme { NavEntriesDialogContent(NavEntriesDraft.of(six)) }
+}
+
+/** The default track action dialog's content, Play selected. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsTrackActionDialogScreenshot() {
+    MediatheqTheme { NavigationChoiceDialogContent(NavigationDialog.TrackAction, NavigationPreferences()) }
+}
+
+/** The portrait navigation style dialog's content, Bottom bar selected. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsPortraitStyleDialogScreenshot() {
+    MediatheqTheme { NavigationChoiceDialogContent(NavigationDialog.PortraitStyle, NavigationPreferences()) }
 }

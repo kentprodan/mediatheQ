@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.settings
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -24,6 +25,8 @@ import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
+import io.github.kentprodan.mediatheq.core.data.MainNavEntry
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.NowPlayingColors
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
@@ -306,5 +309,37 @@ class SettingsScreenTest {
         composeRule.onNode(hasText("Restore") and hasClickAction()).performClick()
 
         assertThat(actions).containsExactly(SettingsAction.RestoreThemeDefaults)
+    }
+
+    @Test
+    fun `in the entries dialog Home cannot be unchecked and a tap toggles an entry`() {
+        composeRule.setContent {
+            MediatheqTheme {
+                NavEntriesList(
+                    NavEntriesDraft.of(NavigationPreferences.DEFAULT_ENTRIES),
+                    { actions += it },
+                )
+            }
+        }
+
+        composeRule.onNode(hasText("Home") and isToggleable()).assertIsNotEnabled()
+        composeRule.onNode(hasText("Tracks") and isToggleable()).assertIsOff().performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.ToggleNavEntry(MainNavEntry.Tracks))
+    }
+
+    @Test
+    fun `the navigation page opens the entries dialog and sets a switch`() {
+        show(SettingsPage.Navigation)
+
+        composeRule.onNode(hasText("Main navigation entries") and hasClickAction()).performClick()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Expand player automatically"))
+        composeRule.onNode(hasText("Expand player automatically") and isToggleable()).performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.OpenNavEntries,
+                SettingsAction.SetNavigation(NavigationPreferences(expandPlayer = true)),
+            ).inOrder()
     }
 }

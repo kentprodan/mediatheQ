@@ -47,6 +47,7 @@ enum class SettingsPage(
 ) {
     Interface(R.string.settings_interface),
     Theme(R.string.settings_theme),
+    Navigation(R.string.settings_navigation),
     Playback(R.string.settings_playback),
     Storage(R.string.settings_storage_page),
     Providers(R.string.settings_providers),
@@ -58,10 +59,11 @@ internal fun SettingsPageRoute(
     onOpenAudio: () -> Unit,
     onBack: () -> Unit,
     onOpenTheme: () -> Unit = {},
+    onOpenNavigation: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    SettingsPageScreen(page, state, viewModel::onAction, onOpenAudio, onBack, onOpenTheme)
+    SettingsPageScreen(page, state, viewModel::onAction, onOpenAudio, onBack, onOpenTheme, onOpenNavigation)
 }
 
 /**
@@ -76,19 +78,25 @@ fun SettingsPageScreen(
     onOpenAudio: () -> Unit,
     onBack: () -> Unit,
     onOpenTheme: () -> Unit = {},
+    onOpenNavigation: () -> Unit = {},
 ) {
-    // Survives rotation; only the Theme page opens dialogs.
+    // Survive rotation; only the Theme and Navigation pages open dialogs.
     var dialog by rememberSaveable { mutableStateOf<ThemeDialog?>(null) }
+    var navigationDialog by rememberSaveable { mutableStateOf<NavigationDialog?>(null) }
     SettingsScaffold(stringResource(page.title), onBack) {
         val content = state as? SettingsUiState.Content ?: return@SettingsScaffold
         when (page) {
             SettingsPage.Interface -> {
-                item(key = "appearance") { AppearanceGroup(content.library, onAction, onOpenTheme) }
+                item(key = "appearance") { AppearanceGroup(content.library, onAction, onOpenTheme, onOpenNavigation) }
                 item(key = "ratings") { RatingsGroup(content.library.ratingMode, onAction) }
             }
 
             SettingsPage.Theme -> {
                 themeGroups(content.library.theme, onAction) { dialog = it }
+            }
+
+            SettingsPage.Navigation -> {
+                navigationGroups(content.library.navigation, onAction) { navigationDialog = it }
             }
 
             SettingsPage.Playback -> {
@@ -104,8 +112,14 @@ fun SettingsPageScreen(
             }
         }
     }
-    val theme = (state as? SettingsUiState.Content)?.library?.theme
-    if (theme != null) dialog?.let { ThemeDialogHost(it, theme, onAction) { dialog = null } }
+    val content = state as? SettingsUiState.Content
+    if (content != null) {
+        dialog?.let { ThemeDialogHost(it, content.library.theme, onAction) { dialog = null } }
+        navigationDialog?.let {
+            NavigationDialogHost(it, content.library.navigation, onAction) { navigationDialog = null }
+        }
+        if (page == SettingsPage.Navigation) content.entriesDraft?.let { NavEntriesDialog(it, onAction) }
+    }
 }
 
 /** Settings -> About: the version and the app's own pages; needs no settings. */
@@ -265,6 +279,7 @@ internal fun AppearanceGroup(
     library: LibraryPreferences,
     onAction: (SettingsAction) -> Unit,
     onOpenTheme: () -> Unit,
+    onOpenNavigation: () -> Unit = {},
 ) {
     Group(R.string.settings_appearance) {
         item { shapes ->
@@ -275,6 +290,15 @@ internal fun AppearanceGroup(
                 supportingContent = { Text(stringResource(R.string.settings_theme_summary)) },
                 trailingContent = { Icon(MqIcons.Palette, contentDescription = null) },
             ) { Text(stringResource(R.string.settings_theme)) }
+        }
+        item { shapes ->
+            SegmentedListItem(
+                onClick = onOpenNavigation,
+                shapes = shapes,
+                colors = settingsColors(),
+                supportingContent = { Text(stringResource(R.string.settings_navigation_summary)) },
+                trailingContent = { Icon(MqIcons.TouchApp, contentDescription = null) },
+            ) { Text(stringResource(R.string.settings_navigation)) }
         }
         item { shapes ->
             ChoiceItem(

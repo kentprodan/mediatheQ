@@ -3,6 +3,8 @@ package io.github.kentprodan.mediatheq.feature.settings
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
+import io.github.kentprodan.mediatheq.core.data.MainNavEntry
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
@@ -21,7 +23,51 @@ sealed interface SettingsUiState {
         val library: LibraryPreferences = LibraryPreferences(),
         /** What the output does with the audio settings (bit-perfect, why the equalizer is unavailable). */
         val output: AudioOutputInfo = AudioOutputInfo(),
-    ) : SettingsUiState
+        /** The "Organize your navigation" dialog while it is open (#122). */
+        val entriesDraft: NavEntriesDraft? = null,
+    ) : SettingsUiState {
+        /** Downloads left the navigation: the hub offers "Manage offline files" instead (#122). */
+        val showsManageOfflineFiles: Boolean get() = MainNavEntry.Downloads !in library.navigation.entries
+    }
+}
+
+/**
+ * The navigation entries being organized (#122): every entry in its order, the checked ones shown in the navigation.
+ * Home is always checked; at most [NavigationPreferences.MAX_ENTRIES].
+ */
+data class NavEntriesDraft(
+    val order: List<MainNavEntry>,
+    val checked: Set<MainNavEntry>,
+) {
+    /** The checked entries in order: what OK stores. */
+    val entries: List<MainNavEntry> get() = order.filter { it in checked }
+
+    /** [entry] can be checked or unchecked now. */
+    fun canToggle(entry: MainNavEntry): Boolean =
+        entry != MainNavEntry.Home && (entry in checked || checked.size < NavigationPreferences.MAX_ENTRIES)
+
+    fun toggle(entry: MainNavEntry): NavEntriesDraft =
+        when {
+            !canToggle(entry) -> this
+            entry in checked -> copy(checked = checked - entry)
+            else -> copy(checked = checked + entry)
+        }
+
+    fun move(
+        from: Int,
+        to: Int,
+    ): NavEntriesDraft =
+        if (from !in order.indices || to !in order.indices) {
+            this
+        } else {
+            copy(order = order.toMutableList().apply { add(to, removeAt(from)) })
+        }
+
+    companion object {
+        /** The stored [entries] first, in their order, then the others. */
+        fun of(entries: List<MainNavEntry>) =
+            NavEntriesDraft(entries + (MainNavEntry.entries - entries.toSet()), entries.toSet())
+    }
 }
 
 sealed interface SettingsAction {
@@ -51,6 +97,31 @@ sealed interface SettingsAction {
     ) : SettingsAction
 
     data object RestoreThemeDefaults : SettingsAction
+
+    /** Replaces every navigation and media start setting (#122); the screen sends the current ones with one changed. */
+    data class SetNavigation(
+        val navigation: NavigationPreferences,
+    ) : SettingsAction
+
+    data object RestoreNavigationDefaults : SettingsAction
+
+    /** Opens "Organize your navigation" with the stored entries. */
+    data object OpenNavEntries : SettingsAction
+
+    data class ToggleNavEntry(
+        val entry: MainNavEntry,
+    ) : SettingsAction
+
+    data class MoveNavEntry(
+        val from: Int,
+        val to: Int,
+    ) : SettingsAction
+
+    /** OK: stores the checked entries in their order. */
+    data object ConfirmNavEntries : SettingsAction
+
+    /** Cancel: nothing changes. */
+    data object DismissNavEntries : SettingsAction
 
     data class SetOfflineMode(
         val on: Boolean,
