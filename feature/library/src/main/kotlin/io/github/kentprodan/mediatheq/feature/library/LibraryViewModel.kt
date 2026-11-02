@@ -3,6 +3,9 @@ package io.github.kentprodan.mediatheq.feature.library
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.common.MqError
@@ -32,13 +35,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@HiltViewModel
+@HiltViewModel(assistedFactory = LibraryViewModel.Factory::class)
 class LibraryViewModel
-    @Inject
+    @AssistedInject
     constructor(
+        /** Set when the screen is a navigation entry of its own (Albums, Tracks, ..., #122); `null` for Library. */
+        @Assisted private val fixedFilter: LibraryFilter?,
         private val savedStateHandle: SavedStateHandle,
         private val libraryRepository: LibraryRepository,
         private val syncRepository: LibrarySyncRepository,
@@ -50,7 +54,8 @@ class LibraryViewModel
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
         // Saved, so the tab (and its restored scroll position) comes back after process death.
-        private val filter = savedStateHandle.getStateFlow(FILTER_KEY, LibraryFilter.Albums)
+        private val filter: StateFlow<LibraryFilter> =
+            fixedFilter?.let { MutableStateFlow(it) } ?: savedStateHandle.getStateFlow(FILTER_KEY, LibraryFilter.Albums)
 
         // The failed sync the user already saw as a snackbar; the same failure is not shown twice.
         private val shownFailure = MutableStateFlow<SyncStatus.Failed?>(null)
@@ -105,6 +110,7 @@ class LibraryViewModel
                 val failureShownAsContent = content is LibraryContent.Offline || content is LibraryContent.Error
                 LibraryUiState(
                     filter = filter,
+                    filterFixed = fixedFilter != null,
                     filterStyle = preferences.filterStyle,
                     albumColumns = preferences.albumColumns,
                     sort = preferences.sortFor(filter),
@@ -120,13 +126,13 @@ class LibraryViewModel
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
                 // The restored tab, not the default one, from the first frame (its top bar differs).
-                LibraryUiState(filter = filter.value, filterStyle = null),
+                LibraryUiState(filter = filter.value, filterFixed = fixedFilter != null, filterStyle = null),
             )
 
         fun onAction(action: LibraryAction) {
             when (action) {
                 is LibraryAction.SelectFilter -> {
-                    savedStateHandle[FILTER_KEY] = action.filter
+                    if (fixedFilter == null) savedStateHandle[FILTER_KEY] = action.filter
                 }
 
                 is LibraryAction.SelectSort -> {
@@ -204,6 +210,11 @@ class LibraryViewModel
                     }
                 }
             }
+
+        @AssistedFactory
+        interface Factory {
+            fun create(fixedFilter: LibraryFilter?): LibraryViewModel
+        }
     }
 
 /** Sorts a tab's items into content. */

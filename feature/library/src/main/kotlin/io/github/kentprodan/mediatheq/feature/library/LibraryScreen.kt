@@ -73,7 +73,12 @@ internal fun LibraryRoute(
     onOpenPlaylist: (MediaId) -> Unit,
     onNewPlaylist: () -> Unit,
     onOpenDownloads: () -> Unit,
-    viewModel: LibraryViewModel = hiltViewModel(),
+    fixedFilter: LibraryFilter? = null,
+    viewModel: LibraryViewModel =
+        hiltViewModel<LibraryViewModel, LibraryViewModel.Factory>(
+            key = fixedFilter?.name ?: "library",
+            creationCallback = { it.create(fixedFilter) },
+        ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LibraryScreen(
@@ -121,7 +126,7 @@ fun LibraryScreen(
     ) { padding ->
         Column(Modifier.padding(padding)) {
             // Shown once the saved style is known; the list is still loading until then.
-            state.filterStyle?.let { filterStyle ->
+            state.filterStyle?.takeUnless { state.filterFixed }?.let { filterStyle ->
                 MqFilterBar(
                     labels = LibraryFilter.entries.map { stringResource(it.label) },
                     selectedIndex = state.filter.ordinal,
@@ -294,7 +299,7 @@ private fun LibraryTopBar(
     var sortMenu by rememberSaveable { mutableStateOf(false) }
     var viewMenu by rememberSaveable { mutableStateOf(false) }
     TopAppBar(
-        title = { Text(stringResource(R.string.library_title)) },
+        title = { Text(stringResource(if (state.filterFixed) state.filter.label else R.string.library_title)) },
         actions = {
             if (state.filter == LibraryFilter.Playlists) {
                 IconButton(onClick = onNewPlaylist) {

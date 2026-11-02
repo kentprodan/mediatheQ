@@ -17,6 +17,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -54,7 +55,7 @@ fun AppShell(
                 // Places and animates itself (it is hidden while nothing is queued).
                 miniPlayer?.invoke()
                 ShortNavigationBar {
-                    TopLevelTab.entries.forEach { tab ->
+                    navigator.tabs.forEach { tab ->
                         val selected = tab == navigator.currentTab
                         ShortNavigationBarItem(
                             selected = selected,
@@ -81,19 +82,22 @@ fun AppShell(
                 }
             }
         // Each tab decorates its own stack, so a hidden tab keeps its screens' saved state (e.g. scroll position).
+        // Only the shown tabs (#122); a tab removed from the navigation drops its screens' saved state.
         val entriesByTab =
-            TopLevelTab.entries.associateWith { tab ->
-                rememberDecoratedNavEntries(
-                    backStack = navigator.stack(tab),
-                    entryDecorators =
-                        listOf(
-                            rememberSaveableStateHolderNavEntryDecorator(),
-                            // ViewModels live as long as their entry, also while their tab is hidden.
-                            rememberViewModelStoreNavEntryDecorator(),
-                            animatedScopeDecorator,
-                        ),
-                    entryProvider = entryProvider,
-                )
+            navigator.tabs.associateWith { tab ->
+                key(tab) {
+                    rememberDecoratedNavEntries(
+                        backStack = navigator.stack(tab),
+                        entryDecorators =
+                            listOf(
+                                rememberSaveableStateHolderNavEntryDecorator(),
+                                // ViewModels live as long as their entry, also while their tab is hidden.
+                                rememberViewModelStoreNavEntryDecorator(),
+                                animatedScopeDecorator,
+                            ),
+                        entryProvider = entryProvider,
+                    )
+                }
             }
         // Covers fly between screens of a tab (grid -> album). Inside the Scaffold, so they never draw over the bar.
         SharedTransitionLayout(Modifier.padding(padding).consumeWindowInsets(padding)) {

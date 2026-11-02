@@ -106,6 +106,7 @@ class LibraryViewModelTest {
         status: SyncStatus = SyncStatus.Idle(day(10)),
         savedState: SavedStateHandle = SavedStateHandle(),
         collect: Boolean = true,
+        fixedFilter: LibraryFilter? = null,
     ): LibraryViewModel {
         library.albums.value = albums
         library.albumArtists.value = listOf(bob, ada)
@@ -114,6 +115,7 @@ class LibraryViewModelTest {
         sync.status.value = status
         val viewModel =
             LibraryViewModel(
+                fixedFilter,
                 savedState,
                 library,
                 sync,
@@ -143,6 +145,20 @@ class LibraryViewModelTest {
             viewModel().onAction(LibraryAction.Download(tracks[0]))
 
             assertThat(downloads.downloads.value.map { it.track }).containsExactly(tracks[0])
+        }
+
+    @Test
+    fun `a fixed filter shows only its list and ignores filter changes`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val savedState = SavedStateHandle()
+            val viewModel = viewModel(savedState = savedState, fixedFilter = LibraryFilter.Songs)
+
+            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Albums))
+
+            assertThat(viewModel.uiState.value.filter).isEqualTo(LibraryFilter.Songs)
+            assertThat(viewModel.uiState.value.filterFixed).isTrue()
+            assertThat(viewModel.uiState.value.content).isInstanceOf(LibraryContent.Songs::class.java)
+            assertThat(savedState.keys()).isEmpty()
         }
 
     @Test
@@ -412,6 +428,7 @@ class LibraryViewModelTest {
             val sorting = StandardTestDispatcher(testScheduler)
             val viewModel =
                 LibraryViewModel(
+                    null,
                     SavedStateHandle(),
                     library,
                     sync,
