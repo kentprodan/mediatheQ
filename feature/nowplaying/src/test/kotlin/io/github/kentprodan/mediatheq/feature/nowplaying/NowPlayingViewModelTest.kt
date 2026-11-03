@@ -6,7 +6,9 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
+import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.LyricLine
 import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -18,6 +20,7 @@ import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLyricsRepository
@@ -43,6 +46,7 @@ class NowPlayingViewModelTest {
     private val lyrics = FakeLyricsRepository()
     private val libraryPreferences = FakeLibraryPreferencesRepository()
     private val waveforms = FakeWaveformRepository()
+    private val downloads = FakeDownloadRepository()
     private val artwork = Artwork("al1", "tag")
     private val playing =
         PlayerUiModel(
@@ -70,6 +74,7 @@ class NowPlayingViewModelTest {
                 lyrics,
                 libraryPreferences,
                 waveforms,
+                downloads,
             ).uiState.test {
                 assertThat(awaitItem()).isEqualTo(NowPlayingUiState.Hidden)
             }
@@ -79,7 +84,7 @@ class NowPlayingViewModelTest {
     fun `the queue entry shows with its cover and controls, and follows pause`() =
         runTest {
             val viewModel =
-                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
             viewModel.uiState.test {
                 assertThat(awaitItem()).isEqualTo(NowPlayingUiState.Hidden)
 
@@ -108,7 +113,8 @@ class NowPlayingViewModelTest {
 
     @Test
     fun `transport actions reach the player`() {
-        val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+        val viewModel =
+            NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
 
         viewModel.onAction(NowPlayingAction.TogglePlayPause)
         viewModel.onAction(NowPlayingAction.Next)
@@ -120,7 +126,8 @@ class NowPlayingViewModelTest {
     @Test
     fun `seeking turns the fraction into a position in the current track`() {
         playback.state.value = playing
-        val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+        val viewModel =
+            NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
 
         viewModel.onAction(NowPlayingAction.SeekTo(0.25f))
         viewModel.onAction(NowPlayingAction.SeekTo(1.5f))
@@ -140,6 +147,7 @@ class NowPlayingViewModelTest {
                 lyrics,
                 libraryPreferences,
                 waveforms,
+                downloads,
             ).uiState.test {
                 val state = awaitItem() as NowPlayingUiState.Playing
                 assertThat(state.currentEntryId).isEqualTo("e2")
@@ -150,7 +158,8 @@ class NowPlayingViewModelTest {
 
     @Test
     fun `shuffle and repeat reach the player`() {
-        val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+        val viewModel =
+            NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
 
         viewModel.onAction(NowPlayingAction.SetShuffle(true))
         viewModel.onAction(NowPlayingAction.SetRepeatMode(RepeatMode.One))
@@ -171,13 +180,22 @@ class NowPlayingViewModelTest {
         playback.queue.value = queue
 
         assertThat(
-            NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms).queue.value,
+            NowPlayingViewModel(
+                playback,
+                library,
+                userData,
+                lyrics,
+                libraryPreferences,
+                waveforms,
+                downloads,
+            ).queue.value,
         ).isEqualTo(queue)
     }
 
     @Test
     fun `queue actions reach the player by entry`() {
-        val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+        val viewModel =
+            NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
 
         viewModel.onAction(NowPlayingAction.SkipToQueueItem("e1"))
         viewModel.onAction(NowPlayingAction.RemoveQueueItem("e2"))
@@ -197,6 +215,7 @@ class NowPlayingViewModelTest {
             lyrics,
             libraryPreferences,
             waveforms,
+            downloads,
         ).onAction(NowPlayingAction.SeekTo(0.5f))
 
         assertThat(playback.commands).isEmpty()
@@ -217,6 +236,7 @@ class NowPlayingViewModelTest {
                 lyrics,
                 libraryPreferences,
                 waveforms,
+                downloads,
             ).uiState.test {
                 val state = awaitItem() as NowPlayingUiState.Playing
                 assertThat(state.isFavorite).isTrue()
@@ -241,6 +261,7 @@ class NowPlayingViewModelTest {
                 lyrics,
                 libraryPreferences,
                 waveforms,
+                downloads,
             ).uiState.test {
                 val state = awaitItem() as NowPlayingUiState.Playing
                 assertThat(state.isFavorite).isFalse()
@@ -253,7 +274,7 @@ class NowPlayingViewModelTest {
         runTest {
             playback.state.value = playing
             val viewModel =
-                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
 
             viewModel.onAction(NowPlayingAction.SetFavorite(true))
             viewModel.onAction(NowPlayingAction.Rate(6))
@@ -264,7 +285,8 @@ class NowPlayingViewModelTest {
 
     @Test
     fun `with nothing playing, favorite and rating do nothing`() {
-        val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+        val viewModel =
+            NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
 
         viewModel.onAction(NowPlayingAction.SetFavorite(true))
         viewModel.onAction(NowPlayingAction.Rate(6))
@@ -284,6 +306,7 @@ class NowPlayingViewModelTest {
                 lyrics,
                 libraryPreferences,
                 waveforms,
+                downloads,
             ).uiState.test {
                 assertThat((awaitItem() as NowPlayingUiState.Playing).atmosConverted).isTrue()
             }
@@ -293,7 +316,7 @@ class NowPlayingViewModelTest {
     fun `bit-perfect output shows its sample rate on the player`() =
         runTest {
             val viewModel =
-                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
             playback.state.value = playing.copy(output = AudioOutputInfo(bitPerfectSampleRateHz = 96_000))
 
             viewModel.uiState.test {
@@ -316,7 +339,15 @@ class NowPlayingViewModelTest {
             lyrics.gate = CompletableDeferred()
             lyrics.lyrics[track.id] = syncedLyrics
 
-            NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms).lyrics.test {
+            NowPlayingViewModel(
+                playback,
+                library,
+                userData,
+                lyrics,
+                libraryPreferences,
+                waveforms,
+                downloads,
+            ).lyrics.test {
                 assertThat(awaitItem()).isEqualTo(LyricsUiState.Loading)
                 lyrics.gate!!.complete(Unit)
                 assertThat(awaitItem()).isEqualTo(LyricsUiState.Content(syncedLyrics))
@@ -330,7 +361,15 @@ class NowPlayingViewModelTest {
             val plain = Lyrics(listOf(LyricLine("one")))
             lyrics.lyrics[track.id] = plain
 
-            NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms).lyrics.test {
+            NowPlayingViewModel(
+                playback,
+                library,
+                userData,
+                lyrics,
+                libraryPreferences,
+                waveforms,
+                downloads,
+            ).lyrics.test {
                 assertThat(awaitLoaded()).isEqualTo(LyricsUiState.Content(plain))
             }
         }
@@ -340,7 +379,15 @@ class NowPlayingViewModelTest {
         runTest {
             playback.state.value = playing
 
-            NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms).lyrics.test {
+            NowPlayingViewModel(
+                playback,
+                library,
+                userData,
+                lyrics,
+                libraryPreferences,
+                waveforms,
+                downloads,
+            ).lyrics.test {
                 assertThat(awaitLoaded()).isEqualTo(LyricsUiState.None)
             }
         }
@@ -348,7 +395,15 @@ class NowPlayingViewModelTest {
     @Test
     fun `nothing playing shows no lyrics and asks nothing`() =
         runTest {
-            NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms).lyrics.test {
+            NowPlayingViewModel(
+                playback,
+                library,
+                userData,
+                lyrics,
+                libraryPreferences,
+                waveforms,
+                downloads,
+            ).lyrics.test {
                 assertThat(awaitLoaded()).isEqualTo(LyricsUiState.None)
             }
             assertThat(lyrics.calls).isEmpty()
@@ -361,7 +416,7 @@ class NowPlayingViewModelTest {
             lyrics.failure = MqError.Network
             lyrics.lyrics[track.id] = syncedLyrics
             val viewModel =
-                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
 
             viewModel.lyrics.test {
                 assertThat(awaitLoaded()).isEqualTo(LyricsUiState.Error(MqError.Network))
@@ -382,7 +437,15 @@ class NowPlayingViewModelTest {
             lyrics.lyrics[track.id] = syncedLyrics
             lyrics.lyrics[next] = nextLyrics
 
-            NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms).lyrics.test {
+            NowPlayingViewModel(
+                playback,
+                library,
+                userData,
+                lyrics,
+                libraryPreferences,
+                waveforms,
+                downloads,
+            ).lyrics.test {
                 assertThat(awaitLoaded()).isEqualTo(LyricsUiState.Content(syncedLyrics))
                 // Pausing is not a new track.
                 playback.state.value = playing.copy(isPlaying = false)
@@ -395,7 +458,8 @@ class NowPlayingViewModelTest {
     @Test
     fun `a tapped line seeks to its start, within the track`() {
         playback.state.value = playing
-        val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+        val viewModel =
+            NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
 
         viewModel.onAction(NowPlayingAction.SeekToTime(42.seconds))
         viewModel.onAction(NowPlayingAction.SeekToTime(20.minutes))
@@ -407,7 +471,7 @@ class NowPlayingViewModelTest {
     fun `R12 a tapped line does not seek a stream that cannot be seeked`() {
         playback.state.value = playing.copy(isSeekable = false)
 
-        NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+        NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
             .onAction(NowPlayingAction.SeekToTime(42.seconds))
 
         assertThat(playback.commands).isEmpty()
@@ -426,6 +490,7 @@ class NowPlayingViewModelTest {
                 lyrics,
                 libraryPreferences,
                 waveforms,
+                downloads,
             ).uiState.test {
                 assertThat((awaitItem() as NowPlayingUiState.Playing).ratingMode).isEqualTo(RatingMode.HalfStars)
             }
@@ -435,7 +500,8 @@ class NowPlayingViewModelTest {
     fun `starting playback opens the player when the setting is on`() =
         runTest {
             libraryPreferences.setNavigation(NavigationPreferences(expandPlayer = true))
-            val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+            val viewModel =
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
             viewModel.autoExpand.test {
                 assertThat(awaitItem()).isFalse()
 
@@ -452,7 +518,8 @@ class NowPlayingViewModelTest {
     @Test
     fun `with the setting off starting playback never opens the player, now or later`() =
         runTest {
-            val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+            val viewModel =
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
             viewModel.autoExpand.test {
                 assertThat(awaitItem()).isFalse()
 
@@ -470,7 +537,8 @@ class NowPlayingViewModelTest {
         runTest {
             libraryPreferences.setNavigation(NavigationPreferences(expandPlayer = true))
             playback.state.value = playing
-            val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+            val viewModel =
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
             viewModel.autoExpand.test {
                 assertThat(awaitItem()).isFalse()
 
@@ -485,7 +553,8 @@ class NowPlayingViewModelTest {
     fun `a play that produced no track does not open the player when something is queued later`() =
         runTest {
             libraryPreferences.setNavigation(NavigationPreferences(expandPlayer = true))
-            val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+            val viewModel =
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
             viewModel.autoExpand.test {
                 assertThat(awaitItem()).isFalse()
 
@@ -502,7 +571,8 @@ class NowPlayingViewModelTest {
     @Test
     fun `the waveform shows once computed and never the previous track's`() =
         runTest {
-            val viewModel = NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms)
+            val viewModel =
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
             viewModel.uiState.test {
                 skipItems(1) // hidden
                 playback.state.value = playing
@@ -515,5 +585,85 @@ class NowPlayingViewModelTest {
                 playback.state.value = playing.copy(item = next)
                 assertThat(expectMostRecentItem().let { (it as NowPlayingUiState.Playing).waveform }).isNull()
             }
+        }
+
+    private val playingTrack =
+        Track(
+            MediaId(ServerId("s"), "t1"),
+            "Strobe",
+            listOf(Artist(MediaId(ServerId("s"), "ar1"), "deadmau5")),
+            10.minutes,
+            albumId = MediaId(ServerId("s"), "al1"),
+            albumTitle = "For Lack of a Better Name",
+            audioFormat = AudioFormat("flac", sampleRateHz = 96_000, bitDepth = 24, bitrateKbps = 1250),
+        )
+
+    @Test
+    fun `the playing track brings its artists, album and quality once its stream is known`() =
+        runTest {
+            library.tracks.value = listOf(playingTrack)
+            val viewModel =
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
+            viewModel.uiState.test {
+                skipItems(1) // hidden
+                playback.state.value = playing
+                var shown = expectMostRecentItem() as NowPlayingUiState.Playing
+                assertThat(shown.artists.map { it.name }).containsExactly("deadmau5")
+                assertThat(shown.albumTitle).isEqualTo("For Lack of a Better Name")
+                // The stream is not resolved yet: no label rather than a wrong one.
+                assertThat(shown.quality).isNull()
+
+                playback.state.value = playing.copy(output = AudioOutputInfo(streamKnown = true))
+                shown = awaitItem() as NowPlayingUiState.Playing
+                assertThat(shown.quality?.kind).isEqualTo(QualityKind.HiResLossless)
+
+                playback.state.value = playing.copy(output = AudioOutputInfo(streamKnown = true, convertedKbps = 128))
+                shown = awaitItem() as NowPlayingUiState.Playing
+                assertThat(shown.quality).isEqualTo(QualityLabel(QualityKind.HighEfficiency, "Opus · 128 kb/s"))
+
+                // Another track whose row is not read yet: nothing of the previous one shows.
+                val next = playing.item!!.copy(id = MediaId(ServerId("s"), "t2"))
+                playback.state.value = playing.copy(item = next, output = AudioOutputInfo(streamKnown = true))
+                shown = expectMostRecentItem() as NowPlayingUiState.Playing
+                assertThat(shown.artists).isEmpty()
+                assertThat(shown.albumId).isNull()
+                assertThat(shown.quality).isNull()
+            }
+        }
+
+    @Test
+    fun `lyrics in place of the cover stay on for the next track, the label mode is remembered`() =
+        runTest {
+            val viewModel =
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
+            viewModel.uiState.test {
+                skipItems(1) // hidden
+                playback.state.value = playing
+                assertThat((awaitItem() as NowPlayingUiState.Playing).lyricsShown).isFalse()
+
+                viewModel.onAction(NowPlayingAction.ToggleLyrics)
+                assertThat((awaitItem() as NowPlayingUiState.Playing).lyricsShown).isTrue()
+
+                playback.state.value =
+                    playing.copy(item = playing.item!!.copy(id = MediaId(ServerId("s"), "t2"), title = "Ghosts"))
+                assertThat((awaitItem() as NowPlayingUiState.Playing).lyricsShown).isTrue()
+
+                viewModel.onAction(NowPlayingAction.ToggleQualityDetail)
+                assertThat((awaitItem() as NowPlayingUiState.Playing).qualityDetail).isTrue()
+                assertThat(libraryPreferences.preferences.value.qualityDetail).isTrue()
+            }
+        }
+
+    @Test
+    fun `the track menu downloads the playing track`() =
+        runTest {
+            library.tracks.value = listOf(playingTrack)
+            playback.state.value = playing
+            val viewModel =
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
+
+            viewModel.onAction(NowPlayingAction.Download)
+
+            assertThat(downloads.downloads.value.map { it.track.id }).containsExactly(playingTrack.id)
         }
 }

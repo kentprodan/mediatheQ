@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LyricsRepository
@@ -12,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.WaveformRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
+import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -41,9 +44,12 @@ class NowPlayingViewModel
         private val library: LibraryRepository,
         private val userData: UserDataRepository,
         private val lyricsRepository: LyricsRepository,
-        libraryPreferences: LibraryPreferencesRepository,
+        private val libraryPreferences: LibraryPreferencesRepository,
         waveforms: WaveformRepository,
+        private val downloads: DownloadRepository,
     ) : ViewModel() {
+        private val lyricsShown = MutableStateFlow(false)
+
         // Computed on the device (#124): appears while the track plays, once its file is whole.
         private val playingWaveform: Flow<Pair<MediaId, List<Float>?>?> =
             playback.state
@@ -51,8 +57,9 @@ class NowPlayingViewModel
                 .distinctUntilChanged()
                 .flatMapLatest { id -> if (id == null) flowOf(null) else waveforms.levels(id).map { id to it } }
 
-        // Favorite and rating come from Room, so a change made here or in another client shows at once.
-        private val playingUserData: Flow<Pair<MediaId, UserData>?> =
+        // Favorite, rating, artists, album and format come from Room, so a change made here or in another client
+        // shows at once.
+        private val playingTrack: Flow<Pair<MediaId, Track>?> =
             playback.state
                 .map { it.item?.id }
                 .distinctUntilChanged()
@@ -62,21 +69,40 @@ class NowPlayingViewModel
                     ) {
                         flowOf(null)
                     } else {
-                        library.track(id).map { track -> track?.let { id to it.userData } }
+                        library.track(id).map { track -> track?.let { id to it } }
                     }
                 }
 
         val uiState: StateFlow<NowPlayingUiState> =
             combine(
                 playback.state,
-                playingUserData,
-                libraryPreferences.preferences.map { it.ratingMode }.distinctUntilChanged(),
+                playingTrack,
+                libraryPreferences.preferences.map { it.ratingMode to it.qualityDetail }.distinctUntilChanged(),
                 playingWaveform,
-            ) { state, data, ratingMode, waveform ->
-                // Until the new track's rows arrive, the previous track's user data and waveform must not show.
-                val ui = state.toUiState(data?.takeIf { it.first == state.item?.id }?.second, ratingMode)
+                lyricsShown,
+            ) { state, data, (ratingMode, qualityDetail), waveform, lyrics ->
+                // Until the new track's rows arrive, the previous track's data and waveform must not show.
+                val track = data?.takeIf { it.first == state.item?.id }?.second
+                val ui = state.toUiState(track?.userData, ratingMode)
                 val levels = waveform?.takeIf { it.first == state.item?.id }?.second
-                if (ui is NowPlayingUiState.Playing) ui.copy(waveform = levels) else ui
+                if (ui is NowPlayingUiState.Playing) {
+                    ui.copy(
+                        waveform = levels,
+                        artists = track?.artists.orEmpty(),
+                        albumId = track?.albumId,
+                        albumTitle = track?.albumTitle,
+                        quality =
+                            qualityLabel(
+                                track?.audioFormat,
+                                state.output.streamKnown,
+                                state.output.convertedKbps,
+                            ),
+                        qualityDetail = qualityDetail,
+                        lyricsShown = lyrics,
+                    )
+                } else {
+                    ui
+                }
             }.stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
@@ -205,6 +231,22 @@ class NowPlayingViewModel
                         playback.state.value.item
                             ?.id ?: return
                     viewModelScope.launch { userData.setRating(id, action.halfStars) }
+                }
+
+                NowPlayingAction.ToggleLyrics -> {
+                    lyricsShown.value = !lyricsShown.value
+                }
+
+                NowPlayingAction.ToggleQualityDetail -> {
+                    val detail = (uiState.value as? NowPlayingUiState.Playing)?.qualityDetail ?: return
+                    viewModelScope.launch { libraryPreferences.setQualityDetail(!detail) }
+                }
+
+                NowPlayingAction.Download -> {
+                    val id =
+                        playback.state.value.item
+                            ?.id ?: return
+                    viewModelScope.launch { library.track(id).first()?.let { downloads.download(listOf(it)) } }
                 }
 
                 is NowPlayingAction.MoveQueueItem -> {
