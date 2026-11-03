@@ -36,7 +36,4 @@ object MediatheqSizes {
 
     /** A Home carousel's large cover (#127): its preferred width and the carousel's height. */
     val carouselItem = 220.dp
-
-    /** A card in a Home row (artists, playlists; albums use [albumCardInRow]). */
-    val homeCard = 128.dp
 }

@@ -165,7 +165,18 @@ private fun HomeContent(
     val flying =
         remember(
             content.sections,
-        ) { flyingCovers(content.sections.map { (it.items as? HomeItems.Albums)?.albums.orEmpty() }) }
+        ) {
+            flyingCovers(
+                content.sections.map {
+                    (it.items as? HomeItems.Albums)
+                        ?.albums
+                        .takeUnless { _ ->
+                            it.settings.display ==
+                                HomeDisplay.Carousel
+                        }.orEmpty()
+                },
+            )
+        }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()) {
         item(key = "shuffle") {
             FilledTonalButton(

@@ -214,4 +214,34 @@ class HomeSectionsTest {
 
         assertThat(items(HomeSection.FiveStarTracks, library).names()).containsExactly("top", "almost")
     }
+
+    @Test
+    fun `offline, album sections list only downloaded albums but judge them by all their tracks`() {
+        val kept = album("Kept")
+        val gone = album("Gone")
+        // Offline only the first track of "Kept" is on the phone; its other track holds the plays and the date.
+        val keptTracks = listOf(track("k1", kept, 1), track("k2", kept, 2, plays = 6, playedDaysAgo = 120))
+        val goneTracks = listOf(track("g1", gone, plays = 9, playedDaysAgo = 150))
+        val offline =
+            HomeLibrary(albums = listOf(kept), tracks = listOf(keptTracks[0]), allTracks = keptTracks + goneTracks)
+
+        assertThat(items(HomeSection.LastPlayedAlbums, offline).names()).containsExactly("Kept")
+        assertThat(items(HomeSection.MostPlayedAlbums, offline).names()).containsExactly("Kept")
+        assertThat(items(HomeSection.RediscoverAlbums, offline).names()).containsExactly("Kept")
+    }
+
+    @Test
+    fun `random artists and tracks follow the seed too`() {
+        val library =
+            HomeLibrary(
+                artists = (1..30).map { Artist(id("ar$it"), "Artist $it") },
+                tracks = (1..30).map { track("t$it") },
+            )
+
+        listOf(HomeSection.RandomArtists, HomeSection.RandomTracks).forEach { section ->
+            val first = items(section, library, seed = 3).names()
+            assertThat(items(section, library, seed = 3).names()).isEqualTo(first)
+            assertThat(items(section, library, seed = 4).names()).isNotEqualTo(first)
+        }
+    }
 }

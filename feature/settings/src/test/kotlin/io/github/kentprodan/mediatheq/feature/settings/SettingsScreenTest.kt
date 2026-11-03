@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -25,6 +26,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
@@ -469,4 +471,51 @@ class SettingsScreenTest {
 
     private fun hasStateDescription(value: String) =
         SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, value)
+
+    @Test
+    fun `dragging a section by its handle saves the new order once, on drop`() {
+        show(SettingsPage.Home)
+        val first = composeRule.onAllNodes(hasCustomActions())[0]
+        val rowHeight =
+            first
+                .fetchSemanticsNode()
+                .size.height
+                .toFloat()
+
+        // The handle sits at the start of the row.
+        first.performTouchInput {
+            val handle = Offset(left + width * HANDLE_FRACTION, centerY)
+            down(handle)
+            moveBy(Offset(0f, rowHeight * 0.6f))
+            moveBy(Offset(0f, rowHeight * 0.6f))
+            up()
+        }
+        composeRule.waitForIdle()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetHomeOrder(
+                    listOf(HomeSection.FavoriteAlbums, HomeSection.FavoritePlaylists) + HomeSection.entries.drop(2),
+                ),
+            )
+    }
+
+    @Test
+    fun `a drag that ends where it started saves nothing`() {
+        show(SettingsPage.Home)
+
+        composeRule.onAllNodes(hasCustomActions())[0].performTouchInput {
+            val handle = Offset(left + width * HANDLE_FRACTION, centerY)
+            down(handle)
+            moveBy(Offset(0f, height * 0.2f))
+            moveBy(Offset(0f, -height * 0.2f))
+            up()
+        }
+        composeRule.waitForIdle()
+
+        assertThat(actions).isEmpty()
+    }
 }
+
+/** Where the drag handle is across a Home page row. */
+private const val HANDLE_FRACTION = 0.06f
