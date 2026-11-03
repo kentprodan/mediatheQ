@@ -1,9 +1,10 @@
 package io.github.kentprodan.mediatheq.feature.home
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -23,9 +25,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -33,44 +37,57 @@ import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.HomeItems
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqCarouselItem
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqCoverCarousel
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.HomeDisplay
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
+import io.github.kentprodan.mediatheq.core.ui.ArtistCard
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.NothingDownloaded
+import io.github.kentprodan.mediatheq.core.ui.PlaylistCard
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
+import io.github.kentprodan.mediatheq.core.ui.title
+
+/** Where Home opens things. */
+data class HomeNavigation(
+    val onOpenAlbum: (MediaId) -> Unit = {},
+    val onOpenArtist: (MediaId) -> Unit = {},
+    val onOpenPlaylist: (MediaId) -> Unit = {},
+    val onOpenSettings: () -> Unit = {},
+    val onOpenDownloads: () -> Unit = {},
+)
 
 @Composable
 internal fun HomeRoute(
-    onOpenAlbum: (MediaId) -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenDownloads: () -> Unit,
+    navigation: HomeNavigation,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreen(state, viewModel::onAction, onOpenAlbum, onOpenSettings, onOpenDownloads)
+    HomeScreen(state, viewModel::onAction, navigation)
 }
 
-/** Stateless Home tab: Shuffle all, then album rows and favorite songs; empty sections are left out. */
+/** Stateless Home tab: Shuffle all, then the chosen sections (#127) in their order and display. */
 @Composable
 fun HomeScreen(
     state: HomeUiState,
     onAction: (HomeAction) -> Unit,
-    onOpenAlbum: (MediaId) -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenDownloads: () -> Unit,
+    navigation: HomeNavigation,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { HomeTopBar(onOpenSettings) },
+        topBar = { HomeTopBar(navigation.onOpenSettings) },
         // The app shell already pads for the navigation bar.
         contentWindowInsets = WindowInsets(0),
     ) { padding ->
@@ -99,7 +116,7 @@ fun HomeScreen(
                 }
 
                 HomeUiState.NothingDownloaded -> {
-                    NothingDownloaded(onOpenDownloads)
+                    NothingDownloaded(navigation.onOpenDownloads)
                 }
 
                 is HomeUiState.Error -> {
@@ -114,7 +131,13 @@ fun HomeScreen(
                 }
 
                 is HomeUiState.Content -> {
-                    HomeContent(state, onAction, onOpenAlbum)
+                    PullToRefreshBox(
+                        isRefreshing = state.refreshing,
+                        onRefresh = { onAction(HomeAction.Refresh) },
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        HomeContent(state, onAction, navigation)
+                    }
                 }
             }
         }
@@ -137,10 +160,12 @@ private fun HomeTopBar(onOpenSettings: () -> Unit) {
 private fun HomeContent(
     content: HomeUiState.Content,
     onAction: (HomeAction) -> Unit,
-    onOpenAlbum: (MediaId) -> Unit,
+    navigation: HomeNavigation,
 ) {
-    val rows = listOf(content.recentlyPlayed, content.recentlyAdded, content.favoriteAlbums)
-    val flying = remember(rows) { flyingCovers(rows) }
+    val flying =
+        remember(
+            content.sections,
+        ) { flyingCovers(content.sections.map { (it.items as? HomeItems.Albums)?.albums.orEmpty() }) }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()) {
         item(key = "shuffle") {
             FilledTonalButton(
@@ -152,79 +177,194 @@ private fun HomeContent(
                 Text(stringResource(R.string.home_shuffle_all))
             }
         }
-        albumRow("played", R.string.home_recently_played, content.recentlyPlayed, flying[0], onOpenAlbum)
-        albumRow("added", R.string.home_recently_added, content.recentlyAdded, flying[1], onOpenAlbum)
-        albumRow("favorite-albums", R.string.home_favorite_albums, content.favoriteAlbums, flying[2], onOpenAlbum)
-        if (content.favoriteTracks.isNotEmpty()) {
-            sectionTitle("favorite-songs", R.string.home_favorite_songs)
-            items(content.favoriteTracks, key = { "favorite-songs-${it.id}" }) { track ->
-                TrackRow(
-                    track,
-                    onClick = { onAction(HomeAction.PlayFavorite(track)) },
-                    showCover = true,
-                    menuItems = { close ->
-                        QueueMenuItems(
-                            onPlayNext = { onAction(HomeAction.PlayNext(track)) },
-                            onAddToQueue = { onAction(HomeAction.AddToQueue(track)) },
-                            close = close,
-                        )
-                        FavoriteMenuItem(
-                            track.userData.isFavorite,
-                            { onAction(HomeAction.SetFavorite(track, it)) },
-                            close,
-                        )
-                        DownloadMenuItem({ onAction(HomeAction.Download(track)) }, close)
-                    },
-                )
-            }
+        content.sections.forEachIndexed { index, section ->
+            section(section, flying[index], onAction, navigation)
         }
     }
 }
 
-/** A titled, horizontally scrolling row of [albums]; nothing when it is empty. Keys are text (saveable). */
-private fun LazyListScope.albumRow(
-    key: String,
-    @StringRes title: Int,
-    albums: List<Album>,
+/** One section: its header, then its items in the section's display. Keys are text (saveable). */
+private fun LazyListScope.section(
+    content: HomeSectionContent,
     flying: Set<MediaId>,
-    onOpenAlbum: (MediaId) -> Unit,
+    onAction: (HomeAction) -> Unit,
+    navigation: HomeNavigation,
 ) {
-    if (albums.isEmpty()) return
-    sectionTitle(key, title)
-    item(key = "$key-row") {
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = MediatheqSpacing.l),
-            horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
-        ) {
-            items(albums, key = { it.id.toString() }) { album ->
-                AlbumCard(
-                    album,
-                    onClick = { onOpenAlbum(album.id) },
-                    modifier = Modifier.width(MediatheqSizes.albumCardInRow),
-                    sharedCover = album.id in flying,
+    val key = content.section.name
+    val settings = content.settings
+    if (settings.showHeader) {
+        item(key = "$key-title") { SectionHeader(content) }
+    }
+    val items = content.items
+    // Tracks have no cards: a track section always lists its rows.
+    if (items is HomeItems.Tracks) {
+        itemsIndexed(items.tracks, key = { _, track -> "$key-${track.id}" }) { index, track ->
+            HomeTrackRow(track, onPlay = { onAction(HomeAction.PlayTracks(items.tracks, index)) }, onAction)
+        }
+        return
+    }
+    item(key = "$key-items") {
+        when (settings.display) {
+            HomeDisplay.Carousel -> {
+                MqCoverCarousel(
+                    carouselItems(items),
+                    onClick = { open(it.key as MediaId, items, navigation) },
                 )
+            }
+
+            HomeDisplay.Grid -> {
+                CardRow(items, flying, navigation, rows = settings.gridRows.coerceIn(1, MAX_GRID_ROWS))
+            }
+
+            // A list of albums, artists or playlists is a row of cards (List is for tracks).
+            HomeDisplay.Row, HomeDisplay.List -> {
+                CardRow(items, flying, navigation, rows = 1)
             }
         }
     }
 }
 
-private fun LazyListScope.sectionTitle(
-    key: String,
-    @StringRes title: Int,
-) {
-    item(key = "$key-title") {
+@Composable
+private fun SectionHeader(content: HomeSectionContent) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(
+                start = MediatheqSpacing.l,
+                end = MediatheqSpacing.l,
+                top = MediatheqSpacing.l,
+                bottom = MediatheqSpacing.s,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
-            stringResource(title),
-            Modifier
-                .padding(
-                    start = MediatheqSpacing.l,
-                    end = MediatheqSpacing.l,
-                    top = MediatheqSpacing.l,
-                    bottom = MediatheqSpacing.s,
-                ).semantics { heading() },
+            stringResource(content.section.title),
+            Modifier.weight(1f).semantics { heading() },
             style = MaterialTheme.typography.titleMedium,
         )
+        // The full list behind it comes with #183.
+        if (content.settings.moreIndicator) {
+            Icon(MqIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
+}
+
+/** Cards scrolling sideways; with [rows] > 1 each column holds that many cards (a horizontal grid). */
+@Composable
+private fun CardRow(
+    items: HomeItems,
+    flying: Set<MediaId>,
+    navigation: HomeNavigation,
+    rows: Int,
+) {
+    val cards: List<@Composable (Modifier) -> Unit> =
+        when (items) {
+            is HomeItems.Albums -> {
+                items.albums.map { album ->
+                    { modifier: Modifier ->
+                        AlbumCard(
+                            album,
+                            { navigation.onOpenAlbum(album.id) },
+                            modifier,
+                            sharedCover =
+                                album.id in flying,
+                        )
+                    }
+                }
+            }
+
+            is HomeItems.Artists -> {
+                items.artists.map { artist ->
+                    { modifier: Modifier ->
+                        ArtistCard(artist, { navigation.onOpenArtist(artist.id) }, modifier)
+                    }
+                }
+            }
+
+            is HomeItems.Playlists -> {
+                items.playlists.map { playlist ->
+                    { modifier: Modifier ->
+                        PlaylistCard(playlist, { navigation.onOpenPlaylist(playlist.id) }, modifier)
+                    }
+                }
+            }
+
+            is HomeItems.Tracks -> {
+                emptyList()
+            }
+        }
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = MediatheqSpacing.l),
+        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
+    ) {
+        items(cards.chunked(rows)) { column ->
+            Column(verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s)) {
+                column.forEach { card -> card(Modifier.width(MediatheqSizes.albumCardInRow)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeTrackRow(
+    track: Track,
+    onPlay: () -> Unit,
+    onAction: (HomeAction) -> Unit,
+) {
+    TrackRow(
+        track,
+        onClick = onPlay,
+        showCover = true,
+        menuItems = { close ->
+            QueueMenuItems(
+                onPlayNext = { onAction(HomeAction.PlayNext(track)) },
+                onAddToQueue = { onAction(HomeAction.AddToQueue(track)) },
+                close = close,
+            )
+            FavoriteMenuItem(track.userData.isFavorite, { onAction(HomeAction.SetFavorite(track, it)) }, close)
+            DownloadMenuItem({ onAction(HomeAction.Download(track)) }, close)
+        },
+    )
+}
+
+private fun carouselItems(items: HomeItems): List<MqCarouselItem> =
+    when (items) {
+        is HomeItems.Albums -> {
+            items.albums.map {
+                MqCarouselItem(
+                    it.id,
+                    it.artwork,
+                    it.title,
+                    it.albumArtists.joinToString { a ->
+                        a.name
+                    },
+                    it.artwork?.blurHash,
+                )
+            }
+        }
+
+        is HomeItems.Artists -> {
+            items.artists.map { MqCarouselItem(it.id, it.artwork, it.name, null, it.artwork?.blurHash) }
+        }
+
+        is HomeItems.Playlists -> {
+            items.playlists.map { MqCarouselItem(it.id, it.artwork, it.name, null, it.artwork?.blurHash) }
+        }
+
+        is HomeItems.Tracks -> {
+            emptyList()
+        }
+    }
+
+private fun open(
+    id: MediaId,
+    items: HomeItems,
+    navigation: HomeNavigation,
+) = when (items) {
+    is HomeItems.Albums -> navigation.onOpenAlbum(id)
+    is HomeItems.Artists -> navigation.onOpenArtist(id)
+    is HomeItems.Playlists -> navigation.onOpenPlaylist(id)
+    is HomeItems.Tracks -> Unit
 }
 
 /**
@@ -235,3 +375,5 @@ internal fun flyingCovers(rows: List<List<Album>>): List<Set<MediaId>> {
     val seen = mutableSetOf<MediaId>()
     return rows.map { row -> row.filter { seen.add(it.id) }.mapTo(HashSet()) { it.id } }
 }
+
+private const val MAX_GRID_ROWS = 3

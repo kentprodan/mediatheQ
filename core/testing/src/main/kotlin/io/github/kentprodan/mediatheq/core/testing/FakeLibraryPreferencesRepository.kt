@@ -2,7 +2,6 @@ package io.github.kentprodan.mediatheq.core.testing
 
 import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
-import io.github.kentprodan.mediatheq.core.data.HomeSection
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
@@ -15,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.validNavEntries
 import io.github.kentprodan.mediatheq.core.data.validTransparency
 import io.github.kentprodan.mediatheq.core.data.withRecentSearch
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /** In-memory [LibraryPreferencesRepository] with the same validation rules as the real one. */

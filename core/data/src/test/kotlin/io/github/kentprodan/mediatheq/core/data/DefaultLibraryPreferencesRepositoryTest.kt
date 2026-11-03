@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest

@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import kotlinx.coroutines.flow.Flow
 
 /** Library and display preferences (grid, sorts, colors, ratings), kept across restarts. */

@@ -1,7 +1,9 @@
 package io.github.kentprodan.mediatheq.feature.home
 
 import io.github.kentprodan.mediatheq.core.common.MqError
-import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.data.HomeItems
+import io.github.kentprodan.mediatheq.core.model.HomeSection
+import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
 import io.github.kentprodan.mediatheq.core.model.Track
 
 /** What the Home tab shows. */
@@ -12,12 +14,14 @@ sealed interface HomeUiState {
     /** Nothing on the phone yet and the first sync is running. */
     data object FirstSync : HomeUiState
 
-    /** The library has music; each list is one section, and an empty list hides its section. */
+    /**
+     * The library has music: the shown sections (#127) in the chosen order, empty ones left out when their settings say
+     * so. No section at all (all hidden) is still Content: "Shuffle all" stays.
+     */
     data class Content(
-        val recentlyPlayed: List<Album> = emptyList(),
-        val recentlyAdded: List<Album> = emptyList(),
-        val favoriteAlbums: List<Album> = emptyList(),
-        val favoriteTracks: List<Track> = emptyList(),
+        val sections: List<HomeSectionContent> = emptyList(),
+        /** Pull to refresh: a sync runs. */
+        val refreshing: Boolean = false,
     ) : HomeUiState
 
     /** Synced, but the server has no music. */
@@ -32,13 +36,21 @@ sealed interface HomeUiState {
     ) : HomeUiState
 }
 
+/** One Home section: what it is, how it looks and its items. */
+data class HomeSectionContent(
+    val section: HomeSection,
+    val settings: HomeSectionSettings,
+    val items: HomeItems,
+)
+
 sealed interface HomeAction {
     /** Plays the whole library shuffled. */
     data object ShuffleAll : HomeAction
 
-    /** Plays all favorite songs, starting at [track]. */
-    data class PlayFavorite(
-        val track: Track,
+    /** A track of a track section: plays the section's tracks from [index] (the default track action decides). */
+    data class PlayTracks(
+        val tracks: List<Track>,
+        val index: Int,
     ) : HomeAction
 
     data class PlayNext(
@@ -60,4 +72,7 @@ sealed interface HomeAction {
 
     /** Sync now, from the empty and error states. */
     data object Sync : HomeAction
+
+    /** Pull to refresh: new random sections, and a sync when online. */
+    data object Refresh : HomeAction
 }

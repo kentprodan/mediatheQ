@@ -2,10 +2,12 @@ package io.github.kentprodan.mediatheq.feature.home
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -18,6 +20,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import io.github.kentprodan.mediatheq.core.testing.TestClock
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -35,9 +38,11 @@ class HomeViewModelTest {
     private val library = FakeLibraryRepository()
     private val sync = FakeLibrarySyncRepository()
     private val playback = FakePlaybackConnection()
-    private val trackTaps by lazy { TrackTaps(playback, FakeLibraryPreferencesRepository()) }
+    private val preferences = FakeLibraryPreferencesRepository()
+    private val trackTaps by lazy { TrackTaps(playback, preferences) }
     private val userData = FakeUserDataRepository()
     private val downloads = FakeDownloadRepository()
+    private val shuffle = HomeShuffle(1)
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
@@ -78,10 +83,23 @@ class HomeViewModelTest {
             track("single", favorite = true),
         )
 
+    private fun newViewModel() =
+        HomeViewModel(
+            library,
+            sync,
+            playback,
+            trackTaps,
+            userData,
+            downloads,
+            preferences,
+            shuffle,
+            TestClock(day(20)),
+            mainDispatcherRule.testDispatcher,
+        )
+
     private fun TestScope.viewModel(status: SyncStatus = SyncStatus.Idle(day(10))): HomeViewModel {
         sync.status.value = status
-        val viewModel =
-            HomeViewModel(library, sync, playback, trackTaps, userData, downloads, mainDispatcherRule.testDispatcher)
+        val viewModel = newViewModel()
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -94,76 +112,95 @@ class HomeViewModelTest {
 
     private fun HomeViewModel.content() = uiState.value as HomeUiState.Content
 
+    private fun HomeViewModel.sections() = content().sections.map { it.section }
+
+    private fun HomeViewModel.albums(section: HomeSection) =
+        (content().sections.first { it.section == section }.items as HomeItems.Albums).albums
+
     private fun test(block: suspend TestScope.() -> Unit) = runTest(mainDispatcherRule.testDispatcher) { block() }
 
     @Test
     fun `before anything is collected the screen is loading`() =
         test {
-            val viewModel =
-                HomeViewModel(
-                    library,
-                    sync,
-                    playback,
-                    trackTaps,
-                    userData,
-                    downloads,
-                    mainDispatcherRule.testDispatcher,
-                )
-
-            assertThat(viewModel.uiState.value).isEqualTo(HomeUiState.Loading)
+            assertThat(newViewModel().uiState.value).isEqualTo(HomeUiState.Loading)
         }
 
     @Test
-    fun `recently played lists albums by their latest played track, unplayed albums left out`() =
+    fun `today's rows are there by default, filled as before`() =
         test {
-            assertThat(withLibrary().content().recentlyPlayed).containsExactly(alpha, gamma).inOrder()
+            val viewModel = withLibrary()
+
+            assertThat(viewModel.albums(HomeSection.LastPlayedAlbums)).containsExactly(alpha, gamma).inOrder()
+            assertThat(viewModel.albums(HomeSection.RecentlyAddedAlbums)).containsExactly(beta, alpha).inOrder()
+            assertThat(viewModel.albums(HomeSection.FavoriteAlbums)).containsExactly(beta)
+            val favorites =
+                viewModel
+                    .content()
+                    .sections
+                    .first { it.section == HomeSection.FavoriteTracks }
+                    .items
+            assertThat((favorites as HomeItems.Tracks).tracks).containsExactly(tracks[2], tracks[3], tracks[4])
         }
 
     @Test
-    fun `an album's own played date also counts`() =
+    fun `sections follow the stored order, hidden and empty ones are skipped`() =
         test {
-            val replayed = beta.copy(userData = beta.userData.copy(lastPlayedAt = day(9)))
-            library.albums.value = listOf(alpha, replayed, gamma)
-            library.tracks.value = tracks
+            preferences.setHomeOrder(listOf(HomeSection.FavoriteAlbums, HomeSection.LastPlayedAlbums))
+            preferences.setHomeHidden(setOf(HomeSection.RecentlyAddedAlbums))
+            val viewModel = withLibrary()
 
-            assertThat(viewModel().content().recentlyPlayed).containsExactly(replayed, alpha, gamma).inOrder()
+            val shown = viewModel.sections()
+            assertThat(
+                shown.take(2),
+            ).containsExactly(HomeSection.FavoriteAlbums, HomeSection.LastPlayedAlbums).inOrder()
+            assertThat(shown).doesNotContain(HomeSection.RecentlyAddedAlbums)
+            // Nothing played 90 days ago, no playlists, no artists: those sections are empty and left out.
+            assertThat(
+                shown,
+            ).containsNoneOf(HomeSection.RediscoverAlbums, HomeSection.FavoritePlaylists, HomeSection.RandomArtists)
         }
 
     @Test
-    fun `recently added lists albums newest first, albums without a date left out`() =
+    fun `with every section hidden Home still shows its content, not an empty library`() =
         test {
-            assertThat(withLibrary().content().recentlyAdded).containsExactly(beta, alpha).inOrder()
+            preferences.setHomeHidden(HomeSection.entries.toSet())
+
+            assertThat(withLibrary().uiState.value).isEqualTo(HomeUiState.Content())
         }
 
     @Test
-    fun `favorites list the favorite albums and songs`() =
+    fun `random sections keep their set until pull to refresh, which also syncs`() =
         test {
-            val content = withLibrary().content()
+            library.albums.value = (1..30).map { album("a$it") }
+            library.tracks.value = listOf(track("t"))
+            val viewModel = viewModel()
+            val first = viewModel.albums(HomeSection.RandomAlbums)
 
-            assertThat(content.favoriteAlbums).containsExactly(beta)
-            assertThat(content.favoriteTracks.map { it.id.itemId }).containsExactly("b1", "g1", "single").inOrder()
+            library.tracks.value = listOf(track("t", favorite = true))
+            assertThat(viewModel.albums(HomeSection.RandomAlbums)).isEqualTo(first)
+
+            viewModel.onAction(HomeAction.Refresh)
+            assertThat(viewModel.albums(HomeSection.RandomAlbums)).isNotEqualTo(first)
+            assertThat(sync.syncCalls).isEqualTo(1)
         }
 
     @Test
-    fun `rows and favorite songs are capped`() =
+    fun `pull to refresh while offline only draws new random sets`() =
         test {
-            library.albums.value = (1..30).map { album("al$it", added = it, favorite = true) }
-            library.tracks.value = (1..30).map { track("t$it", "al$it", played = it, favorite = true) }
-            val content = viewModel().content()
+            library.offline.value = true
+            val viewModel = withLibrary()
 
-            assertThat(content.recentlyPlayed).hasSize(HomeViewModel.ROW_LIMIT)
-            assertThat(content.recentlyAdded).hasSize(HomeViewModel.ROW_LIMIT)
-            assertThat(content.favoriteAlbums).hasSize(HomeViewModel.ROW_LIMIT)
-            assertThat(content.favoriteTracks).hasSize(HomeViewModel.FAVORITE_TRACKS_LIMIT)
+            viewModel.onAction(HomeAction.Refresh)
+
+            assertThat(sync.syncCalls).isEqualTo(0)
         }
 
     @Test
-    fun `a library with nothing played, added or liked keeps every section empty`() =
+    fun `a running sync shows as refreshing`() =
         test {
-            library.albums.value = listOf(gamma)
-            library.tracks.value = listOf(track("g1", "gamma"))
+            val viewModel = withLibrary(SyncStatus.Running(SyncStep.Albums, 0, 10))
 
-            assertThat(viewModel().uiState.value).isEqualTo(HomeUiState.Content())
+            assertThat(viewModel.content().refreshing).isTrue()
         }
 
     @Test
@@ -171,7 +208,7 @@ class HomeViewModelTest {
         test {
             val viewModel = withLibrary(SyncStatus.Failed(MqError.Network, lastSyncedAt = day(10)))
 
-            assertThat(viewModel.content().recentlyAdded).isNotEmpty()
+            assertThat(viewModel.sections()).isNotEmpty()
         }
 
     @Test
@@ -210,16 +247,6 @@ class HomeViewModelTest {
         }
 
     @Test
-    fun `offline with downloads shows them as usual`() =
-        test {
-            // The repository already holds only the downloads.
-            library.offline.value = true
-            val viewModel = withLibrary(SyncStatus.Failed(MqError.Network, lastSyncedAt = null))
-
-            assertThat(viewModel.content().recentlyAdded).isNotEmpty()
-        }
-
-    @Test
     fun `sync runs a sync`() =
         test {
             viewModel(SyncStatus.Failed(MqError.Network, lastSyncedAt = null)).onAction(HomeAction.Sync)
@@ -236,16 +263,16 @@ class HomeViewModelTest {
         }
 
     @Test
-    fun `a favorite song plays all favorites from it`() =
+    fun `a track of a section plays the section's tracks from it`() =
         test {
-            withLibrary().onAction(HomeAction.PlayFavorite(tracks[3]))
-
             val favorites = listOf(tracks[2], tracks[3], tracks[4])
+            withLibrary().onAction(HomeAction.PlayTracks(favorites, 1))
+
             assertThat(playback.plays).containsExactly(FakePlaybackConnection.PlayCall(favorites, 1, shuffle = false))
         }
 
     @Test
-    fun `a favorite song's menu queues, unlikes and downloads it`() =
+    fun `a track's menu queues, unlikes and downloads it`() =
         test {
             val viewModel = withLibrary()
             val song = tracks[4]

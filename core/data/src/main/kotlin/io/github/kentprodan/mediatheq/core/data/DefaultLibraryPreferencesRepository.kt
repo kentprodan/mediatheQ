@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.datastore.StoredMediaLists
 import io.github.kentprodan.mediatheq.core.datastore.StoredNavigation
 import io.github.kentprodan.mediatheq.core.datastore.StoredNowPlaying
 import io.github.kentprodan.mediatheq.core.datastore.StoredTheme
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
