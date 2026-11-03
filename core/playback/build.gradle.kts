@@ -16,6 +16,8 @@ dependencies {
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.datasource.okhttp)
+    // MediaExtractorCompat: reads a cached file for its waveform with Media3's extractors (#124, ADR 0027).
+    implementation(libs.androidx.media3.inspector)
     implementation(libs.okhttp)
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.core)

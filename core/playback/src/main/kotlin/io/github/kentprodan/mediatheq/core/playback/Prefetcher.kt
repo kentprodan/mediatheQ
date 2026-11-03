@@ -42,6 +42,8 @@ internal class Prefetcher(
     private val cache: Cache,
     private val upstream: DataSource.Factory,
     private val network: NetworkMonitor,
+    /** A track's original is now whole in the cache (the waveform can be computed, #124). Any thread. */
+    private val onCached: (MediaId) -> Unit = {},
 ) : Player.Listener {
     @Volatile private var job: Job? = null
     private var targets: List<MediaId> = emptyList()
@@ -95,32 +97,20 @@ internal class Prefetcher(
 
     private fun restart() {
         val active = player.playWhenReady && player.playbackState != Player.STATE_IDLE && network.isOnline()
-        val next = if (active) upcoming(if (network.isMetered()) METERED_COUNT else UNMETERED_COUNT) else emptyList()
+        val next =
+            if (active) {
+                player.upcomingTracks(if (network.isMetered()) METERED_COUNT else UNMETERED_COUNT) {
+                    it in
+                        taken
+                }
+            } else {
+                emptyList()
+            }
         // Events come in bursts (start, buffering, ready): a running prefetch of the same tracks goes on.
         if (next == targets && job?.isActive == true) return
         job?.cancel()
         targets = next
         if (next.isNotEmpty()) job = scope.launch { next.forEach { prefetch(it) } }
-    }
-
-    /** The next [count] tracks in play order (shuffle and repeat included), never the current one again. */
-    private fun upcoming(count: Int): List<MediaId> {
-        val timeline = player.currentTimeline
-        if (timeline.isEmpty) return emptyList()
-        val current = player.currentMediaItem?.mediaId
-        // Repeat one would only find the current track; the queue's real successors are worth more.
-        val repeatMode = if (player.repeatMode == Player.REPEAT_MODE_ONE) Player.REPEAT_MODE_OFF else player.repeatMode
-        val result = mutableListOf<MediaId>()
-        var index = player.currentMediaItemIndex
-        repeat(timeline.windowCount) {
-            if (result.size == count) return result
-            index = timeline.getNextWindowIndex(index, repeatMode, player.shuffleModeEnabled)
-            if (index == C.INDEX_UNSET) return result
-            val item = player.getMediaItemAt(index)
-            val id = runCatching { MediaId.parse(item.mediaId) }.getOrNull()
-            if (id != null && item.mediaId != current && id !in result && id !in taken) result += id
-        }
-        return result
     }
 
     private suspend fun prefetch(itemId: MediaId) =
@@ -147,6 +137,7 @@ internal class Prefetcher(
                 if (itemId in taken) return@withContext
                 // CacheWriter blocks; cancelling the job interrupts it.
                 runInterruptible { writer.cache() }
+                onCached(itemId)
             } catch (_: InterruptedIOException) {
                 // Cancelled mid-transfer (pause, skip, the player taking over): nothing to report.
             } catch (e: IOException) {

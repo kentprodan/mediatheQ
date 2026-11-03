@@ -83,8 +83,12 @@ class PrefetcherTest {
     private fun items(vararg n: Int) =
         n.map { Track(id(it), "Track $it", emptyList(), 3.minutes).toMediaItem(null).withTrackUri()!! }
 
+    /** Tracks reported whole in the cache (for their waveform, #124). */
+    private val wholeInCache = java.util.concurrent.CopyOnWriteArrayList<MediaId>()
+
     private fun prefetcher(upstream: DataSource.Factory = DataSource.Factory { FakeDataSource(server) }) =
-        Prefetcher(player, scope, Dispatchers.IO, resolver, downloads, cache, upstream, network).also { it.start() }
+        Prefetcher(player, scope, Dispatchers.IO, resolver, downloads, cache, upstream, network, wholeInCache::add)
+            .also { it.start() }
 
     private fun cached() = (1..4).filter { cache.isFullyCached(originalCacheKey(id(it))) }
 
@@ -106,10 +110,11 @@ class PrefetcherTest {
     fun `on Wi-Fi the next two tracks are cached while the first plays`() {
         prefetcher()
 
-        play(1, 2, 3, 4) { cached().size == 2 }
+        play(1, 2, 3, 4) { cached().size == 2 && wholeInCache.size == 2 }
 
         assertThat(cached()).containsExactly(2, 3)
         assertThat(requested()).containsExactly("t2", "t3").inOrder()
+        assertThat(wholeInCache).containsExactly(id(2), id(3)).inOrder()
     }
 
     @Test
