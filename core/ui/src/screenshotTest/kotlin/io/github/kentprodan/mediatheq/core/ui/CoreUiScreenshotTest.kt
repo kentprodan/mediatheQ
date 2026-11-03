@@ -147,6 +147,29 @@ fun AlbumCardScreenshot() {
     }
 }
 
+/** Home cards (#127): artists (picture in its accent shape, none) and playlists (cover and count). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeCardsScreenshot() {
+    MediatheqTheme {
+        Surface {
+            Row(
+                Modifier.padding(MediatheqSpacing.l),
+                horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
+            ) {
+                ArtistCard(
+                    PreviewData.artist.copy(artwork = PreviewData.artwork),
+                    onClick = {},
+                    Modifier.width(CardWidth),
+                )
+                ArtistCard(PreviewData.longTrack.artists[1], onClick = {}, Modifier.width(CardWidth))
+                PlaylistCard(PreviewData.playlist, onClick = {}, Modifier.width(CardWidth))
+            }
+        }
+    }
+}
+
 /**
  * Library rows: artist with and without picture, playlist with cover and count, album with cover and artists (and
  * without cover), track with its cover.

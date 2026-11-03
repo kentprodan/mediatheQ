@@ -16,8 +16,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqArtistAvatar
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqCarouselItem
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqColorSwatch
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqCoverCarousel
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialogContent
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
@@ -224,6 +226,24 @@ fun MqRatingDialogScreenshot() {
         Column {
             MqRatingDialogContent("Morning Light", halfStars = 6, allowHalf = false)
             MqRatingDialogContent("Morning Light", halfStars = 7, allowHalf = true)
+        }
+    }
+}
+
+/** Home's carousel display (#127): large covers, title and subtitle over a scrim. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun MqCoverCarouselScreenshot() {
+    MediatheqTheme {
+        Surface {
+            MqCoverCarousel(
+                items =
+                    (1..5).map {
+                        MqCarouselItem(it, null, "Album $it with a long title", "Artist $it", PREVIEW_BLUR_HASH)
+                    },
+                onClick = {},
+            )
         }
     }
 }

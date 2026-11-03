@@ -33,4 +33,10 @@ object MediatheqSizes {
 
     /** A landscape window at least this tall (a tablet) has room for Now Playing's rating stars (#125). */
     val playerRatingMinHeight = 560.dp
+
+    /** A Home carousel's large cover (#127): its preferred width and the carousel's height. */
+    val carouselItem = 220.dp
+
+    /** A card in a Home row (artists, playlists; albums use [albumCardInRow]). */
+    val homeCard = 128.dp
 }
