@@ -6,7 +6,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasClickAction
@@ -229,6 +231,50 @@ class NowPlayingScreenTest {
 
         // The finger lifting on the cover may count as its tap; it never changes track.
         assertThat(actions).containsNoneOf(NowPlayingAction.Next, NowPlayingAction.Previous)
+    }
+
+    @Test
+    fun `a Show lyrics tap is sent too, and the cover takes no tap while lyrics show`() {
+        var lyricsShown by mutableStateOf(false)
+        composeRule.setContent {
+            MediatheqTheme {
+                NowPlayingScreen(
+                    playing.copy(
+                        lyricsShown = lyricsShown,
+                        settings = NowPlayingPreferences(coverTap = CoverTap.ShowLyrics),
+                    ),
+                    { 1.minutes },
+                    { actions += it },
+                    onCollapse = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasClickLabel("Show lyrics")).performClick()
+        lyricsShown = true
+        composeRule.waitForIdle()
+
+        assertThat(actions).containsExactly(NowPlayingAction.CoverTapped)
+        composeRule.onNode(hasClickLabel("Show lyrics")).assertDoesNotExist()
+    }
+
+    @Test
+    fun `TalkBack gets next and previous on the cover, only while the cover swipe is on`() {
+        var settings by mutableStateOf(NowPlayingPreferences())
+        composeRule.setContent {
+            MediatheqTheme {
+                NowPlayingScreen(playing.copy(settings = settings), { 1.minutes }, { actions += it }, onCollapse = {})
+            }
+        }
+        val cover = composeRule.onNodeWithContentDescription("Cover")
+
+        val onCover: List<CustomAccessibilityAction> = cover.fetchSemanticsNode().config[SemanticsActions.CustomActions]
+        onCover.forEach { it.action() }
+        settings = NowPlayingPreferences(coverSwipe = false)
+        composeRule.waitForIdle()
+
+        assertThat(actions).containsExactly(NowPlayingAction.Next, NowPlayingAction.Previous)
+        assertThat(cover.fetchSemanticsNode().config.contains(SemanticsActions.CustomActions)).isFalse()
     }
 
     private fun hasClickLabel(label: String) =

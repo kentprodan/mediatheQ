@@ -266,22 +266,37 @@ private fun CoverOrLyrics(
             CoverTap.None -> null
         }
     val coverName = stringResource(R.string.nowplaying_cover)
-    Box(modifier.swipeToChangeTrack(state.hasPrevious, state.hasNext, onAction, enabled = settings.coverSwipe)) {
+    val swipeActions = trackSwipeActions(state.hasPrevious, state.hasNext, onAction)
+    Box(
+        modifier.swipeToChangeTrack(
+            state.hasPrevious,
+            state.hasNext,
+            onAction,
+            enabled = settings.coverSwipe,
+            accessibilityActions = false,
+        ),
+    ) {
         // Always there (under the lyrics too), so the cover still flies to and from the mini player. Its tap acts only
         // while it shows.
         MqPlayerCover(
             model = cover,
             modifier =
-                coverModifier.then(
-                    if (tapLabel != null && !state.lyricsShown) {
-                        Modifier
-                            .clip(MaterialTheme.shapes.extraLarge)
-                            .clickable(onClickLabel = tapLabel) { onAction(NowPlayingAction.CoverTapped) }
-                            .semantics { contentDescription = coverName }
-                    } else {
-                        Modifier
+                coverModifier
+                    .then(
+                        if (tapLabel != null && !state.lyricsShown) {
+                            Modifier
+                                .clip(MaterialTheme.shapes.extraLarge)
+                                .clickable(onClickLabel = tapLabel, role = Role.Button) {
+                                    onAction(NowPlayingAction.CoverTapped)
+                                }
+                        } else {
+                            Modifier
+                        },
+                    ).semantics {
+                        // One TalkBack stop for the cover: its name, and next / previous when the swipe is on.
+                        contentDescription = coverName
+                        if (settings.coverSwipe) customActions = swipeActions
                     },
-                ),
             blurHash = state.artwork?.blurHash,
         )
         if (settings.playButtonWhenPaused && !state.isPlaying && !state.lyricsShown) {
@@ -622,27 +637,17 @@ internal fun Modifier.swipeToChangeTrack(
     hasNext: Boolean,
     onAction: (NowPlayingAction) -> Unit,
     enabled: Boolean = true,
+    /** Put the TalkBack actions on this node; off when a child node carries them (the cover). */
+    accessibilityActions: Boolean = true,
 ): Modifier {
     if (!enabled) return this
-    val nextLabel = stringResource(R.string.nowplaying_swipe_next)
-    val previousLabel = stringResource(R.string.nowplaying_swipe_previous)
+    val actions = trackSwipeActions(hasPrevious, hasNext, onAction)
     var width by remember { mutableIntStateOf(0) }
     var dragged by remember { mutableFloatStateOf(0f) }
     val flingVelocity = flingVelocityPx()
     val haptics = LocalHapticFeedback.current
-    return semantics {
-        customActions =
-            listOfNotNull(
-                CustomAccessibilityAction(nextLabel) {
-                    onAction(NowPlayingAction.Next)
-                    true
-                }.takeIf { hasNext },
-                CustomAccessibilityAction(previousLabel) {
-                    onAction(NowPlayingAction.Previous)
-                    true
-                }.takeIf { hasPrevious },
-            )
-    }.onSizeChanged { width = it.width }
+    return then(if (accessibilityActions) Modifier.semantics { customActions = actions } else Modifier)
+        .onSizeChanged { width = it.width }
         .draggable(
             state = rememberDraggableState { dragged += it },
             orientation = Orientation.Horizontal,
@@ -728,3 +733,24 @@ private val PlayerProgress.waveformStyle: MqWaveformStyle
             PlayerProgress.WaveformBarsReflected -> MqWaveformStyle.BarsReflected
             PlayerProgress.WaveformSharp, PlayerProgress.Basic, PlayerProgress.Wavy -> MqWaveformStyle.Sharp
         }
+
+/** Next / previous as TalkBack actions, for what a sideways swipe does. */
+@Composable
+private fun trackSwipeActions(
+    hasPrevious: Boolean,
+    hasNext: Boolean,
+    onAction: (NowPlayingAction) -> Unit,
+): List<CustomAccessibilityAction> {
+    val nextLabel = stringResource(R.string.nowplaying_swipe_next)
+    val previousLabel = stringResource(R.string.nowplaying_swipe_previous)
+    return listOfNotNull(
+        CustomAccessibilityAction(nextLabel) {
+            onAction(NowPlayingAction.Next)
+            true
+        }.takeIf { hasNext },
+        CustomAccessibilityAction(previousLabel) {
+            onAction(NowPlayingAction.Previous)
+            true
+        }.takeIf { hasPrevious },
+    )
+}

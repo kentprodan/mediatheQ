@@ -23,6 +23,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
 import androidx.navigation3.runtime.NavKey
 import com.google.common.truth.Truth.assertThat
@@ -311,6 +312,10 @@ class NowPlayingLayoutTest {
         assertThat(actions).contains(NowPlayingAction.Next)
         composeRule.onNode(playerPane).assertDoesNotExist()
 
+        composeRule.onNode(miniPlayer).performTouchInput { swipeRight() }
+        composeRule.waitForIdle()
+        assertThat(actions).contains(NowPlayingAction.Previous)
+
         composeRule.onNode(miniPlayer).performTouchInput { swipeUp() }
         composeRule.waitForIdle()
         composeRule.onNode(playerPane).assertExists()
@@ -323,8 +328,15 @@ class NowPlayingLayoutTest {
 
         composeRule.onNode(miniPlayer).performTouchInput { swipeLeft() }
         composeRule.waitForIdle()
+        // With nothing to skip the lifted finger counts as the pill's tap and may open the player: close it again.
+        if (composeRule.onAllNodes(playerPane).fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithContentDescription(closeButton).performClick()
+            composeRule.waitForIdle()
+        }
+        composeRule.onNode(miniPlayer).performTouchInput { swipeRight() }
+        composeRule.waitForIdle()
 
-        assertThat(actions).doesNotContain(NowPlayingAction.Next)
+        assertThat(actions).containsNoneOf(NowPlayingAction.Next, NowPlayingAction.Previous)
     }
 
     private companion object {

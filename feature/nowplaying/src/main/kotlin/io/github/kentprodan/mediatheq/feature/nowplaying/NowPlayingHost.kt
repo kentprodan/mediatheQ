@@ -161,7 +161,7 @@ fun NowPlayingLayout(
                                     val miniProgress = settings.miniProgress.toMq()
                                     // Sampled only when the mini player shows the position.
                                     val position =
-                                        if (miniProgress != MqMiniProgress.Hidden && !expanded) {
+                                        if (miniProgress != MqMiniProgress.Hidden) {
                                             positions.collectAsStateWithLifecycle()
                                         } else {
                                             null
