@@ -8,8 +8,11 @@ import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
+import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.downloadAlbums
+import io.github.kentprodan.mediatheq.core.data.downloadPlaylists
 import io.github.kentprodan.mediatheq.core.data.tracksOfAlbums
 import io.github.kentprodan.mediatheq.core.data.tracksOfArtists
 import io.github.kentprodan.mediatheq.core.data.tracksOfPlaylists
@@ -107,8 +110,8 @@ class SearchViewModel
 
                 is SearchAction.SwipeTrack -> {
                     viewModelScope.launch {
-                        commands.swipe(action.track, action.right)
-                        retries.value++
+                        // Results are read once: only a favorite change needs them read again.
+                        if (commands.swipe(action.track, action.right) == SwipeAction.ToggleFavorite) retries.value++
                     }
                 }
 
@@ -140,11 +143,22 @@ class SearchViewModel
                     selection.value = ListSelection()
                     viewModelScope.launch {
                         val results = state.results
-                        val tracks =
+                        val albumIds = picked.pick(results.albums) { it.id }.map { it.id }
+                        val playlistIds = picked.pick(results.playlists) { it.id }.map { it.id }
+                        val loose =
                             libraryRepository.tracksOfArtists(picked.pick(results.artists) { it.id }.map { it.id }) +
-                                libraryRepository.tracksOfAlbums(picked.pick(results.albums) { it.id }.map { it.id }) +
-                                picked.pick(results.tracks) { it.id } +
-                                playlists.tracksOfPlaylists(picked.pick(results.playlists) { it.id }.map { it.id })
+                                picked.pick(results.tracks) { it.id }
+                        // Shown order: artists, albums, songs, playlists; an album and one of its songs both
+                        // selected give that song once.
+                        val tracks =
+                            (
+                                libraryRepository.tracksOfArtists(
+                                    picked.pick(results.artists) { it.id }.map { it.id },
+                                ) +
+                                    libraryRepository.tracksOfAlbums(albumIds) +
+                                    picked.pick(results.tracks) { it.id } +
+                                    playlists.tracksOfPlaylists(playlistIds)
+                            ).distinctBy { it.id }
                         when (action.command) {
                             SelectionCommand.Play -> {
                                 commands.run(TopButton.Play, tracks)
@@ -159,7 +173,9 @@ class SearchViewModel
                             }
 
                             SelectionCommand.Download -> {
-                                commands.download(tracks)
+                                downloads.downloadAlbums(libraryRepository, albumIds)
+                                downloads.downloadPlaylists(playlists, playlistIds)
+                                commands.download(loose)
                             }
 
                             SelectionCommand.AddToPlaylist -> {

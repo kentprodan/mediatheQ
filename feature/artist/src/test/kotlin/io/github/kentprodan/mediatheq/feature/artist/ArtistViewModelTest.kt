@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.artist
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -35,7 +36,8 @@ class ArtistViewModelTest {
     private val preferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
     private val trackTaps by lazy { TrackTaps(playback, preferences) }
-    private val commands by lazy { TrackCommands(playback, userData, FakeDownloadRepository(), preferences) }
+    private val downloads = FakeDownloadRepository()
+    private val commands by lazy { TrackCommands(playback, userData, downloads, preferences) }
     private val userData = FakeUserDataRepository()
     private val artistId = MediaId(ServerId("s"), "ar1")
     private val artist = Artist(artistId, "Subcarpați")
@@ -58,7 +60,8 @@ class ArtistViewModelTest {
     }
 
     private fun TestScope.viewModel(): ArtistViewModel {
-        val viewModel = ArtistViewModel(artistId, library, preferences, playback, trackTaps, commands, userData)
+        val viewModel =
+            ArtistViewModel(artistId, library, preferences, playback, trackTaps, commands, userData, downloads)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -68,7 +71,16 @@ class ArtistViewModelTest {
     @Test
     fun `starts loading`() {
         assertThat(
-            ArtistViewModel(artistId, library, preferences, playback, trackTaps, commands, userData).uiState.value,
+            ArtistViewModel(
+                artistId,
+                library,
+                preferences,
+                playback,
+                trackTaps,
+                commands,
+                userData,
+                downloads,
+            ).uiState.value,
         ).isEqualTo(ArtistUiState.Loading)
     }
 
@@ -221,10 +233,40 @@ class ArtistViewModelTest {
             assertThat((viewModel.uiState.value as ArtistUiState.Content).selection.keys).containsExactly(list[1].id)
 
             viewModel.onAction(ArtistAction.SelectAll)
-            assertThat((viewModel.uiState.value as ArtistUiState.Content).selection.size).isEqualTo(list.size)
+            // The top tracks and both album cards.
+            assertThat((viewModel.uiState.value as ArtistUiState.Content).selection.size).isEqualTo(list.size + 2)
 
             viewModel.onAction(ArtistAction.OnSelection(SelectionCommand.PlayNext))
             assertThat(playback.playedNext).containsExactly(list)
             assertThat((viewModel.uiState.value as ArtistUiState.Content).selection.isActive).isFalse()
+        }
+
+    @Test
+    fun `a selected album acts by its tracks after the top tracks and downloads as an album`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            withArtist()
+            val albumTrack = Track(MediaId(ServerId("s"), "a1"), "a1", listOf(artist), 3.minutes, albumId = own.id)
+            library.tracks.value = listOf(albumTrack)
+            val viewModel = viewModel()
+            val top = viewModel.content.topTracks.first()
+
+            viewModel.onAction(ArtistAction.ToggleSelection(own.id))
+            viewModel.onAction(ArtistAction.ToggleSelection(top.id))
+            viewModel.onAction(ArtistAction.OnSelection(SelectionCommand.PlayNext))
+            assertThat(playback.playedNext.single()).containsExactly(top, albumTrack).inOrder()
+
+            viewModel.onAction(ArtistAction.ToggleSelection(own.id))
+            viewModel.onAction(ArtistAction.OnSelection(SelectionCommand.Download))
+            assertThat(
+                downloads.downloads.value
+                    .single()
+                    .origins,
+            ).containsExactly(DownloadOrigin.Album(own.id))
+
+            viewModel.onAction(ArtistAction.ToggleSelection(own.id))
+            viewModel.onAction(ArtistAction.OnSelection(SelectionCommand.AddToPlaylist))
+            assertThat(viewModel.content.addToPlaylist).containsExactly(albumTrack.id)
+            viewModel.onAction(ArtistAction.AddToPlaylistShown)
+            assertThat(viewModel.content.addToPlaylist).isNull()
         }
 }

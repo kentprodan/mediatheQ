@@ -351,6 +351,7 @@ class SettingsScreenTest {
         show(SettingsPage.MediaLists)
 
         composeRule.onNode(hasText("Inverted sort arrows") and isToggleable()).performClick()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Track swipe left action"))
         composeRule.onNode(hasText("Track swipe left action") and hasClickAction()).performClick()
         composeRule.onNode(hasText("Disabled") and isSelectable()).performClick()
 

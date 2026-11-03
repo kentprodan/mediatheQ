@@ -30,9 +30,15 @@ sealed interface ArtistUiState {
         val albumColumns: Int = LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
         val currentTrackId: MediaId? = null,
         val ratingMode: RatingMode = RatingMode.WholeStars,
-        /** Multi-select of the shown tracks (#123). */
+        /** Multi-select of the top tracks and album cards (#123). */
         val selection: ListSelection<MediaId> = ListSelection(),
+        /** Tracks of a selection to add to a playlist: the picker opens, then [ArtistAction.AddToPlaylistShown]. */
+        val addToPlaylist: List<MediaId>? = null,
     ) : ArtistUiState {
+        /** Every selectable item, in the order shown: top tracks, albums, appears on. */
+        val selectableIds: List<MediaId>
+            get() = topTracks.map { it.id } + albums.map { it.id } + appearsOn.map { it.id }
+
         /** Nothing to show or play: the page shows the empty state. */
         val isEmpty: Boolean get() = albums.isEmpty() && appearsOn.isEmpty() && tracks.isEmpty()
     }
@@ -79,7 +85,9 @@ sealed interface ArtistAction {
     /** Clear or Back: selecting ends. */
     data object ClearSelection : ArtistAction
 
-    /** A selection toolbar action on the selected tracks (Add to playlist is the screen's); selecting ends. */
+    data object AddToPlaylistShown : ArtistAction
+
+    /** A selection toolbar action on the selected tracks and albums' tracks; selecting ends. */
     data class OnSelection(
         val command: SelectionCommand,
     ) : ArtistAction

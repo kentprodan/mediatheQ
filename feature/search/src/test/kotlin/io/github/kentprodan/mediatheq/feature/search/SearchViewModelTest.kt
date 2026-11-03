@@ -3,6 +3,9 @@ package io.github.kentprodan.mediatheq.feature.search
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
+import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
+import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -47,9 +50,9 @@ class SearchViewModelTest {
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
-    private val ada = Artist(id("ar"), "Ada Moșoi")
-    private val track = Track(id("t1"), "Moșoi", listOf(ada), Duration.ZERO)
-    private val album = Album(id("al"), "Moșoi Live", listOf(ada))
+    private val ada = Artist(id("ar"), "Ada MoÈ™oi")
+    private val track = Track(id("t1"), "MoÈ™oi", listOf(ada), Duration.ZERO)
+    private val album = Album(id("al"), "MoÈ™oi Live", listOf(ada))
 
     init {
         library.albumArtists.value = listOf(ada)
@@ -266,6 +269,46 @@ class SearchViewModelTest {
             viewModel.onAction(SearchAction.ToggleSelection(track.id))
             viewModel.onAction(SearchAction.QueryChanged("mos"))
             assertThat((viewModel.uiState.value as SearchUiState.Results).selection.isActive).isFalse()
+        }
+
+    @Test
+    fun `an album and one of its songs selected give the song once, and the album downloads as an album`() =
+        test {
+            backgroundScope.launch { viewModel.uiState.collect() }
+            val inAlbum = track.copy(albumId = album.id)
+            library.tracks.value = listOf(inAlbum)
+            viewModel.onAction(SearchAction.QueryChanged("mo"))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+
+            viewModel.onAction(SearchAction.ToggleSelection(album.id))
+            viewModel.onAction(SearchAction.ToggleSelection(inAlbum.id))
+            viewModel.onAction(SearchAction.OnSelection(SelectionCommand.Play))
+            assertThat(playback.plays.single().queue).containsExactly(inAlbum)
+
+            viewModel.onAction(SearchAction.ToggleSelection(album.id))
+            viewModel.onAction(SearchAction.OnSelection(SelectionCommand.Download))
+            assertThat(
+                downloads.downloads.value
+                    .single()
+                    .origins,
+            ).containsExactly(DownloadOrigin.Album(album.id))
+        }
+
+    @Test
+    fun `a queue swipe does not search again, a favorite swipe does`() =
+        test {
+            backgroundScope.launch { viewModel.uiState.collect() }
+            viewModel.onAction(SearchAction.QueryChanged("mo"))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+
+            viewModel.onAction(SearchAction.SwipeTrack(track, right = true))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            assertThat(library.searches).containsExactly("mo")
+
+            preferences.setMediaLists(MediaListPreferences(swipeRight = SwipeAction.ToggleFavorite))
+            viewModel.onAction(SearchAction.SwipeTrack(track, right = true))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            assertThat(library.searches).containsExactly("mo", "mo")
         }
 
     @Test

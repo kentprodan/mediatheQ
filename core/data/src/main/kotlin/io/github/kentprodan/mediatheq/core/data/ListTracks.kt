@@ -15,3 +15,25 @@ suspend fun LibraryRepository.tracksOfArtists(artists: List<MediaId>): List<Trac
 /** The tracks of [playlists] in list order, each playlist's in its own order. */
 suspend fun PlaylistRepository.tracksOfPlaylists(playlists: List<MediaId>): List<Track> =
     playlists.flatMap { id -> items(id).first().map { it.track } }
+
+/** Downloads each of [albums] as an album origin, so Downloads lists it whole and can remove it whole (#168). */
+suspend fun DownloadRepository.downloadAlbums(
+    library: LibraryRepository,
+    albums: List<MediaId>,
+) = albums.forEach { id ->
+    library
+        .albumTracks(id)
+        .first()
+        .takeIf { it.isNotEmpty() }
+        ?.let { download(it, DownloadOrigin.Album(id)) }
+}
+
+/** Downloads each of [ids] as a playlist origin, as the playlist page's Download does. */
+suspend fun DownloadRepository.downloadPlaylists(
+    playlists: PlaylistRepository,
+    ids: List<MediaId>,
+) = ids.forEach { id ->
+    playlists.items(id).first().map { it.track }.takeIf { it.isNotEmpty() }?.let {
+        download(it, DownloadOrigin.Playlist(id))
+    }
+}

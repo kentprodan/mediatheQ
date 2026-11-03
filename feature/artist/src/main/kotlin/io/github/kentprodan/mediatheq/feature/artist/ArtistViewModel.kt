@@ -6,10 +6,13 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.downloadAlbums
+import io.github.kentprodan.mediatheq.core.data.tracksOfAlbums
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
@@ -32,12 +35,13 @@ class ArtistViewModel
     @AssistedInject
     constructor(
         @Assisted private val artistId: MediaId,
-        libraryRepository: LibraryRepository,
+        private val libraryRepository: LibraryRepository,
         preferencesRepository: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
         private val trackTaps: TrackTaps,
         private val commands: TrackCommands,
         private val userData: UserDataRepository,
+        private val downloads: DownloadRepository,
     ) : ViewModel() {
         private val content =
             combine(
@@ -50,6 +54,7 @@ class ArtistViewModel
             }
 
         private val selection = MutableStateFlow(ListSelection<MediaId>())
+        private val addToPlaylist = MutableStateFlow<List<MediaId>?>(null)
 
         private val page =
             combine(
@@ -65,17 +70,10 @@ class ArtistViewModel
             }
 
         val uiState: StateFlow<ArtistUiState> =
-            combine(page, selection) { page, selection ->
-                // Tracks can leave the page while selected.
+            combine(page, selection, addToPlaylist) { page, selection, addToPlaylist ->
+                // Tracks and albums can leave the page while selected.
                 (page as? ArtistUiState.Content)?.let {
-                    it.copy(
-                        selection =
-                            selection.retain(
-                                it.topTracks.map { t ->
-                                    t.id
-                                },
-                            ),
-                    )
+                    it.copy(selection = selection.retain(it.selectableIds), addToPlaylist = addToPlaylist)
                 }
                     ?: page
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ArtistUiState.Loading)
@@ -114,7 +112,7 @@ class ArtistViewModel
                 }
 
                 ArtistAction.SelectAll -> {
-                    selection.value = ListSelection<MediaId>().selectAll((state.topTracks).map { it.id })
+                    selection.value = ListSelection<MediaId>().selectAll(state.selectableIds)
                 }
 
                 ArtistAction.ClearSelection -> {
@@ -122,22 +120,44 @@ class ArtistViewModel
                 }
 
                 is ArtistAction.OnSelection -> {
-                    val picked = selection.value.pick(state.topTracks) { it.id }
+                    val picked = selection.value
                     selection.value = ListSelection()
-                    when (action.command) {
-                        SelectionCommand.Play -> commands.run(TopButton.Play, picked)
+                    viewModelScope.launch {
+                        val loose = picked.pick(state.topTracks) { it.id }
+                        val albumIds = picked.pick(state.albums + state.appearsOn) { it.id }.map { it.id }
+                        // Shown order; a top track also in a selected album comes once.
+                        val tracks = (loose + libraryRepository.tracksOfAlbums(albumIds)).distinctBy { it.id }
+                        when (action.command) {
+                            SelectionCommand.Play -> {
+                                commands.run(TopButton.Play, tracks)
+                            }
 
-                        SelectionCommand.PlayNext -> commands.run(TopButton.PlayNext, picked)
+                            SelectionCommand.PlayNext -> {
+                                commands.run(TopButton.PlayNext, tracks)
+                            }
 
-                        SelectionCommand.AddToQueue -> commands.run(TopButton.AddToQueue, picked)
+                            SelectionCommand.AddToQueue -> {
+                                commands.run(TopButton.AddToQueue, tracks)
+                            }
 
-                        SelectionCommand.Download -> commands.download(picked)
+                            SelectionCommand.Favorite -> {
+                                commands.toggleFavorite(tracks)
+                            }
 
-                        SelectionCommand.Favorite -> viewModelScope.launch { commands.toggleFavorite(picked) }
+                            SelectionCommand.AddToPlaylist -> {
+                                addToPlaylist.value = tracks.map { it.id }
+                            }
 
-                        // The screen opens the playlist picker with the tracks it shows.
-                        SelectionCommand.AddToPlaylist -> Unit
+                            SelectionCommand.Download -> {
+                                downloads.downloadAlbums(libraryRepository, albumIds)
+                                commands.download(loose)
+                            }
+                        }
                     }
+                }
+
+                ArtistAction.AddToPlaylistShown -> {
+                    addToPlaylist.value = null
                 }
 
                 is ArtistAction.SetFavorite -> {

@@ -153,6 +153,7 @@
     <string name="settings_ml_swipe_favorite">Toggle favorite</string>
     <string name="settings_ml_swipe_rate">Rate</string>
     <string name="settings_ml_covers_group">Covers and grids</string>
+    <string name="settings_ml_swipe_group">Swipe actions</string>
     <string name="settings_ml_center_grid">Center text in square grids</string>
     <string name="settings_ml_center_grid_summary">Grid titles and subtitles are centered.</string>
     <string name="settings_ml_favorite_overlay">Show favorite status overlay</string>

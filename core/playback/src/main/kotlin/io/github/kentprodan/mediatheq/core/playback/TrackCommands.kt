@@ -2,16 +2,12 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
-import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
-
-/** What a swipe leaves to the screen: a dialog or a page of its own. */
-enum class SwipeFollowUp { Rate, AddToPlaylist }
 
 /**
  * The commands every media list shares (#123): the header's top buttons, the selection toolbar and the swipe actions.
@@ -58,23 +54,22 @@ class TrackCommands
         }
 
         /**
-         * The swipe chosen for the [right] (or left) side on [track]; returns what the screen still has to open, or
-         * `null`. Rate does nothing while ratings are off.
+         * Runs the swipe chosen for the [right] (or left) side on [track] and returns it. Add to playlist and Rate open
+         * a picker or dialog in the screen (`trackSwipes`), so they do nothing here.
          */
         suspend fun swipe(
             track: Track,
             right: Boolean,
-        ): SwipeFollowUp? {
-            val prefs = preferences.preferences.first()
-            val action = if (right) prefs.mediaLists.swipeRight else prefs.mediaLists.swipeLeft
-            return when (action) {
-                SwipeAction.Disabled -> null
-                SwipeAction.AddToQueue -> null.also { playback.addToQueue(listOf(track)) }
-                SwipeAction.PlayNext -> null.also { playback.playNext(listOf(track)) }
-                SwipeAction.Download -> null.also { downloads.download(listOf(track)) }
-                SwipeAction.ToggleFavorite -> null.also { toggleFavorite(listOf(track)) }
-                SwipeAction.AddToPlaylist -> SwipeFollowUp.AddToPlaylist
-                SwipeAction.Rate -> SwipeFollowUp.Rate.takeIf { prefs.ratingMode != RatingMode.Off }
+        ): SwipeAction {
+            val prefs = preferences.preferences.first().mediaLists
+            val action = if (right) prefs.swipeRight else prefs.swipeLeft
+            when (action) {
+                SwipeAction.AddToQueue -> playback.addToQueue(listOf(track))
+                SwipeAction.PlayNext -> playback.playNext(listOf(track))
+                SwipeAction.Download -> downloads.download(listOf(track))
+                SwipeAction.ToggleFavorite -> toggleFavorite(listOf(track))
+                SwipeAction.Disabled, SwipeAction.AddToPlaylist, SwipeAction.Rate -> Unit
             }
+            return action
         }
     }

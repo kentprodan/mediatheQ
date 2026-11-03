@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -129,16 +130,15 @@ fun ArtistScreen(
             }
 
             else -> {
+                LaunchedEffect(content.addToPlaylist) {
+                    content.addToPlaylist?.let {
+                        onAddToPlaylist(it)
+                        onAction(ArtistAction.AddToPlaylistShown)
+                    }
+                }
                 SelectableList(
                     content.selection,
-                    onCommand = { command ->
-                        if (command == SelectionCommand.AddToPlaylist) {
-                            onAddToPlaylist(content.selection.pick(content.topTracks) { it.id }.map { it.id })
-                            onAction(ArtistAction.ClearSelection)
-                        } else {
-                            onAction(ArtistAction.OnSelection(command))
-                        }
-                    },
+                    onCommand = { onAction(ArtistAction.OnSelection(it)) },
                     onSelectAll = { onAction(ArtistAction.SelectAll) },
                     onClear = { onAction(ArtistAction.ClearSelection) },
                 ) { bottomSpace ->
@@ -178,8 +178,24 @@ fun ArtistScreen(
                                 )
                             }
                         }
-                        albumGrid("albums", R.string.artist_albums, content.albums, content, onOpenAlbum)
-                        albumGrid("appears-on", R.string.artist_appears_on, content.appearsOn, content, onOpenAlbum)
+                        val openAlbum = { id: MediaId ->
+                            if (content.selection.isActive) {
+                                onAction(
+                                    ArtistAction.ToggleSelection(id),
+                                )
+                            } else {
+                                onOpenAlbum(id)
+                            }
+                        }
+                        albumGrid("albums", R.string.artist_albums, content.albums, content, openAlbum, longPress)
+                        albumGrid(
+                            "appears-on",
+                            R.string.artist_appears_on,
+                            content.appearsOn,
+                            content,
+                            openAlbum,
+                            longPress,
+                        )
                     }
                 }
             }
@@ -249,6 +265,7 @@ private fun LazyListScope.albumGrid(
     albums: List<Album>,
     content: ArtistUiState.Content,
     onOpenAlbum: (MediaId) -> Unit,
+    longPress: (MediaId) -> () -> Unit,
 ) {
     if (albums.isEmpty()) return
     item(key = "$key-title") { SectionTitle(title) }
@@ -258,7 +275,15 @@ private fun LazyListScope.albumGrid(
                 Modifier.padding(start = MediatheqSpacing.l, end = MediatheqSpacing.l, top = MediatheqSpacing.s),
                 horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
             ) {
-                row.forEach { album -> AlbumCard(album, onClick = { onOpenAlbum(album.id) }, Modifier.weight(1f)) }
+                row.forEach { album ->
+                    AlbumCard(
+                        album,
+                        onClick = { onOpenAlbum(album.id) },
+                        Modifier.weight(1f),
+                        onLongClick = longPress(album.id),
+                        selected = content.selection.stateOf(album.id),
+                    )
+                }
                 // Keeps the last row's cards the same width as the others.
                 repeat(content.albumColumns - row.size) { Spacer(Modifier.weight(1f)) }
             }

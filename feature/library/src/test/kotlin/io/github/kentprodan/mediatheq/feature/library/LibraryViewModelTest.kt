@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
@@ -323,6 +324,22 @@ class LibraryViewModelTest {
             // By name: B (a3) before Moșoi (a1).
             assertThat(playback.addedToQueue.single().map { it.id.itemId }).containsExactly("t2", "t1").inOrder()
             assertThat(viewModel.uiState.value.selection.isActive).isFalse()
+        }
+
+    @Test
+    fun `selected albums download as albums, so Downloads can remove them whole`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            library.tracks.value = listOf(tracks[0].copy(albumId = id("a1")), tracks[1].copy(albumId = id("a3")))
+
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a1")))
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a3")))
+            viewModel.onAction(LibraryAction.OnSelection(SelectionCommand.Download))
+
+            assertThat(downloads.downloads.value.map { it.track.id.itemId to it.origins }).containsExactly(
+                "t1" to setOf(DownloadOrigin.Album(id("a1"))),
+                "t2" to setOf(DownloadOrigin.Album(id("a3"))),
+            )
         }
 
     @Test

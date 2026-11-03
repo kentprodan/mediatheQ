@@ -164,7 +164,9 @@ private fun ToolRow(
         }
         Box(Modifier.weight(1f))
         Box {
-            val filterOn = listFilter.favoritesOnly || listFilter.downloadedOnly
+            // Downloaded only stays set across tabs but does nothing on Artists, where it cannot be unticked.
+            val filterOn =
+                listFilter.favoritesOnly || (listFilter.downloadedOnly && state.filter != LibraryFilter.Artists)
             val on = stringResource(R.string.library_filter_on)
             IconButton(
                 onClick = { filterMenu = true },

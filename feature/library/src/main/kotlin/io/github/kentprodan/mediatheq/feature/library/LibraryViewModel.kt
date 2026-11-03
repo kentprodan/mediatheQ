@@ -19,6 +19,8 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.downloadAlbums
+import io.github.kentprodan.mediatheq.core.data.downloadPlaylists
 import io.github.kentprodan.mediatheq.core.data.tracksOfAlbums
 import io.github.kentprodan.mediatheq.core.data.tracksOfArtists
 import io.github.kentprodan.mediatheq.core.data.tracksOfPlaylists
@@ -189,12 +191,41 @@ class LibraryViewModel
                     launch {
                         val tracks = tracksOf(picked)
                         when (action.command) {
-                            SelectionCommand.Play -> commands.run(TopButton.Play, tracks)
-                            SelectionCommand.PlayNext -> commands.run(TopButton.PlayNext, tracks)
-                            SelectionCommand.AddToQueue -> commands.run(TopButton.AddToQueue, tracks)
-                            SelectionCommand.Download -> commands.download(tracks)
-                            SelectionCommand.Favorite -> commands.toggleFavorite(tracks)
-                            SelectionCommand.AddToPlaylist -> addToPlaylist.value = tracks.map { it.id }
+                            SelectionCommand.Play -> {
+                                commands.run(TopButton.Play, tracks)
+                            }
+
+                            SelectionCommand.PlayNext -> {
+                                commands.run(TopButton.PlayNext, tracks)
+                            }
+
+                            SelectionCommand.AddToQueue -> {
+                                commands.run(TopButton.AddToQueue, tracks)
+                            }
+
+                            SelectionCommand.Download -> {
+                                when (picked) {
+                                    is LibraryContent.Albums -> {
+                                        downloads.downloadAlbums(libraryRepository, picked.albums.map { it.id })
+                                    }
+
+                                    is LibraryContent.Playlists -> {
+                                        downloads.downloadPlaylists(playlists, picked.playlists.map { it.id })
+                                    }
+
+                                    else -> {
+                                        commands.download(tracks)
+                                    }
+                                }
+                            }
+
+                            SelectionCommand.Favorite -> {
+                                commands.toggleFavorite(tracks)
+                            }
+
+                            SelectionCommand.AddToPlaylist -> {
+                                addToPlaylist.value = tracks.map { it.id }
+                            }
                         }
                     }
                 }

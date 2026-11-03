@@ -106,20 +106,6 @@ internal fun LazyListScope.mediaListsGroups(
                     stringResource(lists.secondTrackInfo.label),
                 ) { onOpenDialog(MediaListsDialog.SecondTrackInfo) }
             }
-            item { shapes ->
-                DialogItem(
-                    shapes,
-                    stringResource(R.string.settings_ml_swipe_right),
-                    stringResource(lists.swipeRight.label),
-                ) { onOpenDialog(MediaListsDialog.SwipeRight) }
-            }
-            item { shapes ->
-                DialogItem(
-                    shapes,
-                    stringResource(R.string.settings_ml_swipe_left),
-                    stringResource(lists.swipeLeft.label),
-                ) { onOpenDialog(MediaListsDialog.SwipeLeft) }
-            }
         }
     }
     item(key = "list_covers") {
@@ -147,6 +133,24 @@ internal fun LazyListScope.mediaListsGroups(
                     stringResource(R.string.settings_ml_offline_overlay_summary),
                     lists.offlineOverlay,
                 ) { set(lists.copy(offlineOverlay = it)) }
+            }
+        }
+    }
+    item(key = "list_swipes") {
+        Group(R.string.settings_ml_swipe_group) {
+            item { shapes ->
+                DialogItem(
+                    shapes,
+                    stringResource(R.string.settings_ml_swipe_right),
+                    stringResource(lists.swipeRight.label),
+                ) { onOpenDialog(MediaListsDialog.SwipeRight) }
+            }
+            item { shapes ->
+                DialogItem(
+                    shapes,
+                    stringResource(R.string.settings_ml_swipe_left),
+                    stringResource(lists.swipeLeft.label),
+                ) { onOpenDialog(MediaListsDialog.SwipeLeft) }
             }
         }
     }

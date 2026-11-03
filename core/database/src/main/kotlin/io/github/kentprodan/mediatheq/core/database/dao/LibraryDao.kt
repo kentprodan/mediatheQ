@@ -281,14 +281,16 @@ interface LibraryDao {
 
     /**
      * Albums and playlists every track of which is in [downloaded] (the offline overlay, #123); empty ones never count.
+     * [downloaded] is bound once (the CTE), so the query stays under SQLite's variable limit like the other offline ones.
      */
     @Query(
         """
+        WITH d(id) AS (SELECT id FROM track WHERE id IN (:downloaded))
         SELECT album.server_id, album.id FROM album
         WHERE EXISTS (SELECT 1 FROM track t WHERE t.server_id = album.server_id AND t.album_id = album.id)
         AND NOT EXISTS (
             SELECT 1 FROM track t
-            WHERE t.server_id = album.server_id AND t.album_id = album.id AND t.id NOT IN (:downloaded)
+            WHERE t.server_id = album.server_id AND t.album_id = album.id AND t.id NOT IN (SELECT id FROM d)
         )
         UNION ALL
         SELECT playlist.server_id, playlist.id FROM playlist
@@ -297,7 +299,7 @@ interface LibraryDao {
         )
         AND NOT EXISTS (
             SELECT 1 FROM playlist_entry e
-            WHERE e.server_id = playlist.server_id AND e.playlist_id = playlist.id AND e.track_id NOT IN (:downloaded)
+            WHERE e.server_id = playlist.server_id AND e.playlist_id = playlist.id AND e.track_id NOT IN (SELECT id FROM d)
         )
         """,
     )

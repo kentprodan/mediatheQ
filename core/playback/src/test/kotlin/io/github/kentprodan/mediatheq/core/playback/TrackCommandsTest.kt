@@ -2,7 +2,6 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
-import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -68,22 +67,16 @@ class TrackCommandsTest {
         }
 
     @Test
-    fun `each swipe action runs its command or asks the screen`() =
+    fun `each swipe action runs its command, and the screen's own ones do nothing here`() =
         runTest {
             val track = track("t1")
 
-            suspend fun swipe(action: SwipeAction): SwipeFollowUp? {
+            suspend fun swipe(action: SwipeAction): SwipeAction {
                 preferences.setMediaLists(MediaListPreferences(swipeRight = action))
                 return commands.swipe(track, right = true)
             }
 
-            assertThat(swipe(SwipeAction.Disabled)).isNull()
-            assertThat(swipe(SwipeAction.AddToQueue)).isNull()
-            assertThat(swipe(SwipeAction.PlayNext)).isNull()
-            assertThat(swipe(SwipeAction.Download)).isNull()
-            assertThat(swipe(SwipeAction.ToggleFavorite)).isNull()
-            assertThat(swipe(SwipeAction.AddToPlaylist)).isEqualTo(SwipeFollowUp.AddToPlaylist)
-            assertThat(swipe(SwipeAction.Rate)).isEqualTo(SwipeFollowUp.Rate)
+            SwipeAction.entries.forEach { assertThat(swipe(it)).isEqualTo(it) }
 
             assertThat(playback.addedToQueue).containsExactly(listOf(track))
             assertThat(playback.playedNext).containsExactly(listOf(track))
@@ -100,14 +93,5 @@ class TrackCommandsTest {
 
             assertThat(playback.playedNext).hasSize(1)
             assertThat(playback.addedToQueue).isEmpty()
-        }
-
-    @Test
-    fun `rate does nothing while ratings are off`() =
-        runTest {
-            preferences.setMediaLists(MediaListPreferences(swipeRight = SwipeAction.Rate))
-            preferences.setRatingMode(RatingMode.Off)
-
-            assertThat(commands.swipe(track("t1"), right = true)).isNull()
         }
 }
