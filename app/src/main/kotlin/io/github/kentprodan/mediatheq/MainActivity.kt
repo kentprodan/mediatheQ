@@ -124,6 +124,7 @@ class MainActivity : ComponentActivity() {
                                         )
                                     },
                                     snackbarHost = { SnackbarHost(snackbar) },
+                                    onNavigate = navigator::navigateTo,
                                 )
                             }
                         }

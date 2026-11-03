@@ -264,6 +264,7 @@ private fun PlayerUiModel.toUiState(
     return NowPlayingUiState.Playing(
         title = item.title,
         artist = item.artist,
+        trackId = item.id,
         artwork = item.artwork,
         isPlaying = isPlaying,
         duration = duration,

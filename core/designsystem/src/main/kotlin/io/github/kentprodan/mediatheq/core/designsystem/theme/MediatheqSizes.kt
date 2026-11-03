@@ -27,4 +27,10 @@ object MediatheqSizes {
 
     /** The playback position bar: waveform, wavy or plain slider, the same height so none jumps (#124). */
     val waveformHeight = 48.dp
+
+    /** Now Playing's cover (and the lyrics in its place) at most this wide. */
+    val playerCoverMax = 360.dp
+
+    /** A landscape window at least this tall (a tablet) has room for Now Playing's rating stars (#125). */
+    val playerRatingMinHeight = 560.dp
 }

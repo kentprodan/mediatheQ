@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavKey
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqMiniPlayer
 import io.github.kentprodan.mediatheq.core.designsystem.motion.LocalNavAnimatedVisibilityScope
 import io.github.kentprodan.mediatheq.core.designsystem.motion.LocalSharedTransitionScope
@@ -52,6 +53,10 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColorCache
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqCoverTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.rememberCoverColorScheme
+import io.github.kentprodan.mediatheq.core.navigation.AddToPlaylistKey
+import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
+import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
+import io.github.kentprodan.mediatheq.core.navigation.AudioSettingsKey
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -66,6 +71,8 @@ fun NowPlayingHost(
     content: @Composable (miniPlayer: @Composable () -> Unit) -> Unit,
     viewModel: NowPlayingViewModel = hiltViewModel(),
     snackbarHost: @Composable () -> Unit = {},
+    /** Opens a page or dialog behind the player (artist, album, Audio settings, Add to playlist, #125). */
+    onNavigate: (NavKey) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     NowPlayingLayout(
@@ -77,6 +84,7 @@ fun NowPlayingHost(
         lyrics = viewModel.lyrics,
         snackbarHost = snackbarHost,
         autoExpand = viewModel.autoExpand.collectAsStateWithLifecycle().value,
+        onNavigate = onNavigate,
     )
 }
 
@@ -97,6 +105,7 @@ fun NowPlayingLayout(
     snackbarHost: @Composable () -> Unit = {},
     /** Open the player now (playback just started, #122); acknowledged with [NowPlayingAction.AutoExpanded]. */
     autoExpand: Boolean = false,
+    onNavigate: (NavKey) -> Unit = {},
 ) {
     var expanded by rememberSaveable { mutableStateOf(expandedInitially) }
     LaunchedEffect(autoExpand) {
@@ -208,17 +217,6 @@ fun NowPlayingLayout(
                                             )
                                         }
 
-                                        PlayerPanel.Lyrics -> {
-                                            val position = positions.collectAsStateWithLifecycle()
-                                            LyricsScreen(
-                                                state = lyricsState,
-                                                position = { position.value },
-                                                canSeek = playing.isSeekable,
-                                                onAction = onAction,
-                                                onClose = { panel = PlayerPanel.Player },
-                                            )
-                                        }
-
                                         PlayerPanel.Player -> {
                                             // Sampled only while the full player is open; the mini player shows no position.
                                             val position = positions.collectAsStateWithLifecycle()
@@ -227,8 +225,27 @@ fun NowPlayingLayout(
                                                 position = { position.value },
                                                 onAction = onAction,
                                                 onCollapse = { expanded = false },
-                                                onOpenQueue = { panel = PlayerPanel.Queue },
-                                                onOpenLyrics = { panel = PlayerPanel.Lyrics },
+                                                lyrics = lyricsState,
+                                                navigation =
+                                                    NowPlayingNavigation(
+                                                        onOpenQueue = { panel = PlayerPanel.Queue },
+                                                        onOpenArtist = { id ->
+                                                            expanded = false
+                                                            onNavigate(ArtistKey(id))
+                                                        },
+                                                        onOpenAlbum = { id ->
+                                                            expanded = false
+                                                            onNavigate(AlbumKey(id))
+                                                        },
+                                                        onOpenEqualizer = {
+                                                            expanded = false
+                                                            onNavigate(AudioSettingsKey)
+                                                        },
+                                                        onAddToPlaylist = {
+                                                            expanded = false
+                                                            onNavigate(AddToPlaylistKey(listOfNotNull(playing.trackId)))
+                                                        },
+                                                    ),
                                                 coverModifier = Modifier.mqSharedCover(PLAYER_COVER_KEY),
                                             )
                                         }
@@ -303,5 +320,5 @@ private val NoQueue: StateFlow<List<QueueItem>> = MutableStateFlow(emptyList())
 
 private val NoLyrics: StateFlow<LyricsUiState> = MutableStateFlow(LyricsUiState.None)
 
-/** What the full player shows: itself, or one of the screens opened from its secondary row. */
-private enum class PlayerPanel { Player, Queue, Lyrics }
+/** What the full player shows: itself, or the queue opened from its bottom bar. */
+private enum class PlayerPanel { Player, Queue }

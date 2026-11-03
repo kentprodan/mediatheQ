@@ -6,23 +6,16 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -32,10 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
@@ -46,57 +37,44 @@ import kotlinx.coroutines.delay
 import kotlin.time.Duration
 
 /**
- * The playing track's lyrics, opened from Now Playing. Synced lyrics mark the line being sung and keep it in view; a
- * tap on a line plays from it when the stream can be seeked. A manual scroll stops the following for a few seconds.
- * [position] is read only to find the current line, so position ticks recompose only when the line changes.
+ * The playing track's lyrics, in the cover's place on Now Playing (#125). Synced lyrics mark the line being sung and
+ * keep it in view; a tap on a line plays from it when the stream can be seeked. A manual scroll stops the following for
+ * a few seconds. [position] is read only to find the current line, so position ticks recompose only when it changes.
  */
 @Composable
-fun LyricsScreen(
+fun LyricsContent(
     state: LyricsUiState,
     position: () -> Duration,
     canSeek: Boolean,
     onAction: (NowPlayingAction) -> Unit,
-    onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val title = stringResource(R.string.nowplaying_lyrics)
-    Surface(modifier.fillMaxSize()) {
-        Column(Modifier.safeDrawingPadding().semantics { paneTitle = title }) {
-            TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
-                    IconButton(onClick = onClose) {
-                        Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.nowplaying_lyrics_close))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-            )
-            when (state) {
-                LyricsUiState.Loading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { MqLoadingIndicator() }
-                }
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        when (state) {
+            LyricsUiState.Loading -> {
+                MqLoadingIndicator()
+            }
 
-                LyricsUiState.None -> {
-                    MqEmptyState(
-                        MqIcons.Lyrics,
-                        stringResource(R.string.nowplaying_lyrics_none),
-                        body = stringResource(R.string.nowplaying_lyrics_none_body),
-                    )
-                }
+            LyricsUiState.None -> {
+                MqEmptyState(
+                    MqIcons.Lyrics,
+                    stringResource(R.string.nowplaying_lyrics_none),
+                    body = stringResource(R.string.nowplaying_lyrics_none_body),
+                )
+            }
 
-                is LyricsUiState.Error -> {
-                    MqEmptyState(
-                        MqIcons.CloudOff,
-                        stringResource(R.string.nowplaying_lyrics_error),
-                        body = stringResource(R.string.nowplaying_lyrics_error_body),
-                        actionLabel = stringResource(R.string.nowplaying_lyrics_retry),
-                        onAction = { onAction(NowPlayingAction.RetryLyrics) },
-                    )
-                }
+            is LyricsUiState.Error -> {
+                MqEmptyState(
+                    MqIcons.CloudOff,
+                    stringResource(R.string.nowplaying_lyrics_error),
+                    body = stringResource(R.string.nowplaying_lyrics_error_body),
+                    actionLabel = stringResource(R.string.nowplaying_lyrics_retry),
+                    onAction = { onAction(NowPlayingAction.RetryLyrics) },
+                )
+            }
 
-                is LyricsUiState.Content -> {
-                    LyricLines(state.lyrics, position, canSeek, onAction)
-                }
+            is LyricsUiState.Content -> {
+                LyricLines(state.lyrics, position, canSeek, onAction)
             }
         }
     }
@@ -154,9 +132,9 @@ private fun LyricLines(
                     // The current line is also bolder, so it is not marked by color alone.
                     style =
                         if (isCurrent) {
-                            MaterialTheme.typography.headlineSmallEmphasized
+                            MaterialTheme.typography.titleLargeEmphasized
                         } else {
-                            MaterialTheme.typography.headlineSmall
+                            MaterialTheme.typography.titleLarge
                         },
                     color = color,
                     modifier =

@@ -100,6 +100,7 @@ class NowPlayingViewModelTest {
                             isSeekable = true,
                             hasNext = true,
                             hasPrevious = true,
+                            trackId = MediaId(ServerId("s"), "t1"),
                         ),
                     )
 

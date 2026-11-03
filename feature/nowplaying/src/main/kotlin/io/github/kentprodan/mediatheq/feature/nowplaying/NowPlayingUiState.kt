@@ -48,6 +48,8 @@ sealed interface NowPlayingUiState {
         val qualityDetail: Boolean = false,
         /** The lyrics take the cover's place; kept across tracks and rotation. */
         val lyricsShown: Boolean = false,
+        /** The playing track, for Add to playlist. */
+        val trackId: MediaId? = null,
     ) : NowPlayingUiState
 }
 

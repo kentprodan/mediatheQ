@@ -38,7 +38,6 @@ class LyricsScreenTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private val actions = mutableListOf<NowPlayingAction>()
-    private var closed = false
     private var position by mutableStateOf(Duration.ZERO)
 
     /** "Line 0" at 0 s, "Line 1" at 5 s, ... */
@@ -50,23 +49,21 @@ class LyricsScreenTest {
     ) {
         composeRule.setContent {
             MediatheqTheme {
-                LyricsScreen(state, { position }, canSeek, onAction = { actions += it }, onClose = { closed = true })
+                LyricsContent(state, { position }, canSeek, onAction = { actions += it })
             }
         }
     }
 
     @Test
-    fun `tapping a synced line seeks to its start, and the back button closes`() {
+    fun `tapping a synced line seeks to its start`() {
         setContent(LyricsUiState.Content(synced))
 
         composeRule
             .onNodeWithText("Line 2")
             .assert(SemanticsMatcher("play label") { it.config[SemanticsActions.OnClick].label == "Play from here" })
             .performClick()
-        composeRule.onNodeWithContentDescription("Close lyrics").performClick()
 
         assertThat(actions).containsExactly(NowPlayingAction.SeekToTime(10.seconds))
-        assertThat(closed).isTrue()
     }
 
     @Test

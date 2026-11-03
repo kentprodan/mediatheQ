@@ -1,8 +1,14 @@
 package io.github.kentprodan.mediatheq.feature.nowplaying
 
+import android.content.res.Configuration.UI_MODE_NIGHT_YES
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
+import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.preview.rememberPreviewCover
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColors
@@ -14,7 +20,12 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeMode
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
 import io.github.kentprodan.mediatheq.core.designsystem.theme.coverColorScheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.playerColorScheme
+import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.LyricLine
+import io.github.kentprodan.mediatheq.core.model.Lyrics
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -28,15 +39,31 @@ private val playing =
         isSeekable = true,
         hasNext = true,
         hasPrevious = true,
+        artists = listOf(Artist(MediaId(ServerId("s"), "ar1"), "deadmau5")),
+        albumId = MediaId(ServerId("s"), "al1"),
+        albumTitle = "For Lack of a Better Name",
+        quality = QualityLabel(QualityKind.HiResLossless, "FLAC · 24/96 · 1250 kb/s"),
+    )
+
+private val previewLyrics =
+    LyricsUiState.Content(
+        Lyrics(
+            listOf("Out in the dark", "Lights on the water", "Hold the moment", "Let it linger", "Sing it slow")
+                .mapIndexed { i, text -> LyricLine(text, (i * 50).seconds) },
+        ),
     )
 
 @Composable
-private fun Screen(state: NowPlayingUiState.Playing) {
+private fun Screen(
+    state: NowPlayingUiState.Playing,
+    lyrics: LyricsUiState = LyricsUiState.None,
+) {
     NowPlayingScreen(
         state = state,
         position = { 3.minutes + 12.seconds },
         onAction = {},
         onCollapse = {},
+        lyrics = lyrics,
         cover = rememberPreviewCover(),
     )
 }
@@ -172,3 +199,72 @@ fun NowPlayingIgnoreSurfacesScreenshot() = PlayerColors(MqThemeOptions(ignoreSur
 @MqPreviews
 @Composable
 fun NowPlayingBlackScreenshot() = PlayerColors(MqThemeOptions(mode = MqThemeMode.Black))
+
+/** Lyrics in place of the cover, the line being sung marked (#125). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingLyricsScreenshot() {
+    MediatheqTheme { Screen(playing.copy(lyricsShown = true), previewLyrics) }
+}
+
+/** Landscape on a Pixel 9: cover on the left, the rest on the right; no room for the stars. */
+@PreviewTest
+@Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
+@Preview(name = "Landscape dark", device = "spec:width=915dp,height=412dp,dpi=420", uiMode = UI_MODE_NIGHT_YES)
+@Composable
+fun NowPlayingLandscapeScreenshot() {
+    MediatheqTheme { Screen(playing) }
+}
+
+/** Landscape with lyrics in the cover's place. */
+@PreviewTest
+@Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
+@Preview(name = "Landscape 2x", device = "spec:width=915dp,height=412dp,dpi=420", fontScale = 2f)
+@Composable
+fun NowPlayingLandscapeLyricsScreenshot() {
+    MediatheqTheme { Screen(playing.copy(lyricsShown = true), previewLyrics) }
+}
+
+/** A long title scrolls (still in a screenshot); ratings off hide the stars. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingLongTitleNoRatingScreenshot() {
+    MediatheqTheme {
+        Screen(
+            playing.copy(
+                title = "Strobe (Extended Mix with a Very Long Name for the Marquee)",
+                ratingMode = RatingMode.Off,
+            ),
+        )
+    }
+}
+
+/** Every quality label, as its kind and as its detail. */
+@PreviewTest
+@Preview(name = "Light", widthDp = 412)
+@Preview(name = "Dark", widthDp = 412, uiMode = UI_MODE_NIGHT_YES)
+@Composable
+fun NowPlayingQualityLabelsScreenshot() {
+    val labels =
+        listOf(
+            QualityLabel(QualityKind.DolbyAtmos, "E-AC-3 · 768 kb/s"),
+            QualityLabel(QualityKind.HiResLossless, "FLAC · 24/96 · 1250 kb/s"),
+            QualityLabel(QualityKind.Lossless, "FLAC · 16/44.1 · 900 kb/s"),
+            QualityLabel(QualityKind.HighQuality, "Opus · 256 kb/s"),
+            QualityLabel(QualityKind.HighEfficiency, "AAC · 128 kb/s"),
+        )
+    MediatheqTheme {
+        Surface {
+            Column {
+                labels.forEach { label ->
+                    Row {
+                        QualityLabelButton(label, detail = false, onAction = {})
+                        QualityLabelButton(label, detail = true, onAction = {})
+                    }
+                }
+            }
+        }
+    }
+}
