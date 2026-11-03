@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 
 /** What Settings and its Audio page show. */
@@ -119,6 +120,20 @@ sealed interface SettingsAction {
     ) : SettingsAction
 
     data object RestoreNowPlayingDefaults : SettingsAction
+
+    /** Home page (#127): the sections in this order. */
+    data class SetHomeOrder(
+        val order: List<HomeSection>,
+    ) : SettingsAction
+
+    data class SetHomeHidden(
+        val hidden: Set<HomeSection>,
+    ) : SettingsAction
+
+    /** Home page -> Reset active rows: order and visibility back to default. */
+    data object ResetHomeRows : SettingsAction
+
+    data object RestoreHomeDefaults : SettingsAction
 
     /** Opens "Organize your navigation" with the stored entries. */
     data object OpenNavEntries : SettingsAction

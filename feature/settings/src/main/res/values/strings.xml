@@ -232,4 +232,14 @@
     <string name="settings_np_cover_swipe_summary">Swipe the cover left or right for the next or previous track.</string>
     <string name="settings_np_play_button">Show play button when paused</string>
     <string name="settings_np_play_button_summary">A play button over the cover while paused.</string>
+    <string name="settings_page_settings">Page settings</string>
+    <string name="settings_home_page">Home page</string>
+    <string name="settings_home_page_summary">Which sections Home shows, and in what order.</string>
+    <string name="settings_home_rows_group">Rows</string>
+    <string name="settings_home_reset_rows">Reset active rows</string>
+    <string name="settings_home_reset_rows_summary">Which sections show and their order go back to default.</string>
+    <string name="settings_home_reset_rows_message">Show the default sections in their default order?</string>
+    <string name="settings_home_show">Show %1$s</string>
+    <string name="settings_home_shown">Shown</string>
+    <string name="settings_home_hidden">Hidden</string>
 </resources>

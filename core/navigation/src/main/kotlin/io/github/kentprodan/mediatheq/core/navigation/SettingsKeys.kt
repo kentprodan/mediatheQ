@@ -27,6 +27,10 @@ data object MediaListsSettingsKey : NavKey
 @Serializable
 data object NowPlayingSettingsKey : NavKey
 
+/** Settings -> Interface -> Page settings -> Home page (#127). */
+@Serializable
+data object HomePageSettingsKey : NavKey
+
 /** Settings -> Playback: streaming quality, normalization, Audio. */
 @Serializable
 data object PlaybackSettingsKey : NavKey
