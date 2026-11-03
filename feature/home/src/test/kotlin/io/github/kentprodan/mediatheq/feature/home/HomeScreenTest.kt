@@ -5,14 +5,15 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -42,41 +43,60 @@ class HomeScreenTest {
                 HomeScreen(
                     state,
                     { actions += it },
-                    { opened += it },
-                    { events += "settings" },
-                    { events += "downloads" },
+                    HomeNavigation(
+                        onOpenAlbum = { opened += it },
+                        onOpenSettings = { events += "settings" },
+                        onOpenDownloads = { events += "downloads" },
+                    ),
                 )
             }
         }
     }
 
-    @Test
-    fun `empty sections have no title`() {
-        show(HomeUiState.Content(recentlyAdded = listOf(album)))
+    private fun section(
+        section: HomeSection,
+        items: HomeItems,
+    ) = HomeSectionContent(section, section.defaultSettings, items)
 
-        composeRule.onNodeWithText("Recently added").assertExists()
-        composeRule.onAllNodesWithText("Recently played").assertCountEquals(0)
-        composeRule.onAllNodesWithText("Favorite albums").assertCountEquals(0)
-        composeRule.onAllNodesWithText("Favorite songs").assertCountEquals(0)
-    }
+    private val sections =
+        listOf(
+            section(HomeSection.LastPlayedAlbums, HomeItems.Albums(listOf(album))),
+            section(HomeSection.FavoriteTracks, HomeItems.Tracks(listOf(track))),
+        )
 
     @Test
-    fun `section titles are headings`() {
-        show(HomeUiState.Content(recentlyAdded = listOf(album), favoriteTracks = listOf(track)))
+    fun `each section has its title as a heading, in order`() {
+        show(HomeUiState.Content(sections))
 
         composeRule.onAllNodes(isHeading()).assertCountEquals(2)
+        composeRule.onNodeWithText("Last played albums").assertExists()
+        composeRule.onNodeWithText("Favorite tracks").assertExists()
     }
 
     @Test
-    fun `shuffle all, an album and a favorite song send their actions`() {
-        show(HomeUiState.Content(recentlyPlayed = listOf(album), favoriteTracks = listOf(track)))
+    fun `shuffle all, an album and a track send their actions`() {
+        show(HomeUiState.Content(sections))
 
         composeRule.onNodeWithText("Shuffle all").performClick()
         composeRule.onNodeWithText("Northern Lights").performClick()
         composeRule.onNodeWithText("Morning Light").performClick()
 
-        assertThat(actions).containsExactly(HomeAction.ShuffleAll, HomeAction.PlayFavorite(track)).inOrder()
+        assertThat(actions).containsExactly(HomeAction.ShuffleAll, HomeAction.PlayTracks(listOf(track), 0)).inOrder()
         assertThat(opened).containsExactly(album.id)
+    }
+
+    @Test
+    fun `a section without its header shows only its items`() {
+        val bare =
+            HomeSectionContent(
+                HomeSection.FavoriteAlbums,
+                HomeSection.FavoriteAlbums.defaultSettings.copy(showHeader = false),
+                HomeItems.Albums(listOf(album)),
+            )
+        show(HomeUiState.Content(listOf(bare)))
+
+        composeRule.onAllNodes(isHeading()).assertCountEquals(0)
+        composeRule.onNodeWithText("Northern Lights").assertExists()
     }
 
     @Test

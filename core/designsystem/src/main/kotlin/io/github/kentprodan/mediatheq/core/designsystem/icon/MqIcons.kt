@@ -203,4 +203,8 @@ object MqIcons {
 
     val Checklist: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_checklist)
+
+    /** "More" at the end of a section header (#127). */
+    val ChevronRight: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_chevron_right)
 }

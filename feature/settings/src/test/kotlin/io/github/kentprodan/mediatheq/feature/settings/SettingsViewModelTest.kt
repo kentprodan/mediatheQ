@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.EqPreset
+import io.github.kentprodan.mediatheq.core.data.HomePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
@@ -22,6 +23,7 @@ import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.data.TrackInfo
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
@@ -295,5 +297,23 @@ class SettingsViewModelTest {
 
             viewModel.onAction(SettingsAction.RestoreNowPlayingDefaults)
             assertThat(library.preferences.value.nowPlaying).isEqualTo(NowPlayingPreferences())
+        }
+
+    @Test
+    fun `home order, visibility, reset rows and restore reach the preferences`() =
+        runTest {
+            signIn()
+            val order = HomeSection.entries.reversed()
+
+            viewModel.onAction(SettingsAction.SetHomeOrder(order))
+            viewModel.onAction(SettingsAction.SetHomeHidden(emptySet()))
+            assertThat(content().library.home).isEqualTo(HomePreferences(order, emptySet()))
+
+            viewModel.onAction(SettingsAction.ResetHomeRows)
+            assertThat(library.preferences.value.home).isEqualTo(HomePreferences())
+
+            viewModel.onAction(SettingsAction.SetHomeHidden(setOf(HomeSection.FavoriteAlbums)))
+            viewModel.onAction(SettingsAction.RestoreHomeDefaults)
+            assertThat(library.preferences.value.home).isEqualTo(HomePreferences())
         }
 }

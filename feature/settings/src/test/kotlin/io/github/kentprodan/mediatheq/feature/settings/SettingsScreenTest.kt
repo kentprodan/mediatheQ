@@ -2,6 +2,11 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
@@ -16,14 +21,17 @@ import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
+import io.github.kentprodan.mediatheq.core.data.HomePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
@@ -40,6 +48,7 @@ import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqSeedPresets
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -421,4 +430,92 @@ class SettingsScreenTest {
         composeRule.onNode(hasText("Ratings are off", substring = true)).assertExists()
         composeRule.onNode(hasText("Not used", substring = true)).assertExists()
     }
+
+    @Test
+    fun `the eye hides or shows a section and TalkBack can move it`() {
+        show(SettingsPage.Home)
+
+        composeRule
+            .onNodeWithContentDescription(
+                "Show Favorite albums",
+            ).assert(hasStateDescription("Shown"))
+            .performClick()
+        composeRule.onNodeWithContentDescription("Show Recently added tracks").performClick()
+        // Rows come in Home's order: the second one is Favorite albums.
+        val secondRow = composeRule.onAllNodes(hasCustomActions())[1].fetchSemanticsNode()
+        secondRow.config[SemanticsActions.CustomActions].first { it.label == "Move up" }.action()
+
+        val defaults = HomePreferences()
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetHomeHidden(defaults.hidden + HomeSection.FavoriteAlbums),
+                SettingsAction.SetHomeHidden(defaults.hidden - HomeSection.RecentlyAddedTracks),
+                SettingsAction.SetHomeOrder(
+                    listOf(HomeSection.FavoriteAlbums, HomeSection.FavoritePlaylists) + HomeSection.entries.drop(2),
+                ),
+            ).inOrder()
+    }
+
+    @Test
+    fun `reset active rows asks first`() {
+        show(SettingsPage.Home)
+
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Reset active rows"))
+        composeRule.onNode(hasText("Reset active rows") and hasClickAction()).performClick()
+        composeRule.onAllNodes(hasText("Reset active rows") and hasClickAction()).onLast().performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.ResetHomeRows)
+    }
+
+    private fun hasCustomActions() = SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions)
+
+    private fun hasStateDescription(value: String) =
+        SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, value)
+
+    @Test
+    fun `dragging a section by its handle saves the new order once, on drop`() {
+        show(SettingsPage.Home)
+        val first = composeRule.onAllNodes(hasCustomActions())[0]
+        val rowHeight =
+            first
+                .fetchSemanticsNode()
+                .size.height
+                .toFloat()
+
+        // The handle sits at the start of the row.
+        first.performTouchInput {
+            val handle = Offset(left + width * HANDLE_FRACTION, centerY)
+            down(handle)
+            moveBy(Offset(0f, rowHeight * 0.6f))
+            moveBy(Offset(0f, rowHeight * 0.6f))
+            up()
+        }
+        composeRule.waitForIdle()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetHomeOrder(
+                    listOf(HomeSection.FavoriteAlbums, HomeSection.FavoritePlaylists) + HomeSection.entries.drop(2),
+                ),
+            )
+    }
+
+    @Test
+    fun `a drag that ends where it started saves nothing`() {
+        show(SettingsPage.Home)
+
+        composeRule.onAllNodes(hasCustomActions())[0].performTouchInput {
+            val handle = Offset(left + width * HANDLE_FRACTION, centerY)
+            down(handle)
+            moveBy(Offset(0f, height * 0.2f))
+            moveBy(Offset(0f, -height * 0.2f))
+            up()
+        }
+        composeRule.waitForIdle()
+
+        assertThat(actions).isEmpty()
+    }
 }
+
+/** Where the drag handle is across a Home page row. */
+private const val HANDLE_FRACTION = 0.06f

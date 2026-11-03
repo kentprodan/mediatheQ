@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.testing
 
 import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
+import io.github.kentprodan.mediatheq.core.data.HomePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
@@ -13,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.validNavEntries
 import io.github.kentprodan.mediatheq.core.data.validTransparency
 import io.github.kentprodan.mediatheq.core.data.withRecentSearch
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /** In-memory [LibraryPreferencesRepository] with the same validation rules as the real one. */
@@ -74,6 +76,24 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
 
     override suspend fun setNowPlaying(nowPlaying: NowPlayingPreferences) {
         preferences.value = preferences.value.copy(nowPlaying = nowPlaying)
+    }
+
+    override suspend fun setHomeOrder(order: List<HomeSection>) {
+        val known = order.distinct()
+        val full = known + HomeSection.entries.filterNot { it in known }
+        preferences.value = preferences.value.copy(home = preferences.value.home.copy(order = full))
+    }
+
+    override suspend fun setHomeHidden(hidden: Set<HomeSection>) {
+        preferences.value = preferences.value.copy(home = preferences.value.home.copy(hidden = hidden))
+    }
+
+    override suspend fun resetHomeRows() {
+        preferences.value = preferences.value.copy(home = HomePreferences())
+    }
+
+    override suspend fun restoreHomeDefaults() {
+        preferences.value = preferences.value.copy(home = HomePreferences())
     }
 
     override suspend fun restoreNowPlayingDefaults() {

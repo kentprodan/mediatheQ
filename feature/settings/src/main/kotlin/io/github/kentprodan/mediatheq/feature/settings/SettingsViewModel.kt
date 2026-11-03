@@ -101,6 +101,22 @@ class SettingsViewModel
                         library.restoreNowPlayingDefaults()
                     }
 
+                    is SettingsAction.SetHomeOrder -> {
+                        library.setHomeOrder(action.order)
+                    }
+
+                    is SettingsAction.SetHomeHidden -> {
+                        library.setHomeHidden(action.hidden)
+                    }
+
+                    SettingsAction.ResetHomeRows -> {
+                        library.resetHomeRows()
+                    }
+
+                    SettingsAction.RestoreHomeDefaults -> {
+                        library.restoreHomeDefaults()
+                    }
+
                     SettingsAction.OpenNavEntries -> {
                         entriesDraft.value =
                             NavEntriesDraft.of(

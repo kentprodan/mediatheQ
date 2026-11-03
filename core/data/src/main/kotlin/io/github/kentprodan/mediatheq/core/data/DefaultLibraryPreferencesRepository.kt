@@ -1,10 +1,12 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
+import io.github.kentprodan.mediatheq.core.datastore.StoredHome
 import io.github.kentprodan.mediatheq.core.datastore.StoredMediaLists
 import io.github.kentprodan.mediatheq.core.datastore.StoredNavigation
 import io.github.kentprodan.mediatheq.core.datastore.StoredNowPlaying
 import io.github.kentprodan.mediatheq.core.datastore.StoredTheme
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -33,6 +35,7 @@ class DefaultLibraryPreferencesRepository
                     navigation = navigation(stored.navigation),
                     mediaLists = mediaLists(stored.mediaLists),
                     nowPlaying = nowPlaying(stored.nowPlaying),
+                    home = home(stored.home),
                     qualityDetail = stored.qualityDetail ?: false,
                 )
             }
@@ -146,6 +149,28 @@ class DefaultLibraryPreferencesRepository
             )
 
         override suspend fun restoreNowPlayingDefaults() = store.setNowPlaying(StoredNowPlaying())
+
+        override suspend fun setHomeOrder(order: List<HomeSection>) = store.setHomeOrder(order.map { it.name })
+
+        override suspend fun setHomeHidden(hidden: Set<HomeSection>) = store.setHomeHidden(hidden.map { it.name })
+
+        override suspend fun resetHomeRows() = store.setHome(StoredHome())
+
+        // Until the section settings are stored (#182), the page holds only the rows.
+        override suspend fun restoreHomeDefaults() = store.setHome(StoredHome())
+
+        /** Unknown names are dropped; sections the stored order lacks (new ones) follow it in their default order. */
+        private fun home(stored: StoredHome): HomePreferences {
+            val defaults = HomePreferences()
+            val order =
+                stored.order
+                    ?.mapNotNull { enumOrNull<HomeSection>(it) }
+                    ?.distinct()
+                    ?.let { known -> known + HomeSection.entries.filterNot { it in known } }
+                    ?: defaults.order
+            val hidden = stored.hidden?.mapNotNull { enumOrNull<HomeSection>(it) }?.toSet() ?: defaults.hidden
+            return HomePreferences(order, hidden)
+        }
 
         private fun nowPlaying(stored: StoredNowPlaying): NowPlayingPreferences {
             val defaults = NowPlayingPreferences()

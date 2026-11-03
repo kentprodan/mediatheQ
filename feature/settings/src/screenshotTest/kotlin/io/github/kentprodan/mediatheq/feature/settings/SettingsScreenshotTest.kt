@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
@@ -348,3 +349,15 @@ fun SettingsNowPlayingProgressDialogsScreenshot() {
         }
     }
 }
+
+/** Settings -> Page settings -> Home page (#127): every section with its handle and eye; hidden rows dimmed. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsHomePageScreenshot() = Page(SettingsPage.Home)
+
+/** The Interface page with its new Page settings group. */
+@PreviewTest
+@Preview(name = "Light", device = "spec:width=412dp,height=1600dp,dpi=420")
+@Composable
+fun SettingsInterfacePageSettingsScreenshot() = Page(SettingsPage.Interface)

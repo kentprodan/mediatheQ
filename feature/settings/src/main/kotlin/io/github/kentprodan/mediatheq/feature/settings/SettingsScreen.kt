@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -24,6 +26,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -38,8 +41,10 @@ import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
+import io.github.kentprodan.mediatheq.core.designsystem.component.rememberMqReorderState
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 
 /** The Settings pages with settings of their own (#120); they share [SettingsViewModel] until a page needs its own. */
 enum class SettingsPage(
@@ -50,6 +55,7 @@ enum class SettingsPage(
     Navigation(R.string.settings_navigation),
     MediaLists(R.string.settings_media_lists),
     NowPlaying(R.string.settings_now_playing_screens),
+    Home(R.string.settings_home_page),
     Playback(R.string.settings_playback),
     Storage(R.string.settings_storage_page),
     Providers(R.string.settings_providers),
@@ -64,6 +70,7 @@ internal fun SettingsPageRoute(
     onOpenNavigation: () -> Unit = {},
     onOpenMediaLists: () -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
+    onOpenHomePage: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -77,6 +84,7 @@ internal fun SettingsPageRoute(
         onOpenNavigation,
         onOpenMediaLists,
         onOpenNowPlaying,
+        onOpenHomePage,
     )
 }
 
@@ -95,13 +103,32 @@ fun SettingsPageScreen(
     onOpenNavigation: () -> Unit = {},
     onOpenMediaLists: () -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
+    onOpenHomePage: () -> Unit = {},
 ) {
-    // Survive rotation; only the Theme, Navigation, Media lists and Now playing pages open dialogs.
+    // Survive rotation; only the Theme, Navigation, Media lists, Now playing and Home pages open dialogs.
     var dialog by rememberSaveable { mutableStateOf<ThemeDialog?>(null) }
     var navigationDialog by rememberSaveable { mutableStateOf<NavigationDialog?>(null) }
     var mediaListsDialog by rememberSaveable { mutableStateOf<MediaListsDialog?>(null) }
     var nowPlayingDialog by rememberSaveable { mutableStateOf<NowPlayingDialog?>(null) }
-    SettingsScaffold(stringResource(page.title), onBack) {
+    var homeDialog by rememberSaveable { mutableStateOf<HomePageDialog?>(null) }
+    val listState = rememberLazyListState()
+    // The Home page's rows as shown: a drag moves them here and saves the order once, on drop.
+    val homeOrder =
+        (state as? SettingsUiState.Content)
+            ?.library
+            ?.home
+            ?.order
+            .orEmpty()
+    var homeRows by remember(homeOrder) { mutableStateOf(homeOrder) }
+    val reorder =
+        rememberMqReorderState(
+            listState,
+            onMove = { from, to -> homeRows = homeRows.toMutableList().apply { add(to, removeAt(from)) } },
+            onDrop = { _, _ -> if (homeRows != homeOrder) onAction(SettingsAction.SetHomeOrder(homeRows)) },
+            // The sections come first; the groups after them are no drop targets.
+            canDropOn = { it is HomeSection },
+        )
+    SettingsScaffold(stringResource(page.title), onBack, listState) {
         val content = state as? SettingsUiState.Content ?: return@SettingsScaffold
         when (page) {
             SettingsPage.Interface -> {
@@ -114,6 +141,19 @@ fun SettingsPageScreen(
                         onOpenMediaLists,
                         onOpenNowPlaying,
                     )
+                }
+                item(key = "pages") {
+                    Group(R.string.settings_page_settings) {
+                        item { shapes ->
+                            SegmentedListItem(
+                                onClick = onOpenHomePage,
+                                shapes = shapes,
+                                colors = settingsColors(),
+                                supportingContent = { Text(stringResource(R.string.settings_home_page_summary)) },
+                                trailingContent = { Icon(MqIcons.Home, contentDescription = null) },
+                            ) { Text(stringResource(R.string.settings_home_page)) }
+                        }
+                    }
                 }
                 item(key = "ratings") { RatingsGroup(content.library.ratingMode, onAction) }
             }
@@ -134,6 +174,10 @@ fun SettingsPageScreen(
                 nowPlayingGroups(content.library.nowPlaying, content.library.ratingMode, onAction) {
                     nowPlayingDialog = it
                 }
+            }
+
+            SettingsPage.Home -> {
+                homePageGroups(content.library.home, homeRows, reorder, onAction) { homeDialog = it }
             }
 
             SettingsPage.Playback -> {
@@ -161,6 +205,7 @@ fun SettingsPageScreen(
         nowPlayingDialog?.let {
             NowPlayingDialogHost(it, content.library.nowPlaying, onAction) { nowPlayingDialog = null }
         }
+        homeDialog?.let { HomePageDialogHost(it, onAction) { homeDialog = null } }
         if (page == SettingsPage.Navigation) content.entriesDraft?.let { NavEntriesDialog(it, onAction) }
     }
 }
@@ -183,6 +228,7 @@ fun AboutSettingsScreen(
 internal fun SettingsScaffold(
     title: String,
     onBack: () -> Unit,
+    listState: LazyListState = rememberLazyListState(),
     groups: LazyListScope.() -> Unit,
 ) {
     Scaffold(
@@ -201,6 +247,7 @@ internal fun SettingsScaffold(
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize(),
+            state = listState,
             contentPadding =
                 PaddingValues(
                     start = MediatheqSpacing.l,

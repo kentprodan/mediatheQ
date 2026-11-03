@@ -30,6 +30,7 @@ data class LibraryPreferences(
     val navigation: NavigationPreferences = NavigationPreferences(),
     val mediaLists: MediaListPreferences = MediaListPreferences(),
     val nowPlaying: NowPlayingPreferences = NowPlayingPreferences(),
+    val home: HomePreferences = HomePreferences(),
     /** Now Playing shows the format detail ("FLAC · 24/96 · 1250 kb/s") instead of its kind (#125). */
     val qualityDetail: Boolean = false,
 ) {

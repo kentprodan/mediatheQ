@@ -85,6 +85,11 @@ class LibraryPreferencesStore
                                 coverSwipe = prefs[NP_COVER_SWIPE],
                                 playButtonWhenPaused = prefs[NP_PLAY_BUTTON],
                             ),
+                        home =
+                            StoredHome(
+                                order = prefs[HOME_ORDER]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
+                                hidden = prefs[HOME_HIDDEN]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
+                            ),
                         offlineMode = prefs[OFFLINE_MODE],
                         qualityDetail = prefs[QUALITY_DETAIL],
                         sorts =
@@ -147,6 +152,23 @@ class LibraryPreferencesStore
                 prefs.put(ML_OFFLINE_OVERLAY, mediaLists.offlineOverlay)
                 prefs.put(ML_SWIPE_RIGHT, mediaLists.swipeRight)
                 prefs.put(ML_SWIPE_LEFT, mediaLists.swipeLeft)
+            }
+        }
+
+        suspend fun setHomeOrder(names: List<String>) {
+            dataStore.edit { it[HOME_ORDER] = names.joinToString(LIST_SEPARATOR) }
+        }
+
+        /** Nothing hidden is stored as an empty string, not removed: it is a choice, like any other. */
+        suspend fun setHomeHidden(names: List<String>) {
+            dataStore.edit { it[HOME_HIDDEN] = names.joinToString(LIST_SEPARATOR) }
+        }
+
+        /** Stores Home's rows at once (#127); null removes a value (back to default). */
+        suspend fun setHome(home: StoredHome) {
+            dataStore.edit { prefs ->
+                prefs.put(HOME_ORDER, home.order?.joinToString(LIST_SEPARATOR))
+                prefs.put(HOME_HIDDEN, home.hidden?.joinToString(LIST_SEPARATOR))
             }
         }
 
@@ -251,6 +273,8 @@ class LibraryPreferencesStore
             val ML_SWIPE_RIGHT = stringPreferencesKey("ml_swipe_right")
             val ML_SWIPE_LEFT = stringPreferencesKey("ml_swipe_left")
             val NP_FLOATING = booleanPreferencesKey("np_floating_mini_player")
+            val HOME_ORDER = stringPreferencesKey("home_order")
+            val HOME_HIDDEN = stringPreferencesKey("home_hidden")
             val NP_MINI_SWIPE = booleanPreferencesKey("np_mini_swipe_to_skip")
             val NP_MINI_PROGRESS = stringPreferencesKey("np_mini_progress")
             val NP_BACKGROUND = stringPreferencesKey("np_background")
@@ -280,7 +304,14 @@ data class StoredLibraryPreferences(
     val navigation: StoredNavigation = StoredNavigation(),
     val mediaLists: StoredMediaLists = StoredMediaLists(),
     val nowPlaying: StoredNowPlaying = StoredNowPlaying(),
+    val home: StoredHome = StoredHome(),
     val qualityDetail: Boolean? = null,
+)
+
+/** Home's rows as stored (#127): section names; `null` = not set (defaults). */
+data class StoredHome(
+    val order: List<String>? = null,
+    val hidden: List<String>? = null,
 )
 
 /** Now playing screens values as stored (#126); `null` = not set. */
