@@ -23,7 +23,7 @@ Base package placeholder below: `{base}` (decided in ADR 0001).
 | Settings | DataStore | |
 | Network | OkHttp + kotlinx.serialization | own thin client, see `jellyfin` skill |
 | Images | Coil 3 | |
-| Playback | Media3 (ExoPlayer, session, downloads) | |
+| Playback | Media3 (ExoPlayer, session, downloads; `media3-inspector` for waveform analysis, ADR 0027) | |
 | Licenses | AboutLibraries Gradle plugin (15.x), in `:app` only, offline | the app parses its JSON with kotlinx.serialization (ADR 0022) |
 | No | Firebase, analytics, crash SaaS, RxJava, LiveData, Gson, Moshi, KAPT, Room 2.x | |
 

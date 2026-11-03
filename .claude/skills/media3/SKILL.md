@@ -148,6 +148,12 @@ Rules:
 - State: `DefaultDownloadRepository` (in `:core:download`) keeps every download from the index plus the manager's events; progress is read once a second while someone watches. Actions go through `DownloadService.sendAddDownload/sendRemoveDownload`.
 - Requirements: Wi-Fi only (`NETWORK_UNMETERED`) by default, or any network (`NETWORK`) from Settings; `DefaultDownloadRepository` sets `manager.requirements` on the main thread (never through the service: Android 12+ blocks starting it from the background). No scheduler: on API 31+ Media3 cannot restart the service from the background, so unfinished downloads resume when the app opens (`resumeDownloads` in `MainActivity`). Android 15+ limits `dataSync` to 6 h a day; a stopped batch resumes at the next app start. Removing a download never touches the server (see `jellyfin` R5).
 
+## 10a. Waveforms (#124, ADR 0027)
+
+- `WaveformAnalyzer` in the service: the current track and the next two (`upcomingTracks`), prefetched originals (`Prefetcher.onCached`) and downloads completing while it runs. No backlog. `LocalFiles` finds a whole file: a completed download (original or converted) or a complete `<id>:original` cache copy; never a converted stream.
+- `MediaCodecPcmDecoder`: `MediaExtractorCompat` (`media3-inspector`) on a read-only `CacheDataSource` (no upstream, no writes) + platform `MediaCodec` to float PCM; `WaveformBuckets` folds it into 200 RMS levels. One dedicated background thread, one file at a time; never the player's PCM, so offload is unaffected.
+- Stored in Room per file size (`WaveformRepository`); `null` levels = no decoder for the format (not retried); other failures store nothing. Decoding is proven on the phone only; tests use a fake decoder.
+
 ## 11. Queue, session and system integration
 
 - Queue = Media3 playlist of `MediaItem`s with `mediaId = MediaId.toString()` and full `MediaMetadata` (title, artist, album, artwork URI sized for notification).
