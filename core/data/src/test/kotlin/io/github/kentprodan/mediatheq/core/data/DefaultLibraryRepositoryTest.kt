@@ -130,12 +130,14 @@ class DefaultLibraryRepositoryTest {
                 listOf(PlaylistEntryEntity("s", "p1", 0, "e0", "t0"), PlaylistEntryEntity("s", "p1", 1, "e1", "t1")),
             )
 
-            repository.fullyDownloaded.test {
-                downloaded("t0")
-                assertThat(expectMostRecentItem()).isEmpty()
-                downloaded("t0", "t1")
-                assertThat(awaitItem()).containsExactly(MediaId(ServerId("s"), "p1"))
-            }
+            downloaded("t0")
+            assertThat(repository.fullyDownloaded.first()).isEmpty()
+
+            downloaded("t0", "t1")
+            // Room runs the query on its own thread: wait for the result with both ids, not the one before.
+            assertThat(
+                repository.fullyDownloaded.first { it.isNotEmpty() },
+            ).containsExactly(MediaId(ServerId("s"), "p1"))
         }
 
     @Test
