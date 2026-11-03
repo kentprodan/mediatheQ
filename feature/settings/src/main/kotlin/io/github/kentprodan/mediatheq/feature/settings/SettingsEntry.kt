@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.navigation.LicensesKey
 import io.github.kentprodan.mediatheq.core.navigation.MediaListsSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.NavigationSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
+import io.github.kentprodan.mediatheq.core.navigation.NowPlayingSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ProvidersSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.SettingsKey
@@ -39,11 +40,13 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             onOpenTheme = { navigator.navigateTo(ThemeSettingsKey) },
             onOpenNavigation = { navigator.navigateTo(NavigationSettingsKey) },
             onOpenMediaLists = { navigator.navigateTo(MediaListsSettingsKey) },
+            onOpenNowPlaying = { navigator.navigateTo(NowPlayingSettingsKey) },
         )
     }
     entry<ThemeSettingsKey> { SettingsPageRoute(SettingsPage.Theme, openAudio, back) }
     entry<NavigationSettingsKey> { SettingsPageRoute(SettingsPage.Navigation, openAudio, back) }
     entry<MediaListsSettingsKey> { SettingsPageRoute(SettingsPage.MediaLists, openAudio, back) }
+    entry<NowPlayingSettingsKey> { SettingsPageRoute(SettingsPage.NowPlaying, openAudio, back) }
     entry<PlaybackSettingsKey> { SettingsPageRoute(SettingsPage.Playback, openAudio, back) }
     entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openAudio, back) }
     entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openAudio, back) }

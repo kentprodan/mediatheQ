@@ -11,6 +11,8 @@ import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
+import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
+import io.github.kentprodan.mediatheq.core.data.PlayerProgress
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
@@ -280,5 +282,18 @@ class SettingsViewModelTest {
             viewModel.uiState.test {
                 assertThat((expectMostRecentItem() as SettingsUiState.Content).showsManageOfflineFiles).isTrue()
             }
+        }
+
+    @Test
+    fun `now playing choices and restoring them reach the preferences`() =
+        runTest {
+            signIn()
+            val chosen = NowPlayingPreferences(floatingMiniPlayer = false, progress = PlayerProgress.Wavy)
+
+            viewModel.onAction(SettingsAction.SetNowPlaying(chosen))
+            assertThat(content().library.nowPlaying).isEqualTo(chosen)
+
+            viewModel.onAction(SettingsAction.RestoreNowPlayingDefaults)
+            assertThat(library.preferences.value.nowPlaying).isEqualTo(NowPlayingPreferences())
         }
 }

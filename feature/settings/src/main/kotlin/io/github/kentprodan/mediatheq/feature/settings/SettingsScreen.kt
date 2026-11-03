@@ -49,6 +49,7 @@ enum class SettingsPage(
     Theme(R.string.settings_theme),
     Navigation(R.string.settings_navigation),
     MediaLists(R.string.settings_media_lists),
+    NowPlaying(R.string.settings_now_playing_screens),
     Playback(R.string.settings_playback),
     Storage(R.string.settings_storage_page),
     Providers(R.string.settings_providers),
@@ -62,6 +63,7 @@ internal fun SettingsPageRoute(
     onOpenTheme: () -> Unit = {},
     onOpenNavigation: () -> Unit = {},
     onOpenMediaLists: () -> Unit = {},
+    onOpenNowPlaying: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -74,6 +76,7 @@ internal fun SettingsPageRoute(
         onOpenTheme,
         onOpenNavigation,
         onOpenMediaLists,
+        onOpenNowPlaying,
     )
 }
 
@@ -91,17 +94,26 @@ fun SettingsPageScreen(
     onOpenTheme: () -> Unit = {},
     onOpenNavigation: () -> Unit = {},
     onOpenMediaLists: () -> Unit = {},
+    onOpenNowPlaying: () -> Unit = {},
 ) {
-    // Survive rotation; only the Theme, Navigation and Media lists pages open dialogs.
+    // Survive rotation; only the Theme, Navigation, Media lists and Now playing pages open dialogs.
     var dialog by rememberSaveable { mutableStateOf<ThemeDialog?>(null) }
     var navigationDialog by rememberSaveable { mutableStateOf<NavigationDialog?>(null) }
     var mediaListsDialog by rememberSaveable { mutableStateOf<MediaListsDialog?>(null) }
+    var nowPlayingDialog by rememberSaveable { mutableStateOf<NowPlayingDialog?>(null) }
     SettingsScaffold(stringResource(page.title), onBack) {
         val content = state as? SettingsUiState.Content ?: return@SettingsScaffold
         when (page) {
             SettingsPage.Interface -> {
                 item(key = "appearance") {
-                    AppearanceGroup(content.library, onAction, onOpenTheme, onOpenNavigation, onOpenMediaLists)
+                    AppearanceGroup(
+                        content.library,
+                        onAction,
+                        onOpenTheme,
+                        onOpenNavigation,
+                        onOpenMediaLists,
+                        onOpenNowPlaying,
+                    )
                 }
                 item(key = "ratings") { RatingsGroup(content.library.ratingMode, onAction) }
             }
@@ -116,6 +128,12 @@ fun SettingsPageScreen(
 
             SettingsPage.MediaLists -> {
                 mediaListsGroups(content.library.mediaLists, onAction) { mediaListsDialog = it }
+            }
+
+            SettingsPage.NowPlaying -> {
+                nowPlayingGroups(content.library.nowPlaying, content.library.ratingMode, onAction) {
+                    nowPlayingDialog = it
+                }
             }
 
             SettingsPage.Playback -> {
@@ -139,6 +157,9 @@ fun SettingsPageScreen(
         }
         mediaListsDialog?.let {
             MediaListsDialogHost(it, content.library.mediaLists, onAction) { mediaListsDialog = null }
+        }
+        nowPlayingDialog?.let {
+            NowPlayingDialogHost(it, content.library.nowPlaying, onAction) { nowPlayingDialog = null }
         }
         if (page == SettingsPage.Navigation) content.entriesDraft?.let { NavEntriesDialog(it, onAction) }
     }
@@ -303,6 +324,7 @@ internal fun AppearanceGroup(
     onOpenTheme: () -> Unit,
     onOpenNavigation: () -> Unit = {},
     onOpenMediaLists: () -> Unit = {},
+    onOpenNowPlaying: () -> Unit = {},
 ) {
     Group(R.string.settings_appearance) {
         item { shapes ->
@@ -331,6 +353,15 @@ internal fun AppearanceGroup(
                 supportingContent = { Text(stringResource(R.string.settings_media_lists_summary)) },
                 trailingContent = { Icon(MqIcons.QueueMusic, contentDescription = null) },
             ) { Text(stringResource(R.string.settings_media_lists)) }
+        }
+        item { shapes ->
+            SegmentedListItem(
+                onClick = onOpenNowPlaying,
+                shapes = shapes,
+                colors = settingsColors(),
+                supportingContent = { Text(stringResource(R.string.settings_now_playing_summary)) },
+                trailingContent = { Icon(MqIcons.PlayArrow, contentDescription = null) },
+            ) { Text(stringResource(R.string.settings_now_playing_screens)) }
         }
         item { shapes ->
             ChoiceItem(
@@ -453,15 +484,17 @@ internal fun SwitchItem(
     title: String,
     summary: String,
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     SegmentedListItem(
         checked = checked,
         onCheckedChange = onCheckedChange,
         shapes = shapes,
+        enabled = enabled,
         colors = settingsColors(),
         supportingContent = { Text(summary) },
-        trailingContent = { Switch(checked = checked, onCheckedChange = null) },
+        trailingContent = { Switch(checked = checked, onCheckedChange = null, enabled = enabled) },
     ) { Text(title) }
 }
 

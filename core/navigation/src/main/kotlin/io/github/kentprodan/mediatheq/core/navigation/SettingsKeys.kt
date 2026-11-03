@@ -23,6 +23,10 @@ data object NavigationSettingsKey : NavKey
 @Serializable
 data object MediaListsSettingsKey : NavKey
 
+/** Settings -> Interface -> Now playing screens (#126). */
+@Serializable
+data object NowPlayingSettingsKey : NavKey
+
 /** Settings -> Playback: streaming quality, normalization, Audio. */
 @Serializable
 data object PlaybackSettingsKey : NavKey

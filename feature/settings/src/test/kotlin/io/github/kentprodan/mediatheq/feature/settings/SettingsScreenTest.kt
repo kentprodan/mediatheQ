@@ -29,6 +29,9 @@ import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.NowPlayingColors
+import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
+import io.github.kentprodan.mediatheq.core.data.PlayerBackground
+import io.github.kentprodan.mediatheq.core.data.PlayerProgress
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
@@ -382,5 +385,40 @@ class SettingsScreenTest {
                     MediaListPreferences(hiddenTopButtons = setOf(TopButton.Shuffle, TopButton.PlayNext)),
                 ),
             )
+    }
+
+    @Test
+    fun `now playing switches and choice dialogs apply at once`() {
+        show(SettingsPage.NowPlaying)
+
+        composeRule.onNode(hasText("Floating player") and isToggleable()).performClick()
+        composeRule.onNode(hasText("Background style") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Theme background") and isSelectable()).performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetNowPlaying(NowPlayingPreferences(floatingMiniPlayer = false)),
+                SettingsAction.SetNowPlaying(NowPlayingPreferences(background = PlayerBackground.Theme)),
+            ).inOrder()
+    }
+
+    @Test
+    fun `the stars row is off and disabled while ratings are off, the fallback while no waveform is used`() {
+        val content = SettingsUiState.Content("Home", "Ana")
+        show(
+            SettingsPage.NowPlaying,
+            content.copy(
+                library =
+                    content.library.copy(
+                        ratingMode = RatingMode.Off,
+                        nowPlaying = NowPlayingPreferences(progress = PlayerProgress.Basic),
+                    ),
+            ),
+        )
+
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Show rating stars"))
+        composeRule.onNode(hasText("Show rating stars") and isToggleable()).assertIsOff().assertIsNotEnabled()
+        composeRule.onNode(hasText("Ratings are off", substring = true)).assertExists()
+        composeRule.onNode(hasText("Not used", substring = true)).assertExists()
     }
 }

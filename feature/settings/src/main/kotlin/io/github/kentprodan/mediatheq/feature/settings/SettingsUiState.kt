@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
+import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
@@ -112,6 +113,12 @@ sealed interface SettingsAction {
     ) : SettingsAction
 
     data object RestoreMediaListsDefaults : SettingsAction
+
+    data class SetNowPlaying(
+        val nowPlaying: NowPlayingPreferences,
+    ) : SettingsAction
+
+    data object RestoreNowPlayingDefaults : SettingsAction
 
     /** Opens "Organize your navigation" with the stored entries. */
     data object OpenNavEntries : SettingsAction
