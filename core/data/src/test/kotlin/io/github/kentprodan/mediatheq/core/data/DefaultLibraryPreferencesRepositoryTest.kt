@@ -510,4 +510,69 @@ class DefaultLibraryPreferencesRepositoryTest {
             assertThat(repository.preferences.first())
                 .isEqualTo(LibraryPreferences(mediaLists = lists, qualityDetail = true))
         }
+
+    @Test
+    fun `with nothing stored Home shows today's sections and more, in the table order`() =
+        runTest {
+            val home = repository.preferences.first().home
+
+            assertThat(home.order).isEqualTo(HomeSection.entries)
+            // Today's Home rows are all shown by default.
+            assertThat(home.shown)
+                .containsAtLeast(
+                    HomeSection.LastPlayedAlbums,
+                    HomeSection.RecentlyAddedAlbums,
+                    HomeSection.FavoriteAlbums,
+                    HomeSection.FavoriteTracks,
+                )
+            assertThat(home.hidden).containsExactly(
+                HomeSection.RecentlyAddedTracks,
+                HomeSection.RecentlyAddedArtists,
+                HomeSection.LastPlayedTracks,
+                HomeSection.LastPlayedArtists,
+                HomeSection.MostPlayedAlbums,
+                HomeSection.MostPlayedArtists,
+                HomeSection.RandomTracks,
+                HomeSection.RediscoverTracks,
+                HomeSection.FiveStarTracks,
+            )
+        }
+
+    @Test
+    fun `a stored order keeps its sections first, unknown names go and missing sections follow`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("home_order")] = "FavoriteTracks,Radios,FavoriteAlbums,FavoriteTracks"
+            }
+
+            val order =
+                repository.preferences
+                    .first()
+                    .home.order
+
+            assertThat(order.take(2)).containsExactly(HomeSection.FavoriteTracks, HomeSection.FavoriteAlbums).inOrder()
+            assertThat(order).hasSize(HomeSection.entries.size)
+            assertThat(order.drop(2)).isEqualTo(
+                HomeSection.entries - setOf(HomeSection.FavoriteTracks, HomeSection.FavoriteAlbums),
+            )
+        }
+
+    @Test
+    fun `order and visibility are kept, nothing hidden included, and reset rows brings both back`() =
+        runTest {
+            val order = HomeSection.entries.reversed()
+            repository.setHomeOrder(order)
+            repository.setHomeHidden(emptySet())
+            assertThat(repository.preferences.first().home).isEqualTo(HomePreferences(order, emptySet()))
+
+            repository.resetHomeRows()
+            assertThat(repository.preferences.first().home).isEqualTo(HomePreferences())
+
+            repository.setHomeHidden(setOf(HomeSection.FavoriteAlbums))
+            repository.setMediaLists(MediaListPreferences(trackInfo = TrackInfo.Bitrate))
+            repository.restoreHomeDefaults()
+            val restored = repository.preferences.first()
+            assertThat(restored.home).isEqualTo(HomePreferences())
+            assertThat(restored.mediaLists.trackInfo).isEqualTo(TrackInfo.Bitrate)
+        }
 }

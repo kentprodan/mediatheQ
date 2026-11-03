@@ -32,6 +32,17 @@ interface LibraryPreferencesRepository {
     /** Settings -> Now playing screens -> Restore defaults: only that page goes back to its defaults (#126). */
     suspend fun restoreNowPlayingDefaults()
 
+    /** Home's sections in this order; sections missing from [order] keep their default place after it. */
+    suspend fun setHomeOrder(order: List<HomeSection>)
+
+    suspend fun setHomeHidden(hidden: Set<HomeSection>)
+
+    /** Home page -> Reset active rows: order and visibility back to default (section settings, #182, kept). */
+    suspend fun resetHomeRows()
+
+    /** Home page -> Restore defaults: everything on the page. */
+    suspend fun restoreHomeDefaults()
+
     suspend fun setRatingMode(mode: RatingMode)
 
     /** Now Playing's quality label: the format detail or its kind (#125). */
