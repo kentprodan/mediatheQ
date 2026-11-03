@@ -73,6 +73,7 @@ class LibraryPreferencesStore
                                 swipeLeft = prefs[ML_SWIPE_LEFT],
                             ),
                         offlineMode = prefs[OFFLINE_MODE],
+                        qualityDetail = prefs[QUALITY_DETAIL],
                         sorts =
                             prefs
                                 .asMap()
@@ -147,6 +148,10 @@ class LibraryPreferencesStore
             dataStore.edit { it[RATING_MODE] = name }
         }
 
+        suspend fun setQualityDetail(on: Boolean) {
+            dataStore.edit { it[QUALITY_DETAIL] = on }
+        }
+
         suspend fun setOfflineMode(on: Boolean) {
             dataStore.edit { it[OFFLINE_MODE] = on }
         }
@@ -189,6 +194,7 @@ class LibraryPreferencesStore
             val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
             val RATING_MODE = stringPreferencesKey("rating_mode")
             val OFFLINE_MODE = booleanPreferencesKey("offline_mode")
+            val QUALITY_DETAIL = booleanPreferencesKey("np_quality_detail")
             val THEME_MODE = stringPreferencesKey("theme_mode")
             val COLOR_SOURCE = stringPreferencesKey("color_source")
             val CUSTOM_SEED = intPreferencesKey("custom_seed")
@@ -234,6 +240,7 @@ data class StoredLibraryPreferences(
     val theme: StoredTheme = StoredTheme(),
     val navigation: StoredNavigation = StoredNavigation(),
     val mediaLists: StoredMediaLists = StoredMediaLists(),
+    val qualityDetail: Boolean? = null,
 )
 
 /** Media lists values as stored (#123); `null` = not set. */

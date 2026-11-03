@@ -29,6 +29,9 @@ interface LibraryPreferencesRepository {
 
     suspend fun setRatingMode(mode: RatingMode)
 
+    /** Now Playing's quality label: the format detail or its kind (#125). */
+    suspend fun setQualityDetail(on: Boolean)
+
     suspend fun setOfflineMode(on: Boolean)
 
     /** Ignored when [filter] does not offer [sort]. */
