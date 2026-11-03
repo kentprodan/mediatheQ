@@ -7,7 +7,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import com.android.tools.screenshot.PreviewTest
+import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
+import io.github.kentprodan.mediatheq.core.data.PlayerBackground
+import io.github.kentprodan.mediatheq.core.data.PlayerProgress
+import io.github.kentprodan.mediatheq.core.data.ProgressFallback
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.preview.rememberPreviewCover
@@ -268,5 +274,55 @@ fun NowPlayingQualityLabelsScreenshot() {
                 }
             }
         }
+    }
+}
+
+/** The background styles (#126): solid cover color, theme background (gradient is the default above). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingSolidBackgroundScreenshot() {
+    MediatheqTheme { Screen(playing.copy(settings = NowPlayingPreferences(background = PlayerBackground.Solid))) }
+}
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingThemeBackgroundScreenshot() {
+    MediatheqTheme { Screen(playing.copy(settings = NowPlayingPreferences(background = PlayerBackground.Theme))) }
+}
+
+/** Each progress bar style with a waveform known (#126); Basic and Wavy ignore it. */
+class PlayerProgressStyles : PreviewParameterProvider<PlayerProgress> {
+    override val values = PlayerProgress.entries.asSequence()
+}
+
+@PreviewTest
+@Preview(name = "Light", device = "spec:width=412dp,height=915dp,dpi=420")
+@Composable
+fun NowPlayingProgressStylesScreenshot(
+    @PreviewParameter(PlayerProgressStyles::class) style: PlayerProgress,
+) {
+    val levels = List(200) { (0.3f + 0.7f * ((it * 37) % 100) / 100f) }
+    MediatheqTheme { Screen(playing.copy(waveform = levels, settings = NowPlayingPreferences(progress = style))) }
+}
+
+/** Paused with the play button over the cover; the stars switched off. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingPlayButtonNoStarsScreenshot() {
+    MediatheqTheme {
+        Screen(
+            playing.copy(
+                isPlaying = false,
+                settings =
+                    NowPlayingPreferences(
+                        playButtonWhenPaused = true,
+                        showRating = false,
+                        fallback = ProgressFallback.Wavy,
+                    ),
+            ),
+        )
     }
 }

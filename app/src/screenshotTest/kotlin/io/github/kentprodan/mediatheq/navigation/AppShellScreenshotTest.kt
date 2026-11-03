@@ -26,7 +26,7 @@ private fun Shell(
     tab: TopLevelTab,
     navigation: NavigationPreferences = NavigationPreferences(),
     homeStack: List<NavKey> = listOf(HomeKey),
-    miniPlayer: (@Composable () -> Unit)? = null,
+    miniPlayer: (@Composable (onBottomBar: Boolean) -> Unit)? = null,
 ) {
     // Layoutlib has no Activity, so provide the back-event dispatcher NavDisplay expects.
     val dispatcherOwner =

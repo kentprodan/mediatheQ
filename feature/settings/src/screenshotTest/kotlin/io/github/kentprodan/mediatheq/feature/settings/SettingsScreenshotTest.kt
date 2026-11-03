@@ -1,14 +1,21 @@
 package io.github.kentprodan.mediatheq.feature.settings
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
+import io.github.kentprodan.mediatheq.core.data.CoverTap
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
+import io.github.kentprodan.mediatheq.core.data.MiniProgress
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
+import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
+import io.github.kentprodan.mediatheq.core.data.PlayerBackground
+import io.github.kentprodan.mediatheq.core.data.PlayerProgress
 import io.github.kentprodan.mediatheq.core.data.PortraitNavStyle
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
@@ -20,6 +27,7 @@ import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.data.TrackInfo
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqColorSource
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqSeedPresets
@@ -281,4 +289,62 @@ fun SettingsMediaListsTrackInfoDialogScreenshot() {
 @Composable
 fun SettingsMediaListsSwipeDialogScreenshot() {
     MediatheqTheme { MediaListsDialogContent(MediaListsDialog.SwipeRight, MediaListPreferences()) }
+}
+
+/** Settings -> Now playing screens, defaults (#126). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsNowPlayingScreenshot() = Page(SettingsPage.NowPlaying)
+
+/** Docked, line progress, a plain Wavy bar (fallback unused), ratings off. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsNowPlayingChosenScreenshot() {
+    val nowPlaying =
+        NowPlayingPreferences(
+            floatingMiniPlayer = false,
+            miniProgress = MiniProgress.Line,
+            background = PlayerBackground.Solid,
+            progress = PlayerProgress.Wavy,
+            coverTap = CoverTap.ShowLyrics,
+            playButtonWhenPaused = true,
+        )
+    MediatheqTheme {
+        SettingsPageScreen(
+            SettingsPage.NowPlaying,
+            content.copy(library = content.library.copy(nowPlaying = nowPlaying, ratingMode = RatingMode.Off)),
+            {},
+            {},
+            {},
+        )
+    }
+}
+
+/** Every Now playing screens dialog, defaults checked. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsNowPlayingDialogsScreenshot() {
+    MediatheqTheme {
+        Column(verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s)) {
+            NowPlayingDialogContent(NowPlayingDialog.MiniProgress, NowPlayingPreferences())
+            NowPlayingDialogContent(NowPlayingDialog.Background, NowPlayingPreferences())
+            NowPlayingDialogContent(NowPlayingDialog.CoverTap, NowPlayingPreferences())
+        }
+    }
+}
+
+/** The progress bar style dialog (six styles), Waveform (Sharp) checked; and the fallback dialog. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsNowPlayingProgressDialogsScreenshot() {
+    MediatheqTheme {
+        Column(verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s)) {
+            NowPlayingDialogContent(NowPlayingDialog.Progress, NowPlayingPreferences())
+            NowPlayingDialogContent(NowPlayingDialog.Fallback, NowPlayingPreferences())
+        }
+    }
 }

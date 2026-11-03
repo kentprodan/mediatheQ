@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqMiniPlayer
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqMiniProgress
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayerCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqSeekBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqTransportControls
@@ -44,6 +45,38 @@ fun MqMiniPlayerScreenshot() {
                     cover = rememberPreviewCover(),
                 )
                 MiniPlayer(title = "Strobe", isPlaying = true, cover = null)
+            }
+        }
+    }
+}
+
+/** Each progress style, floating and docked (#126), at 40 % played. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun MqMiniPlayerStylesScreenshot() {
+    MediatheqTheme {
+        Surface {
+            Column(verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.m)) {
+                listOf(false, true).forEach { docked ->
+                    MqMiniProgress.entries.forEach { style ->
+                        MqMiniPlayer(
+                            title = "Strobe",
+                            artist = "deadmau5 · ${style.name}",
+                            cover = null,
+                            isPlaying = true,
+                            hasNext = true,
+                            onPlayPause = {},
+                            onNext = {},
+                            onOpen = {},
+                            modifier = if (docked) Modifier else Modifier.padding(horizontal = MediatheqSpacing.l),
+                            coverBlurHash = PREVIEW_BLUR_HASH,
+                            docked = docked,
+                            progressStyle = style,
+                            progress = { 0.4f },
+                        )
+                    }
+                }
             }
         }
     }

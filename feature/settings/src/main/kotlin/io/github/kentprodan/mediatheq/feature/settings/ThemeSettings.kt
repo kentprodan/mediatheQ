@@ -318,11 +318,13 @@ internal fun DialogItem(
     shapes: ListItemShapes,
     title: String,
     value: String,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     SegmentedListItem(
         onClick = onClick,
         shapes = shapes,
+        enabled = enabled,
         colors = settingsColors(),
         supportingContent = { Text(value) },
     ) { Text(title) }

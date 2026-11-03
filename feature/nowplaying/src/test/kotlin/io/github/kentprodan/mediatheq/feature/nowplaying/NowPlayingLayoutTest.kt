@@ -18,12 +18,16 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
 import androidx.navigation3.runtime.NavKey
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -70,7 +74,7 @@ class NowPlayingLayoutTest {
                 NowPlayingLayout(state, MutableStateFlow(150.seconds), { actions += it }, content = { mini ->
                     Column {
                         Text(SHELL_TEXT)
-                        mini()
+                        mini(true)
                     }
                 })
             }
@@ -112,7 +116,7 @@ class NowPlayingLayoutTest {
                     state,
                     MutableStateFlow(150.seconds),
                     { actions += it },
-                    content = { mini -> mini() },
+                    content = { mini -> mini(true) },
                     autoExpand = autoExpand,
                 )
             }
@@ -264,7 +268,7 @@ class NowPlayingLayoutTest {
                     state,
                     MutableStateFlow(150.seconds),
                     { actions += it },
-                    content = { mini -> mini() },
+                    content = { mini -> mini(true) },
                     onNavigate = { opened += it },
                 )
             }
@@ -297,6 +301,42 @@ class NowPlayingLayoutTest {
         composeRule.waitForIdle()
 
         composeRule.onNode(hasText("Phone volume does not apply")).assertDoesNotExist()
+    }
+
+    @Test
+    fun `swipe to skip on the mini player plays the next track, and a swipe up still opens the player`() {
+        setContent()
+
+        composeRule.onNode(miniPlayer).performTouchInput { swipeLeft() }
+        composeRule.waitForIdle()
+        assertThat(actions).contains(NowPlayingAction.Next)
+        composeRule.onNode(playerPane).assertDoesNotExist()
+
+        composeRule.onNode(miniPlayer).performTouchInput { swipeRight() }
+        composeRule.waitForIdle()
+        assertThat(actions).contains(NowPlayingAction.Previous)
+
+        composeRule.onNode(miniPlayer).performTouchInput { swipeUp() }
+        composeRule.waitForIdle()
+        composeRule.onNode(playerPane).assertExists()
+    }
+
+    @Test
+    fun `with swipe to skip off a sideways swipe on the mini player skips nothing`() {
+        state = playing.copy(settings = NowPlayingPreferences(miniSwipeToSkip = false))
+        setContent()
+
+        composeRule.onNode(miniPlayer).performTouchInput { swipeLeft() }
+        composeRule.waitForIdle()
+        // With nothing to skip the lifted finger counts as the pill's tap and may open the player: close it again.
+        if (composeRule.onAllNodes(playerPane).fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithContentDescription(closeButton).performClick()
+            composeRule.waitForIdle()
+        }
+        composeRule.onNode(miniPlayer).performTouchInput { swipeRight() }
+        composeRule.waitForIdle()
+
+        assertThat(actions).containsNoneOf(NowPlayingAction.Next, NowPlayingAction.Previous)
     }
 
     private companion object {

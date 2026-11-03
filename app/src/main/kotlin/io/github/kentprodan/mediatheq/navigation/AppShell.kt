@@ -80,7 +80,8 @@ fun AppShell(
     navigator: TabNavigator,
     entryProvider: (NavKey) -> NavEntry<NavKey>,
     modifier: Modifier = Modifier,
-    miniPlayer: (@Composable () -> Unit)? = null,
+    /** Placed above the navigation; gets whether that is the bottom bar (a docked mini player only sits there). */
+    miniPlayer: (@Composable (onBottomBar: Boolean) -> Unit)? = null,
     snackbarHostState: SnackbarHostState? = null,
     navigation: NavigationPreferences = NavigationPreferences(),
 ) {
@@ -104,7 +105,9 @@ fun AppShell(
             bottomBar = {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     // Places and animates itself (it is hidden while nothing is queued).
-                    miniPlayer?.invoke()
+                    miniPlayer?.invoke(
+                        showNavigation && !rail && navigation.portraitStyle == PortraitNavStyle.BottomBar,
+                    )
                     when {
                         !showNavigation || rail -> {
                             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))

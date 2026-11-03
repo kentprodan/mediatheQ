@@ -72,6 +72,19 @@ class LibraryPreferencesStore
                                 swipeRight = prefs[ML_SWIPE_RIGHT],
                                 swipeLeft = prefs[ML_SWIPE_LEFT],
                             ),
+                        nowPlaying =
+                            StoredNowPlaying(
+                                floatingMiniPlayer = prefs[NP_FLOATING],
+                                miniSwipeToSkip = prefs[NP_MINI_SWIPE],
+                                miniProgress = prefs[NP_MINI_PROGRESS],
+                                background = prefs[NP_BACKGROUND],
+                                progress = prefs[NP_PROGRESS],
+                                fallback = prefs[NP_FALLBACK],
+                                showRating = prefs[NP_SHOW_RATING],
+                                coverTap = prefs[NP_COVER_TAP],
+                                coverSwipe = prefs[NP_COVER_SWIPE],
+                                playButtonWhenPaused = prefs[NP_PLAY_BUTTON],
+                            ),
                         offlineMode = prefs[OFFLINE_MODE],
                         qualityDetail = prefs[QUALITY_DETAIL],
                         sorts =
@@ -134,6 +147,22 @@ class LibraryPreferencesStore
                 prefs.put(ML_OFFLINE_OVERLAY, mediaLists.offlineOverlay)
                 prefs.put(ML_SWIPE_RIGHT, mediaLists.swipeRight)
                 prefs.put(ML_SWIPE_LEFT, mediaLists.swipeLeft)
+            }
+        }
+
+        /** Stores every Now playing screens value at once (#126); null removes it. */
+        suspend fun setNowPlaying(nowPlaying: StoredNowPlaying) {
+            dataStore.edit { prefs ->
+                prefs.put(NP_FLOATING, nowPlaying.floatingMiniPlayer)
+                prefs.put(NP_MINI_SWIPE, nowPlaying.miniSwipeToSkip)
+                prefs.put(NP_MINI_PROGRESS, nowPlaying.miniProgress)
+                prefs.put(NP_BACKGROUND, nowPlaying.background)
+                prefs.put(NP_PROGRESS, nowPlaying.progress)
+                prefs.put(NP_FALLBACK, nowPlaying.fallback)
+                prefs.put(NP_SHOW_RATING, nowPlaying.showRating)
+                prefs.put(NP_COVER_TAP, nowPlaying.coverTap)
+                prefs.put(NP_COVER_SWIPE, nowPlaying.coverSwipe)
+                prefs.put(NP_PLAY_BUTTON, nowPlaying.playButtonWhenPaused)
             }
         }
 
@@ -221,6 +250,16 @@ class LibraryPreferencesStore
             val ML_OFFLINE_OVERLAY = booleanPreferencesKey("ml_offline_overlay")
             val ML_SWIPE_RIGHT = stringPreferencesKey("ml_swipe_right")
             val ML_SWIPE_LEFT = stringPreferencesKey("ml_swipe_left")
+            val NP_FLOATING = booleanPreferencesKey("np_floating_mini_player")
+            val NP_MINI_SWIPE = booleanPreferencesKey("np_mini_swipe_to_skip")
+            val NP_MINI_PROGRESS = stringPreferencesKey("np_mini_progress")
+            val NP_BACKGROUND = stringPreferencesKey("np_background")
+            val NP_PROGRESS = stringPreferencesKey("np_progress")
+            val NP_FALLBACK = stringPreferencesKey("np_fallback")
+            val NP_SHOW_RATING = booleanPreferencesKey("np_show_rating")
+            val NP_COVER_TAP = stringPreferencesKey("np_cover_tap")
+            val NP_COVER_SWIPE = booleanPreferencesKey("np_cover_swipe")
+            val NP_PLAY_BUTTON = booleanPreferencesKey("np_play_button_when_paused")
             const val LIST_SEPARATOR = ","
             const val SORT_PREFIX = "sort_"
             val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
@@ -240,7 +279,22 @@ data class StoredLibraryPreferences(
     val theme: StoredTheme = StoredTheme(),
     val navigation: StoredNavigation = StoredNavigation(),
     val mediaLists: StoredMediaLists = StoredMediaLists(),
+    val nowPlaying: StoredNowPlaying = StoredNowPlaying(),
     val qualityDetail: Boolean? = null,
+)
+
+/** Now playing screens values as stored (#126); `null` = not set. */
+data class StoredNowPlaying(
+    val floatingMiniPlayer: Boolean? = null,
+    val miniSwipeToSkip: Boolean? = null,
+    val miniProgress: String? = null,
+    val background: String? = null,
+    val progress: String? = null,
+    val fallback: String? = null,
+    val showRating: Boolean? = null,
+    val coverTap: String? = null,
+    val coverSwipe: Boolean? = null,
+    val playButtonWhenPaused: Boolean? = null,
 )
 
 /** Media lists values as stored (#123); `null` = not set. */

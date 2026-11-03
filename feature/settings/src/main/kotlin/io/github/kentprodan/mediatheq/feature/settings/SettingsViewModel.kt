@@ -93,6 +93,14 @@ class SettingsViewModel
                         library.restoreMediaListsDefaults()
                     }
 
+                    is SettingsAction.SetNowPlaying -> {
+                        library.setNowPlaying(action.nowPlaying)
+                    }
+
+                    SettingsAction.RestoreNowPlayingDefaults -> {
+                        library.restoreNowPlayingDefaults()
+                    }
+
                     SettingsAction.OpenNavEntries -> {
                         entriesDraft.value =
                             NavEntriesDraft.of(
