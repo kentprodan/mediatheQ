@@ -19,6 +19,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
+import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import io.github.kentprodan.mediatheq.core.testing.rows
 import kotlinx.coroutines.flow.first
@@ -333,15 +334,25 @@ class LibraryDatabaseTest {
         }
 
     @Test
-    fun `clearAll empties the library, staging, search and sync state`() =
+    fun `clearAll empties the library, staging, search, sync state and waveforms`() =
         runTest {
             stageLibrary()
             syncDao.swap(1, "s", "user-1")
             stageLibrary()
+            database.waveformDao().save(WaveformEntity("s", "t1", 10, byteArrayOf(1, 2)))
 
             syncDao.clearAll()
 
-            listOf("artist", "album", "track", "playlist_entry", "track_staging", "search", "sync_state").forEach {
+            listOf(
+                "artist",
+                "album",
+                "track",
+                "playlist_entry",
+                "track_staging",
+                "search",
+                "sync_state",
+                "waveform",
+            ).forEach {
                 assertThat(database.rows("SELECT COUNT(*) FROM $it")).containsExactly(listOf("0"))
             }
         }
