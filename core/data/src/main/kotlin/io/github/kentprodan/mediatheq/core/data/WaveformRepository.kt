@@ -49,7 +49,10 @@ internal class DefaultWaveformRepository
         ) {
             val bytes =
                 levels?.let { list ->
-                    ByteArray(list.size) { (list[it].coerceIn(0f, 1f) * LEVEL_MAX).roundToInt().toByte() }
+                    ByteArray(list.size) { i ->
+                        val level = list[i].takeUnless { it.isNaN() } ?: 0f
+                        (level.coerceIn(0f, 1f) * LEVEL_MAX).roundToInt().toByte()
+                    }
                 }
             dao.save(WaveformEntity(id.serverId.value, id.itemId, sizeBytes, bytes))
         }

@@ -160,7 +160,7 @@ class WaveformAnalyzerTest {
         }
 
     @Test
-    fun `a format with no decoder is kept as such, a failure is tried again next time`() =
+    fun `a format with no decoder is kept as such, a failure is tried again in a later session`() =
         runTest {
             write(streamingCache, originalCacheKey(id(1)))
             write(streamingCache, originalCacheKey(id(2)))
@@ -172,14 +172,20 @@ class WaveformAnalyzerTest {
             decoder.result = Decoded.Failed
             analyzer.offer(listOf(id(1), id(2)))
             advanceUntilIdle()
+            // Player events offer it again and again: a failed file is not decoded again this session.
             analyzer.offer(listOf(id(2)))
             advanceUntilIdle()
 
             assertThat(waveforms.stored.value).containsExactly(id(1), 100L to null)
-            assertThat(decoder.decoded)
-                .containsExactly(originalCacheKey(id(1)), originalCacheKey(id(2)), originalCacheKey(id(2)))
-                .inOrder()
+            assertThat(decoder.decoded).containsExactly(originalCacheKey(id(1)), originalCacheKey(id(2))).inOrder()
             job.cancel()
+
+            // A new session (the service started again) tries it once more.
+            val (again, next) = analyzer(decoder)
+            again.offer(listOf(id(2)))
+            advanceUntilIdle()
+            assertThat(decoder.decoded).hasSize(3)
+            next.cancel()
         }
 
     @Test
@@ -248,6 +254,25 @@ class WaveformAnalyzerTest {
                     originalCacheKey(id(4)),
                 ).inOrder()
             player.release()
+            job.cancel()
+        }
+
+    @Test
+    fun `one track's crash does not stop the analysis of the next ones`() =
+        runTest {
+            write(streamingCache, originalCacheKey(id(1)))
+            write(streamingCache, originalCacheKey(id(2)))
+            val decoder =
+                PcmDecoder { file ->
+                    if (file.key == originalCacheKey(id(1))) error("broken extractor")
+                    Decoded.Levels(listOf(1f))
+                }
+            val (analyzer, job) = analyzer(decoder)
+
+            analyzer.offer(listOf(id(1), id(2)))
+            advanceUntilIdle()
+
+            assertThat(waveforms.stored.value.keys).containsExactly(id(2))
             job.cancel()
         }
 }

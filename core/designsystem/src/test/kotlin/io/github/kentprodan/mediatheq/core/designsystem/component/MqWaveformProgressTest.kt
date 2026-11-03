@@ -1,5 +1,8 @@
 package io.github.kentprodan.mediatheq.core.designsystem.component
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsActions
@@ -108,5 +111,30 @@ class MqWaveformProgressTest {
         bar().performTouchInput { click(Offset(width * 0.5f, centerY)) }
 
         assertThat(seeks).isEmpty()
+    }
+
+    @Test
+    fun `the waveform arriving mid-drag goes back to the playing position`() {
+        var levels by mutableStateOf<List<Float>?>(null)
+        composeRule.setContent {
+            MediatheqTheme { MqWaveformProgress(levels, 0.25f, "1:00 of 4:00", onSeek = { seeks += it }) }
+        }
+        bar().performTouchInput {
+            down(Offset(width * 0.25f, centerY))
+            moveTo(Offset(width * 0.9f, centerY))
+        }
+
+        levels = List(200) { 0.5f }
+        composeRule.waitForIdle()
+
+        bar().assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.ProgressBarRangeInfo,
+                ProgressBarRangeInfo(
+                    0.25f,
+                    0f..1f,
+                ),
+            ),
+        )
     }
 }

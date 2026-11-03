@@ -17,6 +17,7 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,6 +86,9 @@ fun MqWaveformProgress(
         // Only the arrival (or loss) of data crossfades; another track's levels redraw in place.
         contentKey = { it != null },
     ) { data ->
+        // Swapped mid-drag (the waveform arriving): neither the Slider nor the drag detector reports an end, so the
+        // bar would keep showing the dragged position.
+        DisposableEffect(Unit) { onDispose { dragged = null } }
         if (data == null && fallback == MqProgressFallback.Basic) {
             // Today's seek bar, dragged exactly as before.
             Slider(

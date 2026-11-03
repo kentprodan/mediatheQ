@@ -15,6 +15,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Where the whole file of a track is on the device (#124): a completed download (original or converted, its size as
@@ -56,6 +57,9 @@ internal class WaveformAnalyzer(
     private val completedDownloads: Flow<Set<MediaId>>,
 ) {
     private val pending = ArrayDeque<MediaId>()
+
+    /** Files that failed this session (by key and size): not decoded again on every player event. */
+    private val failed = mutableSetOf<Pair<String, Long>>()
     private val wake = Channel<Unit>(Channel.CONFLATED)
 
     /** Watches [player]: the current track and the next ones, again whenever loading stops (a file may be whole). */
@@ -106,17 +110,31 @@ internal class WaveformAnalyzer(
             }
             while (true) {
                 wake.receive()
-                while (true) analyze(synchronized(pending) { pending.removeFirstOrNull() } ?: break)
+                while (true) {
+                    val id = synchronized(pending) { pending.removeFirstOrNull() } ?: break
+                    // One track's trouble (a database error, a broken file) must not end the analysis for the rest.
+                    try {
+                        analyze(id)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Waveform of $id failed", e)
+                    }
+                }
             }
         }
 
     internal suspend fun analyze(id: MediaId) {
         val file = files(id) ?: return
-        if (waveforms.isAnalyzed(id, file.sizeBytes)) return
+        val attempt = file.key to file.sizeBytes
+        if (attempt in failed || waveforms.isAnalyzed(id, file.sizeBytes)) return
         when (val result = decoder.decode(file)) {
             is Decoded.Levels -> waveforms.save(id, file.sizeBytes, result.levels)
+
             Decoded.Unsupported -> waveforms.save(id, file.sizeBytes, null)
-            Decoded.Failed -> Log.w(TAG, "No waveform for $id this time")
+
+            // Tried again in a later session (after process death, or when the service starts again).
+            Decoded.Failed -> failed += attempt
         }
     }
 

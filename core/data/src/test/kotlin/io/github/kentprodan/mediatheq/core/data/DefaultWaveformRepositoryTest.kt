@@ -20,13 +20,15 @@ class DefaultWaveformRepositoryTest {
     @Test
     fun `levels keep their shape at one byte each`() =
         runTest {
-            repository.save(id, 100, listOf(0f, 0.5f, 1f, 2f))
+            repository.save(id, 100, listOf(0f, 0.5f, 1f, 2f, Float.NaN))
 
             val levels = repository.levels(id).first()!!
             assertThat(levels[0]).isEqualTo(0f)
             assertThat(levels[1]).isWithin(1 / 255f).of(0.5f)
             // Out of range is clamped.
-            assertThat(levels.drop(2)).containsExactly(1f, 1f)
+            assertThat(levels.subList(2, 4)).containsExactly(1f, 1f)
+            // Not a number (a broken decode) is stored as silence, never a crash.
+            assertThat(levels.last()).isEqualTo(0f)
         }
 
     @Test

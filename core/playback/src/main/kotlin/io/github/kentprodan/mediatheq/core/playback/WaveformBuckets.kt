@@ -4,49 +4,61 @@ import java.nio.FloatBuffer
 import kotlin.math.sqrt
 
 /**
- * Folds decoded float PCM (interleaved [channels]) into a waveform (#124, ADR 0027): the loudness (RMS) of each of
- * `count` equal parts of the track, normalized to the loudest part. Keeps one sum per small chunk while decoding, so
- * it never needs the track's length up front (unreliable for VBR MP3 and Opus) nor the whole PCM in memory.
+ * Folds decoded float PCM into a waveform (#124, ADR 0027): the loudness (RMS) of each of `count` equal parts of the
+ * track, normalized to the loudest part. Keeps one sum per small chunk of frames while decoding, so it never needs the
+ * track's length up front (unreliable for VBR MP3 and Opus) nor the whole PCM in memory. The channel count may change
+ * between buffers (a decoder switching from mono to stereo); chunks stay the same length in time.
  */
 internal class WaveformBuckets(
-    private val channels: Int,
-    chunkFrames: Int = CHUNK_FRAMES,
+    private val chunkFrames: Int = CHUNK_FRAMES,
 ) {
-    private val chunkSamples = chunkFrames * channels
     private val chunkSums = ArrayList<Double>()
+    private val chunkSamples = ArrayList<Int>()
     private var sum = 0.0
     private var samples = 0
+    private var frames = 0
+    private var channel = 0
 
-    init {
+    /**
+     * Adds the remaining samples of [pcm], interleaved [channels]. Values beyond -1..1 (a clipped master) count as full
+     * scale; a sample that is not a number (a broken decode) counts as silence.
+     */
+    fun add(
+        pcm: FloatBuffer,
+        channels: Int,
+    ) {
         require(channels > 0) { "channels must be positive" }
-    }
-
-    /** Adds the remaining samples of [pcm] (values beyond -1..1, a clipped master, count as full scale). */
-    fun add(pcm: FloatBuffer) {
         while (pcm.hasRemaining()) {
-            val sample = pcm.get().coerceIn(-1f, 1f)
+            val raw = pcm.get()
+            val sample = if (raw.isNaN()) 0f else raw.coerceIn(-1f, 1f)
             sum += sample * sample
-            if (++samples == chunkSamples) {
-                chunkSums += sum
-                sum = 0.0
-                samples = 0
+            samples++
+            if (++channel >= channels) {
+                channel = 0
+                if (++frames == chunkFrames) {
+                    chunkSums += sum
+                    chunkSamples += samples
+                    sum = 0.0
+                    samples = 0
+                    frames = 0
+                }
             }
         }
     }
 
     /**
      * The waveform: [count] levels in play order, 0..1, the loudest 1. Silence (or nothing decoded) is all 0. A track
-     * with fewer chunks than [count] repeats its chunks; the last, partial chunk counts by its own length.
+     * with fewer chunks than [count] repeats its chunks; the last, partial chunk counts by its own samples.
      */
     fun levels(count: Int = LEVEL_COUNT): List<Float> {
-        // The partial chunk as a mean square of its own samples, scaled to a whole chunk so it weighs alike.
-        val chunks = if (samples > 0) chunkSums + sum / samples * chunkSamples else chunkSums
-        if (chunks.isEmpty()) return List(count) { 0f }
+        val sums = if (samples > 0) chunkSums + sum else chunkSums
+        val counts = if (samples > 0) chunkSamples + samples else chunkSamples
+        if (sums.isEmpty()) return List(count) { 0f }
         val rms =
             List(count) { bucket ->
-                val start = bucket * chunks.size / count
-                val end = maxOf(start + 1, (bucket + 1) * chunks.size / count)
-                sqrt(chunks.subList(start, end).sum() / ((end - start) * chunkSamples))
+                val start = bucket * sums.size / count
+                val end = maxOf(start + 1, (bucket + 1) * sums.size / count)
+                sqrt(sums.subList(start, end).sum() / counts.subList(start, end).sum())
             }
         val loudest = rms.max()
         return if (loudest == 0.0) List(count) { 0f } else rms.map { (it / loudest).toFloat() }
