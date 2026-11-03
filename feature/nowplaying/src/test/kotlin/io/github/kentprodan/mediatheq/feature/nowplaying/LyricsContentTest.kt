@@ -33,7 +33,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, qualifiers = "w412dp-h915dp-xxhdpi")
-class LyricsScreenTest {
+class LyricsContentTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 

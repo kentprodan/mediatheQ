@@ -39,6 +39,8 @@ data class AudioOutputInfo(
     val bitPerfectSupported: Boolean = true,
     /** The playing track is Dolby Atmos, but this device and output cannot play it: it plays as a stereo conversion. */
     val atmosConverted: Boolean = false,
+    /** The queue item [streamKnown] and [convertedKbps] describe; they arrive apart from the item itself. */
+    val playedItemId: String? = null,
     /** The playing track's stream is resolved, so [convertedKbps] is known (#125); until then no quality is shown. */
     val streamKnown: Boolean = false,
     /** The bitrate of the server's conversion that plays (Opus); `null` when the original file plays (#125). */

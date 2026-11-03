@@ -323,6 +323,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 played = {
                     val method = currentPlayMethod()
                     PlayedStream(
+                        itemId = player.currentMediaItem?.mediaId,
                         known = method != null,
                         convertedKbps =
                             method?.let {
@@ -392,6 +393,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             bitPerfectNoMatch = bitPerfectNoMatch,
             bitPerfectSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             atmosConverted = atmosConverted,
+            playedItemId = played.itemId,
             streamKnown = played.known,
             convertedKbps = played.convertedKbps,
         )

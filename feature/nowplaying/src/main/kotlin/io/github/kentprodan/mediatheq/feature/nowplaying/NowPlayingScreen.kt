@@ -40,11 +40,16 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -56,6 +61,7 @@ import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Velocity
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
@@ -222,16 +228,16 @@ private fun CoverOrLyrics(
     modifier: Modifier,
 ) {
     Box(modifier.swipeToChangeTrack(state.hasPrevious, state.hasNext, onAction)) {
+        // Always there (under the lyrics too), so the cover still flies to and from the mini player.
+        MqPlayerCover(model = cover, modifier = coverModifier, blurHash = state.artwork?.blurHash)
         if (state.lyricsShown) {
             Surface(
-                Modifier.widthLimitedSquare(),
+                Modifier.matchParentSize(),
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surfaceContainer,
             ) {
                 LyricsContent(lyrics, position, state.isSeekable, onAction)
             }
-        } else {
-            MqPlayerCover(model = cover, modifier = coverModifier, blurHash = state.artwork?.blurHash)
         }
         MqIconToggle(
             checked = state.lyricsShown,
@@ -242,9 +248,6 @@ private fun CoverOrLyrics(
         )
     }
 }
-
-/** The lyrics fill the same square the cover does (at most as wide as the cover). */
-private fun Modifier.widthLimitedSquare() = then(Modifier.widthIn(max = MediatheqSizes.playerCoverMax).aspectRatio(1f))
 
 /** Title (marquee) with favorite and the track menu, then the artists and the album, each opening its page. */
 @Composable
@@ -279,7 +282,10 @@ private fun TitleBlock(
                     overflow = TextOverflow.Ellipsis,
                     modifier =
                         if (albumId != null) {
-                            Modifier.clickable(onClickLabel = openAlbum, role = Role.Button) {
+                            Modifier.minimumInteractiveComponentSize().clickable(
+                                onClickLabel = openAlbum,
+                                role = Role.Button,
+                            ) {
                                 navigation.onOpenAlbum(albumId)
                             }
                         } else {
@@ -333,7 +339,10 @@ private fun ArtistsLine(
             overflow = TextOverflow.Ellipsis,
             modifier =
                 if (state.artists.isNotEmpty()) {
-                    Modifier.clickable(onClickLabel = openArtist, role = Role.Button) {
+                    Modifier.minimumInteractiveComponentSize().clickable(
+                        onClickLabel = openArtist,
+                        role = Role.Button,
+                    ) {
                         val only = state.artists.singleOrNull()
                         if (only != null) navigation.onOpenArtist(only.id) else picking = true
                     }
@@ -472,19 +481,17 @@ private fun BottomBarButtons(
     onAction: (NowPlayingAction) -> Unit,
     navigation: NowPlayingNavigation,
 ) {
-    run {
-        IconButton(onClick = navigation.onOpenQueue) {
-            Icon(MqIcons.QueueMusic, contentDescription = stringResource(R.string.nowplaying_queue_open))
-        }
-        MqIconToggle(
-            checked = state.lyricsShown,
-            onClick = { onAction(NowPlayingAction.ToggleLyrics) },
-            icon = MqIcons.Lyrics,
-            contentDescription = stringResource(R.string.nowplaying_lyrics),
-        )
-        IconButton(onClick = navigation.onOpenEqualizer) {
-            Icon(MqIcons.GraphicEq, contentDescription = stringResource(R.string.nowplaying_equalizer))
-        }
+    IconButton(onClick = navigation.onOpenQueue) {
+        Icon(MqIcons.QueueMusic, contentDescription = stringResource(R.string.nowplaying_queue_open))
+    }
+    MqIconToggle(
+        checked = state.lyricsShown,
+        onClick = { onAction(NowPlayingAction.ToggleLyrics) },
+        icon = MqIcons.Lyrics,
+        contentDescription = stringResource(R.string.nowplaying_lyrics),
+    )
+    IconButton(onClick = navigation.onOpenEqualizer) {
+        Icon(MqIcons.GraphicEq, contentDescription = stringResource(R.string.nowplaying_equalizer))
     }
 }
 
@@ -567,13 +574,42 @@ private fun Modifier.swipeToChangeTrack(
         )
 }
 
-/** Closes on a downward fling, or a drag over a quarter of the screen. */
+/**
+ * Closes on a downward fling, or a drag over a quarter of the screen. Scrolling children (the lyrics, the landscape
+ * column) take vertical drags first; what they leave over at their top counts as a pull down too.
+ */
 @Composable
 internal fun Modifier.swipeDownToCollapse(onCollapse: () -> Unit): Modifier {
     var height by remember { mutableIntStateOf(0) }
     var dragged by remember { mutableFloatStateOf(0f) }
     val flingVelocity = flingVelocityPx()
+    val collapse by rememberUpdatedState(onCollapse)
+    val pulled =
+        remember(flingVelocity) {
+            object : NestedScrollConnection {
+                var distance = 0f
+
+                override fun onPostScroll(
+                    consumed: Offset,
+                    available: Offset,
+                    source: NestedScrollSource,
+                ): Offset {
+                    if (source == NestedScrollSource.UserInput && available.y > 0) distance += available.y
+                    return Offset.Zero
+                }
+
+                override suspend fun onPostFling(
+                    consumed: Velocity,
+                    available: Velocity,
+                ): Velocity {
+                    if (available.y > flingVelocity || distance > height / 4f) collapse()
+                    distance = 0f
+                    return Velocity.Zero
+                }
+            }
+        }
     return onSizeChanged { height = it.height }
+        .nestedScroll(pulled)
         .draggable(
             state = rememberDraggableState { dragged += it },
             orientation = Orientation.Vertical,

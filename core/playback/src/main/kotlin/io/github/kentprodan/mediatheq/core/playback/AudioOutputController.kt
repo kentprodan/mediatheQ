@@ -5,6 +5,8 @@ package io.github.kentprodan.mediatheq.core.playback
  * restored queue is not); [convertedKbps] the bitrate of the server's conversion, `null` for the original file.
  */
 internal data class PlayedStream(
+    /** The item this describes ([androidx.media3.common.MediaItem.mediaId]); a track change makes it stale. */
+    val itemId: String? = null,
     val known: Boolean = false,
     val convertedKbps: Int? = null,
 )

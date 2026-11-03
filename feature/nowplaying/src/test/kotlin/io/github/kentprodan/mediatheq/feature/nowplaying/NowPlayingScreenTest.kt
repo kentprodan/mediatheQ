@@ -16,6 +16,8 @@ import androidx.compose.ui.test.swipe
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.LyricLine
+import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import org.junit.Rule
@@ -24,6 +26,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, qualifiers = "w412dp-h915dp-xxhdpi")
@@ -52,25 +55,28 @@ class NowPlayingScreenTest {
     private val actions = mutableListOf<NowPlayingAction>()
     private val opened = mutableListOf<String>()
 
-    private fun show(state: NowPlayingUiState.Playing = playing) =
-        composeRule.setContent {
-            MediatheqTheme {
-                NowPlayingScreen(
-                    state,
-                    position = { 1.minutes },
-                    onAction = { actions += it },
-                    onCollapse = { opened += "collapse" },
-                    navigation =
-                        NowPlayingNavigation(
-                            onOpenQueue = { opened += "queue" },
-                            onOpenArtist = { opened += "artist ${it.itemId}" },
-                            onOpenAlbum = { opened += "album ${it.itemId}" },
-                            onOpenEqualizer = { opened += "equalizer" },
-                            onAddToPlaylist = { opened += "playlist" },
-                        ),
-                )
-            }
+    private fun show(
+        state: NowPlayingUiState.Playing = playing,
+        lyrics: LyricsUiState = LyricsUiState.None,
+    ) = composeRule.setContent {
+        MediatheqTheme {
+            NowPlayingScreen(
+                state,
+                position = { 1.minutes },
+                onAction = { actions += it },
+                onCollapse = { opened += "collapse" },
+                lyrics = lyrics,
+                navigation =
+                    NowPlayingNavigation(
+                        onOpenQueue = { opened += "queue" },
+                        onOpenArtist = { opened += "artist ${it.itemId}" },
+                        onOpenAlbum = { opened += "album ${it.itemId}" },
+                        onOpenEqualizer = { opened += "equalizer" },
+                        onAddToPlaylist = { opened += "playlist" },
+                    ),
+            )
         }
+    }
 
     @Test
     fun `the cover button and the bottom bar both toggle the lyrics`() {
@@ -162,6 +168,22 @@ class NowPlayingScreenTest {
                         config.contains(androidx.compose.ui.semantics.SemanticsProperties.Text)
                 assertThat(named).isTrue()
             }
+    }
+
+    @Test
+    fun `a pull down over the lyrics at their top closes the player`() {
+        // The first line starts after the position: the list rests at its top.
+        val lines = Lyrics((0 until 40).map { LyricLine("Line $it", (120 + it * 5).seconds) })
+        show(playing.copy(lyricsShown = true), LyricsUiState.Content(lines))
+
+        composeRule.onRoot().performTouchInput {
+            val x = width * 0.5f
+            swipe(Offset(x, height * 0.15f), Offset(x, height * 0.6f))
+        }
+        // The fling after the drag runs in the composition's coroutines.
+        composeRule.waitForIdle()
+
+        assertThat(opened).contains("collapse")
     }
 
     private companion object {

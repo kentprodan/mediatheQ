@@ -91,12 +91,11 @@ class NowPlayingViewModel
                         artists = track?.artists.orEmpty(),
                         albumId = track?.albumId,
                         albumTitle = track?.albumTitle,
+                        // The output extras arrive apart from the item: only this item's count.
                         quality =
-                            qualityLabel(
-                                track?.audioFormat,
-                                state.output.streamKnown,
-                                state.output.convertedKbps,
-                            ),
+                            state.output
+                                .takeIf { it.playedItemId == state.item?.id?.toString() }
+                                ?.let { qualityLabel(track?.audioFormat, it.streamKnown, it.convertedKbps) },
                         qualityDetail = qualityDetail,
                         lyricsShown = lyrics,
                     )

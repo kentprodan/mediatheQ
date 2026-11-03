@@ -614,17 +614,24 @@ class NowPlayingViewModelTest {
                 // The stream is not resolved yet: no label rather than a wrong one.
                 assertThat(shown.quality).isNull()
 
-                playback.state.value = playing.copy(output = AudioOutputInfo(streamKnown = true))
+                playback.state.value = playing.copy(output = AudioOutputInfo(playedItemId = "s:t1", streamKnown = true))
                 shown = awaitItem() as NowPlayingUiState.Playing
                 assertThat(shown.quality?.kind).isEqualTo(QualityKind.HiResLossless)
 
-                playback.state.value = playing.copy(output = AudioOutputInfo(streamKnown = true, convertedKbps = 128))
+                playback.state.value =
+                    playing.copy(
+                        output = AudioOutputInfo(playedItemId = "s:t1", streamKnown = true, convertedKbps = 128),
+                    )
                 shown = awaitItem() as NowPlayingUiState.Playing
                 assertThat(shown.quality).isEqualTo(QualityLabel(QualityKind.HighEfficiency, "Opus · 128 kb/s"))
 
-                // Another track whose row is not read yet: nothing of the previous one shows.
+                // Another track, its row not read yet and the output still the previous track's: nothing of it shows.
                 val next = playing.item!!.copy(id = MediaId(ServerId("s"), "t2"))
-                playback.state.value = playing.copy(item = next, output = AudioOutputInfo(streamKnown = true))
+                playback.state.value =
+                    playing.copy(
+                        item = next,
+                        output = AudioOutputInfo(playedItemId = "s:t1", streamKnown = true, convertedKbps = 128),
+                    )
                 shown = expectMostRecentItem() as NowPlayingUiState.Playing
                 assertThat(shown.artists).isEmpty()
                 assertThat(shown.albumId).isNull()

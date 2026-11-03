@@ -94,4 +94,12 @@ class QualityLabelTest {
         assertThat(label(atmos)).isEqualTo(QualityLabel(QualityKind.DolbyAtmos, "E-AC-3 · 768 kb/s"))
         assertThat(label(atmos, convertedKbps = 256)?.kind).isEqualTo(QualityKind.HighQuality)
     }
+
+    @Test
+    fun `TrueHD and DSD are lossless`() {
+        assertThat(label(AudioFormat("truehd", sampleRateHz = 48_000, bitDepth = 24))?.kind)
+            .isEqualTo(QualityKind.HiResLossless)
+        assertThat(label(AudioFormat("dsd_lsbf_planar", sampleRateHz = 2_822_400, bitDepth = 1)))
+            .isEqualTo(QualityLabel(QualityKind.HiResLossless, "DSD · 1/2822.4"))
+    }
 }

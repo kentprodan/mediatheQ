@@ -212,6 +212,7 @@ fun NowPlayingLyricsScreenshot() {
 @PreviewTest
 @Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
 @Preview(name = "Landscape dark", device = "spec:width=915dp,height=412dp,dpi=420", uiMode = UI_MODE_NIGHT_YES)
+@Preview(name = "Landscape 2x", device = "spec:width=915dp,height=412dp,dpi=420", fontScale = 2f)
 @Composable
 fun NowPlayingLandscapeScreenshot() {
     MediatheqTheme { Screen(playing) }
@@ -221,6 +222,7 @@ fun NowPlayingLandscapeScreenshot() {
 @PreviewTest
 @Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
 @Preview(name = "Landscape 2x", device = "spec:width=915dp,height=412dp,dpi=420", fontScale = 2f)
+@Preview(name = "Landscape dark", device = "spec:width=915dp,height=412dp,dpi=420", uiMode = UI_MODE_NIGHT_YES)
 @Composable
 fun NowPlayingLandscapeLyricsScreenshot() {
     MediatheqTheme { Screen(playing.copy(lyricsShown = true), previewLyrics) }

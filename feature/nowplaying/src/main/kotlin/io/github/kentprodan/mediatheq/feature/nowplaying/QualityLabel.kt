@@ -48,7 +48,7 @@ private fun lossyKind(kbps: Int) =
     }
 
 // Jellyfin names WAV and AIFF by their PCM sample format (pcm_s16le, pcm_s24be, ...).
-private fun String.isLossless() = this in LOSSLESS_CODECS || startsWith("pcm_")
+private fun String.isLossless() = this in LOSSLESS_CODECS || startsWith("pcm_") || startsWith("dsd_")
 
 private fun AudioFormat.isHiRes() = (bitDepth ?: 0) > CD_BIT_DEPTH || (sampleRateHz ?: 0) > HI_RES_RATE_HZ
 
@@ -66,10 +66,15 @@ private fun kiloHertz(hz: Int): String {
 
 private fun codecName(codec: String): String {
     val lower = codec.lowercase()
-    return CODEC_NAMES[lower] ?: if (lower.startsWith("pcm_")) "PCM" else lower.uppercase()
+    return CODEC_NAMES[lower] ?: when {
+        lower.startsWith("pcm_") -> "PCM"
+        lower.startsWith("dsd_") -> "DSD"
+        else -> lower.uppercase()
+    }
 }
 
-private val LOSSLESS_CODECS = setOf("flac", "alac", "ape", "wavpack", "wv", "wav", "aiff", "tta", "dsd")
+private val LOSSLESS_CODECS =
+    setOf("flac", "alac", "ape", "wavpack", "wv", "wav", "aiff", "tta", "dsd", "truehd", "mlp")
 
 private val CODEC_NAMES =
     mapOf(
