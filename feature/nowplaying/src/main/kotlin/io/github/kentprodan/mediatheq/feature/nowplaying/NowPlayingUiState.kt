@@ -34,6 +34,8 @@ sealed interface NowPlayingUiState {
         val bitPerfectSampleRateHz: Int? = null,
         /** The track is Dolby Atmos but plays as a stereo conversion: this device and output cannot play Atmos. */
         val atmosConverted: Boolean = false,
+        /** The track's waveform (0..1 levels, #124); `null` until it is computed, or for a converted stream. */
+        val waveform: List<Float>? = null,
     ) : NowPlayingUiState
 }
 

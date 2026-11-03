@@ -94,6 +94,14 @@ fun NowPlayingFavoriteRatedScreenshot() {
     MediatheqTheme { Screen(playing.copy(isFavorite = true, halfStars = 8)) }
 }
 
+/** The track's waveform, computed on the device (#124), as the seek bar. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingWaveformScreenshot() {
+    MediatheqTheme { Screen(playing.copy(waveform = List(200) { (0.3f + 0.7f * ((it * 37) % 100) / 100f) })) }
+}
+
 /** A Dolby Atmos track this phone cannot play: the server's stereo version, and the note saying so. */
 @PreviewTest
 @MqPreviews

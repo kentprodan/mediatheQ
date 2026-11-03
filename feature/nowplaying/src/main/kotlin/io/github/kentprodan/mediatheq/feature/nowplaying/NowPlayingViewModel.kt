@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LyricsRepository
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.WaveformRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.UserData
@@ -41,7 +42,15 @@ class NowPlayingViewModel
         private val userData: UserDataRepository,
         private val lyricsRepository: LyricsRepository,
         libraryPreferences: LibraryPreferencesRepository,
+        waveforms: WaveformRepository,
     ) : ViewModel() {
+        // Computed on the device (#124): appears while the track plays, once its file is whole.
+        private val playingWaveform: Flow<Pair<MediaId, List<Float>?>?> =
+            playback.state
+                .map { it.item?.id }
+                .distinctUntilChanged()
+                .flatMapLatest { id -> if (id == null) flowOf(null) else waveforms.levels(id).map { id to it } }
+
         // Favorite and rating come from Room, so a change made here or in another client shows at once.
         private val playingUserData: Flow<Pair<MediaId, UserData>?> =
             playback.state
@@ -62,9 +71,12 @@ class NowPlayingViewModel
                 playback.state,
                 playingUserData,
                 libraryPreferences.preferences.map { it.ratingMode }.distinctUntilChanged(),
-            ) { state, data, ratingMode ->
-                // Until the new track's row arrives, the previous track's user data must not show.
-                state.toUiState(data?.takeIf { it.first == state.item?.id }?.second, ratingMode)
+                playingWaveform,
+            ) { state, data, ratingMode, waveform ->
+                // Until the new track's rows arrive, the previous track's user data and waveform must not show.
+                val ui = state.toUiState(data?.takeIf { it.first == state.item?.id }?.second, ratingMode)
+                val levels = waveform?.takeIf { it.first == state.item?.id }?.second
+                if (ui is NowPlayingUiState.Playing) ui.copy(waveform = levels) else ui
             }.stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
