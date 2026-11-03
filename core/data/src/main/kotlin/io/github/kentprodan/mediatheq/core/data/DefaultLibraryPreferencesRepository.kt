@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.data
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredMediaLists
 import io.github.kentprodan.mediatheq.core.datastore.StoredNavigation
+import io.github.kentprodan.mediatheq.core.datastore.StoredNowPlaying
 import io.github.kentprodan.mediatheq.core.datastore.StoredTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -31,6 +32,7 @@ class DefaultLibraryPreferencesRepository
                     theme = theme(stored.theme, stored.dynamicColor),
                     navigation = navigation(stored.navigation),
                     mediaLists = mediaLists(stored.mediaLists),
+                    nowPlaying = nowPlaying(stored.nowPlaying),
                     qualityDetail = stored.qualityDetail ?: false,
                 )
             }
@@ -126,6 +128,40 @@ class DefaultLibraryPreferencesRepository
             )
 
         override suspend fun restoreMediaListsDefaults() = store.setMediaLists(StoredMediaLists())
+
+        override suspend fun setNowPlaying(nowPlaying: NowPlayingPreferences) =
+            store.setNowPlaying(
+                StoredNowPlaying(
+                    floatingMiniPlayer = nowPlaying.floatingMiniPlayer,
+                    miniSwipeToSkip = nowPlaying.miniSwipeToSkip,
+                    miniProgress = nowPlaying.miniProgress.name,
+                    background = nowPlaying.background.name,
+                    progress = nowPlaying.progress.name,
+                    fallback = nowPlaying.fallback.name,
+                    showRating = nowPlaying.showRating,
+                    coverTap = nowPlaying.coverTap.name,
+                    coverSwipe = nowPlaying.coverSwipe,
+                    playButtonWhenPaused = nowPlaying.playButtonWhenPaused,
+                ),
+            )
+
+        override suspend fun restoreNowPlayingDefaults() = store.setNowPlaying(StoredNowPlaying())
+
+        private fun nowPlaying(stored: StoredNowPlaying): NowPlayingPreferences {
+            val defaults = NowPlayingPreferences()
+            return NowPlayingPreferences(
+                floatingMiniPlayer = stored.floatingMiniPlayer ?: defaults.floatingMiniPlayer,
+                miniSwipeToSkip = stored.miniSwipeToSkip ?: defaults.miniSwipeToSkip,
+                miniProgress = enumOrNull<MiniProgress>(stored.miniProgress) ?: defaults.miniProgress,
+                background = enumOrNull<PlayerBackground>(stored.background) ?: defaults.background,
+                progress = enumOrNull<PlayerProgress>(stored.progress) ?: defaults.progress,
+                fallback = enumOrNull<ProgressFallback>(stored.fallback) ?: defaults.fallback,
+                showRating = stored.showRating ?: defaults.showRating,
+                coverTap = enumOrNull<CoverTap>(stored.coverTap) ?: defaults.coverTap,
+                coverSwipe = stored.coverSwipe ?: defaults.coverSwipe,
+                playButtonWhenPaused = stored.playButtonWhenPaused ?: defaults.playButtonWhenPaused,
+            )
+        }
 
         private fun mediaLists(stored: StoredMediaLists): MediaListPreferences {
             val defaults = MediaListPreferences()

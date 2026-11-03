@@ -448,4 +448,66 @@ class DefaultLibraryPreferencesRepositoryTest {
             assertThat(repository.preferences.first())
                 .isEqualTo(LibraryPreferences(ratingMode = RatingMode.HalfStars, navigation = navigation))
         }
+
+    @Test
+    fun `now playing screens defaults are the ones of the issue`() =
+        runTest {
+            assertThat(repository.preferences.first().nowPlaying)
+                .isEqualTo(
+                    NowPlayingPreferences(
+                        floatingMiniPlayer = true,
+                        miniSwipeToSkip = true,
+                        miniProgress = MiniProgress.Background,
+                        background = PlayerBackground.Gradient,
+                        progress = PlayerProgress.WaveformSharp,
+                        fallback = ProgressFallback.Basic,
+                        showRating = true,
+                        coverTap = CoverTap.PlayPause,
+                        coverSwipe = true,
+                        playButtonWhenPaused = false,
+                    ),
+                )
+        }
+
+    @Test
+    fun `every now playing choice is kept, unknown stored values fall back`() =
+        runTest {
+            val chosen =
+                NowPlayingPreferences(
+                    floatingMiniPlayer = false,
+                    miniSwipeToSkip = false,
+                    miniProgress = MiniProgress.Line,
+                    background = PlayerBackground.Theme,
+                    progress = PlayerProgress.Wavy,
+                    fallback = ProgressFallback.Wavy,
+                    showRating = false,
+                    coverTap = CoverTap.ShowLyrics,
+                    coverSwipe = false,
+                    playButtonWhenPaused = true,
+                )
+            repository.setNowPlaying(chosen)
+            assertThat(repository.preferences.first().nowPlaying).isEqualTo(chosen)
+
+            dataStore.edit {
+                it[stringPreferencesKey("np_progress")] = "Spectrum"
+                it[stringPreferencesKey("np_cover_tap")] = "Like"
+            }
+            val read = repository.preferences.first().nowPlaying
+            assertThat(read.progress).isEqualTo(PlayerProgress.WaveformSharp)
+            assertThat(read.coverTap).isEqualTo(CoverTap.PlayPause)
+        }
+
+    @Test
+    fun `restoring the now playing defaults resets only that page`() =
+        runTest {
+            val lists = MediaListPreferences(trackInfo = TrackInfo.Bitrate)
+            repository.setMediaLists(lists)
+            repository.setQualityDetail(true)
+            repository.setNowPlaying(NowPlayingPreferences(background = PlayerBackground.Solid, coverSwipe = false))
+
+            repository.restoreNowPlayingDefaults()
+
+            assertThat(repository.preferences.first())
+                .isEqualTo(LibraryPreferences(mediaLists = lists, qualityDetail = true))
+        }
 }

@@ -27,6 +27,11 @@ interface LibraryPreferencesRepository {
     /** Settings -> Media lists -> Restore defaults: only that page goes back to its defaults. */
     suspend fun restoreMediaListsDefaults()
 
+    suspend fun setNowPlaying(nowPlaying: NowPlayingPreferences)
+
+    /** Settings -> Now playing screens -> Restore defaults: only that page goes back to its defaults (#126). */
+    suspend fun restoreNowPlayingDefaults()
+
     suspend fun setRatingMode(mode: RatingMode)
 
     /** Now Playing's quality label: the format detail or its kind (#125). */
