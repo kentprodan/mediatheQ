@@ -2,7 +2,13 @@ package io.github.kentprodan.mediatheq.feature.nowplaying
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -14,6 +20,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.CoverTap
+import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.LyricLine
@@ -185,6 +193,46 @@ class NowPlayingScreenTest {
 
         assertThat(opened).contains("collapse")
     }
+
+    @Test
+    fun `a tap on the cover sends the cover action, none when the setting is None`() {
+        var settings by mutableStateOf(NowPlayingPreferences())
+        composeRule.setContent {
+            MediatheqTheme {
+                NowPlayingScreen(playing.copy(settings = settings), { 1.minutes }, { actions += it }, onCollapse = {})
+            }
+        }
+
+        composeRule.onNode(hasClickLabel("Play or pause")).performClick()
+        settings = NowPlayingPreferences(coverTap = CoverTap.None)
+        composeRule.waitForIdle()
+
+        assertThat(actions).containsExactly(NowPlayingAction.CoverTapped)
+        composeRule.onNode(hasClickLabel("Play or pause")).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the play button over the cover shows while paused and plays`() {
+        show(playing.copy(isPlaying = false, settings = NowPlayingPreferences(playButtonWhenPaused = true)))
+
+        // The transport's own Play comes after the one over the cover.
+        composeRule.onAllNodesWithContentDescription("Play")[0].performClick()
+
+        assertThat(actions).containsExactly(NowPlayingAction.TogglePlayPause)
+    }
+
+    @Test
+    fun `with cover swipe off a swipe on the cover changes nothing`() {
+        show(playing.copy(settings = NowPlayingPreferences(coverSwipe = false)))
+
+        swipeOnCover(toLeft = true)
+
+        // The finger lifting on the cover may count as its tap; it never changes track.
+        assertThat(actions).containsNoneOf(NowPlayingAction.Next, NowPlayingAction.Previous)
+    }
+
+    private fun hasClickLabel(label: String) =
+        SemanticsMatcher("click label $label") { it.config.getOrNull(SemanticsActions.OnClick)?.label == label }
 
     private companion object {
         const val COVER_HEIGHT_FRACTION = 0.3f

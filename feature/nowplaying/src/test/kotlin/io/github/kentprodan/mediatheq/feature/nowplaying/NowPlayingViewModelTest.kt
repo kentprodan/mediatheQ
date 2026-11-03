@@ -4,7 +4,10 @@ import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.CoverTap
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
+import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
+import io.github.kentprodan.mediatheq.core.data.PlayerProgress
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
@@ -674,4 +677,45 @@ class NowPlayingViewModelTest {
 
             assertThat(downloads.downloads.value.map { it.track.id }).containsExactly(playingTrack.id)
         }
+
+    @Test
+    fun `a cover tap runs the chosen action, and a plain bar style reads no waveform`() =
+        runTest {
+            playback.state.value = playing
+            val viewModel =
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
+            waveforms.save(playing.item!!.id, 100, listOf(0.5f))
+            viewModel.uiState.test {
+                assertThat((awaitItem() as NowPlayingUiState.Playing).waveform).isNotNull()
+
+                viewModel.onAction(NowPlayingAction.CoverTapped)
+                assertThat(playback.commands).containsExactly("togglePlayPause")
+
+                libraryPreferences.setNowPlaying(
+                    NowPlayingPreferences(coverTap = CoverTap.ShowLyrics, progress = PlayerProgress.Basic),
+                )
+                // The settings and then the dropped waveform arrive one after the other.
+                var shown = awaitItem() as NowPlayingUiState.Playing
+                while (shown.waveform != null) shown = awaitItem() as NowPlayingUiState.Playing
+                assertThat(shown.settings.coverTap).isEqualTo(CoverTap.ShowLyrics)
+
+                viewModel.onAction(NowPlayingAction.CoverTapped)
+                assertThat((awaitItem() as NowPlayingUiState.Playing).lyricsShown).isTrue()
+
+                libraryPreferences.setNowPlaying(NowPlayingPreferences(coverTap = CoverTap.None))
+                skipItems(1)
+                viewModel.onAction(NowPlayingAction.CoverTapped)
+                assertThat(playback.commands).containsExactly("togglePlayPause")
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `the stars show only with the switch on and ratings on`() {
+        val base = NowPlayingUiState.Playing("t", "a", null, true, 1.minutes, true, true, true)
+
+        assertThat(base.showsRating).isTrue()
+        assertThat(base.copy(settings = NowPlayingPreferences(showRating = false)).showsRating).isFalse()
+        assertThat(base.copy(ratingMode = RatingMode.Off).showsRating).isFalse()
+    }
 }

@@ -45,7 +45,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
+import io.github.kentprodan.mediatheq.core.data.MiniProgress
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqMiniPlayer
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqMiniProgress
 import io.github.kentprodan.mediatheq.core.designsystem.motion.LocalNavAnimatedVisibilityScope
 import io.github.kentprodan.mediatheq.core.designsystem.motion.LocalSharedTransitionScope
 import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedCover
@@ -68,7 +70,7 @@ import kotlin.time.Duration
  */
 @Composable
 fun NowPlayingHost(
-    content: @Composable (miniPlayer: @Composable () -> Unit) -> Unit,
+    content: @Composable (miniPlayer: @Composable (onBottomBar: Boolean) -> Unit) -> Unit,
     viewModel: NowPlayingViewModel = hiltViewModel(),
     snackbarHost: @Composable () -> Unit = {},
     /** Opens a page or dialog behind the player (artist, album, Audio settings, Add to playlist, #125). */
@@ -97,7 +99,7 @@ fun NowPlayingLayout(
     state: NowPlayingUiState,
     positions: StateFlow<Duration>,
     onAction: (NowPlayingAction) -> Unit,
-    content: @Composable (miniPlayer: @Composable () -> Unit) -> Unit,
+    content: @Composable (miniPlayer: @Composable (onBottomBar: Boolean) -> Unit) -> Unit,
     expandedInitially: Boolean = false,
     queue: StateFlow<List<QueueItem>> = NoQueue,
     lyrics: StateFlow<LyricsUiState> = NoLyrics,
@@ -127,13 +129,15 @@ fun NowPlayingLayout(
     val artwork = shown?.artwork
     val coverScheme = rememberCoverColorScheme(artwork?.let { "${it.itemId}:${it.tag}" }, artwork, cache)
     val motion = MaterialTheme.motionScheme
+    // The Theme background style (#126) uses the app theme, not the cover's scheme.
+    val themeBackground = MaterialTheme.colorScheme.let { it.surface to it.onSurface }
 
     SharedTransitionLayout {
         val sharedScope = this
         Box(Modifier.fillMaxSize()) {
             // While the player covers the shell, TalkBack must not reach the screens and the bar behind it.
             Box(Modifier.semantics { if (expanded) hideFromAccessibility() }) {
-                content {
+                content { onBottomBar ->
                     // Size changes only when the queue appears or empties, so opening the player never re-lays out
                     // the screen behind it.
                     AnimatedVisibility(
@@ -150,6 +154,18 @@ fun NowPlayingLayout(
                         MiniPlayerSlot(expanded) {
                             PlayerScope(sharedScope, this) {
                                 shown?.let { playing ->
+                                    val settings = playing.settings
+                                    // Docked only on the bottom bar (#126); with a toolbar, a rail or no navigation
+                                    // it stays a floating pill.
+                                    val docked = onBottomBar && !settings.floatingMiniPlayer
+                                    val miniProgress = settings.miniProgress.toMq()
+                                    // Sampled only when the mini player shows the position.
+                                    val position =
+                                        if (miniProgress != MqMiniProgress.Hidden && !expanded) {
+                                            positions.collectAsStateWithLifecycle()
+                                        } else {
+                                            null
+                                        }
                                     MqCoverTheme(coverScheme) {
                                         MqMiniPlayer(
                                             title = playing.title,
@@ -162,13 +178,32 @@ fun NowPlayingLayout(
                                             onOpen = { expanded = true },
                                             modifier =
                                                 Modifier
-                                                    .padding(
-                                                        start = MediatheqSpacing.l,
-                                                        end = MediatheqSpacing.l,
-                                                        bottom = MediatheqSpacing.s,
-                                                    ).swipeUpToExpand { expanded = true },
+                                                    .then(
+                                                        if (docked) {
+                                                            Modifier
+                                                        } else {
+                                                            Modifier.padding(
+                                                                start = MediatheqSpacing.l,
+                                                                end = MediatheqSpacing.l,
+                                                                bottom = MediatheqSpacing.s,
+                                                            )
+                                                        },
+                                                    ).swipeUpToExpand { expanded = true }
+                                                    .swipeToChangeTrack(
+                                                        playing.hasPrevious,
+                                                        playing.hasNext,
+                                                        onAction,
+                                                        enabled = settings.miniSwipeToSkip,
+                                                    ),
                                             coverBlurHash = playing.artwork?.blurHash,
                                             coverModifier = Modifier.mqSharedCover(PLAYER_COVER_KEY),
+                                            docked = docked,
+                                            progressStyle = miniProgress,
+                                            progress = {
+                                                val duration = playing.duration
+                                                val at = position?.value ?: Duration.ZERO
+                                                if (duration.isPositive()) (at / duration).toFloat() else 0f
+                                            },
                                         )
                                     }
                                 }
@@ -218,7 +253,7 @@ fun NowPlayingLayout(
                                         }
 
                                         PlayerPanel.Player -> {
-                                            // Sampled only while the full player is open; the mini player shows no position.
+                                            // Sampled only while the full player is open (the mini player samples it itself when it shows it).
                                             val position = positions.collectAsStateWithLifecycle()
                                             NowPlayingScreen(
                                                 state = playing,
@@ -247,6 +282,7 @@ fun NowPlayingLayout(
                                                         },
                                                     ),
                                                 coverModifier = Modifier.mqSharedCover(PLAYER_COVER_KEY),
+                                                themeBackground = themeBackground,
                                             )
                                         }
                                     }
@@ -322,3 +358,10 @@ private val NoLyrics: StateFlow<LyricsUiState> = MutableStateFlow(LyricsUiState.
 
 /** What the full player shows: itself, or the queue opened from its bottom bar. */
 private enum class PlayerPanel { Player, Queue }
+
+private fun MiniProgress.toMq(): MqMiniProgress =
+    when (this) {
+        MiniProgress.Hidden -> MqMiniProgress.Hidden
+        MiniProgress.Line -> MqMiniProgress.Line
+        MiniProgress.Background -> MqMiniProgress.Background
+    }

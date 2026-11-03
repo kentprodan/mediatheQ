@@ -209,9 +209,6 @@ private fun NowPlayingChoices(
     }
 }
 
-private val PlayerProgress.usesWaveform: Boolean
-    get() = this != PlayerProgress.Basic && this != PlayerProgress.Wavy
-
 private val MiniProgress.label: Int
     get() =
         when (this) {

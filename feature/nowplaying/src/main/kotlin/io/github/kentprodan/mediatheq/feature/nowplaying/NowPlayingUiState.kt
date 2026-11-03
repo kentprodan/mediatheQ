@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.nowplaying
 
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
@@ -50,7 +51,12 @@ sealed interface NowPlayingUiState {
         val lyricsShown: Boolean = false,
         /** The playing track, for Add to playlist. */
         val trackId: MediaId? = null,
-    ) : NowPlayingUiState
+        /** Settings -> Now playing screens (#126): mini player and Now Playing looks and gestures. */
+        val settings: NowPlayingPreferences = NowPlayingPreferences(),
+    ) : NowPlayingUiState {
+        /** The stars show when the page's switch is on and ratings are not off. */
+        val showsRating: Boolean get() = settings.showRating && ratingMode != RatingMode.Off
+    }
 }
 
 /** What the Lyrics screen shows for the playing track. */
@@ -118,6 +124,9 @@ sealed interface NowPlayingAction {
 
     /** A tap on the quality label: its kind or its detail. */
     data object ToggleQualityDetail : NowPlayingAction
+
+    /** A tap on the cover, as chosen in Settings (play / pause, lyrics, nothing). */
+    data object CoverTapped : NowPlayingAction
 
     /** The track menu's Download. */
     data object Download : NowPlayingAction

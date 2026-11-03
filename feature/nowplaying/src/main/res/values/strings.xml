@@ -38,4 +38,10 @@
     <string name="nowplaying_quality_lossless">Lossless</string>
     <string name="nowplaying_quality_high">High quality</string>
     <string name="nowplaying_quality_efficient">High efficiency</string>
+    <string name="nowplaying_swipe_next">Next track</string>
+    <string name="nowplaying_swipe_previous">Previous track</string>
+    <string name="nowplaying_play_paused">Play</string>
+    <string name="nowplaying_cover_tap_play_pause">Play or pause</string>
+    <string name="nowplaying_cover_tap_lyrics">Show lyrics</string>
+    <string name="nowplaying_cover">Cover</string>
 </resources>

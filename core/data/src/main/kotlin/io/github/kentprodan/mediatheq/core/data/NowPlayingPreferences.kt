@@ -7,7 +7,18 @@ enum class MiniProgress { Hidden, Line, Background }
 enum class PlayerBackground { Solid, Gradient, Theme }
 
 /** Now Playing's progress bar: a waveform style, or a plain bar that never uses the waveform. */
-enum class PlayerProgress { WaveformSharp, WaveformSmooth, WaveformBars, WaveformBarsReflected, Basic, Wavy }
+enum class PlayerProgress {
+    WaveformSharp,
+    WaveformSmooth,
+    WaveformBars,
+    WaveformBarsReflected,
+    Basic,
+    Wavy,
+    ;
+
+    /** A waveform style; Basic and Wavy are plain bars that never use one. */
+    val usesWaveform: Boolean get() = this != Basic && this != Wavy
+}
 
 /** Now Playing's bar while a track has no waveform yet. */
 enum class ProgressFallback { Basic, Wavy }

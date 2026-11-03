@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.data.CoverTap
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
@@ -52,10 +53,14 @@ class NowPlayingViewModel
 
         // Computed on the device (#124): appears while the track plays, once its file is whole.
         private val playingWaveform: Flow<Pair<MediaId, List<Float>?>?> =
-            playback.state
-                .map { it.item?.id }
-                .distinctUntilChanged()
-                .flatMapLatest { id -> if (id == null) flowOf(null) else waveforms.levels(id).map { id to it } }
+            combine(
+                playback.state.map { it.item?.id }.distinctUntilChanged(),
+                // A plain bar as the chosen style (#126) never shows a waveform: none is read.
+                libraryPreferences.preferences.map { it.nowPlaying.progress.usesWaveform }.distinctUntilChanged(),
+                ::Pair,
+            ).flatMapLatest { (id, wanted) ->
+                if (id == null || !wanted) flowOf(null) else waveforms.levels(id).map { id to it }
+            }
 
         // Favorite, rating, artists, album and format come from Room, so a change made here or in another client
         // shows at once.
@@ -77,10 +82,12 @@ class NowPlayingViewModel
             combine(
                 playback.state,
                 playingTrack,
-                libraryPreferences.preferences.map { it.ratingMode to it.qualityDetail }.distinctUntilChanged(),
+                libraryPreferences.preferences
+                    .map { Triple(it.ratingMode, it.qualityDetail, it.nowPlaying) }
+                    .distinctUntilChanged(),
                 playingWaveform,
                 lyricsShown,
-            ) { state, data, (ratingMode, qualityDetail), waveform, lyrics ->
+            ) { state, data, (ratingMode, qualityDetail, settings), waveform, lyrics ->
                 // Until the new track's rows arrive, the previous track's data and waveform must not show.
                 val track = data?.takeIf { it.first == state.item?.id }?.second
                 val ui = state.toUiState(track?.userData, ratingMode)
@@ -98,6 +105,7 @@ class NowPlayingViewModel
                                 ?.let { qualityLabel(track?.audioFormat, it.streamKnown, it.convertedKbps) },
                         qualityDetail = qualityDetail,
                         lyricsShown = lyrics,
+                        settings = settings,
                     )
                 } else {
                     ui
@@ -234,6 +242,14 @@ class NowPlayingViewModel
 
                 NowPlayingAction.ToggleLyrics -> {
                     lyricsShown.value = !lyricsShown.value
+                }
+
+                NowPlayingAction.CoverTapped -> {
+                    when ((uiState.value as? NowPlayingUiState.Playing)?.settings?.coverTap) {
+                        CoverTap.PlayPause -> playback.togglePlayPause()
+                        CoverTap.ShowLyrics -> lyricsShown.value = true
+                        CoverTap.None, null -> Unit
+                    }
                 }
 
                 NowPlayingAction.ToggleQualityDetail -> {

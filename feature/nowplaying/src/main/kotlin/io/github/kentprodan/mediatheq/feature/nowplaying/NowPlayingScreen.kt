@@ -44,8 +44,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -55,20 +58,30 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
+import io.github.kentprodan.mediatheq.core.data.CoverTap
+import io.github.kentprodan.mediatheq.core.data.PlayerBackground
+import io.github.kentprodan.mediatheq.core.data.PlayerProgress
+import io.github.kentprodan.mediatheq.core.data.ProgressFallback
 import io.github.kentprodan.mediatheq.core.data.RatingMode
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqCoverPlayButton
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayerCover
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqProgressFallback
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqSeekBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqTransportControls
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqWaveformStyle
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
@@ -108,16 +121,34 @@ fun NowPlayingScreen(
     navigation: NowPlayingNavigation = NowPlayingNavigation(),
     cover: Any? = state.artwork,
     coverModifier: Modifier = Modifier,
+    /** The app theme's background and its text color, for the Theme background style (#126). */
+    themeBackground: Pair<Color, Color> = MaterialTheme.colorScheme.let { it.surface to it.onSurface },
 ) {
     val colors = MaterialTheme.colorScheme
     val paneTitle = stringResource(R.string.nowplaying_pane_title)
-    // No Surface under the gradient, so set the text and icon color the surface would give.
-    CompositionLocalProvider(LocalContentColor provides colors.onSurface) {
+    // No Surface under the background, so set the text and icon color the matching surface would give.
+    val (background, content) =
+        when (state.settings.background) {
+            PlayerBackground.Solid -> {
+                // The cover scheme's tinted surface: every on-surface role (artist, times, label) keeps its contrast.
+                SolidColor(colors.surfaceContainerHigh) to colors.onSurface
+            }
+
+            PlayerBackground.Gradient -> {
+                Brush.verticalGradient(listOf(colors.primaryContainer, colors.surface)) to
+                    colors.onSurface
+            }
+
+            PlayerBackground.Theme -> {
+                SolidColor(themeBackground.first) to themeBackground.second
+            }
+        }
+    CompositionLocalProvider(LocalContentColor provides content) {
         BoxWithConstraints(
             modifier
                 .semantics { this.paneTitle = paneTitle }
                 .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(colors.primaryContainer, colors.surface)))
+                .background(background)
                 .swipeDownToCollapse(onCollapse)
                 .safeDrawingPadding()
                 .padding(horizontal = MediatheqSpacing.l),
@@ -184,7 +215,7 @@ private fun ColumnScope.PlayerDetails(
 ) {
     TitleBlock(state, onAction, navigation)
     SeekSection(state, position, onAction)
-    if (showRating && state.ratingMode != RatingMode.Off) {
+    if (showRating && state.showsRating) {
         MqStarRating(
             halfStars = state.halfStars,
             onRate = { onAction(NowPlayingAction.Rate(it)) },
@@ -227,9 +258,39 @@ private fun CoverOrLyrics(
     coverModifier: Modifier,
     modifier: Modifier,
 ) {
-    Box(modifier.swipeToChangeTrack(state.hasPrevious, state.hasNext, onAction)) {
-        // Always there (under the lyrics too), so the cover still flies to and from the mini player.
-        MqPlayerCover(model = cover, modifier = coverModifier, blurHash = state.artwork?.blurHash)
+    val settings = state.settings
+    val tapLabel =
+        when (settings.coverTap) {
+            CoverTap.PlayPause -> stringResource(R.string.nowplaying_cover_tap_play_pause)
+            CoverTap.ShowLyrics -> stringResource(R.string.nowplaying_cover_tap_lyrics)
+            CoverTap.None -> null
+        }
+    val coverName = stringResource(R.string.nowplaying_cover)
+    Box(modifier.swipeToChangeTrack(state.hasPrevious, state.hasNext, onAction, enabled = settings.coverSwipe)) {
+        // Always there (under the lyrics too), so the cover still flies to and from the mini player. Its tap acts only
+        // while it shows.
+        MqPlayerCover(
+            model = cover,
+            modifier =
+                coverModifier.then(
+                    if (tapLabel != null && !state.lyricsShown) {
+                        Modifier
+                            .clip(MaterialTheme.shapes.extraLarge)
+                            .clickable(onClickLabel = tapLabel) { onAction(NowPlayingAction.CoverTapped) }
+                            .semantics { contentDescription = coverName }
+                    } else {
+                        Modifier
+                    },
+                ),
+            blurHash = state.artwork?.blurHash,
+        )
+        if (settings.playButtonWhenPaused && !state.isPlaying && !state.lyricsShown) {
+            MqCoverPlayButton(
+                onClick = { onAction(NowPlayingAction.TogglePlayPause) },
+                contentDescription = stringResource(R.string.nowplaying_play_paused),
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
         if (state.lyricsShown) {
             Surface(
                 Modifier.matchParentSize(),
@@ -382,7 +443,16 @@ private fun SeekSection(
             remainingLabel = "-" + formatDuration(state.duration - elapsed),
             onSeek = { onAction(NowPlayingAction.SeekTo(it)) },
             enabled = state.isSeekable,
-            levels = state.waveform,
+            // A plain bar as the chosen style ignores the waveform; else the waveform, with the fallback until it is in.
+            levels = state.waveform.takeIf { state.settings.progress.usesWaveform },
+            style = state.settings.progress.waveformStyle,
+            fallback =
+                when {
+                    state.settings.progress == PlayerProgress.Wavy -> MqProgressFallback.Wavy
+                    state.settings.progress == PlayerProgress.Basic -> MqProgressFallback.Basic
+                    state.settings.fallback == ProgressFallback.Wavy -> MqProgressFallback.Wavy
+                    else -> MqProgressFallback.Basic
+                },
             modifier = Modifier.fillMaxWidth(),
         ) {
             state.quality?.let { QualityLabelButton(it, state.qualityDetail, onAction) }
@@ -543,19 +613,36 @@ private fun AtmosConvertedNote() {
 
 /**
  * A horizontal swipe over a third of the width (or a fling) plays the next track (to the left) or the previous one
- * (to the right), with a haptic tick when it does.
+ * (to the right), with a haptic tick when it does; TalkBack gets the same as custom actions. Nothing when not [enabled]
+ * (Settings -> Now playing screens, #126).
  */
 @Composable
-private fun Modifier.swipeToChangeTrack(
+internal fun Modifier.swipeToChangeTrack(
     hasPrevious: Boolean,
     hasNext: Boolean,
     onAction: (NowPlayingAction) -> Unit,
+    enabled: Boolean = true,
 ): Modifier {
+    if (!enabled) return this
+    val nextLabel = stringResource(R.string.nowplaying_swipe_next)
+    val previousLabel = stringResource(R.string.nowplaying_swipe_previous)
     var width by remember { mutableIntStateOf(0) }
     var dragged by remember { mutableFloatStateOf(0f) }
     val flingVelocity = flingVelocityPx()
     val haptics = LocalHapticFeedback.current
-    return onSizeChanged { width = it.width }
+    return semantics {
+        customActions =
+            listOfNotNull(
+                CustomAccessibilityAction(nextLabel) {
+                    onAction(NowPlayingAction.Next)
+                    true
+                }.takeIf { hasNext },
+                CustomAccessibilityAction(previousLabel) {
+                    onAction(NowPlayingAction.Previous)
+                    true
+                }.takeIf { hasPrevious },
+            )
+    }.onSizeChanged { width = it.width }
         .draggable(
             state = rememberDraggableState { dragged += it },
             orientation = Orientation.Horizontal,
@@ -632,3 +719,12 @@ private fun animationsOn(): Boolean {
     val resolver = LocalContext.current.contentResolver
     return remember(resolver) { Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f }
 }
+
+private val PlayerProgress.waveformStyle: MqWaveformStyle
+    get() =
+        when (this) {
+            PlayerProgress.WaveformSmooth -> MqWaveformStyle.Smooth
+            PlayerProgress.WaveformBars -> MqWaveformStyle.Bars
+            PlayerProgress.WaveformBarsReflected -> MqWaveformStyle.BarsReflected
+            PlayerProgress.WaveformSharp, PlayerProgress.Basic, PlayerProgress.Wavy -> MqWaveformStyle.Sharp
+        }
