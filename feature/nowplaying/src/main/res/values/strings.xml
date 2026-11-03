@@ -9,8 +9,6 @@
     <string name="nowplaying_queue_move_up">Move up</string>
     <string name="nowplaying_queue_move_down">Move down</string>
     <string name="nowplaying_lyrics">Lyrics</string>
-    <string name="nowplaying_lyrics_open">Show lyrics</string>
-    <string name="nowplaying_lyrics_close">Close lyrics</string>
     <string name="nowplaying_lyrics_play_from">Play from here</string>
     <string name="nowplaying_lyrics_break">Instrumental</string>
     <string name="nowplaying_lyrics_none">No lyrics</string>
@@ -27,4 +25,17 @@
     <string name="nowplaying_atmos_unavailable">Dolby Atmos not available</string>
     <string name="nowplaying_atmos_stereo">Playing a stereo version</string>
     <string name="nowplaying_bit_perfect_volume">Phone volume does not apply</string>
+    <string name="nowplaying_more">More options</string>
+    <string name="nowplaying_open_album">Open album</string>
+    <string name="nowplaying_open_artist">Open artist</string>
+    <string name="nowplaying_go_to_album">Go to album</string>
+    <string name="nowplaying_go_to_artist">Go to %1$s</string>
+    <string name="nowplaying_equalizer">Equalizer</string>
+    <string name="nowplaying_quality_show_detail">Show format details</string>
+    <string name="nowplaying_quality_show_kind">Show quality</string>
+    <string name="nowplaying_quality_atmos">Dolby Atmos</string>
+    <string name="nowplaying_quality_hi_res">Hi-Res Lossless</string>
+    <string name="nowplaying_quality_lossless">Lossless</string>
+    <string name="nowplaying_quality_high">High quality</string>
+    <string name="nowplaying_quality_efficient">High efficiency</string>
 </resources>

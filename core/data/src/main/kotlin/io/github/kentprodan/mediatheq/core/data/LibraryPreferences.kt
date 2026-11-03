@@ -29,6 +29,8 @@ data class LibraryPreferences(
     val theme: ThemePreferences = ThemePreferences(),
     val navigation: NavigationPreferences = NavigationPreferences(),
     val mediaLists: MediaListPreferences = MediaListPreferences(),
+    /** Now Playing shows the format detail ("FLAC · 24/96 · 1250 kb/s") instead of its kind (#125). */
+    val qualityDetail: Boolean = false,
 ) {
     /** The sort of [filter]: the stored one when that tab offers it, else its default. */
     fun sortFor(filter: LibraryFilter): LibrarySort =

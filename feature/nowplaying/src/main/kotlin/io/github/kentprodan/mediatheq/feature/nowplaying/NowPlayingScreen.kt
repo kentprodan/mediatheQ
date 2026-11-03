@@ -1,43 +1,67 @@
 package io.github.kentprodan.mediatheq.feature.nowplaying
 
+import android.provider.Settings
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Velocity
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
@@ -48,15 +72,30 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqTransportCon
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
+import io.github.kentprodan.mediatheq.core.ui.AddToPlaylistMenuItem
+import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
+import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.formatDuration
 import io.github.kentprodan.mediatheq.core.ui.formatFrequency
 import kotlin.time.Duration
 
+/** Where Now Playing sends the user: each opens a page or dialog behind the player, which closes first (#125). */
+data class NowPlayingNavigation(
+    val onOpenQueue: () -> Unit = {},
+    val onOpenArtist: (MediaId) -> Unit = {},
+    val onOpenAlbum: (MediaId) -> Unit = {},
+    /** Settings -> Playback -> Audio (bit-perfect USB, equalizer). */
+    val onOpenEqualizer: () -> Unit = {},
+    val onAddToPlaylist: () -> Unit = {},
+)
+
 /**
- * The full player: large cover, title and artist, seek bar and transport, on a gradient from the (cover) theme's
- * primary container to its surface. Swiping down or the close button returns to the mini player.
- * [position] is read only by the seek bar, so position ticks recompose nothing else.
+ * The full player (#125), on a gradient from the (cover) theme's primary container to its surface. Portrait: cover (or
+ * lyrics in its place), title block, waveform with times and quality, rating, controls, bottom bar. Landscape (wider
+ * than tall): the cover square on the left, the rest scrolling on the right. Swiping down or the close button returns
+ * to the mini player. [position] is read only by the seek bar and the lyrics, so position ticks recompose nothing else.
  */
 @Composable
 fun NowPlayingScreen(
@@ -65,118 +104,348 @@ fun NowPlayingScreen(
     onAction: (NowPlayingAction) -> Unit,
     onCollapse: () -> Unit,
     modifier: Modifier = Modifier,
-    onOpenQueue: () -> Unit = {},
-    onOpenLyrics: () -> Unit = {},
+    lyrics: LyricsUiState = LyricsUiState.None,
+    navigation: NowPlayingNavigation = NowPlayingNavigation(),
     cover: Any? = state.artwork,
     coverModifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
-    // No Surface under the gradient, so set the text and icon color the surface would give.
     val paneTitle = stringResource(R.string.nowplaying_pane_title)
+    // No Surface under the gradient, so set the text and icon color the surface would give.
     CompositionLocalProvider(LocalContentColor provides colors.onSurface) {
-        NowPlayingContent(
-            state,
-            position,
-            onAction,
-            onCollapse,
-            onOpenQueue,
-            onOpenLyrics,
-            modifier.semantics { this.paneTitle = paneTitle },
-            cover,
-            coverModifier,
+        BoxWithConstraints(
+            modifier
+                .semantics { this.paneTitle = paneTitle }
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(colors.primaryContainer, colors.surface)))
+                .swipeDownToCollapse(onCollapse)
+                .safeDrawingPadding()
+                .padding(horizontal = MediatheqSpacing.l),
+        ) {
+            val coverSquare: @Composable (Modifier) -> Unit = { square ->
+                CoverOrLyrics(state, lyrics, position, onAction, cover, coverModifier, square)
+            }
+            // Read here: inside Row / Column the window size is out of scope.
+            val showRatingInLandscape = maxHeight >= MediatheqSizes.playerRatingMinHeight
+            if (maxWidth > maxHeight) {
+                Row(
+                    Modifier.fillMaxSize().padding(vertical = MediatheqSpacing.l),
+                    horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.xl),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    coverSquare(Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true))
+                    Column(
+                        Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.m, Alignment.CenterVertically),
+                    ) {
+                        // Sideways a phone is short: the bottom bar's buttons share the close button's row.
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CollapseButton(onCollapse, Modifier.weight(1f))
+                            BottomBarButtons(state, onAction, navigation)
+                        }
+                        // A phone held sideways has no room for the stars; a tablet has.
+                        PlayerDetails(
+                            state,
+                            position,
+                            onAction,
+                            navigation,
+                            showRating = showRatingInLandscape,
+                            bottomBar = false,
+                        )
+                    }
+                }
+            } else {
+                Column(
+                    Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    CollapseButton(onCollapse)
+                    // Takes what is left, so the controls always fit (e.g. at fontScale 2.0).
+                    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        coverSquare(Modifier)
+                    }
+                    PlayerDetails(state, position, onAction, navigation, showRating = true)
+                }
+            }
+        }
+    }
+}
+
+/** Everything under (or beside) the cover. */
+@Composable
+private fun ColumnScope.PlayerDetails(
+    state: NowPlayingUiState.Playing,
+    position: () -> Duration,
+    onAction: (NowPlayingAction) -> Unit,
+    navigation: NowPlayingNavigation,
+    showRating: Boolean,
+    bottomBar: Boolean = true,
+) {
+    TitleBlock(state, onAction, navigation)
+    SeekSection(state, position, onAction)
+    if (showRating && state.ratingMode != RatingMode.Off) {
+        MqStarRating(
+            halfStars = state.halfStars,
+            onRate = { onAction(NowPlayingAction.Rate(it)) },
+            allowHalf = state.ratingMode == RatingMode.HalfStars,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
         )
+    }
+    Controls(state, onAction)
+    if (bottomBar) {
+        Row(
+            Modifier.fillMaxWidth().padding(bottom = MediatheqSpacing.s),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) { BottomBarButtons(state, onAction, navigation) }
     }
 }
 
 @Composable
-private fun NowPlayingContent(
+private fun CollapseButton(
+    onCollapse: () -> Unit,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+) {
+    Box(modifier) {
+        IconButton(onClick = onCollapse) {
+            Icon(MqIcons.KeyboardArrowDown, contentDescription = stringResource(R.string.nowplaying_collapse))
+        }
+    }
+}
+
+/**
+ * The cover, or the lyrics in its place (same square); the small round button at its bottom start switches. A
+ * horizontal swipe changes track. Only the cover carries [coverModifier] (the shared flight to the mini player).
+ */
+@Composable
+private fun CoverOrLyrics(
     state: NowPlayingUiState.Playing,
+    lyrics: LyricsUiState,
     position: () -> Duration,
     onAction: (NowPlayingAction) -> Unit,
-    onCollapse: () -> Unit,
-    onOpenQueue: () -> Unit,
-    onOpenLyrics: () -> Unit,
-    modifier: Modifier,
     cover: Any?,
     coverModifier: Modifier,
+    modifier: Modifier,
 ) {
-    val colors = MaterialTheme.colorScheme
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(colors.primaryContainer, colors.surface)))
-            .swipeDownToCollapse(onCollapse)
-            .safeDrawingPadding()
-            .padding(horizontal = MediatheqSpacing.l),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.l),
-    ) {
-        Box(Modifier.fillMaxWidth()) {
-            IconButton(onClick = onCollapse) {
-                Icon(MqIcons.KeyboardArrowDown, contentDescription = stringResource(R.string.nowplaying_collapse))
+    Box(modifier.swipeToChangeTrack(state.hasPrevious, state.hasNext, onAction)) {
+        // Always there (under the lyrics too), so the cover still flies to and from the mini player.
+        MqPlayerCover(model = cover, modifier = coverModifier, blurHash = state.artwork?.blurHash)
+        if (state.lyricsShown) {
+            Surface(
+                Modifier.matchParentSize(),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surfaceContainer,
+            ) {
+                LyricsContent(lyrics, position, state.isSeekable, onAction)
             }
         }
-        // Takes what is left, so the controls always fit (e.g. at fontScale 2.0).
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            MqPlayerCover(model = cover, modifier = coverModifier, blurHash = state.artwork?.blurHash)
-        }
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        MqIconToggle(
+            checked = state.lyricsShown,
+            onClick = { onAction(NowPlayingAction.ToggleLyrics) },
+            icon = MqIcons.Lyrics,
+            contentDescription = stringResource(R.string.nowplaying_lyrics),
+            modifier = Modifier.align(Alignment.BottomStart).padding(MediatheqSpacing.s),
+        )
+    }
+}
+
+/** Title (marquee) with favorite and the track menu, then the artists and the album, each opening its page. */
+@Composable
+private fun TitleBlock(
+    state: NowPlayingUiState.Playing,
+    onAction: (NowPlayingAction) -> Unit,
+    navigation: NowPlayingNavigation,
+) {
+    val colors = MaterialTheme.colorScheme
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
             Text(
                 state.title,
                 style = MaterialTheme.typography.headlineSmallEmphasized,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(
-                state.artist,
-                style = MaterialTheme.typography.titleMedium,
-                color = colors.onSurfaceVariant,
-                textAlign = TextAlign.Center,
                 maxLines = 1,
+                // Scrolls when too long, unless the system removed animations.
+                modifier =
+                    Modifier.semantics { heading() }.then(
+                        if (animationsOn()) Modifier.basicMarquee() else Modifier,
+                    ),
                 overflow = TextOverflow.Ellipsis,
             )
-            if (state.ratingMode != RatingMode.Off) {
-                MqStarRating(
-                    halfStars = state.halfStars,
-                    onRate = { onAction(NowPlayingAction.Rate(it)) },
-                    allowHalf = state.ratingMode == RatingMode.HalfStars,
+            ArtistsLine(state, navigation)
+            state.albumTitle?.let { album ->
+                val albumId = state.albumId
+                val openAlbum = stringResource(R.string.nowplaying_open_album)
+                Text(
+                    album,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier =
+                        if (albumId != null) {
+                            Modifier.minimumInteractiveComponentSize().clickable(
+                                onClickLabel = openAlbum,
+                                role = Role.Button,
+                            ) {
+                                navigation.onOpenAlbum(albumId)
+                            }
+                        } else {
+                            Modifier
+                        },
                 )
             }
-            state.bitPerfectSampleRateHz?.let { BitPerfectBadge(it) }
-            if (state.atmosConverted) AtmosConvertedNote()
         }
-        SeekSection(state, position, onAction)
-        MqTransportControls(
-            isPlaying = state.isPlaying,
-            hasPrevious = state.hasPrevious,
-            hasNext = state.hasNext,
-            onPrevious = { onAction(NowPlayingAction.Previous) },
-            onPlayPause = { onAction(NowPlayingAction.TogglePlayPause) },
-            onNext = { onAction(NowPlayingAction.Next) },
+        MqFavoriteToggle(state.isFavorite, onToggle = { onAction(NowPlayingAction.SetFavorite(it)) })
+        OverflowMenu(stringResource(R.string.nowplaying_more)) { close ->
+            AddToPlaylistMenuItem(navigation.onAddToPlaylist, close)
+            DownloadMenuItem({ onAction(NowPlayingAction.Download) }, close)
+            state.albumId?.let { id ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.nowplaying_go_to_album)) },
+                    leadingIcon = { Icon(MqIcons.Library, contentDescription = null) },
+                    onClick = {
+                        close()
+                        navigation.onOpenAlbum(id)
+                    },
+                )
+            }
+            state.artists.forEach { artist ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.nowplaying_go_to_artist, artist.name)) },
+                    leadingIcon = { Icon(MqIcons.Person, contentDescription = null) },
+                    onClick = {
+                        close()
+                        navigation.onOpenArtist(artist.id)
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** The artists: one opens its page directly, several open a menu to pick from. */
+@Composable
+private fun ArtistsLine(
+    state: NowPlayingUiState.Playing,
+    navigation: NowPlayingNavigation,
+) {
+    var picking by remember { mutableStateOf(false) }
+    val openArtist = stringResource(R.string.nowplaying_open_artist)
+    Box {
+        Text(
+            state.artist,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier =
+                if (state.artists.isNotEmpty()) {
+                    Modifier.minimumInteractiveComponentSize().clickable(
+                        onClickLabel = openArtist,
+                        role = Role.Button,
+                    ) {
+                        val only = state.artists.singleOrNull()
+                        if (only != null) navigation.onOpenArtist(only.id) else picking = true
+                    }
+                } else {
+                    Modifier
+                },
         )
-        // The secondary row (expressive-design section 5); output comes in its issue. Shuffle and repeat on the edges,
-        // under previous and next.
-        Row(
-            Modifier.fillMaxWidth().padding(bottom = MediatheqSpacing.l),
-            horizontalArrangement = Arrangement.SpaceBetween,
+        DropdownMenu(expanded = picking, onDismissRequest = { picking = false }) {
+            state.artists.forEach { artist ->
+                DropdownMenuItem(
+                    text = { Text(artist.name) },
+                    leadingIcon = { Icon(MqIcons.Person, contentDescription = null) },
+                    onClick = {
+                        picking = false
+                        navigation.onOpenArtist(artist.id)
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** The waveform; under it elapsed, the quality label (a tap switches kind and detail) and the time left. */
+@Composable
+private fun SeekSection(
+    state: NowPlayingUiState.Playing,
+    position: () -> Duration,
+    onAction: (NowPlayingAction) -> Unit,
+) {
+    val elapsed = position().coerceIn(Duration.ZERO, state.duration)
+    val progress = if (state.duration.isPositive()) (elapsed / state.duration).toFloat() else 0f
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        MqSeekBar(
+            progress = progress,
+            elapsedLabel = formatDuration(elapsed),
+            totalLabel = formatDuration(state.duration),
+            remainingLabel = "-" + formatDuration(state.duration - elapsed),
+            onSeek = { onAction(NowPlayingAction.SeekTo(it)) },
+            enabled = state.isSeekable,
+            levels = state.waveform,
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            MqIconToggle(
-                checked = state.shuffle,
-                onClick = { onAction(NowPlayingAction.SetShuffle(!state.shuffle)) },
-                icon = MqIcons.Shuffle,
-                contentDescription = stringResource(R.string.nowplaying_shuffle),
-            )
-            MqFavoriteToggle(state.isFavorite, onToggle = { onAction(NowPlayingAction.SetFavorite(it)) })
-            IconButton(onClick = onOpenLyrics) {
-                Icon(MqIcons.Lyrics, contentDescription = stringResource(R.string.nowplaying_lyrics_open))
-            }
-            IconButton(onClick = onOpenQueue) {
-                Icon(MqIcons.QueueMusic, contentDescription = stringResource(R.string.nowplaying_queue_open))
-            }
-            // The mode shown is the one cycled from, so quick taps step through every mode.
-            val nextRepeat = state.repeatMode.next()
+            state.quality?.let { QualityLabelButton(it, state.qualityDetail, onAction) }
+        }
+        state.bitPerfectSampleRateHz?.let { BitPerfectBadge(it) }
+        if (state.atmosConverted) AtmosConvertedNote()
+    }
+}
+
+/** What actually plays, as a kind ("Hi-Res Lossless") or its detail ("FLAC · 24/96 · 1250 kb/s"); a tap switches. */
+@Composable
+internal fun QualityLabelButton(
+    label: QualityLabel,
+    detail: Boolean,
+    onAction: (NowPlayingAction) -> Unit,
+) {
+    val switchTo =
+        stringResource(if (detail) R.string.nowplaying_quality_show_kind else R.string.nowplaying_quality_show_detail)
+    Box(
+        Modifier
+            .minimumInteractiveComponentSize()
+            .clickable(onClickLabel = switchTo, role = Role.Button) { onAction(NowPlayingAction.ToggleQualityDetail) }
+            .padding(horizontal = MediatheqSpacing.s),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            if (detail) label.detail else stringResource(label.kind.text),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+private val QualityKind.text: Int
+    get() =
+        when (this) {
+            QualityKind.DolbyAtmos -> R.string.nowplaying_quality_atmos
+            QualityKind.HiResLossless -> R.string.nowplaying_quality_hi_res
+            QualityKind.Lossless -> R.string.nowplaying_quality_lossless
+            QualityKind.HighQuality -> R.string.nowplaying_quality_high
+            QualityKind.HighEfficiency -> R.string.nowplaying_quality_efficient
+        }
+
+/** Repeat, previous, play/pause, next, shuffle. */
+@Composable
+private fun Controls(
+    state: NowPlayingUiState.Playing,
+    onAction: (NowPlayingAction) -> Unit,
+) {
+    // The mode shown is the one cycled from, so quick taps step through every mode.
+    val nextRepeat = state.repeatMode.next()
+    MqTransportControls(
+        isPlaying = state.isPlaying,
+        hasPrevious = state.hasPrevious,
+        hasNext = state.hasNext,
+        onPrevious = { onAction(NowPlayingAction.Previous) },
+        onPlayPause = { onAction(NowPlayingAction.TogglePlayPause) },
+        onNext = { onAction(NowPlayingAction.Next) },
+        modifier = Modifier.fillMaxWidth(),
+        leading = {
             MqIconToggle(
                 checked = state.repeatMode != RepeatMode.Off,
                 onClick = { onAction(NowPlayingAction.SetRepeatMode(nextRepeat)) },
@@ -193,7 +462,36 @@ private fun NowPlayingContent(
                         },
                     ),
             )
-        }
+        },
+        trailing = {
+            MqIconToggle(
+                checked = state.shuffle,
+                onClick = { onAction(NowPlayingAction.SetShuffle(!state.shuffle)) },
+                icon = MqIcons.Shuffle,
+                contentDescription = stringResource(R.string.nowplaying_shuffle),
+            )
+        },
+    )
+}
+
+/** Queue, Lyrics, Equalizer: the bottom bar in portrait, beside the close button in landscape. */
+@Composable
+private fun BottomBarButtons(
+    state: NowPlayingUiState.Playing,
+    onAction: (NowPlayingAction) -> Unit,
+    navigation: NowPlayingNavigation,
+) {
+    IconButton(onClick = navigation.onOpenQueue) {
+        Icon(MqIcons.QueueMusic, contentDescription = stringResource(R.string.nowplaying_queue_open))
+    }
+    MqIconToggle(
+        checked = state.lyricsShown,
+        onClick = { onAction(NowPlayingAction.ToggleLyrics) },
+        icon = MqIcons.Lyrics,
+        contentDescription = stringResource(R.string.nowplaying_lyrics),
+    )
+    IconButton(onClick = navigation.onOpenEqualizer) {
+        Icon(MqIcons.GraphicEq, contentDescription = stringResource(R.string.nowplaying_equalizer))
     }
 }
 
@@ -201,7 +499,7 @@ private fun NowPlayingContent(
 @Composable
 private fun BitPerfectBadge(sampleRateHz: Int) {
     Column(
-        Modifier.padding(top = MediatheqSpacing.s).semantics(mergeDescendants = true) {},
+        Modifier.semantics(mergeDescendants = true) {},
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
@@ -224,7 +522,7 @@ private fun BitPerfectBadge(sampleRateHz: Int) {
 private fun AtmosConvertedNote() {
     val color = MaterialTheme.colorScheme.onSurfaceVariant
     Column(
-        Modifier.padding(top = MediatheqSpacing.s).semantics(mergeDescendants = true) {},
+        Modifier.semantics(mergeDescendants = true) {},
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(
@@ -243,32 +541,75 @@ private fun AtmosConvertedNote() {
     }
 }
 
+/**
+ * A horizontal swipe over a third of the width (or a fling) plays the next track (to the left) or the previous one
+ * (to the right), with a haptic tick when it does.
+ */
 @Composable
-private fun SeekSection(
-    state: NowPlayingUiState.Playing,
-    position: () -> Duration,
+private fun Modifier.swipeToChangeTrack(
+    hasPrevious: Boolean,
+    hasNext: Boolean,
     onAction: (NowPlayingAction) -> Unit,
-) {
-    val elapsed = position().coerceIn(Duration.ZERO, state.duration)
-    val progress = if (state.duration.isPositive()) (elapsed / state.duration).toFloat() else 0f
-    MqSeekBar(
-        progress = progress,
-        elapsedLabel = formatDuration(elapsed),
-        totalLabel = formatDuration(state.duration),
-        onSeek = { onAction(NowPlayingAction.SeekTo(it)) },
-        enabled = state.isSeekable,
-        levels = state.waveform,
-        modifier = Modifier.fillMaxWidth(),
-    )
+): Modifier {
+    var width by remember { mutableIntStateOf(0) }
+    var dragged by remember { mutableFloatStateOf(0f) }
+    val flingVelocity = flingVelocityPx()
+    val haptics = LocalHapticFeedback.current
+    return onSizeChanged { width = it.width }
+        .draggable(
+            state = rememberDraggableState { dragged += it },
+            orientation = Orientation.Horizontal,
+            onDragStarted = { dragged = 0f },
+            onDragStopped = { velocity ->
+                val toNext = velocity < -flingVelocity || dragged < -width / 3f
+                val toPrevious = velocity > flingVelocity || dragged > width / 3f
+                if (toNext && hasNext) {
+                    haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                    onAction(NowPlayingAction.Next)
+                } else if (toPrevious && hasPrevious) {
+                    haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                    onAction(NowPlayingAction.Previous)
+                }
+            },
+        )
 }
 
-/** Closes on a downward fling, or a drag over a quarter of the screen. */
+/**
+ * Closes on a downward fling, or a drag over a quarter of the screen. Scrolling children (the lyrics, the landscape
+ * column) take vertical drags first; what they leave over at their top counts as a pull down too.
+ */
 @Composable
 internal fun Modifier.swipeDownToCollapse(onCollapse: () -> Unit): Modifier {
     var height by remember { mutableIntStateOf(0) }
     var dragged by remember { mutableFloatStateOf(0f) }
     val flingVelocity = flingVelocityPx()
+    val collapse by rememberUpdatedState(onCollapse)
+    val pulled =
+        remember(flingVelocity) {
+            object : NestedScrollConnection {
+                var distance = 0f
+
+                override fun onPostScroll(
+                    consumed: Offset,
+                    available: Offset,
+                    source: NestedScrollSource,
+                ): Offset {
+                    if (source == NestedScrollSource.UserInput && available.y > 0) distance += available.y
+                    return Offset.Zero
+                }
+
+                override suspend fun onPostFling(
+                    consumed: Velocity,
+                    available: Velocity,
+                ): Velocity {
+                    if (available.y > flingVelocity || distance > height / 4f) collapse()
+                    distance = 0f
+                    return Velocity.Zero
+                }
+            }
+        }
     return onSizeChanged { height = it.height }
+        .nestedScroll(pulled)
         .draggable(
             state = rememberDraggableState { dragged += it },
             orientation = Orientation.Vertical,
@@ -284,3 +625,10 @@ internal fun Modifier.swipeDownToCollapse(onCollapse: () -> Unit): Modifier {
 internal fun flingVelocityPx(): Float = FLING_DP_PER_SECOND * LocalDensity.current.density
 
 private const val FLING_DP_PER_SECOND = 600f
+
+/** False when the system's animator duration scale is 0 ("Remove animations"): non-essential motion stays still. */
+@Composable
+private fun animationsOn(): Boolean {
+    val resolver = LocalContext.current.contentResolver
+    return remember(resolver) { Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f }
+}

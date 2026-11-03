@@ -31,6 +31,7 @@ class DefaultLibraryPreferencesRepository
                     theme = theme(stored.theme, stored.dynamicColor),
                     navigation = navigation(stored.navigation),
                     mediaLists = mediaLists(stored.mediaLists),
+                    qualityDetail = stored.qualityDetail ?: false,
                 )
             }
 
@@ -147,6 +148,8 @@ class DefaultLibraryPreferencesRepository
         }
 
         override suspend fun setRatingMode(mode: RatingMode) = store.setRatingMode(mode.name)
+
+        override suspend fun setQualityDetail(on: Boolean) = store.setQualityDetail(on)
 
         override suspend fun setOfflineMode(on: Boolean) = store.setOfflineMode(on)
 

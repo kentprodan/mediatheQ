@@ -174,4 +174,27 @@ class AudioPolicyTest {
             AudioPolicy.atmosConverted(isAtmos = false, PlayMethod.Transcode, convertedDownload = false),
         ).isFalse()
     }
+
+    @Test
+    fun `a transcode plays at its quality cap, or Opus 256 for the Original quality`() {
+        assertThat(
+            AudioPolicy.convertedKbps(PlayMethod.Transcode, convertedDownload = false, qualityKbps = 128),
+        ).isEqualTo(128)
+        assertThat(
+            AudioPolicy.convertedKbps(PlayMethod.Transcode, convertedDownload = false, qualityKbps = null),
+        ).isEqualTo(256)
+    }
+
+    @Test
+    fun `a converted download is Opus 256, the original file is no conversion`() {
+        assertThat(
+            AudioPolicy.convertedKbps(PlayMethod.DirectPlay, convertedDownload = true, qualityKbps = null),
+        ).isEqualTo(256)
+        assertThat(
+            AudioPolicy.convertedKbps(PlayMethod.DirectPlay, convertedDownload = false, qualityKbps = 128),
+        ).isNull()
+        assertThat(
+            AudioPolicy.convertedKbps(PlayMethod.DirectStream, convertedDownload = false, qualityKbps = 128),
+        ).isNull()
+    }
 }

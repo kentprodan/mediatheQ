@@ -2,6 +2,8 @@ package io.github.kentprodan.mediatheq.core.designsystem.component
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.DropdownMenuItem
@@ -27,7 +29,9 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 /**
  * The Now Playing transport row (expressive-design skill, section 3): previous, play/pause, next in a `ButtonGroup`.
  * Play/pause is the largest; it is round while paused and squarish while playing, so the state is not shown by the
- * icon alone. Pressing a button widens it and narrows its neighbours.
+ * icon alone. Pressing a button widens it and narrows its neighbours. [leading] and [trailing] (repeat and shuffle,
+ * #125) sit at the ends; when the row is too narrow for the full sizes (a 320 dp phone, fontScale 2.0) the group
+ * shrinks, so no button ever moves to the overflow menu.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -39,16 +43,56 @@ fun MqTransportControls(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
+    leading: @Composable () -> Unit = {},
+    trailing: @Composable () -> Unit = {},
 ) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        leading()
+        BoxWithConstraints(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            val full =
+                IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Uniform).width * 2 +
+                    IconButtonDefaults.largeContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide).width +
+                    MediatheqSpacing.s * 2
+            TransportGroup(isPlaying, hasPrevious, hasNext, onPrevious, onPlayPause, onNext, compact = maxWidth < full)
+        }
+        trailing()
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun TransportGroup(
+    isPlaying: Boolean,
+    hasPrevious: Boolean,
+    hasNext: Boolean,
+    onPrevious: () -> Unit,
+    onPlayPause: () -> Unit,
+    onNext: () -> Unit,
+    compact: Boolean,
+) {
+    val modifier = Modifier
     val previousLabel = stringResource(R.string.mq_previous_track)
     val playPauseLabel = stringResource(if (isPlaying) R.string.mq_pause else R.string.mq_play)
     val nextLabel = stringResource(R.string.mq_next_track)
     val previousInteraction = remember { MutableInteractionSource() }
     val playInteraction = remember { MutableInteractionSource() }
     val nextInteraction = remember { MutableInteractionSource() }
-    // Medium sides and a large wide centre fit a 320 dp wide screen; the group would otherwise move buttons to a menu.
-    val sideSize = IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Uniform)
-    val playSize = IconButtonDefaults.largeContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide)
+    // Medium sides and a large wide centre; one size down each when that does not fit (the group would otherwise move
+    // buttons to its menu).
+    val sideSize =
+        if (compact) {
+            IconButtonDefaults.smallContainerSize(IconButtonDefaults.IconButtonWidthOption.Uniform)
+        } else {
+            IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Uniform)
+        }
+    val playSize =
+        if (compact) {
+            IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide)
+        } else {
+            IconButtonDefaults.largeContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide)
+        }
+    val sideIcon = if (compact) IconButtonDefaults.smallIconSize else IconButtonDefaults.mediumIconSize
+    val playIcon = if (compact) IconButtonDefaults.mediumIconSize else IconButtonDefaults.largeIconSize
     val playShape = if (isPlaying) MaterialTheme.shapes.large else IconButtonDefaults.shapes().shape
     ButtonGroup(
         // Only on very narrow windows: the buttons that do not fit go to this menu.
@@ -69,7 +113,7 @@ fun MqTransportControls(
                     interactionSource = previousInteraction,
                     modifier = Modifier.size(sideSize).animateWidth(previousInteraction),
                 ) {
-                    TransportIcon(MqIcons.SkipPreviousFilled, previousLabel, IconButtonDefaults.mediumIconSize)
+                    TransportIcon(MqIcons.SkipPreviousFilled, previousLabel, sideIcon)
                 }
             },
             menuContent = { menu ->
@@ -94,7 +138,7 @@ fun MqTransportControls(
                     TransportIcon(
                         if (isPlaying) MqIcons.PauseFilled else MqIcons.PlayFilled,
                         playPauseLabel,
-                        IconButtonDefaults.largeIconSize,
+                        playIcon,
                     )
                 }
             },
@@ -117,7 +161,7 @@ fun MqTransportControls(
                     interactionSource = nextInteraction,
                     modifier = Modifier.size(sideSize).animateWidth(nextInteraction),
                 ) {
-                    TransportIcon(MqIcons.SkipNextFilled, nextLabel, IconButtonDefaults.mediumIconSize)
+                    TransportIcon(MqIcons.SkipNextFilled, nextLabel, sideIcon)
                 }
             },
             menuContent = { menu ->

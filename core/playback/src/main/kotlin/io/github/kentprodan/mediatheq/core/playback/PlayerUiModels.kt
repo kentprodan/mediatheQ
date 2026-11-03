@@ -59,6 +59,9 @@ internal fun AudioOutputInfo.toBundle(): Bundle =
         putBoolean(EXTRA_BIT_PERFECT_NO_MATCH, bitPerfectNoMatch)
         putBoolean(EXTRA_BIT_PERFECT_SUPPORTED, bitPerfectSupported)
         putBoolean(EXTRA_ATMOS_CONVERTED, atmosConverted)
+        playedItemId?.let { putString(EXTRA_PLAYED_ITEM, it) }
+        putBoolean(EXTRA_STREAM_KNOWN, streamKnown)
+        convertedKbps?.let { putInt(EXTRA_CONVERTED_KBPS, it) }
     }
 
 internal fun Bundle.toAudioOutputInfo(): AudioOutputInfo =
@@ -68,6 +71,9 @@ internal fun Bundle.toAudioOutputInfo(): AudioOutputInfo =
         bitPerfectNoMatch = getBoolean(EXTRA_BIT_PERFECT_NO_MATCH),
         bitPerfectSupported = getBoolean(EXTRA_BIT_PERFECT_SUPPORTED, true),
         atmosConverted = getBoolean(EXTRA_ATMOS_CONVERTED),
+        playedItemId = getString(EXTRA_PLAYED_ITEM),
+        streamKnown = getBoolean(EXTRA_STREAM_KNOWN),
+        convertedKbps = if (containsKey(EXTRA_CONVERTED_KBPS)) getInt(EXTRA_CONVERTED_KBPS) else null,
     )
 
 /** A track that could not play, as the service sends it to the app's controller (#61). */
@@ -92,6 +98,9 @@ private const val EXTRA_USB_DAC = "io.github.kentprodan.mediatheq.USB_DAC"
 private const val EXTRA_BIT_PERFECT_NO_MATCH = "io.github.kentprodan.mediatheq.BIT_PERFECT_NO_MATCH"
 private const val EXTRA_BIT_PERFECT_SUPPORTED = "io.github.kentprodan.mediatheq.BIT_PERFECT_SUPPORTED"
 private const val EXTRA_ATMOS_CONVERTED = "io.github.kentprodan.mediatheq.ATMOS_CONVERTED"
+private const val EXTRA_STREAM_KNOWN = "io.github.kentprodan.mediatheq.STREAM_KNOWN"
+private const val EXTRA_PLAYED_ITEM = "io.github.kentprodan.mediatheq.PLAYED_ITEM"
+private const val EXTRA_CONVERTED_KBPS = "io.github.kentprodan.mediatheq.CONVERTED_KBPS"
 
 /** The queue in play order (the shuffled order while shuffle is on), for the queue screen. */
 internal fun Player.toQueueItems(): List<QueueItem> =

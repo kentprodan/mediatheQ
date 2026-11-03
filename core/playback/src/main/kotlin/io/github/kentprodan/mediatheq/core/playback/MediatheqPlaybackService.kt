@@ -320,6 +320,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     )
                 },
                 log = { Log.d(AUDIO_TAG, it) },
+                played = {
+                    val method = currentPlayMethod()
+                    PlayedStream(
+                        itemId = player.currentMediaItem?.mediaId,
+                        known = method != null,
+                        convertedKbps =
+                            method?.let {
+                                val cap = currentId()?.let(streamResolver::quality)?.bitrate?.div(BITS_PER_KBIT)
+                                AudioPolicy.convertedKbps(it, convertedDownload(), cap)
+                            },
+                    )
+                },
             )
         normalization = NormalizationListener(player, { settings }) { audioOutput.state.mode }
         player.addListener(normalization)
@@ -381,6 +393,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
             bitPerfectNoMatch = bitPerfectNoMatch,
             bitPerfectSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             atmosConverted = atmosConverted,
+            playedItemId = played.itemId,
+            streamKnown = played.known,
+            convertedKbps = played.convertedKbps,
         )
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
@@ -508,3 +523,5 @@ private const val AUDIO_TAG = "MqAudioOutput"
 internal fun PlaybackException.isAudioOutputError(): Boolean =
     generateSequence<Throwable>(this) { it.cause }
         .any { it is AudioSink.InitializationException || it is AudioSink.WriteException }
+
+private const val BITS_PER_KBIT = 1000

@@ -106,6 +106,7 @@ class DefaultLibraryPreferencesRepositoryTest {
 
             assertThat(preferences.offlineMode).isFalse()
             assertThat(preferences.ratingMode).isEqualTo(RatingMode.WholeStars)
+            assertThat(preferences.qualityDetail).isFalse()
         }
 
     @Test
@@ -113,7 +114,9 @@ class DefaultLibraryPreferencesRepositoryTest {
         runTest {
             repository.setRatingMode(RatingMode.HalfStars)
             repository.setOfflineMode(true)
+            repository.setQualityDetail(true)
             assertThat(repository.preferences.first().offlineMode).isTrue()
+            assertThat(repository.preferences.first().qualityDetail).isTrue()
             assertThat(repository.preferences.first().ratingMode).isEqualTo(RatingMode.HalfStars)
 
             dataStore.edit { it[stringPreferencesKey("rating_mode")] = "Hearts" }

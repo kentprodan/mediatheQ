@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 
 /**
  * The large Now Playing cover: square, `extraLarge` corners, at most 360 dp wide (expressive-design skill, section 5).
@@ -20,10 +20,8 @@ fun MqPlayerCover(
     MqCover(
         model = model,
         contentDescription = null,
-        modifier = modifier.widthIn(max = MaxWidth).aspectRatio(1f),
+        modifier = modifier.widthIn(max = MediatheqSizes.playerCoverMax).aspectRatio(1f),
         blurHash = blurHash,
         shape = MaterialTheme.shapes.extraLarge,
     )
 }
-
-private val MaxWidth = 360.dp

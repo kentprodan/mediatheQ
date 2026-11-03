@@ -1,5 +1,16 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+/**
+ * What reaches the output for the playing track (#125): [known] once its stream is resolved (a fresh transition or a
+ * restored queue is not); [convertedKbps] the bitrate of the server's conversion, `null` for the original file.
+ */
+internal data class PlayedStream(
+    /** The item this describes ([androidx.media3.common.MediaItem.mediaId]); a track change makes it stale. */
+    val itemId: String? = null,
+    val known: Boolean = false,
+    val convertedKbps: Int? = null,
+)
+
 /** What the output does now, for the player (offload, volume, EQ) and for screens (indicator, EQ reason). */
 internal data class AudioOutputState(
     val route: AudioRoute = AudioRoute.Other,
@@ -11,6 +22,8 @@ internal data class AudioOutputState(
     val bitPerfectNoMatch: Boolean = false,
     /** The playing track is Dolby Atmos but plays as the server's stereo conversion ([AudioPolicy.atmosConverted]). */
     val atmosConverted: Boolean = false,
+    /** How the playing track's stream reaches the output, for Now Playing's quality label (#125). */
+    val played: PlayedStream = PlayedStream(),
     /**
      * The player opened a new AudioTrack at [bitPerfectFormat]'s rate after the preference was set, with no AudioTrack
      * of its own open before: only such a track reaches the bit-perfect output (#65, Pixel 9). One already open when
@@ -33,6 +46,8 @@ internal class AudioOutputController(
     private val atmosConverted: () -> Boolean,
     /** One line per decision, for logcat (#65): what bit-perfect does on a real DAC is only seen on the device. */
     private val log: (String) -> Unit = {},
+    /** How the playing track's stream plays; asked on every refresh, like [atmosConverted]. */
+    private val played: () -> PlayedStream = { PlayedStream() },
 ) {
     private var settings = AudioSettings()
     private var preferred: MixerCapability? = null
@@ -93,6 +108,7 @@ internal class AudioOutputController(
                 bitPerfectFormat = chosen?.format,
                 bitPerfectNoMatch = format != null && chosen == null,
                 atmosConverted = atmosConverted(),
+                played = played(),
                 bitPerfectConfirmed = confirmed && mode == AudioMode.BitPerfect,
             ),
         )

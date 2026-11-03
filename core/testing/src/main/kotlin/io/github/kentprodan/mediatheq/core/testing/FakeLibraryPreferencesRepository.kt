@@ -75,6 +75,10 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
         preferences.value = preferences.value.copy(offlineMode = on)
     }
 
+    override suspend fun setQualityDetail(on: Boolean) {
+        preferences.value = preferences.value.copy(qualityDetail = on)
+    }
+
     override suspend fun setRatingMode(mode: RatingMode) {
         preferences.value = preferences.value.copy(ratingMode = mode)
     }

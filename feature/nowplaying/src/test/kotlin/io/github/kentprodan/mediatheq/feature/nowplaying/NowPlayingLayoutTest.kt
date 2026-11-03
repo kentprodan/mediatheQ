@@ -22,9 +22,14 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
+import androidx.navigation3.runtime.NavKey
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
+import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
@@ -234,20 +239,44 @@ class NowPlayingLayoutTest {
     }
 
     @Test
-    fun `lyrics open from the player, and back returns to the player`() {
-        val lyricsPane = SemanticsMatcher.expectValue(SemanticsProperties.PaneTitle, "Lyrics")
+    fun `with lyrics in place of the cover the player still closes to the mini player`() {
+        state = playing.copy(lyricsShown = true)
         setContent()
         composeRule.onNode(miniPlayer).performClick()
         composeRule.waitForIdle()
+        composeRule.onNode(hasText("No lyrics")).assertExists()
 
-        composeRule.onNodeWithContentDescription("Show lyrics").performClick()
+        composeRule.onNodeWithContentDescription(closeButton).performClick()
         composeRule.waitForIdle()
-        composeRule.onNode(lyricsPane).assertExists()
 
-        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        composeRule.onNode(playerPane).assertDoesNotExist()
+        composeRule.onNode(miniPlayer).assertIsDisplayed()
+    }
+
+    @Test
+    fun `the artist and the equalizer open behind the player, which closes`() {
+        val artist = Artist(MediaId(ServerId("s"), "ar1"), "deadmau5")
+        state = playing.copy(artists = listOf(artist))
+        val opened = mutableListOf<NavKey>()
+        composeRule.setContent {
+            MediatheqTheme {
+                NowPlayingLayout(
+                    state,
+                    MutableStateFlow(150.seconds),
+                    { actions += it },
+                    content = { mini -> mini() },
+                    onNavigate = { opened += it },
+                )
+            }
+        }
+        composeRule.onNode(miniPlayer).performClick()
         composeRule.waitForIdle()
-        composeRule.onNode(lyricsPane).assertDoesNotExist()
-        composeRule.onNode(playerPane).assertExists()
+
+        composeRule.onNode(hasText("deadmau5") and hasClickAction() and hasAnyAncestor(playerPane)).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(opened).containsExactly(ArtistKey(artist.id))
+        composeRule.onNode(playerPane).assertDoesNotExist()
     }
 
     @Test

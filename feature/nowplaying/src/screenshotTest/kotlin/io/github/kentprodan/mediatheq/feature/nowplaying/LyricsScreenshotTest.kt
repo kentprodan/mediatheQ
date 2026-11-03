@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.nowplaying
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.common.MqError
@@ -30,7 +31,7 @@ private val plain = Lyrics(words.filter { it.isNotEmpty() }.map { LyricLine(it) 
 @Composable
 private fun Screen(state: LyricsUiState) {
     // 13 s: the fourth line ("I keep walking") is being sung.
-    LyricsScreen(state, position = { 13.seconds }, canSeek = true, onAction = {}, onClose = {})
+    Surface { LyricsContent(state, position = { 13.seconds }, canSeek = true, onAction = {}) }
 }
 
 /** Synced: the line being sung is marked; an empty line is a music break. */

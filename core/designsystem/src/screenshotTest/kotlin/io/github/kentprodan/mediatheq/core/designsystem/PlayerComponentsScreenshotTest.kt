@@ -2,16 +2,21 @@ package io.github.kentprodan.mediatheq.core.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqMiniPlayer
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayerCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqSeekBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqTransportControls
+import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.preview.PREVIEW_BLUR_HASH
 import io.github.kentprodan.mediatheq.core.designsystem.preview.rememberPreviewCover
@@ -95,6 +100,38 @@ fun MqTransportControlsScreenshot() {
             ) {
                 MqTransportControls(isPlaying = true, hasPrevious = true, hasNext = true, {}, {}, {})
                 MqTransportControls(isPlaying = false, hasPrevious = true, hasNext = false, {}, {}, {})
+            }
+        }
+    }
+}
+
+/**
+ * Repeat and shuffle at the ends (#125): full sizes on a Pixel 9, one size down on a 320 dp phone; nothing goes to the
+ * overflow menu.
+ */
+@PreviewTest
+@MqPreviews
+@Composable
+fun MqTransportControlsWithTogglesScreenshot() {
+    MediatheqTheme {
+        Surface {
+            Column(
+                Modifier.padding(MediatheqSpacing.l),
+                verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.l),
+            ) {
+                listOf(Modifier.fillMaxWidth(), Modifier.width(288.dp)).forEach { width ->
+                    MqTransportControls(
+                        isPlaying = true,
+                        hasPrevious = true,
+                        hasNext = true,
+                        {},
+                        {},
+                        {},
+                        width,
+                        leading = { MqIconToggle(false, {}, MqIcons.Repeat, "Repeat") },
+                        trailing = { MqIconToggle(true, {}, MqIcons.Shuffle, "Shuffle") },
+                    )
+                }
             }
         }
     }

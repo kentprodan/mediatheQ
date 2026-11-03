@@ -2,8 +2,10 @@ package io.github.kentprodan.mediatheq.feature.nowplaying
 
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.RatingMode
+import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.Lyrics
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import kotlin.time.Duration
 
@@ -36,6 +38,18 @@ sealed interface NowPlayingUiState {
         val atmosConverted: Boolean = false,
         /** The track's waveform (0..1 levels, #124); `null` until it is computed, or for a converted stream. */
         val waveform: List<Float>? = null,
+        /** The track's artists, each opening its page (#125); empty until the library row is read. */
+        val artists: List<Artist> = emptyList(),
+        val albumId: MediaId? = null,
+        val albumTitle: String? = null,
+        /** What actually plays (#125); `null` hides the label. */
+        val quality: QualityLabel? = null,
+        /** The label shows [QualityLabel.detail] instead of its kind; remembered. */
+        val qualityDetail: Boolean = false,
+        /** The lyrics take the cover's place; kept across tracks and rotation. */
+        val lyricsShown: Boolean = false,
+        /** The playing track, for Add to playlist. */
+        val trackId: MediaId? = null,
     ) : NowPlayingUiState
 }
 
@@ -98,6 +112,15 @@ sealed interface NowPlayingAction {
     data class SetFavorite(
         val isFavorite: Boolean,
     ) : NowPlayingAction
+
+    /** The cover's lyrics button or the bottom bar's: lyrics in place of the cover, or back (#125). */
+    data object ToggleLyrics : NowPlayingAction
+
+    /** A tap on the quality label: its kind or its detail. */
+    data object ToggleQualityDetail : NowPlayingAction
+
+    /** The track menu's Download. */
+    data object Download : NowPlayingAction
 
     /** Rate the playing track with [halfStars], 1-10; `null` clears the rating. */
     data class Rate(
