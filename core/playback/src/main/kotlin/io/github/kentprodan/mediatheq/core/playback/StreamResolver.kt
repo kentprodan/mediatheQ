@@ -134,6 +134,9 @@ class StreamResolver
         /** The stream the player uses for [itemId], or `null` if it was never resolved. */
         fun current(itemId: MediaId): PlaybackStream? = streams[itemId]?.stream
 
+        /** The quality [itemId]'s known stream was asked for; `null` while none is known. */
+        fun quality(itemId: MediaId): StreamingQuality? = streams[itemId]?.quality
+
         /** Request headers (authentication) for stream requests, from the current token. */
         suspend fun headers(): Map<String, String> = playbackRepository.streamHeaders()
     }

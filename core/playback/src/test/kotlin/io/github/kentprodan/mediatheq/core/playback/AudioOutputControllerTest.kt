@@ -11,7 +11,9 @@ class AudioOutputControllerTest {
     private var format: PcmFormat? = cd
     private val changes = mutableListOf<AudioOutputState>()
     private var atmosConverted = false
-    private val controller = AudioOutputController(port, { format }, changes::add, { atmosConverted })
+    private var played = PlayedStream()
+    private val controller =
+        AudioOutputController(port, { format }, changes::add, { atmosConverted }, played = { played })
     private val bitPerfectOn = AudioSettings(bitPerfectUsb = true)
 
     @Test
@@ -323,5 +325,16 @@ class AudioOutputControllerTest {
         controller.onAudioTrackOpened(44_100)
 
         assertThat(controller.state.bitPerfectConfirmed).isFalse()
+    }
+
+    @Test
+    fun `a stream resolved after the transition is published at the next refresh`() {
+        controller.refresh("transition")
+        changes.clear()
+
+        played = PlayedStream(known = true, convertedKbps = 256)
+        controller.refresh("ready")
+
+        assertThat(changes).containsExactly(AudioOutputState(played = PlayedStream(known = true, convertedKbps = 256)))
     }
 }

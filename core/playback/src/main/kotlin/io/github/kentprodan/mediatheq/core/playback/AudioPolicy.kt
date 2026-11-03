@@ -71,6 +71,24 @@ internal object AudioPolicy {
     ): Boolean = isAtmos && playMethod != null && !playsOriginal(playMethod, convertedDownload)
 
     /**
+     * The bitrate of the server's conversion that plays (#125), `null` when the original file plays: a transcode at
+     * the stream's quality cap ([qualityKbps], none for Original: then only an undecodable format converts, to Opus
+     * 256), or a converted download (always Opus 256, ADR 0024).
+     * shortcut: a DirectStream (remux) counts as the original codec; Jellyfin reports remuxes as transcodes, so one
+     * shows as converted. Read the codec and bitrate from the transcoding URL if that matters.
+     */
+    fun convertedKbps(
+        playMethod: PlayMethod,
+        convertedDownload: Boolean,
+        qualityKbps: Int?,
+    ): Int? =
+        when {
+            convertedDownload -> CONVERTED_DOWNLOAD_KBPS
+            playMethod == PlayMethod.Transcode -> qualityKbps ?: CONVERTED_DOWNLOAD_KBPS
+            else -> null
+        }
+
+    /**
      * Whether the player decodes the original file: a direct play, not a [convertedDownload] (which also reports as a
      * direct play, #113). Only then does the file's format in the media item extras hold, e.g. for bit-perfect USB.
      */
@@ -98,4 +116,7 @@ internal object AudioPolicy {
             } ?: return 1f
         return 10.0.pow(db / 20).toFloat().coerceIn(0f, 1f)
     }
+
+    /** Converted downloads and conversions of undecodable formats are Opus at this bitrate (ADR 0024). */
+    private const val CONVERTED_DOWNLOAD_KBPS = 256
 }
