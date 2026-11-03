@@ -6,9 +6,13 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
+import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
+import io.github.kentprodan.mediatheq.core.data.TopButton
+import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
 
 private val albums =
@@ -32,8 +36,17 @@ private val songs =
     }
 
 @Composable
+// The count the ViewModel would give, so the header shows it and enables its buttons.
 private fun Library(state: LibraryUiState) =
-    MediatheqTheme { LibraryScreen(state, onAction = {}, onOpenAlbum = {}, onOpenArtist = {}, onOpenPlaylist = {}) }
+    MediatheqTheme {
+        LibraryScreen(
+            state.copy(itemCount = state.content.itemCount),
+            onAction = {},
+            onOpenAlbum = {},
+            onOpenArtist = {},
+            onOpenPlaylist = {},
+        )
+    }
 
 @PreviewTest
 @MqPreviews
@@ -103,3 +116,91 @@ fun LibraryNothingDownloadedScreenshot() = Library(LibraryUiState(content = Libr
 @MqPreviews
 @Composable
 fun LibraryErrorScreenshot() = Library(LibraryUiState(content = LibraryContent.Error(MqError.Server(500))))
+
+/** The list header with each top button style (#123): Normal (icon and label) here, with a count. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryHeaderNormalButtonsScreenshot() =
+    Library(
+        LibraryUiState(
+            content = LibraryContent.Albums(albums),
+            itemCount = albums.size,
+            header = MediaListPreferences(topButtonStyle = TopButtonStyle.Normal),
+        ),
+    )
+
+/** Large icons, two buttons hidden, inverted sort arrow, the filter on and search in list open. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryHeaderLargeIconsScreenshot() =
+    Library(
+        LibraryUiState(
+            filter = LibraryFilter.Songs,
+            filterFixed = true,
+            content = LibraryContent.Songs(songs),
+            itemCount = songs.size,
+            listFilter = LibraryListFilter(favoritesOnly = true, search = "mo"),
+            header =
+                MediaListPreferences(
+                    topButtonStyle = TopButtonStyle.LargeIcons,
+                    hiddenTopButtons = setOf(TopButton.PlayNext, TopButton.AddToQueue),
+                    invertedSortArrows = true,
+                ),
+        ),
+    )
+
+/** No top buttons, no count; a list that is not a tab shows back. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryHeaderHiddenButtonsScreenshot() =
+    MediatheqTheme {
+        LibraryScreen(
+            LibraryUiState(
+                filter = LibraryFilter.Albums,
+                filterFixed = true,
+                content = LibraryContent.Albums(albums),
+                itemCount = albums.size,
+                header = MediaListPreferences(topButtonStyle = TopButtonStyle.Hidden, showItemCounts = false),
+            ),
+            onAction = {},
+            onOpenAlbum = {},
+            onOpenArtist = {},
+            onOpenPlaylist = {},
+            onBack = {},
+        )
+    }
+
+/** The filter or search leaves nothing. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryNoMatchesScreenshot() =
+    Library(LibraryUiState(content = LibraryContent.NoMatches, listFilter = LibraryListFilter(search = "zzz")))
+
+/** Selecting (#123): two albums checked, the selection toolbar at the bottom. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibrarySelectionScreenshot() =
+    Library(
+        LibraryUiState(
+            content = LibraryContent.Albums(albums),
+            selection = ListSelection(setOf(albums[0].id, albums[3].id)),
+        ),
+    )
+
+/** Selecting songs: checked rows, no menus. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibrarySongsSelectionScreenshot() =
+    Library(
+        LibraryUiState(
+            filter = LibraryFilter.Songs,
+            content = LibraryContent.Songs(songs),
+            selection = ListSelection(setOf(songs[1].id)),
+        ),
+    )

@@ -56,6 +56,22 @@ class LibraryPreferencesStore
                                 trackAction = prefs[TRACK_ACTION],
                                 expandPlayer = prefs[EXPAND_PLAYER],
                             ),
+                        mediaLists =
+                            StoredMediaLists(
+                                showItemCounts = prefs[ML_ITEM_COUNTS],
+                                topButtonStyle = prefs[ML_TOP_BUTTON_STYLE],
+                                hiddenTopButtons =
+                                    prefs[ML_HIDDEN_TOP_BUTTONS]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
+                                invertedSortArrows = prefs[ML_INVERTED_SORT_ARROWS],
+                                hideBackButton = prefs[ML_HIDE_BACK],
+                                trackInfo = prefs[ML_TRACK_INFO],
+                                secondTrackInfo = prefs[ML_SECOND_TRACK_INFO],
+                                centerGridText = prefs[ML_CENTER_GRID_TEXT],
+                                favoriteOverlay = prefs[ML_FAVORITE_OVERLAY],
+                                offlineOverlay = prefs[ML_OFFLINE_OVERLAY],
+                                swipeRight = prefs[ML_SWIPE_RIGHT],
+                                swipeLeft = prefs[ML_SWIPE_LEFT],
+                            ),
                         offlineMode = prefs[OFFLINE_MODE],
                         sorts =
                             prefs
@@ -98,6 +114,25 @@ class LibraryPreferencesStore
                 prefs.put(SLOW_START_MESSAGES, navigation.slowStartMessages)
                 prefs.put(TRACK_ACTION, navigation.trackAction)
                 prefs.put(EXPAND_PLAYER, navigation.expandPlayer)
+            }
+        }
+
+        /** Stores every Media lists value at once (#123); null removes it. */
+        suspend fun setMediaLists(mediaLists: StoredMediaLists) {
+            dataStore.edit { prefs ->
+                prefs.put(ML_ITEM_COUNTS, mediaLists.showItemCounts)
+                prefs.put(ML_TOP_BUTTON_STYLE, mediaLists.topButtonStyle)
+                // None hidden is stored as an empty string, not removed: it is a choice, like any other.
+                prefs.put(ML_HIDDEN_TOP_BUTTONS, mediaLists.hiddenTopButtons?.joinToString(LIST_SEPARATOR))
+                prefs.put(ML_INVERTED_SORT_ARROWS, mediaLists.invertedSortArrows)
+                prefs.put(ML_HIDE_BACK, mediaLists.hideBackButton)
+                prefs.put(ML_TRACK_INFO, mediaLists.trackInfo)
+                prefs.put(ML_SECOND_TRACK_INFO, mediaLists.secondTrackInfo)
+                prefs.put(ML_CENTER_GRID_TEXT, mediaLists.centerGridText)
+                prefs.put(ML_FAVORITE_OVERLAY, mediaLists.favoriteOverlay)
+                prefs.put(ML_OFFLINE_OVERLAY, mediaLists.offlineOverlay)
+                prefs.put(ML_SWIPE_RIGHT, mediaLists.swipeRight)
+                prefs.put(ML_SWIPE_LEFT, mediaLists.swipeLeft)
             }
         }
 
@@ -168,6 +203,18 @@ class LibraryPreferencesStore
             val SLOW_START_MESSAGES = booleanPreferencesKey("slow_start_messages")
             val TRACK_ACTION = stringPreferencesKey("track_action")
             val EXPAND_PLAYER = booleanPreferencesKey("expand_player")
+            val ML_ITEM_COUNTS = booleanPreferencesKey("ml_item_counts")
+            val ML_TOP_BUTTON_STYLE = stringPreferencesKey("ml_top_button_style")
+            val ML_HIDDEN_TOP_BUTTONS = stringPreferencesKey("ml_hidden_top_buttons")
+            val ML_INVERTED_SORT_ARROWS = booleanPreferencesKey("ml_inverted_sort_arrows")
+            val ML_HIDE_BACK = booleanPreferencesKey("ml_hide_back")
+            val ML_TRACK_INFO = stringPreferencesKey("ml_track_info")
+            val ML_SECOND_TRACK_INFO = stringPreferencesKey("ml_second_track_info")
+            val ML_CENTER_GRID_TEXT = booleanPreferencesKey("ml_center_grid_text")
+            val ML_FAVORITE_OVERLAY = booleanPreferencesKey("ml_favorite_overlay")
+            val ML_OFFLINE_OVERLAY = booleanPreferencesKey("ml_offline_overlay")
+            val ML_SWIPE_RIGHT = stringPreferencesKey("ml_swipe_right")
+            val ML_SWIPE_LEFT = stringPreferencesKey("ml_swipe_left")
             const val LIST_SEPARATOR = ","
             const val SORT_PREFIX = "sort_"
             val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
@@ -186,6 +233,24 @@ data class StoredLibraryPreferences(
     val offlineMode: Boolean? = null,
     val theme: StoredTheme = StoredTheme(),
     val navigation: StoredNavigation = StoredNavigation(),
+    val mediaLists: StoredMediaLists = StoredMediaLists(),
+)
+
+/** Media lists values as stored (#123); `null` = not set. */
+data class StoredMediaLists(
+    val showItemCounts: Boolean? = null,
+    val topButtonStyle: String? = null,
+    /** Button names; empty = none hidden. */
+    val hiddenTopButtons: List<String>? = null,
+    val invertedSortArrows: Boolean? = null,
+    val hideBackButton: Boolean? = null,
+    val trackInfo: String? = null,
+    val secondTrackInfo: String? = null,
+    val centerGridText: Boolean? = null,
+    val favoriteOverlay: Boolean? = null,
+    val offlineOverlay: Boolean? = null,
+    val swipeRight: String? = null,
+    val swipeLeft: String? = null,
 )
 
 /** Navigation and media start values as stored (#122); `null` = not set. */

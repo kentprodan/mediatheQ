@@ -23,6 +23,8 @@ class FakeLibraryRepository : LibraryRepository {
     /** Offline mode; the lists above are what screens get either way (set them to the downloaded ones). */
     override val offline = MutableStateFlow(false)
 
+    override val fullyDownloaded = MutableStateFlow(emptySet<MediaId>())
+
     /** Every query [search] was called with, in order. */
     val searches = mutableListOf<String>()
 

@@ -10,17 +10,23 @@ import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
+import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 @HiltViewModel(assistedFactory = AlbumViewModel.Factory::class)
@@ -31,11 +37,14 @@ class AlbumViewModel
         libraryRepository: LibraryRepository,
         private val playback: PlaybackConnection,
         private val trackTaps: TrackTaps,
+        private val commands: TrackCommands,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
         preferences: LibraryPreferencesRepository,
     ) : ViewModel() {
-        val uiState: StateFlow<AlbumUiState> =
+        private val selection = MutableStateFlow(ListSelection<MediaId>())
+
+        private val page =
             combine(
                 libraryRepository.album(albumId),
                 libraryRepository.albumTracks(albumId),
@@ -52,6 +61,22 @@ class AlbumViewModel
                         }
                     AlbumUiState.Content(album, discs, currentTrackId, ratingMode)
                 }
+            }
+
+        val uiState: StateFlow<AlbumUiState> =
+            combine(page, selection) { page, selection ->
+                // Tracks can leave the page while selected.
+                (page as? AlbumUiState.Content)?.let {
+                    it.copy(
+                        selection =
+                            selection.retain(
+                                it.tracks.map { t ->
+                                    t.id
+                                },
+                            ),
+                    )
+                }
+                    ?: page
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AlbumUiState.Loading)
 
         fun onAction(action: AlbumAction) {
@@ -77,6 +102,55 @@ class AlbumViewModel
 
                 is AlbumAction.AddToQueue -> {
                     tracks.pick(action.trackId).takeIf { it.isNotEmpty() }?.let(playback::addToQueue)
+                }
+
+                is AlbumAction.SwipeTrack -> {
+                    viewModelScope.launch {
+                        commands.swipe(action.track, action.right)
+                    }
+                }
+
+                is AlbumAction.RateTrack -> {
+                    viewModelScope.launch {
+                        commands.rate(action.track, action.halfStars)
+                    }
+                }
+
+                is AlbumAction.ToggleSelection -> {
+                    selection.update { it.toggle(action.id) }
+                }
+
+                AlbumAction.SelectAll -> {
+                    selection.value =
+                        ListSelection<MediaId>().selectAll(
+                            ((uiState.value as? AlbumUiState.Content)?.tracks.orEmpty()).map { it.id },
+                        )
+                }
+
+                AlbumAction.ClearSelection -> {
+                    selection.value = ListSelection()
+                }
+
+                is AlbumAction.OnSelection -> {
+                    val picked =
+                        selection.value.pick(
+                            (uiState.value as? AlbumUiState.Content)?.tracks.orEmpty(),
+                        ) { it.id }
+                    selection.value = ListSelection()
+                    when (action.command) {
+                        SelectionCommand.Play -> commands.run(TopButton.Play, picked)
+
+                        SelectionCommand.PlayNext -> commands.run(TopButton.PlayNext, picked)
+
+                        SelectionCommand.AddToQueue -> commands.run(TopButton.AddToQueue, picked)
+
+                        SelectionCommand.Download -> commands.download(picked)
+
+                        SelectionCommand.Favorite -> viewModelScope.launch { commands.toggleFavorite(picked) }
+
+                        // The screen opens the playlist picker with the tracks it shows.
+                        SelectionCommand.AddToPlaylist -> Unit
+                    }
                 }
 
                 is AlbumAction.SetFavorite -> {

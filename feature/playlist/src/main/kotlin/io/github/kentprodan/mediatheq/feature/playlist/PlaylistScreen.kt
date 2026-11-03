@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.playlist
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -36,7 +37,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -58,18 +61,23 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.rememberMqReor
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
+import io.github.kentprodan.mediatheq.core.ui.SelectionToolbar
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
+import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 
 @Composable
 internal fun PlaylistRoute(
     playlistId: MediaId,
     onBack: () -> Unit,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
     viewModel: PlaylistViewModel =
         hiltViewModel<PlaylistViewModel, PlaylistViewModel.Factory>(key = playlistId.toString(), creationCallback = {
             it.create(playlistId)
@@ -77,7 +85,7 @@ internal fun PlaylistRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(state) { if (state == PlaylistUiState.Deleted) onBack() }
-    PlaylistScreen(state, viewModel::onAction, onBack)
+    PlaylistScreen(state, viewModel::onAction, onBack, onAddToPlaylist = onAddToPlaylist)
 }
 
 /**
@@ -90,10 +98,18 @@ fun PlaylistScreen(
     onAction: (PlaylistAction) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onAddToPlaylist: (List<MediaId>) -> Unit = {},
 ) {
+    val swipe =
+        trackSwipes(
+            onAddToPlaylist,
+            onRate = { track, stars -> onAction(PlaylistAction.RateTrack(track, stars)) },
+            onCommand = { track, right -> onAction(PlaylistAction.SwipeTrack(track, right)) },
+        )
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val content = state as? PlaylistUiState.Content
     var dialog by rememberSaveable { mutableStateOf<PlaylistDialog?>(null) }
+    BackHandler(enabled = content?.isSelecting == true) { onAction(PlaylistAction.ClearSelection) }
     val snackbarHostState = remember { SnackbarHostState() }
     val editFailed = stringResource(R.string.playlist_edit_failed)
     LaunchedEffect(content?.error) {
@@ -182,9 +198,15 @@ fun PlaylistScreen(
                         state,
                         onAction,
                         PaddingValues(top = padding.calculateTopPadding(), bottom = toolbarSpace).plusBottomBars(),
+                        swipe,
                     )
                     if (state.isSelecting) {
-                        SelectionToolbar(state, onAction, Modifier.align(Alignment.BottomCenter).bottomBarsPadding())
+                        PlaylistSelectionToolbar(
+                            state,
+                            onAction,
+                            onAddToPlaylist,
+                            Modifier.align(Alignment.BottomCenter).bottomBarsPadding(),
+                        )
                     }
                 }
             }
@@ -228,6 +250,7 @@ private fun PlaylistList(
     state: PlaylistUiState.Content,
     onAction: (PlaylistAction) -> Unit,
     contentPadding: PaddingValues,
+    onSwipe: (Track, Boolean) -> Unit,
 ) {
     // A local copy follows the finger while dragging; the repository gets one move when it is dropped.
     var rows by remember(state.items) { mutableStateOf(state.items) }
@@ -275,6 +298,7 @@ private fun PlaylistList(
                     .mqReorderItem(reorder, item.position)
                     .then(if (reorder.draggedKey == item.position) Modifier else Modifier.animateItem()),
                 handle = Modifier.mqReorderHandle(reorder, item.position, enabled = canReorder),
+                onSwipe = onSwipe,
             )
         }
     }
@@ -289,12 +313,14 @@ private fun PlaylistRow(
     onAction: (PlaylistAction) -> Unit,
     modifier: Modifier,
     handle: Modifier,
+    onSwipe: (Track, Boolean) -> Unit,
 ) {
     val index = rows.indexOf(item)
     val moveUp = stringResource(R.string.playlist_move_up)
     val moveDown = stringResource(R.string.playlist_move_down)
     val remove = stringResource(R.string.playlist_remove)
     val canEditItem = state.canEdit && !item.isPending
+    val haptics = LocalHapticFeedback.current
     Row(
         modifier.semantics {
             customActions =
@@ -333,8 +359,15 @@ private fun PlaylistRow(
             modifier = Modifier.weight(1f),
             showCover = true,
             isCurrent = item.track.id == state.currentTrackId,
-            onLongClick = { if (canEditItem) onAction(PlaylistAction.ToggleSelection(item.position)) },
+            // Any playlist can select (#123); only an editable one can then remove.
+            onLongClick = {
+                if (!item.isPending) {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onAction(PlaylistAction.ToggleSelection(item.position))
+                }
+            },
             selected = if (state.isSelecting) item.entryId in state.selected else null,
+            onSwipe = { onSwipe(item.track, it) },
             menuItems =
                 if (state.isSelecting) {
                     null
@@ -391,26 +424,32 @@ private fun PlaylistHeader(state: PlaylistUiState.Content) {
     }
 }
 
+/** The shared selection toolbar (#123); Remove joins it while the playlist can be edited. */
 @Composable
-private fun SelectionToolbar(
+private fun PlaylistSelectionToolbar(
     state: PlaylistUiState.Content,
     onAction: (PlaylistAction) -> Unit,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
     modifier: Modifier,
 ) {
-    HorizontalFloatingToolbar(
-        expanded = true,
-        modifier = modifier.padding(FloatingToolbarDefaults.ScreenOffset),
+    SelectionToolbar(
+        state.selected.size,
+        onCommand = { command ->
+            if (command == SelectionCommand.AddToPlaylist) {
+                onAddToPlaylist(state.items.filter { it.entryId in state.selected }.map { it.track.id })
+                onAction(PlaylistAction.ClearSelection)
+            } else {
+                onAction(PlaylistAction.OnSelection(command))
+            }
+        },
+        onSelectAll = { onAction(PlaylistAction.SelectAll) },
+        onClear = { onAction(PlaylistAction.ClearSelection) },
+        modifier = modifier,
     ) {
-        IconButton(onClick = { onAction(PlaylistAction.ClearSelection) }) {
-            Icon(MqIcons.Close, contentDescription = stringResource(R.string.playlist_clear_selection))
-        }
-        Text(
-            pluralStringResource(R.plurals.playlist_selected, state.selected.size, state.selected.size),
-            Modifier.align(Alignment.CenterVertically).padding(horizontal = MediatheqSpacing.s),
-            style = MaterialTheme.typography.labelLarge,
-        )
-        IconButton(onClick = { onAction(PlaylistAction.RemoveSelected) }, enabled = state.canEdit) {
-            Icon(MqIcons.Delete, contentDescription = stringResource(R.string.playlist_remove))
+        if (state.canEdit) {
+            IconButton(onClick = { onAction(PlaylistAction.RemoveSelected) }) {
+                Icon(MqIcons.Delete, contentDescription = stringResource(R.string.playlist_remove))
+            }
         }
     }
 }

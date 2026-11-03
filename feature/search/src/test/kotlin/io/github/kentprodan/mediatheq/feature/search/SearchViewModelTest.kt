@@ -3,19 +3,27 @@ package io.github.kentprodan.mediatheq.feature.search
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
+import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
+import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -30,17 +38,21 @@ class SearchViewModelTest {
     private val preferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
     private val trackTaps by lazy { TrackTaps(playback, preferences) }
+    private val commands by lazy { TrackCommands(playback, userData, downloads, preferences) }
     private val userData = FakeUserDataRepository()
 
     // Lazy: viewModelScope must be created after the rule replaced the main dispatcher.
     private val downloads = FakeDownloadRepository()
-    private val viewModel by lazy { SearchViewModel(library, preferences, playback, trackTaps, userData, downloads) }
+    private val playlists = FakePlaylistRepository()
+    private val viewModel by lazy {
+        SearchViewModel(library, preferences, playback, trackTaps, commands, userData, downloads, playlists)
+    }
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
-    private val ada = Artist(id("ar"), "Ada Moșoi")
-    private val track = Track(id("t1"), "Moșoi", listOf(ada), Duration.ZERO)
-    private val album = Album(id("al"), "Moșoi Live", listOf(ada))
+    private val ada = Artist(id("ar"), "Ada MoÈ™oi")
+    private val track = Track(id("t1"), "MoÈ™oi", listOf(ada), Duration.ZERO)
+    private val album = Album(id("al"), "MoÈ™oi Live", listOf(ada))
 
     init {
         library.albumArtists.value = listOf(ada)
@@ -235,5 +247,77 @@ class SearchViewModelTest {
             viewModel.onAction(SearchAction.ClearRecent)
 
             assertThat(preferences.recentSearches.value).isEmpty()
+        }
+
+    @Test
+    fun `selected results act by their tracks in the order shown, and a new query drops the selection`() =
+        test {
+            backgroundScope.launch { viewModel.uiState.collect() }
+            viewModel.onAction(SearchAction.QueryChanged("mo"))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            val other = Track(id("t2"), "Other", listOf(ada), Duration.ZERO, albumId = album.id)
+            library.tracks.value = listOf(track, other)
+
+            viewModel.onAction(SearchAction.ToggleSelection(track.id))
+            viewModel.onAction(SearchAction.ToggleSelection(album.id))
+            assertThat((viewModel.uiState.value as SearchUiState.Results).selection.size).isEqualTo(2)
+            viewModel.onAction(SearchAction.OnSelection(SelectionCommand.PlayNext))
+
+            // The album (shown before songs) first, then the song.
+            assertThat(playback.playedNext.single().map { it.id.itemId }).containsExactly("t2", "t1").inOrder()
+
+            viewModel.onAction(SearchAction.ToggleSelection(track.id))
+            viewModel.onAction(SearchAction.QueryChanged("mos"))
+            assertThat((viewModel.uiState.value as SearchUiState.Results).selection.isActive).isFalse()
+        }
+
+    @Test
+    fun `an album and one of its songs selected give the song once, and the album downloads as an album`() =
+        test {
+            backgroundScope.launch { viewModel.uiState.collect() }
+            val inAlbum = track.copy(albumId = album.id)
+            library.tracks.value = listOf(inAlbum)
+            viewModel.onAction(SearchAction.QueryChanged("mo"))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+
+            viewModel.onAction(SearchAction.ToggleSelection(album.id))
+            viewModel.onAction(SearchAction.ToggleSelection(inAlbum.id))
+            viewModel.onAction(SearchAction.OnSelection(SelectionCommand.Play))
+            assertThat(playback.plays.single().queue).containsExactly(inAlbum)
+
+            viewModel.onAction(SearchAction.ToggleSelection(album.id))
+            viewModel.onAction(SearchAction.OnSelection(SelectionCommand.Download))
+            assertThat(
+                downloads.downloads.value
+                    .single()
+                    .origins,
+            ).containsExactly(DownloadOrigin.Album(album.id))
+        }
+
+    @Test
+    fun `a queue swipe does not search again, a favorite swipe does`() =
+        test {
+            backgroundScope.launch { viewModel.uiState.collect() }
+            viewModel.onAction(SearchAction.QueryChanged("mo"))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+
+            viewModel.onAction(SearchAction.SwipeTrack(track, right = true))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            assertThat(library.searches).containsExactly("mo")
+
+            preferences.setMediaLists(MediaListPreferences(swipeRight = SwipeAction.ToggleFavorite))
+            viewModel.onAction(SearchAction.SwipeTrack(track, right = true))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            assertThat(library.searches).containsExactly("mo", "mo")
+        }
+
+    @Test
+    fun `a swipe runs its action and a rating rates the track`() =
+        test {
+            viewModel.onAction(SearchAction.SwipeTrack(track, right = false))
+            viewModel.onAction(SearchAction.RateTrack(track, 4))
+
+            assertThat(playback.playedNext).containsExactly(listOf(track))
+            assertThat(userData.calls).containsExactly("rating:${track.id.itemId}:4")
         }
 }

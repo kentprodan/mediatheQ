@@ -15,6 +15,10 @@ fun AlbumRow(
     /** A third line, e.g. a download's size and duration. */
     details: String? = null,
     menuItems: (@Composable ColumnScope.(close: () -> Unit) -> Unit)? = null,
+    /** Long press, e.g. to start selecting; `null` for none. */
+    onLongClick: (() -> Unit)? = null,
+    /** In a multi-select list: whether this row is selected. `null` outside selection. */
+    selected: Boolean? = null,
 ) {
     CoverRow(
         title = album.title,
@@ -24,6 +28,10 @@ fun AlbumRow(
         modifier = modifier,
         details = details,
         menuItems = menuItems,
+        onLongClick = onLongClick,
+        selected = selected,
+        isFavorite = album.userData.isFavorite,
+        isDownloaded = album.id in LocalMediaListStyle.current.downloaded,
         subtitle = album.albumArtists.joinToString { it.name },
     )
 }

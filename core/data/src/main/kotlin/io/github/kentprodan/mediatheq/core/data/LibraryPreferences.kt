@@ -28,6 +28,7 @@ data class LibraryPreferences(
     val offlineMode: Boolean = false,
     val theme: ThemePreferences = ThemePreferences(),
     val navigation: NavigationPreferences = NavigationPreferences(),
+    val mediaLists: MediaListPreferences = MediaListPreferences(),
 ) {
     /** The sort of [filter]: the stored one when that tab offers it, else its default. */
     fun sortFor(filter: LibraryFilter): LibrarySort =

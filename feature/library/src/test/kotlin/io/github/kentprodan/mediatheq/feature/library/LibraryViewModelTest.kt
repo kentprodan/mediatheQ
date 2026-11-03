@@ -4,12 +4,16 @@ import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
+import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
+import io.github.kentprodan.mediatheq.core.data.TopButton
+import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
@@ -17,14 +21,18 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -46,6 +54,8 @@ class LibraryViewModelTest {
     private val trackTaps by lazy { TrackTaps(playback, preferences) }
     private val userData = FakeUserDataRepository()
     private val downloads = FakeDownloadRepository()
+    private val playlistRepository = FakePlaylistRepository()
+    private val commands by lazy { TrackCommands(playback, userData, downloads, preferences) }
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
@@ -122,8 +132,10 @@ class LibraryViewModelTest {
                 preferences,
                 playback,
                 trackTaps,
+                commands,
                 userData,
                 downloads,
+                playlistRepository,
                 mainDispatcherRule.testDispatcher,
             )
         if (collect) backgroundScope.launch { viewModel.uiState.collect() }
@@ -206,6 +218,156 @@ class LibraryViewModelTest {
             viewModel.onAction(LibraryAction.SetFavorite(tracks[0], true))
 
             assertThat(userData.calls).containsExactly("favorite:${tracks[0].id.itemId}:true")
+        }
+
+    @Test
+    fun `the header counts the items and follows the media lists settings`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            preferences.setMediaLists(MediaListPreferences(topButtonStyle = TopButtonStyle.Normal))
+            val viewModel = viewModel()
+
+            assertThat(viewModel.uiState.value.itemCount).isEqualTo(3)
+            assertThat(viewModel.uiState.value.header.topButtonStyle).isEqualTo(TopButtonStyle.Normal)
+        }
+
+    @Test
+    fun `search in list narrows the items without diacritics, and closing it shows them all`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+
+            viewModel.onAction(LibraryAction.Search("mosoi"))
+            // The title "Moșoi" (a1), and "c" (a2) by Ada Moșoi: titles and artists both match.
+            assertThat(viewModel.ids()).containsExactly("a2", "a1").inOrder()
+            assertThat(viewModel.uiState.value.itemCount).isEqualTo(2)
+
+            viewModel.onAction(LibraryAction.Search("nothing like it"))
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.NoMatches)
+
+            viewModel.onAction(LibraryAction.Search(null))
+            assertThat(viewModel.ids()).hasSize(3)
+        }
+
+    @Test
+    fun `favorites only and downloaded only filter the list`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albums.value = albums
+            val viewModel = viewModel()
+            library.albums.value = albums.mapIndexed { i, a -> a.copy(userData = UserData(isFavorite = i != 1)) }
+            library.fullyDownloaded.value = setOf(id("a1"), id("a2"))
+
+            viewModel.onAction(LibraryAction.SetFavoritesOnly(true))
+            assertThat(viewModel.ids()).containsExactly("a3", "a1").inOrder()
+
+            viewModel.onAction(LibraryAction.SetDownloadedOnly(true))
+            assertThat(viewModel.ids()).containsExactly("a1")
+        }
+
+    @Test
+    fun `a top button acts on the filtered list, albums by their tracks in list order`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            library.tracks.value =
+                listOf(
+                    tracks[0].copy(albumId = id("a1")),
+                    tracks[1].copy(albumId = id("a3")),
+                    tracks[2].copy(albumId = id("a1")),
+                )
+
+            viewModel.onAction(LibraryAction.Search("bob"))
+            viewModel.onAction(LibraryAction.Top(TopButton.Play))
+
+            // Albums by bob, by name: B (a3) then Moșoi (a1).
+            val queued =
+                playback.plays
+                    .single()
+                    .queue
+                    .map { it.id.itemId }
+            assertThat(queued).containsExactly("t2", "t1", "t3").inOrder()
+        }
+
+    @Test
+    fun `selection toggles, selects all, clears, and ends on a tab switch`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a1")))
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a2")))
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a1")))
+            assertThat(viewModel.uiState.value.selection.keys).containsExactly(id("a2"))
+
+            viewModel.onAction(LibraryAction.SelectAll)
+            assertThat(viewModel.uiState.value.selection.size).isEqualTo(3)
+
+            viewModel.onAction(LibraryAction.ClearSelection)
+            assertThat(viewModel.uiState.value.selection.isActive).isFalse()
+
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a1")))
+            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
+            assertThat(viewModel.uiState.value.selection.isActive).isFalse()
+        }
+
+    @Test
+    fun `a selection action runs on the selected albums' tracks in list order and ends selecting`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            library.tracks.value =
+                listOf(
+                    tracks[0].copy(albumId = id("a1")),
+                    tracks[1].copy(albumId = id("a3")),
+                    tracks[2].copy(albumId = id("a2")),
+                )
+
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a1")))
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a3")))
+            viewModel.onAction(LibraryAction.OnSelection(SelectionCommand.AddToQueue))
+
+            // By name: B (a3) before Moșoi (a1).
+            assertThat(playback.addedToQueue.single().map { it.id.itemId }).containsExactly("t2", "t1").inOrder()
+            assertThat(viewModel.uiState.value.selection.isActive).isFalse()
+        }
+
+    @Test
+    fun `selected albums download as albums, so Downloads can remove them whole`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            library.tracks.value = listOf(tracks[0].copy(albumId = id("a1")), tracks[1].copy(albumId = id("a3")))
+
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a1")))
+            viewModel.onAction(LibraryAction.ToggleSelection(id("a3")))
+            viewModel.onAction(LibraryAction.OnSelection(SelectionCommand.Download))
+
+            assertThat(downloads.downloads.value.map { it.track.id.itemId to it.origins }).containsExactly(
+                "t1" to setOf(DownloadOrigin.Album(id("a1"))),
+                "t2" to setOf(DownloadOrigin.Album(id("a3"))),
+            )
+        }
+
+    @Test
+    fun `add to playlist from a selection hands its tracks to the screen once`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
+
+            viewModel.onAction(LibraryAction.ToggleSelection(id("t3")))
+            viewModel.onAction(LibraryAction.OnSelection(SelectionCommand.AddToPlaylist))
+            assertThat(viewModel.uiState.value.addToPlaylist).containsExactly(id("t3"))
+
+            viewModel.onAction(LibraryAction.AddToPlaylistShown)
+            assertThat(viewModel.uiState.value.addToPlaylist).isNull()
+        }
+
+    @Test
+    fun `swipes run the chosen actions and Rate rates`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+
+            viewModel.onAction(LibraryAction.SwipeTrack(tracks[0], right = true))
+            viewModel.onAction(LibraryAction.SwipeTrack(tracks[1], right = false))
+            viewModel.onAction(LibraryAction.RateTrack(tracks[0], 6))
+
+            assertThat(playback.addedToQueue).containsExactly(listOf(tracks[0]))
+            assertThat(playback.playedNext).containsExactly(listOf(tracks[1]))
+            assertThat(userData.calls).containsExactly("rating:${tracks[0].id.itemId}:6")
         }
 
     @Test
@@ -435,8 +597,10 @@ class LibraryViewModelTest {
                     preferences,
                     playback,
                     trackTaps,
+                    commands,
                     userData,
                     downloads,
+                    playlistRepository,
                     sorting,
                 )
             backgroundScope.launch { viewModel.uiState.collect() }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -19,6 +20,7 @@ import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.download.resumeDownloads
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
+import io.github.kentprodan.mediatheq.core.ui.LocalMediaListStyle
 import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.artist.artistEntry
 import io.github.kentprodan.mediatheq.feature.downloads.downloadsEntry
@@ -109,18 +111,21 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
                                 }
-                            NowPlayingHost(
-                                content = { miniPlayer ->
-                                    AppShell(
-                                        navigator,
-                                        entries,
-                                        miniPlayer = miniPlayer,
-                                        snackbarHostState = snackbar,
-                                        navigation = navigation,
-                                    )
-                                },
-                                snackbarHost = { SnackbarHost(snackbar) },
-                            )
+                            val mediaListStyle by viewModel.mediaListStyle.collectAsStateWithLifecycle()
+                            CompositionLocalProvider(LocalMediaListStyle provides mediaListStyle) {
+                                NowPlayingHost(
+                                    content = { miniPlayer ->
+                                        AppShell(
+                                            navigator,
+                                            entries,
+                                            miniPlayer = miniPlayer,
+                                            snackbarHostState = snackbar,
+                                            navigation = navigation,
+                                        )
+                                    },
+                                    snackbarHost = { SnackbarHost(snackbar) },
+                                )
+                            }
                         }
                     }
                 }

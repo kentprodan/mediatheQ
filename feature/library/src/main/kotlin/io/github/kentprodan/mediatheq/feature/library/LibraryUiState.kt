@@ -5,10 +5,15 @@ import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
+import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
+import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 
 /**
  * The Library tab. The filter bar and top bar show in every state, so this wraps [content] instead of being a sealed
@@ -28,6 +33,16 @@ data class LibraryUiState(
     val refreshing: Boolean = false,
     /** A failed sync while items are shown: a snackbar, acknowledged with [LibraryAction.ErrorShown]. */
     val refreshError: MqError? = null,
+    /** How the list header looks (Settings -> Media lists, #123). */
+    val header: MediaListPreferences = MediaListPreferences(),
+    /** The header's filter and search in list. */
+    val listFilter: LibraryListFilter = LibraryListFilter(),
+    /** Items in the list as filtered. */
+    val itemCount: Int = 0,
+    /** Multi-select (#123): the selected albums, artists, playlists or songs of this tab. */
+    val selection: ListSelection<MediaId> = ListSelection(),
+    /** Tracks of a selection to add to a playlist: the picker opens, then [LibraryAction.AddToPlaylistShown]. */
+    val addToPlaylist: List<MediaId>? = null,
 )
 
 /** What the list area shows. */
@@ -42,6 +57,9 @@ sealed interface LibraryContent {
 
     /** Offline mode, and nothing for this tab is downloaded (#63). */
     data object NothingDownloaded : LibraryContent
+
+    /** The tab has items, but none passes the header's filter or search (#123). */
+    data object NoMatches : LibraryContent
 
     data class Error(
         val error: MqError,
@@ -109,5 +127,54 @@ sealed interface LibraryAction {
     data class SetFavorite(
         val track: Track,
         val isFavorite: Boolean,
+    ) : LibraryAction
+
+    /** The header's Favorites only filter. */
+    data class SetFavoritesOnly(
+        val on: Boolean,
+    ) : LibraryAction
+
+    /** The header's Downloaded only filter. */
+    data class SetDownloadedOnly(
+        val on: Boolean,
+    ) : LibraryAction
+
+    /** Opens search in list, or with `null` closes it (and drops its text). */
+    data class Search(
+        val text: String?,
+    ) : LibraryAction
+
+    /** A long press starts selecting with an item; while selecting a tap toggles one. */
+    data class ToggleSelection(
+        val id: MediaId,
+    ) : LibraryAction
+
+    data object SelectAll : LibraryAction
+
+    /** Clear or Back: selecting ends. */
+    data object ClearSelection : LibraryAction
+
+    /** A selection toolbar action on the selected items (by their tracks); selecting ends. */
+    data class OnSelection(
+        val command: SelectionCommand,
+    ) : LibraryAction
+
+    data object AddToPlaylistShown : LibraryAction
+
+    /** A top button of the header: acts on the whole list as filtered and sorted. */
+    data class Top(
+        val button: TopButton,
+    ) : LibraryAction
+
+    /** A swipe on a song to the right (or left): the action chosen in Settings -> Media lists (#123). */
+    data class SwipeTrack(
+        val track: Track,
+        val right: Boolean,
+    ) : LibraryAction
+
+    /** [halfStars] 1-10, `null` clears the rating. */
+    data class RateTrack(
+        val track: Track,
+        val halfStars: Int?,
     ) : LibraryAction
 }

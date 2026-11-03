@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,14 +46,20 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
+import io.github.kentprodan.mediatheq.core.ui.SelectableList
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
+import io.github.kentprodan.mediatheq.core.ui.rememberSelectLongPress
+import io.github.kentprodan.mediatheq.core.ui.stateOf
+import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 
 @Composable
 internal fun ArtistRoute(
     artistId: MediaId,
     onOpenAlbum: (MediaId) -> Unit,
     onBack: () -> Unit,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
     viewModel: ArtistViewModel =
         hiltViewModel<ArtistViewModel, ArtistViewModel.Factory>(key = artistId.toString(), creationCallback = {
             it.create(artistId)
@@ -70,7 +77,15 @@ fun ArtistScreen(
     onOpenAlbum: (MediaId) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onAddToPlaylist: (List<MediaId>) -> Unit = {},
 ) {
+    val longPress = rememberSelectLongPress<MediaId> { onAction(ArtistAction.ToggleSelection(it)) }
+    val swipe =
+        trackSwipes(
+            onAddToPlaylist,
+            onRate = { track, stars -> onAction(ArtistAction.RateTrack(track, stars)) },
+            onCommand = { track, right -> onAction(ArtistAction.SwipeTrack(track, right)) },
+        )
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val content = state as? ArtistUiState.Content
     Scaffold(
@@ -115,35 +130,73 @@ fun ArtistScreen(
             }
 
             else -> {
-                LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding =
-                        PaddingValues(
-                            top = padding.calculateTopPadding(),
-                            bottom = MediatheqSpacing.l,
-                        ).plusBottomBars(),
-                ) {
-                    item(key = "header") { ArtistHeader(content, onAction) }
-                    item(key = "buttons") {
-                        MqPlayShuffleButtons(
-                            enabled = content.tracks.isNotEmpty(),
-                            onPlay = { onAction(ArtistAction.Play) },
-                            onShuffle = { onAction(ArtistAction.Shuffle) },
-                        )
+                LaunchedEffect(content.addToPlaylist) {
+                    content.addToPlaylist?.let {
+                        onAddToPlaylist(it)
+                        onAction(ArtistAction.AddToPlaylistShown)
                     }
-                    if (content.topTracks.isNotEmpty()) {
-                        item(key = "top-title") { SectionTitle(R.string.artist_top_tracks) }
-                        items(content.topTracks, key = { "top-${it.id}" }) { track ->
-                            TrackRow(
-                                track,
-                                onClick = { onAction(ArtistAction.PlayTopTrack(track.id)) },
-                                showCover = true,
-                                isCurrent = track.id == content.currentTrackId,
+                }
+                SelectableList(
+                    content.selection,
+                    onCommand = { onAction(ArtistAction.OnSelection(it)) },
+                    onSelectAll = { onAction(ArtistAction.SelectAll) },
+                    onClear = { onAction(ArtistAction.ClearSelection) },
+                ) { bottomSpace ->
+                    LazyColumn(
+                        Modifier.fillMaxSize(),
+                        contentPadding =
+                            PaddingValues(
+                                top = padding.calculateTopPadding(),
+                                bottom = bottomSpace,
+                            ).plusBottomBars(),
+                    ) {
+                        item(key = "header") { ArtistHeader(content, onAction) }
+                        item(key = "buttons") {
+                            MqPlayShuffleButtons(
+                                enabled = content.tracks.isNotEmpty(),
+                                onPlay = { onAction(ArtistAction.Play) },
+                                onShuffle = { onAction(ArtistAction.Shuffle) },
                             )
                         }
+                        if (content.topTracks.isNotEmpty()) {
+                            item(key = "top-title") { SectionTitle(R.string.artist_top_tracks) }
+                            items(content.topTracks, key = { "top-${it.id}" }) { track ->
+                                TrackRow(
+                                    track,
+                                    onClick = {
+                                        if (content.selection.isActive) {
+                                            onAction(ArtistAction.ToggleSelection(track.id))
+                                        } else {
+                                            onAction(ArtistAction.PlayTopTrack(track.id))
+                                        }
+                                    },
+                                    onLongClick = longPress(track.id),
+                                    selected = content.selection.stateOf(track.id),
+                                    onSwipe = { swipe(track, it) },
+                                    showCover = true,
+                                    isCurrent = track.id == content.currentTrackId,
+                                )
+                            }
+                        }
+                        val openAlbum = { id: MediaId ->
+                            if (content.selection.isActive) {
+                                onAction(
+                                    ArtistAction.ToggleSelection(id),
+                                )
+                            } else {
+                                onOpenAlbum(id)
+                            }
+                        }
+                        albumGrid("albums", R.string.artist_albums, content.albums, content, openAlbum, longPress)
+                        albumGrid(
+                            "appears-on",
+                            R.string.artist_appears_on,
+                            content.appearsOn,
+                            content,
+                            openAlbum,
+                            longPress,
+                        )
                     }
-                    albumGrid("albums", R.string.artist_albums, content.albums, content, onOpenAlbum)
-                    albumGrid("appears-on", R.string.artist_appears_on, content.appearsOn, content, onOpenAlbum)
                 }
             }
         }
@@ -212,6 +265,7 @@ private fun LazyListScope.albumGrid(
     albums: List<Album>,
     content: ArtistUiState.Content,
     onOpenAlbum: (MediaId) -> Unit,
+    longPress: (MediaId) -> () -> Unit,
 ) {
     if (albums.isEmpty()) return
     item(key = "$key-title") { SectionTitle(title) }
@@ -221,7 +275,15 @@ private fun LazyListScope.albumGrid(
                 Modifier.padding(start = MediatheqSpacing.l, end = MediatheqSpacing.l, top = MediatheqSpacing.s),
                 horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
             ) {
-                row.forEach { album -> AlbumCard(album, onClick = { onOpenAlbum(album.id) }, Modifier.weight(1f)) }
+                row.forEach { album ->
+                    AlbumCard(
+                        album,
+                        onClick = { onOpenAlbum(album.id) },
+                        Modifier.weight(1f),
+                        onLongClick = longPress(album.id),
+                        selected = content.selection.stateOf(album.id),
+                    )
+                }
                 // Keeps the last row's cards the same width as the others.
                 repeat(content.albumColumns - row.size) { Spacer(Modifier.weight(1f)) }
             }

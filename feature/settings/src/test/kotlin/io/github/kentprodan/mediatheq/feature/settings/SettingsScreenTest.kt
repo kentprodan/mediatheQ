@@ -26,12 +26,15 @@ import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
+import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.NowPlayingColors
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
+import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
+import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqSeedPresets
 import org.junit.Rule
@@ -341,5 +344,43 @@ class SettingsScreenTest {
                 SettingsAction.OpenNavEntries,
                 SettingsAction.SetNavigation(NavigationPreferences(expandPlayer = true)),
             ).inOrder()
+    }
+
+    @Test
+    fun `media lists switches and choice dialogs apply at once`() {
+        show(SettingsPage.MediaLists)
+
+        composeRule.onNode(hasText("Inverted sort arrows") and isToggleable()).performClick()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Track swipe left action"))
+        composeRule.onNode(hasText("Track swipe left action") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Disabled") and isSelectable()).performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetMediaLists(MediaListPreferences(invertedSortArrows = true)),
+                SettingsAction.SetMediaLists(MediaListPreferences(swipeLeft = SwipeAction.Disabled)),
+            ).inOrder()
+    }
+
+    @Test
+    fun `media lists hidden top buttons apply only with OK`() {
+        show(SettingsPage.MediaLists)
+
+        composeRule.onNode(hasText("Hidden top buttons") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Shuffle") and isToggleable()).performClick()
+        composeRule.onNodeWithText("Cancel").performClick()
+        assertThat(actions).isEmpty()
+
+        composeRule.onNode(hasText("Hidden top buttons") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Shuffle") and isToggleable()).assertIsOff().performClick()
+        composeRule.onNode(hasText("Play next") and isToggleable()).performClick()
+        composeRule.onNodeWithText("OK").performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetMediaLists(
+                    MediaListPreferences(hiddenTopButtons = setOf(TopButton.Shuffle, TopButton.PlayNext)),
+                ),
+            )
     }
 }

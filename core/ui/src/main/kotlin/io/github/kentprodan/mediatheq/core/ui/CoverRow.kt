@@ -17,6 +17,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
+import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.model.Artwork
 
 /**
@@ -34,38 +35,80 @@ internal fun CoverRow(
     coverShape: Shape = MaterialTheme.shapes.small,
     details: String? = null,
     menuItems: (@Composable ColumnScope.(close: () -> Unit) -> Unit)? = null,
+    isFavorite: Boolean = false,
+    isDownloaded: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    /** In a multi-select list: whether this row is selected (a check replaces the cover). `null` outside selection. */
+    selected: Boolean? = null,
 ) {
     val lines = listOfNotNull(subtitle, details)
-    ListItem(
-        onClick = onClick,
-        modifier = modifier,
-        leadingContent = { RowCover(artwork, placeholderIcon, coverShape) },
-        supportingContent =
-            lines.takeIf { it.isNotEmpty() }?.let {
-                { Column { it.forEach { line -> Text(line, maxLines = 1, overflow = TextOverflow.Ellipsis) } } }
-            },
-        trailingContent =
-            menuItems?.let {
-                { OverflowMenu(stringResource(R.string.core_ui_more_options, title), items = it) }
-            },
-    ) {
-        Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    val leading: @Composable () -> Unit =
+        if (selected == true) {
+            { SelectedMark() }
+        } else {
+            { RowCover(artwork, placeholderIcon, coverShape, isFavorite, isDownloaded) }
+        }
+    val supporting: (@Composable () -> Unit)? =
+        lines.takeIf { it.isNotEmpty() }?.let {
+            { Column { it.forEach { line -> Text(line, maxLines = 1, overflow = TextOverflow.Ellipsis) } } }
+        }
+    // No menu while selecting: the toolbar acts on the selection.
+    val trailing: (@Composable () -> Unit)? =
+        menuItems?.takeIf { selected == null }?.let {
+            { OverflowMenu(stringResource(R.string.core_ui_more_options, title), items = it) }
+        }
+    val headline: @Composable () -> Unit = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    if (selected != null) {
+        ListItem(
+            selected = selected,
+            onClick = onClick,
+            modifier = modifier,
+            leadingContent = leading,
+            supportingContent = supporting,
+            trailingContent = trailing,
+            onLongClick = onLongClick,
+            content = headline,
+        )
+    } else {
+        ListItem(
+            onClick = onClick,
+            modifier = modifier,
+            leadingContent = leading,
+            supportingContent = supporting,
+            trailingContent = trailing,
+            onLongClick = onLongClick,
+            content = headline,
+        )
     }
 }
 
-/** A row-sized cover (48 dp); [placeholderIcon] shows when the item has no image. */
+/** The filled check that marks a selected item in a multi-select list, sized like a row cover. */
+@Composable
+internal fun SelectedMark() {
+    Box(Modifier.size(ROW_COVER_SIZE), contentAlignment = Alignment.Center) {
+        Icon(MqIcons.CheckCircleFilled, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+    }
+}
+
+/**
+ * A row-sized cover (48 dp); [placeholderIcon] shows when the item has no image. Favorite and downloaded marks show
+ * as [LocalMediaListStyle] says.
+ */
 @Composable
 fun RowCover(
     artwork: Artwork?,
     placeholderIcon: ImageVector,
     shape: Shape = MaterialTheme.shapes.small,
+    isFavorite: Boolean = false,
+    isDownloaded: Boolean = false,
 ) {
-    if (artwork != null) {
-        MqCover(artwork, contentDescription = null, Modifier.size(ROW_COVER_SIZE), artwork.blurHash, shape)
-    } else {
-        Box(Modifier.size(ROW_COVER_SIZE), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(ROW_COVER_SIZE), contentAlignment = Alignment.Center) {
+        if (artwork != null) {
+            MqCover(artwork, contentDescription = null, Modifier.size(ROW_COVER_SIZE), artwork.blurHash, shape)
+        } else {
             Icon(placeholderIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        CoverOverlays(isFavorite, isDownloaded, compact = true)
     }
 }
 

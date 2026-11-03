@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.database.dao
 
+import androidx.room3.ColumnInfo
 import androidx.room3.Dao
 import androidx.room3.Embedded
 import androidx.room3.Query
@@ -277,7 +278,39 @@ interface LibraryDao {
         all: Boolean,
         downloaded: List<String>,
     ): List<PlaylistEntity>
+
+    /**
+     * Albums and playlists every track of which is in [downloaded] (the offline overlay, #123); empty ones never count.
+     * [downloaded] is bound once (the CTE), so the query stays under SQLite's variable limit like the other offline ones.
+     */
+    @Query(
+        """
+        WITH d(id) AS (SELECT id FROM track WHERE id IN (:downloaded))
+        SELECT album.server_id, album.id FROM album
+        WHERE EXISTS (SELECT 1 FROM track t WHERE t.server_id = album.server_id AND t.album_id = album.id)
+        AND NOT EXISTS (
+            SELECT 1 FROM track t
+            WHERE t.server_id = album.server_id AND t.album_id = album.id AND t.id NOT IN (SELECT id FROM d)
+        )
+        UNION ALL
+        SELECT playlist.server_id, playlist.id FROM playlist
+        WHERE EXISTS (
+            SELECT 1 FROM playlist_entry e WHERE e.server_id = playlist.server_id AND e.playlist_id = playlist.id
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM playlist_entry e
+            WHERE e.server_id = playlist.server_id AND e.playlist_id = playlist.id AND e.track_id NOT IN (SELECT id FROM d)
+        )
+        """,
+    )
+    fun fullyDownloaded(downloaded: List<String>): Flow<List<ItemKey>>
 }
+
+/** An item's server and id. */
+data class ItemKey(
+    @ColumnInfo(name = "server_id") val serverId: String,
+    val id: String,
+)
 
 /** Search matches grouped by kind, each group best first. */
 data class SearchRows(

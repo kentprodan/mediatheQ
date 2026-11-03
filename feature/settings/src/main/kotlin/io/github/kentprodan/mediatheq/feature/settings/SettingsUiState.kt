@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
+import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.RatingMode
@@ -104,6 +105,13 @@ sealed interface SettingsAction {
     ) : SettingsAction
 
     data object RestoreNavigationDefaults : SettingsAction
+
+    /** Replaces every Media lists setting (#123); the screen sends the current ones with one changed. */
+    data class SetMediaLists(
+        val mediaLists: MediaListPreferences,
+    ) : SettingsAction
+
+    data object RestoreMediaListsDefaults : SettingsAction
 
     /** Opens "Organize your navigation" with the stored entries. */
     data object OpenNavEntries : SettingsAction

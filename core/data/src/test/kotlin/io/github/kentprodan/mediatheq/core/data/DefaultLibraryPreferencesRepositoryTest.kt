@@ -355,4 +355,94 @@ class DefaultLibraryPreferencesRepositoryTest {
             assertThat(repository.preferences.first())
                 .isEqualTo(LibraryPreferences(albumColumns = 3, theme = theme))
         }
+
+    @Test
+    fun `media lists defaults are the ones of the issue`() =
+        runTest {
+            val lists = repository.preferences.first().mediaLists
+
+            assertThat(lists.showItemCounts).isTrue()
+            assertThat(lists.topButtonStyle).isEqualTo(TopButtonStyle.SmallIcons)
+            assertThat(lists.hiddenTopButtons).isEmpty()
+            assertThat(lists.invertedSortArrows).isFalse()
+            assertThat(lists.hideBackButton).isFalse()
+            assertThat(lists.trackInfo).isEqualTo(TrackInfo.Duration)
+            assertThat(lists.secondTrackInfo).isEqualTo(TrackInfo.None)
+            assertThat(lists.centerGridText).isTrue()
+            assertThat(lists.favoriteOverlay).isTrue()
+            assertThat(lists.offlineOverlay).isFalse()
+            assertThat(lists.swipeRight).isEqualTo(SwipeAction.AddToQueue)
+            assertThat(lists.swipeLeft).isEqualTo(SwipeAction.PlayNext)
+        }
+
+    @Test
+    fun `every media lists choice is kept`() =
+        runTest {
+            val chosen =
+                MediaListPreferences(
+                    showItemCounts = false,
+                    topButtonStyle = TopButtonStyle.LargeIcons,
+                    hiddenTopButtons = setOf(TopButton.Shuffle, TopButton.AddToQueue),
+                    invertedSortArrows = true,
+                    hideBackButton = true,
+                    trackInfo = TrackInfo.CodecAndBitrate,
+                    secondTrackInfo = TrackInfo.Rating,
+                    centerGridText = false,
+                    favoriteOverlay = false,
+                    offlineOverlay = true,
+                    swipeRight = SwipeAction.Rate,
+                    swipeLeft = SwipeAction.Disabled,
+                )
+
+            repository.setMediaLists(chosen)
+
+            assertThat(repository.preferences.first().mediaLists).isEqualTo(chosen)
+        }
+
+    @Test
+    fun `no hidden top buttons after some were hidden reads back as none`() =
+        runTest {
+            repository.setMediaLists(MediaListPreferences(hiddenTopButtons = setOf(TopButton.Play)))
+            repository.setMediaLists(MediaListPreferences(hiddenTopButtons = emptySet()))
+
+            assertThat(
+                repository.preferences
+                    .first()
+                    .mediaLists.hiddenTopButtons,
+            ).isEmpty()
+        }
+
+    @Test
+    fun `unknown stored media lists values are dropped or fall back to defaults`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("ml_hidden_top_buttons")] = "PersonalMix,Shuffle"
+                it[stringPreferencesKey("ml_track_info")] = "Bpm"
+                it[stringPreferencesKey("ml_swipe_left")] = "Delete"
+                it[stringPreferencesKey("ml_top_button_style")] = "TextOnly"
+            }
+
+            val lists = repository.preferences.first().mediaLists
+
+            assertThat(lists.hiddenTopButtons).containsExactly(TopButton.Shuffle)
+            assertThat(lists.trackInfo).isEqualTo(TrackInfo.Duration)
+            assertThat(lists.swipeLeft).isEqualTo(SwipeAction.PlayNext)
+            assertThat(lists.topButtonStyle).isEqualTo(TopButtonStyle.SmallIcons)
+        }
+
+    @Test
+    fun `restoring the media lists defaults resets only that page`() =
+        runTest {
+            val navigation = NavigationPreferences(trackAction = TrackAction.PlayNext)
+            repository.setNavigation(navigation)
+            repository.setRatingMode(RatingMode.HalfStars)
+            repository.setMediaLists(
+                MediaListPreferences(trackInfo = TrackInfo.Bitrate, swipeRight = SwipeAction.Download),
+            )
+
+            repository.restoreMediaListsDefaults()
+
+            assertThat(repository.preferences.first())
+                .isEqualTo(LibraryPreferences(ratingMode = RatingMode.HalfStars, navigation = navigation))
+        }
 }

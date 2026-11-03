@@ -140,6 +140,8 @@ AlbumEntry.kt          Navigation 3 entry registration for AlbumKey
 - One-off effects (snackbar, navigate after save) are modeled as state the UI consumes and acknowledges, not as hot channels.
 - Stateless `XScreen` takes only `UiState` + lambdas -> previews and screenshot tests work without Hilt.
 - No business logic in composables. Formatting helpers (durations, counts) live in `:core:ui`.
+- Exception (#123): how every media list looks (`MediaListStyle`: track details, overlays, swipe sides, what is
+  downloaded) comes from `LocalMediaListStyle`, provided once by `:app`, not through each screen's UiState.
 
 ## 6. Navigation (Navigation 3)
 

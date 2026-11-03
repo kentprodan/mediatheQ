@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.navigation.AudioSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.InterfaceSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.LicensesKey
+import io.github.kentprodan.mediatheq.core.navigation.MediaListsSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.NavigationSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
@@ -37,10 +38,12 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             back,
             onOpenTheme = { navigator.navigateTo(ThemeSettingsKey) },
             onOpenNavigation = { navigator.navigateTo(NavigationSettingsKey) },
+            onOpenMediaLists = { navigator.navigateTo(MediaListsSettingsKey) },
         )
     }
     entry<ThemeSettingsKey> { SettingsPageRoute(SettingsPage.Theme, openAudio, back) }
     entry<NavigationSettingsKey> { SettingsPageRoute(SettingsPage.Navigation, openAudio, back) }
+    entry<MediaListsSettingsKey> { SettingsPageRoute(SettingsPage.MediaLists, openAudio, back) }
     entry<PlaybackSettingsKey> { SettingsPageRoute(SettingsPage.Playback, openAudio, back) }
     entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openAudio, back) }
     entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openAudio, back) }

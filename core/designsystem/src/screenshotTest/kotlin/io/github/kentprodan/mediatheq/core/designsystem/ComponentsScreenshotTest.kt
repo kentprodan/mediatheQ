@@ -25,6 +25,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBarStyle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqRatingDialogContent
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
@@ -210,6 +211,19 @@ fun DialogWithoutTitleScreenshot() {
     MediatheqTheme {
         MqDialogContent(null, "Restore", {}, "Cancel", {}) {
             Text("Restore all options on this page to their default value?")
+        }
+    }
+}
+
+/** The rating dialog after a Rate swipe (#123): whole stars at 3, half stars at 3.5. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun MqRatingDialogScreenshot() {
+    MediatheqTheme {
+        Column {
+            MqRatingDialogContent("Morning Light", halfStars = 6, allowHalf = false)
+            MqRatingDialogContent("Morning Light", halfStars = 7, allowHalf = true)
         }
     }
 }

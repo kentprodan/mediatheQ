@@ -8,14 +8,18 @@ import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
+import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
+import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
+import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TrackAction
+import io.github.kentprodan.mediatheq.core.data.TrackInfo
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
@@ -171,6 +175,24 @@ class SettingsViewModelTest {
 
             viewModel.onAction(SettingsAction.RestoreNavigationDefaults)
             assertThat(library.preferences.value.navigation).isEqualTo(NavigationPreferences())
+        }
+
+    @Test
+    fun `media lists choices and restoring them reach the preferences`() =
+        runTest {
+            signIn()
+            val chosen =
+                MediaListPreferences(
+                    hiddenTopButtons = setOf(TopButton.Shuffle),
+                    secondTrackInfo = TrackInfo.Codec,
+                    swipeLeft = SwipeAction.Disabled,
+                )
+
+            viewModel.onAction(SettingsAction.SetMediaLists(chosen))
+            assertThat(content().library.mediaLists).isEqualTo(chosen)
+
+            viewModel.onAction(SettingsAction.RestoreMediaListsDefaults)
+            assertThat(library.preferences.value.mediaLists).isEqualTo(MediaListPreferences())
         }
 
     @Test

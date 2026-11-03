@@ -51,17 +51,29 @@ import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
+import io.github.kentprodan.mediatheq.core.ui.SelectableList
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
+import io.github.kentprodan.mediatheq.core.ui.rememberSelectLongPress
+import io.github.kentprodan.mediatheq.core.ui.stateOf
+import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 
 @Composable
 internal fun SearchRoute(
     onOpenAlbum: (MediaId) -> Unit,
     onOpenArtist: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    SearchScreen(state, viewModel::onAction, onOpenAlbum, onOpenArtist, onOpenPlaylist)
+    SearchScreen(
+        state,
+        viewModel::onAction,
+        onOpenAlbum,
+        onOpenArtist,
+        onOpenPlaylist,
+        onAddToPlaylist = onAddToPlaylist,
+    )
 }
 
 /**
@@ -78,12 +90,13 @@ fun SearchScreen(
     onOpenPlaylist: (MediaId) -> Unit,
     modifier: Modifier = Modifier,
     textFieldState: TextFieldState = rememberTextFieldState(),
+    onAddToPlaylist: (List<MediaId>) -> Unit = {},
 ) {
     LaunchedEffect(textFieldState) {
         snapshotFlow { textFieldState.text.toString() }.collect { onAction(SearchAction.QueryChanged(it)) }
     }
     Surface(modifier.fillMaxSize()) {
-        SearchContent(state, onAction, onOpenAlbum, onOpenArtist, onOpenPlaylist, textFieldState)
+        SearchContent(state, onAction, onOpenAlbum, onOpenArtist, onOpenPlaylist, textFieldState, onAddToPlaylist)
     }
 }
 
@@ -95,6 +108,7 @@ private fun SearchContent(
     onOpenArtist: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
     textFieldState: TextFieldState,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
 ) {
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         SearchField(textFieldState, onSearch = { onAction(SearchAction.Submit) })
@@ -119,7 +133,14 @@ private fun SearchContent(
             }
 
             is SearchUiState.Results -> {
-                Results(state.results, onAction, open(onOpenAlbum), open(onOpenArtist), open(onOpenPlaylist))
+                Results(
+                    state,
+                    onAction,
+                    open(onOpenAlbum),
+                    open(onOpenArtist),
+                    open(onOpenPlaylist),
+                    onAddToPlaylist,
+                )
             }
 
             is SearchUiState.NoResults -> {
@@ -228,41 +249,88 @@ private fun RecentSearches(
 
 @Composable
 private fun Results(
-    results: SearchResults,
+    state: SearchUiState.Results,
     onAction: (SearchAction) -> Unit,
     onOpenAlbum: (MediaId) -> Unit,
     onOpenArtist: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
 ) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()) {
-        section("artists", R.string.search_artists, results.artists, { it.id }) { artist ->
-            ArtistRow(artist, onClick = { onOpenArtist(artist.id) })
+    val swipe =
+        trackSwipes(
+            onAddToPlaylist,
+            onRate = { track, stars -> onAction(SearchAction.RateTrack(track, stars)) },
+            onCommand = { track, right -> onAction(SearchAction.SwipeTrack(track, right)) },
+        )
+    val results = state.results
+    val selection = state.selection
+    val longPress = rememberSelectLongPress<MediaId> { onAction(SearchAction.ToggleSelection(it)) }
+    LaunchedEffect(state.addToPlaylist) {
+        state.addToPlaylist?.let {
+            onAddToPlaylist(it)
+            onAction(SearchAction.AddToPlaylistShown)
         }
-        section("albums", R.string.search_albums, results.albums, { it.id }) { album ->
-            AlbumRow(album, onClick = { onOpenAlbum(album.id) })
-        }
-        section("songs", R.string.search_songs, results.tracks, { it.id }) { track ->
-            TrackRow(
-                track,
-                onClick = { onAction(SearchAction.PlayTrack(track)) },
-                showCover = true,
-                menuItems = { close ->
-                    QueueMenuItems(
-                        onPlayNext = { onAction(SearchAction.PlayNext(track)) },
-                        onAddToQueue = { onAction(SearchAction.AddToQueue(track)) },
-                        close = close,
-                    )
-                    FavoriteMenuItem(
-                        track.userData.isFavorite,
-                        { onAction(SearchAction.SetFavorite(track, it)) },
-                        close,
-                    )
-                    DownloadMenuItem({ onAction(SearchAction.Download(track)) }, close)
-                },
-            )
-        }
-        section("playlists", R.string.search_playlists, results.playlists, { it.id }) { playlist ->
-            PlaylistRow(playlist, onClick = { onOpenPlaylist(playlist.id) })
+    }
+
+    /** A tap toggles while selecting, else [open]s. */
+    fun tap(
+        id: MediaId,
+        open: () -> Unit,
+    ): () -> Unit = { if (selection.isActive) onAction(SearchAction.ToggleSelection(id)) else open() }
+    SelectableList(
+        selection,
+        onCommand = { onAction(SearchAction.OnSelection(it)) },
+        onSelectAll = { onAction(SearchAction.SelectAll) },
+        onClear = { onAction(SearchAction.ClearSelection) },
+    ) { bottomSpace ->
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomSpace).plusBottomBars()) {
+            section("artists", R.string.search_artists, results.artists, { it.id }) { artist ->
+                ArtistRow(
+                    artist,
+                    onClick = tap(artist.id) { onOpenArtist(artist.id) },
+                    onLongClick = longPress(artist.id),
+                    selected = selection.stateOf(artist.id),
+                )
+            }
+            section("albums", R.string.search_albums, results.albums, { it.id }) { album ->
+                AlbumRow(
+                    album,
+                    onClick = tap(album.id) { onOpenAlbum(album.id) },
+                    onLongClick = longPress(album.id),
+                    selected = selection.stateOf(album.id),
+                )
+            }
+            section("songs", R.string.search_songs, results.tracks, { it.id }) { track ->
+                TrackRow(
+                    track,
+                    onClick = tap(track.id) { onAction(SearchAction.PlayTrack(track)) },
+                    onLongClick = longPress(track.id),
+                    selected = selection.stateOf(track.id),
+                    onSwipe = { swipe(track, it) },
+                    showCover = true,
+                    menuItems = { close ->
+                        QueueMenuItems(
+                            onPlayNext = { onAction(SearchAction.PlayNext(track)) },
+                            onAddToQueue = { onAction(SearchAction.AddToQueue(track)) },
+                            close = close,
+                        )
+                        FavoriteMenuItem(
+                            track.userData.isFavorite,
+                            { onAction(SearchAction.SetFavorite(track, it)) },
+                            close,
+                        )
+                        DownloadMenuItem({ onAction(SearchAction.Download(track)) }, close)
+                    },
+                )
+            }
+            section("playlists", R.string.search_playlists, results.playlists, { it.id }) { playlist ->
+                PlaylistRow(
+                    playlist,
+                    onClick = tap(playlist.id) { onOpenPlaylist(playlist.id) },
+                    onLongClick = longPress(playlist.id),
+                    selected = selection.stateOf(playlist.id),
+                )
+            }
         }
     }
 }

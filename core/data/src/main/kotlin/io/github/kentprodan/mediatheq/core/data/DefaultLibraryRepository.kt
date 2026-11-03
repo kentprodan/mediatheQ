@@ -9,18 +9,32 @@ import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.SearchResults
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import javax.inject.Provider
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DefaultLibraryRepository
     @Inject
     constructor(
         private val libraryDao: LibraryDao,
         private val filter: OfflineFilter,
+        // A Provider: the download repository reads the library's tracks itself.
+        private val downloads: Provider<DownloadRepository>,
     ) : LibraryRepository {
         override val offline: Flow<Boolean> = filter.active
+
+        override val fullyDownloaded: Flow<Set<MediaId>> =
+            flow { emitAll(downloads.get().completedIds) }
+                .flatMapLatest { ids -> libraryDao.fullyDownloaded(ids.map { it.itemId }) }
+                .map { keys -> keys.map { MediaId(ServerId(it.serverId), it.id) }.toSet() }
 
         override fun albums(): Flow<List<Album>> =
             filter.of(libraryDao::albums).map { rows -> rows.map { it.toDomain() } }

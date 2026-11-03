@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
+import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
@@ -60,6 +61,14 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
 
     override suspend fun restoreNavigationDefaults() {
         preferences.value = preferences.value.copy(navigation = NavigationPreferences())
+    }
+
+    override suspend fun setMediaLists(mediaLists: MediaListPreferences) {
+        preferences.value = preferences.value.copy(mediaLists = mediaLists)
+    }
+
+    override suspend fun restoreMediaListsDefaults() {
+        preferences.value = preferences.value.copy(mediaLists = MediaListPreferences())
     }
 
     override suspend fun setOfflineMode(on: Boolean) {

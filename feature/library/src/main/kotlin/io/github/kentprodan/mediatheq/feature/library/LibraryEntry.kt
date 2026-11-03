@@ -30,6 +30,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             onOpenArtist = { navigator.navigateTo(ArtistKey(it)) },
             onOpenPlaylist = { navigator.navigateTo(PlaylistKey(it)) },
             onNewPlaylist = { navigator.navigateTo(AddToPlaylistKey(emptyList())) },
+            onAddToPlaylist = { navigator.navigateTo(AddToPlaylistKey(it)) },
             onOpenDownloads = onOpenDownloads,
             fixedFilter = fixedFilter,
         )

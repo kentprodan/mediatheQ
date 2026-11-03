@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.database
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.database.dao.ItemKey
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
@@ -132,5 +133,15 @@ class OfflineQueriesTest {
             val many = List(10_000) { "x$it" } + "t2"
 
             assertThat(libraryDao.tracks(false, many).first().map { it.track.id }).containsExactly("t2")
+        }
+
+    @Test
+    fun `fully downloaded holds albums and playlists with every track downloaded`() =
+        runTest {
+            assertThat(libraryDao.fullyDownloaded(listOf("t2")).first()).isEmpty()
+
+            val keys = libraryDao.fullyDownloaded(listOf("t1", "t2", "t3")).first()
+
+            assertThat(keys).containsExactly(ItemKey("s", "al1"), ItemKey("s", "al2"), ItemKey("s", "p1"))
         }
 }

@@ -191,4 +191,16 @@ object MqIcons {
 
     val Restore: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_settings_backup_restore)
+
+    val ArrowUpward: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_arrow_upward)
+
+    val ArrowDownward: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_arrow_downward)
+
+    val FilterList: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_filter_list)
+
+    val Checklist: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_checklist)
 }

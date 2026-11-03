@@ -6,6 +6,8 @@ import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 
 sealed interface ArtistUiState {
     /** Before the first database read; shows only the top bar. */
@@ -28,7 +30,15 @@ sealed interface ArtistUiState {
         val albumColumns: Int = LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
         val currentTrackId: MediaId? = null,
         val ratingMode: RatingMode = RatingMode.WholeStars,
+        /** Multi-select of the top tracks and album cards (#123). */
+        val selection: ListSelection<MediaId> = ListSelection(),
+        /** Tracks of a selection to add to a playlist: the picker opens, then [ArtistAction.AddToPlaylistShown]. */
+        val addToPlaylist: List<MediaId>? = null,
     ) : ArtistUiState {
+        /** Every selectable item, in the order shown: top tracks, albums, appears on. */
+        val selectableIds: List<MediaId>
+            get() = topTracks.map { it.id } + albums.map { it.id } + appearsOn.map { it.id }
+
         /** Nothing to show or play: the page shows the empty state. */
         val isEmpty: Boolean get() = albums.isEmpty() && appearsOn.isEmpty() && tracks.isEmpty()
     }
@@ -51,5 +61,34 @@ sealed interface ArtistAction {
     /** Rate the artist with [halfStars], 1-10; `null` clears the rating. */
     data class Rate(
         val halfStars: Int?,
+    ) : ArtistAction
+
+    /** A swipe on a track to the right (or left): the action chosen in Settings -> Media lists (#123). */
+    data class SwipeTrack(
+        val track: Track,
+        val right: Boolean,
+    ) : ArtistAction
+
+    /** Rates a track (a Rate swipe): [halfStars] 1-10, `null` clears. */
+    data class RateTrack(
+        val track: Track,
+        val halfStars: Int?,
+    ) : ArtistAction
+
+    /** A long press starts selecting tracks (#123); while selecting a tap toggles one. */
+    data class ToggleSelection(
+        val id: MediaId,
+    ) : ArtistAction
+
+    data object SelectAll : ArtistAction
+
+    /** Clear or Back: selecting ends. */
+    data object ClearSelection : ArtistAction
+
+    data object AddToPlaylistShown : ArtistAction
+
+    /** A selection toolbar action on the selected tracks and albums' tracks; selecting ends. */
+    data class OnSelection(
+        val command: SelectionCommand,
     ) : ArtistAction
 }

@@ -2,16 +2,25 @@ package io.github.kentprodan.mediatheq.feature.library
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
+import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
+import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -101,5 +110,48 @@ class LibraryScreenTest {
 
         composeRule.onNodeWithText("Library").assertExists()
         composeRule.onNodeWithText("Songs").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a long press starts selecting, a tap then toggles, and the toolbar acts on the selection`() {
+        val actions = mutableListOf<LibraryAction>()
+        var opened: MediaId? = null
+        // The header's own top buttons hidden: they share the toolbar's names.
+        var state by mutableStateOf(
+            LibraryUiState(
+                content = LibraryContent.Albums(albums),
+                header = MediaListPreferences(topButtonStyle = TopButtonStyle.Hidden),
+            ),
+        )
+        composeRule.setContent {
+            MediatheqTheme {
+                LibraryScreen(
+                    state,
+                    onAction = {
+                        actions += it
+                        if (it is LibraryAction.ToggleSelection) {
+                            state =
+                                state.copy(selection = state.selection.toggle(it.id))
+                        }
+                    },
+                    onOpenAlbum = { opened = it },
+                    onOpenArtist = {},
+                    onOpenPlaylist = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Album 1").performTouchInput { longClick() }
+        composeRule.onNodeWithText("Album 2").performClick()
+        composeRule.onNodeWithText("2 selected").assertExists()
+        composeRule.onNodeWithContentDescription("Add to queue").performClick()
+
+        assertThat(opened).isNull()
+        assertThat(actions)
+            .containsAtLeast(
+                LibraryAction.ToggleSelection(albums[1].id),
+                LibraryAction.ToggleSelection(albums[2].id),
+                LibraryAction.OnSelection(SelectionCommand.AddToQueue),
+            ).inOrder()
     }
 }

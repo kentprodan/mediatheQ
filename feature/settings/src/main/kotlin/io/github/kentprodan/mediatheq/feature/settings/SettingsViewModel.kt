@@ -85,6 +85,14 @@ class SettingsViewModel
                         library.restoreNavigationDefaults()
                     }
 
+                    is SettingsAction.SetMediaLists -> {
+                        library.setMediaLists(action.mediaLists)
+                    }
+
+                    SettingsAction.RestoreMediaListsDefaults -> {
+                        library.restoreMediaListsDefaults()
+                    }
+
                     SettingsAction.OpenNavEntries -> {
                         entriesDraft.value =
                             NavEntriesDraft.of(

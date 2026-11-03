@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
@@ -15,9 +17,11 @@ import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlaybackError
 import io.github.kentprodan.mediatheq.core.playback.slowStarts
+import io.github.kentprodan.mediatheq.core.ui.MediaListStyle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -34,6 +38,8 @@ class MainViewModel
         private val librarySync: LibrarySyncRepository,
         private val libraryPreferences: LibraryPreferencesRepository,
         private val playback: PlaybackConnection,
+        libraryRepository: LibraryRepository,
+        downloads: DownloadRepository,
     ) : ViewModel() {
         /** Theme, font and colors; `null` while they are read, so the first frame never shows the wrong colors. */
         val theme: StateFlow<ThemePreferences?> =
@@ -46,6 +52,15 @@ class MainViewModel
             libraryPreferences.preferences
                 .map { it.navigation }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NavigationPreferences())
+
+        /** How every media list looks (#123): its settings, the rating mode and what is downloaded. */
+        val mediaListStyle: StateFlow<MediaListStyle> =
+            combine(
+                libraryPreferences.preferences,
+                downloads.completedIds,
+                libraryRepository.fullyDownloaded,
+            ) { preferences, tracks, collections -> preferences.toMediaListStyle(tracks + collections) }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MediaListStyle())
 
         val session: StateFlow<SessionState?> =
             sessionRepository.session.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

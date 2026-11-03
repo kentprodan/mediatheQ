@@ -4,6 +4,8 @@ import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
+import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlin.time.Duration
 
 sealed interface AlbumUiState {
@@ -19,6 +21,8 @@ sealed interface AlbumUiState {
         /** The track the player is on, marked in the list (any album's; only this album's shows). */
         val currentTrackId: MediaId? = null,
         val ratingMode: RatingMode = RatingMode.WholeStars,
+        /** Multi-select of the shown tracks (#123). */
+        val selection: ListSelection<MediaId> = ListSelection(),
     ) : AlbumUiState {
         /** All tracks in play order, the queue Play and Shuffle start. */
         val tracks: List<Track> get() = discs.flatMap { it.tracks }
@@ -73,5 +77,32 @@ sealed interface AlbumAction {
     /** Download one track, or the whole album when [trackId] is `null`. */
     data class Download(
         val trackId: MediaId? = null,
+    ) : AlbumAction
+
+    /** A swipe on a track to the right (or left): the action chosen in Settings -> Media lists (#123). */
+    data class SwipeTrack(
+        val track: Track,
+        val right: Boolean,
+    ) : AlbumAction
+
+    /** Rates a track (a Rate swipe): [halfStars] 1-10, `null` clears. */
+    data class RateTrack(
+        val track: Track,
+        val halfStars: Int?,
+    ) : AlbumAction
+
+    /** A long press starts selecting tracks (#123); while selecting a tap toggles one. */
+    data class ToggleSelection(
+        val id: MediaId,
+    ) : AlbumAction
+
+    data object SelectAll : AlbumAction
+
+    /** Clear or Back: selecting ends. */
+    data object ClearSelection : AlbumAction
+
+    /** A selection toolbar action on the selected tracks (Add to playlist is the screen's); selecting ends. */
+    data class OnSelection(
+        val command: SelectionCommand,
     ) : AlbumAction
 }
