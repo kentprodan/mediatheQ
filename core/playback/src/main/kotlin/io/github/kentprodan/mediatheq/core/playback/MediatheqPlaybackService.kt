@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
+import android.os.Process
 import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -39,12 +40,14 @@ import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.data.WaveformRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -54,6 +57,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
@@ -80,6 +84,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var liveSync: LiveSync
 
     @Inject lateinit var downloads: DownloadRepository
+
+    @Inject lateinit var waveforms: WaveformRepository
 
     @Inject
     @DownloadCache
@@ -108,6 +114,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var persistJob: Job? = null
     private lateinit var prefetcher: Prefetcher
     private var prefetchJob: Job? = null
+    private lateinit var waveformAnalyzer: WaveformAnalyzer
+    private var waveformJob: Job? = null
+
+    /** One background thread for waveform analysis (#124): one file at a time, below playback and the UI. */
+    private val waveformWorker =
+        Executors
+            .newSingleThreadExecutor { task ->
+                Thread({
+                    Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+                    task.run()
+                }, "MqWaveform")
+            }.asCoroutineDispatcher()
     private lateinit var usbAudio: UsbAudioPort
     private lateinit var audioOutput: AudioOutputController
     private var audioSettingsJob: Job? = null
@@ -197,6 +215,17 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 isLoggedIn = { sessionRepository.session.first() is SessionState.LoggedIn },
             )
         persistJob = persistence.start()
+        waveformAnalyzer =
+            WaveformAnalyzer(
+                scope = applicationScope,
+                worker = waveformWorker,
+                files = LocalFiles(downloads.completedIds, downloadCache, streamingCache)::find,
+                decoder = MediaCodecPcmDecoder(),
+                waveforms = waveforms,
+                completedDownloads = downloads.completedIds,
+            )
+        waveformJob = waveformAnalyzer.start()
+        player.addListener(waveformAnalyzer.playerListener)
         prefetcher =
             Prefetcher(
                 player = player,
@@ -207,6 +236,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 cache = streamingCache,
                 upstream = OkHttpDataSource.Factory(okHttpClient),
                 network = playerNetwork,
+                onCached = { waveformAnalyzer.offer(listOf(it)) },
             )
         prefetchJob = prefetcher.start()
         session =
@@ -370,6 +400,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
         persistJob?.cancel()
         prefetchJob?.cancel()
         prefetcher.stop()
+        waveformJob?.cancel()
+        waveformWorker.close()
         audioSettingsJob?.cancel()
         audioOutput.release()
         usbAudio.release()

@@ -122,4 +122,27 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `5 to 6 keeps download origins and adds an empty waveform table`() =
+        runTest {
+            helper.createDatabase(5).apply {
+                execSQL(
+                    "INSERT INTO download_origin (server_id, track_id, kind, collection_id) VALUES ('s', 't1', 'Album', 'a1')",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(6)
+
+            connection.prepare("SELECT COUNT(*) FROM download_origin").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(1)
+            }
+            connection.prepare("SELECT COUNT(*) FROM waveform").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(0)
+            }
+            connection.close()
+        }
 }

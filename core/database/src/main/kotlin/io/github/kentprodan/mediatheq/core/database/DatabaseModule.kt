@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
 import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
 import io.github.kentprodan.mediatheq.core.database.dao.SyncDao
 import io.github.kentprodan.mediatheq.core.database.dao.UserDataDao
+import io.github.kentprodan.mediatheq.core.database.dao.WaveformDao
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Singleton
 
@@ -48,4 +49,7 @@ object DatabaseModule {
 
     @Provides
     fun downloadOriginDao(database: MediatheqDatabase): DownloadOriginDao = database.downloadOriginDao()
+
+    @Provides
+    fun waveformDao(database: MediatheqDatabase): WaveformDao = database.waveformDao()
 }

@@ -12,6 +12,9 @@ internal interface DataModule {
     fun downloadOrigins(origins: DefaultDownloadOrigins): DownloadOrigins
 
     @Binds
+    fun waveformRepository(repository: DefaultWaveformRepository): WaveformRepository
+
+    @Binds
     fun sessionRepository(repository: DefaultSessionRepository): SessionRepository
 
     @Binds

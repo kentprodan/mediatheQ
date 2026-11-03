@@ -179,7 +179,7 @@ interface SyncDao {
 
     /**
      * Forgets the whole library: live tables, staging, search index, sync state, the saved queue and unsent favorite or
-     * rating changes (sign-out).
+     * rating changes and the waveforms (sign-out).
      */
     @Transaction
     suspend fun clearAll() {
@@ -196,7 +196,11 @@ interface SyncDao {
         clearState()
         clearQueueEntries()
         clearQueueState()
+        clearWaveforms()
     }
+
+    @Query("DELETE FROM waveform")
+    suspend fun clearWaveforms()
 
     @Query("DELETE FROM pending_user_data")
     suspend fun clearPendingUserData()

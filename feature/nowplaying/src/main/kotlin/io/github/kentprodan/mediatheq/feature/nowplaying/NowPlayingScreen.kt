@@ -257,6 +257,7 @@ private fun SeekSection(
         totalLabel = formatDuration(state.duration),
         onSeek = { onAction(NowPlayingAction.SeekTo(it)) },
         enabled = state.isSeekable,
+        levels = state.waveform,
         modifier = Modifier.fillMaxWidth(),
     )
 }

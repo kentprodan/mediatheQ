@@ -24,4 +24,7 @@ object MediatheqSizes {
 
     /** A favorite or downloaded mark on a cover. */
     val coverOverlayIcon = 16.dp
+
+    /** The playback position bar: waveform, wavy or plain slider, the same height so none jumps (#124). */
+    val waveformHeight = 48.dp
 }

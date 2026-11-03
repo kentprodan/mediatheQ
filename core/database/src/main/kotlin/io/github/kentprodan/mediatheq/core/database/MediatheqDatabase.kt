@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
 import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
 import io.github.kentprodan.mediatheq.core.database.dao.SyncDao
 import io.github.kentprodan.mediatheq.core.database.dao.UserDataDao
+import io.github.kentprodan.mediatheq.core.database.dao.WaveformDao
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
@@ -29,10 +30,11 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
+import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 5,
+    version = 6,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -54,6 +56,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
         QueueStateEntity::class,
         PendingUserDataEntity::class,
         DownloadOriginEntity::class,
+        WaveformEntity::class,
     ],
     autoMigrations = [
         // 2: the saved play queue (#14) and an index on track.album_id.
@@ -64,6 +67,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
         AutoMigration(from = 3, to = 4),
         // 5: what each download was started from (#168).
         AutoMigration(from = 4, to = 5),
+        // 6: waveforms computed on the device (#124).
+        AutoMigration(from = 5, to = 6),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {
@@ -78,4 +83,6 @@ abstract class MediatheqDatabase : RoomDatabase() {
     abstract fun userDataDao(): UserDataDao
 
     abstract fun downloadOriginDao(): DownloadOriginDao
+
+    abstract fun waveformDao(): WaveformDao
 }
