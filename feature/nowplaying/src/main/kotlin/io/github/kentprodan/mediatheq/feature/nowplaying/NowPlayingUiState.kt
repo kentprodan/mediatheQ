@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
+import io.github.kentprodan.mediatheq.core.ui.QualityLabel
 import kotlin.time.Duration
 
 /** What the mini player and Now Playing show. */

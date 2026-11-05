@@ -33,11 +33,6 @@
     <string name="nowplaying_equalizer">Equalizer</string>
     <string name="nowplaying_quality_show_detail">Show format details</string>
     <string name="nowplaying_quality_show_kind">Show quality</string>
-    <string name="nowplaying_quality_atmos">Dolby Atmos</string>
-    <string name="nowplaying_quality_hi_res">Hi-Res Lossless</string>
-    <string name="nowplaying_quality_lossless">Lossless</string>
-    <string name="nowplaying_quality_high">High quality</string>
-    <string name="nowplaying_quality_efficient">High efficiency</string>
     <string name="nowplaying_swipe_next">Next track</string>
     <string name="nowplaying_swipe_previous">Previous track</string>
     <string name="nowplaying_play_paused">Play</string>

@@ -1,9 +1,10 @@
-package io.github.kentprodan.mediatheq.feature.nowplaying
+package io.github.kentprodan.mediatheq.core.ui
 
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
+import io.github.kentprodan.mediatheq.core.model.Track
 
-/** What the quality label of Now Playing says (#125), from the best to the most compressed. */
+/** What a quality label says (Now Playing #125, album page #132), from the best to the most compressed. */
 enum class QualityKind { DolbyAtmos, HiResLossless, Lossless, HighQuality, HighEfficiency }
 
 /** The label's kind, and the detail a tap shows instead ("FLAC · 24/96 · 1250 kb/s"). */
@@ -17,7 +18,7 @@ data class QualityLabel(
  * [convertedKbps]. `null` (no label) while the stream is not [streamKnown] yet, so a converted track never shows its
  * original quality for a moment, and when the facts are missing (no format, a lossy file of unknown bitrate).
  */
-internal fun qualityLabel(
+fun qualityLabel(
     format: AudioFormat?,
     streamKnown: Boolean,
     convertedKbps: Int?,
@@ -94,3 +95,32 @@ private val CODEC_NAMES =
 private const val HIGH_QUALITY_KBPS = 256
 private const val CD_BIT_DEPTH = 16
 private const val HI_RES_RATE_HZ = 48_000
+
+/**
+ * An album's quality (#132): the label of its best track (Dolby Atmos, then Hi-Res Lossless, Lossless, then lossy by
+ * bitrate), so mixed formats show the highest. `null` when no track has the facts.
+ */
+fun albumQuality(tracks: List<Track>): QualityLabel? =
+    tracks
+        .mapNotNull { track ->
+            qualityLabel(track.audioFormat, streamKnown = true, convertedKbps = null)?.let {
+                it to
+                    track
+            }
+        }.minWithOrNull(
+            compareBy<Pair<QualityLabel, Track>> { it.first.kind.ordinal }
+                .thenByDescending { it.second.audioFormat?.bitDepth ?: 0 }
+                .thenByDescending { it.second.audioFormat?.sampleRateHz ?: 0 }
+                .thenByDescending { it.second.audioFormat?.bitrateKbps ?: 0 },
+        )?.first
+
+/** The label's name ("Hi-Res Lossless"). */
+val QualityKind.text: Int
+    get() =
+        when (this) {
+            QualityKind.DolbyAtmos -> R.string.core_ui_quality_atmos
+            QualityKind.HiResLossless -> R.string.core_ui_quality_hi_res
+            QualityKind.Lossless -> R.string.core_ui_quality_lossless
+            QualityKind.HighQuality -> R.string.core_ui_quality_high
+            QualityKind.HighEfficiency -> R.string.core_ui_quality_efficient
+        }

@@ -90,8 +90,10 @@ import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.ui.AddToPlaylistMenuItem
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
+import io.github.kentprodan.mediatheq.core.ui.QualityLabel
 import io.github.kentprodan.mediatheq.core.ui.formatDuration
 import io.github.kentprodan.mediatheq.core.ui.formatFrequency
+import io.github.kentprodan.mediatheq.core.ui.text
 import kotlin.time.Duration
 
 /** Where Now Playing sends the user: each opens a page or dialog behind the player, which closes first (#125). */
@@ -503,16 +505,6 @@ internal fun QualityLabelButton(
         )
     }
 }
-
-private val QualityKind.text: Int
-    get() =
-        when (this) {
-            QualityKind.DolbyAtmos -> R.string.nowplaying_quality_atmos
-            QualityKind.HiResLossless -> R.string.nowplaying_quality_hi_res
-            QualityKind.Lossless -> R.string.nowplaying_quality_lossless
-            QualityKind.HighQuality -> R.string.nowplaying_quality_high
-            QualityKind.HighEfficiency -> R.string.nowplaying_quality_efficient
-        }
 
 /** Repeat, previous, play/pause, next, shuffle. */
 @Composable
