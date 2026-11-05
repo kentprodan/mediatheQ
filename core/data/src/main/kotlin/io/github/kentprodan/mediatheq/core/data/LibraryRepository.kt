@@ -75,6 +75,9 @@ interface LibraryRepository {
     /** The album's genre names, by name (#132). */
     fun albumGenres(albumId: MediaId): Flow<List<String>>
 
+    /** The genres of the artist's own albums, by name (#133); offline only those of downloaded albums. */
+    fun artistGenres(artistId: MediaId): Flow<List<String>>
+
     /** The album's record labels, by name (#132). */
     fun albumLabels(albumId: MediaId): Flow<List<RecordLabel>>
 

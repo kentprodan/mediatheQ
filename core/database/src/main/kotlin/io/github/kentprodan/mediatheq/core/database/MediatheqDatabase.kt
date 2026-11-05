@@ -42,7 +42,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 9,
+    version = 10,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -90,6 +90,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 7, to = 8, spec = SyncLabelsMigration::class),
         // 9: album overview and release date, track file size, where each album was left (#132).
         AutoMigration(from = 8, to = 9, spec = SyncAlbumPageMigration::class),
+        // #133: artists have no backdrop or biography yet.
+        AutoMigration(from = 9, to = 10, spec = SyncArtistPageMigration::class),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

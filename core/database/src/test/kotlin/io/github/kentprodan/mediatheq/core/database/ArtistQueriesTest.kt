@@ -4,9 +4,12 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.ImageColumns
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
@@ -124,5 +127,52 @@ class ArtistQueriesTest {
             assertThat(
                 libraryDao.artistTracks("s", "ar3", true, emptyList()).first().map { it.track.id },
             ).containsExactly("t2")
+        }
+
+    @Test
+    fun `an artist keeps its backdrop and biography (#133)`() =
+        runTest {
+            val syncDao = database.syncDao()
+            val withPage =
+                artist("ar1").copy(
+                    backdrop = ImageColumns("ar1", "b1", "hash"),
+                    overview = "Born in Iasi.",
+                )
+            syncDao.stageAlbumArtists(listOf(ArtistStaging(withPage)))
+            syncDao.swap(2, "s", "user-1")
+
+            val stored = libraryDao.artist("s", "ar1").first()!!
+            assertThat(stored.backdrop).isEqualTo(ImageColumns("ar1", "b1", "hash"))
+            assertThat(stored.overview).isEqualTo("Born in Iasi.")
+        }
+
+    @Test
+    fun `an artist's genres come from its own albums, once each, and offline from downloaded ones (#133)`() =
+        runTest {
+            val syncDao = database.syncDao()
+            syncDao.stageAlbumArtists(listOf(artist("ar1"), artist("ar2")).map(::ArtistStaging))
+            syncDao.stageAlbums(listOf(album("al1", 2016), album("al2", 2020), album("al4", 2018)).map(::AlbumStaging))
+            syncDao.stageAlbumArtistLinks(
+                listOf("al1" to "ar1", "al2" to "ar1", "al4" to "ar2").map { (album, artist) ->
+                    AlbumArtistStaging(AlbumArtistEntity("s", album, 0, artist))
+                },
+            )
+            syncDao.stageTracks(listOf(track("t1", "al1", 1), track("t3", "al2", 1)).map(::TrackStaging))
+            syncDao.stageAlbumGenreLinks(
+                listOf(
+                    AlbumGenreEntity("s", "al1", "g1", "rock"),
+                    AlbumGenreEntity("s", "al2", "g1", "rock"),
+                    AlbumGenreEntity("s", "al2", "g2", "Folk"),
+                    // Another artist's album: not this artist's genre.
+                    AlbumGenreEntity("s", "al4", "g3", "Jazz"),
+                ).map(::AlbumGenreStaging),
+            )
+            syncDao.swap(2, "s", "user-1")
+
+            assertThat(libraryDao.artistGenreNames("s", "ar1", true, emptyList()).first())
+                .containsExactly("Folk", "rock")
+                .inOrder()
+            assertThat(libraryDao.artistGenreNames("s", "ar1", false, listOf("t1")).first()).containsExactly("rock")
+            assertThat(libraryDao.artistGenreNames("s", "ar1", false, emptyList()).first()).isEmpty()
         }
 }

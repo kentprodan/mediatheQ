@@ -36,6 +36,10 @@ data class ArtistEntity(
     @ColumnInfo(name = "is_album_artist") val isAlbumArtist: Boolean,
     @Embedded val image: ImageColumns = ImageColumns(),
     @Embedded val userData: UserDataColumns = UserDataColumns(),
+    /** The wide fanart for the artist page (#133). */
+    @Embedded(prefix = "backdrop_") val backdrop: ImageColumns = ImageColumns(),
+    /** The biography (#133). */
+    val overview: String? = null,
 )
 
 @Entity(tableName = "album", primaryKeys = ["server_id", "id"])

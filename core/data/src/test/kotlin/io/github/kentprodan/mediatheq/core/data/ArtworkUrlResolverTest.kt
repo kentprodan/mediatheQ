@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.DownloadState
+import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -80,6 +81,9 @@ class ArtworkUrlResolverTest {
 
             assertThat(url).startsWith("file:")
             assertThat(File(URI(url)).readText()).isEqualTo("cover al1")
+            // A backdrop of the same item is never the kept cover (#133).
+            assertThat(resolver.url(artwork.copy(type = ImageType.Backdrop), 300))
+                .isEqualTo("http://nas:8096|al1|tag|512|Backdrop")
         }
 
     @Test

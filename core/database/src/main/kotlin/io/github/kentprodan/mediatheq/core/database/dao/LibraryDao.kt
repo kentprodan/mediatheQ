@@ -258,6 +258,28 @@ interface LibraryDao {
         downloaded: List<String>,
     ): Flow<List<TrackWithArtists>>
 
+    /**
+     * The genres of the artist's own albums (#133), each once, by name; offline only those of albums holding a
+     * downloaded track. The server tags no genres on artists.
+     */
+    @Query(
+        """
+        SELECT ag.genre_name FROM album_genre ag
+        JOIN album_artist aa ON aa.server_id = ag.server_id AND aa.album_id = ag.album_id
+        WHERE ag.server_id = :serverId AND aa.artist_id = :artistId AND (:all OR EXISTS (
+            SELECT 1 FROM track d WHERE d.server_id = ag.server_id AND d.album_id = ag.album_id AND d.id IN (:downloaded)
+        ))
+        GROUP BY ag.genre_id
+        ORDER BY ag.genre_name COLLATE NOCASE
+        """,
+    )
+    fun artistGenreNames(
+        serverId: String,
+        artistId: String,
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<String>>
+
     /** The album's genre names (#132), by name. */
     @Query(
         "SELECT genre_name FROM album_genre WHERE server_id = :serverId AND album_id = :albumId ORDER BY genre_name COLLATE NOCASE",

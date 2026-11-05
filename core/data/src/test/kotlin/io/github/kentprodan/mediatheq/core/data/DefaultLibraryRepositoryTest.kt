@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumLabelStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.ImageColumns
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
@@ -21,8 +22,10 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
+import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.DownloadState
+import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
@@ -330,14 +333,31 @@ class DefaultLibraryRepositoryTest {
     fun `an artist, its albums and tracks map to the domain`() =
         runTest {
             val syncDao = database.syncDao()
-            syncDao.stageAlbumArtists(listOf(ArtistStaging(ArtistEntity("s", "ar1", "Subcarpați", "Subcarpati", true))))
+            syncDao.stageAlbumArtists(
+                listOf(
+                    ArtistStaging(
+                        ArtistEntity(
+                            "s",
+                            "ar1",
+                            "Subcarpați",
+                            "Subcarpati",
+                            true,
+                            backdrop = ImageColumns("ar1", "b1", null),
+                            overview = "From Bucharest.",
+                        ),
+                    ),
+                ),
+            )
             syncDao.stageAlbums(listOf(AlbumStaging(AlbumEntity("s", "al1", "Satelit", "Satelit", year = 2016))))
             syncDao.stageAlbumArtistLinks(listOf(AlbumArtistStaging(AlbumArtistEntity("s", "al1", 0, "ar1"))))
             syncDao.stageTracks(listOf(TrackStaging(TrackEntity("s", "t1", "Moșoi", "Mosoi", albumId = "al1"))))
             syncDao.swap(1, "s", "user-1")
             val id = MediaId(ServerId("s"), "ar1")
 
-            assertThat(repository.artist(id).first()?.name).isEqualTo("Subcarpați")
+            val artist = repository.artist(id).first()!!
+            assertThat(artist.name).isEqualTo("Subcarpați")
+            assertThat(artist.backdrop).isEqualTo(Artwork("ar1", "b1", null, ImageType.Backdrop))
+            assertThat(artist.overview).isEqualTo("From Bucharest.")
             assertThat(
                 repository
                     .artistAlbums(id)

@@ -262,4 +262,43 @@ class MigrationTest {
             assertThat(count("album_resume")).isEqualTo(0)
             connection.close()
         }
+
+    @Test
+    fun `9 to 10 adds the artist backdrop and biography and makes the next start sync`() =
+        runTest {
+            helper.createDatabase(9).apply {
+                execSQL(
+                    "INSERT INTO sync_state (id, last_full_sync_at, owner_server_id, owner_user_id, " +
+                        "checkpoint_server_id, checkpoint_user_id, checkpoint_started_at, checkpoint_step, " +
+                        "checkpoint_index) VALUES (0, 1760000000000, 's', 'u', 's', 'u', 1760000000000, 'Albums', 0)",
+                )
+                execSQL(
+                    "INSERT INTO artist (server_id, id, name, sort_name, is_album_artist, is_favorite, play_count, " +
+                        "played) VALUES ('s', 'ar', 'A', 'A', 1, 0, 0, 0)",
+                )
+                execSQL(
+                    "INSERT INTO album_resume (server_id, album_id, track_id, position_ms) VALUES ('s', 'a', 't', 5)",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(10)
+
+            connection.prepare("SELECT last_full_sync_at, checkpoint_step FROM sync_state").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(0)
+                assertThat(it.isNull(1)).isTrue()
+            }
+            connection.prepare("SELECT backdrop_image_tag, overview FROM artist").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.isNull(0)).isTrue()
+                assertThat(it.isNull(1)).isTrue()
+            }
+            // Where albums were left is the app's own data: a resync keeps it.
+            connection.prepare("SELECT COUNT(*) FROM album_resume").use {
+                it.step()
+                assertThat(it.getLong(0)).isEqualTo(1)
+            }
+            connection.close()
+        }
 }
