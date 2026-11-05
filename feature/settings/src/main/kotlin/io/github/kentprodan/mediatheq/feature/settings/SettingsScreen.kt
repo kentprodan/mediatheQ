@@ -56,6 +56,7 @@ enum class SettingsPage(
     MediaLists(R.string.settings_media_lists),
     NowPlaying(R.string.settings_now_playing_screens),
     Home(R.string.settings_home_page),
+    Library(R.string.settings_library_page),
     Playback(R.string.settings_playback),
     Storage(R.string.settings_storage_page),
     Providers(R.string.settings_providers),
@@ -71,6 +72,7 @@ internal fun SettingsPageRoute(
     onOpenMediaLists: () -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
     onOpenHomePage: () -> Unit = {},
+    onOpenLibraryPage: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -85,6 +87,7 @@ internal fun SettingsPageRoute(
         onOpenMediaLists,
         onOpenNowPlaying,
         onOpenHomePage,
+        onOpenLibraryPage,
     )
 }
 
@@ -104,13 +107,15 @@ fun SettingsPageScreen(
     onOpenMediaLists: () -> Unit = {},
     onOpenNowPlaying: () -> Unit = {},
     onOpenHomePage: () -> Unit = {},
+    onOpenLibraryPage: () -> Unit = {},
 ) {
-    // Survive rotation; only the Theme, Navigation, Media lists, Now playing and Home pages open dialogs.
+    // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
     var dialog by rememberSaveable { mutableStateOf<ThemeDialog?>(null) }
     var navigationDialog by rememberSaveable { mutableStateOf<NavigationDialog?>(null) }
     var mediaListsDialog by rememberSaveable { mutableStateOf<MediaListsDialog?>(null) }
     var nowPlayingDialog by rememberSaveable { mutableStateOf<NowPlayingDialog?>(null) }
     var homeDialog by rememberSaveable { mutableStateOf<HomePageDialog?>(null) }
+    var libraryDialog by rememberSaveable { mutableStateOf<LibraryPageDialog?>(null) }
     val listState = rememberLazyListState()
     // The Home page's rows as shown: a drag moves them here and saves the order once, on drop.
     val homeOrder =
@@ -153,6 +158,15 @@ fun SettingsPageScreen(
                                 trailingContent = { Icon(MqIcons.Home, contentDescription = null) },
                             ) { Text(stringResource(R.string.settings_home_page)) }
                         }
+                        item { shapes ->
+                            SegmentedListItem(
+                                onClick = onOpenLibraryPage,
+                                shapes = shapes,
+                                colors = settingsColors(),
+                                supportingContent = { Text(stringResource(R.string.settings_library_page_summary)) },
+                                trailingContent = { Icon(MqIcons.Library, contentDescription = null) },
+                            ) { Text(stringResource(R.string.settings_library_page)) }
+                        }
                     }
                 }
                 item(key = "ratings") { RatingsGroup(content.library.ratingMode, onAction) }
@@ -178,6 +192,10 @@ fun SettingsPageScreen(
 
             SettingsPage.Home -> {
                 homePageGroups(content.library.home, homeRows, reorder, onAction) { homeDialog = it }
+            }
+
+            SettingsPage.Library -> {
+                libraryPageGroups(content.library.libraryPage, onAction) { libraryDialog = it }
             }
 
             SettingsPage.Playback -> {
@@ -206,7 +224,11 @@ fun SettingsPageScreen(
             NowPlayingDialogHost(it, content.library.nowPlaying, onAction) { nowPlayingDialog = null }
         }
         homeDialog?.let { HomePageDialogHost(it, onAction) { homeDialog = null } }
+        libraryDialog?.let {
+            LibraryPageDialogHost(it, content.library.libraryPage, onAction) { libraryDialog = null }
+        }
         if (page == SettingsPage.Navigation) content.entriesDraft?.let { NavEntriesDialog(it, onAction) }
+        if (page == SettingsPage.Library) content.shortcutsDraft?.let { LibraryShortcutsDialog(it, onAction) }
     }
 }
 

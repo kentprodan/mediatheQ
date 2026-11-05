@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.EqPreset
+import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
@@ -12,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.model.HomeSection
+import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 
 /** What Settings and its Audio page show. */
@@ -28,6 +30,8 @@ sealed interface SettingsUiState {
         val output: AudioOutputInfo = AudioOutputInfo(),
         /** The "Organize your navigation" dialog while it is open (#122). */
         val entriesDraft: NavEntriesDraft? = null,
+        /** The Library page's "Organize" dialog while it is open (#129). */
+        val shortcutsDraft: OrganizeDraft<LibraryShortcut>? = null,
     ) : SettingsUiState {
         /** Downloads left the navigation: the hub offers "Manage offline files" instead (#122). */
         val showsManageOfflineFiles: Boolean get() = MainNavEntry.Downloads !in library.navigation.entries
@@ -35,31 +39,32 @@ sealed interface SettingsUiState {
 }
 
 /**
- * The navigation entries being organized (#122): every entry in its order, the checked ones shown in the navigation.
- * Home is always checked; at most [NavigationPreferences.MAX_ENTRIES].
+ * Items being organized in an "Organize" dialog: every item in its [order], the [checked] ones shown. [fixed] ones
+ * cannot be unchecked (Home in the navigation, #122); at least one stays checked, at most [max].
  */
-data class NavEntriesDraft(
-    val order: List<MainNavEntry>,
-    val checked: Set<MainNavEntry>,
+data class OrganizeDraft<T>(
+    val order: List<T>,
+    val checked: Set<T>,
+    val fixed: Set<T> = emptySet(),
+    val max: Int = Int.MAX_VALUE,
 ) {
-    /** The checked entries in order: what OK stores. */
-    val entries: List<MainNavEntry> get() = order.filter { it in checked }
+    /** The checked items in order: what OK stores. */
+    val entries: List<T> get() = order.filter { it in checked }
 
-    /** [entry] can be checked or unchecked now. */
-    fun canToggle(entry: MainNavEntry): Boolean =
-        entry != MainNavEntry.Home && (entry in checked || checked.size < NavigationPreferences.MAX_ENTRIES)
+    /** [item] can be checked or unchecked now. */
+    fun canToggle(item: T): Boolean = item !in fixed && if (item in checked) checked.size > 1 else checked.size < max
 
-    fun toggle(entry: MainNavEntry): NavEntriesDraft =
+    fun toggle(item: T): OrganizeDraft<T> =
         when {
-            !canToggle(entry) -> this
-            entry in checked -> copy(checked = checked - entry)
-            else -> copy(checked = checked + entry)
+            !canToggle(item) -> this
+            item in checked -> copy(checked = checked - item)
+            else -> copy(checked = checked + item)
         }
 
     fun move(
         from: Int,
         to: Int,
-    ): NavEntriesDraft =
+    ): OrganizeDraft<T> =
         if (from !in order.indices || to !in order.indices) {
             this
         } else {
@@ -67,11 +72,21 @@ data class NavEntriesDraft(
         }
 
     companion object {
-        /** The stored [entries] first, in their order, then the others. */
-        fun of(entries: List<MainNavEntry>) =
-            NavEntriesDraft(entries + (MainNavEntry.entries - entries.toSet()), entries.toSet())
+        /** The stored [entries] first, in their order, then the rest of [all]. */
+        fun <T> of(
+            entries: List<T>,
+            all: List<T>,
+            fixed: Set<T> = emptySet(),
+            max: Int = Int.MAX_VALUE,
+        ) = OrganizeDraft(entries + (all - entries.toSet()), entries.toSet(), fixed, max)
     }
 }
+
+/** The navigation entries being organized (#122): Home always checked; at most [NavigationPreferences.MAX_ENTRIES]. */
+typealias NavEntriesDraft = OrganizeDraft<MainNavEntry>
+
+fun navEntriesDraft(entries: List<MainNavEntry>): NavEntriesDraft =
+    OrganizeDraft.of(entries, MainNavEntry.entries, setOf(MainNavEntry.Home), NavigationPreferences.MAX_ENTRIES)
 
 sealed interface SettingsAction {
     data object LogOut : SettingsAction
@@ -152,6 +167,29 @@ sealed interface SettingsAction {
 
     /** Cancel: nothing changes. */
     data object DismissNavEntries : SettingsAction
+
+    /** Library page (#129): every value of the page at once. */
+    data class SetLibraryPage(
+        val page: LibraryPagePreferences,
+    ) : SettingsAction
+
+    data object RestoreLibraryPageDefaults : SettingsAction
+
+    /** Opens the Library page's "Organize" dialog with the stored tiles. */
+    data object OpenLibraryShortcuts : SettingsAction
+
+    data class ToggleLibraryShortcut(
+        val shortcut: LibraryShortcut,
+    ) : SettingsAction
+
+    data class MoveLibraryShortcut(
+        val from: Int,
+        val to: Int,
+    ) : SettingsAction
+
+    data object ConfirmLibraryShortcuts : SettingsAction
+
+    data object DismissLibraryShortcuts : SettingsAction
 
     data class SetOfflineMode(
         val on: Boolean,
