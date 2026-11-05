@@ -9,11 +9,14 @@ enum class LibraryFilter(
     Playlists(listOf(LibrarySort.Name, LibrarySort.RecentlyAdded)),
     Songs(listOf(LibrarySort.Name, LibrarySort.RecentlyAdded, LibrarySort.Artist, LibrarySort.Album)),
 
+    /** The genres of albums and tracks (#130). */
+    Genres(listOf(LibrarySort.Name, LibrarySort.AlbumCount, LibrarySort.TrackCount)),
+
     /** The years of the albums (#129). */
     Years(listOf(LibrarySort.Year, LibrarySort.AlbumCount)),
 }
 
-enum class LibrarySort { Name, RecentlyAdded, Year, Artist, Album, AlbumCount }
+enum class LibrarySort { Name, RecentlyAdded, Year, Artist, Album, AlbumCount, TrackCount }
 
 /** How ratings are shown and given: whole stars, half stars, or not at all (favorites only). */
 enum class RatingMode { WholeStars, HalfStars, Off }
@@ -21,6 +24,8 @@ enum class RatingMode { WholeStars, HalfStars, Off }
 /** Validated Library and display preferences. */
 data class LibraryPreferences(
     val albumColumns: Int = DEFAULT_ALBUM_COLUMNS,
+    /** The Genres list as a grid of covers (the album columns), else rows (#130). */
+    val genresGrid: Boolean = false,
     val sorts: Map<LibraryFilter, LibrarySort> = emptyMap(),
     val ratingMode: RatingMode = RatingMode.WholeStars,
     /** Only downloads show and play, also with a network (#63); without one, offline mode is on anyway. */

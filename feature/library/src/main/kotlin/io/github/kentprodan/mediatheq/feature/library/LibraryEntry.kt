@@ -10,6 +10,8 @@ import io.github.kentprodan.mediatheq.core.navigation.AlbumArtistsKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumsKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
+import io.github.kentprodan.mediatheq.core.navigation.GenreKey
+import io.github.kentprodan.mediatheq.core.navigation.GenresKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryListKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
@@ -41,6 +43,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
         filter = filter,
         onBack = if (inTab) ({ navigator.back() }) else null,
         onOpenYear = { navigator.navigateTo(it) },
+        onOpenGenre = { navigator.navigateTo(GenreKey(it)) },
         yearPage = yearPage,
     )
     entry<LibraryKey> { LibraryHubRoute(onOpen = { navigator.navigateTo(LibraryListKey(it)) }) }
@@ -50,6 +53,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
     entry<AlbumArtistsKey> { Library(LibraryFilter.Artists, inTab = false) }
     entry<PlaylistsKey> { Library(LibraryFilter.Playlists, inTab = false) }
     entry<TracksKey> { Library(LibraryFilter.Songs, inTab = false) }
+    entry<GenresKey> { Library(LibraryFilter.Genres, inTab = false) }
 }
 
 /** The list a hub tile opens. */
@@ -58,6 +62,7 @@ internal val LibraryShortcut.filter: LibraryFilter
         when (this) {
             LibraryShortcut.Albums -> LibraryFilter.Albums
             LibraryShortcut.AlbumArtists -> LibraryFilter.Artists
+            LibraryShortcut.Genres -> LibraryFilter.Genres
             LibraryShortcut.Tracks -> LibraryFilter.Songs
             LibraryShortcut.Playlists -> LibraryFilter.Playlists
             LibraryShortcut.Years -> LibraryFilter.Years

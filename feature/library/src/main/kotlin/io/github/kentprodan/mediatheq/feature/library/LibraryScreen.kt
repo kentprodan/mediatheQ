@@ -74,6 +74,8 @@ import io.github.kentprodan.mediatheq.core.ui.AlbumCard
 import io.github.kentprodan.mediatheq.core.ui.ArtistRow
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
+import io.github.kentprodan.mediatheq.core.ui.GenreCard
+import io.github.kentprodan.mediatheq.core.ui.GenreRow
 import io.github.kentprodan.mediatheq.core.ui.NothingDownloaded
 import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
@@ -94,6 +96,7 @@ internal fun LibraryRoute(
     /** Back from a list opened inside a tab (from the hub); `null` for a list that is a navigation entry. */
     onBack: (() -> Unit)? = null,
     onOpenYear: (YearKey) -> Unit = {},
+    onOpenGenre: (MediaId) -> Unit = {},
     /** A year's page (#129): the albums of that year. */
     yearPage: YearKey? = null,
     viewModel: LibraryViewModel =
@@ -114,6 +117,7 @@ internal fun LibraryRoute(
         onAddToPlaylist = onAddToPlaylist,
         onBack = onBack,
         onOpenYear = onOpenYear,
+        onOpenGenre = onOpenGenre,
     )
 }
 
@@ -132,6 +136,7 @@ fun LibraryScreen(
     /** Back from a list that is not a navigation tab; `null` hides the button. */
     onBack: (() -> Unit)? = null,
     onOpenYear: (YearKey) -> Unit = {},
+    onOpenGenre: (MediaId) -> Unit = {},
 ) {
     // Back ends selecting first, then closes search in list.
     BackHandler(enabled = state.selection.isActive) { onAction(LibraryAction.ClearSelection) }
@@ -197,6 +202,7 @@ fun LibraryScreen(
                     onOpenDownloads = onOpenDownloads,
                     onSwipe = swipe,
                     onOpenYear = onOpenYear,
+                    onOpenGenre = onOpenGenre,
                 )
                 if (state.selection.isActive) {
                     SelectionToolbar(
@@ -231,6 +237,7 @@ private fun LibraryContentView(
     onOpenDownloads: () -> Unit,
     onSwipe: (Track, Boolean) -> Unit,
     onOpenYear: (YearKey) -> Unit,
+    onOpenGenre: (MediaId) -> Unit,
 ) {
     val selection = state.selection
     // While selecting, the last items can scroll up from under the floating toolbar.
@@ -392,6 +399,34 @@ private fun LibraryContentView(
 
         is LibraryContent.Years -> {
             YearsList(content.years, listPadding, onOpenYear)
+        }
+
+        is LibraryContent.Genres -> {
+            if (state.genresGrid) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(state.albumColumns),
+                    contentPadding =
+                        PaddingValues(
+                            start = MediatheqSpacing.l,
+                            top = MediatheqSpacing.l,
+                            end = MediatheqSpacing.l,
+                            bottom = bottom,
+                        ).plusBottomBars(),
+                    horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
+                    verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(content.genres, key = { it.id.toString() }) { genre ->
+                        GenreCard(genre, onClick = { onOpenGenre(genre.id) })
+                    }
+                }
+            } else {
+                LazyColumn(Modifier.fillMaxSize(), contentPadding = listPadding) {
+                    items(content.genres, key = { it.id.toString() }) { genre ->
+                        GenreRow(genre, onClick = { onOpenGenre(genre.id) })
+                    }
+                }
+            }
         }
     }
 }

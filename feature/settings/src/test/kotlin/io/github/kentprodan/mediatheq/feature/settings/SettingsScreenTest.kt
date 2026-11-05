@@ -344,6 +344,8 @@ class SettingsScreenTest {
         }
 
         composeRule.onNode(hasText("Home") and isToggleable()).assertIsNotEnabled()
+        // The dialog's list scrolls: Tracks sits below the fold.
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Tracks"))
         composeRule.onNode(hasText("Tracks") and isToggleable()).assertIsOff().performClick()
 
         assertThat(actions).containsExactly(SettingsAction.ToggleNavEntry(MainNavEntry.Tracks))

@@ -402,7 +402,7 @@ class DefaultLibraryPreferencesRepositoryTest {
     fun `unknown stored navigation values are dropped or fall back to defaults`() =
         runTest {
             dataStore.edit {
-                it[stringPreferencesKey("nav_entries")] = "Genres,Search,Home,Years"
+                it[stringPreferencesKey("nav_entries")] = "Moods,Search,Home,Years"
                 it[stringPreferencesKey("nav_portrait_style")] = "Drawer"
                 it[stringPreferencesKey("track_action")] = "Shuffle"
                 it[intPreferencesKey("nav_transparency")] = 33

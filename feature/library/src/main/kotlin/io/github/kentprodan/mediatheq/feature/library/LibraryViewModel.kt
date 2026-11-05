@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
@@ -135,6 +136,7 @@ class LibraryViewModel
                     filter = fixedFilter,
                     yearPage = yearPage,
                     albumColumns = preferences.albumColumns,
+                    genresGrid = preferences.genresGrid,
                     sort = preferences.sortFor(fixedFilter),
                     content = content,
                     refreshing = status is SyncStatus.Running,
@@ -245,6 +247,10 @@ class LibraryViewModel
                     launch { preferencesRepository.setAlbumColumns(action.columns) }
                 }
 
+                is LibraryAction.SetGenresGrid -> {
+                    launch { preferencesRepository.setGenresGrid(action.on) }
+                }
+
                 LibraryAction.Refresh -> {
                     launch { syncRepository.sync() }
                 }
@@ -314,6 +320,11 @@ class LibraryViewModel
                     )
                 }
 
+                // Each genre's tracks in list order, a track tagged with two shown genres once.
+                is LibraryContent.Genres -> {
+                    content.genres.flatMap { libraryRepository.genreTracks(it.id).first() }.distinctBy { it.id }
+                }
+
                 else -> {
                     emptyList()
                 }
@@ -327,6 +338,12 @@ class LibraryViewModel
                         val list = if (yearPage == null) all else all.filter { it.year == yearPage.year }
                         val sorter: Sorter = { sort -> LibraryContent.Albums(list.sortedFor(sort)) }
                         sorter
+                    }
+                }
+
+                LibraryFilter.Genres -> {
+                    libraryRepository.genres().map { list ->
+                        { sort -> LibraryContent.Genres(list.sortedFor(sort)) }
                     }
                 }
 
@@ -381,6 +398,7 @@ private fun LibraryContent.isNotEmptyContent(): Boolean =
         is LibraryContent.Playlists -> playlists.isNotEmpty()
         is LibraryContent.Songs -> tracks.isNotEmpty()
         is LibraryContent.Years -> years.isNotEmpty()
+        is LibraryContent.Genres -> genres.isNotEmpty()
         else -> false
     }
 

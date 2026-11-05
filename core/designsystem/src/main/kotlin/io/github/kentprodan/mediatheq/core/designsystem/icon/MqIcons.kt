@@ -204,6 +204,10 @@ object MqIcons {
     val Checklist: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_checklist)
 
+    /** Genres (#130). */
+    val Genres: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_genres)
+
     /** Years (#129). */
     val CalendarMonth: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_calendar_month)

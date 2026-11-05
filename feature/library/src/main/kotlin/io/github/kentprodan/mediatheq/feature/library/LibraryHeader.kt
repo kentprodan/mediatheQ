@@ -15,6 +15,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -161,8 +162,8 @@ private fun ToolRow(
             }
         }
         Box(Modifier.weight(1f))
-        // Years are no items of their own: nothing to filter, select or search (#129).
-        val itemTools = state.filter != LibraryFilter.Years
+        // Years and genres are no items of their own: nothing to filter, select or search (#129, #130).
+        val itemTools = state.filter != LibraryFilter.Years && state.filter != LibraryFilter.Genres
         if (itemTools) {
             Box {
                 // Downloaded only stays set across lists but does nothing on Artists, where it cannot be unticked.
@@ -193,13 +194,23 @@ private fun ToolRow(
                 }
             }
         }
-        // Only the album grid has view options (its columns).
-        if (state.filter == LibraryFilter.Albums) {
+        // Only the album grid (its columns) and the genres (grid or rows) have view options.
+        if (state.filter == LibraryFilter.Albums || state.filter == LibraryFilter.Genres) {
             Box {
                 IconButton(onClick = { viewMenu = true }) {
                     Icon(MqIcons.GridView, contentDescription = stringResource(R.string.library_view_options))
                 }
                 DropdownMenu(expanded = viewMenu, onDismissRequest = { viewMenu = false }) {
+                    if (state.filter == LibraryFilter.Genres) {
+                        val views = listOf(false to R.string.library_view_list, true to R.string.library_view_grid)
+                        views.forEach { (grid, label) ->
+                            CheckedMenuItem(stringResource(label), grid == state.genresGrid) {
+                                onAction(LibraryAction.SetGenresGrid(grid))
+                                viewMenu = false
+                            }
+                        }
+                        HorizontalDivider()
+                    }
                     LibraryPreferences.ALBUM_COLUMNS.forEach { columns ->
                         CheckedMenuItem(
                             stringResource(R.string.library_columns, columns),
@@ -275,7 +286,9 @@ private fun CheckMenuItem(
 
 /** The natural direction of a sort: names up (A to Z), dates, years and counts down (newest / most first). */
 internal val LibrarySort.ascending: Boolean
-    get() = this != LibrarySort.RecentlyAdded && this != LibrarySort.Year && this != LibrarySort.AlbumCount
+    get() =
+        this != LibrarySort.RecentlyAdded && this != LibrarySort.Year && this != LibrarySort.AlbumCount &&
+            this != LibrarySort.TrackCount
 
 /** The list's name, or on a year's page the year ("Unknown year" without one). */
 private val LibraryUiState.title: String
@@ -299,6 +312,7 @@ internal val LibraryFilter.icon: ImageVector
             LibraryFilter.Playlists -> MqIcons.QueueMusic
             LibraryFilter.Songs -> MqIcons.MusicNote
             LibraryFilter.Years -> MqIcons.CalendarMonth
+            LibraryFilter.Genres -> MqIcons.Genres
         }
 
 private val TopButton.label: Int
@@ -327,6 +341,7 @@ internal val LibraryFilter.label: Int
             LibraryFilter.Playlists -> R.string.library_filter_playlists
             LibraryFilter.Songs -> R.string.library_filter_songs
             LibraryFilter.Years -> R.string.library_filter_years
+            LibraryFilter.Genres -> R.string.library_filter_genres
         }
 
 internal val LibrarySort.label: Int
@@ -338,4 +353,5 @@ internal val LibrarySort.label: Int
             LibrarySort.Artist -> R.string.library_sort_artist
             LibrarySort.Album -> R.string.library_sort_album
             LibrarySort.AlbumCount -> R.string.library_sort_album_count
+            LibrarySort.TrackCount -> R.string.library_sort_track_count
         }

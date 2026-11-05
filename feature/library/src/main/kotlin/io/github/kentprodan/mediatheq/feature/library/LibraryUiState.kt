@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.YearAlbums
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -25,6 +26,8 @@ data class LibraryUiState(
     /** Set on a year's page (#129): the albums of that year. */
     val yearPage: YearKey? = null,
     val albumColumns: Int = LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
+    /** The Genres list as a grid of covers (#130). */
+    val genresGrid: Boolean = false,
     /** The current filter's sort. */
     val sort: LibrarySort = LibrarySort.Name,
     val content: LibraryContent = LibraryContent.Loading,
@@ -80,6 +83,11 @@ sealed interface LibraryContent {
         val tracks: List<Track>,
     ) : LibraryContent
 
+    /** The genres (#130), with their counts and pictures. */
+    data class Genres(
+        val genres: List<Genre>,
+    ) : LibraryContent
+
     /** The years of the albums (#129), each with its albums. */
     data class Years(
         val years: List<YearAlbums>,
@@ -94,6 +102,11 @@ sealed interface LibraryAction {
 
     data class SetAlbumColumns(
         val columns: Int,
+    ) : LibraryAction
+
+    /** The Genres list as a grid, or rows (#130). */
+    data class SetGenresGrid(
+        val on: Boolean,
     ) : LibraryAction
 
     /** Pull to refresh, or Retry on an error state. */

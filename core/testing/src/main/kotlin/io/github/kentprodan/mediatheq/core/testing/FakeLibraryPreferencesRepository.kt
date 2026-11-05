@@ -39,6 +39,10 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
         preferences.value = preferences.value.copy(libraryPage = LibraryPagePreferences())
     }
 
+    override suspend fun setGenresGrid(on: Boolean) {
+        preferences.value = preferences.value.copy(genresGrid = on)
+    }
+
     override suspend fun setAlbumColumns(columns: Int) {
         if (columns in
             LibraryPreferences.ALBUM_COLUMNS

@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.data.YearAlbums
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.Track
 import java.text.Collator
@@ -100,3 +101,16 @@ internal fun List<Track>.sortedFor(sort: LibrarySort): List<Track> {
 @JvmName("sortedYears")
 internal fun List<YearAlbums>.sortedFor(sort: LibrarySort): List<YearAlbums> =
     if (sort == LibrarySort.AlbumCount) sortedByDescending { it.albums.size } else this
+
+/** Genres by name, or by album or track count (most first, ties by name). */
+@JvmName("sortedGenres")
+internal fun List<Genre>.sortedFor(sort: LibrarySort): List<Genre> {
+    val byName = compareBy(nameCollator()) { genre: Genre -> genre.sortName }.thenBy { it.id.itemId }
+    return sortedWith(
+        when (sort) {
+            LibrarySort.AlbumCount -> compareByDescending<Genre> { it.albumCount }.then(byName)
+            LibrarySort.TrackCount -> compareByDescending<Genre> { it.trackCount }.then(byName)
+            else -> byName
+        },
+    )
+}

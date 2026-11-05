@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.Flow
 interface LibraryPreferencesRepository {
     val preferences: Flow<LibraryPreferences>
 
+    /** The Genres list as a grid (#130), or rows. */
+    suspend fun setGenresGrid(on: Boolean)
+
     /** Ignored outside [LibraryPreferences.ALBUM_COLUMNS]. */
     suspend fun setAlbumColumns(columns: Int)
 
