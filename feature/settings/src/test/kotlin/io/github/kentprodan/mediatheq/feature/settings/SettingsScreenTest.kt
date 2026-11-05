@@ -38,6 +38,7 @@ import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistPlayAction
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
+import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryHubStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
@@ -230,6 +231,8 @@ class SettingsScreenTest {
         show(SettingsPage.Interface)
 
         composeRule.onNode(isHeading() and hasText("Appearance")).assertExists()
+        // The page settings rows push Ratings below the fold.
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(isHeading() and hasText("Ratings"))
         composeRule.onNode(isHeading() and hasText("Ratings")).assertExists()
     }
 
@@ -643,6 +646,21 @@ class SettingsScreenTest {
             .containsExactly(
                 SettingsAction.SetArtistPage(ArtistPagePreferences(playAction = ArtistPlayAction.AllShuffled)),
             )
+    }
+
+    @Test
+    fun `the genre page switches apply at once and its dynamic colors are chosen in a dialog`() {
+        show(SettingsPage.Genre)
+
+        composeRule.onNode(hasText("Show \"Album artists\"") and isToggleable()).performClick()
+        composeRule.onNode(hasText("Dynamic colors") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("From header image").performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetGenrePage(GenrePagePreferences(showAlbumArtists = true)),
+                SettingsAction.SetGenrePage(GenrePagePreferences(dynamicColors = true)),
+            ).inOrder()
     }
 }
 

@@ -43,6 +43,10 @@ data object AlbumPageSettingsKey : NavKey
 @Serializable
 data object ArtistPageSettingsKey : NavKey
 
+/** Settings -> Interface -> Page settings -> Genre page (#134). */
+@Serializable
+data object GenrePageSettingsKey : NavKey
+
 /** Settings -> Playback: streaming quality, normalization, Audio. */
 @Serializable
 data object PlaybackSettingsKey : NavKey
