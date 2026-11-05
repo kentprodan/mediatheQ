@@ -6,12 +6,14 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.dao.SyncDao
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.SyncStateEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
@@ -244,6 +246,7 @@ class DefaultLibrarySyncRepository
                     stagePage(state, step, index, librarySource.albums(server, index, PAGE_SIZE)) { albums ->
                         stageAlbums(albums.map { AlbumStaging(it.toEntity()) })
                         stageAlbumArtistLinks(albums.flatMap { it.artistLinks() }.map(::AlbumArtistStaging))
+                        stageAlbumGenreLinks(albums.flatMap { it.genreLinks() }.map(::AlbumGenreStaging))
                         stageCreditedArtists(
                             albums.flatMap { it.albumArtists }.map { ArtistStaging(it.toEntity(false)) },
                         )
@@ -254,6 +257,7 @@ class DefaultLibrarySyncRepository
                     stagePage(state, step, index, librarySource.tracks(server, index, PAGE_SIZE)) { tracks ->
                         stageTracks(tracks.map { TrackStaging(it.toEntity()) })
                         stageTrackArtistLinks(tracks.flatMap { it.artistLinks() }.map(::TrackArtistStaging))
+                        stageTrackGenreLinks(tracks.flatMap { it.genreLinks() }.map(::TrackGenreStaging))
                         stageCreditedArtists(tracks.flatMap { it.artists }.map { ArtistStaging(it.toEntity(false)) })
                     }
                 }
@@ -312,11 +316,13 @@ class DefaultLibrarySyncRepository
                 SyncStep.Albums -> {
                     clearAlbumStaging()
                     clearAlbumArtistStaging()
+                    clearAlbumGenreStaging()
                 }
 
                 SyncStep.Tracks -> {
                     clearTrackStaging()
                     clearTrackArtistStaging()
+                    clearTrackGenreStaging()
                 }
 
                 SyncStep.Playlists -> {

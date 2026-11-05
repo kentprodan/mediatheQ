@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.data
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.SearchResults
@@ -54,6 +55,21 @@ interface LibraryRepository {
 
     /** Every track with its artists, by sort name. */
     fun tracks(): Flow<List<Track>>
+
+    /** The genres with their counts and pictures, by name (#130); offline only those holding downloads. */
+    fun genres(): Flow<List<Genre>>
+
+    /** One genre, `null` when nothing (or nothing offline) carries it. */
+    fun genre(id: MediaId): Flow<Genre?>
+
+    /** The albums tagged with the genre, by name. */
+    fun genreAlbums(genreId: MediaId): Flow<List<Album>>
+
+    /** The album artists of the genre's albums, by name. */
+    fun genreArtists(genreId: MediaId): Flow<List<Artist>>
+
+    /** The tracks tagged with the genre, by name. */
+    fun genreTracks(genreId: MediaId): Flow<List<Track>>
 
     /** [tracks], also in offline mode: the Downloads tab names queued and failed downloads too. */
     fun allTracks(): Flow<List<Track>>

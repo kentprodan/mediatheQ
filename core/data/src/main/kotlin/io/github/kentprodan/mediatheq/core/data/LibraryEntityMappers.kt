@@ -1,20 +1,24 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.database.dao.AlbumWithArtists
+import io.github.kentprodan.mediatheq.core.database.dao.GenreRow
 import io.github.kentprodan.mediatheq.core.database.dao.TrackWithArtists
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ImageColumns
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
+import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreEntity
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
+import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -177,3 +181,10 @@ internal fun UserData.toColumns() =
 
 internal fun UserDataColumns.toDomain() =
     UserData(isFavorite, rating, playCount, lastPlayedAtMillis?.let(Instant::fromEpochMilliseconds), played)
+
+internal fun Album.genreLinks() = genres.map { AlbumGenreEntity(id.serverId.value, id.itemId, it.id.itemId, it.name) }
+
+internal fun Track.genreLinks() = genres.map { TrackGenreEntity(id.serverId.value, id.itemId, it.id.itemId, it.name) }
+
+internal fun GenreRow.toDomain() =
+    Genre(MediaId(ServerId(serverId), id), name, name, albumCount, trackCount, image.toDomain())

@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -140,6 +141,26 @@ class DefaultLibrarySyncRepositoryTest {
             assertThat(database.rows("SELECT name, is_album_artist FROM artist ORDER BY id"))
                 .containsExactly(listOf("Subcarpați", "1"), listOf("Guest", "0"))
             assertThat(repository.status.value).isEqualTo(SyncStatus.Idle(clock.now))
+        }
+
+    @Test
+    fun `a full sync carries the genres of albums and tracks into the library and search`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            val rock = Genre(id("g-rock"), "Rock")
+            source.albums = source.albums.map { it.copy(genres = listOf(rock)) }
+            source.tracks =
+                source.tracks.mapIndexed { i, track -> if (i == 0) track.copy(genres = listOf(rock)) else track }
+            signIn()
+
+            assertThat(repository().sync()).isEqualTo(MqResult.Success(Unit))
+
+            val genre = library.genres().first().single()
+            assertThat(genre.name).isEqualTo("Rock")
+            assertThat(genre.albumCount).isEqualTo(2)
+            assertThat(genre.trackCount).isEqualTo(1)
+            assertThat(count("album_genre_staging")).isEqualTo(0)
+            assertThat(library.search("roc").let { (it as MqResult.Success).value.genres }).containsExactly(genre)
         }
 
     @Test

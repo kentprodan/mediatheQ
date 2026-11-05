@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.SearchResults
@@ -67,6 +68,22 @@ class FakeLibraryRepository : LibraryRepository {
 
     override fun tracks() = tracks
 
+    // Genres and their contents are set directly: membership and offline rules are proven by the DAO tests.
+    val genres = MutableStateFlow<List<Genre>>(emptyList())
+    val genreAlbums = MutableStateFlow<Map<MediaId, List<Album>>>(emptyMap())
+    val genreArtists = MutableStateFlow<Map<MediaId, List<Artist>>>(emptyMap())
+    val genreTracks = MutableStateFlow<Map<MediaId, List<Track>>>(emptyMap())
+
+    override fun genres() = genres
+
+    override fun genre(id: MediaId) = genres.map { list -> list.firstOrNull { it.id == id } }
+
+    override fun genreAlbums(genreId: MediaId) = genreAlbums.map { it[genreId].orEmpty() }
+
+    override fun genreArtists(genreId: MediaId) = genreArtists.map { it[genreId].orEmpty() }
+
+    override fun genreTracks(genreId: MediaId) = genreTracks.map { it[genreId].orEmpty() }
+
     override suspend fun search(
         query: String,
         limitPerKind: Int,
@@ -83,6 +100,7 @@ class FakeLibraryRepository : LibraryRepository {
                 albums = albums.value.filter { it.title.matches() }.take(limitPerKind),
                 tracks = tracks.value.filter { it.title.matches() }.take(limitPerKind),
                 playlists = playlists.value.filter { it.name.matches() }.take(limitPerKind),
+                genres = genres.value.filter { it.name.matches() }.take(limitPerKind),
             ),
         )
     }
