@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -17,6 +18,7 @@ import kotlin.time.Duration.Companion.seconds
  * pause, every [interval] while playing, when a track is left (where it ended) and at the end of the queue. Works from
  * the media id alone, so downloads and streams count the same. [scope] runs on the player's thread.
  */
+@UnstableApi // PositionInfo.mediaItem: the left track, also when it was removed from the queue.
 internal class ResumeListener(
     private val player: Player,
     private val record: (MediaId, Duration) -> Unit,
