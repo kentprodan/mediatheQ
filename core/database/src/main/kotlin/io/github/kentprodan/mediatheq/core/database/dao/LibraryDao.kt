@@ -201,6 +201,26 @@ interface LibraryDao {
         downloaded: List<String>,
     ): Flow<List<ArtistEntity>>
 
+    /**
+     * Every artist credited on the genre's tracks (#134), each once, by name; offline only on downloaded tracks.
+     * Credit-only artists included: the genre page's "Artists".
+     */
+    @Query(
+        """
+        SELECT DISTINCT artist.* FROM artist
+        JOIN track_artist ta ON ta.server_id = artist.server_id AND ta.artist_id = artist.id
+        JOIN track_genre tg ON tg.server_id = ta.server_id AND tg.track_id = ta.track_id
+        WHERE tg.server_id = :serverId AND tg.genre_id = :genreId AND (:all OR ta.track_id IN (:downloaded))
+        ORDER BY artist.sort_name, artist.id
+        """,
+    )
+    fun genreTrackArtists(
+        serverId: String,
+        genreId: String,
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<ArtistEntity>>
+
     /** The tracks tagged with the genre, by name. */
     @Transaction
     @Query(
