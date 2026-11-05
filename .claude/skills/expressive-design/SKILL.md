@@ -81,6 +81,7 @@ APIs that changed a lot during 1.5 alphas - always check the current signature:
 - Options (#121): Off (app theme), Cover (`SchemeContent`), Cover vibrant (`SchemeVibrant`); "ignore background and
   surfaces" keeps those roles from the app theme (merged after the blend); Black keeps the player black.
 - Fallback: Iris scheme when no cover or extraction fails.
+- The artist page is the only other place with an image theme (ADR 0029): `MqCoverTheme` around the whole page, seeded by the artist image (else the backdrop), via `imageColorScheme`; its own setting turns it on or off.
 - Color changes between tracks animate with the **effects** spec (section 4), never snap.
 
 ### Typography
@@ -127,7 +128,9 @@ APIs that changed a lot during 1.5 alphas - always check the current signature:
 | Restore defaults (every settings page) | `restoreDefaultsGroup` + `RestoreDefaultsDialog` in `:feature:settings`: own group at the bottom, `MqIcons.Restore` leading; `MqDialog` with no title, Cancel / Restore | Resets only that page's settings. |
 | Play / Shuffle on album / artist header | `MqPlayShuffleButtons`: `Button` (Play, filled) + `FilledTonalButton` (Shuffle), half width each | Not the M3 `ButtonGroup` DSL: two plain buttons need no overflow menu and never collapse into one at fontScale 2.0. |
 | Artist picture (Artist header) | `MqArtistAvatar` in `:core:designsystem`: `MaterialShapes.Cookie9Sided`, person icon without a picture | Accent shape, artists only. |
-| Artist page sections (top tracks, albums, appears on) | `TrackRow(showCover = true)` + `AlbumCard` rows chunked by the Library column setting, inside one `LazyColumn` | Section titles: `titleMedium`, heading semantics. |
+| Artist page header (#133) | `ArtistHeader` under a transparent `LargeFlexibleTopAppBar` (title fades in over the last 30 % of the collapse) | Background from Settings -> Artist page: the backdrop 16:9 edge to edge (`MqCover(aspectRatio, onError)`, a failed load falls back to the artist image), the artist image square edge to edge, the image color gradient behind `MqArtistAvatar` (50 % wide), or none; both fade into `surface`. Name `headlineMediumEmphasized` centered (heading), "albums · tracks · duration" `bodyMedium`, a `FlowRow` of Play (`Button`), Shuffle / Play next / Add to queue (`FilledTonalIconButton`), `MqFavoriteToggle`, More (`OverflowMenu`: hidden buttons, Add to playlist, Download). |
+| Artist page sections (#133) | Albums and Appears on as `AlbumCard` rows chunked by the Artist page columns (portrait / landscape), Top tracks (`TrackRow(showCover = true)`, "Show all" `TextButton` in the title opening `ArtistTopTracksScreen`), About (biography `bodyMedium` `onSurfaceVariant`, three lines, a tap expands with the spatial spec; `ListItem` facts: genres, albums, tracks, favorite, rating stars) | Order from Settings -> Artist page; empty sections left out. Section titles: `titleMedium`, heading semantics. |
+| Artist page settings (#133) | Settings page (`SettingsPage.Artist`): groups Header, Content; choice dialogs, columns as chips (`ChoiceItem`), "Hidden buttons" as checkbox rows with OK / Cancel, "Page content order" as an `OrganizeDialog` with fixed checks | Then the shared Restore defaults group. |
 | Disc headers (multi-disc albums) | `DiscHeader` in `:core:ui` (titleSmall, primary, heading semantics) | Only when the album has more than one disc. |
 | Cover flight grid -> album | `Modifier.mqSharedCover(sharedCoverKey(id))` in `:core:designsystem` | Slow spatial spec; inert in previews and tests. |
 | Like / Download toggles | Toggle buttons (icon) | Shape morphs on checked. |
