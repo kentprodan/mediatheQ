@@ -29,7 +29,15 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialogConten
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 
 /** The dialogs of Settings -> Artist page (the section order is ViewModel state, like the Album page's). */
-enum class ArtistPageDialog { Background, HiddenButtons, PlayAction, AlbumsSort, TopTracksCount, DynamicColors, Restore }
+enum class ArtistPageDialog {
+    Background,
+    HiddenButtons,
+    PlayAction,
+    AlbumsSort,
+    TopTracksCount,
+    DynamicColors,
+    Restore,
+}
 
 /** Settings -> Interface -> Page settings -> Artist page (#133): every change applies at once. */
 internal fun LazyListScope.artistPageGroups(
