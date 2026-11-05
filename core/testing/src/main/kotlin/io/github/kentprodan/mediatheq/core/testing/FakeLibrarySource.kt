@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -89,7 +90,8 @@ class FakeLibrarySource : LibrarySource {
         baseUrl: String,
         artwork: Artwork,
         widthPx: Int,
-    ) = "$baseUrl|${artwork.itemId}|${artwork.tag}|$widthPx"
+    ) = "$baseUrl|${artwork.itemId}|${artwork.tag}|$widthPx" +
+        if (artwork.type == ImageType.Primary) "" else "|${artwork.type}"
 
     /** Image requests as "itemId|tag|width"; [imageFailure] makes them fail. */
     val imageCalls = mutableListOf<String>()

@@ -26,11 +26,13 @@ internal data class BaseItemDto(
     @SerialName("Studios") val studios: List<NameIdPairDto> = emptyList(),
     @SerialName("NormalizationGain") val normalizationGain: Double? = null,
     @SerialName("ImageTags") val imageTags: Map<String, String> = emptyMap(),
+    /** Only with `enableImageTypes` naming Backdrop (R21). */
+    @SerialName("BackdropImageTags") val backdropImageTags: List<String> = emptyList(),
     /** Image type -> (tag -> BlurHash). */
     @SerialName("ImageBlurHashes") val imageBlurHashes: Map<String, Map<String, String>> = emptyMap(),
     /** With `fields=MediaSources`: the file (size) and its streams; `MediaStreams` then is not sent on the item (R19). */
     @SerialName("MediaSources") val mediaSources: List<MediaSourceDto> = emptyList(),
-    /** With `fields=Overview`: the album's description. */
+    /** With `fields=Overview`: the album's description or the artist's biography. */
     @SerialName("Overview") val overview: String? = null,
     @SerialName("PremiereDate") val premiereDate: String? = null,
     @SerialName("UserData") val userData: UserItemDataDto? = null,

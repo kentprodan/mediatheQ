@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.common.errorOrNull
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
+import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.network.MediatheqJson
@@ -81,14 +82,24 @@ class JellyfinLibrarySourceTest {
 
             val request = mockServer.takeRequest()
             assertThat(request.url.encodedPath).isEqualTo("/Artists/AlbumArtists")
-            assertThat(request.query()).isEqualTo(paging + ("fields" to "SortName"))
+            // R21: without Backdrop in the image types the server sends no backdrop tags at all.
+            assertThat(request.query()).isEqualTo(
+                paging + mapOf("enableImageTypes" to "Primary,Backdrop", "fields" to "SortName,Overview"),
+            )
             assertAuthenticated(request)
-            assertThat(page.totalCount).isEqualTo(455)
+            assertThat(page.totalCount).isEqualTo(582)
             val artist = page.items.first()
             assertThat(artist.name).isEqualTo("2 Chainz")
             assertThat(artist.sortName).isEqualTo("0000000002 chainz")
             assertThat(artist.artwork?.tag).isEqualTo("5f594a17b901a35024f46c1130dc005b")
             assertThat(artist.artwork?.blurHash).isNotNull()
+            assertThat(artist.backdrop?.type).isEqualTo(ImageType.Backdrop)
+            assertThat(artist.backdrop?.itemId).isEqualTo(artist.id.itemId)
+            assertThat(artist.backdrop?.tag).isEqualTo("5c46bac5d2e3eb689d2765a5d23f8b00")
+            assertThat(artist.backdrop?.blurHash).isNotNull()
+            assertThat(artist.overview).startsWith("Tauheed Epps")
+            // An artist without fanart.
+            assertThat(page.items.last().backdrop).isNull()
         }
 
     @Test
@@ -320,6 +331,8 @@ class JellyfinLibrarySourceTest {
         assertThat(
             url,
         ).isEqualTo("http://nas:8096/jellyfin/Items/al1/Images/Primary?tag=t%20a%2Fg&fillWidth=512&quality=90")
+        assertThat(source.imageUrl("http://nas:8096", Artwork("ar1", "b1", null, ImageType.Backdrop), 1024))
+            .isEqualTo("http://nas:8096/Items/ar1/Images/Backdrop/0?tag=b1&fillWidth=1024&quality=90")
         assertThat(url).doesNotContain("api_key")
         assertThat(url.lowercase()).doesNotContain("token")
     }
