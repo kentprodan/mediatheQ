@@ -57,6 +57,12 @@ interface LibraryPreferencesRepository {
     /** Settings -> Album page -> Restore defaults: only that page goes back to its defaults (#132). */
     suspend fun restoreAlbumPageDefaults()
 
+    /** Every Artist page value at once (#133); the order is completed, counts are clamped. */
+    suspend fun setArtistPage(page: ArtistPagePreferences)
+
+    /** Back to the Artist page defaults only. */
+    suspend fun restoreArtistPageDefaults()
+
     suspend fun setRatingMode(mode: RatingMode)
 
     /** Now Playing's quality label: the format detail or its kind (#125). */

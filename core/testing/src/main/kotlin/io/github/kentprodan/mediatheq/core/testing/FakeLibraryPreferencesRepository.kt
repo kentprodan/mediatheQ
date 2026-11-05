@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.testing
 
 import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
+import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
@@ -38,6 +39,14 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
 
     override suspend fun setAlbumPage(page: AlbumPagePreferences) {
         preferences.value = preferences.value.copy(albumPage = page)
+    }
+
+    override suspend fun setArtistPage(page: ArtistPagePreferences) {
+        preferences.value = preferences.value.copy(artistPage = page)
+    }
+
+    override suspend fun restoreArtistPageDefaults() {
+        preferences.value = preferences.value.copy(artistPage = ArtistPagePreferences())
     }
 
     override suspend fun restoreAlbumPageDefaults() {
