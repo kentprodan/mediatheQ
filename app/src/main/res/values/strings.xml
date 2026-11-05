@@ -6,6 +6,7 @@
     <string name="tab_albums">Albums</string>
     <string name="tab_album_artists">Artists</string>
     <string name="tab_genres">Genres</string>
+    <string name="tab_record_labels">Labels</string>
     <string name="tab_playlists">Playlists</string>
     <string name="tab_tracks">Tracks</string>
     <string name="tab_search">Search</string>

@@ -208,6 +208,10 @@ object MqIcons {
     val Genres: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_genres)
 
+    /** Record labels (#131): Material Symbols "label". */
+    val RecordLabel: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_label)
+
     /** Years (#129). */
     val CalendarMonth: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_calendar_month)

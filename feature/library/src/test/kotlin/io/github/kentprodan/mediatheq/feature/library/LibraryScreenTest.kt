@@ -22,7 +22,9 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import org.junit.Rule
@@ -145,6 +147,33 @@ class LibraryScreenTest {
 
         assertThat(opened).containsExactly(YearKey(1994), YearKey(null)).inOrder()
         // Years have nothing to select or search.
+        composeRule.onNodeWithContentDescription("Search in list").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a record label opens its page`() {
+        val opened = mutableListOf<RecordLabelKey>()
+        val label = RecordLabel(MediaId(ServerId("s"), "l1"), "Electrecord", albumCount = 2)
+        composeRule.setContent {
+            MediatheqTheme {
+                LibraryScreen(
+                    LibraryUiState(
+                        filter = LibraryFilter.RecordLabels,
+                        content = LibraryContent.RecordLabels(listOf(label)),
+                    ),
+                    {},
+                    {},
+                    {},
+                    {},
+                    onOpenLabel = { opened += it },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("2 albums").assertExists()
+        composeRule.onNodeWithText("Electrecord").performClick()
+
+        assertThat(opened).containsExactly(RecordLabelKey(label.id, "Electrecord"))
         composeRule.onNodeWithContentDescription("Search in list").assertDoesNotExist()
     }
 

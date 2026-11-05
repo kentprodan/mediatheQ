@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.navigation.GenresKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistsKey
+import io.github.kentprodan.mediatheq.core.navigation.RecordLabelsKey
 import io.github.kentprodan.mediatheq.core.navigation.SearchKey
 import io.github.kentprodan.mediatheq.core.navigation.TracksKey
 
@@ -30,6 +31,7 @@ enum class TopLevelTab(
     Albums(AlbumsKey, R.string.tab_albums),
     AlbumArtists(AlbumArtistsKey, R.string.tab_album_artists),
     Genres(GenresKey, R.string.tab_genres),
+    RecordLabels(RecordLabelsKey, R.string.tab_record_labels),
     Playlists(PlaylistsKey, R.string.tab_playlists),
     Tracks(TracksKey, R.string.tab_tracks),
     Search(SearchKey, R.string.tab_search),
@@ -49,6 +51,7 @@ enum class TopLevelTab(
             Albums -> MqIcons.GridView
             AlbumArtists -> MqIcons.Person
             Genres -> MqIcons.Genres
+            RecordLabels -> MqIcons.RecordLabel
             Playlists -> MqIcons.QueueMusic
             Tracks -> MqIcons.MusicNote
             Search -> if (selected) MqIcons.SearchFilled else MqIcons.Search

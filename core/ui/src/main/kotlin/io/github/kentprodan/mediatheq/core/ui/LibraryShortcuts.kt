@@ -17,6 +17,7 @@ val LibraryShortcut.label: Int
             LibraryShortcut.Tracks -> R.string.core_ui_library_tracks
             LibraryShortcut.Playlists -> R.string.core_ui_library_playlists
             LibraryShortcut.Years -> R.string.core_ui_library_years
+            LibraryShortcut.RecordLabels -> R.string.core_ui_library_record_labels
         }
 
 /** A Library tile's icon. */
@@ -29,4 +30,5 @@ val LibraryShortcut.icon: ImageVector
             LibraryShortcut.Tracks -> MqIcons.MusicNote
             LibraryShortcut.Playlists -> MqIcons.QueueMusic
             LibraryShortcut.Years -> MqIcons.CalendarMonth
+            LibraryShortcut.RecordLabels -> MqIcons.RecordLabel
         }

@@ -55,6 +55,7 @@
     </plurals>
     <string name="core_ui_library_playlists">Playlists</string>
     <string name="core_ui_library_years">Years</string>
+    <string name="core_ui_library_record_labels">Record labels</string>
     <string name="core_ui_home_shortcuts">Shortcuts</string>
     <string name="core_ui_home_favorite_playlists">Favorite playlists</string>
     <string name="core_ui_home_favorite_albums">Favorite albums</string>

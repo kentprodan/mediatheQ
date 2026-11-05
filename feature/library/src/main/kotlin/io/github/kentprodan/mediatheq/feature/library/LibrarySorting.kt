@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.Track
 import java.text.Collator
 import java.util.Locale
@@ -111,6 +112,21 @@ internal fun List<Genre>.sortedFor(sort: LibrarySort): List<Genre> {
             LibrarySort.AlbumCount -> compareByDescending<Genre> { it.albumCount }.then(byName)
             LibrarySort.TrackCount -> compareByDescending<Genre> { it.trackCount }.then(byName)
             else -> byName
+        },
+    )
+}
+
+/** Record labels by name, or by album count (most first, ties by name). */
+@JvmName("sortedRecordLabels")
+internal fun List<RecordLabel>.sortedFor(sort: LibrarySort): List<RecordLabel> {
+    val byName = compareBy(nameCollator()) { label: RecordLabel -> label.sortName }.thenBy { it.id.itemId }
+    return sortedWith(
+        if (sort ==
+            LibrarySort.AlbumCount
+        ) {
+            compareByDescending<RecordLabel> { it.albumCount }.then(byName)
+        } else {
+            byName
         },
     )
 }

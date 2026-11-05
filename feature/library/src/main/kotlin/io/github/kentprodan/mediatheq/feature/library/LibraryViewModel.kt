@@ -26,6 +26,7 @@ import io.github.kentprodan.mediatheq.core.data.tracksOfArtists
 import io.github.kentprodan.mediatheq.core.data.tracksOfPlaylists
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
@@ -59,6 +60,8 @@ class LibraryViewModel
         @Assisted private val fixedFilter: LibraryFilter,
         /** A year's page (#129): the albums of that year. */
         @Assisted private val yearPage: YearKey?,
+        /** A record label's page (#131): the albums of that label. */
+        @Assisted private val labelPage: RecordLabelKey?,
         private val libraryRepository: LibraryRepository,
         private val syncRepository: LibrarySyncRepository,
         private val preferencesRepository: LibraryPreferencesRepository,
@@ -135,6 +138,7 @@ class LibraryViewModel
                 LibraryUiState(
                     filter = fixedFilter,
                     yearPage = yearPage,
+                    labelPage = labelPage,
                     albumColumns = preferences.albumColumns,
                     genresGrid = preferences.genresGrid,
                     sort = preferences.sortFor(fixedFilter),
@@ -155,7 +159,7 @@ class LibraryViewModel
             }.stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
-                LibraryUiState(filter = fixedFilter, yearPage = yearPage),
+                LibraryUiState(filter = fixedFilter, yearPage = yearPage, labelPage = labelPage),
             )
 
         fun onAction(action: LibraryAction) {
@@ -320,6 +324,20 @@ class LibraryViewModel
                     )
                 }
 
+                // Each label's albums in list order, an album of two shown labels once.
+                is LibraryContent.RecordLabels -> {
+                    libraryRepository.tracksOfAlbums(
+                        content.labels
+                            .flatMap {
+                                libraryRepository
+                                    .labelAlbums(
+                                        it.id,
+                                    ).first()
+                            }.map { it.id }
+                            .distinct(),
+                    )
+                }
+
                 // Each genre's tracks in list order, a track tagged with two shown genres once.
                 is LibraryContent.Genres -> {
                     content.genres.flatMap { libraryRepository.genreTracks(it.id).first() }.distinctBy { it.id }
@@ -334,10 +352,17 @@ class LibraryViewModel
         private fun itemsOf(filter: LibraryFilter): Flow<Sorter> =
             when (filter) {
                 LibraryFilter.Albums -> {
-                    libraryRepository.albums().map { all ->
+                    val albums = labelPage?.let { libraryRepository.labelAlbums(it.id) } ?: libraryRepository.albums()
+                    albums.map { all ->
                         val list = if (yearPage == null) all else all.filter { it.year == yearPage.year }
                         val sorter: Sorter = { sort -> LibraryContent.Albums(list.sortedFor(sort)) }
                         sorter
+                    }
+                }
+
+                LibraryFilter.RecordLabels -> {
+                    libraryRepository.recordLabels().map { list ->
+                        { sort -> LibraryContent.RecordLabels(list.sortedFor(sort)) }
                     }
                 }
 
@@ -377,6 +402,7 @@ class LibraryViewModel
             fun create(
                 fixedFilter: LibraryFilter,
                 yearPage: YearKey?,
+                labelPage: RecordLabelKey?,
             ): LibraryViewModel
         }
     }
@@ -399,6 +425,7 @@ private fun LibraryContent.isNotEmptyContent(): Boolean =
         is LibraryContent.Songs -> tracks.isNotEmpty()
         is LibraryContent.Years -> years.isNotEmpty()
         is LibraryContent.Genres -> genres.isNotEmpty()
+        is LibraryContent.RecordLabels -> labels.isNotEmpty()
         else -> false
     }
 
