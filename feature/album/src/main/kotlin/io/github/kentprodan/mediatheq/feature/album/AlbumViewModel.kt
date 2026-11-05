@@ -6,12 +6,16 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.data.AlbumResumeRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
+import io.github.kentprodan.mediatheq.core.data.MoreAlbumsSort
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.resumeTarget
+import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
@@ -19,16 +23,20 @@ import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.ui.ListSelection
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel(assistedFactory = AlbumViewModel.Factory::class)
 class AlbumViewModel
     @AssistedInject
@@ -41,17 +49,42 @@ class AlbumViewModel
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
         preferences: LibraryPreferencesRepository,
+        private val resumes: AlbumResumeRepository,
     ) : ViewModel() {
         private val selection = MutableStateFlow(ListSelection<MediaId>())
 
+        private val album = libraryRepository.album(albumId)
+        private val tracks = libraryRepository.albumTracks(albumId)
+        private val pagePreferences =
+            preferences.preferences
+                .map { it.ratingMode to it.albumPage }
+                .distinctUntilChanged()
+
+        /** The first album artist's other albums (offline: downloaded ones), sorted as the page settings say. */
+        private val moreAlbums =
+            combine(
+                album
+                    .map { it?.albumArtists?.firstOrNull()?.id }
+                    .distinctUntilChanged()
+                    .flatMapLatest { artistId ->
+                        artistId?.let(libraryRepository::artistAlbums) ?: flowOf(emptyList())
+                    },
+                pagePreferences.map { it.second.moreAlbumsSort }.distinctUntilChanged(),
+            ) { albums, sort -> albums.filter { it.id != albumId }.sortedFor(sort) }
+
+        private val about =
+            combine(libraryRepository.albumGenres(albumId), libraryRepository.albumLabels(albumId)) { genres, labels ->
+                genres to labels
+            }
+
         private val page =
             combine(
-                libraryRepository.album(albumId),
-                libraryRepository.albumTracks(albumId),
+                combine(album, tracks, ::Pair),
                 // Only the track id: position ticks and play/pause must not rebuild the list.
                 playback.state.map { it.item?.id }.distinctUntilChanged(),
-                preferences.preferences.map { it.ratingMode }.distinctUntilChanged(),
-            ) { album, tracks, currentTrackId, ratingMode ->
+                pagePreferences,
+                combine(moreAlbums, about, resumes.resume(albumId), ::Triple),
+            ) { (album, tracks), currentTrackId, (ratingMode, albumPage), (more, about, resume) ->
                 if (album == null) {
                     AlbumUiState.NotFound
                 } else {
@@ -59,7 +92,17 @@ class AlbumViewModel
                         tracks.groupBy { it.discNumber ?: 1 }.map { (number, discTracks) ->
                             Disc(number, discTracks)
                         }
-                    AlbumUiState.Content(album, discs, currentTrackId, ratingMode)
+                    AlbumUiState.Content(
+                        album,
+                        discs,
+                        currentTrackId,
+                        ratingMode,
+                        page = albumPage,
+                        resume = resumeTarget(resume, tracks),
+                        moreAlbums = more,
+                        genres = about.first,
+                        labels = about.second,
+                    )
                 }
             }
 
@@ -84,6 +127,12 @@ class AlbumViewModel
             when (action) {
                 AlbumAction.Play -> {
                     if (tracks.isNotEmpty()) playback.play(tracks)
+                }
+
+                AlbumAction.Resume -> {
+                    val resume = (uiState.value as? AlbumUiState.Content)?.resume
+                    val index = tracks.indexOfFirst { it.id == resume?.trackId }
+                    if (resume != null && index >= 0) playback.play(tracks, index, startPosition = resume.position)
                 }
 
                 // The player picks the random start and keeps the album order for unshuffling (PlaybackConnection).
@@ -178,3 +227,23 @@ class AlbumViewModel
             fun create(albumId: MediaId): AlbumViewModel
         }
     }
+
+/** "More from <artist>": by year (newest or oldest first, unknown last), or by title; ties by title. */
+internal fun List<Album>.sortedFor(sort: MoreAlbumsSort): List<Album> {
+    val byTitle = compareBy<Album, String>(String.CASE_INSENSITIVE_ORDER) { it.sortName }
+    return when (sort) {
+        MoreAlbumsSort.YearDescending -> {
+            sortedWith(
+                compareBy<Album, Int?>(nullsLast(reverseOrder())) { it.year }.then(byTitle),
+            )
+        }
+
+        MoreAlbumsSort.YearAscending -> {
+            sortedWith(compareBy<Album, Int?>(nullsLast()) { it.year }.then(byTitle))
+        }
+
+        MoreAlbumsSort.Title -> {
+            sortedWith(byTitle)
+        }
+    }
+}

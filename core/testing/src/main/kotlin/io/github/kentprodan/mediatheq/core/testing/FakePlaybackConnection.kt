@@ -15,6 +15,7 @@ class FakePlaybackConnection : PlaybackConnection {
         val queue: List<Track>,
         val startIndex: Int,
         val shuffle: Boolean,
+        val startPosition: Duration = Duration.ZERO,
     )
 
     override val state = MutableStateFlow(PlayerUiModel())
@@ -40,8 +41,9 @@ class FakePlaybackConnection : PlaybackConnection {
         queue: List<Track>,
         startIndex: Int,
         shuffle: Boolean,
+        startPosition: Duration,
     ) {
-        plays += PlayCall(queue, startIndex, shuffle)
+        plays += PlayCall(queue, startIndex, shuffle, startPosition)
         expandRequested.value = true
     }
 

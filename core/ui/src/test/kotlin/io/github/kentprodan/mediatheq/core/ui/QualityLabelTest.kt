@@ -118,10 +118,11 @@ class QualityLabelTest {
 
         assertThat(
             albumQuality(listOf(track(mp3), track(cd), track(hiRes)))?.detail,
-        ).isEqualTo("FLAC · 24/96 · 2400 kb/s")
-        assertThat(albumQuality(listOf(track(cd), track(atmos)))?.kind).isEqualTo(QualityKind.DolbyAtmos)
+        ).isEqualTo("FLAC 24/96")
+        assertThat(albumQuality(listOf(track(cd), track(atmos)))).isEqualTo(QualityLabel(QualityKind.DolbyAtmos, ""))
+        assertThat(albumQuality(listOf(track(cd)))).isEqualTo(QualityLabel(QualityKind.Lossless, ""))
         assertThat(albumQuality(listOf(track(mp3), track(AudioFormat("aac", bitrateKbps = 128))))?.detail)
-            .isEqualTo("MP3 · 320 kb/s")
+            .isEqualTo("MP3 320 kb/s")
     }
 
     @Test
@@ -129,7 +130,7 @@ class QualityLabelTest {
         val r96 = AudioFormat("flac", sampleRateHz = 96_000, bitDepth = 24)
         val r192 = AudioFormat("flac", sampleRateHz = 192_000, bitDepth = 24)
 
-        assertThat(albumQuality(listOf(track(r96), track(r192)))?.detail).isEqualTo("FLAC · 24/192")
+        assertThat(albumQuality(listOf(track(r96), track(r192)))?.detail).isEqualTo("FLAC 24/192")
         assertThat(albumQuality(listOf(track(null)))).isNull()
         assertThat(albumQuality(emptyList())).isNull()
     }
