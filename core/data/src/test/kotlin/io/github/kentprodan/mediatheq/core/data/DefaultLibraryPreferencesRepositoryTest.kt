@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
 import io.github.kentprodan.mediatheq.core.model.HomeSection
+import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -47,7 +48,7 @@ class DefaultLibraryPreferencesRepositoryTest {
         }
 
     @Test
-    fun `defaults are chips, two columns and each tab's first sort`() =
+    fun `defaults are two columns and each tab's first sort`() =
         runTest {
             val preferences = repository.preferences.first()
 
@@ -58,13 +59,11 @@ class DefaultLibraryPreferencesRepositoryTest {
     @Test
     fun `choices are kept`() =
         runTest {
-            repository.setFilterStyle(FilterControlStyle.ConnectedButtons)
             repository.setAlbumColumns(4)
             repository.setSort(LibraryFilter.Albums, LibrarySort.Year)
             repository.setSort(LibraryFilter.Songs, LibrarySort.Album)
 
             val preferences = repository.preferences.first()
-            assertThat(preferences.filterStyle).isEqualTo(FilterControlStyle.ConnectedButtons)
             assertThat(preferences.albumColumns).isEqualTo(4)
             assertThat(preferences.sortFor(LibraryFilter.Albums)).isEqualTo(LibrarySort.Year)
             assertThat(preferences.sortFor(LibraryFilter.Songs)).isEqualTo(LibrarySort.Album)
@@ -90,6 +89,96 @@ class DefaultLibraryPreferencesRepositoryTest {
             }
 
             assertThat(repository.preferences.first()).isEqualTo(LibraryPreferences())
+        }
+
+    @Test
+    fun `the old tabbed Library's settings carry over, album columns kept and filter style dropped`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("filter_style")] = "ConnectedButtons"
+                it[intPreferencesKey("album_columns")] = 4
+            }
+
+            assertThat(repository.preferences.first().albumColumns).isEqualTo(4)
+
+            repository.setLibraryPage(LibraryPagePreferences(columns = 2))
+            assertThat(dataStore.data.first()[stringPreferencesKey("filter_style")]).isNull()
+            assertThat(repository.preferences.first().albumColumns).isEqualTo(4)
+        }
+
+    @Test
+    fun `library page defaults are every tile, a grid of 3 columns, 5 in landscape, normal spacing`() =
+        runTest {
+            val page = repository.preferences.first().libraryPage
+
+            assertThat(page.shortcuts).isEqualTo(LibraryShortcut.entries)
+            assertThat(page.style).isEqualTo(LibraryHubStyle.Grid)
+            assertThat(page.columns).isEqualTo(3)
+            assertThat(page.landscapeColumns).isEqualTo(5)
+            assertThat(page.spacing).isEqualTo(LibraryHubSpacing.Normal)
+        }
+
+    @Test
+    fun `every library page choice is kept`() =
+        runTest {
+            val page =
+                LibraryPagePreferences(
+                    shortcuts = listOf(LibraryShortcut.Years, LibraryShortcut.Albums),
+                    style = LibraryHubStyle.List,
+                    columns = 4,
+                    landscapeColumns = 6,
+                    spacing = LibraryHubSpacing.Compact,
+                )
+
+            repository.setLibraryPage(page)
+
+            assertThat(repository.preferences.first().libraryPage).isEqualTo(page)
+        }
+
+    @Test
+    fun `library page values out of range, repeated or none are stored as defaults`() =
+        runTest {
+            repository.setLibraryPage(
+                LibraryPagePreferences(shortcuts = emptyList(), columns = 9, landscapeColumns = 1),
+            )
+            assertThat(repository.preferences.first().libraryPage).isEqualTo(LibraryPagePreferences())
+
+            repository.setLibraryPage(
+                LibraryPagePreferences(shortcuts = listOf(LibraryShortcut.Tracks, LibraryShortcut.Tracks)),
+            )
+            assertThat(
+                repository.preferences
+                    .first()
+                    .libraryPage.shortcuts,
+            ).containsExactly(LibraryShortcut.Tracks)
+        }
+
+    @Test
+    fun `unknown stored library page values fall back`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("lp_shortcuts")] = "Moods,Gone"
+                it[stringPreferencesKey("lp_style")] = "Carousel"
+                it[intPreferencesKey("lp_columns")] = 7
+                it[stringPreferencesKey("lp_spacing")] = "Huge"
+            }
+
+            assertThat(repository.preferences.first().libraryPage).isEqualTo(LibraryPagePreferences())
+        }
+
+    @Test
+    fun `restoring the library page defaults resets only that page`() =
+        runTest {
+            repository.setAlbumColumns(4)
+            repository.setMediaLists(MediaListPreferences(showItemCounts = false))
+            repository.setLibraryPage(LibraryPagePreferences(style = LibraryHubStyle.List, columns = 2))
+
+            repository.restoreLibraryPageDefaults()
+
+            val preferences = repository.preferences.first()
+            assertThat(preferences.libraryPage).isEqualTo(LibraryPagePreferences())
+            assertThat(preferences.albumColumns).isEqualTo(4)
+            assertThat(preferences.mediaLists.showItemCounts).isFalse()
         }
 
     @Test

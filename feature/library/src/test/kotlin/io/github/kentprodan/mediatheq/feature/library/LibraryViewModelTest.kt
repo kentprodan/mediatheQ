@@ -1,11 +1,9 @@
 package io.github.kentprodan.mediatheq.feature.library
 
-import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
-import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
@@ -22,6 +20,7 @@ import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
@@ -114,9 +113,9 @@ class LibraryViewModelTest {
 
     private fun TestScope.viewModel(
         status: SyncStatus = SyncStatus.Idle(day(10)),
-        savedState: SavedStateHandle = SavedStateHandle(),
         collect: Boolean = true,
-        fixedFilter: LibraryFilter? = null,
+        fixedFilter: LibraryFilter = LibraryFilter.Albums,
+        yearPage: YearKey? = null,
     ): LibraryViewModel {
         library.albums.value = albums
         library.albumArtists.value = listOf(bob, ada)
@@ -126,7 +125,7 @@ class LibraryViewModelTest {
         val viewModel =
             LibraryViewModel(
                 fixedFilter,
-                savedState,
+                yearPage,
                 library,
                 sync,
                 preferences,
@@ -148,6 +147,7 @@ class LibraryViewModelTest {
             is LibraryContent.Artists -> content.artists.map { it.id.itemId }
             is LibraryContent.Playlists -> content.playlists.map { it.id.itemId }
             is LibraryContent.Songs -> content.tracks.map { it.id.itemId }
+            is LibraryContent.Years -> content.years.map { it.year.toString() }
             else -> error("no items: $content")
         }
 
@@ -160,24 +160,9 @@ class LibraryViewModelTest {
         }
 
     @Test
-    fun `a fixed filter shows only its list and ignores filter changes`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val savedState = SavedStateHandle()
-            val viewModel = viewModel(savedState = savedState, fixedFilter = LibraryFilter.Songs)
-
-            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Albums))
-
-            assertThat(viewModel.uiState.value.filter).isEqualTo(LibraryFilter.Songs)
-            assertThat(viewModel.uiState.value.filterFixed).isTrue()
-            assertThat(viewModel.uiState.value.content).isInstanceOf(LibraryContent.Songs::class.java)
-            assertThat(savedState.keys()).isEmpty()
-        }
-
-    @Test
     fun `tapping a song plays the sorted songs from it`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = viewModel()
-            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Songs)
             val shown = (viewModel.uiState.value.content as LibraryContent.Songs).tracks
 
             viewModel.onAction(LibraryAction.PlayTrack(shown[1]))
@@ -189,8 +174,7 @@ class LibraryViewModelTest {
     fun `tapping a song follows the default track action`() =
         runTest(mainDispatcherRule.testDispatcher) {
             preferences.setNavigation(NavigationPreferences(trackAction = TrackAction.AddToQueue))
-            val viewModel = viewModel()
-            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Songs)
 
             viewModel.onAction(LibraryAction.PlayTrack(tracks[0]))
 
@@ -286,7 +270,7 @@ class LibraryViewModelTest {
         }
 
     @Test
-    fun `selection toggles, selects all, clears, and ends on a tab switch`() =
+    fun `selection toggles, selects all and clears`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel = viewModel()
 
@@ -299,10 +283,6 @@ class LibraryViewModelTest {
             assertThat(viewModel.uiState.value.selection.size).isEqualTo(3)
 
             viewModel.onAction(LibraryAction.ClearSelection)
-            assertThat(viewModel.uiState.value.selection.isActive).isFalse()
-
-            viewModel.onAction(LibraryAction.ToggleSelection(id("a1")))
-            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
             assertThat(viewModel.uiState.value.selection.isActive).isFalse()
         }
 
@@ -345,8 +325,7 @@ class LibraryViewModelTest {
     @Test
     fun `add to playlist from a selection hands its tracks to the screen once`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = viewModel()
-            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Songs)
 
             viewModel.onAction(LibraryAction.ToggleSelection(id("t3")))
             viewModel.onAction(LibraryAction.OnSelection(SelectionCommand.AddToPlaylist))
@@ -371,31 +350,7 @@ class LibraryViewModelTest {
         }
 
     @Test
-    fun `R52 the first frame shows no filter style rather than the default, then the saved one`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            preferences.setFilterStyle(FilterControlStyle.ConnectedButtons)
-            val viewModel = viewModel(collect = false)
-
-            // What the screen draws before the state is collected: chips here would flash before the saved style.
-            assertThat(viewModel.uiState.value.filterStyle).isNull()
-
-            backgroundScope.launch { viewModel.uiState.collect() }
-            assertThat(viewModel.uiState.value.filterStyle).isEqualTo(FilterControlStyle.ConnectedButtons)
-        }
-
-    @Test
-    fun `R52 a tab restored after process death shows from the first frame`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val savedState = SavedStateHandle()
-            viewModel(savedState = savedState).onAction(LibraryAction.SelectFilter(LibraryFilter.Artists))
-
-            val restored = viewModel(savedState = savedState, collect = false)
-
-            assertThat(restored.uiState.value.filter).isEqualTo(LibraryFilter.Artists)
-        }
-
-    @Test
-    fun `starts on albums by name, two columns, chips`() =
+    fun `albums start by name in two columns`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel = viewModel()
 
@@ -403,14 +358,12 @@ class LibraryViewModelTest {
             assertThat(state.filter).isEqualTo(LibraryFilter.Albums)
             assertThat(state.sort).isEqualTo(LibrarySort.Name)
             assertThat(state.albumColumns).isEqualTo(2)
-            assertThat(state.filterStyle).isEqualTo(FilterControlStyle.Chips)
             assertThat(viewModel.ids()).containsExactly("a3", "a2", "a1").inOrder()
         }
 
     @Test
     fun `every filter and sort orders its items`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = viewModel()
             val expected =
                 mapOf(
                     (LibraryFilter.Albums to LibrarySort.Name) to listOf("a3", "a2", "a1"),
@@ -425,13 +378,16 @@ class LibraryViewModelTest {
                     (LibraryFilter.Songs to LibrarySort.RecentlyAdded) to listOf("t2", "t1", "t3"),
                     (LibraryFilter.Songs to LibrarySort.Artist) to listOf("t2", "t3", "t1"),
                     (LibraryFilter.Songs to LibrarySort.Album) to listOf("t2", "t3", "t1"),
+                    // a1 2001, a2 1999, a3 2020: one album each, so by count the years keep newest first.
+                    (LibraryFilter.Years to LibrarySort.Year) to listOf("2020", "2001", "1999"),
+                    (LibraryFilter.Years to LibrarySort.AlbumCount) to listOf("2020", "2001", "1999"),
                 )
             assertThat(expected.keys.map { it.first to it.second })
                 .containsExactlyElementsIn(LibraryFilter.entries.flatMap { f -> f.sorts.map { f to it } })
 
             expected.forEach { (filterAndSort, ids) ->
                 val (filter, sort) = filterAndSort
-                viewModel.onAction(LibraryAction.SelectFilter(filter))
+                val viewModel = viewModel(fixedFilter = filter)
                 viewModel.onAction(LibraryAction.SelectSort(sort))
                 assertThat(viewModel.uiState.value.sort).isEqualTo(sort)
                 assertWithMessage("$filter by $sort").that(viewModel.ids()).containsExactlyElementsIn(ids).inOrder()
@@ -439,28 +395,22 @@ class LibraryViewModelTest {
         }
 
     @Test
-    fun `each tab remembers its own sort`() =
+    fun `each list remembers its own sort`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = viewModel()
-            viewModel.onAction(LibraryAction.SelectSort(LibrarySort.Year))
+            viewModel().onAction(LibraryAction.SelectSort(LibrarySort.Year))
 
-            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
-            assertThat(viewModel.uiState.value.sort).isEqualTo(LibrarySort.Name)
-
-            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Albums))
-            assertThat(viewModel.uiState.value.sort).isEqualTo(LibrarySort.Year)
+            assertThat(viewModel(fixedFilter = LibraryFilter.Songs).uiState.value.sort).isEqualTo(LibrarySort.Name)
+            assertThat(viewModel().uiState.value.sort).isEqualTo(LibrarySort.Year)
         }
 
     @Test
-    fun `columns and filter style are saved`() =
+    fun `album columns are saved`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel = viewModel()
 
             viewModel.onAction(LibraryAction.SetAlbumColumns(4))
-            viewModel.onAction(LibraryAction.SetFilterStyle(FilterControlStyle.ConnectedButtons))
 
             assertThat(viewModel.uiState.value.albumColumns).isEqualTo(4)
-            assertThat(viewModel.uiState.value.filterStyle).isEqualTo(FilterControlStyle.ConnectedButtons)
             assertThat(preferences.preferences.value.albumColumns).isEqualTo(4)
         }
 
@@ -499,8 +449,7 @@ class LibraryViewModelTest {
     @Test
     fun `after a complete sync an empty tab stays empty while syncing or failing`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = viewModel()
-            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Playlists))
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Playlists)
             library.playlists.value = emptyList()
 
             sync.status.value = SyncStatus.Running(SyncStep.Albums, 0, 10)
@@ -522,17 +471,6 @@ class LibraryViewModelTest {
             sync.status.value = SyncStatus.Failed(MqError.Network, day(10))
 
             assertThat(viewModel.uiState.value.refreshError).isEqualTo(MqError.Network)
-        }
-
-    @Test
-    fun `the selected tab survives process death`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val savedState = SavedStateHandle()
-            viewModel(savedState = savedState).onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
-
-            val restored = viewModel(savedState = savedState)
-
-            assertThat(restored.uiState.value.filter).isEqualTo(LibraryFilter.Songs)
         }
 
     @Test
@@ -571,18 +509,16 @@ class LibraryViewModelTest {
         }
 
     @Test
-    fun `the songs tab loads tracks only when opened`() =
+    fun `an empty songs list is empty after a sync`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val viewModel = viewModel()
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Songs)
             library.tracks.value = emptyList()
-
-            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
 
             assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Empty)
         }
 
     @Test
-    fun `switching tabs shows loading until the new tab's items are ready`() =
+    fun `a list shows loading until its items are sorted`() =
         runTest(mainDispatcherRule.testDispatcher) {
             library.albums.value = albums
             library.tracks.value = tracks
@@ -590,8 +526,8 @@ class LibraryViewModelTest {
             val sorting = StandardTestDispatcher(testScheduler)
             val viewModel =
                 LibraryViewModel(
+                    LibraryFilter.Songs,
                     null,
-                    SavedStateHandle(),
                     library,
                     sync,
                     preferences,
@@ -604,13 +540,103 @@ class LibraryViewModelTest {
                     sorting,
                 )
             backgroundScope.launch { viewModel.uiState.collect() }
-            sorting.scheduler.runCurrent()
 
-            viewModel.onAction(LibraryAction.SelectFilter(LibraryFilter.Songs))
             assertThat(viewModel.uiState.value.filter).isEqualTo(LibraryFilter.Songs)
             assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Loading)
 
             sorting.scheduler.runCurrent()
             assertThat(viewModel.uiState.value.content).isInstanceOf(LibraryContent.Songs::class.java)
+        }
+
+    @Test
+    fun `years list the album years newest first with their albums, unknown year last`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albums.value = albums + Album(id("a4"), "No date", listOf(ada))
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Years)
+            library.albums.value = albums + Album(id("a4"), "No date", listOf(ada))
+
+            val years = (viewModel.uiState.value.content as LibraryContent.Years).years
+            assertThat(years.map { it.year }).containsExactly(2020, 2001, 1999, null).inOrder()
+            assertThat(years.last().albums.map { it.title }).containsExactly("No date")
+            assertThat(viewModel.uiState.value.itemCount).isEqualTo(4)
+        }
+
+    @Test
+    fun `a year's page lists that year's albums, and the unknown year those without one`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            assertThat(viewModel(yearPage = YearKey(2001)).ids()).containsExactly("a1")
+            assertThat(viewModel(yearPage = YearKey(2001)).uiState.value.yearPage).isEqualTo(YearKey(2001))
+
+            library.albums.value = albums + Album(id("a4"), "No date", listOf(ada))
+            val unknown = viewModel(yearPage = YearKey(null), collect = false)
+            library.albums.value = albums + Album(id("a4"), "No date", listOf(ada))
+            backgroundScope.launch { unknown.uiState.collect() }
+            assertThat(unknown.ids()).containsExactly("a4")
+        }
+
+    @Test
+    fun `offline with no downloaded album the years list says nothing is downloaded`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.offline.value = true
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Years)
+            library.albums.value = emptyList()
+
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.NothingDownloaded)
+        }
+
+    @Test
+    fun `play on the years list plays the albums' tracks in year order`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Years)
+            library.tracks.value =
+                listOf(
+                    tracks[0].copy(albumId = id("a1")),
+                    tracks[1].copy(albumId = id("a3")),
+                    tracks[2].copy(albumId = id("a2")),
+                )
+
+            viewModel.onAction(LibraryAction.Top(TopButton.Play))
+
+            // 2020 (a3), 2001 (a1), 1999 (a2).
+            assertThat(
+                playback.plays
+                    .single()
+                    .queue
+                    .map { it.id.itemId },
+            ).containsExactly("t2", "t1", "t3").inOrder()
+        }
+
+    @Test
+    fun `the years list loads, then is empty after a sync without albums`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Years, collect = false)
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Loading)
+
+            backgroundScope.launch { viewModel.uiState.collect() }
+            library.albums.value = emptyList()
+
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Empty)
+        }
+
+    @Test
+    fun `album count puts the year with most albums first, ties newest first`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val more =
+                listOf(Album(id("x1"), "x1", listOf(ada), year = 1999), Album(id("x2"), "x2", listOf(ada), year = 1999))
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Years)
+            library.albums.value = albums + more
+
+            viewModel.onAction(LibraryAction.SelectSort(LibrarySort.AlbumCount))
+
+            // 1999 has three albums; 2020 and 2001 one each, newest first.
+            assertThat(viewModel.ids()).containsExactly("1999", "2020", "2001").inOrder()
+        }
+
+    @Test
+    fun `a year page without albums of that year is empty after a sync`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel(yearPage = YearKey(1970))
+
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Empty)
         }
 }

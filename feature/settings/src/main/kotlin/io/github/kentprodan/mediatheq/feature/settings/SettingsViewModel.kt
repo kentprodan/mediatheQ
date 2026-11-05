@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,6 +32,7 @@ class SettingsViewModel
         playback: PlaybackConnection,
     ) : ViewModel() {
         private val entriesDraft = MutableStateFlow<NavEntriesDraft?>(null)
+        private val shortcutsDraft = MutableStateFlow<OrganizeDraft<LibraryShortcut>?>(null)
 
         val uiState: StateFlow<SettingsUiState> =
             combine(
@@ -38,11 +40,11 @@ class SettingsViewModel
                 audio.preferences,
                 library.preferences,
                 playback.state.map { it.output }.distinctUntilChanged(),
-                entriesDraft,
-            ) { session, audio, library, output, draft ->
+                combine(entriesDraft, shortcutsDraft, ::Pair),
+            ) { session, audio, library, output, (draft, shortcuts) ->
                 // Signed out: the app leaves for onboarding, nothing to show meanwhile.
                 (session as? SessionState.LoggedIn)?.let {
-                    SettingsUiState.Content(it.serverName, it.userName, audio, library, output, draft)
+                    SettingsUiState.Content(it.serverName, it.userName, audio, library, output, draft, shortcuts)
                 } ?: SettingsUiState.Loading
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState.Loading)
 
@@ -119,7 +121,7 @@ class SettingsViewModel
 
                     SettingsAction.OpenNavEntries -> {
                         entriesDraft.value =
-                            NavEntriesDraft.of(
+                            navEntriesDraft(
                                 library.preferences
                                     .first()
                                     .navigation.entries,
@@ -144,6 +146,42 @@ class SettingsViewModel
 
                     SettingsAction.DismissNavEntries -> {
                         entriesDraft.value = null
+                    }
+
+                    is SettingsAction.SetLibraryPage -> {
+                        library.setLibraryPage(action.page)
+                    }
+
+                    SettingsAction.RestoreLibraryPageDefaults -> {
+                        library.restoreLibraryPageDefaults()
+                    }
+
+                    SettingsAction.OpenLibraryShortcuts -> {
+                        val stored =
+                            library.preferences
+                                .first()
+                                .libraryPage.shortcuts
+                        shortcutsDraft.value = OrganizeDraft.of(stored, LibraryShortcut.entries)
+                    }
+
+                    is SettingsAction.ToggleLibraryShortcut -> {
+                        shortcutsDraft.update { it?.toggle(action.shortcut) }
+                    }
+
+                    is SettingsAction.MoveLibraryShortcut -> {
+                        shortcutsDraft.update { it?.move(action.from, action.to) }
+                    }
+
+                    SettingsAction.ConfirmLibraryShortcuts -> {
+                        shortcutsDraft.value?.let { draft ->
+                            val page = library.preferences.first().libraryPage
+                            library.setLibraryPage(page.copy(shortcuts = draft.entries))
+                        }
+                        shortcutsDraft.value = null
+                    }
+
+                    SettingsAction.DismissLibraryShortcuts -> {
+                        shortcutsDraft.value = null
                     }
 
                     is SettingsAction.SetOfflineMode -> {

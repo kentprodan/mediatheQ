@@ -14,12 +14,16 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
+import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
+import io.github.kentprodan.mediatheq.core.data.YearAlbums
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import org.junit.Rule
 import org.junit.Test
@@ -51,7 +55,7 @@ class LibraryScreenTest {
     }
 
     @Test
-    fun `tapping an album opens it and a filter selects its tab`() {
+    fun `tapping an album opens it`() {
         var opened: MediaId? = null
         val actions = mutableListOf<LibraryAction>()
         composeRule.setContent {
@@ -67,10 +71,9 @@ class LibraryScreenTest {
         }
 
         composeRule.onNodeWithText("Album 1").performClick()
-        composeRule.onNodeWithText("Songs").performClick()
 
         assertThat(opened).isEqualTo(albums[1].id)
-        assertThat(actions).contains(LibraryAction.SelectFilter(LibraryFilter.Songs))
+        assertThat(actions).isEmpty()
     }
 
     @Test
@@ -95,21 +98,73 @@ class LibraryScreenTest {
     }
 
     @Test
-    fun `R52 no filter bar until the saved style is known`() {
+    fun `Back shows on a list opened from the hub, unless hidden in the settings`() {
+        var back = 0
+        var state by mutableStateOf(LibraryUiState(content = LibraryContent.Albums(albums)))
+        composeRule.setContent {
+            MediatheqTheme { LibraryScreen(state, {}, {}, {}, {}, onBack = { back++ }) }
+        }
+
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        assertThat(back).isEqualTo(1)
+
+        state = state.copy(header = MediaListPreferences(hideBackButton = true))
+        composeRule.onNodeWithContentDescription("Back").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a list that is a navigation entry has no Back`() {
+        composeRule.setContent {
+            MediatheqTheme { LibraryScreen(LibraryUiState(content = LibraryContent.Albums(albums)), {}, {}, {}, {}) }
+        }
+
+        composeRule.onNodeWithContentDescription("Back").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a year opens its albums, the unknown year too`() {
+        val opened = mutableListOf<YearKey>()
+        val years =
+            listOf(YearAlbums(1994, albums.take(2)), YearAlbums(null, albums.take(1)))
         composeRule.setContent {
             MediatheqTheme {
                 LibraryScreen(
-                    LibraryUiState(filterStyle = null),
-                    onAction = {},
-                    onOpenAlbum = {},
-                    onOpenArtist = {},
-                    onOpenPlaylist = {},
+                    LibraryUiState(filter = LibraryFilter.Years, content = LibraryContent.Years(years)),
+                    {},
+                    {},
+                    {},
+                    {},
+                    onOpenYear = { opened += it },
                 )
             }
         }
 
-        composeRule.onNodeWithText("Library").assertExists()
-        composeRule.onNodeWithText("Songs").assertDoesNotExist()
+        composeRule.onNodeWithText("2 albums").assertExists()
+        composeRule.onNodeWithText("1994").performClick()
+        composeRule.onNodeWithText("Unknown year").performClick()
+
+        assertThat(opened).containsExactly(YearKey(1994), YearKey(null)).inOrder()
+        // Years have nothing to select or search.
+        composeRule.onNodeWithContentDescription("Search in list").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a hub tile opens its list`() {
+        val actions = mutableListOf<LibraryHubAction>()
+        composeRule.setContent {
+            MediatheqTheme {
+                LibraryHubScreen(LibraryHubUiState.Content(LibraryPagePreferences()), { actions += it })
+            }
+        }
+
+        composeRule.onNodeWithText("Years").performClick()
+        composeRule.onNodeWithText("Album artists").performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                LibraryHubAction.Open(LibraryShortcut.Years),
+                LibraryHubAction.Open(LibraryShortcut.AlbumArtists),
+            ).inOrder()
     }
 
     @Test

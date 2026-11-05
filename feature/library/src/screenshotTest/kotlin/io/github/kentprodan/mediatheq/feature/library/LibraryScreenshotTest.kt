@@ -3,15 +3,16 @@ package io.github.kentprodan.mediatheq.feature.library
 import androidx.compose.runtime.Composable
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.common.MqError
-import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
+import io.github.kentprodan.mediatheq.core.data.YearAlbums
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.ListSelection
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
 
@@ -86,14 +87,6 @@ fun LibrarySongsScreenshot() =
 @PreviewTest
 @MqPreviews
 @Composable
-fun LibraryConnectedButtonsScreenshot() =
-    Library(
-        LibraryUiState(filterStyle = FilterControlStyle.ConnectedButtons, content = LibraryContent.Albums(albums)),
-    )
-
-@PreviewTest
-@MqPreviews
-@Composable
 fun LibraryLoadingScreenshot() = Library(LibraryUiState(content = LibraryContent.Loading))
 
 @PreviewTest
@@ -106,7 +99,7 @@ fun LibraryEmptyScreenshot() = Library(LibraryUiState(content = LibraryContent.E
 @Composable
 fun LibraryOfflineScreenshot() = Library(LibraryUiState(content = LibraryContent.Offline))
 
-/** Offline mode with nothing downloaded for the tab (#63); with downloads, the tab lists them as usual. */
+/** Offline mode with nothing downloaded for the list (#63); with downloads, the tab lists them as usual. */
 @PreviewTest
 @MqPreviews
 @Composable
@@ -138,7 +131,6 @@ fun LibraryHeaderLargeIconsScreenshot() =
     Library(
         LibraryUiState(
             filter = LibraryFilter.Songs,
-            filterFixed = true,
             content = LibraryContent.Songs(songs),
             itemCount = songs.size,
             listFilter = LibraryListFilter(favoritesOnly = true, search = "mo"),
@@ -160,7 +152,6 @@ fun LibraryHeaderHiddenButtonsScreenshot() =
         LibraryScreen(
             LibraryUiState(
                 filter = LibraryFilter.Albums,
-                filterFixed = true,
                 content = LibraryContent.Albums(albums),
                 itemCount = albums.size,
                 header = MediaListPreferences(topButtonStyle = TopButtonStyle.Hidden, showItemCounts = false),
@@ -204,3 +195,40 @@ fun LibrarySongsSelectionScreenshot() =
             selection = ListSelection(setOf(songs[1].id)),
         ),
     )
+
+/** The Years list (#129): years newest first with their album counts, Unknown year last; sort by year. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryYearsScreenshot() =
+    Library(
+        LibraryUiState(
+            filter = LibraryFilter.Years,
+            sort = LibrarySort.Year,
+            content =
+                LibraryContent.Years(
+                    listOf(
+                        YearAlbums(2024, albums.take(3)),
+                        YearAlbums(2019, albums.take(1)),
+                        YearAlbums(1994, albums.take(5)),
+                        YearAlbums(null, albums.take(2)),
+                    ),
+                ),
+        ),
+    )
+
+/** A year's page (#129): the year as title, its albums, Back. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryYearPageScreenshot() =
+    MediatheqTheme {
+        LibraryScreen(
+            LibraryUiState(yearPage = YearKey(1994), content = LibraryContent.Albums(albums.take(4)), itemCount = 4),
+            onAction = {},
+            onOpenAlbum = {},
+            onOpenArtist = {},
+            onOpenPlaylist = {},
+            onBack = {},
+        )
+    }

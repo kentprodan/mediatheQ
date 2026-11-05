@@ -2,6 +2,9 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -32,6 +35,8 @@ import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
+import io.github.kentprodan.mediatheq.core.data.LibraryHubStyle
+import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
@@ -49,6 +54,7 @@ import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqSeedPresets
 import io.github.kentprodan.mediatheq.core.model.HomeSection
+import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -331,7 +337,7 @@ class SettingsScreenTest {
         composeRule.setContent {
             MediatheqTheme {
                 NavEntriesList(
-                    NavEntriesDraft.of(NavigationPreferences.DEFAULT_ENTRIES),
+                    navEntriesDraft(NavigationPreferences.DEFAULT_ENTRIES),
                     { actions += it },
                 )
             }
@@ -514,6 +520,63 @@ class SettingsScreenTest {
         composeRule.waitForIdle()
 
         assertThat(actions).isEmpty()
+    }
+
+    @Test
+    fun `the library page opens the organize dialog and applies a column choice at once`() {
+        show(SettingsPage.Library)
+
+        composeRule.onNode(hasText("Library shortcuts") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("2") and isSelectable()).performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.OpenLibraryShortcuts,
+                SettingsAction.SetLibraryPage(LibraryPagePreferences(columns = 2)),
+            ).inOrder()
+    }
+
+    @Test
+    fun `the library organize dialog checks, moves, and answers OK and Cancel`() {
+        var draft by mutableStateOf(OrganizeDraft.of(LibraryShortcut.entries, LibraryShortcut.entries))
+        composeRule.setContent {
+            MediatheqTheme {
+                LibraryShortcutsDialog(draft) { action ->
+                    actions += action
+                    if (action is SettingsAction.ToggleLibraryShortcut) draft = draft.toggle(action.shortcut)
+                }
+            }
+        }
+
+        composeRule.onNode(hasText("Tracks") and isToggleable()).assertIsOn().performClick()
+        composeRule.onNode(hasText("Tracks") and isToggleable()).assertIsOff()
+        val secondRow = composeRule.onAllNodes(hasCustomActions())[1].fetchSemanticsNode()
+        secondRow.config[SemanticsActions.CustomActions].first { it.label == "Move up" }.action()
+        composeRule.onNodeWithText("OK").performClick()
+        composeRule.onNodeWithText("Cancel").performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.ToggleLibraryShortcut(LibraryShortcut.Tracks),
+                SettingsAction.MoveLibraryShortcut(1, 0),
+                SettingsAction.ConfirmLibraryShortcuts,
+                SettingsAction.DismissLibraryShortcuts,
+            ).inOrder()
+    }
+
+    @Test
+    fun `columns hide in the List style`() {
+        show(
+            SettingsPage.Library,
+            SettingsUiState.Content(
+                "Home",
+                "Ana",
+                library = LibraryPreferences(libraryPage = LibraryPagePreferences(style = LibraryHubStyle.List)),
+            ),
+        )
+
+        composeRule.onNodeWithText("Columns").assertDoesNotExist()
+        composeRule.onNodeWithText("List").assertExists()
     }
 }
 

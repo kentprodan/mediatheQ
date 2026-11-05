@@ -1,18 +1,11 @@
 package io.github.kentprodan.mediatheq.feature.settings
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -25,14 +18,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import io.github.kentprodan.mediatheq.core.data.LandscapeNavStyle
@@ -42,11 +32,7 @@ import io.github.kentprodan.mediatheq.core.data.PortraitNavStyle
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialog
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialogContent
-import io.github.kentprodan.mediatheq.core.designsystem.component.mqReorderHandle
-import io.github.kentprodan.mediatheq.core.designsystem.component.mqReorderItem
-import io.github.kentprodan.mediatheq.core.designsystem.component.rememberMqReorderState
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
-import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import kotlin.math.roundToInt
 
 /** The choice dialogs of Settings -> Navigation and media start (the entries dialog is ViewModel state). */
@@ -253,25 +239,27 @@ internal fun NavEntriesDialog(
     draft: NavEntriesDraft,
     onAction: (SettingsAction) -> Unit,
 ) {
-    MqDialog(
-        title = stringResource(R.string.settings_nav_entries_dialog),
-        confirmLabel = stringResource(R.string.settings_ok),
+    OrganizeDialog(
+        stringResource(R.string.settings_nav_entries_dialog),
+        draft,
+        label = { stringResource(it.label) },
+        onToggle = { onAction(SettingsAction.ToggleNavEntry(it)) },
+        onMove = { from, to -> onAction(SettingsAction.MoveNavEntry(from, to)) },
         onConfirm = { onAction(SettingsAction.ConfirmNavEntries) },
-        dismissLabel = stringResource(R.string.settings_cancel),
         onDismiss = { onAction(SettingsAction.DismissNavEntries) },
-    ) { NavEntriesList(draft, onAction) }
+        summary = stringResource(R.string.settings_nav_entries_limit, NavigationPreferences.MAX_ENTRIES),
+    )
 }
 
 /** The entries dialog's content on its own, for screenshot tests. */
 @Composable
 internal fun NavEntriesDialogContent(draft: NavEntriesDraft) {
-    MqDialogContent(
+    OrganizeDialogContent(
         stringResource(R.string.settings_nav_entries_dialog),
-        stringResource(R.string.settings_ok),
-        {},
-        stringResource(R.string.settings_cancel),
-        {},
-    ) { NavEntriesList(draft, {}) }
+        draft,
+        label = { stringResource(it.label) },
+        summary = stringResource(R.string.settings_nav_entries_limit, NavigationPreferences.MAX_ENTRIES),
+    )
 }
 
 @Composable
@@ -279,89 +267,13 @@ internal fun NavEntriesList(
     draft: NavEntriesDraft,
     onAction: (SettingsAction) -> Unit,
 ) {
-    // A local copy follows the finger while dragging; the draft gets one move when it is dropped.
-    var rows by remember(draft.order) { mutableStateOf(draft.order) }
-    val listState = rememberLazyListState()
-    val reorder =
-        rememberMqReorderState(
-            listState,
-            onMove = { from, to -> rows = rows.toMutableList().apply { add(to, removeAt(from)) } },
-            onDrop = { key, to ->
-                val from = draft.order.indexOf(key)
-                if (from != to) onAction(SettingsAction.MoveNavEntry(from, to))
-            },
-        )
-    val summary = stringResource(R.string.settings_nav_entries_limit, NavigationPreferences.MAX_ENTRIES)
-    Column {
-        Text(summary)
-        LazyColumn(Modifier.heightIn(max = MediatheqSizes.dialogListMaxHeight), listState) {
-            items(rows, key = { it }) { entry ->
-                NavEntryRow(
-                    entry,
-                    draft,
-                    index = rows.indexOf(entry),
-                    count = rows.size,
-                    onAction = onAction,
-                    modifier = Modifier.mqReorderItem(reorder, entry),
-                    handle = Modifier.mqReorderHandle(reorder, entry),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun NavEntryRow(
-    entry: MainNavEntry,
-    draft: NavEntriesDraft,
-    index: Int,
-    count: Int,
-    onAction: (SettingsAction) -> Unit,
-    modifier: Modifier,
-    handle: Modifier,
-) {
-    val checked = entry in draft.checked
-    val enabled = draft.canToggle(entry)
-    val moveUp = stringResource(R.string.settings_move_up)
-    val moveDown = stringResource(R.string.settings_move_down)
-    Row(
-        modifier.semantics {
-            customActions =
-                buildList {
-                    if (index > 0) {
-                        add(
-                            CustomAccessibilityAction(moveUp) {
-                                onAction(SettingsAction.MoveNavEntry(index, index - 1))
-                                true
-                            },
-                        )
-                    }
-                    if (index < count - 1) {
-                        add(
-                            CustomAccessibilityAction(moveDown) {
-                                onAction(SettingsAction.MoveNavEntry(index, index + 1))
-                                true
-                            },
-                        )
-                    }
-                }
-        },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        ListItem(
-            headlineContent = { Text(stringResource(entry.label)) },
-            leadingContent = { Checkbox(checked = checked, onCheckedChange = null, enabled = enabled) },
-            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .toggleable(checked, enabled = enabled, role = Role.Checkbox) {
-                        onAction(SettingsAction.ToggleNavEntry(entry))
-                    },
-        )
-        // A drag handle, not a button: the row's custom actions move it for TalkBack.
-        Icon(MqIcons.DragHandle, contentDescription = null, handle)
-    }
+    OrganizeList(
+        draft,
+        label = { stringResource(it.label) },
+        onToggle = { onAction(SettingsAction.ToggleNavEntry(it)) },
+        onMove = { from, to -> onAction(SettingsAction.MoveNavEntry(from, to)) },
+        summary = stringResource(R.string.settings_nav_entries_limit, NavigationPreferences.MAX_ENTRIES),
+    )
 }
 
 internal val MainNavEntry.label: Int

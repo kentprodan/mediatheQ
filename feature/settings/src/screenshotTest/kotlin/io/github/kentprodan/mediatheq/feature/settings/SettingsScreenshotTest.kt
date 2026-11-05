@@ -3,12 +3,14 @@ package io.github.kentprodan.mediatheq.feature.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.CoverTap
+import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
@@ -34,6 +36,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MqColorSource
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqSeedPresets
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeMode
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
+import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
+import io.github.kentprodan.mediatheq.core.ui.label
 
 private val content =
     SettingsUiState.Content(
@@ -186,7 +190,7 @@ fun SettingsNavigationScreenshot() {
 @MqPreviews
 @Composable
 fun SettingsNavEntriesDialogScreenshot() {
-    MediatheqTheme { NavEntriesDialogContent(NavEntriesDraft.of(NavigationPreferences.DEFAULT_ENTRIES)) }
+    MediatheqTheme { NavEntriesDialogContent(navEntriesDraft(NavigationPreferences.DEFAULT_ENTRIES)) }
 }
 
 /** Six entries checked: the others cannot be checked. */
@@ -203,7 +207,7 @@ fun SettingsNavEntriesDialogFullScreenshot() {
             MainNavEntry.Playlists,
             MainNavEntry.Search,
         )
-    MediatheqTheme { NavEntriesDialogContent(NavEntriesDraft.of(six)) }
+    MediatheqTheme { NavEntriesDialogContent(navEntriesDraft(six)) }
 }
 
 /** The default track action dialog's content, Play selected. */
@@ -361,3 +365,36 @@ fun SettingsHomePageScreenshot() = Page(SettingsPage.Home)
 @Preview(name = "Light", device = "spec:width=412dp,height=1600dp,dpi=420")
 @Composable
 fun SettingsInterfacePageSettingsScreenshot() = Page(SettingsPage.Interface)
+
+/** Settings -> Interface -> Page settings -> Library page (#129), default values. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsLibraryPageScreenshot() = Page(SettingsPage.Library)
+
+/** The Library page's Organize dialog: Tracks unchecked, Years moved first. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsLibraryShortcutsDialogScreenshot() =
+    MediatheqTheme {
+        OrganizeDialogContent(
+            "Library shortcuts",
+            OrganizeDraft.of(
+                listOf(
+                    LibraryShortcut.Years,
+                    LibraryShortcut.Albums,
+                    LibraryShortcut.AlbumArtists,
+                    LibraryShortcut.Playlists,
+                ),
+                LibraryShortcut.entries,
+            ),
+            label = { stringResource(it.label) },
+        )
+    }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsLibraryStyleDialogScreenshot() =
+    MediatheqTheme { LibraryPageDialogContent(LibraryPageDialog.Style, LibraryPagePreferences()) }

@@ -7,8 +7,6 @@ import kotlinx.coroutines.flow.Flow
 interface LibraryPreferencesRepository {
     val preferences: Flow<LibraryPreferences>
 
-    suspend fun setFilterStyle(style: FilterControlStyle)
-
     /** Ignored outside [LibraryPreferences.ALBUM_COLUMNS]. */
     suspend fun setAlbumColumns(columns: Int)
 
@@ -43,6 +41,12 @@ interface LibraryPreferencesRepository {
 
     /** Home page -> Restore defaults: everything on the page. */
     suspend fun restoreHomeDefaults()
+
+    /** Stored validated: tiles distinct and never none, columns in their ranges (else the defaults). */
+    suspend fun setLibraryPage(page: LibraryPagePreferences)
+
+    /** Settings -> Library page -> Restore defaults: only that page goes back to its defaults (#129). */
+    suspend fun restoreLibraryPageDefaults()
 
     suspend fun setRatingMode(mode: RatingMode)
 

@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object HomeKey : NavKey
 
-/** Root of the Library tab. */
+/** Root of the Library tab: the hub of tiles (#129). */
 @Serializable
 data object LibraryKey : NavKey
 

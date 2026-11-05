@@ -1,8 +1,8 @@
 package io.github.kentprodan.mediatheq.core.testing
 
-import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
+import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
@@ -31,8 +31,12 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
         recentSearches.value = emptyList()
     }
 
-    override suspend fun setFilterStyle(style: FilterControlStyle) {
-        preferences.value = preferences.value.copy(filterStyle = style)
+    override suspend fun setLibraryPage(page: LibraryPagePreferences) {
+        preferences.value = preferences.value.copy(libraryPage = page)
+    }
+
+    override suspend fun restoreLibraryPageDefaults() {
+        preferences.value = preferences.value.copy(libraryPage = LibraryPagePreferences())
     }
 
     override suspend fun setAlbumColumns(columns: Int) {

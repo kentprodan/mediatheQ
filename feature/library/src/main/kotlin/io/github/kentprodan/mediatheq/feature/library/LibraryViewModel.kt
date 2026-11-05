@@ -1,6 +1,5 @@
 package io.github.kentprodan.mediatheq.feature.library
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -19,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.albumYears
 import io.github.kentprodan.mediatheq.core.data.downloadAlbums
 import io.github.kentprodan.mediatheq.core.data.downloadPlaylists
 import io.github.kentprodan.mediatheq.core.data.tracksOfAlbums
@@ -26,6 +26,7 @@ import io.github.kentprodan.mediatheq.core.data.tracksOfArtists
 import io.github.kentprodan.mediatheq.core.data.tracksOfPlaylists
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
@@ -41,7 +42,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
@@ -54,9 +54,10 @@ import kotlinx.coroutines.launch
 class LibraryViewModel
     @AssistedInject
     constructor(
-        /** Set when the screen is a navigation entry of its own (Albums, Tracks, ..., #122); `null` for Library. */
-        @Assisted private val fixedFilter: LibraryFilter?,
-        private val savedStateHandle: SavedStateHandle,
+        /** The list this screen shows (#129: every Library list is a screen of its own). */
+        @Assisted private val fixedFilter: LibraryFilter,
+        /** A year's page (#129): the albums of that year. */
+        @Assisted private val yearPage: YearKey?,
         private val libraryRepository: LibraryRepository,
         private val syncRepository: LibrarySyncRepository,
         private val preferencesRepository: LibraryPreferencesRepository,
@@ -68,10 +69,6 @@ class LibraryViewModel
         private val playlists: PlaylistRepository,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
-        // Saved, so the tab (and its restored scroll position) comes back after process death.
-        private val filter: StateFlow<LibraryFilter> =
-            fixedFilter?.let { MutableStateFlow(it) } ?: savedStateHandle.getStateFlow(FILTER_KEY, LibraryFilter.Albums)
-
         private val listFilter = MutableStateFlow(LibraryListFilter())
         private val selection = MutableStateFlow(ListSelection<MediaId>())
         private val addToPlaylist = MutableStateFlow<List<MediaId>?>(null)
@@ -79,15 +76,14 @@ class LibraryViewModel
         // The failed sync the user already saw as a snackbar; the same failure is not shown twice.
         private val shownFailure = MutableStateFlow<SyncStatus.Failed?>(null)
 
-        /**
-         * The current tab's items, sorted off the main thread, tagged with their tab: right after a tab switch the
-         * previous tab's items must not show under the new tab's chip. Only the open tab's items are loaded.
-         */
-        private val items: Flow<Pair<LibraryFilter, LibraryContent>> =
-            filter
-                .flatMapLatest { filter ->
-                    val sort = preferencesRepository.preferences.map { it.sortFor(filter) }.distinctUntilChanged()
-                    itemsOf(filter).combine(sort) { items, sort -> filter to items(sort) }
+        /** The list's items, sorted off the main thread. */
+        private val items: Flow<LibraryContent> =
+            itemsOf(fixedFilter)
+                .combine(preferencesRepository.preferences.map { it.sortFor(fixedFilter) }.distinctUntilChanged()) {
+                    items,
+                    sort,
+                    ->
+                    items(sort)
                 }.flowOn(defaultDispatcher)
 
         /** [items] narrowed by the header's filter and search (#123), with the unfiltered items' presence. */
@@ -96,8 +92,8 @@ class LibraryViewModel
                 items,
                 listFilter,
                 combine(downloads.completedIds, libraryRepository.fullyDownloaded) { tracks, lists -> tracks + lists },
-            ) { (filter, items), listFilter, downloaded ->
-                ShownItems(filter, items, items.filtered(listFilter, downloaded), listFilter)
+            ) { items, listFilter, downloaded ->
+                ShownItems(items, items.filtered(listFilter, downloaded), listFilter)
             }.flowOn(defaultDispatcher)
 
         /** The sync status, and whether a full sync ever completed (then an empty tab is really empty). */
@@ -116,13 +112,11 @@ class LibraryViewModel
 
         val uiState: StateFlow<LibraryUiState> =
             combine(
-                filter,
                 preferencesRepository.preferences,
                 this.shown,
                 combine(sync, libraryRepository.offline, ::Pair),
                 combine(shownFailure, selection, addToPlaylist, ::Triple),
             ) {
-                filter,
                 preferences,
                 items,
                 (sync, offline),
@@ -131,7 +125,6 @@ class LibraryViewModel
                 val (status, everSynced) = sync
                 val content =
                     when {
-                        items.tab != filter -> LibraryContent.Loading
                         items.filtered.isNotEmptyContent() -> items.filtered
                         items.all.isNotEmptyContent() -> LibraryContent.NoMatches
                         offline -> LibraryContent.NothingDownloaded
@@ -139,11 +132,10 @@ class LibraryViewModel
                     }
                 val failureShownAsContent = content is LibraryContent.Offline || content is LibraryContent.Error
                 LibraryUiState(
-                    filter = filter,
-                    filterFixed = fixedFilter != null,
-                    filterStyle = preferences.filterStyle,
+                    filter = fixedFilter,
+                    yearPage = yearPage,
                     albumColumns = preferences.albumColumns,
-                    sort = preferences.sortFor(filter),
+                    sort = preferences.sortFor(fixedFilter),
                     content = content,
                     refreshing = status is SyncStatus.Running,
                     // Offline mode shows downloads: a sync failing for lack of network is expected, not news.
@@ -161,17 +153,11 @@ class LibraryViewModel
             }.stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
-                // The restored tab, not the default one, from the first frame (its top bar differs).
-                LibraryUiState(filter = filter.value, filterFixed = fixedFilter != null, filterStyle = null),
+                LibraryUiState(filter = fixedFilter, yearPage = yearPage),
             )
 
         fun onAction(action: LibraryAction) {
             when (action) {
-                is LibraryAction.SelectFilter -> {
-                    if (fixedFilter == null) savedStateHandle[FILTER_KEY] = action.filter
-                    selection.value = ListSelection()
-                }
-
                 is LibraryAction.ToggleSelection -> {
                     selection.update { it.retain(uiState.value.content.ids).toggle(action.id) }
                 }
@@ -252,15 +238,11 @@ class LibraryViewModel
                 }
 
                 is LibraryAction.SelectSort -> {
-                    launch { preferencesRepository.setSort(filter.value, action.sort) }
+                    launch { preferencesRepository.setSort(fixedFilter, action.sort) }
                 }
 
                 is LibraryAction.SetAlbumColumns -> {
                     launch { preferencesRepository.setAlbumColumns(action.columns) }
-                }
-
-                is LibraryAction.SetFilterStyle -> {
-                    launch { preferencesRepository.setFilterStyle(action.style) }
                 }
 
                 LibraryAction.Refresh -> {
@@ -310,19 +292,47 @@ class LibraryViewModel
         /** The tracks of the shown list, in its order: albums and playlists in their order, artists' own. */
         private suspend fun tracksOf(content: LibraryContent): List<Track> =
             when (content) {
-                is LibraryContent.Albums -> libraryRepository.tracksOfAlbums(content.albums.map { it.id })
-                is LibraryContent.Artists -> libraryRepository.tracksOfArtists(content.artists.map { it.id })
-                is LibraryContent.Playlists -> playlists.tracksOfPlaylists(content.playlists.map { it.id })
-                is LibraryContent.Songs -> content.tracks
-                else -> emptyList()
+                is LibraryContent.Albums -> {
+                    libraryRepository.tracksOfAlbums(content.albums.map { it.id })
+                }
+
+                is LibraryContent.Artists -> {
+                    libraryRepository.tracksOfArtists(content.artists.map { it.id })
+                }
+
+                is LibraryContent.Playlists -> {
+                    playlists.tracksOfPlaylists(content.playlists.map { it.id })
+                }
+
+                is LibraryContent.Songs -> {
+                    content.tracks
+                }
+
+                is LibraryContent.Years -> {
+                    libraryRepository.tracksOfAlbums(
+                        content.years.flatMap { it.albums }.map { it.id },
+                    )
+                }
+
+                else -> {
+                    emptyList()
+                }
             }
 
         /** Items of [filter], as a function that sorts them into content. */
         private fun itemsOf(filter: LibraryFilter): Flow<Sorter> =
             when (filter) {
                 LibraryFilter.Albums -> {
+                    libraryRepository.albums().map { all ->
+                        val list = if (yearPage == null) all else all.filter { it.year == yearPage.year }
+                        val sorter: Sorter = { sort -> LibraryContent.Albums(list.sortedFor(sort)) }
+                        sorter
+                    }
+                }
+
+                LibraryFilter.Years -> {
                     libraryRepository.albums().map { list ->
-                        { sort -> LibraryContent.Albums(list.sortedFor(sort)) }
+                        { sort -> LibraryContent.Years(albumYears(list).sortedFor(sort)) }
                     }
                 }
 
@@ -347,19 +357,21 @@ class LibraryViewModel
 
         @AssistedFactory
         interface Factory {
-            fun create(fixedFilter: LibraryFilter?): LibraryViewModel
+            fun create(
+                fixedFilter: LibraryFilter,
+                yearPage: YearKey?,
+            ): LibraryViewModel
         }
     }
 
-/** A tab's items, as filtered by the list header, and the header's filter. */
+/** A list's items, as filtered by the list header, and the header's filter. */
 private data class ShownItems(
-    val tab: LibraryFilter,
     val all: LibraryContent,
     val filtered: LibraryContent,
     val listFilter: LibraryListFilter,
 )
 
-/** Sorts a tab's items into content. */
+/** Sorts a list's items into content. */
 private typealias Sorter = (LibrarySort) -> LibraryContent
 
 private fun LibraryContent.isNotEmptyContent(): Boolean =
@@ -368,6 +380,7 @@ private fun LibraryContent.isNotEmptyContent(): Boolean =
         is LibraryContent.Artists -> artists.isNotEmpty()
         is LibraryContent.Playlists -> playlists.isNotEmpty()
         is LibraryContent.Songs -> tracks.isNotEmpty()
+        is LibraryContent.Years -> years.isNotEmpty()
         else -> false
     }
 
@@ -385,5 +398,3 @@ private fun emptyContent(
         status is SyncStatus.Failed -> LibraryContent.Error(status.error)
         else -> LibraryContent.Loading
     }
-
-private const val FILTER_KEY = "filter"

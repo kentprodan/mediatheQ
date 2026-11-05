@@ -2,11 +2,13 @@ package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredHome
+import io.github.kentprodan.mediatheq.core.datastore.StoredLibraryPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredMediaLists
 import io.github.kentprodan.mediatheq.core.datastore.StoredNavigation
 import io.github.kentprodan.mediatheq.core.datastore.StoredNowPlaying
 import io.github.kentprodan.mediatheq.core.datastore.StoredTheme
 import io.github.kentprodan.mediatheq.core.model.HomeSection
+import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -19,7 +21,6 @@ class DefaultLibraryPreferencesRepository
         override val preferences: Flow<LibraryPreferences> =
             store.values.map { stored ->
                 LibraryPreferences(
-                    filterStyle = enumOrNull<FilterControlStyle>(stored.filterStyle) ?: FilterControlStyle.Chips,
                     albumColumns =
                         stored.albumColumns?.takeIf { it in LibraryPreferences.ALBUM_COLUMNS }
                             ?: LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
@@ -36,11 +37,10 @@ class DefaultLibraryPreferencesRepository
                     mediaLists = mediaLists(stored.mediaLists),
                     nowPlaying = nowPlaying(stored.nowPlaying),
                     home = home(stored.home),
+                    libraryPage = libraryPage(stored.libraryPage),
                     qualityDetail = stored.qualityDetail ?: false,
                 )
             }
-
-        override suspend fun setFilterStyle(style: FilterControlStyle) = store.setFilterStyle(style.name)
 
         override suspend fun setAlbumColumns(columns: Int) {
             if (columns in LibraryPreferences.ALBUM_COLUMNS) store.setAlbumColumns(columns)
@@ -170,6 +170,46 @@ class DefaultLibraryPreferencesRepository
                     ?: defaults.order
             val hidden = stored.hidden?.mapNotNull { enumOrNull<HomeSection>(it) }?.toSet() ?: defaults.hidden
             return HomePreferences(order, hidden)
+        }
+
+        override suspend fun setLibraryPage(page: LibraryPagePreferences) {
+            val defaults = LibraryPagePreferences()
+            store.setLibraryPage(
+                StoredLibraryPage(
+                    shortcuts =
+                        page.shortcuts
+                            .distinct()
+                            .ifEmpty { defaults.shortcuts }
+                            .map { it.name },
+                    style = page.style.name,
+                    columns = page.columns.takeIf { it in LibraryPagePreferences.COLUMNS } ?: defaults.columns,
+                    landscapeColumns =
+                        page.landscapeColumns.takeIf { it in LibraryPagePreferences.LANDSCAPE_COLUMNS }
+                            ?: defaults.landscapeColumns,
+                    spacing = page.spacing.name,
+                ),
+            )
+        }
+
+        override suspend fun restoreLibraryPageDefaults() = store.setLibraryPage(StoredLibraryPage())
+
+        /** Unknown or repeated tile names are dropped; none left (or none stored) means every tile. */
+        private fun libraryPage(stored: StoredLibraryPage): LibraryPagePreferences {
+            val defaults = LibraryPagePreferences()
+            return LibraryPagePreferences(
+                shortcuts =
+                    stored.shortcuts
+                        ?.mapNotNull { enumOrNull<LibraryShortcut>(it) }
+                        ?.distinct()
+                        ?.ifEmpty { null }
+                        ?: defaults.shortcuts,
+                style = enumOrNull<LibraryHubStyle>(stored.style) ?: defaults.style,
+                columns = stored.columns?.takeIf { it in LibraryPagePreferences.COLUMNS } ?: defaults.columns,
+                landscapeColumns =
+                    stored.landscapeColumns?.takeIf { it in LibraryPagePreferences.LANDSCAPE_COLUMNS }
+                        ?: defaults.landscapeColumns,
+                spacing = enumOrNull<LibraryHubSpacing>(stored.spacing) ?: defaults.spacing,
+            )
         }
 
         private fun nowPlaying(stored: StoredNowPlaying): NowPlayingPreferences {

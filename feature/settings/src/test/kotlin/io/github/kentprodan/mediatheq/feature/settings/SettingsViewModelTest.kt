@@ -7,6 +7,8 @@ import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
+import io.github.kentprodan.mediatheq.core.data.LibraryHubStyle
+import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
@@ -24,6 +26,7 @@ import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.data.TrackInfo
 import io.github.kentprodan.mediatheq.core.model.HomeSection
+import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
@@ -255,7 +258,7 @@ class SettingsViewModelTest {
     @Test
     fun `Home cannot be unchecked and no more than six entries can be checked`() {
         val full =
-            NavEntriesDraft.of(
+            navEntriesDraft(
                 listOf(
                     MainNavEntry.Home,
                     MainNavEntry.Library,
@@ -316,4 +319,70 @@ class SettingsViewModelTest {
             viewModel.onAction(SettingsAction.RestoreHomeDefaults)
             assertThat(library.preferences.value.home).isEqualTo(HomePreferences())
         }
+
+    @Test
+    fun `library page choices apply at once and restoring resets only that page`() =
+        runTest {
+            signIn()
+            library.setAlbumColumns(4)
+            val chosen = LibraryPagePreferences(style = LibraryHubStyle.List, columns = 2)
+
+            viewModel.onAction(SettingsAction.SetLibraryPage(chosen))
+            assertThat(content().library.libraryPage).isEqualTo(chosen)
+
+            viewModel.onAction(SettingsAction.RestoreLibraryPageDefaults)
+            assertThat(library.preferences.value.libraryPage).isEqualTo(LibraryPagePreferences())
+            assertThat(library.preferences.value.albumColumns).isEqualTo(4)
+        }
+
+    @Test
+    fun `the library tiles are organized in a draft and stored only with OK`() =
+        runTest {
+            signIn()
+            val organized =
+                listOf(
+                    LibraryShortcut.Years,
+                    LibraryShortcut.Albums,
+                    LibraryShortcut.AlbumArtists,
+                    LibraryShortcut.Playlists,
+                )
+            viewModel.uiState.test {
+                viewModel.onAction(SettingsAction.OpenLibraryShortcuts)
+                viewModel.onAction(SettingsAction.ToggleLibraryShortcut(LibraryShortcut.Tracks))
+                viewModel.onAction(SettingsAction.MoveLibraryShortcut(4, 0))
+                val draft = (expectMostRecentItem() as SettingsUiState.Content).shortcutsDraft
+                assertThat(draft?.entries).isEqualTo(organized)
+                assertThat(library.preferences.value.libraryPage.shortcuts).isEqualTo(LibraryShortcut.entries)
+
+                viewModel.onAction(SettingsAction.ConfirmLibraryShortcuts)
+                assertThat((expectMostRecentItem() as SettingsUiState.Content).shortcutsDraft).isNull()
+            }
+            assertThat(library.preferences.value.libraryPage.shortcuts).isEqualTo(organized)
+        }
+
+    @Test
+    fun `cancel drops the library tiles draft`() =
+        runTest {
+            signIn()
+            viewModel.uiState.test {
+                viewModel.onAction(SettingsAction.OpenLibraryShortcuts)
+                viewModel.onAction(SettingsAction.ToggleLibraryShortcut(LibraryShortcut.Albums))
+
+                viewModel.onAction(SettingsAction.DismissLibraryShortcuts)
+
+                assertThat((expectMostRecentItem() as SettingsUiState.Content).shortcutsDraft).isNull()
+            }
+            assertThat(library.preferences.value.libraryPage.shortcuts).isEqualTo(LibraryShortcut.entries)
+        }
+
+    @Test
+    fun `the last checked tile cannot be unchecked`() {
+        val one = OrganizeDraft.of(listOf(LibraryShortcut.Years), LibraryShortcut.entries)
+
+        assertThat(one.canToggle(LibraryShortcut.Years)).isFalse()
+        assertThat(one.toggle(LibraryShortcut.Years)).isEqualTo(one)
+        assertThat(one.toggle(LibraryShortcut.Albums).entries)
+            .containsExactly(LibraryShortcut.Years, LibraryShortcut.Albums)
+            .inOrder()
+    }
 }
