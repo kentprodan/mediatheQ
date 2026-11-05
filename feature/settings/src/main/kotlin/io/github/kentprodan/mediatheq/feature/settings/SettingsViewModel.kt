@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
+import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
@@ -35,6 +36,7 @@ class SettingsViewModel
         private val entriesDraft = MutableStateFlow<NavEntriesDraft?>(null)
         private val shortcutsDraft = MutableStateFlow<OrganizeDraft<LibraryShortcut>?>(null)
         private val sectionsDraft = MutableStateFlow<OrganizeDraft<AlbumSection>?>(null)
+        private val artistSectionsDraft = MutableStateFlow<OrganizeDraft<ArtistSection>?>(null)
 
         val uiState: StateFlow<SettingsUiState> =
             combine(
@@ -42,8 +44,8 @@ class SettingsViewModel
                 audio.preferences,
                 library.preferences,
                 playback.state.map { it.output }.distinctUntilChanged(),
-                combine(entriesDraft, shortcutsDraft, sectionsDraft, ::Triple),
-            ) { session, audio, library, output, (draft, shortcuts, sections) ->
+                combine(entriesDraft, shortcutsDraft, sectionsDraft, artistSectionsDraft, ::Drafts),
+            ) { session, audio, library, output, (draft, shortcuts, sections, artistSections) ->
                 // Signed out: the app leaves for onboarding, nothing to show meanwhile.
                 (session as? SessionState.LoggedIn)?.let {
                     SettingsUiState.Content(
@@ -55,6 +57,7 @@ class SettingsViewModel
                         draft,
                         shortcuts,
                         sections,
+                        artistSections,
                     )
                 } ?: SettingsUiState.Loading
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState.Loading)
@@ -228,6 +231,39 @@ class SettingsViewModel
                         sectionsDraft.value = null
                     }
 
+                    is SettingsAction.SetArtistPage -> {
+                        library.setArtistPage(action.page)
+                    }
+
+                    SettingsAction.RestoreArtistPageDefaults -> {
+                        library.restoreArtistPageDefaults()
+                    }
+
+                    SettingsAction.OpenArtistSections -> {
+                        artistSectionsDraft.value =
+                            artistSectionsDraft(
+                                library.preferences
+                                    .first()
+                                    .artistPage.sectionOrder,
+                            )
+                    }
+
+                    is SettingsAction.MoveArtistSection -> {
+                        artistSectionsDraft.update { it?.move(action.from, action.to) }
+                    }
+
+                    SettingsAction.ConfirmArtistSections -> {
+                        artistSectionsDraft.value?.let { draft ->
+                            val page = library.preferences.first().artistPage
+                            library.setArtistPage(page.copy(sectionOrder = draft.order))
+                        }
+                        artistSectionsDraft.value = null
+                    }
+
+                    SettingsAction.DismissArtistSections -> {
+                        artistSectionsDraft.value = null
+                    }
+
                     is SettingsAction.SetOfflineMode -> {
                         library.setOfflineMode(action.on)
                     }
@@ -259,3 +295,11 @@ class SettingsViewModel
             }
         }
     }
+
+/** The organize dialogs' drafts, one value for the state combine. */
+private data class Drafts(
+    val entries: NavEntriesDraft?,
+    val shortcuts: OrganizeDraft<LibraryShortcut>?,
+    val albumSections: OrganizeDraft<AlbumSection>?,
+    val artistSections: OrganizeDraft<ArtistSection>?,
+)

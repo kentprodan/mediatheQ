@@ -17,6 +17,12 @@ data class ArtistKey(
     @Serializable(with = MediaIdSerializer::class) val id: MediaId,
 ) : NavKey
 
+/** Every played track of an artist, most played first: the artist page's "Show all" (#133). */
+@Serializable
+data class ArtistTopTracksKey(
+    @Serializable(with = MediaIdSerializer::class) val id: MediaId,
+) : NavKey
+
 /** A genre's page (#130). */
 @Serializable
 data class GenreKey(

@@ -33,6 +33,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0026](0026-downloadable-google-fonts.md) | App fonts are downloadable Google Fonts | Accepted |
 | [0027](0027-on-device-waveform-analysis.md) | Waveforms are computed on the device from whole local files | Accepted |
 | [0028](0028-library-hub-of-tiles.md) | The Library is a hub of tiles | Accepted |
+| [0029](0029-artist-page-colors-from-image.md) | The artist page takes its colors from the artist image | Accepted |
 
 Template for new ADRs:
 

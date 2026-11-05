@@ -121,6 +121,25 @@ class LibraryPreferencesStore
                                 multilineTrackTitles = prefs[AP_MULTILINE],
                                 showAbout = prefs[AP_ABOUT],
                             ),
+                        artistPage =
+                            StoredArtistPage(
+                                headerBackground = prefs[ARP_BACKGROUND],
+                                hiddenButtons =
+                                    prefs[ARP_HIDDEN_BUTTONS]
+                                        ?.split(
+                                            LIST_SEPARATOR,
+                                        )?.filter { it.isNotEmpty() },
+                                playAction = prefs[ARP_PLAY],
+                                sectionOrder = prefs[ARP_SECTIONS]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
+                                albumsSort = prefs[ARP_SORT],
+                                albumColumns = prefs[ARP_COLUMNS],
+                                landscapeAlbumColumns = prefs[ARP_LANDSCAPE_COLUMNS],
+                                showAppearsOn = prefs[ARP_APPEARS_ON],
+                                showTopTracks = prefs[ARP_TOP_TRACKS],
+                                topTracksCount = prefs[ARP_TOP_TRACKS_COUNT],
+                                showAbout = prefs[ARP_ABOUT],
+                                dynamicColors = prefs[ARP_DYNAMIC_COLORS],
+                            ),
                         offlineMode = prefs[OFFLINE_MODE],
                         qualityDetail = prefs[QUALITY_DETAIL],
                         sorts =
@@ -235,6 +254,25 @@ class LibraryPreferencesStore
             }
         }
 
+        /** Stores every Artist page value at once (#133); null removes it. */
+        suspend fun setArtistPage(page: StoredArtistPage) {
+            dataStore.edit { prefs ->
+                prefs.put(ARP_BACKGROUND, page.headerBackground)
+                // An empty set is stored as an empty string: "none hidden" differs from "not set".
+                prefs.put(ARP_HIDDEN_BUTTONS, page.hiddenButtons?.joinToString(LIST_SEPARATOR))
+                prefs.put(ARP_PLAY, page.playAction)
+                prefs.put(ARP_SECTIONS, page.sectionOrder?.joinToString(LIST_SEPARATOR))
+                prefs.put(ARP_SORT, page.albumsSort)
+                prefs.put(ARP_COLUMNS, page.albumColumns)
+                prefs.put(ARP_LANDSCAPE_COLUMNS, page.landscapeAlbumColumns)
+                prefs.put(ARP_APPEARS_ON, page.showAppearsOn)
+                prefs.put(ARP_TOP_TRACKS, page.showTopTracks)
+                prefs.put(ARP_TOP_TRACKS_COUNT, page.topTracksCount)
+                prefs.put(ARP_ABOUT, page.showAbout)
+                prefs.put(ARP_DYNAMIC_COLORS, page.dynamicColors)
+            }
+        }
+
         /** Stores every Now playing screens value at once (#126); null removes it. */
         suspend fun setNowPlaying(nowPlaying: StoredNowPlaying) {
             dataStore.edit { prefs ->
@@ -321,6 +359,18 @@ class LibraryPreferencesStore
             val AP_TRACK_THUMBNAILS = booleanPreferencesKey("ap_track_thumbnails")
             val AP_MULTILINE = booleanPreferencesKey("ap_multiline")
             val AP_ABOUT = booleanPreferencesKey("ap_about")
+            val ARP_BACKGROUND = stringPreferencesKey("arp_background")
+            val ARP_HIDDEN_BUTTONS = stringPreferencesKey("arp_hidden_buttons")
+            val ARP_PLAY = stringPreferencesKey("arp_play")
+            val ARP_SECTIONS = stringPreferencesKey("arp_sections")
+            val ARP_SORT = stringPreferencesKey("arp_sort")
+            val ARP_COLUMNS = intPreferencesKey("arp_columns")
+            val ARP_LANDSCAPE_COLUMNS = intPreferencesKey("arp_landscape_columns")
+            val ARP_APPEARS_ON = booleanPreferencesKey("arp_appears_on")
+            val ARP_TOP_TRACKS = booleanPreferencesKey("arp_top_tracks")
+            val ARP_TOP_TRACKS_COUNT = intPreferencesKey("arp_top_tracks_count")
+            val ARP_ABOUT = booleanPreferencesKey("arp_about")
+            val ARP_DYNAMIC_COLORS = booleanPreferencesKey("arp_dynamic_colors")
             val ALBUM_COLUMNS = intPreferencesKey("album_columns")
             val GENRES_GRID = booleanPreferencesKey("genres_grid")
             val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
@@ -388,6 +438,7 @@ data class StoredLibraryPreferences(
     val home: StoredHome = StoredHome(),
     val libraryPage: StoredLibraryPage = StoredLibraryPage(),
     val albumPage: StoredAlbumPage = StoredAlbumPage(),
+    val artistPage: StoredArtistPage = StoredArtistPage(),
     val qualityDetail: Boolean? = null,
 )
 
@@ -405,6 +456,22 @@ data class StoredAlbumPage(
     val showTrackThumbnails: Boolean? = null,
     val multilineTrackTitles: Boolean? = null,
     val showAbout: Boolean? = null,
+)
+
+/** Artist page values as stored (#133); `null` = not set. */
+data class StoredArtistPage(
+    val headerBackground: String? = null,
+    val hiddenButtons: List<String>? = null,
+    val playAction: String? = null,
+    val sectionOrder: List<String>? = null,
+    val albumsSort: String? = null,
+    val albumColumns: Int? = null,
+    val landscapeAlbumColumns: Int? = null,
+    val showAppearsOn: Boolean? = null,
+    val showTopTracks: Boolean? = null,
+    val topTracksCount: Int? = null,
+    val showAbout: Boolean? = null,
+    val dynamicColors: Boolean? = null,
 )
 
 /** Library page values as stored (#129); `null` = not set. */

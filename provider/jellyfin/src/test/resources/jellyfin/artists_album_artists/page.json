@@ -4,8 +4,11 @@
       "Name": "2 Chainz",
       "Id": "53f65616c504e185b962929e0d683285",
       "SortName": "0000000002 chainz",
+      "PremiereDate": "1976-09-10T00:00:00.0000000Z",
       "ChannelId": null,
-      "RunTimeTicks": 0,
+      "Overview": "Tauheed Epps (born September 12, 1977), better known by his stage name 2 Chainz (formerly Tity Boi), is an American hip hop recording artist from College Park, Georgia. He was first known for being one-half of southern hip hop duo Playaz Circle, along with longtime friend and fellow rapper Earl \"Dolla Boy\" Conyers. They were best known for being signed to Ludacris' Disturbing tha Peace label as well as their debut single \"Duffle Bag Boy\". He is currently signed to Def Jam Records, an imprint of Universal Music Group.",
+      "RunTimeTicks": 4198107260,
+      "ProductionYear": 1997,
       "IsFolder": true,
       "Type": "MusicArtist",
       "UserData": {
@@ -19,7 +22,13 @@
       "ImageTags": {
         "Primary": "5f594a17b901a35024f46c1130dc005b"
       },
+      "BackdropImageTags": [
+        "5c46bac5d2e3eb689d2765a5d23f8b00"
+      ],
       "ImageBlurHashes": {
+        "Backdrop": {
+          "5c46bac5d2e3eb689d2765a5d23f8b00": "WCBM[H9GR*_2_49F%LIV-;e-IVt8?b00IUM{WEIU-;D*RP%MRkoc"
+        },
         "Primary": {
           "5f594a17b901a35024f46c1130dc005b": "e97wvfV?0K-o-TD%xuxtIUxuEMNGs:S5I:XTRjsAxuIoIU%2%2V?xa"
         }
@@ -31,8 +40,11 @@
       "Name": "2Pac",
       "Id": "6af2479a3f1f11d9ba2d04be8b78b358",
       "SortName": "0000000002pac",
+      "PremiereDate": "1971-06-16T00:00:00.0000000Z",
       "ChannelId": null,
-      "RunTimeTicks": 0,
+      "Overview": "Tupac Amaru Shakur (June 16, 1971 - September 13, 1996), known by his stage names 2Pac, Pac, and Makaveli, was an American rapper and actor. Shakur has sold over 75 million records worldwide as of 2010, making him one of the best-selling music artists in the world. Rolling Stone Magazine named him the 86th Greatest Artist of All Time. The themes of most of Tupac's songs are the violence and hardship in inner cities, racism, social problems, and conflicts with other rappers during the East Coast-West Coast hip hop rivalry. Shakur began his career as a roadie, backup dancer, and MC for the alternative hip hop group Digital Underground.",
+      "RunTimeTicks": 41278653479,
+      "ProductionYear": 1990,
       "IsFolder": true,
       "Type": "MusicArtist",
       "UserData": {
@@ -46,20 +58,29 @@
       "ImageTags": {
         "Primary": "932ddcc9a04c102fbf854bfa58173208"
       },
+      "BackdropImageTags": [
+        "ef166452e23ed810f6ccbfafaacf025e"
+      ],
       "ImageBlurHashes": {
+        "Backdrop": {
+          "ef166452e23ed810f6ccbfafaacf025e": "WWEB,B$g0fS$%2jvyDIqD*t7%1smS$s.$2s:NwNHR-f,WBjEogSh"
+        },
         "Primary": {
           "932ddcc9a04c102fbf854bfa58173208": "elPjGc%M_3-;9F~qt7ofoft7%Mj[9FRjxu?bofofofWBt7ayWBoft7"
         }
       },
       "LocationType": "FileSystem",
-      "MediaType": "Unknown"
+      "MediaType": "Unknown",
+      "EndDate": "1996-09-13T00:00:00.0000000Z"
     },
     {
       "Name": "2Scratch",
       "Id": "b4920a93584fa6baeec82d3a61b76958",
       "SortName": "0000000002scratch",
       "ChannelId": null,
-      "RunTimeTicks": 0,
+      "Overview": "2Scratch is the stage name of Justin Matysik, a rapper, producer, and songwriter from Bremen, Germany 1415. Born on December 1, 1996, he maintains a strong artistic preference for English lyrics despite his German heritage, stating: \"I’m never going to rap in German, since I like English better\" 4. His early career (pre-2020) blended EDM and Trap, highlighted by the 2019 single \"Superlife\" with EDM artist Lox Chatterbox 14.\n\nArtistic Evolution\nPivot to Rap (2020): Abandoned EDM elements to focus on raw hip-hop, citing greater creative satisfaction with rap 14.\n\nBreakthrough Tracks: \"Frozen\", \"No Love\", and the self-produced \"Ex.\" (2019) – a heartbreak anthem featuring trap percussion and candid lyrics like \"Fuck what you want, bitch I got what you need...\" 416.\n\nBilingual Experiment: The 2020 collaboration \"Rich\" with Jooan Mo featured German and English verses but reinforced his English-only commitment 14.\n\nCreative Philosophy\nHis music explores emotional vulnerability (\"reveals his feelings\") and a self-made ethos, encapsulated in his motto: \"When Words Fail, Music Speaks\" 4. This resonates with a global fanbase, amassing 330K+ YouTube subscribers and millions of streams 116.\n\nCareer Management\nManager: Henrik Regel (Berlin-based) 15.\n\nOnline Presence: Active on Instagram, where snippets like \"Ex.\" garnered 10K+ views pre-release 16.",
+      "RunTimeTicks": 2318846500,
+      "ProductionYear": 0,
       "IsFolder": true,
       "Type": "MusicArtist",
       "UserData": {
@@ -73,6 +94,7 @@
       "ImageTags": {
         "Primary": "187f731be8b73f0567f4cb71397c4fe7"
       },
+      "BackdropImageTags": [],
       "ImageBlurHashes": {
         "Primary": {
           "187f731be8b73f0567f4cb71397c4fe7": "eW7|LRMwUcb{buq[ogSxj=epM0xvTxVrtRX9a^sCNGs9ozWWsobHRP"
@@ -82,6 +104,6 @@
       "MediaType": "Unknown"
     }
   ],
-  "TotalRecordCount": 455,
+  "TotalRecordCount": 582,
   "StartIndex": 0
 }

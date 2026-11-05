@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.Genre
+import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -25,7 +26,15 @@ import kotlin.time.Instant
 
 internal fun BaseItemDto.toArtist(serverId: ServerId): Artist? {
     val (id, name) = idAndName() ?: return null
-    return Artist(MediaId(serverId, id), name, sortName ?: name, artwork(), userData.toDomain())
+    return Artist(
+        MediaId(serverId, id),
+        name,
+        sortName ?: name,
+        artwork(),
+        userData.toDomain(),
+        backdrop = backdrop(),
+        overview = overview?.trim()?.takeIf { it.isNotEmpty() },
+    )
 }
 
 internal fun BaseItemDto.toAlbum(serverId: ServerId): Album? {
@@ -151,6 +160,11 @@ private fun NameIdPairDto.toArtist(serverId: ServerId): Artist? {
 private fun BaseItemDto.artwork(): Artwork? {
     val tag = imageTags["Primary"] ?: return null
     return Artwork(id ?: return null, tag, imageBlurHashes["Primary"]?.get(tag))
+}
+
+private fun BaseItemDto.backdrop(): Artwork? {
+    val tag = backdropImageTags.firstOrNull() ?: return null
+    return Artwork(id ?: return null, tag, imageBlurHashes["Backdrop"]?.get(tag), ImageType.Backdrop)
 }
 
 private fun BaseItemDto.albumArtwork(): Artwork? {

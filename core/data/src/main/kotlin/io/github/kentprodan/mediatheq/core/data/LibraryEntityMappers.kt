@@ -21,6 +21,7 @@ import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.Genre
+import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -35,7 +36,17 @@ import kotlin.time.Instant
 // Domain <-> Room rows. Durations and instants become epoch milliseconds only here.
 
 internal fun Artist.toEntity(isAlbumArtist: Boolean) =
-    ArtistEntity(id.serverId.value, id.itemId, name, sortName, isAlbumArtist, artwork.toColumns(), userData.toColumns())
+    ArtistEntity(
+        id.serverId.value,
+        id.itemId,
+        name,
+        sortName,
+        isAlbumArtist,
+        artwork.toColumns(),
+        userData.toColumns(),
+        backdrop.toColumns(),
+        overview,
+    )
 
 internal fun Album.toEntity() =
     AlbumEntity(
@@ -176,13 +187,21 @@ internal fun PlaylistEntity.toDomain() =
     )
 
 internal fun ArtistEntity.toDomain() =
-    Artist(MediaId(ServerId(serverId), id), name, sortName, image.toDomain(), userData.toDomain())
+    Artist(
+        MediaId(ServerId(serverId), id),
+        name,
+        sortName,
+        image.toDomain(),
+        userData.toDomain(),
+        backdrop = backdrop.toDomain(ImageType.Backdrop),
+        overview = overview,
+    )
 
 private fun Artwork?.toColumns() = ImageColumns(this?.itemId, this?.tag, this?.blurHash)
 
-private fun ImageColumns.toDomain(): Artwork? {
+private fun ImageColumns.toDomain(type: ImageType = ImageType.Primary): Artwork? {
     val owner = itemId ?: return null
-    return Artwork(owner, tag ?: return null, blurHash)
+    return Artwork(owner, tag ?: return null, blurHash, type)
 }
 
 internal fun UserData.toColumns() =

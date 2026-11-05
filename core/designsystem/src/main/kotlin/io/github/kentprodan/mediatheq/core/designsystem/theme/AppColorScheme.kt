@@ -30,8 +30,20 @@ fun playerColorScheme(
     colors: CoverColors?,
     theme: MqThemeState,
 ): ColorScheme? {
+    if (theme.options.playerColors == MqPlayerColors.Off) return null
+    return imageColorScheme(colors, theme)
+}
+
+/**
+ * A page's scheme from an image (the artist page, ADR 0029), whatever the player's own on / off: Content, or Vibrant
+ * when the player uses the vibrant cover colors; black mode kept. `null` without colors.
+ */
+fun imageColorScheme(
+    colors: CoverColors?,
+    theme: MqThemeState,
+): ColorScheme? {
+    colors ?: return null
     val options = theme.options
-    if (colors == null || options.playerColors == MqPlayerColors.Off) return null
     val scheme = colors.scheme(theme.isDark, vibrant = options.playerColors == MqPlayerColors.CoverVibrant)
     return if (theme.isBlack && !options.ignoreSurfaces) scheme.blackened() else scheme
 }

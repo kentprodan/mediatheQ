@@ -1,5 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import io.github.kentprodan.mediatheq.core.model.Album
+
 /** What the album page's header draws behind the title (#132). */
 enum class AlbumHeaderBackground { CoverImage, CoverColor, None }
 
@@ -29,3 +31,23 @@ data class AlbumPagePreferences(
     val multilineTrackTitles: Boolean = false,
     val showAbout: Boolean = true,
 )
+
+/** By year (newest or oldest first, unknown last), or by title; ties by title. "More from" and the artist page. */
+fun List<Album>.sortedFor(sort: MoreAlbumsSort): List<Album> {
+    val byTitle = compareBy<Album, String>(String.CASE_INSENSITIVE_ORDER) { it.sortName }
+    return when (sort) {
+        MoreAlbumsSort.YearDescending -> {
+            sortedWith(
+                compareBy<Album, Int?>(nullsLast(reverseOrder())) { it.year }.then(byTitle),
+            )
+        }
+
+        MoreAlbumsSort.YearAscending -> {
+            sortedWith(compareBy<Album, Int?>(nullsLast()) { it.year }.then(byTitle))
+        }
+
+        MoreAlbumsSort.Title -> {
+            sortedWith(byTitle)
+        }
+    }
+}

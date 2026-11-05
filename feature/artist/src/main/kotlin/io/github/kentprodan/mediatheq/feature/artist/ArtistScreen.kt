@@ -1,63 +1,51 @@
 package io.github.kentprodan.mediatheq.feature.artist
 
-import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.kentprodan.mediatheq.core.data.RatingMode
-import io.github.kentprodan.mediatheq.core.designsystem.component.MqArtistAvatar
+import io.github.kentprodan.mediatheq.core.data.ArtistHeaderBackground
+import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
-import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
-import io.github.kentprodan.mediatheq.core.designsystem.component.MqPlayShuffleButtons
-import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
-import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
-import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColorCache
+import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColors
+import io.github.kentprodan.mediatheq.core.designsystem.theme.LocalMqTheme
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqCoverTheme
+import io.github.kentprodan.mediatheq.core.designsystem.theme.imageColorScheme
+import io.github.kentprodan.mediatheq.core.designsystem.theme.rememberCoverColors
 import io.github.kentprodan.mediatheq.core.model.MediaId
-import io.github.kentprodan.mediatheq.core.ui.AlbumCard
 import io.github.kentprodan.mediatheq.core.ui.SelectableList
-import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
-import io.github.kentprodan.mediatheq.core.ui.TrackRow
-import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
 import io.github.kentprodan.mediatheq.core.ui.rememberSelectLongPress
-import io.github.kentprodan.mediatheq.core.ui.stateOf
 import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 
 @Composable
 internal fun ArtistRoute(
     artistId: MediaId,
     onOpenAlbum: (MediaId) -> Unit,
+    onOpenTopTracks: () -> Unit,
     onBack: () -> Unit,
     onAddToPlaylist: (List<MediaId>) -> Unit,
     viewModel: ArtistViewModel =
@@ -66,10 +54,20 @@ internal fun ArtistRoute(
         }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ArtistScreen(state, viewModel::onAction, onOpenAlbum, onBack)
+    ArtistScreen(
+        state,
+        viewModel::onAction,
+        onOpenAlbum,
+        onBack,
+        onAddToPlaylist = onAddToPlaylist,
+        onOpenTopTracks = onOpenTopTracks,
+    )
 }
 
-/** Stateless artist page: avatar and facts, Play / Shuffle, top tracks, albums, then albums the artist appears on. */
+/**
+ * Stateless artist page (#133): the header (background, name, facts, buttons), then the sections in the chosen order:
+ * albums, top tracks, appears on, about. With dynamic colors on the whole page takes the artist image's scheme.
+ */
 @Composable
 fun ArtistScreen(
     state: ArtistUiState,
@@ -78,6 +76,60 @@ fun ArtistScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
+    onOpenTopTracks: () -> Unit = {},
+    /** Screenshots: these colors instead of the artist image's (previews load no images). */
+    imageColors: CoverColors? = null,
+) {
+    val content = state as? ArtistUiState.Content
+    ArtistColors(content, imageColors) { imageColor ->
+        ArtistPage(
+            state,
+            content,
+            imageColor,
+            onAction,
+            onOpenAlbum,
+            onBack,
+            modifier,
+            onAddToPlaylist,
+            onOpenTopTracks,
+        )
+    }
+}
+
+/**
+ * The artist image's colors (ADR 0029): the page's scheme when dynamic colors are on, and the header gradient's color
+ * either way. The image, else the backdrop, seeds them.
+ */
+@Composable
+internal fun ArtistColors(
+    content: ArtistUiState.Content?,
+    override: CoverColors? = null,
+    page: @Composable (imageColor: Color?) -> Unit,
+) {
+    val cache = remember { CoverColorCache() }
+    val seed = content?.artist?.let { it.artwork ?: it.backdrop }
+    val colors = override ?: rememberCoverColors(seed?.let { "${it.itemId}/${it.tag}" }, seed, cache)
+    val theme = LocalMqTheme.current
+    val scheme =
+        remember(colors, theme, content?.page?.dynamicColors) {
+            imageColorScheme(colors, theme).takeIf { content?.page?.dynamicColors == true }
+        }
+    MqCoverTheme(scheme) {
+        page((scheme ?: colors?.scheme(theme.isDark, vibrant = false))?.primaryContainer)
+    }
+}
+
+@Composable
+private fun ArtistPage(
+    state: ArtistUiState,
+    content: ArtistUiState.Content?,
+    imageColor: Color?,
+    onAction: (ArtistAction) -> Unit,
+    onOpenAlbum: (MediaId) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
+    onOpenTopTracks: () -> Unit,
 ) {
     val longPress = rememberSelectLongPress<MediaId> { onAction(ArtistAction.ToggleSelection(it)) }
     val swipe =
@@ -87,17 +139,32 @@ fun ArtistScreen(
             onCommand = { track, right -> onAction(ArtistAction.SwipeTrack(track, right)) },
         )
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val content = state as? ArtistUiState.Content
+    val drawsUnderBar =
+        content != null && !content.isEmpty && content.page.headerBackground != ArtistHeaderBackground.None
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeFlexibleTopAppBar(
-                title = { Text(content?.artist?.name.orEmpty(), maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                // The header shows the name; the bar names the artist only once it has nearly collapsed.
+                title = {
+                    Text(
+                        content?.artist?.name.orEmpty(),
+                        Modifier.graphicsLayer { alpha = titleAlpha(scrollBehavior.state.collapsedFraction) },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.artist_back))
                     }
                 },
+                colors =
+                    if (drawsUnderBar) {
+                        TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    } else {
+                        TopAppBarDefaults.topAppBarColors()
+                    },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -136,6 +203,7 @@ fun ArtistScreen(
                         onAction(ArtistAction.AddToPlaylistShown)
                     }
                 }
+                val columns = albumColumns(content)
                 SelectableList(
                     content.selection,
                     onCommand = { onAction(ArtistAction.OnSelection(it)) },
@@ -146,37 +214,19 @@ fun ArtistScreen(
                         Modifier.fillMaxSize(),
                         contentPadding =
                             PaddingValues(
-                                top = padding.calculateTopPadding(),
+                                // A background draws under the top bar; the header pads itself.
+                                top = if (drawsUnderBar) 0.dp else padding.calculateTopPadding(),
                                 bottom = bottomSpace,
                             ).plusBottomBars(),
                     ) {
-                        item(key = "header") { ArtistHeader(content, onAction) }
-                        item(key = "buttons") {
-                            MqPlayShuffleButtons(
-                                enabled = content.tracks.isNotEmpty(),
-                                onPlay = { onAction(ArtistAction.Play) },
-                                onShuffle = { onAction(ArtistAction.Shuffle) },
+                        item(key = "header") {
+                            ArtistHeader(
+                                content,
+                                topPadding = if (drawsUnderBar) padding.calculateTopPadding() else 0.dp,
+                                imageColor = imageColor,
+                                onAction = onAction,
+                                onAddToPlaylist = onAddToPlaylist,
                             )
-                        }
-                        if (content.topTracks.isNotEmpty()) {
-                            item(key = "top-title") { SectionTitle(R.string.artist_top_tracks) }
-                            items(content.topTracks, key = { "top-${it.id}" }) { track ->
-                                TrackRow(
-                                    track,
-                                    onClick = {
-                                        if (content.selection.isActive) {
-                                            onAction(ArtistAction.ToggleSelection(track.id))
-                                        } else {
-                                            onAction(ArtistAction.PlayTopTrack(track.id))
-                                        }
-                                    },
-                                    onLongClick = longPress(track.id),
-                                    selected = content.selection.stateOf(track.id),
-                                    onSwipe = { swipe(track, it) },
-                                    showCover = true,
-                                    isCurrent = track.id == content.currentTrackId,
-                                )
-                            }
                         }
                         val openAlbum = { id: MediaId ->
                             if (content.selection.isActive) {
@@ -187,15 +237,41 @@ fun ArtistScreen(
                                 onOpenAlbum(id)
                             }
                         }
-                        albumGrid("albums", R.string.artist_albums, content.albums, content, openAlbum, longPress)
-                        albumGrid(
-                            "appears-on",
-                            R.string.artist_appears_on,
-                            content.appearsOn,
-                            content,
-                            openAlbum,
-                            longPress,
-                        )
+                        content.sections.forEach { section ->
+                            when (section) {
+                                ArtistSection.Albums -> {
+                                    albumGrid(
+                                        "albums",
+                                        R.string.artist_albums,
+                                        content.albums,
+                                        columns,
+                                        content,
+                                        openAlbum,
+                                        longPress,
+                                    )
+                                }
+
+                                ArtistSection.AppearsOn -> {
+                                    albumGrid(
+                                        "appears-on",
+                                        R.string.artist_appears_on,
+                                        content.appearsOn,
+                                        columns,
+                                        content,
+                                        openAlbum,
+                                        longPress,
+                                    )
+                                }
+
+                                ArtistSection.TopTracks -> {
+                                    topTracks(content, onAction, onOpenTopTracks, longPress, swipe)
+                                }
+
+                                ArtistSection.About -> {
+                                    item(key = "about") { AboutSection(content, onAction) }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -203,92 +279,103 @@ fun ArtistScreen(
     }
 }
 
+/** Hidden while the bar is open, fading in over the last part of the collapse. */
+internal fun titleAlpha(collapsedFraction: Float): Float =
+    ((collapsedFraction - TITLE_FADE_START) / (1f - TITLE_FADE_START)).coerceIn(0f, 1f)
+
+private const val TITLE_FADE_START = 0.7f
+
 @Composable
-private fun ArtistHeader(
-    content: ArtistUiState.Content,
+internal fun ArtistTopTracksRoute(
+    artistId: MediaId,
+    onBack: () -> Unit,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
+    // Its own instance for the same artist: Navigation 3 scopes view models to their entry.
+    viewModel: ArtistViewModel =
+        hiltViewModel<ArtistViewModel, ArtistViewModel.Factory>(key = "$artistId/top", creationCallback = {
+            it.create(artistId)
+        }),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    ArtistTopTracksScreen(state, viewModel::onAction, onBack, onAddToPlaylist = onAddToPlaylist)
+}
+
+/** "Show all" of the top tracks (#133): every played track of the artist, most played first. */
+@Composable
+fun ArtistTopTracksScreen(
+    state: ArtistUiState,
     onAction: (ArtistAction) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    onAddToPlaylist: (List<MediaId>) -> Unit = {},
 ) {
-    Column(
-        Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.m),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
-    ) {
-        MqArtistAvatar(
-            content.artist.artwork,
-            Modifier.fillMaxWidth(AVATAR_WIDTH_FRACTION),
-            content.artist.artwork?.blurHash,
+    val content = state as? ArtistUiState.Content
+    // No multi-select here: a tap always plays (selecting stays on the artist page).
+    val noSelect = { _: MediaId -> {} }
+    val swipe =
+        trackSwipes(
+            onAddToPlaylist,
+            onRate = { track, stars -> onAction(ArtistAction.RateTrack(track, stars)) },
+            onCommand = { track, right -> onAction(ArtistAction.SwipeTrack(track, right)) },
         )
-        Text(
-            listOfNotNull(
-                content.albums.size
-                    .takeIf { it > 0 }
-                    ?.let { pluralStringResource(R.plurals.artist_album_count, it, it) },
-                formatTrackCount(content.tracks.size),
-            ).joinToString(" · "),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            MqFavoriteToggle(content.artist.userData.isFavorite, { onAction(ArtistAction.SetFavorite(it)) })
-            if (content.ratingMode != RatingMode.Off) {
-                MqStarRating(
-                    content.artist.userData.halfStars,
-                    { onAction(ArtistAction.Rate(it)) },
-                    allowHalf = content.ratingMode == RatingMode.HalfStars,
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    ArtistColors(content) {
+        Scaffold(
+            modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            topBar = {
+                LargeFlexibleTopAppBar(
+                    title = { Text(stringResource(R.string.artist_top_tracks)) },
+                    subtitle = {
+                        Text(
+                            content?.artist?.name.orEmpty(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.artist_back))
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
                 )
-            }
-        }
-    }
-}
+            },
+            contentWindowInsets = WindowInsets(0),
+        ) { padding ->
+            when {
+                state == ArtistUiState.Loading -> {
+                    Unit
+                }
 
-@Composable
-private fun SectionTitle(
-    @StringRes title: Int,
-) {
-    Text(
-        stringResource(title),
-        Modifier
-            .padding(start = MediatheqSpacing.l, end = MediatheqSpacing.l, top = MediatheqSpacing.l)
-            .semantics { heading() },
-        style = MaterialTheme.typography.titleMedium,
-    )
-}
-
-/**
- * A titled grid of [albums] with the Library's column count, as rows of the page's list: a nested lazy grid
- * cannot scroll inside it, and the track rows above must keep their full width.
- */
-private fun LazyListScope.albumGrid(
-    key: String,
-    @StringRes title: Int,
-    albums: List<Album>,
-    content: ArtistUiState.Content,
-    onOpenAlbum: (MediaId) -> Unit,
-    longPress: (MediaId) -> () -> Unit,
-) {
-    if (albums.isEmpty()) return
-    item(key = "$key-title") { SectionTitle(title) }
-    albums.chunked(content.albumColumns).forEachIndexed { index, row ->
-        item(key = "$key-$index") {
-            Row(
-                Modifier.padding(start = MediatheqSpacing.l, end = MediatheqSpacing.l, top = MediatheqSpacing.s),
-                horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
-            ) {
-                row.forEach { album ->
-                    AlbumCard(
-                        album,
-                        onClick = { onOpenAlbum(album.id) },
-                        Modifier.weight(1f),
-                        onLongClick = longPress(album.id),
-                        selected = content.selection.stateOf(album.id),
+                content == null || content.playedTracks.isEmpty() -> {
+                    MqEmptyState(
+                        MqIcons.Person,
+                        stringResource(
+                            if (content ==
+                                null
+                            ) {
+                                R.string.artist_not_found_title
+                            } else {
+                                R.string.artist_no_plays
+                            },
+                        ),
+                        Modifier.padding(padding),
+                        actionLabel = stringResource(R.string.artist_back),
+                        onAction = onBack,
                     )
                 }
-                // Keeps the last row's cards the same width as the others.
-                repeat(content.albumColumns - row.size) { Spacer(Modifier.weight(1f)) }
+
+                else -> {
+                    LazyColumn(
+                        Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(top = padding.calculateTopPadding()).plusBottomBars(),
+                    ) {
+                        items(content.playedTracks, key = { it.id.toString() }) { track ->
+                            ArtistTrackRow(track, content, onAction, noSelect, swipe, all = true)
+                        }
+                    }
+                }
             }
         }
     }
 }
-
-private const val AVATAR_WIDTH_FRACTION = 0.5f

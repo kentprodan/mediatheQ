@@ -125,6 +125,11 @@ class DefaultLibraryRepository
         override fun albumGenres(albumId: MediaId): Flow<List<String>> =
             libraryDao.albumGenreNames(albumId.serverId.value, albumId.itemId)
 
+        override fun artistGenres(artistId: MediaId): Flow<List<String>> =
+            filter.of { all, downloaded ->
+                libraryDao.artistGenreNames(artistId.serverId.value, artistId.itemId, all, downloaded)
+            }
+
         override fun albumLabels(albumId: MediaId): Flow<List<RecordLabel>> =
             libraryDao.albumLabels(albumId.serverId.value, albumId.itemId).map { rows ->
                 rows.map { RecordLabel(MediaId(albumId.serverId, it.labelId), it.labelName) }

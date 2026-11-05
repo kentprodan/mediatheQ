@@ -2,6 +2,8 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
+import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
+import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
@@ -36,6 +38,8 @@ sealed interface SettingsUiState {
         val shortcutsDraft: OrganizeDraft<LibraryShortcut>? = null,
         /** The Album page's "Page content order" dialog while it is open (#132). */
         val sectionsDraft: OrganizeDraft<AlbumSection>? = null,
+        /** The Artist page's "Page content order" dialog while it is open (#133). */
+        val artistSectionsDraft: OrganizeDraft<ArtistSection>? = null,
     ) : SettingsUiState {
         /** Downloads left the navigation: the hub offers "Manage offline files" instead (#122). */
         val showsManageOfflineFiles: Boolean get() = MainNavEntry.Downloads !in library.navigation.entries
@@ -213,6 +217,24 @@ sealed interface SettingsAction {
     data object ConfirmAlbumSections : SettingsAction
 
     data object DismissAlbumSections : SettingsAction
+
+    /** Artist page (#133): every value of the page at once. */
+    data class SetArtistPage(
+        val page: ArtistPagePreferences,
+    ) : SettingsAction
+
+    data object RestoreArtistPageDefaults : SettingsAction
+
+    data object OpenArtistSections : SettingsAction
+
+    data class MoveArtistSection(
+        val from: Int,
+        val to: Int,
+    ) : SettingsAction
+
+    data object ConfirmArtistSections : SettingsAction
+
+    data object DismissArtistSections : SettingsAction
 
     data class SetOfflineMode(
         val on: Boolean,

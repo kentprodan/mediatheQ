@@ -4,6 +4,7 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import io.github.kentprodan.mediatheq.core.navigation.AboutSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumPageSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.ArtistPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AudioSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.HomePageSettingsKey
@@ -47,6 +48,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             onOpenHomePage = { navigator.navigateTo(HomePageSettingsKey) },
             onOpenLibraryPage = { navigator.navigateTo(LibraryPageSettingsKey) },
             onOpenAlbumPage = { navigator.navigateTo(AlbumPageSettingsKey) },
+            onOpenArtistPage = { navigator.navigateTo(ArtistPageSettingsKey) },
         )
     }
     entry<ThemeSettingsKey> { SettingsPageRoute(SettingsPage.Theme, openAudio, back) }
@@ -56,6 +58,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<HomePageSettingsKey> { SettingsPageRoute(SettingsPage.Home, openAudio, back) }
     entry<LibraryPageSettingsKey> { SettingsPageRoute(SettingsPage.Library, openAudio, back) }
     entry<AlbumPageSettingsKey> { SettingsPageRoute(SettingsPage.Album, openAudio, back) }
+    entry<ArtistPageSettingsKey> { SettingsPageRoute(SettingsPage.Artist, openAudio, back) }
     entry<PlaybackSettingsKey> { SettingsPageRoute(SettingsPage.Playback, openAudio, back) }
     entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openAudio, back) }
     entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openAudio, back) }

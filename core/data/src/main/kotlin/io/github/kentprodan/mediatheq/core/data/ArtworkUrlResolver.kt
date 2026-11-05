@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.data
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,7 +36,9 @@ class ArtworkUrlResolver
             widthPx: Int?,
         ): String {
             downloadedCovers.awaitFirstPass()
-            return downloadedCovers.file(artwork)?.toURI()?.toString()
+            // Downloads keep primary images only; a backdrop shares its item id with the artist's photo.
+            val kept = if (artwork.type == ImageType.Primary) downloadedCovers.file(artwork) else null
+            return kept?.toURI()?.toString()
                 ?: librarySource.imageUrl(baseUrl.filterNotNull().first(), artwork, artworkWidthBucket(widthPx))
         }
     }

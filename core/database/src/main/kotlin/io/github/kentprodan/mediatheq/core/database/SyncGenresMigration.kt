@@ -46,3 +46,6 @@ class SyncLabelsMigration : ResyncMigration(STAGING_8)
 
 /** 8 -> 9 (#132): albums have no overview or release date, tracks no file size yet. */
 class SyncAlbumPageMigration : ResyncMigration(STAGING_8)
+
+/** 9 -> 10 (#133): artists have no backdrop or biography yet. */
+class SyncArtistPageMigration : ResyncMigration(STAGING_8)

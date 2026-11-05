@@ -710,4 +710,68 @@ class DefaultLibraryPreferencesRepositoryTest {
             assertThat(page.hiddenButtons).isEmpty()
             assertThat(page.headerBackground).isEqualTo(AlbumHeaderBackground.CoverImage)
         }
+
+    @Test
+    fun `the artist page settings are kept, and restoring them resets only that page`() =
+        runTest {
+            val page =
+                ArtistPagePreferences(
+                    headerBackground = ArtistHeaderBackground.ImageColor,
+                    hiddenButtons = setOf(ArtistButton.Shuffle, ArtistButton.Favorite),
+                    playAction = ArtistPlayAction.TopTracks,
+                    sectionOrder =
+                        listOf(
+                            ArtistSection.About,
+                            ArtistSection.Albums,
+                            ArtistSection.TopTracks,
+                            ArtistSection.AppearsOn,
+                        ),
+                    albumsSort = MoreAlbumsSort.Title,
+                    albumColumns = 2,
+                    landscapeAlbumColumns = 6,
+                    showAppearsOn = false,
+                    showTopTracks = false,
+                    topTracksCount = 30,
+                    showAbout = false,
+                    dynamicColors = false,
+                )
+            val album = AlbumPagePreferences(showAbout = false)
+            repository.setArtistPage(page)
+            repository.setAlbumPage(album)
+            repository.setAlbumColumns(4)
+            assertThat(repository.preferences.first().artistPage).isEqualTo(page)
+
+            repository.restoreArtistPageDefaults()
+
+            val restored = repository.preferences.first()
+            assertThat(restored.artistPage).isEqualTo(ArtistPagePreferences())
+            assertThat(restored.albumPage).isEqualTo(album)
+            assertThat(restored.albumColumns).isEqualTo(4)
+        }
+
+    @Test
+    fun `a stored artist page drops unknown names, completes the order and clamps the counts`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("arp_sections")] = "About,Gone,About"
+                it[stringPreferencesKey("arp_hidden_buttons")] = ""
+                it[stringPreferencesKey("arp_background")] = "Blur"
+                it[intPreferencesKey("arp_columns")] = 9
+                it[intPreferencesKey("arp_top_tracks_count")] = 1
+            }
+
+            val page = repository.preferences.first().artistPage
+
+            assertThat(page.sectionOrder)
+                .containsExactly(
+                    ArtistSection.About,
+                    ArtistSection.Albums,
+                    ArtistSection.TopTracks,
+                    ArtistSection.AppearsOn,
+                ).inOrder()
+            assertThat(page.hiddenButtons).isEmpty()
+            assertThat(page.headerBackground).isEqualTo(ArtistHeaderBackground.Backdrop)
+            assertThat(page.albumColumns).isEqualTo(4)
+            assertThat(page.topTracksCount).isEqualTo(5)
+        }
 }

@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAlbumPage
+import io.github.kentprodan.mediatheq.core.datastore.StoredArtistPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredHome
 import io.github.kentprodan.mediatheq.core.datastore.StoredLibraryPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredMediaLists
@@ -41,6 +42,7 @@ class DefaultLibraryPreferencesRepository
                     home = home(stored.home),
                     libraryPage = libraryPage(stored.libraryPage),
                     albumPage = albumPage(stored.albumPage),
+                    artistPage = artistPage(stored.artistPage),
                     qualityDetail = stored.qualityDetail ?: false,
                 )
             }
@@ -218,6 +220,66 @@ class DefaultLibraryPreferencesRepository
         }
 
         override suspend fun restoreAlbumPageDefaults() = store.setAlbumPage(StoredAlbumPage())
+
+        override suspend fun setArtistPage(page: ArtistPagePreferences) {
+            store.setArtistPage(
+                StoredArtistPage(
+                    headerBackground = page.headerBackground.name,
+                    hiddenButtons = page.hiddenButtons.map { it.name },
+                    playAction = page.playAction.name,
+                    sectionOrder = completeArtistOrder(page.sectionOrder).map { it.name },
+                    albumsSort = page.albumsSort.name,
+                    albumColumns = page.albumColumns.coerceIn(ArtistPagePreferences.COLUMNS),
+                    landscapeAlbumColumns =
+                        page.landscapeAlbumColumns.coerceIn(
+                            ArtistPagePreferences.LANDSCAPE_COLUMNS,
+                        ),
+                    showAppearsOn = page.showAppearsOn,
+                    showTopTracks = page.showTopTracks,
+                    topTracksCount = page.topTracksCount.coerceIn(ArtistPagePreferences.TOP_TRACKS),
+                    showAbout = page.showAbout,
+                    dynamicColors = page.dynamicColors,
+                ),
+            )
+        }
+
+        override suspend fun restoreArtistPageDefaults() = store.setArtistPage(StoredArtistPage())
+
+        /** Unknown names are dropped, the order is completed and counts out of range are clamped. */
+        private fun artistPage(stored: StoredArtistPage): ArtistPagePreferences {
+            val defaults = ArtistPagePreferences()
+            return ArtistPagePreferences(
+                headerBackground =
+                    enumOrNull<ArtistHeaderBackground>(stored.headerBackground) ?: defaults.headerBackground,
+                hiddenButtons =
+                    stored.hiddenButtons
+                        ?.mapNotNull {
+                            enumOrNull<ArtistButton>(
+                                it,
+                            )
+                        }?.toSet() ?: defaults.hiddenButtons,
+                playAction = enumOrNull<ArtistPlayAction>(stored.playAction) ?: defaults.playAction,
+                sectionOrder =
+                    stored.sectionOrder?.let { names ->
+                        completeArtistOrder(names.mapNotNull { enumOrNull<ArtistSection>(it) })
+                    }
+                        ?: defaults.sectionOrder,
+                albumsSort = enumOrNull<MoreAlbumsSort>(stored.albumsSort) ?: defaults.albumsSort,
+                albumColumns = stored.albumColumns?.coerceIn(ArtistPagePreferences.COLUMNS) ?: defaults.albumColumns,
+                landscapeAlbumColumns =
+                    stored.landscapeAlbumColumns?.coerceIn(ArtistPagePreferences.LANDSCAPE_COLUMNS)
+                        ?: defaults.landscapeAlbumColumns,
+                showAppearsOn = stored.showAppearsOn ?: defaults.showAppearsOn,
+                showTopTracks = stored.showTopTracks ?: defaults.showTopTracks,
+                topTracksCount =
+                    stored.topTracksCount?.coerceIn(ArtistPagePreferences.TOP_TRACKS) ?: defaults.topTracksCount,
+                showAbout = stored.showAbout ?: defaults.showAbout,
+                dynamicColors = stored.dynamicColors ?: defaults.dynamicColors,
+            )
+        }
+
+        private fun completeArtistOrder(order: List<ArtistSection>): List<ArtistSection> =
+            order.distinct().let { known -> known + ArtistPagePreferences.DEFAULT_SECTIONS.filterNot { it in known } }
 
         /** Unknown names are dropped; the order is completed so every section shows once. */
         private fun albumPage(stored: StoredAlbumPage): AlbumPagePreferences {

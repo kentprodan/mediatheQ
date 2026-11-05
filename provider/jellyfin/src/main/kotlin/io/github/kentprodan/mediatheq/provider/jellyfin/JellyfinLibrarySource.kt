@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -47,9 +48,12 @@ class JellyfinLibrarySource internal constructor(
         startIndex: Int,
         limit: Int,
     ): MqResult<LibraryPage<Artist>> =
-        page(server, "Artists/AlbumArtists", pagedQuery(server, startIndex, limit) + ("fields" to "SortName")) {
-            it.toArtist(server.serverId)
-        }
+        // Backdrop tags come only when the image types name them (R21); the overview is the biography (#133).
+        page(
+            server,
+            "Artists/AlbumArtists",
+            pagedQuery(server, startIndex, limit, imageTypes = "Primary,Backdrop") + ("fields" to "SortName,Overview"),
+        ) { it.toArtist(server.serverId) }
 
     override suspend fun albums(
         server: SignedInServer,
@@ -111,7 +115,12 @@ class JellyfinLibrarySource internal constructor(
             .newBuilder()
             .addPathSegments("Items")
             .addPathSegment(artwork.itemId)
-            .addPathSegments("Images/Primary")
+            .addPathSegments(
+                when (artwork.type) {
+                    ImageType.Primary -> "Images/Primary"
+                    ImageType.Backdrop -> "Images/Backdrop/0"
+                },
+            )
             // The tag versions the image, so the URL is immutable and caches forever (jellyfin skill, section 4).
             .addQueryParameter("tag", artwork.tag)
             .addQueryParameter("fillWidth", widthPx.toString())
@@ -165,6 +174,7 @@ class JellyfinLibrarySource internal constructor(
         server: SignedInServer,
         startIndex: Int,
         limit: Int,
+        imageTypes: String = "Primary",
     ) = listOf(
         "userId" to server.userId,
         "startIndex" to startIndex.toString(),
@@ -172,7 +182,7 @@ class JellyfinLibrarySource internal constructor(
         "sortBy" to "SortName",
         "sortOrder" to "Ascending",
         "enableUserData" to "true",
-        "enableImageTypes" to "Primary",
+        "enableImageTypes" to imageTypes,
         "imageTypeLimit" to "1",
     )
 
