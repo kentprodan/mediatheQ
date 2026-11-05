@@ -51,6 +51,12 @@ interface LibraryPreferencesRepository {
     /** Settings -> Library page -> Restore defaults: only that page goes back to its defaults (#129). */
     suspend fun restoreLibraryPageDefaults()
 
+    /** Stored validated: the section order holds every section once (#132). */
+    suspend fun setAlbumPage(page: AlbumPagePreferences)
+
+    /** Settings -> Album page -> Restore defaults: only that page goes back to its defaults (#132). */
+    suspend fun restoreAlbumPageDefaults()
+
     suspend fun setRatingMode(mode: RatingMode)
 
     /** Now Playing's quality label: the format detail or its kind (#125). */
