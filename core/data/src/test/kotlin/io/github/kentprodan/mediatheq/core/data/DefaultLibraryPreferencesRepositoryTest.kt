@@ -774,4 +774,62 @@ class DefaultLibraryPreferencesRepositoryTest {
             assertThat(page.albumColumns).isEqualTo(4)
             assertThat(page.topTracksCount).isEqualTo(5)
         }
+
+    @Test
+    fun `the genre page settings are kept, and restoring them resets only that page`() =
+        runTest {
+            val page =
+                GenrePagePreferences(
+                    headerBackground = GenreHeaderBackground.None,
+                    hiddenButtons = setOf(GenreButton.AddToQueue),
+                    sectionOrder =
+                        listOf(
+                            GenreSection.TopTracks,
+                            GenreSection.Albums,
+                            GenreSection.Artists,
+                            GenreSection.AlbumArtists,
+                        ),
+                    showAlbums = false,
+                    showArtists = false,
+                    showAlbumArtists = true,
+                    showTopTracks = false,
+                    topTracksCount = 40,
+                    dynamicColors = true,
+                )
+            val artist = ArtistPagePreferences(showAbout = false)
+            repository.setGenrePage(page)
+            repository.setArtistPage(artist)
+            assertThat(repository.preferences.first().genrePage).isEqualTo(page)
+
+            repository.restoreGenrePageDefaults()
+
+            val restored = repository.preferences.first()
+            assertThat(restored.genrePage).isEqualTo(GenrePagePreferences())
+            assertThat(restored.artistPage).isEqualTo(artist)
+        }
+
+    @Test
+    fun `a stored genre page drops unknown names, completes the order and clamps the count`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("gp_sections")] = "TopTracks,Gone"
+                it[stringPreferencesKey("gp_hidden_buttons")] = ""
+                it[stringPreferencesKey("gp_background")] = "Blur"
+                it[intPreferencesKey("gp_top_tracks_count")] = 99
+            }
+
+            val page = repository.preferences.first().genrePage
+
+            assertThat(page.sectionOrder)
+                .containsExactly(
+                    GenreSection.TopTracks,
+                    GenreSection.Artists,
+                    GenreSection.AlbumArtists,
+                    GenreSection.Albums,
+                ).inOrder()
+            assertThat(page.hiddenButtons).isEmpty()
+            assertThat(page.headerBackground).isEqualTo(GenreHeaderBackground.Image)
+            assertThat(page.topTracksCount).isEqualTo(50)
+            assertThat(page.dynamicColors).isFalse()
+        }
 }

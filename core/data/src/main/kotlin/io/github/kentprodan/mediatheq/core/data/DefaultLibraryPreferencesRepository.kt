@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.data
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAlbumPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredArtistPage
+import io.github.kentprodan.mediatheq.core.datastore.StoredGenrePage
 import io.github.kentprodan.mediatheq.core.datastore.StoredHome
 import io.github.kentprodan.mediatheq.core.datastore.StoredLibraryPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredMediaLists
@@ -43,6 +44,7 @@ class DefaultLibraryPreferencesRepository
                     libraryPage = libraryPage(stored.libraryPage),
                     albumPage = albumPage(stored.albumPage),
                     artistPage = artistPage(stored.artistPage),
+                    genrePage = genrePage(stored.genrePage),
                     qualityDetail = stored.qualityDetail ?: false,
                 )
             }
@@ -244,6 +246,50 @@ class DefaultLibraryPreferencesRepository
         }
 
         override suspend fun restoreArtistPageDefaults() = store.setArtistPage(StoredArtistPage())
+
+        override suspend fun setGenrePage(page: GenrePagePreferences) {
+            store.setGenrePage(
+                StoredGenrePage(
+                    headerBackground = page.headerBackground.name,
+                    hiddenButtons = page.hiddenButtons.map { it.name },
+                    sectionOrder = completeGenreOrder(page.sectionOrder).map { it.name },
+                    showAlbums = page.showAlbums,
+                    showArtists = page.showArtists,
+                    showAlbumArtists = page.showAlbumArtists,
+                    showTopTracks = page.showTopTracks,
+                    topTracksCount = page.topTracksCount.coerceIn(GenrePagePreferences.TOP_TRACKS),
+                    dynamicColors = page.dynamicColors,
+                ),
+            )
+        }
+
+        override suspend fun restoreGenrePageDefaults() = store.setGenrePage(StoredGenrePage())
+
+        /** Unknown names are dropped, the order is completed and a count out of range is clamped. */
+        private fun genrePage(stored: StoredGenrePage): GenrePagePreferences {
+            val defaults = GenrePagePreferences()
+            return GenrePagePreferences(
+                headerBackground =
+                    enumOrNull<GenreHeaderBackground>(stored.headerBackground) ?: defaults.headerBackground,
+                hiddenButtons =
+                    stored.hiddenButtons?.mapNotNull { enumOrNull<GenreButton>(it) }?.toSet() ?: defaults.hiddenButtons,
+                sectionOrder =
+                    stored.sectionOrder?.let { names ->
+                        completeGenreOrder(names.mapNotNull { enumOrNull<GenreSection>(it) })
+                    }
+                        ?: defaults.sectionOrder,
+                showAlbums = stored.showAlbums ?: defaults.showAlbums,
+                showArtists = stored.showArtists ?: defaults.showArtists,
+                showAlbumArtists = stored.showAlbumArtists ?: defaults.showAlbumArtists,
+                showTopTracks = stored.showTopTracks ?: defaults.showTopTracks,
+                topTracksCount =
+                    stored.topTracksCount?.coerceIn(GenrePagePreferences.TOP_TRACKS) ?: defaults.topTracksCount,
+                dynamicColors = stored.dynamicColors ?: defaults.dynamicColors,
+            )
+        }
+
+        private fun completeGenreOrder(order: List<GenreSection>): List<GenreSection> =
+            order.distinct().let { known -> known + GenreSection.entries.filterNot { it in known } }
 
         /** Unknown names are dropped, the order is completed and counts out of range are clamped. */
         private fun artistPage(stored: StoredArtistPage): ArtistPagePreferences {
