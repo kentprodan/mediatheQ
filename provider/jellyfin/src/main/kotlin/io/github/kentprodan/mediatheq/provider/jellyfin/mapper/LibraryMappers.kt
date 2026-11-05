@@ -44,6 +44,8 @@ internal fun BaseItemDto.toAlbum(serverId: ServerId): Album? {
         userData = userData.toDomain(),
         genres = genres(serverId),
         labels = labels(serverId),
+        overview = overview?.trim()?.takeIf { it.isNotEmpty() },
+        releaseDate = instant(premiereDate),
     )
 }
 
@@ -58,7 +60,13 @@ internal fun BaseItemDto.toTrack(serverId: ServerId): Track? {
         albumTitle = album,
         trackNumber = indexNumber,
         discNumber = parentIndexNumber,
-        audioFormat = mediaStreams.firstOrNull { it.type == "Audio" }?.toAudioFormat(),
+        audioFormat =
+            mediaSources
+                .firstOrNull()
+                ?.mediaStreams
+                ?.firstOrNull { it.type == "Audio" }
+                ?.toAudioFormat(),
+        sizeBytes = mediaSources.firstOrNull()?.size,
         sortName = sortName ?: name,
         dateAdded = instant(dateCreated),
         normalizationGainDb = normalizationGain,

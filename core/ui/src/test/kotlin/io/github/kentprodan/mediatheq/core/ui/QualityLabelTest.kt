@@ -1,9 +1,13 @@
-package io.github.kentprodan.mediatheq.feature.nowplaying
+package io.github.kentprodan.mediatheq.core.ui
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
+import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
+import io.github.kentprodan.mediatheq.core.model.Track
 import org.junit.Test
+import kotlin.time.Duration
 
 class QualityLabelTest {
     private fun label(
@@ -101,5 +105,33 @@ class QualityLabelTest {
             .isEqualTo(QualityKind.HiResLossless)
         assertThat(label(AudioFormat("dsd_lsbf_planar", sampleRateHz = 2_822_400, bitDepth = 1)))
             .isEqualTo(QualityLabel(QualityKind.HiResLossless, "DSD · 1/2822.4"))
+    }
+
+    private fun track(format: AudioFormat?) =
+        Track(MediaId(ServerId("s"), format.toString()), "t", emptyList(), Duration.ZERO, audioFormat = format)
+
+    @Test
+    fun `an album shows its best track, Atmos over hi-res over lossless over lossy`() {
+        val hiRes = AudioFormat("flac", sampleRateHz = 96_000, bitDepth = 24, bitrateKbps = 2_400)
+        val atmos = AudioFormat("eac3", bitrateKbps = 768, spatialFormat = SpatialFormat.DolbyAtmos)
+        val mp3 = AudioFormat("mp3", bitrateKbps = 320)
+
+        assertThat(
+            albumQuality(listOf(track(mp3), track(cd), track(hiRes)))?.detail,
+        ).isEqualTo("FLAC 24/96")
+        assertThat(albumQuality(listOf(track(cd), track(atmos)))).isEqualTo(QualityLabel(QualityKind.DolbyAtmos, ""))
+        assertThat(albumQuality(listOf(track(cd)))).isEqualTo(QualityLabel(QualityKind.Lossless, ""))
+        assertThat(albumQuality(listOf(track(mp3), track(AudioFormat("aac", bitrateKbps = 128))))?.detail)
+            .isEqualTo("MP3 320 kb/s")
+    }
+
+    @Test
+    fun `of two hi-res tracks the higher resolution wins, and no facts means no label`() {
+        val r96 = AudioFormat("flac", sampleRateHz = 96_000, bitDepth = 24)
+        val r192 = AudioFormat("flac", sampleRateHz = 192_000, bitDepth = 24)
+
+        assertThat(albumQuality(listOf(track(r96), track(r192)))?.detail).isEqualTo("FLAC 24/192")
+        assertThat(albumQuality(listOf(track(null)))).isNull()
+        assertThat(albumQuality(emptyList())).isNull()
     }
 }

@@ -59,7 +59,7 @@ class JellyfinLibrarySource internal constructor(
         items(
             server,
             "MusicAlbum",
-            "SortName,DateCreated,ChildCount,Genres,Studios",
+            "SortName,DateCreated,ChildCount,Genres,Studios,Overview",
             startIndex,
             limit,
         ) { it.toAlbum(server.serverId) }
@@ -69,11 +69,11 @@ class JellyfinLibrarySource internal constructor(
         startIndex: Int,
         limit: Int,
     ): MqResult<LibraryPage<Track>> =
-        // MediaStreams instead of MediaSources: the same audio format facts in 25% less data.
+        // MediaSources for the file size (#132, ~30% more data than MediaStreams alone); it carries the streams (R19).
         items(
             server,
             "Audio",
-            "SortName,DateCreated,MediaStreams,Genres",
+            "SortName,DateCreated,MediaSources,Genres",
             startIndex,
             limit,
         ) { it.toTrack(server.serverId) }

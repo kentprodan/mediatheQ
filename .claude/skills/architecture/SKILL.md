@@ -163,6 +163,7 @@ AlbumEntry.kt          Navigation 3 entry registration for AlbumKey
 - Position updates are sampled (10 Hz, for synced lyrics) inside `PlaybackConnection`, not polled by composables.
 - Stream URL resolution, transcoding choice and Atmos preference are decided in `:core:playback` via `:core:data` + `PlaybackSource`, unit-tested without a device.
 - Playback progress reporting to the server happens in the service, not the UI.
+- Where each album was left (#132) is recorded in the service too (`ResumeListener` -> `AlbumResumeRepository`, a local `album_resume` table, kept across syncs and cleared on sign-out); the album page turns it into Resume with `resumeTarget`.
 
 ## 8. DI (Hilt)
 

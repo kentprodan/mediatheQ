@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
@@ -33,6 +34,7 @@ class SettingsViewModel
     ) : ViewModel() {
         private val entriesDraft = MutableStateFlow<NavEntriesDraft?>(null)
         private val shortcutsDraft = MutableStateFlow<OrganizeDraft<LibraryShortcut>?>(null)
+        private val sectionsDraft = MutableStateFlow<OrganizeDraft<AlbumSection>?>(null)
 
         val uiState: StateFlow<SettingsUiState> =
             combine(
@@ -40,11 +42,20 @@ class SettingsViewModel
                 audio.preferences,
                 library.preferences,
                 playback.state.map { it.output }.distinctUntilChanged(),
-                combine(entriesDraft, shortcutsDraft, ::Pair),
-            ) { session, audio, library, output, (draft, shortcuts) ->
+                combine(entriesDraft, shortcutsDraft, sectionsDraft, ::Triple),
+            ) { session, audio, library, output, (draft, shortcuts, sections) ->
                 // Signed out: the app leaves for onboarding, nothing to show meanwhile.
                 (session as? SessionState.LoggedIn)?.let {
-                    SettingsUiState.Content(it.serverName, it.userName, audio, library, output, draft, shortcuts)
+                    SettingsUiState.Content(
+                        it.serverName,
+                        it.userName,
+                        audio,
+                        library,
+                        output,
+                        draft,
+                        shortcuts,
+                        sections,
+                    )
                 } ?: SettingsUiState.Loading
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState.Loading)
 
@@ -182,6 +193,39 @@ class SettingsViewModel
 
                     SettingsAction.DismissLibraryShortcuts -> {
                         shortcutsDraft.value = null
+                    }
+
+                    is SettingsAction.SetAlbumPage -> {
+                        library.setAlbumPage(action.page)
+                    }
+
+                    SettingsAction.RestoreAlbumPageDefaults -> {
+                        library.restoreAlbumPageDefaults()
+                    }
+
+                    SettingsAction.OpenAlbumSections -> {
+                        sectionsDraft.value =
+                            albumSectionsDraft(
+                                library.preferences
+                                    .first()
+                                    .albumPage.sectionOrder,
+                            )
+                    }
+
+                    is SettingsAction.MoveAlbumSection -> {
+                        sectionsDraft.update { it?.move(action.from, action.to) }
+                    }
+
+                    SettingsAction.ConfirmAlbumSections -> {
+                        sectionsDraft.value?.let { draft ->
+                            val page = library.preferences.first().albumPage
+                            library.setAlbumPage(page.copy(sectionOrder = draft.order))
+                        }
+                        sectionsDraft.value = null
+                    }
+
+                    SettingsAction.DismissAlbumSections -> {
+                        sectionsDraft.value = null
                     }
 
                     is SettingsAction.SetOfflineMode -> {

@@ -77,4 +77,9 @@
     <string name="core_ui_home_random_tracks">Random tracks</string>
     <string name="core_ui_home_rediscover_tracks">Rediscover tracks</string>
     <string name="core_ui_home_five_star_tracks">5 stars tracks</string>
+    <string name="core_ui_quality_atmos">Dolby Atmos</string>
+    <string name="core_ui_quality_hi_res">Hi-Res Lossless</string>
+    <string name="core_ui_quality_lossless">Lossless</string>
+    <string name="core_ui_quality_high">High quality</string>
+    <string name="core_ui_quality_efficient">High efficiency</string>
 </resources>

@@ -219,4 +219,47 @@ class MigrationTest {
             assertThat(count("album_label")).isEqualTo(0)
             connection.close()
         }
+
+    @Test
+    fun `8 to 9 adds the album page columns and an empty resume table, and makes the next start sync`() =
+        runTest {
+            helper.createDatabase(8).apply {
+                execSQL(
+                    "INSERT INTO sync_state (id, last_full_sync_at, owner_server_id, owner_user_id, " +
+                        "checkpoint_server_id, checkpoint_user_id, checkpoint_started_at, checkpoint_step, " +
+                        "checkpoint_index) VALUES (0, 1760000000000, 's', 'u', 's', 'u', 1760000000000, 'Albums', 0)",
+                )
+                execSQL(
+                    "INSERT INTO album_label_staging (server_id, album_id, label_id, label_name) " +
+                        "VALUES ('s', 'a', 'l', 'Atlantic')",
+                )
+                execSQL(
+                    "INSERT INTO album (server_id, id, title, sort_name, track_count, duration_ms, is_favorite, " +
+                        "play_count, played) VALUES ('s', 'a', 'A', 'A', 0, 0, 0, 0, 0)",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(9)
+
+            connection.prepare("SELECT last_full_sync_at, checkpoint_step FROM sync_state").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(0)
+                assertThat(it.isNull(1)).isTrue()
+            }
+            connection.prepare("SELECT overview, release_date FROM album").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.isNull(0)).isTrue()
+                assertThat(it.isNull(1)).isTrue()
+            }
+
+            fun count(table: String) =
+                connection.prepare("SELECT COUNT(*) FROM $table").use {
+                    it.step()
+                    it.getLong(0)
+                }
+            assertThat(count("album_label_staging")).isEqualTo(0)
+            assertThat(count("album_resume")).isEqualTo(0)
+            connection.close()
+        }
 }

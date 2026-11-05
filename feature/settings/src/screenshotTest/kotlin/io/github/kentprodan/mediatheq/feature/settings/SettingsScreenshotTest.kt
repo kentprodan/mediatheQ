@@ -6,6 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
+import io.github.kentprodan.mediatheq.core.data.AlbumButton
+import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
+import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
@@ -398,3 +401,46 @@ fun SettingsLibraryShortcutsDialogScreenshot() =
 @Composable
 fun SettingsLibraryStyleDialogScreenshot() =
     MediatheqTheme { LibraryPageDialogContent(LibraryPageDialog.Style, LibraryPagePreferences()) }
+
+/** Settings -> Album page (#132), all defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAlbumPageScreenshot() = Page(SettingsPage.Album)
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAlbumBackgroundDialogScreenshot() =
+    MediatheqTheme { AlbumPageDialogContent(AlbumPageDialog.Background, AlbumPagePreferences()) }
+
+/** Resume and Favorite checked: they move to the header's More menu. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAlbumHiddenButtonsDialogScreenshot() =
+    MediatheqTheme {
+        AlbumPageDialogContent(
+            AlbumPageDialog.HiddenButtons,
+            AlbumPagePreferences(hiddenButtons = setOf(AlbumButton.Resume, AlbumButton.Favorite)),
+        )
+    }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAlbumMoreSortDialogScreenshot() =
+    MediatheqTheme { AlbumPageDialogContent(AlbumPageDialog.MoreSort, AlbumPagePreferences()) }
+
+/** "Page content order": About moved first; the checks are fixed (switches hide sections). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAlbumSectionsDialogScreenshot() =
+    MediatheqTheme {
+        OrganizeDialogContent(
+            "Page content order",
+            albumSectionsDraft(listOf(AlbumSection.About, AlbumSection.Tracks, AlbumSection.MoreFromArtist)),
+            label = { stringResource(it.label) },
+        )
+    }

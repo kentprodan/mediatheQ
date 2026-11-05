@@ -4,6 +4,7 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import io.github.kentprodan.mediatheq.core.navigation.AddToPlaylistKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
+import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 
 /** Registers the album page. */
@@ -13,6 +14,8 @@ fun EntryProviderScope<NavKey>.albumEntry(navigator: Navigator) {
             key.id,
             onBack = { navigator.back() },
             onAddToPlaylist = { navigator.navigateTo(AddToPlaylistKey(it)) },
+            onOpenArtist = { navigator.navigateTo(ArtistKey(it)) },
+            onOpenAlbum = { navigator.navigateTo(AlbumKey(it)) },
         )
     }
 }

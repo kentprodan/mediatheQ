@@ -82,6 +82,24 @@ fun rememberCoverColorScheme(
     cache: CoverColorCache,
 ): ColorScheme? {
     val theme = LocalMqTheme.current
+    val colors = rememberCoverColors(key, model, cache)
+    // Kept across recompositions: schemes compare by identity, and a new one would restart the blend.
+    val options = theme.options
+    return remember(colors, theme.isDark, theme.isBlack, options.playerColors, options.ignoreSurfaces) {
+        playerColorScheme(colors, theme)
+    }
+}
+
+/**
+ * The colors of the cover [model] identified by [key], whatever the player color option (the album header's cover
+ * color, #132); `null` without a cover or while it loads.
+ */
+@Composable
+fun rememberCoverColors(
+    key: String?,
+    model: Any?,
+    cache: CoverColorCache,
+): CoverColors? {
     val context = LocalContext.current
     var loaded by remember { mutableStateOf<CoverColors?>(null) }
     LaunchedEffect(key) {
@@ -103,12 +121,7 @@ fun rememberCoverColorScheme(
                 bitmap?.let { withContext(Dispatchers.Default) { coverColorsOf(it.pixels()) } }
             }
     }
-    val colors = if (key == null) null else key.let { cache[it] } ?: loaded
-    // Kept across recompositions: schemes compare by identity, and a new one would restart the blend.
-    val options = theme.options
-    return remember(colors, theme.isDark, theme.isBlack, options.playerColors, options.ignoreSurfaces) {
-        playerColorScheme(colors, theme)
-    }
+    return if (key == null) null else key.let { cache[it] } ?: loaded
 }
 
 /**

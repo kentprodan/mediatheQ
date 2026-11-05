@@ -105,11 +105,13 @@ internal class MediaControllerPlaybackConnection
             queue: List<Track>,
             startIndex: Int,
             shuffle: Boolean,
+            startPosition: Duration,
         ) {
             if (queue.isEmpty()) return
             expandRequested.value = true
             playJob?.cancel()
-            playJob = command { controller -> controller.playQueue(queue.toMediaItems(), startIndex, shuffle) }
+            playJob =
+                command { controller -> controller.playQueue(queue.toMediaItems(), startIndex, shuffle, startPosition) }
         }
 
         override val queue: StateFlow<List<QueueItem>> =

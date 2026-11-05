@@ -665,4 +665,49 @@ class DefaultLibraryPreferencesRepositoryTest {
             assertThat(restored.home).isEqualTo(HomePreferences())
             assertThat(restored.mediaLists.trackInfo).isEqualTo(TrackInfo.Bitrate)
         }
+
+    @Test
+    fun `the album page settings are kept, and restoring them resets only that page`() =
+        runTest {
+            val page =
+                AlbumPagePreferences(
+                    headerBackground = AlbumHeaderBackground.CoverColor,
+                    showQuality = false,
+                    showRatingBar = true,
+                    hiddenButtons = setOf(AlbumButton.Resume, AlbumButton.Favorite),
+                    sectionOrder = listOf(AlbumSection.About, AlbumSection.Tracks, AlbumSection.MoreFromArtist),
+                    showMoreFromArtist = false,
+                    moreAlbumsSort = MoreAlbumsSort.Title,
+                    alwaysShowTrackArtists = true,
+                    showTrackNumbers = false,
+                    showTrackThumbnails = true,
+                    multilineTrackTitles = true,
+                    showAbout = false,
+                )
+            repository.setAlbumPage(page)
+            repository.setQualityDetail(true)
+            assertThat(repository.preferences.first().albumPage).isEqualTo(page)
+
+            repository.restoreAlbumPageDefaults()
+
+            assertThat(repository.preferences.first()).isEqualTo(LibraryPreferences(qualityDetail = true))
+        }
+
+    @Test
+    fun `a stored section order drops unknown names and completes the missing sections, none hidden stays none`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("ap_sections")] = "About,Gone,About"
+                it[stringPreferencesKey("ap_hidden_buttons")] = ""
+                it[stringPreferencesKey("ap_background")] = "Blur"
+            }
+
+            val page = repository.preferences.first().albumPage
+
+            assertThat(page.sectionOrder)
+                .containsExactly(AlbumSection.About, AlbumSection.Tracks, AlbumSection.MoreFromArtist)
+                .inOrder()
+            assertThat(page.hiddenButtons).isEmpty()
+            assertThat(page.headerBackground).isEqualTo(AlbumHeaderBackground.CoverImage)
+        }
 }

@@ -2,6 +2,9 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.AlbumHeaderBackground
+import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
+import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
@@ -387,4 +390,47 @@ class SettingsViewModelTest {
             .containsExactly(LibraryShortcut.Years, LibraryShortcut.Albums)
             .inOrder()
     }
+
+    @Test
+    fun `album page choices apply at once and restoring resets only that page`() =
+        runTest {
+            signIn()
+            library.setAlbumColumns(4)
+            val chosen = AlbumPagePreferences(headerBackground = AlbumHeaderBackground.None, showRatingBar = true)
+
+            viewModel.onAction(SettingsAction.SetAlbumPage(chosen))
+            assertThat(content().library.albumPage).isEqualTo(chosen)
+
+            viewModel.onAction(SettingsAction.RestoreAlbumPageDefaults)
+            assertThat(library.preferences.value.albumPage).isEqualTo(AlbumPagePreferences())
+            assertThat(library.preferences.value.albumColumns).isEqualTo(4)
+        }
+
+    @Test
+    fun `the album sections are ordered in a draft, stored with OK and dropped with Cancel`() =
+        runTest {
+            signIn()
+            viewModel.uiState.test {
+                viewModel.onAction(SettingsAction.OpenAlbumSections)
+                viewModel.onAction(SettingsAction.MoveAlbumSection(2, 0))
+                val draft = (expectMostRecentItem() as SettingsUiState.Content).sectionsDraft
+                assertThat(draft?.order)
+                    .containsExactly(AlbumSection.About, AlbumSection.Tracks, AlbumSection.MoreFromArtist)
+                    .inOrder()
+                // Every section stays: the switches hide them, not this dialog.
+                assertThat(draft?.canToggle(AlbumSection.About)).isFalse()
+                assertThat(library.preferences.value.albumPage.sectionOrder).isEqualTo(AlbumSection.entries)
+
+                viewModel.onAction(SettingsAction.ConfirmAlbumSections)
+                assertThat((expectMostRecentItem() as SettingsUiState.Content).sectionsDraft).isNull()
+
+                viewModel.onAction(SettingsAction.OpenAlbumSections)
+                viewModel.onAction(SettingsAction.MoveAlbumSection(0, 2))
+                viewModel.onAction(SettingsAction.DismissAlbumSections)
+                assertThat((expectMostRecentItem() as SettingsUiState.Content).sectionsDraft).isNull()
+            }
+            assertThat(library.preferences.value.albumPage.sectionOrder)
+                .containsExactly(AlbumSection.About, AlbumSection.Tracks, AlbumSection.MoreFromArtist)
+                .inOrder()
+        }
 }

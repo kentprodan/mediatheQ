@@ -208,6 +208,10 @@ object MqIcons {
     val Genres: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_genres)
 
+    /** Resume an album where it was left (#132): Material Symbols "resume". */
+    val Resume: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_resume)
+
     /** Record labels (#131): Material Symbols "label". */
     val RecordLabel: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_label)

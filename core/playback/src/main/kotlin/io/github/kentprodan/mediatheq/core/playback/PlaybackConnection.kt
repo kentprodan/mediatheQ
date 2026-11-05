@@ -28,6 +28,8 @@ interface PlaybackConnection {
         queue: List<Track>,
         startIndex: Int = 0,
         shuffle: Boolean = false,
+        /** Where in the start track to begin (Resume, #132); ignored when shuffled. */
+        startPosition: Duration = Duration.ZERO,
     )
 
     /** Pauses, or plays (also restarting after the queue ended or failed). */

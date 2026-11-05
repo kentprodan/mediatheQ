@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.database
 import androidx.room3.AutoMigration
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
+import io.github.kentprodan.mediatheq.core.database.dao.AlbumResumeDao
 import io.github.kentprodan.mediatheq.core.database.dao.DownloadOriginDao
 import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
 import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
@@ -17,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumLabelEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumLabelStaging
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumResumeEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
@@ -40,7 +42,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 8,
+    version = 9,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -69,6 +71,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         TrackGenreStaging::class,
         AlbumLabelEntity::class,
         AlbumLabelStaging::class,
+        AlbumResumeEntity::class,
     ],
     autoMigrations = [
         // 2: the saved play queue (#14) and an index on track.album_id.
@@ -83,7 +86,10 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 5, to = 6),
         // 7: album and track genres (#130); the next start runs a full sync that fills them.
         AutoMigration(from = 6, to = 7, spec = SyncGenresMigration::class),
+        // 8: album record labels (#131).
         AutoMigration(from = 7, to = 8, spec = SyncLabelsMigration::class),
+        // 9: album overview and release date, track file size, where each album was left (#132).
+        AutoMigration(from = 8, to = 9, spec = SyncAlbumPageMigration::class),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {
@@ -100,4 +106,6 @@ abstract class MediatheqDatabase : RoomDatabase() {
     abstract fun downloadOriginDao(): DownloadOriginDao
 
     abstract fun waveformDao(): WaveformDao
+
+    abstract fun albumResumeDao(): AlbumResumeDao
 }

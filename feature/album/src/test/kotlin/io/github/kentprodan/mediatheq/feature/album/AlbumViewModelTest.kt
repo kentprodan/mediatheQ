@@ -1,16 +1,25 @@
 package io.github.kentprodan.mediatheq.feature.album
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
+import io.github.kentprodan.mediatheq.core.data.AlbumSection
+import io.github.kentprodan.mediatheq.core.data.MoreAlbumsSort
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.AlbumResume
+import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import io.github.kentprodan.mediatheq.core.testing.FakeAlbumResumeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
@@ -18,6 +27,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import io.github.kentprodan.mediatheq.core.ui.AlbumTitle
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -26,6 +36,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class AlbumViewModelTest {
     @get:Rule
@@ -58,10 +69,11 @@ class AlbumViewModelTest {
 
     private val downloads = FakeDownloadRepository()
     private val preferences = FakeLibraryPreferencesRepository()
+    private val resumes = FakeAlbumResumeRepository()
 
     private fun TestScope.viewModel(): AlbumViewModel {
         val viewModel =
-            AlbumViewModel(albumId, library, playback, trackTaps, commands, userData, downloads, preferences)
+            AlbumViewModel(albumId, library, playback, trackTaps, commands, userData, downloads, preferences, resumes)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -78,6 +90,7 @@ class AlbumViewModelTest {
                 userData,
                 downloads,
                 preferences,
+                resumes,
             ).uiState.value,
         ).isEqualTo(AlbumUiState.Loading)
     }
@@ -299,5 +312,103 @@ class AlbumViewModelTest {
             viewModel.onAction(AlbumAction.OnSelection(SelectionCommand.PlayNext))
             assertThat(playback.playedNext).containsExactly(list)
             assertThat((viewModel.uiState.value as AlbumUiState.Content).selection.isActive).isFalse()
+        }
+
+    private fun TestScope.content(): AlbumUiState.Content {
+        library.albums.value = listOf(album.copy(albumArtists = listOf(artist)))
+        library.tracks.value = disc1 + disc2
+        val viewModel = viewModel()
+        return viewModel.uiState.value as AlbumUiState.Content
+    }
+
+    private val artist = Artist(MediaId(ServerId("s"), "ar1"), "Subcarpați")
+
+    @Test
+    fun `resume continues where the album was left, and a finished album has none`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            resumes.resumes.value = mapOf(albumId to AlbumResume(disc1[1].id, 70.seconds))
+            library.albums.value = listOf(album)
+            library.tracks.value = disc1 + disc2
+            val viewModel = viewModel()
+
+            assertThat(
+                (viewModel.uiState.value as AlbumUiState.Content).resume,
+            ).isEqualTo(AlbumResume(disc1[1].id, 70.seconds))
+            viewModel.onAction(AlbumAction.Resume)
+            assertThat(playback.plays.single()).isEqualTo(PlayCall(disc1 + disc2, 1, false, 70.seconds))
+
+            resumes.resumes.value = mapOf(albumId to AlbumResume(disc2[0].id, 3.minutes))
+            assertThat((viewModel.uiState.value as AlbumUiState.Content).resume).isNull()
+        }
+
+    @Test
+    fun `more from the artist leaves this album out and sorts as the page settings say`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val old = Album(MediaId(ServerId("s"), "old"), "Old", listOf(artist), year = 1999)
+            val new = Album(MediaId(ServerId("s"), "new"), "Abc", listOf(artist), year = 2020)
+            library.artistAlbums.value = mapOf(artist.id to listOf(old, album, new))
+
+            assertThat(content().moreAlbums).containsExactly(new, old).inOrder()
+
+            preferences.setAlbumPage(AlbumPagePreferences(moreAlbumsSort = MoreAlbumsSort.Title))
+            val viewModel = viewModel()
+            assertThat((viewModel.uiState.value as AlbumUiState.Content).moreAlbums).containsExactly(new, old).inOrder()
+            preferences.setAlbumPage(AlbumPagePreferences(moreAlbumsSort = MoreAlbumsSort.YearAscending))
+            assertThat((viewModel.uiState.value as AlbumUiState.Content).moreAlbums).containsExactly(old, new).inOrder()
+        }
+
+    @Test
+    fun `about holds the genres, labels, play count and file size, and sections follow the settings`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albumGenres.value = mapOf(albumId to listOf("Hip-Hop"))
+            library.albumLabels.value = mapOf(albumId to listOf(RecordLabel(MediaId(ServerId("s"), "l1"), "Roton")))
+            library.tracks.value = (disc1 + disc2).map { it.copy(sizeBytes = 10, userData = UserData(playCount = 2)) }
+            library.albums.value = listOf(album)
+            val viewModel = viewModel()
+            val shown = viewModel.uiState.value as AlbumUiState.Content
+
+            assertThat(shown.genres).containsExactly("Hip-Hop")
+            assertThat(shown.labels.single().name).isEqualTo("Roton")
+            assertThat(shown.sizeBytes).isEqualTo(30)
+            assertThat(shown.playCount).isEqualTo(6)
+            // Nothing more from the artist: that section is left out.
+            assertThat(shown.sections).containsExactly(AlbumSection.Tracks, AlbumSection.About).inOrder()
+
+            preferences.setAlbumPage(
+                AlbumPagePreferences(
+                    sectionOrder = listOf(AlbumSection.About, AlbumSection.Tracks, AlbumSection.MoreFromArtist),
+                ),
+            )
+            assertThat((viewModel.uiState.value as AlbumUiState.Content).sections)
+                .containsExactly(AlbumSection.About, AlbumSection.Tracks)
+                .inOrder()
+            preferences.setAlbumPage(AlbumPagePreferences(showAbout = false))
+            assertThat((viewModel.uiState.value as AlbumUiState.Content).sections).containsExactly(AlbumSection.Tracks)
+        }
+
+    @Test
+    fun `an album with nothing to tell leaves About out`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.tracks.value = disc1 + disc2
+            library.albums.value = listOf(album)
+
+            assertThat(
+                (viewModel().uiState.value as AlbumUiState.Content).sections,
+            ).containsExactly(AlbumSection.Tracks)
+        }
+
+    @Test
+    fun `a title with an edition shows it as the version, and the quality follows its setting`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albums.value = listOf(album.copy(title = "Satelit (Deluxe Edition)"))
+            library.tracks.value = disc1.map { it.copy(audioFormat = AudioFormat("flac", 96_000, 24)) }
+            val viewModel = viewModel()
+            val shown = viewModel.uiState.value as AlbumUiState.Content
+
+            assertThat(shown.title).isEqualTo(AlbumTitle("Satelit", "Deluxe Edition"))
+            assertThat(shown.quality?.detail).isEqualTo("FLAC 24/96")
+
+            preferences.setAlbumPage(AlbumPagePreferences(showQuality = false))
+            assertThat((viewModel.uiState.value as AlbumUiState.Content).quality).isNull()
         }
 }

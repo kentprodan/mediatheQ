@@ -8,6 +8,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.github.kentprodan.mediatheq.core.database.dao.AlbumResumeDao
 import io.github.kentprodan.mediatheq.core.database.dao.DownloadOriginDao
 import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
 import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
@@ -52,4 +53,7 @@ object DatabaseModule {
 
     @Provides
     fun waveformDao(database: MediatheqDatabase): WaveformDao = database.waveformDao()
+
+    @Provides
+    fun albumResumeDao(database: MediatheqDatabase): AlbumResumeDao = database.albumResumeDao()
 }

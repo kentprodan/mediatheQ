@@ -48,6 +48,10 @@ fun TrackRow(
     supportingContent: (@Composable () -> Unit)? = null,
     /** A swipe to the right (`true`) or left past the threshold; `null` = no swiping. Off while selecting. */
     onSwipe: ((right: Boolean) -> Unit)? = null,
+    /** Long titles wrap instead of ending in an ellipsis (album page setting, #132). */
+    multilineTitle: Boolean = false,
+    /** `false` leaves the artists out (an album page with the album's own artists, #132); the format badge stays. */
+    showArtists: Boolean = true,
 ) {
     val style = LocalMediaListStyle.current
     if (onSwipe != null && selected == null && (style.swipeRight != null || style.swipeLeft != null)) {
@@ -61,6 +65,8 @@ fun TrackRow(
                 isCurrent = isCurrent,
                 onLongClick = onLongClick,
                 supportingContent = supportingContent,
+                multilineTitle = multilineTitle,
+                showArtists = showArtists,
             )
         }
         return
@@ -111,16 +117,30 @@ fun TrackRow(
             }
         }
     val badge = track.audioFormat?.formatBadge()
-    val supporting: @Composable () -> Unit = {
-        // Top: next to the first line when the content has two (Downloads: text over a progress bar).
-        Row(verticalAlignment = Alignment.Top) {
-            badge?.let { FormatBadgeIcon(it, Modifier.padding(end = MediatheqSpacing.xs)) }
-            Box(Modifier.weight(1f)) {
-                supportingContent?.invoke()
-                    ?: Text(track.artists.joinToString { it.name }, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    // Nothing to say under the title: a one-line row.
+    val supporting: (@Composable () -> Unit)? =
+        if (!showArtists && badge == null && supportingContent == null) {
+            null
+        } else {
+            {
+                // Top: next to the first line when the content has two (Downloads: text over a progress bar).
+                Row(verticalAlignment = Alignment.Top) {
+                    badge?.let { FormatBadgeIcon(it, Modifier.padding(end = MediatheqSpacing.xs)) }
+                    Box(Modifier.weight(1f)) {
+                        supportingContent?.invoke()
+                            ?: if (showArtists) {
+                                Text(
+                                    track.artists.joinToString { it.name },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            } else {
+                                Unit
+                            }
+                    }
+                }
             }
         }
-    }
     val trailing: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TrackDetails(track)
@@ -133,7 +153,7 @@ fun TrackRow(
         Text(
             track.title,
             color = if (isCurrent) MaterialTheme.colorScheme.primary else Color.Unspecified,
-            maxLines = 1,
+            maxLines = if (multilineTitle) Int.MAX_VALUE else 1,
             overflow = TextOverflow.Ellipsis,
         )
     }

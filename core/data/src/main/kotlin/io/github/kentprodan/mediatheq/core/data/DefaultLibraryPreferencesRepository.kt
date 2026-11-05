@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
+import io.github.kentprodan.mediatheq.core.datastore.StoredAlbumPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredHome
 import io.github.kentprodan.mediatheq.core.datastore.StoredLibraryPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredMediaLists
@@ -39,6 +40,7 @@ class DefaultLibraryPreferencesRepository
                     nowPlaying = nowPlaying(stored.nowPlaying),
                     home = home(stored.home),
                     libraryPage = libraryPage(stored.libraryPage),
+                    albumPage = albumPage(stored.albumPage),
                     qualityDetail = stored.qualityDetail ?: false,
                 )
             }
@@ -195,6 +197,55 @@ class DefaultLibraryPreferencesRepository
         }
 
         override suspend fun restoreLibraryPageDefaults() = store.setLibraryPage(StoredLibraryPage())
+
+        override suspend fun setAlbumPage(page: AlbumPagePreferences) {
+            store.setAlbumPage(
+                StoredAlbumPage(
+                    headerBackground = page.headerBackground.name,
+                    showQuality = page.showQuality,
+                    showRatingBar = page.showRatingBar,
+                    hiddenButtons = page.hiddenButtons.map { it.name },
+                    sectionOrder = completeOrder(page.sectionOrder).map { it.name },
+                    showMoreFromArtist = page.showMoreFromArtist,
+                    moreAlbumsSort = page.moreAlbumsSort.name,
+                    alwaysShowTrackArtists = page.alwaysShowTrackArtists,
+                    showTrackNumbers = page.showTrackNumbers,
+                    showTrackThumbnails = page.showTrackThumbnails,
+                    multilineTrackTitles = page.multilineTrackTitles,
+                    showAbout = page.showAbout,
+                ),
+            )
+        }
+
+        override suspend fun restoreAlbumPageDefaults() = store.setAlbumPage(StoredAlbumPage())
+
+        /** Unknown names are dropped; the order is completed so every section shows once. */
+        private fun albumPage(stored: StoredAlbumPage): AlbumPagePreferences {
+            val defaults = AlbumPagePreferences()
+            return AlbumPagePreferences(
+                headerBackground =
+                    enumOrNull<AlbumHeaderBackground>(stored.headerBackground) ?: defaults.headerBackground,
+                showQuality = stored.showQuality ?: defaults.showQuality,
+                showRatingBar = stored.showRatingBar ?: defaults.showRatingBar,
+                hiddenButtons =
+                    stored.hiddenButtons?.mapNotNull { enumOrNull<AlbumButton>(it) }?.toSet() ?: defaults.hiddenButtons,
+                sectionOrder =
+                    stored.sectionOrder?.let { names ->
+                        completeOrder(names.mapNotNull { enumOrNull<AlbumSection>(it) })
+                    }
+                        ?: defaults.sectionOrder,
+                showMoreFromArtist = stored.showMoreFromArtist ?: defaults.showMoreFromArtist,
+                moreAlbumsSort = enumOrNull<MoreAlbumsSort>(stored.moreAlbumsSort) ?: defaults.moreAlbumsSort,
+                alwaysShowTrackArtists = stored.alwaysShowTrackArtists ?: defaults.alwaysShowTrackArtists,
+                showTrackNumbers = stored.showTrackNumbers ?: defaults.showTrackNumbers,
+                showTrackThumbnails = stored.showTrackThumbnails ?: defaults.showTrackThumbnails,
+                multilineTrackTitles = stored.multilineTrackTitles ?: defaults.multilineTrackTitles,
+                showAbout = stored.showAbout ?: defaults.showAbout,
+            )
+        }
+
+        private fun completeOrder(order: List<AlbumSection>): List<AlbumSection> =
+            order.distinct().let { known -> known + AlbumSection.entries.filterNot { it in known } }
 
         /** Unknown or repeated tile names are dropped; none left (or none stored) means every tile. */
         private fun libraryPage(stored: StoredLibraryPage): LibraryPagePreferences {

@@ -147,6 +147,8 @@ Logging: method + path + status + duration. Never headers, never query strings c
 
 - **R17 Genres come from the items:** with `fields=Genres` albums and tracks carry `Genres` (names) and `GenreItems` (`Name` + `Id`). `GET /Genres?includeItemTypes=MusicAlbum,Audio` lists the same names as `Genre` items with **other ids**, and none of the 24 genres has an image (12.3.0, checked 2026-11-05). The app builds genres from `GenreItems` only (#130) and shows a genre with its first album's cover. Fixtures: `items_music_album/with_genres.json`, `items_audio/with_genres.json`.
 - **R18 Record labels are album `Studios`:** with `fields=Studios` albums carry `Studios` (`Name` + `Id`, up to 4); tracks carry none. The ids match `GET /Studios`, which has no images either (326 studios, 12.3.0, checked 2026-11-05). MusicBrainz tagging writes the placeholder label `[no label]`, which the app drops (#131). Fixture: `items_music_album/with_studios.json`.
+- **R19 `MediaSources` moves the streams:** with `fields=MediaSources` an item carries `MediaSources[0]` with `Size`, `Container`, `Bitrate` and its `MediaStreams`, and the top-level `MediaStreams` is **not** sent (12.3.0, checked 2026-11-05). The track sync requests `MediaSources` for the file size (#132, ~30% more data) and reads the audio format from the source. Fixtures: `items_audio/page.json`, `items_audio/with_genres.json`.
+- **R20 No resume positions for music:** the server keeps no `PlaybackPositionTicks` for audio tracks (0 of the last 50 played; Jellyfin keeps positions only for items longer than its minimum resume duration, 5 min by default), and albums get no `LastPlayedDate`. The album page's Resume is tracked by the app (#132).
 
 New quirk found -> add `R<n>` here + fixture + test in the same PR.
 

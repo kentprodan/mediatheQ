@@ -28,7 +28,11 @@ internal data class BaseItemDto(
     @SerialName("ImageTags") val imageTags: Map<String, String> = emptyMap(),
     /** Image type -> (tag -> BlurHash). */
     @SerialName("ImageBlurHashes") val imageBlurHashes: Map<String, Map<String, String>> = emptyMap(),
-    @SerialName("MediaStreams") val mediaStreams: List<MediaStreamDto> = emptyList(),
+    /** With `fields=MediaSources`: the file (size) and its streams; `MediaStreams` then is not sent on the item (R19). */
+    @SerialName("MediaSources") val mediaSources: List<MediaSourceDto> = emptyList(),
+    /** With `fields=Overview`: the album's description. */
+    @SerialName("Overview") val overview: String? = null,
+    @SerialName("PremiereDate") val premiereDate: String? = null,
     @SerialName("UserData") val userData: UserItemDataDto? = null,
     @SerialName("PlaylistItemId") val playlistItemId: String? = null,
 )

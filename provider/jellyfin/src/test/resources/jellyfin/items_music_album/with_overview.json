@@ -1,0 +1,70 @@
+{
+  "Items": [
+    {
+      "Name": "+",
+      "Id": "7fe986c7d0a9a0ef004dd8390b0a0e05",
+      "DateCreated": "2026-08-01T16:16:05.8699387Z",
+      "SortName": " ",
+      "PremiereDate": "2011-01-01T00:00:00.0000000Z",
+      "ChannelId": null,
+      "Overview": "+ (pronounced Plus) is the debut studio album by English singer-songwriter Ed Sheeran, released through Atlantic Records on 9 September 2011. The album marks Sheeran's commercial breakthrough, having previously released five EPs independently. Jake Gosling produced the majority of the album, with additional production coming from acclaimed American hip hop producer No I.D.. Upon release, + debuted atop of the UK Albums Chart with first-week sales exceeding 102,000 copies.\nMedia interest surrounding + was fuelled significantly by its two preceding singles-\"The A Team\" and \"You Need Me, I Don't Need You\"-which peaked at number three and number four on the UK Singles Chart respectively. \"Lego House\" was released on 11 November 2011 as the album's third single and emulated the chart success of its predecessors, peaking at number five in the UK. It was met with generally mixed reviews from music critics.",
+      "Genres": [
+        "Pop"
+      ],
+      "RunTimeTicks": 7885466669,
+      "ProductionYear": 2011,
+      "IsFolder": true,
+      "Type": "MusicAlbum",
+      "Studios": [
+        {
+          "Name": "Warner Music UK",
+          "Id": "0e5fc6ca81a04d12a9f5032922c69111"
+        }
+      ],
+      "GenreItems": [
+        {
+          "Name": "Pop",
+          "Id": "f1f202f389018ad2c0766af4b0fcb155"
+        }
+      ],
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "Ed Sheeran-+",
+        "ItemId": "7fe986c7d0a9a0ef004dd8390b0a0e05"
+      },
+      "ChildCount": 2,
+      "Artists": [
+        "Ed Sheeran"
+      ],
+      "ArtistItems": [
+        {
+          "Name": "Ed Sheeran",
+          "Id": "0d35bdacdff048361377055dfa05787c"
+        }
+      ],
+      "AlbumArtist": "Ed Sheeran",
+      "AlbumArtists": [
+        {
+          "Name": "Ed Sheeran",
+          "Id": "0d35bdacdff048361377055dfa05787c"
+        }
+      ],
+      "ImageTags": {
+        "Primary": "2dc56932923a684da450b2396930c2ae"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "2dc56932923a684da450b2396930c2ae": "eHN*2D=w8x=wWB~BjZMxtRa#DiM{tltRtQ;1aebbt7j[%gkCV?ofRP"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown",
+      "NormalizationGain": -5.6000004
+    }
+  ],
+  "TotalRecordCount": 1,
+  "StartIndex": 0
+}

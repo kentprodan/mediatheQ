@@ -51,6 +51,9 @@ data class AlbumEntity(
     @ColumnInfo(name = "normalization_gain") val normalizationGainDb: Double? = null,
     @Embedded val image: ImageColumns = ImageColumns(),
     @Embedded val userData: UserDataColumns = UserDataColumns(),
+    /** The server's description (#132). */
+    val overview: String? = null,
+    @ColumnInfo(name = "release_date") val releaseDateMillis: Long? = null,
 )
 
 /** Album -> artist, in credit order. */
@@ -88,6 +91,8 @@ data class TrackEntity(
     @ColumnInfo(name = "spatial_format") val spatialFormat: String? = null,
     @Embedded val image: ImageColumns = ImageColumns(),
     @Embedded val userData: UserDataColumns = UserDataColumns(),
+    /** The original file's size (#132). */
+    @ColumnInfo(name = "size_bytes") val sizeBytes: Long? = null,
 )
 
 /** Track -> artist, in credit order. */

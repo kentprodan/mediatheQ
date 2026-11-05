@@ -4,6 +4,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import kotlin.random.Random
+import kotlin.time.Duration
 
 /**
  * Replaces the queue and starts playing (PlaybackConnection.play): at [startIndex], or, with [shuffle], at the first
@@ -14,12 +15,17 @@ internal fun Player.playQueue(
     items: List<MediaItem>,
     startIndex: Int,
     shuffle: Boolean,
+    startPosition: Duration = Duration.ZERO,
 ) {
     shuffleModeEnabled = shuffle
     if (shuffle) {
         setMediaItems(items, true) // resetPosition: start where the shuffle order starts
     } else {
-        setMediaItems(items, startIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0)), 0)
+        setMediaItems(
+            items,
+            startIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0)),
+            startPosition.inWholeMilliseconds,
+        )
     }
     prepare()
     play()

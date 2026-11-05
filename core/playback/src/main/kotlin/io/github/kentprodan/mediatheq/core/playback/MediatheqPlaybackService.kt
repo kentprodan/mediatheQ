@@ -30,6 +30,7 @@ import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
+import io.github.kentprodan.mediatheq.core.data.AlbumResumeRepository
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
@@ -86,6 +87,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var downloads: DownloadRepository
 
     @Inject lateinit var waveforms: WaveformRepository
+
+    @Inject lateinit var albumResume: AlbumResumeRepository
 
     @Inject
     @DownloadCache
@@ -183,6 +186,12 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 playerDispatcher = Dispatchers.Main,
             )
         player.addListener(ReportingListener(player, reporter))
+        resumeListener =
+            ResumeListener(
+                player,
+                record = { trackId, position -> applicationScope.launch { albumResume.record(trackId, position) } },
+                scope = applicationScope + Dispatchers.Main,
+            ).also(player::addListener)
         player.addListener(
             SkipFailedTrackListener(
                 player,
@@ -410,6 +419,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
         }
     }
 
+    private var resumeListener: ResumeListener? = null
+
     override fun onDestroy() {
         signOutWatch?.cancel()
         persistJob?.cancel()
@@ -424,6 +435,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         session?.run {
             persistence.saveNow()
             reporter.ended(player.currentPosition.milliseconds)
+            resumeListener?.release()
             player.release()
             release()
         }

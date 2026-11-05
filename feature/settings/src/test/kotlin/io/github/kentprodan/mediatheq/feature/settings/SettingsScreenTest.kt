@@ -31,6 +31,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.AlbumButton
+import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
@@ -579,6 +581,37 @@ class SettingsScreenTest {
 
         composeRule.onNodeWithText("Columns").assertDoesNotExist()
         composeRule.onNodeWithText("List").assertExists()
+    }
+
+    @Test
+    fun `the album page switches apply at once and its order row opens the organize dialog`() {
+        show(SettingsPage.Album)
+
+        composeRule.onNode(hasText("Show rating bar") and isToggleable()).performClick()
+        composeRule.onNode(hasText("Page content order") and hasClickAction()).performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetAlbumPage(AlbumPagePreferences(showRatingBar = true)),
+                SettingsAction.OpenAlbumSections,
+            ).inOrder()
+    }
+
+    @Test
+    fun `hidden album buttons are checked in the dialog and stored only with OK`() {
+        show(SettingsPage.Album)
+
+        composeRule.onNode(hasText("Hidden buttons") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Resume") and isToggleable()).performClick()
+        composeRule.onNode(hasText("Favorite") and isToggleable()).performClick()
+        composeRule.onNodeWithText("OK").performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetAlbumPage(
+                    AlbumPagePreferences(hiddenButtons = setOf(AlbumButton.Resume, AlbumButton.Favorite)),
+                ),
+            )
     }
 }
 

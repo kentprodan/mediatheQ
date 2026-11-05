@@ -21,4 +21,8 @@ data class Album(
     val genres: List<Genre> = emptyList(),
     /** The album's record labels; filled by the sync only, reads leave it empty. */
     val labels: List<RecordLabel> = emptyList(),
+    /** The server's description of the album (#132), plain text. */
+    val overview: String? = null,
+    /** When the album was released (the server's premiere date, #132). */
+    val releaseDate: Instant? = null,
 )

@@ -24,4 +24,6 @@ data class Track(
     val userData: UserData = UserData(),
     /** The track's genres (id and name); filled by the sync only, reads leave it empty (the queue does not need them). */
     val genres: List<Genre> = emptyList(),
+    /** The original file's size in bytes (#132); `null` when the server did not say. */
+    val sizeBytes: Long? = null,
 )

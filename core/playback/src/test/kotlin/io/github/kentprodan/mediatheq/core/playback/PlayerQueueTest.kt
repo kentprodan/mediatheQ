@@ -21,6 +21,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 @UnstableApi
 @RunWith(RobolectricTestRunner::class)
@@ -57,6 +58,15 @@ class PlayerQueueTest {
         assertThat(currentTitle()).isEqualTo("Track 3")
         assertThat(player.shuffleModeEnabled).isFalse()
         assertThat(player.playWhenReady).isTrue()
+    }
+
+    @Test
+    fun `Resume starts the chosen track at the stored position`() {
+        player.playQueue(items, startIndex = 1, shuffle = false, startPosition = 5.seconds)
+        advance(player).untilPendingCommandsAreFullyHandled()
+
+        assertThat(player.currentMediaItemIndex).isEqualTo(1)
+        assertThat(player.currentPosition).isAtLeast(5_000)
     }
 
     @Test

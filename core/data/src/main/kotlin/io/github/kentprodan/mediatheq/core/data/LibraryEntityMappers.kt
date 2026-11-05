@@ -50,6 +50,8 @@ internal fun Album.toEntity() =
         normalizationGainDb = normalizationGainDb,
         image = artwork.toColumns(),
         userData = userData.toColumns(),
+        overview = overview,
+        releaseDateMillis = releaseDate?.toEpochMilliseconds(),
     )
 
 internal fun Album.artistLinks() =
@@ -81,6 +83,7 @@ internal fun Track.toEntity() =
         spatialFormat = audioFormat?.spatialFormat?.name,
         image = artwork.toColumns(),
         userData = userData.toColumns(),
+        sizeBytes = sizeBytes,
     )
 
 internal fun Track.artistLinks() =
@@ -123,6 +126,8 @@ internal fun AlbumWithArtists.toDomain(): Album {
         normalizationGainDb = album.normalizationGainDb,
         artwork = album.image.toDomain(),
         userData = album.userData.toDomain(),
+        overview = album.overview,
+        releaseDate = album.releaseDateMillis?.let(Instant::fromEpochMilliseconds),
     )
 }
 
@@ -154,6 +159,7 @@ internal fun TrackWithArtists.toDomain(): Track {
         albumNormalizationGainDb = album?.normalizationGainDb,
         artwork = track.image.toDomain(),
         userData = track.userData.toDomain(),
+        sizeBytes = track.sizeBytes,
     )
 }
 

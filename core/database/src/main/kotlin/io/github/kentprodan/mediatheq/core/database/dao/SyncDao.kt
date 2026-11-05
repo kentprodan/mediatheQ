@@ -215,6 +215,7 @@ interface SyncDao {
         replacePlaylistEntries()
         clearSearch()
         clearState()
+        clearAlbumResume()
         clearQueueEntries()
         clearQueueState()
         clearWaveforms()
@@ -222,6 +223,9 @@ interface SyncDao {
 
     @Query("DELETE FROM waveform")
     suspend fun clearWaveforms()
+
+    @Query("DELETE FROM album_resume")
+    suspend fun clearAlbumResume()
 
     @Query("DELETE FROM pending_user_data")
     suspend fun clearPendingUserData()
