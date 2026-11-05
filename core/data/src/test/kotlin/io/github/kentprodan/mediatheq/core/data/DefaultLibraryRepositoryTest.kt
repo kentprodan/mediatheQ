@@ -9,6 +9,8 @@ import io.github.kentprodan.mediatheq.core.common.getOrNull
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumLabelEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumLabelStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
@@ -213,6 +215,34 @@ class DefaultLibraryRepositoryTest {
             val genres = repository.search("r", limitPerKind = 2).getOrNull()!!.genres
 
             assertThat(genres.map { it.name }).containsExactly("Rd")
+        }
+
+    @Test
+    fun `offline a label holds only its albums with downloads, and search keeps a downloaded label within the limit`() =
+        runTest {
+            val names = listOf("La", "Lb", "Lc")
+            database.syncDao().stageAlbums(
+                names.indices.map { AlbumStaging(AlbumEntity("s", "al$it", "A$it", "A$it")) },
+            )
+            database.syncDao().stageTracks(
+                names.indices.map { TrackStaging(TrackEntity("s", "t$it", "T$it", "T$it", albumId = "al$it")) },
+            )
+            database.syncDao().stageAlbumLabelLinks(
+                names.mapIndexed { i, name -> AlbumLabelStaging(AlbumLabelEntity("s", "al$i", "l$i", name)) },
+            )
+            database.syncDao().swap(1, "s", "user-1")
+            downloaded("t2")
+            preferences.setOfflineMode(true)
+
+            assertThat(repository.recordLabels().first().map { it.name }).containsExactly("Lc")
+            assertThat(repository.labelAlbums(MediaId(ServerId("s"), "l0")).first()).isEmpty()
+            assertThat(
+                repository
+                    .search("l", limitPerKind = 1)
+                    .getOrNull()!!
+                    .labels
+                    .map { it.name },
+            ).containsExactly("Lc")
         }
 
     @Test

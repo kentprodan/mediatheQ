@@ -191,7 +191,9 @@ class MigrationTest {
                         "checkpoint_server_id, checkpoint_user_id, checkpoint_started_at, checkpoint_step, " +
                         "checkpoint_index) VALUES (0, 1760000000000, 's', 'u', 's', 'u', 1760000000000, 'Tracks', 500)",
                 )
-                execSQL("INSERT INTO album_genre (server_id, album_id, genre_id, genre_name) VALUES ('s', 'a', 'g', 'Rock')")
+                execSQL(
+                    "INSERT INTO album_genre (server_id, album_id, genre_id, genre_name) VALUES ('s', 'a', 'g', 'Rock')",
+                )
                 execSQL(
                     "INSERT INTO track_genre_staging (server_id, track_id, genre_id, genre_name) " +
                         "VALUES ('s', 't', 'g', 'Rock')",
@@ -206,6 +208,7 @@ class MigrationTest {
                 assertThat(it.getLong(0)).isEqualTo(0)
                 assertThat(it.isNull(1)).isTrue()
             }
+
             fun count(table: String) =
                 connection.prepare("SELECT COUNT(*) FROM $table").use {
                     it.step()

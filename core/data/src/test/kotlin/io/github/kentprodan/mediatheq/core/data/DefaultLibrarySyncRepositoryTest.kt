@@ -18,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
@@ -162,6 +163,25 @@ class DefaultLibrarySyncRepositoryTest {
             assertThat(count("album_genre_staging")).isEqualTo(0)
             assertThat(count("track_genre_staging")).isEqualTo(0)
             assertThat(library.search("roc").let { (it as MqResult.Success).value.genres }).containsExactly(genre)
+        }
+
+    @Test
+    fun `a full sync carries the albums' record labels into the library and search`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 10)
+            val atlantic = RecordLabel(id("l-atl"), "Atlantic")
+            source.albums =
+                source.albums.mapIndexed { i, album -> if (i == 0) album.copy(labels = listOf(atlantic)) else album }
+            signIn()
+
+            assertThat(repository().sync()).isEqualTo(MqResult.Success(Unit))
+
+            val label = library.recordLabels().first().single()
+            assertThat(label.name).isEqualTo("Atlantic")
+            assertThat(label.albumCount).isEqualTo(1)
+            assertThat(library.labelAlbums(atlantic.id).first().map { it.id }).containsExactly(source.albums[0].id)
+            assertThat(count("album_label_staging")).isEqualTo(0)
+            assertThat(library.search("atl").let { (it as MqResult.Success).value.labels }).containsExactly(label)
         }
 
     @Test
@@ -604,21 +624,28 @@ class DefaultLibrarySyncRepositoryTest {
         }
 
     @Test
-    fun `a step fetched once more drops the genre links staged by its first pass`() =
+    fun `a step fetched once more drops the genre and label links staged by its first pass`() =
         runTest(dispatcher) {
             fillSource(trackCount = 10)
-            source.albums = source.albums.map { it.copy(genres = listOf(Genre(id("g-rock"), "Rock"))) }
+            source.albums =
+                source.albums.map {
+                    it.copy(genres = listOf(Genre(id("g-rock"), "Rock")), labels = listOf(RecordLabel(id("l-a"), "A")))
+                }
             source.shortListings = setOf("albums")
             source.pauseAt = 2 // the first albums@0, already holding Rock
             signIn()
             val sync = backgroundScope.async { repository().sync() }
             source.paused.await()
-            source.albums = source.albums.map { it.copy(genres = listOf(Genre(id("g-jazz"), "Jazz"))) }
+            source.albums =
+                source.albums.map {
+                    it.copy(genres = listOf(Genre(id("g-jazz"), "Jazz")), labels = listOf(RecordLabel(id("l-b"), "B")))
+                }
             source.resume.complete(Unit)
 
             assertThat(sync.await()).isEqualTo(MqResult.Success(Unit))
             assertThat(source.calls.count { it == "albums@0" }).isEqualTo(2)
             assertThat(library.genres().first().map { it.name }).containsExactly("Jazz")
+            assertThat(library.recordLabels().first().map { it.name }).containsExactly("B")
         }
 
     @Test
