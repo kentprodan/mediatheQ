@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
+import io.github.kentprodan.mediatheq.core.data.mixTracks
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.HomeSection
@@ -264,6 +265,22 @@ class HomeViewModelTest {
             assertThat(play.queue).containsExactlyElementsIn(tracks)
             assertThat(play.queue.last().title).isEqualTo("a2")
             assertThat(play.shuffle).isFalse()
+        }
+
+    @Test
+    fun `mixes draw from the home seed, a new order at each tap`() =
+        test {
+            val tracks = (1..30).map { track("t$it") }
+            library.tracks.value = tracks
+            val viewModel = viewModel()
+
+            viewModel.onAction(HomeAction.PlayMix(Mix.Tracks))
+            viewModel.onAction(HomeAction.PlayMix(Mix.Tracks))
+            val seeded = HomeShuffle(1)
+            val expected = (1..2).map { mixTracks(Mix.Tracks, tracks, emptyList(), seeded.mixRandom(), day(20)) }
+
+            assertThat(playback.plays.map { it.queue }).isEqualTo(expected)
+            assertThat(expected[0]).isNotEqualTo(expected[1])
         }
 
     @Test

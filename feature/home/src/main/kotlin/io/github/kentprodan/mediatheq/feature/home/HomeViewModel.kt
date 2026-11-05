@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import kotlin.random.Random
 import kotlin.time.Clock
 
 /**
@@ -119,7 +118,13 @@ class HomeViewModel
                         val queue =
                             withContext(defaultDispatcher) {
                                 val tracks = libraryRepository.tracks().first()
-                                mixTracks(action.mix, tracks, libraryRepository.albums().first(), Random, clock.now())
+                                mixTracks(
+                                    action.mix,
+                                    tracks,
+                                    libraryRepository.albums().first(),
+                                    shuffle.mixRandom(),
+                                    clock.now(),
+                                )
                             }
                         if (queue.isNotEmpty()) playback.play(queue)
                     }
