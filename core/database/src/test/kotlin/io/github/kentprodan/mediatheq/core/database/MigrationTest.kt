@@ -181,4 +181,39 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `7 to 8 adds empty label links, drops staged genre links and makes the next start sync them`() =
+        runTest {
+            helper.createDatabase(7).apply {
+                execSQL(
+                    "INSERT INTO sync_state (id, last_full_sync_at, owner_server_id, owner_user_id, " +
+                        "checkpoint_server_id, checkpoint_user_id, checkpoint_started_at, checkpoint_step, " +
+                        "checkpoint_index) VALUES (0, 1760000000000, 's', 'u', 's', 'u', 1760000000000, 'Tracks', 500)",
+                )
+                execSQL("INSERT INTO album_genre (server_id, album_id, genre_id, genre_name) VALUES ('s', 'a', 'g', 'Rock')")
+                execSQL(
+                    "INSERT INTO track_genre_staging (server_id, track_id, genre_id, genre_name) " +
+                        "VALUES ('s', 't', 'g', 'Rock')",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(8)
+
+            connection.prepare("SELECT last_full_sync_at, checkpoint_step FROM sync_state").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(0)
+                assertThat(it.isNull(1)).isTrue()
+            }
+            fun count(table: String) =
+                connection.prepare("SELECT COUNT(*) FROM $table").use {
+                    it.step()
+                    it.getLong(0)
+                }
+            assertThat(count("track_genre_staging")).isEqualTo(0)
+            assertThat(count("album_genre")).isEqualTo(1)
+            assertThat(count("album_label")).isEqualTo(0)
+            connection.close()
+        }
 }

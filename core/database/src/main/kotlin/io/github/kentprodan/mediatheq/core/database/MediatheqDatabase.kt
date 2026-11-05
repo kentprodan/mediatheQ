@@ -15,6 +15,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreStaging
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumLabelEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumLabelStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
@@ -38,7 +40,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 7,
+    version = 8,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -65,6 +67,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         TrackGenreEntity::class,
         AlbumGenreStaging::class,
         TrackGenreStaging::class,
+        AlbumLabelEntity::class,
+        AlbumLabelStaging::class,
     ],
     autoMigrations = [
         // 2: the saved play queue (#14) and an index on track.album_id.
@@ -79,6 +83,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 5, to = 6),
         // 7: album and track genres (#130); the next start runs a full sync that fills them.
         AutoMigration(from = 6, to = 7, spec = SyncGenresMigration::class),
+        AutoMigration(from = 7, to = 8, spec = SyncLabelsMigration::class),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {
