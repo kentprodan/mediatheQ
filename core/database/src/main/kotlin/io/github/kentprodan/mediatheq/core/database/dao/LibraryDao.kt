@@ -8,6 +8,7 @@ import androidx.room3.Relation
 import androidx.room3.Transaction
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumLabelEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ImageColumns
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
@@ -256,6 +257,24 @@ interface LibraryDao {
         all: Boolean,
         downloaded: List<String>,
     ): Flow<List<TrackWithArtists>>
+
+    /** The album's genre names (#132), by name. */
+    @Query(
+        "SELECT genre_name FROM album_genre WHERE server_id = :serverId AND album_id = :albumId ORDER BY genre_name COLLATE NOCASE",
+    )
+    fun albumGenreNames(
+        serverId: String,
+        albumId: String,
+    ): Flow<List<String>>
+
+    /** The album's record labels (#132), by name. */
+    @Query(
+        "SELECT * FROM album_label WHERE server_id = :serverId AND album_id = :albumId ORDER BY label_name COLLATE NOCASE",
+    )
+    fun albumLabels(
+        serverId: String,
+        albumId: String,
+    ): Flow<List<AlbumLabelEntity>>
 
     /** One artist, album artist or credit-only, `null` when it is not in the library. */
     @Query("SELECT * FROM artist WHERE server_id = :serverId AND id = :artistId")

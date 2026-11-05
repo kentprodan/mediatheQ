@@ -39,5 +39,10 @@ private val STAGING_7 = STAGING_6 + listOf("album_genre_staging", "track_genre_s
 /** 6 -> 7 (#130): the library has no genres yet. */
 class SyncGenresMigration : ResyncMigration(STAGING_7)
 
+private val STAGING_8 = STAGING_7 + "album_label_staging"
+
 /** 7 -> 8 (#131): the library has no record labels yet. */
-class SyncLabelsMigration : ResyncMigration(STAGING_7 + "album_label_staging")
+class SyncLabelsMigration : ResyncMigration(STAGING_8)
+
+/** 8 -> 9 (#132): albums have no overview or release date, tracks no file size yet. */
+class SyncAlbumPageMigration : ResyncMigration(STAGING_8)
