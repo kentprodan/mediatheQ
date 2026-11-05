@@ -3,8 +3,22 @@
     <string name="genre_back">Back</string>
     <string name="genre_albums">Albums</string>
     <string name="genre_album_artists">Album artists</string>
-    <string name="genre_tracks">Tracks</string>
     <string name="genre_show_all">Show all</string>
+    <string name="genre_artists">Artists</string>
+    <string name="genre_top_tracks">Top tracks</string>
+    <string name="genre_play">Play</string>
+    <string name="genre_shuffle">Shuffle</string>
+    <string name="genre_play_next">Play next</string>
+    <string name="genre_add_to_queue">Add to queue</string>
+    <string name="genre_more_options">More options for %1$s</string>
+    <plurals name="genre_album_count">
+        <item quantity="one">%d album</item>
+        <item quantity="other">%d albums</item>
+    </plurals>
+    <plurals name="genre_artist_count">
+        <item quantity="one">%d artist</item>
+        <item quantity="other">%d artists</item>
+    </plurals>
     <string name="genre_not_found_title">Genre not available</string>
     <string name="genre_not_found_body">Nothing in your library carries it any more.</string>
 </resources>
