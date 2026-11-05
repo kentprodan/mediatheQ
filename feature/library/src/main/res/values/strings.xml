@@ -13,8 +13,6 @@
     <string name="library_sort_album">Album</string>
     <string name="library_view_options">View options</string>
     <string name="library_columns">%1$d columns</string>
-    <string name="library_style_chips">Filter chips</string>
-    <string name="library_style_buttons">Connected buttons</string>
     <string name="library_empty_title">Nothing here yet</string>
     <string name="library_empty_body">Your server has no music of this kind.</string>
     <string name="library_sync_now">Sync now</string>
@@ -42,5 +40,12 @@
     <plurals name="library_items">
         <item quantity="one">%1$d item</item>
         <item quantity="other">%1$d items</item>
+    </plurals>
+    <string name="library_filter_years">Years</string>
+    <string name="library_sort_album_count">Album count</string>
+    <string name="library_unknown_year">Unknown year</string>
+    <plurals name="library_year_albums">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d albums</item>
     </plurals>
 </resources>

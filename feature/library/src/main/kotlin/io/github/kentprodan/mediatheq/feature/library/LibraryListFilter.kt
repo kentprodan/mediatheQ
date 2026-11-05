@@ -109,6 +109,7 @@ internal val LibraryContent.itemCount: Int
             is LibraryContent.Artists -> artists.size
             is LibraryContent.Playlists -> playlists.size
             is LibraryContent.Songs -> tracks.size
+            is LibraryContent.Years -> years.size
             else -> 0
         }
 

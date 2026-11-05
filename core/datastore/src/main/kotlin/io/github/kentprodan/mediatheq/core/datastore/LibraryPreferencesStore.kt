@@ -32,7 +32,6 @@ class LibraryPreferencesStore
             data
                 .map { prefs ->
                     StoredLibraryPreferences(
-                        filterStyle = prefs[FILTER_STYLE],
                         albumColumns = prefs[ALBUM_COLUMNS],
                         dynamicColor = prefs[DYNAMIC_COLOR],
                         theme =
@@ -90,6 +89,14 @@ class LibraryPreferencesStore
                                 order = prefs[HOME_ORDER]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
                                 hidden = prefs[HOME_HIDDEN]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
                             ),
+                        libraryPage =
+                            StoredLibraryPage(
+                                shortcuts = prefs[LP_SHORTCUTS]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
+                                style = prefs[LP_STYLE],
+                                columns = prefs[LP_COLUMNS],
+                                landscapeColumns = prefs[LP_LANDSCAPE_COLUMNS],
+                                spacing = prefs[LP_SPACING],
+                            ),
                         offlineMode = prefs[OFFLINE_MODE],
                         qualityDetail = prefs[QUALITY_DETAIL],
                         sorts =
@@ -100,10 +107,6 @@ class LibraryPreferencesStore
                                 .toMap(),
                     )
                 }
-
-        suspend fun setFilterStyle(name: String) {
-            dataStore.edit { it[FILTER_STYLE] = name }
-        }
 
         suspend fun setAlbumColumns(columns: Int) {
             dataStore.edit { it[ALBUM_COLUMNS] = columns }
@@ -169,6 +172,19 @@ class LibraryPreferencesStore
             dataStore.edit { prefs ->
                 prefs.put(HOME_ORDER, home.order?.joinToString(LIST_SEPARATOR))
                 prefs.put(HOME_HIDDEN, home.hidden?.joinToString(LIST_SEPARATOR))
+            }
+        }
+
+        /** Stores every Library page value at once (#129); null removes it. */
+        suspend fun setLibraryPage(page: StoredLibraryPage) {
+            dataStore.edit { prefs ->
+                // The filter style of the old tabbed Library (ADR 0014) goes with it.
+                prefs.remove(OLD_FILTER_STYLE)
+                prefs.put(LP_SHORTCUTS, page.shortcuts?.joinToString(LIST_SEPARATOR))
+                prefs.put(LP_STYLE, page.style)
+                prefs.put(LP_COLUMNS, page.columns)
+                prefs.put(LP_LANDSCAPE_COLUMNS, page.landscapeColumns)
+                prefs.put(LP_SPACING, page.spacing)
             }
         }
 
@@ -240,7 +256,12 @@ class LibraryPreferencesStore
         private fun String?.toList() = this?.split(SEPARATOR)?.filter { it.isNotBlank() }.orEmpty()
 
         private companion object {
-            val FILTER_STYLE = stringPreferencesKey("filter_style")
+            val OLD_FILTER_STYLE = stringPreferencesKey("filter_style")
+            val LP_SHORTCUTS = stringPreferencesKey("lp_shortcuts")
+            val LP_STYLE = stringPreferencesKey("lp_style")
+            val LP_COLUMNS = intPreferencesKey("lp_columns")
+            val LP_LANDSCAPE_COLUMNS = intPreferencesKey("lp_landscape_columns")
+            val LP_SPACING = stringPreferencesKey("lp_spacing")
             val ALBUM_COLUMNS = intPreferencesKey("album_columns")
             val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
             val RATING_MODE = stringPreferencesKey("rating_mode")
@@ -293,7 +314,6 @@ class LibraryPreferencesStore
 
 /** Library preferences as stored; any field may be missing or out of date. */
 data class StoredLibraryPreferences(
-    val filterStyle: String? = null,
     val albumColumns: Int? = null,
     /** Tab name -> sort name. */
     val sorts: Map<String, String> = emptyMap(),
@@ -305,7 +325,18 @@ data class StoredLibraryPreferences(
     val mediaLists: StoredMediaLists = StoredMediaLists(),
     val nowPlaying: StoredNowPlaying = StoredNowPlaying(),
     val home: StoredHome = StoredHome(),
+    val libraryPage: StoredLibraryPage = StoredLibraryPage(),
     val qualityDetail: Boolean? = null,
+)
+
+/** Library page values as stored (#129); `null` = not set. */
+data class StoredLibraryPage(
+    /** Tile names in order. */
+    val shortcuts: List<String>? = null,
+    val style: String? = null,
+    val columns: Int? = null,
+    val landscapeColumns: Int? = null,
+    val spacing: String? = null,
 )
 
 /** Home's rows as stored (#127): section names; `null` = not set (defaults). */

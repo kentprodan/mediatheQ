@@ -36,4 +36,7 @@ object MediatheqSizes {
 
     /** A Home carousel's large cover (#127): its preferred width and the carousel's height. */
     val carouselItem = 220.dp
+
+    /** The narrowest Library hub tile at font scale 1 (#129): room for "Playlists"; larger fonts widen it. */
+    val libraryTileMinWidth = 88.dp
 }

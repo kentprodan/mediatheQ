@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.library
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -27,6 +28,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -47,6 +49,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -54,13 +57,11 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
+import io.github.kentprodan.mediatheq.core.data.YearAlbums
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
-import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBar
-import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBarStyle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
 import io.github.kentprodan.mediatheq.core.designsystem.component.bottomBarsPadding
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
@@ -68,6 +69,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
 import io.github.kentprodan.mediatheq.core.ui.ArtistRow
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
@@ -88,11 +90,16 @@ internal fun LibraryRoute(
     onNewPlaylist: () -> Unit,
     onOpenDownloads: () -> Unit,
     onAddToPlaylist: (List<MediaId>) -> Unit,
-    fixedFilter: LibraryFilter? = null,
+    filter: LibraryFilter,
+    /** Back from a list opened inside a tab (from the hub); `null` for a list that is a navigation entry. */
+    onBack: (() -> Unit)? = null,
+    onOpenYear: (YearKey) -> Unit = {},
+    /** A year's page (#129): the albums of that year. */
+    yearPage: YearKey? = null,
     viewModel: LibraryViewModel =
         hiltViewModel<LibraryViewModel, LibraryViewModel.Factory>(
-            key = fixedFilter?.name ?: "library",
-            creationCallback = { it.create(fixedFilter) },
+            key = yearPage?.let { "year-${it.year}" } ?: filter.name,
+            creationCallback = { it.create(filter, yearPage) },
         ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -105,10 +112,12 @@ internal fun LibraryRoute(
         onNewPlaylist = onNewPlaylist,
         onOpenDownloads = onOpenDownloads,
         onAddToPlaylist = onAddToPlaylist,
+        onBack = onBack,
+        onOpenYear = onOpenYear,
     )
 }
 
-/** Stateless Library tab: top bar with sort and view menus, filter bar, pull-to-refresh list or grid. */
+/** Stateless Library list: the list header with sort and view menus, then a pull-to-refresh list or grid. */
 @Composable
 fun LibraryScreen(
     state: LibraryUiState,
@@ -122,6 +131,7 @@ fun LibraryScreen(
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
     /** Back from a list that is not a navigation tab; `null` hides the button. */
     onBack: (() -> Unit)? = null,
+    onOpenYear: (YearKey) -> Unit = {},
 ) {
     // Back ends selecting first, then closes search in list.
     BackHandler(enabled = state.selection.isActive) { onAction(LibraryAction.ClearSelection) }
@@ -140,7 +150,7 @@ fun LibraryScreen(
             onRate = { track, stars -> onAction(LibraryAction.RateTrack(track, stars)) },
             onCommand = { track, right -> onAction(LibraryAction.SwipeTrack(track, right)) },
         )
-    // One scroll state per tab, kept above the content so switching tabs and back keeps each position.
+    // One scroll state per kind of list, kept above the content.
     val albumsState = rememberLazyGridState()
     val artistsState = rememberLazyListState()
     val playlistsState = rememberLazyListState()
@@ -169,20 +179,6 @@ fun LibraryScreen(
         contentWindowInsets = WindowInsets(0),
     ) { padding ->
         Column(Modifier.padding(padding)) {
-            // Shown once the saved style is known; the list is still loading until then.
-            state.filterStyle?.takeUnless { state.filterFixed }?.let { filterStyle ->
-                MqFilterBar(
-                    labels = LibraryFilter.entries.map { stringResource(it.label) },
-                    selectedIndex = state.filter.ordinal,
-                    onSelect = { onAction(LibraryAction.SelectFilter(LibraryFilter.entries[it])) },
-                    style =
-                        when (filterStyle) {
-                            FilterControlStyle.Chips -> MqFilterBarStyle.Chips
-                            FilterControlStyle.ConnectedButtons -> MqFilterBarStyle.ConnectedButtons
-                        },
-                    modifier = Modifier.padding(bottom = MediatheqSpacing.s),
-                )
-            }
             state.listFilter.search?.let { text -> SearchInList(text, onAction) }
             PullToRefreshBox(
                 // The full-screen loading indicator already shows progress; no second spinner on top.
@@ -200,6 +196,7 @@ fun LibraryScreen(
                     onOpenPlaylist = onOpenPlaylist,
                     onOpenDownloads = onOpenDownloads,
                     onSwipe = swipe,
+                    onOpenYear = onOpenYear,
                 )
                 if (state.selection.isActive) {
                     SelectionToolbar(
@@ -233,6 +230,7 @@ private fun LibraryContentView(
     onOpenPlaylist: (MediaId) -> Unit,
     onOpenDownloads: () -> Unit,
     onSwipe: (Track, Boolean) -> Unit,
+    onOpenYear: (YearKey) -> Unit,
 ) {
     val selection = state.selection
     // While selecting, the last items can scroll up from under the floating toolbar.
@@ -390,6 +388,34 @@ private fun LibraryContentView(
                     )
                 }
             }
+        }
+
+        is LibraryContent.Years -> {
+            YearsList(content.years, listPadding, onOpenYear)
+        }
+    }
+}
+
+/** The Years list (#129): each year with its album count; a tap opens its albums. */
+@Composable
+private fun YearsList(
+    years: List<YearAlbums>,
+    contentPadding: PaddingValues,
+    onOpenYear: (YearKey) -> Unit,
+) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = contentPadding) {
+        // Unknown year (null) gets its own text key: keys must be saveable.
+        items(years, key = { it.year?.toString() ?: "unknown" }) { year ->
+            ListItem(
+                headlineContent = {
+                    Text(year.year?.toString() ?: stringResource(R.string.library_unknown_year))
+                },
+                supportingContent = {
+                    Text(pluralStringResource(R.plurals.library_year_albums, year.albums.size, year.albums.size))
+                },
+                leadingContent = { Icon(MqIcons.CalendarMonth, contentDescription = null) },
+                modifier = Modifier.clickable { onOpenYear(YearKey(year.year)) },
+            )
         }
     }
 }

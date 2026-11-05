@@ -23,8 +23,6 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqCoverCarouse
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialogContent
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
-import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBar
-import io.github.kentprodan.mediatheq.core.designsystem.component.MqFilterBarStyle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqRatingDialogContent
@@ -104,25 +102,6 @@ fun ArtistAvatarScreenshot() {
             ) {
                 MqArtistAvatar(model = null, Modifier.width(CoverWidth))
                 MqArtistAvatar(model = rememberPreviewCover(), Modifier.width(CoverWidth))
-            }
-        }
-    }
-}
-
-/** Filter bar in both styles (ADR 0014), second option selected. */
-@PreviewTest
-@MqPreviews
-@Composable
-fun MqFilterBarScreenshot() {
-    val labels = listOf("Albums", "Artists", "Playlists", "Songs")
-    MediatheqTheme {
-        Surface {
-            Column(
-                Modifier.padding(vertical = MediatheqSpacing.l),
-                verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.l),
-            ) {
-                MqFilterBar(labels, selectedIndex = 1, onSelect = {})
-                MqFilterBar(labels, selectedIndex = 1, onSelect = {}, style = MqFilterBarStyle.ConnectedButtons)
             }
         }
     }

@@ -15,7 +15,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -39,7 +38,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
-import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
@@ -71,7 +69,7 @@ internal fun LibraryHeader(
             }
             Icon(state.titleIcon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Text(
-                stringResource(if (state.filterFixed) state.filter.label else R.string.library_title),
+                state.title,
                 Modifier.weight(1f).padding(horizontal = MediatheqSpacing.m).semantics { heading() },
                 style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
@@ -163,40 +161,45 @@ private fun ToolRow(
             }
         }
         Box(Modifier.weight(1f))
-        Box {
-            // Downloaded only stays set across tabs but does nothing on Artists, where it cannot be unticked.
-            val filterOn =
-                listFilter.favoritesOnly || (listFilter.downloadedOnly && state.filter != LibraryFilter.Artists)
-            val on = stringResource(R.string.library_filter_on)
-            IconButton(
-                onClick = { filterMenu = true },
-                colors =
-                    if (filterOn) {
-                        IconButtonDefaults.filledTonalIconButtonColors()
-                    } else {
-                        IconButtonDefaults
-                            .iconButtonColors()
-                    },
-                modifier = Modifier.semantics { if (filterOn) stateDescription = on },
-            ) { Icon(MqIcons.FilterList, contentDescription = stringResource(R.string.library_filter)) }
-            DropdownMenu(expanded = filterMenu, onDismissRequest = { filterMenu = false }) {
-                CheckMenuItem(stringResource(R.string.library_favorites_only), listFilter.favoritesOnly) {
-                    onAction(LibraryAction.SetFavoritesOnly(!listFilter.favoritesOnly))
-                }
-                // Artists have no download state of their own.
-                if (state.filter != LibraryFilter.Artists) {
-                    CheckMenuItem(stringResource(R.string.library_downloaded_only), listFilter.downloadedOnly) {
-                        onAction(LibraryAction.SetDownloadedOnly(!listFilter.downloadedOnly))
+        // Years are no items of their own: nothing to filter, select or search (#129).
+        val itemTools = state.filter != LibraryFilter.Years
+        if (itemTools) {
+            Box {
+                // Downloaded only stays set across lists but does nothing on Artists, where it cannot be unticked.
+                val filterOn =
+                    listFilter.favoritesOnly || (listFilter.downloadedOnly && state.filter != LibraryFilter.Artists)
+                val on = stringResource(R.string.library_filter_on)
+                IconButton(
+                    onClick = { filterMenu = true },
+                    colors =
+                        if (filterOn) {
+                            IconButtonDefaults.filledTonalIconButtonColors()
+                        } else {
+                            IconButtonDefaults
+                                .iconButtonColors()
+                        },
+                    modifier = Modifier.semantics { if (filterOn) stateDescription = on },
+                ) { Icon(MqIcons.FilterList, contentDescription = stringResource(R.string.library_filter)) }
+                DropdownMenu(expanded = filterMenu, onDismissRequest = { filterMenu = false }) {
+                    CheckMenuItem(stringResource(R.string.library_favorites_only), listFilter.favoritesOnly) {
+                        onAction(LibraryAction.SetFavoritesOnly(!listFilter.favoritesOnly))
+                    }
+                    // Artists have no download state of their own.
+                    if (state.filter != LibraryFilter.Artists) {
+                        CheckMenuItem(stringResource(R.string.library_downloaded_only), listFilter.downloadedOnly) {
+                            onAction(LibraryAction.SetDownloadedOnly(!listFilter.downloadedOnly))
+                        }
                     }
                 }
             }
         }
-        Box {
-            IconButton(onClick = { viewMenu = true }) {
-                Icon(MqIcons.GridView, contentDescription = stringResource(R.string.library_view_options))
-            }
-            DropdownMenu(expanded = viewMenu, onDismissRequest = { viewMenu = false }) {
-                if (state.filter == LibraryFilter.Albums) {
+        // Only the album grid has view options (its columns).
+        if (state.filter == LibraryFilter.Albums) {
+            Box {
+                IconButton(onClick = { viewMenu = true }) {
+                    Icon(MqIcons.GridView, contentDescription = stringResource(R.string.library_view_options))
+                }
+                DropdownMenu(expanded = viewMenu, onDismissRequest = { viewMenu = false }) {
                     LibraryPreferences.ALBUM_COLUMNS.forEach { columns ->
                         CheckedMenuItem(
                             stringResource(R.string.library_columns, columns),
@@ -206,23 +209,18 @@ private fun ToolRow(
                             viewMenu = false
                         }
                     }
-                    HorizontalDivider()
-                }
-                FilterControlStyle.entries.forEach { style ->
-                    CheckedMenuItem(stringResource(style.label), checked = style == state.filterStyle) {
-                        onAction(LibraryAction.SetFilterStyle(style))
-                        viewMenu = false
-                    }
                 }
             }
         }
-        if (onSelect != null) {
+        if (onSelect != null && itemTools) {
             IconButton(onClick = onSelect, enabled = state.itemCount > 0) {
                 Icon(MqIcons.Checklist, contentDescription = stringResource(R.string.library_select))
             }
         }
-        IconButton(onClick = { onAction(LibraryAction.Search(if (listFilter.search == null) "" else null)) }) {
-            Icon(MqIcons.Search, contentDescription = stringResource(R.string.library_search_in_list))
+        if (itemTools) {
+            IconButton(onClick = { onAction(LibraryAction.Search(if (listFilter.search == null) "" else null)) }) {
+                Icon(MqIcons.Search, contentDescription = stringResource(R.string.library_search_in_list))
+            }
         }
         if (state.header.showItemCounts && state.itemCount > 0) {
             Text(
@@ -275,21 +273,32 @@ private fun CheckMenuItem(
     )
 }
 
-/** The natural direction of a sort: names up (A to Z), dates and years down (newest first). */
+/** The natural direction of a sort: names up (A to Z), dates, years and counts down (newest / most first). */
 internal val LibrarySort.ascending: Boolean
-    get() = this != LibrarySort.RecentlyAdded && this != LibrarySort.Year
+    get() = this != LibrarySort.RecentlyAdded && this != LibrarySort.Year && this != LibrarySort.AlbumCount
+
+/** The list's name, or on a year's page the year ("Unknown year" without one). */
+private val LibraryUiState.title: String
+    @Composable get() =
+        yearPage?.let { page -> page.year?.toString() ?: stringResource(R.string.library_unknown_year) }
+            ?: stringResource(filter.label)
 
 private val LibraryUiState.titleIcon: ImageVector
     @Composable get() =
-        if (!filterFixed) {
-            MqIcons.Library
+        if (yearPage != null) {
+            MqIcons.CalendarMonth
         } else {
-            when (filter) {
-                LibraryFilter.Albums -> MqIcons.Library
-                LibraryFilter.Artists -> MqIcons.Person
-                LibraryFilter.Playlists -> MqIcons.QueueMusic
-                LibraryFilter.Songs -> MqIcons.MusicNote
-            }
+            filter.icon
+        }
+
+internal val LibraryFilter.icon: ImageVector
+    @Composable get() =
+        when (this) {
+            LibraryFilter.Albums -> MqIcons.Library
+            LibraryFilter.Artists -> MqIcons.Person
+            LibraryFilter.Playlists -> MqIcons.QueueMusic
+            LibraryFilter.Songs -> MqIcons.MusicNote
+            LibraryFilter.Years -> MqIcons.CalendarMonth
         }
 
 private val TopButton.label: Int
@@ -317,6 +326,7 @@ internal val LibraryFilter.label: Int
             LibraryFilter.Artists -> R.string.library_filter_artists
             LibraryFilter.Playlists -> R.string.library_filter_playlists
             LibraryFilter.Songs -> R.string.library_filter_songs
+            LibraryFilter.Years -> R.string.library_filter_years
         }
 
 internal val LibrarySort.label: Int
@@ -327,11 +337,5 @@ internal val LibrarySort.label: Int
             LibrarySort.Year -> R.string.library_sort_year
             LibrarySort.Artist -> R.string.library_sort_artist
             LibrarySort.Album -> R.string.library_sort_album
-        }
-
-internal val FilterControlStyle.label: Int
-    get() =
-        when (this) {
-            FilterControlStyle.Chips -> R.string.library_style_chips
-            FilterControlStyle.ConnectedButtons -> R.string.library_style_buttons
+            LibrarySort.AlbumCount -> R.string.library_sort_album_count
         }

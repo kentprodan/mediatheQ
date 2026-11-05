@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.navigation
 
 import androidx.navigation3.runtime.NavKey
+import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import kotlinx.serialization.Serializable
 
@@ -32,4 +33,16 @@ data class AddToPlaylistKey(
         @Serializable(with = MediaIdSerializer::class)
         MediaId,
     >,
+) : NavKey
+
+/** A Library list opened from the hub (#129), on top of the Library tab: it has a Back button. */
+@Serializable
+data class LibraryListKey(
+    val shortcut: LibraryShortcut,
+) : NavKey
+
+/** The albums of a year (#129); [year] `null` = albums without a year. */
+@Serializable
+data class YearKey(
+    val year: Int?,
 ) : NavKey

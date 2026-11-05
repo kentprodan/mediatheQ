@@ -1,6 +1,5 @@
 package io.github.kentprodan.mediatheq.feature.library
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -19,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.albumYears
 import io.github.kentprodan.mediatheq.core.data.downloadAlbums
 import io.github.kentprodan.mediatheq.core.data.downloadPlaylists
 import io.github.kentprodan.mediatheq.core.data.tracksOfAlbums
@@ -26,6 +26,7 @@ import io.github.kentprodan.mediatheq.core.data.tracksOfArtists
 import io.github.kentprodan.mediatheq.core.data.tracksOfPlaylists
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
@@ -54,9 +55,10 @@ import kotlinx.coroutines.launch
 class LibraryViewModel
     @AssistedInject
     constructor(
-        /** Set when the screen is a navigation entry of its own (Albums, Tracks, ..., #122); `null` for Library. */
-        @Assisted private val fixedFilter: LibraryFilter?,
-        private val savedStateHandle: SavedStateHandle,
+        /** The list this screen shows (#129: every Library list is a screen of its own). */
+        @Assisted private val fixedFilter: LibraryFilter,
+        /** A year's page (#129): the albums of that year. */
+        @Assisted private val yearPage: YearKey?,
         private val libraryRepository: LibraryRepository,
         private val syncRepository: LibrarySyncRepository,
         private val preferencesRepository: LibraryPreferencesRepository,
@@ -68,9 +70,7 @@ class LibraryViewModel
         private val playlists: PlaylistRepository,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
-        // Saved, so the tab (and its restored scroll position) comes back after process death.
-        private val filter: StateFlow<LibraryFilter> =
-            fixedFilter?.let { MutableStateFlow(it) } ?: savedStateHandle.getStateFlow(FILTER_KEY, LibraryFilter.Albums)
+        private val filter: StateFlow<LibraryFilter> = MutableStateFlow(fixedFilter)
 
         private val listFilter = MutableStateFlow(LibraryListFilter())
         private val selection = MutableStateFlow(ListSelection<MediaId>())
@@ -140,8 +140,7 @@ class LibraryViewModel
                 val failureShownAsContent = content is LibraryContent.Offline || content is LibraryContent.Error
                 LibraryUiState(
                     filter = filter,
-                    filterFixed = fixedFilter != null,
-                    filterStyle = preferences.filterStyle,
+                    yearPage = yearPage,
                     albumColumns = preferences.albumColumns,
                     sort = preferences.sortFor(filter),
                     content = content,
@@ -161,17 +160,11 @@ class LibraryViewModel
             }.stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
-                // The restored tab, not the default one, from the first frame (its top bar differs).
-                LibraryUiState(filter = filter.value, filterFixed = fixedFilter != null, filterStyle = null),
+                LibraryUiState(filter = fixedFilter, yearPage = yearPage),
             )
 
         fun onAction(action: LibraryAction) {
             when (action) {
-                is LibraryAction.SelectFilter -> {
-                    if (fixedFilter == null) savedStateHandle[FILTER_KEY] = action.filter
-                    selection.value = ListSelection()
-                }
-
                 is LibraryAction.ToggleSelection -> {
                     selection.update { it.retain(uiState.value.content.ids).toggle(action.id) }
                 }
@@ -259,10 +252,6 @@ class LibraryViewModel
                     launch { preferencesRepository.setAlbumColumns(action.columns) }
                 }
 
-                is LibraryAction.SetFilterStyle -> {
-                    launch { preferencesRepository.setFilterStyle(action.style) }
-                }
-
                 LibraryAction.Refresh -> {
                     launch { syncRepository.sync() }
                 }
@@ -310,19 +299,47 @@ class LibraryViewModel
         /** The tracks of the shown list, in its order: albums and playlists in their order, artists' own. */
         private suspend fun tracksOf(content: LibraryContent): List<Track> =
             when (content) {
-                is LibraryContent.Albums -> libraryRepository.tracksOfAlbums(content.albums.map { it.id })
-                is LibraryContent.Artists -> libraryRepository.tracksOfArtists(content.artists.map { it.id })
-                is LibraryContent.Playlists -> playlists.tracksOfPlaylists(content.playlists.map { it.id })
-                is LibraryContent.Songs -> content.tracks
-                else -> emptyList()
+                is LibraryContent.Albums -> {
+                    libraryRepository.tracksOfAlbums(content.albums.map { it.id })
+                }
+
+                is LibraryContent.Artists -> {
+                    libraryRepository.tracksOfArtists(content.artists.map { it.id })
+                }
+
+                is LibraryContent.Playlists -> {
+                    playlists.tracksOfPlaylists(content.playlists.map { it.id })
+                }
+
+                is LibraryContent.Songs -> {
+                    content.tracks
+                }
+
+                is LibraryContent.Years -> {
+                    libraryRepository.tracksOfAlbums(
+                        content.years.flatMap { it.albums }.map { it.id },
+                    )
+                }
+
+                else -> {
+                    emptyList()
+                }
             }
 
         /** Items of [filter], as a function that sorts them into content. */
         private fun itemsOf(filter: LibraryFilter): Flow<Sorter> =
             when (filter) {
                 LibraryFilter.Albums -> {
+                    libraryRepository.albums().map { all ->
+                        val list = if (yearPage == null) all else all.filter { it.year == yearPage.year }
+                        val sorter: Sorter = { sort -> LibraryContent.Albums(list.sortedFor(sort)) }
+                        sorter
+                    }
+                }
+
+                LibraryFilter.Years -> {
                     libraryRepository.albums().map { list ->
-                        { sort -> LibraryContent.Albums(list.sortedFor(sort)) }
+                        { sort -> LibraryContent.Years(albumYears(list).sortedFor(sort)) }
                     }
                 }
 
@@ -347,7 +364,10 @@ class LibraryViewModel
 
         @AssistedFactory
         interface Factory {
-            fun create(fixedFilter: LibraryFilter?): LibraryViewModel
+            fun create(
+                fixedFilter: LibraryFilter,
+                yearPage: YearKey?,
+            ): LibraryViewModel
         }
     }
 
@@ -368,6 +388,7 @@ private fun LibraryContent.isNotEmptyContent(): Boolean =
         is LibraryContent.Artists -> artists.isNotEmpty()
         is LibraryContent.Playlists -> playlists.isNotEmpty()
         is LibraryContent.Songs -> tracks.isNotEmpty()
+        is LibraryContent.Years -> years.isNotEmpty()
         else -> false
     }
 
@@ -385,5 +406,3 @@ private fun emptyContent(
         status is SyncStatus.Failed -> LibraryContent.Error(status.error)
         else -> LibraryContent.Loading
     }
-
-private const val FILTER_KEY = "filter"

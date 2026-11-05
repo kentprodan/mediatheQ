@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.library
 
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
+import io.github.kentprodan.mediatheq.core.data.YearAlbums
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Playlist
@@ -94,3 +95,8 @@ internal fun List<Track>.sortedFor(sort: LibrarySort): List<Track> {
         },
     )
 }
+
+/** Years come newest first (from `albumYears`); by album count the year with most albums first, ties newest first. */
+@JvmName("sortedYears")
+internal fun List<YearAlbums>.sortedFor(sort: LibrarySort): List<YearAlbums> =
+    if (sort == LibrarySort.AlbumCount) sortedByDescending { it.albums.size } else this

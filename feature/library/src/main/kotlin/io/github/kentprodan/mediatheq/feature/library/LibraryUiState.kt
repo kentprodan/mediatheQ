@@ -1,30 +1,29 @@
 package io.github.kentprodan.mediatheq.feature.library
 
 import io.github.kentprodan.mediatheq.core.common.MqError
-import io.github.kentprodan.mediatheq.core.data.FilterControlStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.TopButton
+import io.github.kentprodan.mediatheq.core.data.YearAlbums
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.ListSelection
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 
 /**
- * The Library tab. The filter bar and top bar show in every state, so this wraps [content] instead of being a sealed
- * type itself.
+ * One Library list (Albums, Album artists, Tracks, Playlists; opened from the hub, #129, or as a navigation entry,
+ * #122). The header shows in every state, so this wraps [content] instead of being a sealed type itself.
  */
 data class LibraryUiState(
     val filter: LibraryFilter = LibraryFilter.Albums,
-    /** Opened as its own navigation entry (#122): one filter, no filter bar. */
-    val filterFixed: Boolean = false,
-    /** `null` until the saved style is read: no filter bar rather than the default style for a moment (#52). */
-    val filterStyle: FilterControlStyle? = FilterControlStyle.Chips,
+    /** Set on a year's page (#129): the albums of that year. */
+    val yearPage: YearKey? = null,
     val albumColumns: Int = LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
     /** The current filter's sort. */
     val sort: LibrarySort = LibrarySort.Name,
@@ -80,13 +79,14 @@ sealed interface LibraryContent {
     data class Songs(
         val tracks: List<Track>,
     ) : LibraryContent
+
+    /** The years of the albums (#129), each with its albums. */
+    data class Years(
+        val years: List<YearAlbums>,
+    ) : LibraryContent
 }
 
 sealed interface LibraryAction {
-    data class SelectFilter(
-        val filter: LibraryFilter,
-    ) : LibraryAction
-
     /** Sort for the current filter. */
     data class SelectSort(
         val sort: LibrarySort,
@@ -94,10 +94,6 @@ sealed interface LibraryAction {
 
     data class SetAlbumColumns(
         val columns: Int,
-    ) : LibraryAction
-
-    data class SetFilterStyle(
-        val style: FilterControlStyle,
     ) : LibraryAction
 
     /** Pull to refresh, or Retry on an error state. */
