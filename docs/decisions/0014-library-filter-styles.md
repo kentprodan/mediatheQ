@@ -1,6 +1,6 @@
 # 0014. Library filters come in two styles, chosen by the user
 
-- Status: Accepted
+- Status: Superseded by 0028
 - Date: 2026-10-19
 
 ## Context

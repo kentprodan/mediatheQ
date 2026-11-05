@@ -18,7 +18,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0011](0011-github-copilot-role.md) | Role of GitHub Copilot | Accepted |
 | [0012](0012-iris-color-scheme.md) | Iris color scheme: Vibrant variant, spec 2025 | Accepted |
 | [0013](0013-token-encryption-and-local-cleartext.md) | Token encryption with the Android Keystore; cleartext only on local networks | Accepted |
-| [0014](0014-library-filter-styles.md) | Library filters come in two styles, chosen by the user | Accepted |
+| [0014](0014-library-filter-styles.md) | Library filters come in two styles, chosen by the user | Superseded by 0028 |
 | [0015](0015-cover-images-without-token.md) | Cover images load without the access token | Accepted |
 | [0016](0016-opus-in-ogg-for-metered-streaming.md) | Opus in Ogg for streaming on metered networks | Superseded by 0019 |
 | [0017](0017-cover-colors.md) | Player colors from the cover with material-color-utilities | Accepted |
@@ -32,6 +32,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0025](0025-milestones-by-platform-and-tests.md) | Milestones by platform, a Polish milestone and a Tests milestone | Accepted |
 | [0026](0026-downloadable-google-fonts.md) | App fonts are downloadable Google Fonts | Accepted |
 | [0027](0027-on-device-waveform-analysis.md) | Waveforms are computed on the device from whole local files | Accepted |
+| [0028](0028-library-hub-of-tiles.md) | The Library is a hub of tiles | Accepted |
 
 Template for new ADRs:
 
