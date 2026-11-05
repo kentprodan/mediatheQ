@@ -20,3 +20,8 @@ ADR 0017 builds a full color scheme from the album cover and applies it only ins
 - A second place uses an image-derived theme. ADR 0017's "player subtree only" now reads "player subtree and the artist page".
 - Each artist page computes its colors once per image (the cache is per page). That costs one 128 px decode on opening.
 - Other pages (album, playlist) keep the app colors until an issue asks for more.
+
+## Addendum: the genre page (#134, 2026-11-06)
+
+- The genre page uses the same pipeline with two differences. Its seed is the header image, the cover of the genre's most played album (genres have no server image, jellyfin R17). Its own setting defaults to Off (the issue's table).
+- The genre's "Image color" header gradient also uses that cover's `primaryContainer`.
