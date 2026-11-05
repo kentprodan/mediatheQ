@@ -31,6 +31,10 @@ data object AlbumArtistsKey : NavKey
 @Serializable
 data object GenresKey : NavKey
 
+/** Library -> Record labels as its own navigation entry (#131). */
+@Serializable
+data object RecordLabelsKey : NavKey
+
 /** Library -> Playlists as its own navigation entry (#122). */
 @Serializable
 data object PlaylistsKey : NavKey

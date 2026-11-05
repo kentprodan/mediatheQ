@@ -111,6 +111,57 @@ interface LibraryDao {
         downloaded: List<String>,
     ): Flow<List<GenreRow>>
 
+    /**
+     * The record labels (#131), each with its album count and the cover of its first album (by name) as its picture.
+     * Offline a label counts only the albums holding a downloaded track, and a label with none is left out.
+     */
+    @Query(
+        """
+        WITH
+        la AS (
+            SELECT al.server_id, al.label_id, al.album_id, al.label_name FROM album_label al
+            WHERE :all OR EXISTS (
+                SELECT 1 FROM track d WHERE d.server_id = al.server_id AND d.album_id = al.album_id AND d.id IN (:downloaded)
+            )
+        ),
+        cover AS (
+            SELECT la.server_id, la.label_id, a.image_item_id, a.image_tag, a.blur_hash,
+                ROW_NUMBER() OVER (PARTITION BY la.server_id, la.label_id ORDER BY a.sort_name, a.id) AS rn
+            FROM la JOIN album a ON a.server_id = la.server_id AND a.id = la.album_id
+            WHERE a.image_tag IS NOT NULL
+        )
+        SELECT l.server_id, l.label_id AS id, l.name, l.album_count, c.image_item_id, c.image_tag, c.blur_hash
+        FROM (
+            SELECT server_id, label_id, MAX(label_name) AS name, COUNT(*) AS album_count FROM la
+            GROUP BY server_id, label_id
+        ) l LEFT JOIN cover c ON c.server_id = l.server_id AND c.label_id = l.label_id AND c.rn = 1
+        ORDER BY l.name COLLATE NOCASE, l.label_id
+        """,
+    )
+    fun recordLabels(
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<RecordLabelRow>>
+
+    /** The albums of the record label, by name. */
+    @Transaction
+    @Query(
+        """
+        SELECT album.* FROM album JOIN album_label al ON al.server_id = album.server_id AND al.album_id = album.id
+        WHERE al.server_id = :serverId AND al.label_id = :labelId AND (:all OR EXISTS (
+            SELECT 1 FROM track d
+            WHERE d.server_id = album.server_id AND d.album_id = album.id AND d.id IN (:downloaded)
+        ))
+        ORDER BY album.sort_name, album.id
+        """,
+    )
+    fun labelAlbums(
+        serverId: String,
+        labelId: String,
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<AlbumWithArtists>>
+
     /** The albums tagged with the genre, by name. */
     @Transaction
     @Query(
@@ -304,7 +355,12 @@ interface LibraryDao {
             tracks = searchTracks(match, limitPerKind, all, downloaded),
             playlists = searchPlaylists(match, limitPerKind, all, downloaded),
             genreIds = searchGenreIds(match),
+            labelIds = searchLabelIds(match),
         )
+
+    /** Record labels whose name matches, best first, like [searchGenreIds]. */
+    @Query("SELECT item_id FROM search WHERE search MATCH :match AND kind = 'label' ORDER BY rank, name")
+    suspend fun searchLabelIds(match: String): List<String>
 
     /**
      * Genres whose name matches, best first: their ids only. The genre list (offline-filtered, with counts) supplies the
@@ -430,6 +486,17 @@ data class SearchRows(
     val playlists: List<PlaylistEntity>,
     /** Matching genre ids, best first (#130). */
     val genreIds: List<String> = emptyList(),
+    /** Matching record label ids, best first (#131). */
+    val labelIds: List<String> = emptyList(),
+)
+
+/** A record label with its album count and the cover of its first album (#131). */
+data class RecordLabelRow(
+    @ColumnInfo(name = "server_id") val serverId: String,
+    val id: String,
+    val name: String,
+    @ColumnInfo(name = "album_count") val albumCount: Int,
+    @Embedded val image: ImageColumns,
 )
 
 /** A genre with its counts and the cover of its first album (#130). */

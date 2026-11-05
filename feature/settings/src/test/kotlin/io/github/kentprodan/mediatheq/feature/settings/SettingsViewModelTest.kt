@@ -346,6 +346,7 @@ class SettingsViewModelTest {
                     LibraryShortcut.AlbumArtists,
                     LibraryShortcut.Genres,
                     LibraryShortcut.Playlists,
+                    LibraryShortcut.RecordLabels,
                 )
             viewModel.uiState.test {
                 viewModel.onAction(SettingsAction.OpenLibraryShortcuts)

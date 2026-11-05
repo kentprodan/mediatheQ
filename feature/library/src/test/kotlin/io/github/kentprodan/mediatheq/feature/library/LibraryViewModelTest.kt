@@ -18,9 +18,11 @@ import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
@@ -112,6 +114,12 @@ class LibraryViewModelTest {
             Genre(id("g-ambient"), "Ambient", albumCount = 3, trackCount = 2),
         )
 
+    private val labels =
+        listOf(
+            RecordLabel(id("l-atl"), "Atlantic", albumCount = 1),
+            RecordLabel(id("l-ele"), "Electrecord", albumCount = 2),
+        )
+
     private val playlists =
         listOf(
             Playlist(id("p1"), "Road", sortName = "Road", dateAdded = day(1)),
@@ -123,17 +131,20 @@ class LibraryViewModelTest {
         collect: Boolean = true,
         fixedFilter: LibraryFilter = LibraryFilter.Albums,
         yearPage: YearKey? = null,
+        labelPage: RecordLabelKey? = null,
     ): LibraryViewModel {
         library.albums.value = albums
         library.albumArtists.value = listOf(bob, ada)
         library.playlists.value = playlists
         library.tracks.value = tracks
         library.genres.value = genres
+        library.recordLabels.value = labels
         sync.status.value = status
         val viewModel =
             LibraryViewModel(
                 fixedFilter,
                 yearPage,
+                labelPage,
                 library,
                 sync,
                 preferences,
@@ -157,6 +168,7 @@ class LibraryViewModelTest {
             is LibraryContent.Songs -> content.tracks.map { it.id.itemId }
             is LibraryContent.Years -> content.years.map { it.year.toString() }
             is LibraryContent.Genres -> content.genres.map { it.id.itemId }
+            is LibraryContent.RecordLabels -> content.labels.map { it.id.itemId }
             else -> error("no items: $content")
         }
 
@@ -393,6 +405,8 @@ class LibraryViewModelTest {
                     (LibraryFilter.Genres to LibrarySort.AlbumCount) to listOf("g-ambient", "g-rock"),
                     (LibraryFilter.Genres to LibrarySort.TrackCount) to listOf("g-rock", "g-ambient"),
                     (LibraryFilter.Years to LibrarySort.AlbumCount) to listOf("2020", "2001", "1999"),
+                    (LibraryFilter.RecordLabels to LibrarySort.Name) to listOf("l-atl", "l-ele"),
+                    (LibraryFilter.RecordLabels to LibrarySort.AlbumCount) to listOf("l-ele", "l-atl"),
                 )
             assertThat(expected.keys.map { it.first to it.second })
                 .containsExactlyElementsIn(LibraryFilter.entries.flatMap { f -> f.sorts.map { f to it } })
@@ -540,6 +554,7 @@ class LibraryViewModelTest {
                 LibraryViewModel(
                     LibraryFilter.Songs,
                     null,
+                    null,
                     library,
                     sync,
                     preferences,
@@ -675,5 +690,68 @@ class LibraryViewModelTest {
 
             assertThat(playback.plays.single().queue).containsExactly(tracks[0], tracks[1]).inOrder()
             assertThat(viewModel.uiState.value.genresGrid).isTrue()
+        }
+
+    @Test
+    fun `the record labels list loads, shows the labels, and offline with none says nothing is downloaded`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val loading = viewModel(fixedFilter = LibraryFilter.RecordLabels, collect = false)
+            assertThat(loading.uiState.value.content).isEqualTo(LibraryContent.Loading)
+
+            val viewModel = viewModel(fixedFilter = LibraryFilter.RecordLabels)
+            assertThat(viewModel.ids()).containsExactly("l-atl", "l-ele").inOrder()
+
+            library.offline.value = true
+            library.recordLabels.value = emptyList()
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.NothingDownloaded)
+        }
+
+    @Test
+    fun `play on the record labels list plays each label's albums once`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.labelAlbums.value = mapOf(id("l-atl") to listOf(albums[0]), id("l-ele") to albums.take(2))
+            val viewModel = viewModel(fixedFilter = LibraryFilter.RecordLabels)
+            library.tracks.value = listOf(tracks[0].copy(albumId = id("a1")), tracks[1].copy(albumId = id("a2")))
+
+            viewModel.onAction(LibraryAction.Top(TopButton.Play))
+
+            assertThat(
+                playback.plays
+                    .single()
+                    .queue
+                    .map { it.id.itemId },
+            ).containsExactly("t1", "t2").inOrder()
+        }
+
+    @Test
+    fun `a label's page lists its albums, sorts them by year, plays them, and is titled by the label`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val page = RecordLabelKey(id("l-ele"), "Electrecord")
+            library.labelAlbums.value = mapOf(page.id to listOf(albums[0], albums[1]))
+            val viewModel = viewModel(labelPage = page)
+            library.tracks.value = listOf(tracks[0].copy(albumId = id("a1")), tracks[1].copy(albumId = id("a2")))
+
+            assertThat(viewModel.uiState.value.labelPage).isEqualTo(page)
+            assertThat(viewModel.ids()).containsExactly("a2", "a1").inOrder()
+            viewModel.onAction(LibraryAction.SelectSort(LibrarySort.Year))
+            // a1 2001, a2 1999: newest first.
+            assertThat(viewModel.ids()).containsExactly("a1", "a2").inOrder()
+            viewModel.onAction(LibraryAction.Top(TopButton.Shuffle))
+            assertThat(
+                playback.plays
+                    .single()
+                    .queue
+                    .map { it.id.itemId },
+            ).containsExactly("t1", "t2")
+            assertThat(playback.plays.single().shuffle).isTrue()
+        }
+
+    @Test
+    fun `offline a label's page with nothing downloaded says so`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.offline.value = true
+            val viewModel = viewModel(labelPage = RecordLabelKey(id("l-atl"), "Atlantic"))
+
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.NothingDownloaded)
         }
 }

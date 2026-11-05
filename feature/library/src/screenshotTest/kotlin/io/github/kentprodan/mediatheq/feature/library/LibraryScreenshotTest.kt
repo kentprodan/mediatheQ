@@ -13,6 +13,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
+import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.ListSelection
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
@@ -265,3 +267,47 @@ fun LibraryGenresGridScreenshot() =
             content = LibraryContent.Genres(genres),
         ),
     )
+
+private val labels =
+    listOf("Electrecord" to 12, "Atlantic Records UK" to 1, "Def Jam 2000" to 3).mapIndexed { i, (name, albums) ->
+        RecordLabel(
+            MediaId(PreviewData.album.id.serverId, "l-$i"),
+            name,
+            albumCount = albums,
+            artwork = PreviewData.artwork.takeIf { i != 1 },
+        )
+    }
+
+/** The Record labels list (#131): first album cover, name, album count; a label with no cover shows its icon. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryRecordLabelsScreenshot() =
+    Library(LibraryUiState(filter = LibraryFilter.RecordLabels, content = LibraryContent.RecordLabels(labels)))
+
+/** The Record labels list before the first read. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryRecordLabelsLoadingScreenshot() =
+    Library(LibraryUiState(filter = LibraryFilter.RecordLabels, content = LibraryContent.Loading))
+
+/** A record label's page (#131): the label's name as title, its albums, Back. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryRecordLabelPageScreenshot() =
+    MediatheqTheme {
+        LibraryScreen(
+            LibraryUiState(
+                labelPage = RecordLabelKey(labels[0].id, labels[0].name),
+                content = LibraryContent.Albums(albums.take(4)),
+                itemCount = 4,
+            ),
+            onAction = {},
+            onOpenAlbum = {},
+            onOpenArtist = {},
+            onOpenPlaylist = {},
+            onBack = {},
+        )
+    }

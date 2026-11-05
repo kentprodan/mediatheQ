@@ -17,4 +17,5 @@
     <string name="search_songs">Songs</string>
     <string name="search_playlists">Playlists</string>
     <string name="search_genres">Genres</string>
+    <string name="search_record_labels">Record labels</string>
 </resources>

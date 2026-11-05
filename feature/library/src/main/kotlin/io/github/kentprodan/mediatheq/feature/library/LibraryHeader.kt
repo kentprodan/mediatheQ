@@ -162,8 +162,10 @@ private fun ToolRow(
             }
         }
         Box(Modifier.weight(1f))
-        // Years and genres are no items of their own: nothing to filter, select or search (#129, #130).
-        val itemTools = state.filter != LibraryFilter.Years && state.filter != LibraryFilter.Genres
+        // Years, genres and labels are no items of their own: nothing to filter, select or search (#129-#131).
+        val itemTools =
+            state.filter != LibraryFilter.Years && state.filter != LibraryFilter.Genres &&
+                state.filter != LibraryFilter.RecordLabels
         if (itemTools) {
             Box {
                 // Downloaded only stays set across lists but does nothing on Artists, where it cannot be unticked.
@@ -290,18 +292,19 @@ internal val LibrarySort.ascending: Boolean
         this != LibrarySort.RecentlyAdded && this != LibrarySort.Year && this != LibrarySort.AlbumCount &&
             this != LibrarySort.TrackCount
 
-/** The list's name, or on a year's page the year ("Unknown year" without one). */
+/** The list's name; on a year's page the year ("Unknown year" without one), on a label's page its name. */
 private val LibraryUiState.title: String
     @Composable get() =
         yearPage?.let { page -> page.year?.toString() ?: stringResource(R.string.library_unknown_year) }
+            ?: labelPage?.name
             ?: stringResource(filter.label)
 
 private val LibraryUiState.titleIcon: ImageVector
     @Composable get() =
-        if (yearPage != null) {
-            MqIcons.CalendarMonth
-        } else {
-            filter.icon
+        when {
+            yearPage != null -> MqIcons.CalendarMonth
+            labelPage != null -> MqIcons.RecordLabel
+            else -> filter.icon
         }
 
 internal val LibraryFilter.icon: ImageVector
@@ -313,6 +316,7 @@ internal val LibraryFilter.icon: ImageVector
             LibraryFilter.Songs -> MqIcons.MusicNote
             LibraryFilter.Years -> MqIcons.CalendarMonth
             LibraryFilter.Genres -> MqIcons.Genres
+            LibraryFilter.RecordLabels -> MqIcons.RecordLabel
         }
 
 private val TopButton.label: Int
@@ -342,6 +346,7 @@ internal val LibraryFilter.label: Int
             LibraryFilter.Songs -> R.string.library_filter_songs
             LibraryFilter.Years -> R.string.library_filter_years
             LibraryFilter.Genres -> R.string.library_filter_genres
+            LibraryFilter.RecordLabels -> R.string.library_filter_record_labels
         }
 
 internal val LibrarySort.label: Int

@@ -43,6 +43,7 @@
     </plurals>
     <string name="library_filter_years">Years</string>
     <string name="library_filter_genres">Genres</string>
+    <string name="library_filter_record_labels">Record labels</string>
     <string name="library_sort_track_count">Track count</string>
     <string name="library_view_list">List</string>
     <string name="library_view_grid">Grid</string>

@@ -19,6 +19,7 @@ fun EntryProviderScope<NavKey>.searchEntry(navigator: Navigator) {
             onOpenPlaylist = { navigator.navigateTo(PlaylistKey(it)) },
             onAddToPlaylist = { navigator.navigateTo(AddToPlaylistKey(it)) },
             onOpenGenre = { navigator.navigateTo(GenreKey(it)) },
+            onOpenLabel = { navigator.navigateTo(it) },
         )
     }
 }

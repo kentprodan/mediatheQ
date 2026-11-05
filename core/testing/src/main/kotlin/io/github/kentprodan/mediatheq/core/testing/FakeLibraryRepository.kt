@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -84,6 +85,14 @@ class FakeLibraryRepository : LibraryRepository {
 
     override fun genreTracks(genreId: MediaId) = genreTracks.map { it[genreId].orEmpty() }
 
+    // Labels and their albums are set directly, like genres.
+    val recordLabels = MutableStateFlow<List<RecordLabel>>(emptyList())
+    val labelAlbums = MutableStateFlow<Map<MediaId, List<Album>>>(emptyMap())
+
+    override fun recordLabels() = recordLabels
+
+    override fun labelAlbums(labelId: MediaId) = labelAlbums.map { it[labelId].orEmpty() }
+
     override suspend fun search(
         query: String,
         limitPerKind: Int,
@@ -101,6 +110,7 @@ class FakeLibraryRepository : LibraryRepository {
                 tracks = tracks.value.filter { it.title.matches() }.take(limitPerKind),
                 playlists = playlists.value.filter { it.name.matches() }.take(limitPerKind),
                 genres = genres.value.filter { it.name.matches() }.take(limitPerKind),
+                labels = recordLabels.value.filter { it.name.matches() }.take(limitPerKind),
             ),
         )
     }

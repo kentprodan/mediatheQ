@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -42,6 +43,7 @@ internal fun BaseItemDto.toAlbum(serverId: ServerId): Album? {
         artwork = artwork(),
         userData = userData.toDomain(),
         genres = genres(serverId),
+        labels = labels(serverId),
     )
 }
 
@@ -66,6 +68,17 @@ internal fun BaseItemDto.toTrack(serverId: ServerId): Track? {
         genres = genres(serverId),
     )
 }
+
+/** The album's record labels, like [genres]; MusicBrainz's "[no label]" placeholder is not a label (R18). */
+private fun BaseItemDto.labels(serverId: ServerId): List<RecordLabel> =
+    studios
+        .mapNotNull { pair ->
+            val id = pair.id?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            val name = pair.name?.takeIf { it.isNotBlank() && it != NO_LABEL } ?: return@mapNotNull null
+            RecordLabel(MediaId(serverId, id), name)
+        }.distinctBy { it.id }
+
+private const val NO_LABEL = "[no label]"
 
 /** The item's genres; entries without an id or a name are skipped, and a genre listed twice counts once. */
 private fun BaseItemDto.genres(serverId: ServerId): List<Genre> =

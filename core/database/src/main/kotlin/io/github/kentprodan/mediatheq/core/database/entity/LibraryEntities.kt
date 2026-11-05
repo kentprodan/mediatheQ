@@ -138,6 +138,19 @@ data class AlbumGenreEntity(
     @ColumnInfo(name = "genre_name") val genreName: String,
 )
 
+/** Album -> record label (#131), with the label's name: like genres, labels exist only through their albums. */
+@Entity(
+    tableName = "album_label",
+    primaryKeys = ["server_id", "album_id", "label_id"],
+    indices = [Index("server_id", "label_id")],
+)
+data class AlbumLabelEntity(
+    @ColumnInfo(name = "server_id") val serverId: String,
+    @ColumnInfo(name = "album_id") val albumId: String,
+    @ColumnInfo(name = "label_id") val labelId: String,
+    @ColumnInfo(name = "label_name") val labelName: String,
+)
+
 /** Track -> genre (#130), with the genre's name. */
 @Entity(
     tableName = "track_genre",
@@ -189,6 +202,11 @@ data class PlaylistEntryStaging(
 @Entity(tableName = "album_genre_staging", primaryKeys = ["server_id", "album_id", "genre_id"])
 data class AlbumGenreStaging(
     @Embedded val row: AlbumGenreEntity,
+)
+
+@Entity(tableName = "album_label_staging", primaryKeys = ["server_id", "album_id", "label_id"])
+data class AlbumLabelStaging(
+    @Embedded val row: AlbumLabelEntity,
 )
 
 @Entity(tableName = "track_genre_staging", primaryKeys = ["server_id", "track_id", "genre_id"])

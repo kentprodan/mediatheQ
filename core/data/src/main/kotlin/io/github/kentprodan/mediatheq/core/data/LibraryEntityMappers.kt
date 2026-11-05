@@ -2,10 +2,12 @@ package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.database.dao.AlbumWithArtists
 import io.github.kentprodan.mediatheq.core.database.dao.GenreRow
+import io.github.kentprodan.mediatheq.core.database.dao.RecordLabelRow
 import io.github.kentprodan.mediatheq.core.database.dao.TrackWithArtists
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumLabelEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ImageColumns
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
@@ -22,6 +24,7 @@ import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -188,3 +191,8 @@ internal fun Track.genreLinks() = genres.map { TrackGenreEntity(id.serverId.valu
 
 internal fun GenreRow.toDomain() =
     Genre(MediaId(ServerId(serverId), id), name, name, albumCount, trackCount, image.toDomain())
+
+internal fun Album.labelLinks() = labels.map { AlbumLabelEntity(id.serverId.value, id.itemId, it.id.itemId, it.name) }
+
+internal fun RecordLabelRow.toDomain() =
+    RecordLabel(MediaId(ServerId(serverId), id), name, name, albumCount, image.toDomain())

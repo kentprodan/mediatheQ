@@ -1,7 +1,18 @@
 package io.github.kentprodan.mediatheq.core.data
 
-/** A destination the main navigation can show (#122). Genres and Years join once their pages exist. */
-enum class MainNavEntry { Home, Library, Albums, AlbumArtists, Genres, Playlists, Tracks, Search, Downloads }
+/** A destination the main navigation can show (#122). */
+enum class MainNavEntry {
+    Home,
+    Library,
+    Albums,
+    AlbumArtists,
+    Genres,
+    RecordLabels,
+    Playlists,
+    Tracks,
+    Search,
+    Downloads,
+}
 
 /** How the main navigation looks in portrait. With a FAB, the last entry becomes the FAB. */
 enum class PortraitNavStyle { BottomBar, FloatingToolbar, FloatingToolbarWithFab }

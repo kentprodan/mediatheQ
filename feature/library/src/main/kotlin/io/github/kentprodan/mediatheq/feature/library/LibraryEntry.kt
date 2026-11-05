@@ -17,6 +17,8 @@ import io.github.kentprodan.mediatheq.core.navigation.LibraryListKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistsKey
+import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
+import io.github.kentprodan.mediatheq.core.navigation.RecordLabelsKey
 import io.github.kentprodan.mediatheq.core.navigation.TracksKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 
@@ -33,6 +35,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
         filter: LibraryFilter,
         inTab: Boolean,
         yearPage: YearKey? = null,
+        labelPage: RecordLabelKey? = null,
     ) = LibraryRoute(
         onOpenAlbum = { navigator.navigateTo(AlbumKey(it)) },
         onOpenArtist = { navigator.navigateTo(ArtistKey(it)) },
@@ -44,16 +47,20 @@ fun EntryProviderScope<NavKey>.libraryEntry(
         onBack = if (inTab) ({ navigator.back() }) else null,
         onOpenYear = { navigator.navigateTo(it) },
         onOpenGenre = { navigator.navigateTo(GenreKey(it)) },
+        onOpenLabel = { navigator.navigateTo(it) },
         yearPage = yearPage,
+        labelPage = labelPage,
     )
     entry<LibraryKey> { LibraryHubRoute(onOpen = { navigator.navigateTo(LibraryListKey(it)) }) }
     entry<LibraryListKey> { Library(it.shortcut.filter, inTab = true) }
     entry<YearKey> { Library(LibraryFilter.Albums, inTab = true, yearPage = it) }
+    entry<RecordLabelKey> { Library(LibraryFilter.Albums, inTab = true, labelPage = it) }
     entry<AlbumsKey> { Library(LibraryFilter.Albums, inTab = false) }
     entry<AlbumArtistsKey> { Library(LibraryFilter.Artists, inTab = false) }
     entry<PlaylistsKey> { Library(LibraryFilter.Playlists, inTab = false) }
     entry<TracksKey> { Library(LibraryFilter.Songs, inTab = false) }
     entry<GenresKey> { Library(LibraryFilter.Genres, inTab = false) }
+    entry<RecordLabelsKey> { Library(LibraryFilter.RecordLabels, inTab = false) }
 }
 
 /** The list a hub tile opens. */
@@ -66,4 +73,5 @@ internal val LibraryShortcut.filter: LibraryFilter
             LibraryShortcut.Tracks -> LibraryFilter.Songs
             LibraryShortcut.Playlists -> LibraryFilter.Playlists
             LibraryShortcut.Years -> LibraryFilter.Years
+            LibraryShortcut.RecordLabels -> LibraryFilter.RecordLabels
         }

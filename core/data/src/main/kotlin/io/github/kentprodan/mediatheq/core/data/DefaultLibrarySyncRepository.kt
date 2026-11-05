@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.dao.SyncDao
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreStaging
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumLabelStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryStaging
@@ -247,6 +248,7 @@ class DefaultLibrarySyncRepository
                         stageAlbums(albums.map { AlbumStaging(it.toEntity()) })
                         stageAlbumArtistLinks(albums.flatMap { it.artistLinks() }.map(::AlbumArtistStaging))
                         stageAlbumGenreLinks(albums.flatMap { it.genreLinks() }.map(::AlbumGenreStaging))
+                        stageAlbumLabelLinks(albums.flatMap { it.labelLinks() }.map(::AlbumLabelStaging))
                         stageCreditedArtists(
                             albums.flatMap { it.albumArtists }.map { ArtistStaging(it.toEntity(false)) },
                         )
@@ -317,6 +319,7 @@ class DefaultLibrarySyncRepository
                     clearAlbumStaging()
                     clearAlbumArtistStaging()
                     clearAlbumGenreStaging()
+                    clearAlbumLabelStaging()
                 }
 
                 SyncStep.Tracks -> {

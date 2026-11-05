@@ -23,6 +23,13 @@ data class GenreKey(
     @Serializable(with = MediaIdSerializer::class) val id: MediaId,
 ) : NavKey
 
+/** A record label's page (#131): its albums; [name] titles the page. */
+@Serializable
+data class RecordLabelKey(
+    @Serializable(with = MediaIdSerializer::class) val id: MediaId,
+    val name: String,
+) : NavKey
+
 /** A playlist's page (#16). */
 @Serializable
 data class PlaylistKey(

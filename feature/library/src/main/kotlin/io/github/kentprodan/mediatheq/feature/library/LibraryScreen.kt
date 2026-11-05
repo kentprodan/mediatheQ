@@ -69,6 +69,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
 import io.github.kentprodan.mediatheq.core.ui.ArtistRow
@@ -79,6 +80,7 @@ import io.github.kentprodan.mediatheq.core.ui.GenreRow
 import io.github.kentprodan.mediatheq.core.ui.NothingDownloaded
 import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
+import io.github.kentprodan.mediatheq.core.ui.RecordLabelRow
 import io.github.kentprodan.mediatheq.core.ui.SelectionToolbar
 import io.github.kentprodan.mediatheq.core.ui.SelectionToolbarSpace
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
@@ -97,12 +99,15 @@ internal fun LibraryRoute(
     onBack: (() -> Unit)? = null,
     onOpenYear: (YearKey) -> Unit = {},
     onOpenGenre: (MediaId) -> Unit = {},
+    onOpenLabel: (RecordLabelKey) -> Unit = {},
     /** A year's page (#129): the albums of that year. */
     yearPage: YearKey? = null,
+    /** A record label's page (#131): the albums of that label. */
+    labelPage: RecordLabelKey? = null,
     viewModel: LibraryViewModel =
         hiltViewModel<LibraryViewModel, LibraryViewModel.Factory>(
-            key = yearPage?.let { "year-${it.year}" } ?: filter.name,
-            creationCallback = { it.create(filter, yearPage) },
+            key = yearPage?.let { "year-${it.year}" } ?: labelPage?.let { "label-${it.id}" } ?: filter.name,
+            creationCallback = { it.create(filter, yearPage, labelPage) },
         ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -118,6 +123,7 @@ internal fun LibraryRoute(
         onBack = onBack,
         onOpenYear = onOpenYear,
         onOpenGenre = onOpenGenre,
+        onOpenLabel = onOpenLabel,
     )
 }
 
@@ -137,6 +143,7 @@ fun LibraryScreen(
     onBack: (() -> Unit)? = null,
     onOpenYear: (YearKey) -> Unit = {},
     onOpenGenre: (MediaId) -> Unit = {},
+    onOpenLabel: (RecordLabelKey) -> Unit = {},
 ) {
     // Back ends selecting first, then closes search in list.
     BackHandler(enabled = state.selection.isActive) { onAction(LibraryAction.ClearSelection) }
@@ -203,6 +210,7 @@ fun LibraryScreen(
                     onSwipe = swipe,
                     onOpenYear = onOpenYear,
                     onOpenGenre = onOpenGenre,
+                    onOpenLabel = onOpenLabel,
                 )
                 if (state.selection.isActive) {
                     SelectionToolbar(
@@ -238,6 +246,7 @@ private fun LibraryContentView(
     onSwipe: (Track, Boolean) -> Unit,
     onOpenYear: (YearKey) -> Unit,
     onOpenGenre: (MediaId) -> Unit,
+    onOpenLabel: (RecordLabelKey) -> Unit,
 ) {
     val selection = state.selection
     // While selecting, the last items can scroll up from under the floating toolbar.
@@ -425,6 +434,14 @@ private fun LibraryContentView(
                     items(content.genres, key = { it.id.toString() }) { genre ->
                         GenreRow(genre, onClick = { onOpenGenre(genre.id) })
                     }
+                }
+            }
+        }
+
+        is LibraryContent.RecordLabels -> {
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = listPadding) {
+                items(content.labels, key = { it.id.toString() }) { label ->
+                    RecordLabelRow(label, onClick = { onOpenLabel(RecordLabelKey(label.id, label.name)) })
                 }
             }
         }

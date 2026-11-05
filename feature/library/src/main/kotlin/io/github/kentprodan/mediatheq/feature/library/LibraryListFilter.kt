@@ -111,6 +111,7 @@ internal val LibraryContent.itemCount: Int
             is LibraryContent.Songs -> tracks.size
             is LibraryContent.Years -> years.size
             is LibraryContent.Genres -> genres.size
+            is LibraryContent.RecordLabels -> labels.size
             else -> 0
         }
 

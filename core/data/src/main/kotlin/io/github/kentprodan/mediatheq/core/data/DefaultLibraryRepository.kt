@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -121,6 +122,15 @@ class DefaultLibraryRepository
                     libraryDao.genreTracks(genreId.serverId.value, genreId.itemId, all, downloaded)
                 }.map { rows -> rows.map { it.toDomain() } }
 
+        override fun recordLabels(): Flow<List<RecordLabel>> =
+            filter.of(libraryDao::recordLabels).map { rows -> rows.map { it.toDomain() } }
+
+        override fun labelAlbums(labelId: MediaId): Flow<List<Album>> =
+            filter
+                .of { all, downloaded ->
+                    libraryDao.labelAlbums(labelId.serverId.value, labelId.itemId, all, downloaded)
+                }.map { rows -> rows.map { it.toDomain() } }
+
         override suspend fun search(
             query: String,
             limitPerKind: Int,
@@ -130,9 +140,14 @@ class DefaultLibraryRepository
                 try {
                     filter.once { all, downloaded ->
                         val found = libraryDao.search(match, limitPerKind, all, downloaded)
-                        // Genres come with their offline-filtered counts from the genre list, in the search's order.
+                        // Genres and labels come with their offline-filtered counts from their lists, in the search's order.
                         val genres = libraryDao.genres(all, downloaded).first().associateBy { it.id }
-                        found to found.genreIds.mapNotNull { genres[it] }.take(limitPerKind)
+                        val labels = libraryDao.recordLabels(all, downloaded).first().associateBy { it.id }
+                        Triple(
+                            found,
+                            found.genreIds.mapNotNull { genres[it] }.take(limitPerKind),
+                            found.labelIds.mapNotNull { labels[it] }.take(limitPerKind),
+                        )
                     }
                 } catch (_: SQLiteException) {
                     return MqResult.Failure(MqError.Storage)
@@ -144,6 +159,7 @@ class DefaultLibraryRepository
                     tracks = rows.first.tracks.map { it.toDomain() },
                     playlists = rows.first.playlists.map { it.toDomain() },
                     genres = rows.second.map { it.toDomain() },
+                    labels = rows.third.map { it.toDomain() },
                 ),
             )
         }

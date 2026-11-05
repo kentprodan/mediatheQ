@@ -45,6 +45,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchResults
+import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.ui.AlbumRow
 import io.github.kentprodan.mediatheq.core.ui.ArtistRow
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
@@ -52,6 +53,7 @@ import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.GenreRow
 import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
+import io.github.kentprodan.mediatheq.core.ui.RecordLabelRow
 import io.github.kentprodan.mediatheq.core.ui.SelectableList
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.rememberSelectLongPress
@@ -65,6 +67,7 @@ internal fun SearchRoute(
     onOpenPlaylist: (MediaId) -> Unit,
     onAddToPlaylist: (List<MediaId>) -> Unit,
     onOpenGenre: (MediaId) -> Unit = {},
+    onOpenLabel: (RecordLabelKey) -> Unit = {},
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -76,6 +79,7 @@ internal fun SearchRoute(
         onOpenPlaylist,
         onAddToPlaylist = onAddToPlaylist,
         onOpenGenre = onOpenGenre,
+        onOpenLabel = onOpenLabel,
     )
 }
 
@@ -95,6 +99,7 @@ fun SearchScreen(
     textFieldState: TextFieldState = rememberTextFieldState(),
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
     onOpenGenre: (MediaId) -> Unit = {},
+    onOpenLabel: (RecordLabelKey) -> Unit = {},
 ) {
     LaunchedEffect(textFieldState) {
         snapshotFlow { textFieldState.text.toString() }.collect { onAction(SearchAction.QueryChanged(it)) }
@@ -109,6 +114,7 @@ fun SearchScreen(
             textFieldState,
             onAddToPlaylist,
             onOpenGenre,
+            onOpenLabel,
         )
     }
 }
@@ -123,6 +129,7 @@ private fun SearchContent(
     textFieldState: TextFieldState,
     onAddToPlaylist: (List<MediaId>) -> Unit,
     onOpenGenre: (MediaId) -> Unit,
+    onOpenLabel: (RecordLabelKey) -> Unit,
 ) {
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         SearchField(textFieldState, onSearch = { onAction(SearchAction.Submit) })
@@ -155,7 +162,10 @@ private fun SearchContent(
                     open(onOpenPlaylist),
                     onAddToPlaylist,
                     open(onOpenGenre),
-                )
+                ) { label ->
+                    onAction(SearchAction.ResultOpened)
+                    onOpenLabel(label)
+                }
             }
 
             is SearchUiState.NoResults -> {
@@ -271,6 +281,7 @@ private fun Results(
     onOpenPlaylist: (MediaId) -> Unit,
     onAddToPlaylist: (List<MediaId>) -> Unit,
     onOpenGenre: (MediaId) -> Unit,
+    onOpenLabel: (RecordLabelKey) -> Unit,
 ) {
     val swipe =
         trackSwipes(
@@ -350,6 +361,10 @@ private fun Results(
             // Genres are no selectable items (#130): a tap opens the genre, also while selecting.
             section("genres", R.string.search_genres, results.genres, { it.id }) { genre ->
                 GenreRow(genre, onClick = { onOpenGenre(genre.id) })
+            }
+            // Record labels likewise (#131).
+            section("labels", R.string.search_record_labels, results.labels, { it.id }) { label ->
+                RecordLabelRow(label, onClick = { onOpenLabel(RecordLabelKey(label.id, label.name)) })
             }
         }
     }

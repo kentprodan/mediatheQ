@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.Flow
@@ -70,6 +71,12 @@ interface LibraryRepository {
 
     /** The tracks tagged with the genre, by name. */
     fun genreTracks(genreId: MediaId): Flow<List<Track>>
+
+    /** The record labels with their album counts and pictures, by name (#131); offline only those holding downloads. */
+    fun recordLabels(): Flow<List<RecordLabel>>
+
+    /** The albums of the record label, by name. */
+    fun labelAlbums(labelId: MediaId): Flow<List<Album>>
 
     /** [tracks], also in offline mode: the Downloads tab names queued and failed downloads too. */
     fun allTracks(): Flow<List<Track>>

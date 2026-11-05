@@ -12,7 +12,9 @@ import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.ListSelection
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
@@ -25,6 +27,8 @@ data class LibraryUiState(
     val filter: LibraryFilter = LibraryFilter.Albums,
     /** Set on a year's page (#129): the albums of that year. */
     val yearPage: YearKey? = null,
+    /** Set on a record label's page (#131): the albums of that label. */
+    val labelPage: RecordLabelKey? = null,
     val albumColumns: Int = LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
     /** The Genres list as a grid of covers (#130). */
     val genresGrid: Boolean = false,
@@ -86,6 +90,11 @@ sealed interface LibraryContent {
     /** The genres (#130), with their counts and pictures. */
     data class Genres(
         val genres: List<Genre>,
+    ) : LibraryContent
+
+    /** The record labels (#131), with their album counts and pictures. */
+    data class RecordLabels(
+        val labels: List<RecordLabel>,
     ) : LibraryContent
 
     /** The years of the albums (#129), each with its albums. */

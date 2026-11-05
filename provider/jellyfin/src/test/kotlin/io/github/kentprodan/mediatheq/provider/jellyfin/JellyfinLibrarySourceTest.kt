@@ -121,7 +121,7 @@ class JellyfinLibrarySourceTest {
                     mapOf(
                         "includeItemTypes" to "MusicAlbum",
                         "recursive" to "true",
-                        "fields" to "SortName,DateCreated,ChildCount,Genres",
+                        "fields" to "SortName,DateCreated,ChildCount,Genres,Studios",
                     ),
             )
             assertAuthenticated(request)
@@ -178,6 +178,22 @@ class JellyfinLibrarySourceTest {
                     track.genres.map { it.name }
                 },
             ).containsExactly(listOf("Hip-Hop"), listOf("R&B"))
+        }
+
+    @Test
+    fun `R18 albums carry their record labels, without the no-label placeholder`() =
+        runTest {
+            enqueue("items_music_album/with_studios.json")
+
+            val albums = (source.albums(server, 0, 500) as MqResult.Success).value.items
+
+            assertThat(albums.map { album -> album.labels.map { it.name } })
+                .containsExactly(
+                    listOf("Warner Music UK"),
+                    listOf("Def Jam 2000", "BMG Direct Marketing, Inc.", "Ruff Ryders"),
+                    emptyList<String>(),
+                ).inOrder()
+            assertThat(albums[0].labels.single().id).isEqualTo(MediaId(serverId, "0e5fc6ca81a04d12a9f5032922c69111"))
         }
 
     @Test

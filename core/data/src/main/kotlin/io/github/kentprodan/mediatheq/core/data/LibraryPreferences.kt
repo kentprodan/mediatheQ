@@ -14,6 +14,9 @@ enum class LibraryFilter(
 
     /** The years of the albums (#129). */
     Years(listOf(LibrarySort.Year, LibrarySort.AlbumCount)),
+
+    /** The record labels of the albums (#131). */
+    RecordLabels(listOf(LibrarySort.Name, LibrarySort.AlbumCount)),
 }
 
 enum class LibrarySort { Name, RecentlyAdded, Year, Artist, Album, AlbumCount, TrackCount }
