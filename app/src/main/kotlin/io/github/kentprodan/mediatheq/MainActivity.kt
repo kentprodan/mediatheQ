@@ -24,6 +24,7 @@ import io.github.kentprodan.mediatheq.core.ui.LocalMediaListStyle
 import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.artist.artistEntry
 import io.github.kentprodan.mediatheq.feature.downloads.downloadsEntry
+import io.github.kentprodan.mediatheq.feature.genre.genreEntry
 import io.github.kentprodan.mediatheq.feature.home.homeEntry
 import io.github.kentprodan.mediatheq.feature.library.libraryEntry
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingHost
@@ -98,6 +99,7 @@ class MainActivity : ComponentActivity() {
                                         libraryEntry(navigator, onOpenDownloads = openDownloads)
                                         albumEntry(navigator)
                                         artistEntry(navigator)
+                                        genreEntry(navigator)
                                         playlistEntry(navigator)
                                         searchEntry(navigator)
                                         downloadsEntry(navigator, isTab = { TopLevelTab.Downloads in navigator.tabs })
