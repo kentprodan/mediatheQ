@@ -59,7 +59,7 @@ class JellyfinLibrarySource internal constructor(
         items(
             server,
             "MusicAlbum",
-            "SortName,DateCreated,ChildCount,Genres",
+            "SortName,DateCreated,ChildCount,Genres,Studios",
             startIndex,
             limit,
         ) { it.toAlbum(server.serverId) }

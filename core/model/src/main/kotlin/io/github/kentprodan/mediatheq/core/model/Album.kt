@@ -19,4 +19,6 @@ data class Album(
     val userData: UserData = UserData(),
     /** The album's genres (id and name); filled by the sync only, reads leave it empty. */
     val genres: List<Genre> = emptyList(),
+    /** The album's record labels; filled by the sync only, reads leave it empty. */
+    val labels: List<RecordLabel> = emptyList(),
 )
