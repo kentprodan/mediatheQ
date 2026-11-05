@@ -121,7 +121,7 @@ class JellyfinLibrarySourceTest {
                     mapOf(
                         "includeItemTypes" to "MusicAlbum",
                         "recursive" to "true",
-                        "fields" to "SortName,DateCreated,ChildCount,Genres,Studios",
+                        "fields" to "SortName,DateCreated,ChildCount,Genres,Studios,Overview",
                     ),
             )
             assertAuthenticated(request)
@@ -146,12 +146,15 @@ class JellyfinLibrarySourceTest {
                     mapOf(
                         "includeItemTypes" to "Audio",
                         "recursive" to "true",
-                        "fields" to "SortName,DateCreated,MediaStreams,Genres",
+                        "fields" to "SortName,DateCreated,MediaSources,Genres",
                     ),
             )
-            assertThat(page.totalCount).isEqualTo(2729)
+            assertThat(page.totalCount).isEqualTo(3)
             val track = page.items[1]
             assertThat(track.audioFormat?.codec).isEqualTo("mp3")
+            // R19: with MediaSources the streams and the file size come in the source.
+            assertThat(track.sizeBytes).isEqualTo(9_682_839)
+            assertThat(page.items.map { it.audioFormat?.codec }).containsExactly("flac", "mp3", "flac").inOrder()
             assertThat(track.albumId).isEqualTo(MediaId(serverId, "8b7761b96bca5fb988f5b982e8ca02ad"))
             assertThat(track.trackNumber).isEqualTo(1)
             assertThat(track.discNumber).isEqualTo(1)
@@ -194,6 +197,17 @@ class JellyfinLibrarySourceTest {
                     emptyList<String>(),
                 ).inOrder()
             assertThat(albums[0].labels.single().id).isEqualTo(MediaId(serverId, "0e5fc6ca81a04d12a9f5032922c69111"))
+        }
+
+    @Test
+    fun `albums carry their overview and release date`() =
+        runTest {
+            enqueue("items_music_album/with_overview.json")
+
+            val album = (source.albums(server, 0, 500) as MqResult.Success).value.items.single()
+
+            assertThat(album.overview).startsWith("+ (pronounced Plus) is the debut studio album")
+            assertThat(album.releaseDate).isEqualTo(Instant.parse("2011-01-01T00:00:00Z"))
         }
 
     @Test
@@ -340,8 +354,9 @@ class JellyfinLibrarySourceTest {
                         """
                         {"Items":[{"Id":"t1","Name":"T","AlbumId":"al1","AlbumPrimaryImageTag":"tag1",
                         "ImageBlurHashes":{"Primary":{"tag1":"hash1"}},
-                        "MediaStreams":[{"Type":"Video","Codec":"mjpeg"},{"Type":"Audio","Codec":"EAC3","SampleRate":48000,
-                        "Channels":6,"BitRate":768000,"AudioSpatialFormat":"DolbyAtmos"}]}],"TotalRecordCount":1}
+                        "MediaSources":[{"Size":1000,"MediaStreams":[{"Type":"Video","Codec":"mjpeg"},{"Type":"Audio",
+                        "Codec":"EAC3","SampleRate":48000,"Channels":6,"BitRate":768000,"AudioSpatialFormat":"DolbyAtmos"}]}]}],
+                        "TotalRecordCount":1}
                         """.trimIndent(),
                 ),
             )
