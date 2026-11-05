@@ -74,7 +74,15 @@ class HomeSectionsTest {
             is HomeItems.Artists -> artists.map { it.name }
             is HomeItems.Tracks -> tracks.map { it.title }
             is HomeItems.Playlists -> playlists.map { it.name }
+            is HomeItems.Shortcuts -> decades.map { it.toString() }
         }
+
+    @Test
+    fun `shortcuts offer the decades of the listed albums`() {
+        val library = HomeLibrary(albums = listOf(album("Zero").copy(year = 1984), album("One")))
+
+        assertThat(items(HomeSection.Shortcuts, library)).isEqualTo(HomeItems.Shortcuts(listOf(1980)))
+    }
 
     @Test
     fun `favorites of every kind, in library order`() {

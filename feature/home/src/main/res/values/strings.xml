@@ -13,4 +13,9 @@
     <string name="home_error_title">Couldn\'t load your library</string>
     <string name="home_error_body">The server answered with an error. Try again in a moment.</string>
     <string name="home_retry">Try again</string>
+    <string name="home_track_mix">Track mix</string>
+    <string name="home_album_mix">Album mix</string>
+    <string name="home_decade_mix">Decade mix</string>
+    <!-- A decade in the Decade mix picker, e.g. "1990s". -->
+    <string name="home_decade">%1$ds</string>
 </resources>

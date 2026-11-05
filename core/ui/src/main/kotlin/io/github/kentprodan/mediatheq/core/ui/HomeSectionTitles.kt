@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.model.HomeSection
 val HomeSection.title: Int
     get() =
         when (this) {
+            HomeSection.Shortcuts -> R.string.core_ui_home_shortcuts
             HomeSection.FavoritePlaylists -> R.string.core_ui_home_favorite_playlists
             HomeSection.FavoriteAlbums -> R.string.core_ui_home_favorite_albums
             HomeSection.FavoriteTracks -> R.string.core_ui_home_favorite_tracks

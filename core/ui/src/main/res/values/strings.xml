@@ -45,6 +45,7 @@
         <item quantity="one">%1$d play</item>
         <item quantity="other">%1$d plays</item>
     </plurals>
+    <string name="core_ui_home_shortcuts">Shortcuts</string>
     <string name="core_ui_home_favorite_playlists">Favorite playlists</string>
     <string name="core_ui_home_favorite_albums">Favorite albums</string>
     <string name="core_ui_home_favorite_tracks">Favorite tracks</string>

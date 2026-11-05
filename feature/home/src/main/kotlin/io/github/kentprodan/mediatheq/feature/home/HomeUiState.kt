@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.home
 
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.HomeItems
+import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -46,6 +47,11 @@ data class HomeSectionContent(
 sealed interface HomeAction {
     /** Plays the whole library shuffled. */
     data object ShuffleAll : HomeAction
+
+    /** A Shortcuts button (#128): queues the whole mix and plays it. */
+    data class PlayMix(
+        val mix: Mix,
+    ) : HomeAction
 
     /** A track of a track section: plays the section's tracks from [index] (the default track action decides). */
     data class PlayTracks(

@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.home
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.HomeItems
+import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.model.Album
@@ -252,6 +253,55 @@ class HomeViewModelTest {
             viewModel(SyncStatus.Failed(MqError.Network, lastSyncedAt = null)).onAction(HomeAction.Sync)
 
             assertThat(sync.syncCalls).isEqualTo(1)
+        }
+
+    @Test
+    fun `track mix queues every track in order, the one played in the last 14 days last`() =
+        test {
+            withLibrary().onAction(HomeAction.PlayMix(Mix.Tracks))
+
+            val play = playback.plays.single()
+            assertThat(play.queue).containsExactlyElementsIn(tracks)
+            assertThat(play.queue.last().title).isEqualTo("a2")
+            assertThat(play.shuffle).isFalse()
+        }
+
+    @Test
+    fun `album mix queues every album whole`() =
+        test {
+            withLibrary().onAction(HomeAction.PlayMix(Mix.Albums))
+
+            val titles =
+                playback.plays
+                    .single()
+                    .queue
+                    .map { it.title }
+            assertThat(titles).containsExactly("a1", "a2", "b1", "g1")
+            assertThat(titles.indexOf("a2")).isEqualTo(titles.indexOf("a1") + 1)
+        }
+
+    @Test
+    fun `the shortcuts offer the library's decades and decade mix plays that decade`() =
+        test {
+            library.albums.value = listOf(alpha, beta.copy(year = 1995), gamma.copy(year = 2001))
+            library.tracks.value = tracks
+            val viewModel = viewModel()
+
+            val shortcuts =
+                viewModel
+                    .content()
+                    .sections
+                    .first { it.section == HomeSection.Shortcuts }
+                    .items
+            assertThat(shortcuts).isEqualTo(HomeItems.Shortcuts(listOf(1990, 2000)))
+
+            viewModel.onAction(HomeAction.PlayMix(Mix.Decade(1990)))
+            assertThat(
+                playback.plays
+                    .single()
+                    .queue
+                    .map { it.title },
+            ).containsExactly("b1")
         }
 
     @Test

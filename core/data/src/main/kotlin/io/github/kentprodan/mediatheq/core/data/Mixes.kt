@@ -57,7 +57,12 @@ fun mixTracks(
     }
 
 /** The decades of [albums]' years, oldest first: the Decade mix offers only these. */
-fun decades(albums: List<Album>): List<Int> = albums.mapNotNull { it.year }.map { it / DECADE * DECADE }.distinct().sorted()
+fun decades(albums: List<Album>): List<Int> =
+    albums
+        .mapNotNull { it.year }
+        .map { it / DECADE * DECADE }
+        .distinct()
+        .sorted()
 
 private fun trackMix(
     tracks: List<Track>,
@@ -73,7 +78,12 @@ private fun trackMix(
 private fun weightedOrder(
     tracks: List<Track>,
     random: Random,
-): List<Track> = tracks.map { it to random.nextDouble().pow(1.0 / it.mixWeight) }.sortedByDescending { it.second }.map { it.first }
+): List<Track> =
+    tracks
+        .map {
+            it to random.nextDouble().pow(1.0 / it.mixWeight)
+        }.sortedByDescending { it.second }
+        .map { it.first }
 
 /** 1, plus 2 for a favorite, plus half the server's 0-10 rating: a five-star favorite weighs 8. */
 internal val Track.mixWeight: Double

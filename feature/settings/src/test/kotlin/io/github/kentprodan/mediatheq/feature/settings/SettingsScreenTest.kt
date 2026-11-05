@@ -441,7 +441,7 @@ class SettingsScreenTest {
             ).assert(hasStateDescription("Shown"))
             .performClick()
         composeRule.onNodeWithContentDescription("Show Recently added tracks").performClick()
-        // Rows come in Home's order: the second one is Favorite albums.
+        // Rows come in Home's order: the second one moves up.
         val secondRow = composeRule.onAllNodes(hasCustomActions())[1].fetchSemanticsNode()
         secondRow.config[SemanticsActions.CustomActions].first { it.label == "Move up" }.action()
 
@@ -451,7 +451,7 @@ class SettingsScreenTest {
                 SettingsAction.SetHomeHidden(defaults.hidden + HomeSection.FavoriteAlbums),
                 SettingsAction.SetHomeHidden(defaults.hidden - HomeSection.RecentlyAddedTracks),
                 SettingsAction.SetHomeOrder(
-                    listOf(HomeSection.FavoriteAlbums, HomeSection.FavoritePlaylists) + HomeSection.entries.drop(2),
+                    listOf(HomeSection.entries[1], HomeSection.entries[0]) + HomeSection.entries.drop(2),
                 ),
             ).inOrder()
     }
@@ -495,7 +495,7 @@ class SettingsScreenTest {
         assertThat(actions)
             .containsExactly(
                 SettingsAction.SetHomeOrder(
-                    listOf(HomeSection.FavoriteAlbums, HomeSection.FavoritePlaylists) + HomeSection.entries.drop(2),
+                    listOf(HomeSection.entries[1], HomeSection.entries[0]) + HomeSection.entries.drop(2),
                 ),
             )
     }

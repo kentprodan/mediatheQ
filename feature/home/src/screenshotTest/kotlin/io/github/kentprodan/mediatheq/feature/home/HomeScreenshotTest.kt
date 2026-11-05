@@ -1,6 +1,8 @@
 package io.github.kentprodan.mediatheq.feature.home
 
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
@@ -134,3 +136,28 @@ fun HomeErrorScreenshot() = Home(HomeUiState.Error(MqError.Server(500)))
 @MqPreviews
 @Composable
 fun HomeLoadingScreenshot() = Home(HomeUiState.Loading)
+
+/** The Shortcuts section (#128): Track, Album and Decade mix cards, above an album row. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeShortcutsScreenshot() =
+    Home(
+        HomeUiState.Content(
+            listOf(
+                section(HomeSection.Shortcuts, HomeItems.Shortcuts(listOf(1980, 1990))),
+                section(HomeSection.FavoriteAlbums, HomeItems.Albums(albums)),
+            ),
+        ),
+    )
+
+/** The Decade mix picker's content (#128); the sheet around it is a popup, which screenshots cannot render. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun DecadePickerScreenshot() =
+    MediatheqTheme {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            DecadeList(listOf(1960, 1970, 1980, 1990, 2000, 2010, 2020), {})
+        }
+    }
