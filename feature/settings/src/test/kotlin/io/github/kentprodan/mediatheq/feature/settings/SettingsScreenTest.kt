@@ -34,6 +34,8 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.AlbumButton
 import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AppFont
+import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
+import io.github.kentprodan.mediatheq.core.data.ArtistPlayAction
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
@@ -611,6 +613,33 @@ class SettingsScreenTest {
                 SettingsAction.SetAlbumPage(
                     AlbumPagePreferences(hiddenButtons = setOf(AlbumButton.Resume, AlbumButton.Favorite)),
                 ),
+            )
+    }
+
+    @Test
+    fun `the artist page switches and columns apply at once and its order row opens the organize dialog`() {
+        show(SettingsPage.Artist)
+
+        composeRule.onNode(hasText("Show \"Appears on\"") and isToggleable()).performClick()
+        composeRule.onNode(hasText("Page content order") and hasClickAction()).performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetArtistPage(ArtistPagePreferences(showAppearsOn = false)),
+                SettingsAction.OpenArtistSections,
+            ).inOrder()
+    }
+
+    @Test
+    fun `the artist play action is chosen in its dialog`() {
+        show(SettingsPage.Artist)
+
+        composeRule.onNode(hasText("Play button action") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("All tracks shuffled").performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetArtistPage(ArtistPagePreferences(playAction = ArtistPlayAction.AllShuffled)),
             )
     }
 }

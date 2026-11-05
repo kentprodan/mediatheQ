@@ -39,6 +39,10 @@ data object LibraryPageSettingsKey : NavKey
 @Serializable
 data object AlbumPageSettingsKey : NavKey
 
+/** Settings -> Interface -> Page settings -> Artist page (#133). */
+@Serializable
+data object ArtistPageSettingsKey : NavKey
+
 /** Settings -> Playback: streaming quality, normalization, Audio. */
 @Serializable
 data object PlaybackSettingsKey : NavKey

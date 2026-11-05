@@ -322,7 +322,7 @@ internal val AlbumSection.label: Int
             AlbumSection.About -> R.string.settings_ap_section_about
         }
 
-private val MoreAlbumsSort.label: Int
+internal val MoreAlbumsSort.label: Int
     get() =
         when (this) {
             MoreAlbumsSort.YearDescending -> R.string.settings_ap_sort_year_desc

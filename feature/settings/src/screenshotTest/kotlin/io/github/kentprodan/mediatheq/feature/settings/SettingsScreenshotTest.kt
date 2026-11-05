@@ -10,6 +10,8 @@ import io.github.kentprodan.mediatheq.core.data.AlbumButton
 import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.AppFont
+import io.github.kentprodan.mediatheq.core.data.ArtistButton
+import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.CoverTap
@@ -441,6 +443,61 @@ fun SettingsAlbumSectionsDialogScreenshot() =
         OrganizeDialogContent(
             "Page content order",
             albumSectionsDraft(listOf(AlbumSection.About, AlbumSection.Tracks, AlbumSection.MoreFromArtist)),
+            label = { stringResource(it.label) },
+        )
+    }
+
+/** Settings -> Artist page (#133), all defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsArtistPageScreenshot() = Page(SettingsPage.Artist)
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsArtistBackgroundDialogScreenshot() =
+    MediatheqTheme { ArtistPageDialogContent(ArtistPageDialog.Background, ArtistPagePreferences()) }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsArtistPlayActionDialogScreenshot() =
+    MediatheqTheme { ArtistPageDialogContent(ArtistPageDialog.PlayAction, ArtistPagePreferences()) }
+
+/** Shuffle checked: it moves to the header's More menu. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsArtistHiddenButtonsDialogScreenshot() =
+    MediatheqTheme {
+        ArtistPageDialogContent(
+            ArtistPageDialog.HiddenButtons,
+            ArtistPagePreferences(hiddenButtons = setOf(ArtistButton.Shuffle)),
+        )
+    }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsArtistTopTracksCountDialogScreenshot() =
+    MediatheqTheme { ArtistPageDialogContent(ArtistPageDialog.TopTracksCount, ArtistPagePreferences()) }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsArtistDynamicColorsDialogScreenshot() =
+    MediatheqTheme { ArtistPageDialogContent(ArtistPageDialog.DynamicColors, ArtistPagePreferences()) }
+
+/** "Page content order" with the default order; the checks are fixed (switches hide sections). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsArtistSectionsDialogScreenshot() =
+    MediatheqTheme {
+        OrganizeDialogContent(
+            "Page content order",
+            artistSectionsDraft(ArtistPagePreferences.DEFAULT_SECTIONS),
             label = { stringResource(it.label) },
         )
     }

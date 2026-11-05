@@ -6,6 +6,9 @@ import io.github.kentprodan.mediatheq.core.data.AlbumHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.AppFont
+import io.github.kentprodan.mediatheq.core.data.ArtistHeaderBackground
+import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
+import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.EqPreset
@@ -432,5 +435,55 @@ class SettingsViewModelTest {
             assertThat(library.preferences.value.albumPage.sectionOrder)
                 .containsExactly(AlbumSection.About, AlbumSection.Tracks, AlbumSection.MoreFromArtist)
                 .inOrder()
+        }
+
+    @Test
+    fun `artist page choices apply at once and restoring resets only that page`() =
+        runTest {
+            signIn()
+            val album = AlbumPagePreferences(showAbout = false)
+            library.setAlbumPage(album)
+            val chosen = ArtistPagePreferences(headerBackground = ArtistHeaderBackground.None, topTracksCount = 30)
+
+            viewModel.onAction(SettingsAction.SetArtistPage(chosen))
+            assertThat(content().library.artistPage).isEqualTo(chosen)
+
+            viewModel.onAction(SettingsAction.RestoreArtistPageDefaults)
+            assertThat(library.preferences.value.artistPage).isEqualTo(ArtistPagePreferences())
+            assertThat(library.preferences.value.albumPage).isEqualTo(album)
+        }
+
+    @Test
+    fun `the artist sections are ordered in a draft, stored with OK and dropped with Cancel`() =
+        runTest {
+            signIn()
+            viewModel.uiState.test {
+                viewModel.onAction(SettingsAction.OpenArtistSections)
+                viewModel.onAction(SettingsAction.MoveArtistSection(3, 0))
+                val draft = (expectMostRecentItem() as SettingsUiState.Content).artistSectionsDraft
+                assertThat(draft?.order)
+                    .containsExactly(
+                        ArtistSection.About,
+                        ArtistSection.Albums,
+                        ArtistSection.TopTracks,
+                        ArtistSection.AppearsOn,
+                    ).inOrder()
+                assertThat(draft?.canToggle(ArtistSection.About)).isFalse()
+
+                viewModel.onAction(SettingsAction.ConfirmArtistSections)
+                assertThat((expectMostRecentItem() as SettingsUiState.Content).artistSectionsDraft).isNull()
+
+                viewModel.onAction(SettingsAction.OpenArtistSections)
+                viewModel.onAction(SettingsAction.MoveArtistSection(0, 3))
+                viewModel.onAction(SettingsAction.DismissArtistSections)
+                assertThat((expectMostRecentItem() as SettingsUiState.Content).artistSectionsDraft).isNull()
+            }
+            assertThat(library.preferences.value.artistPage.sectionOrder)
+                .containsExactly(
+                    ArtistSection.About,
+                    ArtistSection.Albums,
+                    ArtistSection.TopTracks,
+                    ArtistSection.AppearsOn,
+                ).inOrder()
         }
 }
