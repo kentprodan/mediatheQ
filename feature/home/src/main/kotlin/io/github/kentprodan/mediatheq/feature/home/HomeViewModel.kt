@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.homeItems
+import io.github.kentprodan.mediatheq.core.data.mixTracks
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.CoroutineDispatcher
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.time.Clock
 
@@ -109,6 +111,23 @@ class HomeViewModel
             when (action) {
                 HomeAction.ShuffleAll -> {
                     launch { playback.play(libraryRepository.tracks().first(), shuffle = true) }
+                }
+
+                is HomeAction.PlayMix -> {
+                    launch {
+                        val queue =
+                            withContext(defaultDispatcher) {
+                                val tracks = libraryRepository.tracks().first()
+                                mixTracks(
+                                    action.mix,
+                                    tracks,
+                                    libraryRepository.albums().first(),
+                                    shuffle.mixRandom(),
+                                    clock.now(),
+                                )
+                            }
+                        if (queue.isNotEmpty()) playback.play(queue)
+                    }
                 }
 
                 is HomeAction.PlayTracks -> {

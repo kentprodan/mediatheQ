@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performClick
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.HomeItems
+import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.HomeSection
@@ -63,6 +64,31 @@ class HomeScreenTest {
             section(HomeSection.LastPlayedAlbums, HomeItems.Albums(listOf(album))),
             section(HomeSection.FavoriteTracks, HomeItems.Tracks(listOf(track))),
         )
+
+    @Test
+    fun `the shortcuts play a mix, and Decade mix plays the decade picked`() {
+        show(HomeUiState.Content(listOf(section(HomeSection.Shortcuts, HomeItems.Shortcuts(listOf(1980, 1990))))))
+
+        composeRule.onNodeWithText("Track mix").performClick()
+        composeRule.onNodeWithText("Album mix").performClick()
+        composeRule.onNodeWithText("Decade mix").performClick()
+        composeRule.onNodeWithText("1990s").performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                HomeAction.PlayMix(Mix.Tracks),
+                HomeAction.PlayMix(Mix.Albums),
+                HomeAction.PlayMix(Mix.Decade(1990)),
+            ).inOrder()
+        composeRule.onNodeWithText("1990s").assertDoesNotExist()
+    }
+
+    @Test
+    fun `without decades there is no Decade mix`() {
+        show(HomeUiState.Content(listOf(section(HomeSection.Shortcuts, HomeItems.Shortcuts(emptyList())))))
+
+        composeRule.onNodeWithText("Decade mix").assertDoesNotExist()
+    }
 
     @Test
     fun `each section has its title as a heading, in order`() {

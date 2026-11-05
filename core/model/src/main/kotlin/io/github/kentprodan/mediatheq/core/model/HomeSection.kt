@@ -1,7 +1,7 @@
 package io.github.kentprodan.mediatheq.core.model
 
 /** What a Home section lists. */
-enum class HomeKind { Albums, Artists, Tracks, Playlists }
+enum class HomeKind { Albums, Artists, Tracks, Playlists, Shortcuts }
 
 /** How a Home section is laid out (#127; chosen per section in #182). */
 enum class HomeDisplay { Row, Grid, Carousel, List }
@@ -23,6 +23,8 @@ enum class HomeSection(
     val shownByDefault: Boolean,
     val defaultSettings: HomeSectionSettings,
 ) {
+    /** Buttons that start a mix (#128); its own settings come with the section gear (#182). */
+    Shortcuts(HomeKind.Shortcuts, true, HomeSectionSettings(moreIndicator = false)),
     FavoritePlaylists(HomeKind.Playlists, true, HomeSectionSettings()),
     FavoriteAlbums(HomeKind.Albums, true, HomeSectionSettings()),
     FavoriteTracks(HomeKind.Tracks, true, TRACK_LIST),

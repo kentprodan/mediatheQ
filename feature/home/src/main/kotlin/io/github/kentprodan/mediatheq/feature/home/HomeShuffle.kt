@@ -24,4 +24,10 @@ class HomeShuffle internal constructor(
     fun reshuffle() {
         current.value = Random.nextLong()
     }
+
+    // Mixes (#128) draw from here: a new order at each tap, the same ones for the same initial seed (tests).
+    private val mixes = Random(initial)
+
+    /** A fresh random source for one mix. */
+    fun mixRandom(): Random = Random(mixes.nextLong())
 }

@@ -37,6 +37,13 @@ sealed interface HomeItems {
     ) : HomeItems {
         override val isEmpty: Boolean get() = playlists.isEmpty()
     }
+
+    /** The mix buttons (#128): Track mix and Album mix, and Decade mix when the library has [decades]. */
+    data class Shortcuts(
+        val decades: List<Int>,
+    ) : HomeItems {
+        override val isEmpty: Boolean get() = false
+    }
 }
 
 /**
@@ -116,6 +123,10 @@ fun homeItems(
     val artists: (List<Artist>) -> HomeItems = { HomeItems.Artists(it.take(limit)) }
     val tracks: (List<Track>) -> HomeItems = { HomeItems.Tracks(it.take(limit)) }
     return when (section) {
+        HomeSection.Shortcuts -> {
+            HomeItems.Shortcuts(decades(library.albums))
+        }
+
         HomeSection.FavoritePlaylists -> {
             HomeItems.Playlists(library.playlists.filter { it.userData.isFavorite }.take(limit))
         }

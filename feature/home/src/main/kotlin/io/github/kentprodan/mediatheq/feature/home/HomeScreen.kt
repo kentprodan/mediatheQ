@@ -207,6 +207,10 @@ private fun LazyListScope.section(
         item(key = "$key-title") { SectionHeader(content) }
     }
     val items = content.items
+    if (items is HomeItems.Shortcuts) {
+        item(key = "$key-items") { MixShortcuts(items, onAction) }
+        return
+    }
     // Tracks have no cards: a track section always lists its rows.
     if (items is HomeItems.Tracks) {
         itemsIndexed(items.tracks, key = { _, track -> "$key-${track.id}" }) { index, track ->
@@ -300,7 +304,7 @@ private fun CardRow(
                 }
             }
 
-            is HomeItems.Tracks -> {
+            is HomeItems.Tracks, is HomeItems.Shortcuts -> {
                 emptyList()
             }
         }
@@ -362,7 +366,7 @@ private fun carouselItems(items: HomeItems): List<MqCarouselItem> =
             items.playlists.map { MqCarouselItem(it.id, it.artwork, it.name, null, it.artwork?.blurHash) }
         }
 
-        is HomeItems.Tracks -> {
+        is HomeItems.Tracks, is HomeItems.Shortcuts -> {
             emptyList()
         }
     }
@@ -375,7 +379,7 @@ private fun open(
     is HomeItems.Albums -> navigation.onOpenAlbum(id)
     is HomeItems.Artists -> navigation.onOpenArtist(id)
     is HomeItems.Playlists -> navigation.onOpenPlaylist(id)
-    is HomeItems.Tracks -> Unit
+    is HomeItems.Tracks, is HomeItems.Shortcuts -> Unit
 }
 
 /**
