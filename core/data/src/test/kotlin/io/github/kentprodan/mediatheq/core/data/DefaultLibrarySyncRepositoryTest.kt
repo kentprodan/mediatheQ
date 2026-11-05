@@ -160,6 +160,7 @@ class DefaultLibrarySyncRepositoryTest {
             assertThat(genre.albumCount).isEqualTo(2)
             assertThat(genre.trackCount).isEqualTo(1)
             assertThat(count("album_genre_staging")).isEqualTo(0)
+            assertThat(count("track_genre_staging")).isEqualTo(0)
             assertThat(library.search("roc").let { (it as MqResult.Success).value.genres }).containsExactly(genre)
         }
 
@@ -600,6 +601,24 @@ class DefaultLibrarySyncRepositoryTest {
             assertThat(repository().sync()).isEqualTo(MqResult.Success(Unit))
             assertThat(source.calls.count { it == "albums@0" }).isEqualTo(2)
             assertThat(count("album")).isEqualTo(2)
+        }
+
+    @Test
+    fun `a step fetched once more drops the genre links staged by its first pass`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 10)
+            source.albums = source.albums.map { it.copy(genres = listOf(Genre(id("g-rock"), "Rock"))) }
+            source.shortListings = setOf("albums")
+            source.pauseAt = 2 // the first albums@0, already holding Rock
+            signIn()
+            val sync = backgroundScope.async { repository().sync() }
+            source.paused.await()
+            source.albums = source.albums.map { it.copy(genres = listOf(Genre(id("g-jazz"), "Jazz"))) }
+            source.resume.complete(Unit)
+
+            assertThat(sync.await()).isEqualTo(MqResult.Success(Unit))
+            assertThat(source.calls.count { it == "albums@0" }).isEqualTo(2)
+            assertThat(library.genres().first().map { it.name }).containsExactly("Jazz")
         }
 
     @Test

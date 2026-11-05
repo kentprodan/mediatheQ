@@ -303,23 +303,20 @@ interface LibraryDao {
             albums = searchAlbums(match, limitPerKind, all, downloaded),
             tracks = searchTracks(match, limitPerKind, all, downloaded),
             playlists = searchPlaylists(match, limitPerKind, all, downloaded),
-            genreIds = searchGenreIds(match, limitPerKind),
+            genreIds = searchGenreIds(match),
         )
 
     /**
      * Genres whose name matches, best first: their ids only. The genre list (offline-filtered, with counts) supplies the
-     * rows, so a genre with nothing offline is dropped there.
+     * rows, so a genre with nothing offline is dropped there; no limit here, or those could crowd out one that is shown.
      */
     @Query(
         """
         SELECT item_id FROM search WHERE search MATCH :match AND kind = 'genre'
-        ORDER BY rank, name LIMIT :limit
+        ORDER BY rank, name
         """,
     )
-    suspend fun searchGenreIds(
-        match: String,
-        limit: Int,
-    ): List<String>
+    suspend fun searchGenreIds(match: String): List<String>
 
     @Query(
         """

@@ -132,7 +132,7 @@ class DefaultLibraryRepository
                         val found = libraryDao.search(match, limitPerKind, all, downloaded)
                         // Genres come with their offline-filtered counts from the genre list, in the search's order.
                         val genres = libraryDao.genres(all, downloaded).first().associateBy { it.id }
-                        found to found.genreIds.mapNotNull { genres[it] }
+                        found to found.genreIds.mapNotNull { genres[it] }.take(limitPerKind)
                     }
                 } catch (_: SQLiteException) {
                     return MqResult.Failure(MqError.Storage)

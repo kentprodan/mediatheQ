@@ -30,6 +30,12 @@ private fun Page(state: GenreUiState) = MediatheqTheme { GenreScreen(state, {}, 
 fun GenrePageScreenshot() =
     Page(GenreUiState.Content(genre, albums, listOf(PreviewData.artist, PreviewData.longTrack.artists[1]), tracks))
 
+/** Before the first read: the top bar only. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun GenreLoadingScreenshot() = Page(GenreUiState.Loading)
+
 /** A genre nothing carries any more. */
 @PreviewTest
 @MqPreviews
