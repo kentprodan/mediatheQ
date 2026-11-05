@@ -11,7 +11,7 @@ import androidx.room3.Fts5
 @Fts5(notIndexed = ["kind", "server_id", "item_id"])
 @Entity(tableName = "search")
 data class SearchEntity(
-    /** `artist`, `album`, `track` or `playlist`. */
+    /** `artist`, `album`, `track`, `playlist` or `genre` (#130). */
     val kind: String,
     @ColumnInfo(name = "server_id") val serverId: String,
     @ColumnInfo(name = "item_id") val itemId: String,

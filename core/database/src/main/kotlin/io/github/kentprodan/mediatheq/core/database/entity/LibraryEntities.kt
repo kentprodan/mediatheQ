@@ -122,6 +122,35 @@ data class PlaylistEntryEntity(
     @ColumnInfo(name = "track_id") val trackId: String,
 )
 
+/**
+ * Album -> genre (#130), with the genre's name: genres exist only through their items (jellyfin R17), so the genre list
+ * is built from these links and a genre with no items cannot be listed.
+ */
+@Entity(
+    tableName = "album_genre",
+    primaryKeys = ["server_id", "album_id", "genre_id"],
+    indices = [Index("server_id", "genre_id")],
+)
+data class AlbumGenreEntity(
+    @ColumnInfo(name = "server_id") val serverId: String,
+    @ColumnInfo(name = "album_id") val albumId: String,
+    @ColumnInfo(name = "genre_id") val genreId: String,
+    @ColumnInfo(name = "genre_name") val genreName: String,
+)
+
+/** Track -> genre (#130), with the genre's name. */
+@Entity(
+    tableName = "track_genre",
+    primaryKeys = ["server_id", "track_id", "genre_id"],
+    indices = [Index("server_id", "genre_id")],
+)
+data class TrackGenreEntity(
+    @ColumnInfo(name = "server_id") val serverId: String,
+    @ColumnInfo(name = "track_id") val trackId: String,
+    @ColumnInfo(name = "genre_id") val genreId: String,
+    @ColumnInfo(name = "genre_name") val genreName: String,
+)
+
 @Entity(tableName = "artist_staging", primaryKeys = ["server_id", "id"])
 data class ArtistStaging(
     @Embedded val row: ArtistEntity,
@@ -155,4 +184,14 @@ data class PlaylistStaging(
 @Entity(tableName = "playlist_entry_staging", primaryKeys = ["server_id", "playlist_id", "position"])
 data class PlaylistEntryStaging(
     @Embedded val row: PlaylistEntryEntity,
+)
+
+@Entity(tableName = "album_genre_staging", primaryKeys = ["server_id", "album_id", "genre_id"])
+data class AlbumGenreStaging(
+    @Embedded val row: AlbumGenreEntity,
+)
+
+@Entity(tableName = "track_genre_staging", primaryKeys = ["server_id", "track_id", "genre_id"])
+data class TrackGenreStaging(
+    @Embedded val row: TrackGenreEntity,
 )

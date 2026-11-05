@@ -9,6 +9,7 @@ import androidx.room3.Transaction
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
+import io.github.kentprodan.mediatheq.core.database.entity.ImageColumns
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
@@ -67,6 +68,102 @@ interface LibraryDao {
         all: Boolean,
         downloaded: List<String>,
     ): Flow<List<PlaylistEntity>>
+
+    /**
+     * The genres (#130), each with its album and track counts and the cover of its first album (by name) as its picture.
+     * Albums and tracks belong to the genres they are tagged with; offline a genre counts only its downloaded tracks and
+     * the albums holding one, and a genre with none of them is left out.
+     */
+    @Query(
+        """
+        WITH
+        ga AS (
+            SELECT ag.server_id, ag.genre_id, ag.album_id FROM album_genre ag
+            WHERE :all OR EXISTS (
+                SELECT 1 FROM track d WHERE d.server_id = ag.server_id AND d.album_id = ag.album_id AND d.id IN (:downloaded)
+            )
+        ),
+        gt AS (SELECT server_id, genre_id, track_id FROM track_genre WHERE :all OR track_id IN (:downloaded)),
+        names AS (
+            SELECT server_id, genre_id, MAX(genre_name) AS name FROM (
+                SELECT server_id, genre_id, genre_name FROM album_genre
+                UNION ALL SELECT server_id, genre_id, genre_name FROM track_genre
+            ) GROUP BY server_id, genre_id
+        ),
+        cover AS (
+            SELECT ga.server_id, ga.genre_id, a.image_item_id, a.image_tag, a.blur_hash,
+                ROW_NUMBER() OVER (PARTITION BY ga.server_id, ga.genre_id ORDER BY a.sort_name, a.id) AS rn
+            FROM ga JOIN album a ON a.server_id = ga.server_id AND a.id = ga.album_id
+            WHERE a.image_tag IS NOT NULL
+        )
+        SELECT * FROM (
+            SELECT n.server_id, n.genre_id AS id, n.name,
+                (SELECT COUNT(*) FROM ga WHERE ga.server_id = n.server_id AND ga.genre_id = n.genre_id) AS album_count,
+                (SELECT COUNT(*) FROM gt WHERE gt.server_id = n.server_id AND gt.genre_id = n.genre_id) AS track_count,
+                c.image_item_id, c.image_tag, c.blur_hash
+            FROM names n LEFT JOIN cover c ON c.server_id = n.server_id AND c.genre_id = n.genre_id AND c.rn = 1
+        ) WHERE album_count > 0 OR track_count > 0
+        ORDER BY name COLLATE NOCASE, id
+        """,
+    )
+    fun genres(
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<GenreRow>>
+
+    /** The albums tagged with the genre, by name. */
+    @Transaction
+    @Query(
+        """
+        SELECT album.* FROM album JOIN album_genre ag ON ag.server_id = album.server_id AND ag.album_id = album.id
+        WHERE ag.server_id = :serverId AND ag.genre_id = :genreId AND (:all OR EXISTS (
+            SELECT 1 FROM track d
+            WHERE d.server_id = album.server_id AND d.album_id = album.id AND d.id IN (:downloaded)
+        ))
+        ORDER BY album.sort_name, album.id
+        """,
+    )
+    fun genreAlbums(
+        serverId: String,
+        genreId: String,
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<AlbumWithArtists>>
+
+    /** The album artists of the genre's albums, by name. */
+    @Query(
+        """
+        SELECT DISTINCT artist.* FROM artist
+        JOIN album_artist aa ON aa.server_id = artist.server_id AND aa.artist_id = artist.id
+        JOIN album_genre ag ON ag.server_id = aa.server_id AND ag.album_id = aa.album_id
+        WHERE ag.server_id = :serverId AND ag.genre_id = :genreId AND (:all OR EXISTS (
+            SELECT 1 FROM track d WHERE d.server_id = aa.server_id AND d.album_id = aa.album_id AND d.id IN (:downloaded)
+        ))
+        ORDER BY artist.sort_name, artist.id
+        """,
+    )
+    fun genreArtists(
+        serverId: String,
+        genreId: String,
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<ArtistEntity>>
+
+    /** The tracks tagged with the genre, by name. */
+    @Transaction
+    @Query(
+        """
+        SELECT track.* FROM track JOIN track_genre tg ON tg.server_id = track.server_id AND tg.track_id = track.id
+        WHERE tg.server_id = :serverId AND tg.genre_id = :genreId AND (:all OR track.id IN (:downloaded))
+        ORDER BY track.sort_name, track.id
+        """,
+    )
+    fun genreTracks(
+        serverId: String,
+        genreId: String,
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<TrackWithArtists>>
 
     /** All tracks with their artist credits, from one snapshot. */
     @Transaction
@@ -206,7 +303,23 @@ interface LibraryDao {
             albums = searchAlbums(match, limitPerKind, all, downloaded),
             tracks = searchTracks(match, limitPerKind, all, downloaded),
             playlists = searchPlaylists(match, limitPerKind, all, downloaded),
+            genreIds = searchGenreIds(match, limitPerKind),
         )
+
+    /**
+     * Genres whose name matches, best first: their ids only. The genre list (offline-filtered, with counts) supplies the
+     * rows, so a genre with nothing offline is dropped there.
+     */
+    @Query(
+        """
+        SELECT item_id FROM search WHERE search MATCH :match AND kind = 'genre'
+        ORDER BY rank, name LIMIT :limit
+        """,
+    )
+    suspend fun searchGenreIds(
+        match: String,
+        limit: Int,
+    ): List<String>
 
     @Query(
         """
@@ -318,6 +431,18 @@ data class SearchRows(
     val albums: List<AlbumWithArtists>,
     val tracks: List<TrackWithArtists>,
     val playlists: List<PlaylistEntity>,
+    /** Matching genre ids, best first (#130). */
+    val genreIds: List<String> = emptyList(),
+)
+
+/** A genre with its counts and the cover of its first album (#130). */
+data class GenreRow(
+    @ColumnInfo(name = "server_id") val serverId: String,
+    val id: String,
+    val name: String,
+    @ColumnInfo(name = "album_count") val albumCount: Int,
+    @ColumnInfo(name = "track_count") val trackCount: Int,
+    @Embedded val image: ImageColumns,
 )
 
 /** An album with its artist credits; sort [credits] by position, Room does not order relations. */
