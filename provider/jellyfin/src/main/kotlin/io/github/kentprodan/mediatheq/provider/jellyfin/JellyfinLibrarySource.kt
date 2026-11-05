@@ -59,7 +59,7 @@ class JellyfinLibrarySource internal constructor(
         items(
             server,
             "MusicAlbum",
-            "SortName,DateCreated,ChildCount",
+            "SortName,DateCreated,ChildCount,Genres",
             startIndex,
             limit,
         ) { it.toAlbum(server.serverId) }
@@ -70,7 +70,13 @@ class JellyfinLibrarySource internal constructor(
         limit: Int,
     ): MqResult<LibraryPage<Track>> =
         // MediaStreams instead of MediaSources: the same audio format facts in 25% less data.
-        items(server, "Audio", "SortName,DateCreated,MediaStreams", startIndex, limit) { it.toTrack(server.serverId) }
+        items(
+            server,
+            "Audio",
+            "SortName,DateCreated,MediaStreams,Genres",
+            startIndex,
+            limit,
+        ) { it.toTrack(server.serverId) }
 
     override suspend fun playlists(
         server: SignedInServer,

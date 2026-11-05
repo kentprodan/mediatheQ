@@ -121,7 +121,7 @@ class JellyfinLibrarySourceTest {
                     mapOf(
                         "includeItemTypes" to "MusicAlbum",
                         "recursive" to "true",
-                        "fields" to "SortName,DateCreated,ChildCount",
+                        "fields" to "SortName,DateCreated,ChildCount,Genres",
                     ),
             )
             assertAuthenticated(request)
@@ -146,7 +146,7 @@ class JellyfinLibrarySourceTest {
                     mapOf(
                         "includeItemTypes" to "Audio",
                         "recursive" to "true",
-                        "fields" to "SortName,DateCreated,MediaStreams",
+                        "fields" to "SortName,DateCreated,MediaStreams,Genres",
                     ),
             )
             assertThat(page.totalCount).isEqualTo(2729)
@@ -158,6 +158,26 @@ class JellyfinLibrarySourceTest {
             assertThat(track.dateAdded).isEqualTo(Instant.parse("2026-07-11T13:55:28.287Z"))
             assertThat(track.normalizationGainDb).isEqualTo(-10.8)
             assertThat(track.artwork?.itemId).isEqualTo(track.id.itemId)
+        }
+
+    @Test
+    fun `R17 albums and tracks carry their genres by id and name`() =
+        runTest {
+            enqueue("items_music_album/with_genres.json")
+            enqueue("items_audio/with_genres.json")
+
+            val albums = (source.albums(server, 0, 500) as MqResult.Success).value.items
+            val tracks = (source.tracks(server, 0, 500) as MqResult.Success).value.items
+
+            assertThat(
+                albums.map { album -> album.genres.map { it.name } },
+            ).containsExactly(listOf("Pop"), listOf("Rap"))
+            assertThat(albums[0].genres.single().id).isEqualTo(MediaId(serverId, "f1f202f389018ad2c0766af4b0fcb155"))
+            assertThat(
+                tracks.map { track ->
+                    track.genres.map { it.name }
+                },
+            ).containsExactly(listOf("Hip-Hop"), listOf("R&B"))
         }
 
     @Test

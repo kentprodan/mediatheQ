@@ -20,6 +20,8 @@ internal data class BaseItemDto(
     @SerialName("AlbumPrimaryImageTag") val albumPrimaryImageTag: String? = null,
     @SerialName("AlbumArtists") val albumArtists: List<NameIdPairDto> = emptyList(),
     @SerialName("ArtistItems") val artistItems: List<NameIdPairDto> = emptyList(),
+    /** With `fields=Genres`: the item's genres (their ids are not the ones `/Genres` lists, R17). */
+    @SerialName("GenreItems") val genreItems: List<NameIdPairDto> = emptyList(),
     @SerialName("NormalizationGain") val normalizationGain: Double? = null,
     @SerialName("ImageTags") val imageTags: Map<String, String> = emptyMap(),
     /** Image type -> (tag -> BlurHash). */
