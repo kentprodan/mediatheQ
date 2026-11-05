@@ -2,9 +2,9 @@
 <resources>
     <string name="library_title">Library</string>
     <string name="library_filter_albums">Albums</string>
-    <string name="library_filter_artists">Artists</string>
+    <string name="library_filter_artists">Album artists</string>
     <string name="library_filter_playlists">Playlists</string>
-    <string name="library_filter_songs">Songs</string>
+    <string name="library_filter_songs">Tracks</string>
     <string name="library_sort">Sort</string>
     <string name="library_sort_name">Name</string>
     <string name="library_sort_recently_added">Recently added</string>

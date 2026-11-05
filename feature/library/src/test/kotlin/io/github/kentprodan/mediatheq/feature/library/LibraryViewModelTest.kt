@@ -605,4 +605,38 @@ class LibraryViewModelTest {
                     .map { it.id.itemId },
             ).containsExactly("t2", "t1", "t3").inOrder()
         }
+
+    @Test
+    fun `the years list loads, then is empty after a sync without albums`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Years, collect = false)
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Loading)
+
+            backgroundScope.launch { viewModel.uiState.collect() }
+            library.albums.value = emptyList()
+
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Empty)
+        }
+
+    @Test
+    fun `album count puts the year with most albums first, ties newest first`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val more =
+                listOf(Album(id("x1"), "x1", listOf(ada), year = 1999), Album(id("x2"), "x2", listOf(ada), year = 1999))
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Years)
+            library.albums.value = albums + more
+
+            viewModel.onAction(LibraryAction.SelectSort(LibrarySort.AlbumCount))
+
+            // 1999 has three albums; 2020 and 2001 one each, newest first.
+            assertThat(viewModel.ids()).containsExactly("1999", "2020", "2001").inOrder()
+        }
+
+    @Test
+    fun `a year page without albums of that year is empty after a sync`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel(yearPage = YearKey(1970))
+
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Empty)
+        }
 }

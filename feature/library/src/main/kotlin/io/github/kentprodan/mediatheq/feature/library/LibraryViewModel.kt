@@ -42,7 +42,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
@@ -70,8 +69,6 @@ class LibraryViewModel
         private val playlists: PlaylistRepository,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
-        private val filter: StateFlow<LibraryFilter> = MutableStateFlow(fixedFilter)
-
         private val listFilter = MutableStateFlow(LibraryListFilter())
         private val selection = MutableStateFlow(ListSelection<MediaId>())
         private val addToPlaylist = MutableStateFlow<List<MediaId>?>(null)
@@ -79,15 +76,14 @@ class LibraryViewModel
         // The failed sync the user already saw as a snackbar; the same failure is not shown twice.
         private val shownFailure = MutableStateFlow<SyncStatus.Failed?>(null)
 
-        /**
-         * The current tab's items, sorted off the main thread, tagged with their tab: right after a tab switch the
-         * previous tab's items must not show under the new tab's chip. Only the open tab's items are loaded.
-         */
-        private val items: Flow<Pair<LibraryFilter, LibraryContent>> =
-            filter
-                .flatMapLatest { filter ->
-                    val sort = preferencesRepository.preferences.map { it.sortFor(filter) }.distinctUntilChanged()
-                    itemsOf(filter).combine(sort) { items, sort -> filter to items(sort) }
+        /** The list's items, sorted off the main thread. */
+        private val items: Flow<LibraryContent> =
+            itemsOf(fixedFilter)
+                .combine(preferencesRepository.preferences.map { it.sortFor(fixedFilter) }.distinctUntilChanged()) {
+                    items,
+                    sort,
+                    ->
+                    items(sort)
                 }.flowOn(defaultDispatcher)
 
         /** [items] narrowed by the header's filter and search (#123), with the unfiltered items' presence. */
@@ -96,8 +92,8 @@ class LibraryViewModel
                 items,
                 listFilter,
                 combine(downloads.completedIds, libraryRepository.fullyDownloaded) { tracks, lists -> tracks + lists },
-            ) { (filter, items), listFilter, downloaded ->
-                ShownItems(filter, items, items.filtered(listFilter, downloaded), listFilter)
+            ) { items, listFilter, downloaded ->
+                ShownItems(items, items.filtered(listFilter, downloaded), listFilter)
             }.flowOn(defaultDispatcher)
 
         /** The sync status, and whether a full sync ever completed (then an empty tab is really empty). */
@@ -116,13 +112,11 @@ class LibraryViewModel
 
         val uiState: StateFlow<LibraryUiState> =
             combine(
-                filter,
                 preferencesRepository.preferences,
                 this.shown,
                 combine(sync, libraryRepository.offline, ::Pair),
                 combine(shownFailure, selection, addToPlaylist, ::Triple),
             ) {
-                filter,
                 preferences,
                 items,
                 (sync, offline),
@@ -131,7 +125,6 @@ class LibraryViewModel
                 val (status, everSynced) = sync
                 val content =
                     when {
-                        items.tab != filter -> LibraryContent.Loading
                         items.filtered.isNotEmptyContent() -> items.filtered
                         items.all.isNotEmptyContent() -> LibraryContent.NoMatches
                         offline -> LibraryContent.NothingDownloaded
@@ -139,10 +132,10 @@ class LibraryViewModel
                     }
                 val failureShownAsContent = content is LibraryContent.Offline || content is LibraryContent.Error
                 LibraryUiState(
-                    filter = filter,
+                    filter = fixedFilter,
                     yearPage = yearPage,
                     albumColumns = preferences.albumColumns,
-                    sort = preferences.sortFor(filter),
+                    sort = preferences.sortFor(fixedFilter),
                     content = content,
                     refreshing = status is SyncStatus.Running,
                     // Offline mode shows downloads: a sync failing for lack of network is expected, not news.
@@ -245,7 +238,7 @@ class LibraryViewModel
                 }
 
                 is LibraryAction.SelectSort -> {
-                    launch { preferencesRepository.setSort(filter.value, action.sort) }
+                    launch { preferencesRepository.setSort(fixedFilter, action.sort) }
                 }
 
                 is LibraryAction.SetAlbumColumns -> {
@@ -371,15 +364,14 @@ class LibraryViewModel
         }
     }
 
-/** A tab's items, as filtered by the list header, and the header's filter. */
+/** A list's items, as filtered by the list header, and the header's filter. */
 private data class ShownItems(
-    val tab: LibraryFilter,
     val all: LibraryContent,
     val filtered: LibraryContent,
     val listFilter: LibraryListFilter,
 )
 
-/** Sorts a tab's items into content. */
+/** Sorts a list's items into content. */
 private typealias Sorter = (LibrarySort) -> LibraryContent
 
 private fun LibraryContent.isNotEmptyContent(): Boolean =

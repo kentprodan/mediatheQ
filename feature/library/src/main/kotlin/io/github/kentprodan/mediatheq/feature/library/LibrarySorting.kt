@@ -9,7 +9,7 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import java.text.Collator
 import java.util.Locale
 
-// Sorting for the Library tabs. Names compare like a person reads them: case and diacritics are ignored ("Moșoi" next
+// Sorting for the Library lists. Names compare like a person reads them: case and diacritics are ignored ("Moșoi" next
 // to "Mosoi"). The item id breaks ties so the order never jumps. Newest and latest year come first; unknown dates last.
 
 private fun nameCollator(): Comparator<String> {
