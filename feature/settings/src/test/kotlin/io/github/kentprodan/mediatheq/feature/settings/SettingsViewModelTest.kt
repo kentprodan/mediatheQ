@@ -344,12 +344,13 @@ class SettingsViewModelTest {
                     LibraryShortcut.Years,
                     LibraryShortcut.Albums,
                     LibraryShortcut.AlbumArtists,
+                    LibraryShortcut.Genres,
                     LibraryShortcut.Playlists,
                 )
             viewModel.uiState.test {
                 viewModel.onAction(SettingsAction.OpenLibraryShortcuts)
                 viewModel.onAction(SettingsAction.ToggleLibraryShortcut(LibraryShortcut.Tracks))
-                viewModel.onAction(SettingsAction.MoveLibraryShortcut(4, 0))
+                viewModel.onAction(SettingsAction.MoveLibraryShortcut(5, 0))
                 val draft = (expectMostRecentItem() as SettingsUiState.Content).shortcutsDraft
                 assertThat(draft?.entries).isEqualTo(organized)
                 assertThat(library.preferences.value.libraryPage.shortcuts).isEqualTo(LibraryShortcut.entries)

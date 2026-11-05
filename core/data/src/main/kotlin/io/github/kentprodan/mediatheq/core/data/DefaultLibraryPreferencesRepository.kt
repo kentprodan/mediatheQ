@@ -24,6 +24,7 @@ class DefaultLibraryPreferencesRepository
                     albumColumns =
                         stored.albumColumns?.takeIf { it in LibraryPreferences.ALBUM_COLUMNS }
                             ?: LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
+                    genresGrid = stored.genresGrid ?: false,
                     sorts =
                         stored.sorts
                             .mapNotNull { (tab, sort) ->
@@ -45,6 +46,8 @@ class DefaultLibraryPreferencesRepository
         override suspend fun setAlbumColumns(columns: Int) {
             if (columns in LibraryPreferences.ALBUM_COLUMNS) store.setAlbumColumns(columns)
         }
+
+        override suspend fun setGenresGrid(on: Boolean) = store.setGenresGrid(on)
 
         override suspend fun setTheme(theme: ThemePreferences) =
             store.setTheme(

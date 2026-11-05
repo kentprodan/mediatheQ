@@ -15,6 +15,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
+import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreEntity
+import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
@@ -195,6 +197,23 @@ class DefaultLibraryRepositoryTest {
         assertThat(ftsMatchExpression("say \"hi\"")).isEqualTo("\"say\" \"\"\"hi\"\"\"*")
         assertThat(ftsMatchExpression("   ")).isNull()
     }
+
+    @Test
+    fun `offline, genres with nothing downloaded do not crowd a downloaded one out of the search limit`() =
+        runTest {
+            val names = listOf("Ra", "Rb", "Rc", "Rd")
+            database.syncDao().stageTracks(names.indices.map { TrackStaging(TrackEntity("s", "t$it", "T$it", "T$it")) })
+            database.syncDao().stageTrackGenreLinks(
+                names.mapIndexed { i, name -> TrackGenreStaging(TrackGenreEntity("s", "t$i", "g$i", name)) },
+            )
+            database.syncDao().swap(1, "s", "user-1")
+            downloaded("t3")
+            preferences.setOfflineMode(true)
+
+            val genres = repository.search("r", limitPerKind = 2).getOrNull()!!.genres
+
+            assertThat(genres.map { it.name }).containsExactly("Rd")
+        }
 
     @Test
     fun `search finds by prefix, without diacritics`() =

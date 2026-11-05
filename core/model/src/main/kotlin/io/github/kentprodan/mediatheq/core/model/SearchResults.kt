@@ -6,6 +6,8 @@ data class SearchResults(
     val albums: List<Album> = emptyList(),
     val tracks: List<Track> = emptyList(),
     val playlists: List<Playlist> = emptyList(),
+    val genres: List<Genre> = emptyList(),
 ) {
-    fun isEmpty(): Boolean = artists.isEmpty() && albums.isEmpty() && tracks.isEmpty() && playlists.isEmpty()
+    fun isEmpty(): Boolean =
+        artists.isEmpty() && albums.isEmpty() && tracks.isEmpty() && playlists.isEmpty() && genres.isEmpty()
 }

@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.data.YearAlbums
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.ListSelection
@@ -232,3 +233,35 @@ fun LibraryYearPageScreenshot() =
             onBack = {},
         )
     }
+
+private val genres =
+    listOf("Electrónica" to 12, "Folk" to 3, "Hip-Hop" to 40, "Jazz" to 0).mapIndexed { i, (name, albums) ->
+        Genre(
+            MediaId(PreviewData.album.id.serverId, "g-$i"),
+            name,
+            albumCount = albums,
+            trackCount = albums * 9 + 1,
+            artwork = PreviewData.artwork.takeIf { i % 2 == 0 },
+        )
+    }
+
+/** The Genres list as rows (#130): first album cover, name, counts; a genre with no cover shows its icon. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryGenresListScreenshot() =
+    Library(LibraryUiState(filter = LibraryFilter.Genres, content = LibraryContent.Genres(genres)))
+
+/** The Genres list as a grid with the album columns. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryGenresGridScreenshot() =
+    Library(
+        LibraryUiState(
+            filter = LibraryFilter.Genres,
+            genresGrid = true,
+            albumColumns = 2,
+            content = LibraryContent.Genres(genres),
+        ),
+    )

@@ -283,6 +283,7 @@ internal val MainNavEntry.label: Int
             MainNavEntry.Library -> R.string.settings_entry_library
             MainNavEntry.Albums -> R.string.settings_entry_albums
             MainNavEntry.AlbumArtists -> R.string.settings_entry_album_artists
+            MainNavEntry.Genres -> R.string.settings_entry_genres
             MainNavEntry.Playlists -> R.string.settings_entry_playlists
             MainNavEntry.Tracks -> R.string.settings_entry_tracks
             MainNavEntry.Search -> R.string.settings_entry_search

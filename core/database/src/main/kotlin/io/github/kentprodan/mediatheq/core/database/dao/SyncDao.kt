@@ -6,12 +6,14 @@ import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import androidx.room3.Transaction
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.SyncStateEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 
 /**
@@ -47,6 +49,12 @@ interface SyncDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun stageTrackArtistLinks(rows: List<TrackArtistStaging>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun stageAlbumGenreLinks(rows: List<AlbumGenreStaging>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun stageTrackGenreLinks(rows: List<TrackGenreStaging>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun stagePlaylists(rows: List<PlaylistStaging>)
@@ -85,6 +93,10 @@ interface SyncDao {
         copyTracks()
         replaceTrackArtists()
         copyTrackArtists()
+        replaceAlbumGenres()
+        copyAlbumGenres()
+        replaceTrackGenres()
+        copyTrackGenres()
         replacePlaylists()
         copyPlaylists()
         replacePlaylistEntries()
@@ -190,6 +202,8 @@ interface SyncDao {
         replaceAlbumArtists()
         replaceTracks()
         replaceTrackArtists()
+        replaceAlbumGenres()
+        replaceTrackGenres()
         replacePlaylists()
         replacePlaylistEntries()
         clearSearch()
@@ -221,6 +235,8 @@ interface SyncDao {
         clearAlbumArtistStaging()
         clearTrackStaging()
         clearTrackArtistStaging()
+        clearAlbumGenreStaging()
+        clearTrackGenreStaging()
         clearPlaylistStaging()
         clearPlaylistEntryStaging()
     }
@@ -254,6 +270,18 @@ interface SyncDao {
 
     @Query("INSERT INTO track_artist SELECT * FROM track_artist_staging")
     suspend fun copyTrackArtists()
+
+    @Query("DELETE FROM album_genre")
+    suspend fun replaceAlbumGenres()
+
+    @Query("INSERT INTO album_genre SELECT * FROM album_genre_staging")
+    suspend fun copyAlbumGenres()
+
+    @Query("DELETE FROM track_genre")
+    suspend fun replaceTrackGenres()
+
+    @Query("INSERT INTO track_genre SELECT * FROM track_genre_staging")
+    suspend fun copyTrackGenres()
 
     @Query("DELETE FROM playlist")
     suspend fun replacePlaylists()
@@ -289,6 +317,10 @@ interface SyncDao {
         UNION ALL SELECT 'album', server_id, id, title FROM album
         UNION ALL SELECT 'track', server_id, id, title FROM track
         UNION ALL SELECT 'playlist', server_id, id, name FROM playlist
+        UNION ALL SELECT 'genre', server_id, genre_id, MAX(genre_name) FROM (
+            SELECT server_id, genre_id, genre_name FROM album_genre
+            UNION ALL SELECT server_id, genre_id, genre_name FROM track_genre
+        ) GROUP BY server_id, genre_id
         """,
     )
     suspend fun indexSearch()
@@ -307,6 +339,12 @@ interface SyncDao {
 
     @Query("DELETE FROM track_artist_staging")
     suspend fun clearTrackArtistStaging()
+
+    @Query("DELETE FROM album_genre_staging")
+    suspend fun clearAlbumGenreStaging()
+
+    @Query("DELETE FROM track_genre_staging")
+    suspend fun clearTrackGenreStaging()
 
     @Query("DELETE FROM playlist_staging")
     suspend fun clearPlaylistStaging()

@@ -33,6 +33,7 @@ class LibraryPreferencesStore
                 .map { prefs ->
                     StoredLibraryPreferences(
                         albumColumns = prefs[ALBUM_COLUMNS],
+                        genresGrid = prefs[GENRES_GRID],
                         dynamicColor = prefs[DYNAMIC_COLOR],
                         theme =
                             StoredTheme(
@@ -110,6 +111,10 @@ class LibraryPreferencesStore
 
         suspend fun setAlbumColumns(columns: Int) {
             dataStore.edit { it[ALBUM_COLUMNS] = columns }
+        }
+
+        suspend fun setGenresGrid(on: Boolean) {
+            dataStore.edit { it[GENRES_GRID] = on }
         }
 
         /** Stores every theme value at once (null removes it); the old Material You flag is dropped with it. */
@@ -263,6 +268,7 @@ class LibraryPreferencesStore
             val LP_LANDSCAPE_COLUMNS = intPreferencesKey("lp_landscape_columns")
             val LP_SPACING = stringPreferencesKey("lp_spacing")
             val ALBUM_COLUMNS = intPreferencesKey("album_columns")
+            val GENRES_GRID = booleanPreferencesKey("genres_grid")
             val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
             val RATING_MODE = stringPreferencesKey("rating_mode")
             val OFFLINE_MODE = booleanPreferencesKey("offline_mode")
@@ -315,6 +321,7 @@ class LibraryPreferencesStore
 /** Library preferences as stored; any field may be missing or out of date. */
 data class StoredLibraryPreferences(
     val albumColumns: Int? = null,
+    val genresGrid: Boolean? = null,
     /** Tab name -> sort name. */
     val sorts: Map<String, String> = emptyMap(),
     val dynamicColor: Boolean? = null,

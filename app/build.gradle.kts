@@ -93,6 +93,7 @@ dependencies {
     implementation(projects.feature.library)
     implementation(projects.feature.album)
     implementation(projects.feature.artist)
+    implementation(projects.feature.genre)
     implementation(projects.feature.nowplaying)
     implementation(projects.feature.playlist)
     implementation(projects.feature.search)

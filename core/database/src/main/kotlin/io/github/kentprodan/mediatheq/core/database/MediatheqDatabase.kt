@@ -13,6 +13,8 @@ import io.github.kentprodan.mediatheq.core.database.dao.WaveformDao
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreEntity
+import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
@@ -29,12 +31,14 @@ import io.github.kentprodan.mediatheq.core.database.entity.SyncStateEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
+import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreEntity
+import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 6,
+    version = 7,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -57,6 +61,10 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         PendingUserDataEntity::class,
         DownloadOriginEntity::class,
         WaveformEntity::class,
+        AlbumGenreEntity::class,
+        TrackGenreEntity::class,
+        AlbumGenreStaging::class,
+        TrackGenreStaging::class,
     ],
     autoMigrations = [
         // 2: the saved play queue (#14) and an index on track.album_id.
@@ -69,6 +77,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 4, to = 5),
         // 6: waveforms computed on the device (#124).
         AutoMigration(from = 5, to = 6),
+        // 7: album and track genres (#130); the next start runs a full sync that fills them.
+        AutoMigration(from = 6, to = 7, spec = SyncGenresMigration::class),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

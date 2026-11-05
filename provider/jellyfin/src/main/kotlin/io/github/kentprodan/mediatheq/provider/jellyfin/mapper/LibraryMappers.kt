@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
+import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -40,6 +41,7 @@ internal fun BaseItemDto.toAlbum(serverId: ServerId): Album? {
         normalizationGainDb = normalizationGain,
         artwork = artwork(),
         userData = userData.toDomain(),
+        genres = genres(serverId),
     )
 }
 
@@ -61,8 +63,18 @@ internal fun BaseItemDto.toTrack(serverId: ServerId): Track? {
         // Most tracks have no image of their own and show the album cover.
         artwork = artwork() ?: albumArtwork(),
         userData = userData.toDomain(),
+        genres = genres(serverId),
     )
 }
+
+/** The item's genres; entries without an id or a name are skipped, and a genre listed twice counts once. */
+private fun BaseItemDto.genres(serverId: ServerId): List<Genre> =
+    genreItems
+        .mapNotNull { pair ->
+            val id = pair.id?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            val name = pair.name?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            Genre(MediaId(serverId, id), name)
+        }.distinctBy { it.id }
 
 internal fun BaseItemDto.toPlaylist(serverId: ServerId): Playlist? {
     val (id, name) = idAndName() ?: return null

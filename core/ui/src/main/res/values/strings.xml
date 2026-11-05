@@ -47,7 +47,12 @@
     </plurals>
     <string name="core_ui_library_albums">Albums</string>
     <string name="core_ui_library_album_artists">Album artists</string>
+    <string name="core_ui_library_genres">Genres</string>
     <string name="core_ui_library_tracks">Tracks</string>
+    <plurals name="core_ui_album_count">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d albums</item>
+    </plurals>
     <string name="core_ui_library_playlists">Playlists</string>
     <string name="core_ui_library_years">Years</string>
     <string name="core_ui_home_shortcuts">Shortcuts</string>

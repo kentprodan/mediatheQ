@@ -17,6 +17,12 @@ data class ArtistKey(
     @Serializable(with = MediaIdSerializer::class) val id: MediaId,
 ) : NavKey
 
+/** A genre's page (#130). */
+@Serializable
+data class GenreKey(
+    @Serializable(with = MediaIdSerializer::class) val id: MediaId,
+) : NavKey
+
 /** A playlist's page (#16). */
 @Serializable
 data class PlaylistKey(

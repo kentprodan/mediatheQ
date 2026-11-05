@@ -22,4 +22,6 @@ data class Track(
     val albumNormalizationGainDb: Double? = null,
     val artwork: Artwork? = null,
     val userData: UserData = UserData(),
+    /** The track's genres (id and name); filled by the sync only, reads leave it empty (the queue does not need them). */
+    val genres: List<Genre> = emptyList(),
 )

@@ -49,6 +49,7 @@ import io.github.kentprodan.mediatheq.core.ui.AlbumRow
 import io.github.kentprodan.mediatheq.core.ui.ArtistRow
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
+import io.github.kentprodan.mediatheq.core.ui.GenreRow
 import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.SelectableList
@@ -63,6 +64,7 @@ internal fun SearchRoute(
     onOpenArtist: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
     onAddToPlaylist: (List<MediaId>) -> Unit,
+    onOpenGenre: (MediaId) -> Unit = {},
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -73,6 +75,7 @@ internal fun SearchRoute(
         onOpenArtist,
         onOpenPlaylist,
         onAddToPlaylist = onAddToPlaylist,
+        onOpenGenre = onOpenGenre,
     )
 }
 
@@ -91,12 +94,22 @@ fun SearchScreen(
     modifier: Modifier = Modifier,
     textFieldState: TextFieldState = rememberTextFieldState(),
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
+    onOpenGenre: (MediaId) -> Unit = {},
 ) {
     LaunchedEffect(textFieldState) {
         snapshotFlow { textFieldState.text.toString() }.collect { onAction(SearchAction.QueryChanged(it)) }
     }
     Surface(modifier.fillMaxSize()) {
-        SearchContent(state, onAction, onOpenAlbum, onOpenArtist, onOpenPlaylist, textFieldState, onAddToPlaylist)
+        SearchContent(
+            state,
+            onAction,
+            onOpenAlbum,
+            onOpenArtist,
+            onOpenPlaylist,
+            textFieldState,
+            onAddToPlaylist,
+            onOpenGenre,
+        )
     }
 }
 
@@ -109,6 +122,7 @@ private fun SearchContent(
     onOpenPlaylist: (MediaId) -> Unit,
     textFieldState: TextFieldState,
     onAddToPlaylist: (List<MediaId>) -> Unit,
+    onOpenGenre: (MediaId) -> Unit,
 ) {
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         SearchField(textFieldState, onSearch = { onAction(SearchAction.Submit) })
@@ -140,6 +154,7 @@ private fun SearchContent(
                     open(onOpenArtist),
                     open(onOpenPlaylist),
                     onAddToPlaylist,
+                    open(onOpenGenre),
                 )
             }
 
@@ -255,6 +270,7 @@ private fun Results(
     onOpenArtist: (MediaId) -> Unit,
     onOpenPlaylist: (MediaId) -> Unit,
     onAddToPlaylist: (List<MediaId>) -> Unit,
+    onOpenGenre: (MediaId) -> Unit,
 ) {
     val swipe =
         trackSwipes(
@@ -330,6 +346,10 @@ private fun Results(
                     onLongClick = longPress(playlist.id),
                     selected = selection.stateOf(playlist.id),
                 )
+            }
+            // Genres are no selectable items (#130): a tap opens the genre, also while selecting.
+            section("genres", R.string.search_genres, results.genres, { it.id }) { genre ->
+                GenreRow(genre, onClick = { onOpenGenre(genre.id) })
             }
         }
     }

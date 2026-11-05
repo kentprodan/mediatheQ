@@ -1,0 +1,266 @@
+{
+  "Items": [
+    {
+      "Name": "*exemplu",
+      "Id": "bb3a3eca20f7fe27bfba701c68fc454b",
+      "DateCreated": "2026-07-14T16:16:29.766Z",
+      "HasLyrics": false,
+      "Container": "flac",
+      "SortName": "0001 - 0001 - *exemplu",
+      "PremiereDate": "2024-10-03T00:00:00.0000000Z",
+      "ChannelId": null,
+      "Genres": [
+        "Hip-Hop"
+      ],
+      "RunTimeTicks": 2416326760,
+      "ProductionYear": 2024,
+      "IndexNumber": 1,
+      "ParentIndexNumber": 1,
+      "IsFolder": false,
+      "Type": "Audio",
+      "GenreItems": [
+        {
+          "Name": "Hip-Hop",
+          "Id": "d2615dd98d4328aecc95c00d202375df"
+        }
+      ],
+      "UserData": {
+        "Rating": 10,
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 5,
+        "IsFavorite": true,
+        "Likes": true,
+        "LastPlayedDate": "2026-10-25T18:29:41.1313611Z",
+        "Played": true,
+        "Key": "Guess Who-*exemplu-0001-0001*exemplu",
+        "ItemId": "bb3a3eca20f7fe27bfba701c68fc454b"
+      },
+      "Artists": [
+        "Guess Who"
+      ],
+      "ArtistItems": [
+        {
+          "Name": "Guess Who",
+          "Id": "5574e7f2a57be7c73e96393851b299d7"
+        }
+      ],
+      "Album": "*exemplu",
+      "AlbumId": "49092cc622892795f7a92bc4a30dd504",
+      "AlbumPrimaryImageTag": "54705317d5569f8b25273bcd889f18ba",
+      "AlbumArtist": "Guess Who",
+      "AlbumArtists": [
+        {
+          "Name": "Guess Who",
+          "Id": "5574e7f2a57be7c73e96393851b299d7"
+        }
+      ],
+      "MediaStreams": [
+        {
+          "Codec": "flac",
+          "TimeBase": "1/44100",
+          "VideoRange": "Unknown",
+          "VideoRangeType": "Unknown",
+          "AudioSpatialFormat": "None",
+          "LocalizedDefault": "Default",
+          "LocalizedExternal": "External",
+          "LocalizedOriginal": "Original",
+          "DisplayTitle": "FLAC - Stereo",
+          "IsInterlaced": false,
+          "ChannelLayout": "stereo",
+          "BitRate": 918255,
+          "BitDepth": 16,
+          "Channels": 2,
+          "SampleRate": 44100,
+          "IsDefault": false,
+          "IsForced": false,
+          "IsHearingImpaired": false,
+          "IsOriginal": false,
+          "Type": "Audio",
+          "Index": 0,
+          "IsExternal": false,
+          "IsTextSubtitleStream": false,
+          "SupportsExternalStream": false
+        },
+        {
+          "Codec": "mjpeg",
+          "ColorSpace": "bt470bg",
+          "Comment": "Cover (front)",
+          "TimeBase": "1/90000",
+          "VideoRange": "Unknown",
+          "VideoRangeType": "Unknown",
+          "AudioSpatialFormat": "None",
+          "IsInterlaced": false,
+          "BitDepth": 8,
+          "IsDefault": false,
+          "IsForced": false,
+          "IsHearingImpaired": false,
+          "IsOriginal": false,
+          "Height": 1440,
+          "Width": 1440,
+          "RealFrameRate": 90000,
+          "ReferenceFrameRate": 90000,
+          "Profile": "Baseline",
+          "Type": "EmbeddedImage",
+          "AspectRatio": "1:1",
+          "Index": 1,
+          "IsExternal": false,
+          "IsTextSubtitleStream": false,
+          "SupportsExternalStream": false,
+          "PixelFormat": "yuvj444p",
+          "Level": -99,
+          "IsAnamorphic": false
+        }
+      ],
+      "ImageTags": {
+        "Primary": "57dcc2f588edcda838c023fb6a587876"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "57dcc2f588edcda838c023fb6a587876": "e14-;E~W0e%#~qxGxu4.4n?bl.9Z8wVs%g.m?b#Sni?v^6R50K9Z%M",
+          "54705317d5569f8b25273bcd889f18ba": "e14-;E~W0e%#~qxGxu4.4n?bl.9Z8wVs%g.m?b#Sni?v^6R50K9Z%M"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Audio",
+      "NormalizationGain": -9.6
+    },
+    {
+      "Name": "1 Thing",
+      "Id": "ddf3742cfb317c7668c19c3b62403209",
+      "DateCreated": "2026-07-11T13:55:28.287Z",
+      "HasLyrics": true,
+      "Container": "mp3",
+      "SortName": "0001 - 0001 - 1 Thing",
+      "PremiereDate": "2005-01-01T00:00:00.0000000Z",
+      "ChannelId": null,
+      "Genres": [
+        "R&B"
+      ],
+      "RunTimeTicks": 2399243000,
+      "ProductionYear": 2005,
+      "IndexNumber": 1,
+      "ParentIndexNumber": 1,
+      "IsFolder": false,
+      "Type": "Audio",
+      "GenreItems": [
+        {
+          "Name": "R&B",
+          "Id": "d2b41a81a1122b14418c423b2f3616e9"
+        }
+      ],
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 2,
+        "IsFavorite": false,
+        "LastPlayedDate": "2026-10-16T00:56:12.2975474Z",
+        "Played": true,
+        "Key": "Amerie-Touch-0001-00011 Thing",
+        "ItemId": "ddf3742cfb317c7668c19c3b62403209"
+      },
+      "Artists": [
+        "Amerie"
+      ],
+      "ArtistItems": [
+        {
+          "Name": "Amerie",
+          "Id": "ed298802d0e50c47ddd30e11ef472693"
+        }
+      ],
+      "Album": "Touch",
+      "AlbumId": "8b7761b96bca5fb988f5b982e8ca02ad",
+      "AlbumPrimaryImageTag": "0788923f765c01df0f6070f525031df2",
+      "AlbumArtist": "Amerie",
+      "AlbumArtists": [
+        {
+          "Name": "Amerie",
+          "Id": "ed298802d0e50c47ddd30e11ef472693"
+        }
+      ],
+      "MediaStreams": [
+        {
+          "Codec": "mp3",
+          "TimeBase": "1/14112000",
+          "VideoRange": "Unknown",
+          "VideoRangeType": "Unknown",
+          "AudioSpatialFormat": "None",
+          "LocalizedDefault": "Default",
+          "LocalizedExternal": "External",
+          "LocalizedOriginal": "Original",
+          "DisplayTitle": "MP3 - Stereo",
+          "IsInterlaced": false,
+          "ChannelLayout": "stereo",
+          "BitRate": 320000,
+          "Channels": 2,
+          "SampleRate": 44100,
+          "IsDefault": false,
+          "IsForced": false,
+          "IsHearingImpaired": false,
+          "IsOriginal": false,
+          "Type": "Audio",
+          "Index": 0,
+          "IsExternal": false,
+          "IsTextSubtitleStream": false,
+          "SupportsExternalStream": false
+        },
+        {
+          "Codec": "mjpeg",
+          "ColorSpace": "bt470bg",
+          "Comment": "Cover (front)",
+          "TimeBase": "1/90000",
+          "VideoRange": "Unknown",
+          "VideoRangeType": "Unknown",
+          "AudioSpatialFormat": "None",
+          "IsInterlaced": false,
+          "BitDepth": 8,
+          "IsDefault": false,
+          "IsForced": false,
+          "IsHearingImpaired": false,
+          "IsOriginal": false,
+          "Height": 600,
+          "Width": 600,
+          "RealFrameRate": 90000,
+          "ReferenceFrameRate": 90000,
+          "Profile": "Baseline",
+          "Type": "EmbeddedImage",
+          "AspectRatio": "1:1",
+          "Index": 1,
+          "IsExternal": false,
+          "IsTextSubtitleStream": false,
+          "SupportsExternalStream": false,
+          "PixelFormat": "yuvj420p",
+          "Level": -99,
+          "IsAnamorphic": false
+        },
+        {
+          "VideoRange": "Unknown",
+          "VideoRangeType": "Unknown",
+          "AudioSpatialFormat": "None",
+          "IsInterlaced": false,
+          "IsDefault": false,
+          "IsForced": false,
+          "IsHearingImpaired": false,
+          "IsOriginal": false,
+          "Type": "Lyric",
+          "Index": 2,
+          "IsExternal": false,
+          "IsTextSubtitleStream": false,
+          "SupportsExternalStream": false
+        }
+      ],
+      "ImageTags": {
+        "Primary": "b69375a488bc6d01b1bb0ca5513aea41"
+      },
+      "ImageBlurHashes": {
+        "Primary": {
+          "b69375a488bc6d01b1bb0ca5513aea41": "eB9Zv4-o-pxuNx~VxZWBkWNHozj[Rjofs:NdR*WBs:%1S4NHWBxFxZ",
+          "0788923f765c01df0f6070f525031df2": "eB9Zv4-o-pxuNx~VxZWBkWNHozj[Rjofs:NdR*WBs:%1S4NHWBxFxZ"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Audio",
+      "NormalizationGain": -10.8
+    }
+  ],
+  "TotalRecordCount": 3120,
+  "StartIndex": 0
+}

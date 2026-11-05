@@ -17,4 +17,6 @@ data class Album(
     val normalizationGainDb: Double? = null,
     val artwork: Artwork? = null,
     val userData: UserData = UserData(),
+    /** The album's genres (id and name); filled by the sync only, reads leave it empty. */
+    val genres: List<Genre> = emptyList(),
 )

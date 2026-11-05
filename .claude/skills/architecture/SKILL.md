@@ -58,6 +58,7 @@ Any change to this table = ADR in `docs/decisions/`.
 :feature:downloads
 :feature:album
 :feature:artist
+:feature:genre           genre page (#130)
 :feature:playlist
 :feature:nowplaying      full player, queue, lyrics
 :feature:settings
@@ -147,7 +148,7 @@ AlbumEntry.kt          Navigation 3 entry registration for AlbumKey
 
 - Every destination is a `@Serializable` `NavKey` in `:core:navigation` (e.g. `data class AlbumKey(val id: MediaId)`).
 - `:app` owns the back stack(s): one back stack per navigation tab (the entries chosen in Settings -> Navigation and media start, #122), switching tabs swaps stacks and preserves them.
-- Library (#129, ADR 0028): `LibraryKey` is the hub; a tile pushes `LibraryListKey(shortcut)` (Back) and a year `YearKey(year)`. `AlbumsKey` / `AlbumArtistsKey` / `TracksKey` / `PlaylistsKey` stay navigation entries of their own (no Back). Every Library list is one `LibraryViewModel` with a fixed `LibraryFilter` (and the year for a year page).
+- Library (#129, ADR 0028): `LibraryKey` is the hub; a tile pushes `LibraryListKey(shortcut)` (Back), a year `YearKey(year)` and a genre `GenreKey(id)` (the page lives in `:feature:genre`, #130). `GenresKey` is the Genres navigation entry. `AlbumsKey` / `AlbumArtistsKey` / `TracksKey` / `PlaylistsKey` stay navigation entries of their own (no Back). Every Library list is one `LibraryViewModel` with a fixed `LibraryFilter` (and the year for a year page).
 - Each feature exposes an `EntryProviderScope` extension (`fun EntryProviderScope<NavKey>.albumEntry(navigator: Navigator)`) registered in `:app`.
 - Features navigate through a small `Navigator` interface (`navigateTo(key)`, `back()`), never by touching the back stack list.
 - ViewModels are scoped to their nav entry (use the Navigation 3 ViewModel entry decorator); arguments come from the key via Hilt assisted injection. Verify the exact artifact/decorator names against current docs when implementing.

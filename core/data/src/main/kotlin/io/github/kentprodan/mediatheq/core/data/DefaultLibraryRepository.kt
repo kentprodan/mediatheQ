@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.SearchResults
@@ -14,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -96,6 +98,29 @@ class DefaultLibraryRepository
         override fun tracks(): Flow<List<Track>> =
             filter.of(libraryDao::tracks).map { rows -> rows.map { it.toDomain() } }
 
+        override fun genres(): Flow<List<Genre>> =
+            filter.of(libraryDao::genres).map { rows -> rows.map { it.toDomain() } }
+
+        override fun genre(id: MediaId): Flow<Genre?> = genres().map { list -> list.firstOrNull { it.id == id } }
+
+        override fun genreAlbums(genreId: MediaId): Flow<List<Album>> =
+            filter
+                .of { all, downloaded ->
+                    libraryDao.genreAlbums(genreId.serverId.value, genreId.itemId, all, downloaded)
+                }.map { rows -> rows.map { it.toDomain() } }
+
+        override fun genreArtists(genreId: MediaId): Flow<List<Artist>> =
+            filter
+                .of { all, downloaded ->
+                    libraryDao.genreArtists(genreId.serverId.value, genreId.itemId, all, downloaded)
+                }.map { rows -> rows.map { it.toDomain() } }
+
+        override fun genreTracks(genreId: MediaId): Flow<List<Track>> =
+            filter
+                .of { all, downloaded ->
+                    libraryDao.genreTracks(genreId.serverId.value, genreId.itemId, all, downloaded)
+                }.map { rows -> rows.map { it.toDomain() } }
+
         override suspend fun search(
             query: String,
             limitPerKind: Int,
@@ -103,16 +128,22 @@ class DefaultLibraryRepository
             val match = ftsMatchExpression(query) ?: return MqResult.Success(SearchResults())
             val rows =
                 try {
-                    filter.once { all, downloaded -> libraryDao.search(match, limitPerKind, all, downloaded) }
+                    filter.once { all, downloaded ->
+                        val found = libraryDao.search(match, limitPerKind, all, downloaded)
+                        // Genres come with their offline-filtered counts from the genre list, in the search's order.
+                        val genres = libraryDao.genres(all, downloaded).first().associateBy { it.id }
+                        found to found.genreIds.mapNotNull { genres[it] }.take(limitPerKind)
+                    }
                 } catch (_: SQLiteException) {
                     return MqResult.Failure(MqError.Storage)
                 }
             return MqResult.Success(
                 SearchResults(
-                    artists = rows.artists.map { it.toDomain() },
-                    albums = rows.albums.map { it.toDomain() },
-                    tracks = rows.tracks.map { it.toDomain() },
-                    playlists = rows.playlists.map { it.toDomain() },
+                    artists = rows.first.artists.map { it.toDomain() },
+                    albums = rows.first.albums.map { it.toDomain() },
+                    tracks = rows.first.tracks.map { it.toDomain() },
+                    playlists = rows.first.playlists.map { it.toDomain() },
+                    genres = rows.second.map { it.toDomain() },
                 ),
             )
         }

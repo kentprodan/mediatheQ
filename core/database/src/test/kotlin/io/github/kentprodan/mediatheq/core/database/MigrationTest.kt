@@ -145,4 +145,40 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `6 to 7 adds empty genre links and makes the next start sync them`() =
+        runTest {
+            helper.createDatabase(6).apply {
+                execSQL(
+                    "INSERT INTO sync_state (id, last_full_sync_at, owner_server_id, owner_user_id, " +
+                        "checkpoint_server_id, checkpoint_user_id, checkpoint_started_at, checkpoint_step, " +
+                        "checkpoint_index) VALUES (0, 1760000000000, 's', 'u', 's', 'u', 1760000000000, 'Tracks', 500)",
+                )
+                execSQL(
+                    "INSERT INTO track_staging (server_id, id, title, sort_name, duration_ms, is_favorite, " +
+                        "play_count, played) VALUES ('s', 't1', 'One', 'One', 1000, 0, 0, 0)",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(7)
+
+            connection.prepare("SELECT last_full_sync_at, owner_server_id, checkpoint_step FROM sync_state").use {
+                assertThat(it.step()).isTrue()
+                // Dated at the epoch: still synced once, and over a day old, so the next start syncs.
+                assertThat(it.getLong(0)).isEqualTo(0)
+                assertThat(it.getText(1)).isEqualTo("s")
+                assertThat(it.isNull(2)).isTrue()
+            }
+            connection.prepare("SELECT COUNT(*) FROM track_staging").use {
+                it.step()
+                assertThat(it.getLong(0)).isEqualTo(0)
+            }
+            connection.prepare("SELECT COUNT(*) FROM album_genre").use {
+                it.step()
+                assertThat(it.getLong(0)).isEqualTo(0)
+            }
+            connection.close()
+        }
 }

@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -105,6 +106,12 @@ class LibraryViewModelTest {
             ),
         )
 
+    private val genres =
+        listOf(
+            Genre(id("g-rock"), "Rock", albumCount = 1, trackCount = 5),
+            Genre(id("g-ambient"), "Ambient", albumCount = 3, trackCount = 2),
+        )
+
     private val playlists =
         listOf(
             Playlist(id("p1"), "Road", sortName = "Road", dateAdded = day(1)),
@@ -121,6 +128,7 @@ class LibraryViewModelTest {
         library.albumArtists.value = listOf(bob, ada)
         library.playlists.value = playlists
         library.tracks.value = tracks
+        library.genres.value = genres
         sync.status.value = status
         val viewModel =
             LibraryViewModel(
@@ -148,6 +156,7 @@ class LibraryViewModelTest {
             is LibraryContent.Playlists -> content.playlists.map { it.id.itemId }
             is LibraryContent.Songs -> content.tracks.map { it.id.itemId }
             is LibraryContent.Years -> content.years.map { it.year.toString() }
+            is LibraryContent.Genres -> content.genres.map { it.id.itemId }
             else -> error("no items: $content")
         }
 
@@ -380,6 +389,9 @@ class LibraryViewModelTest {
                     (LibraryFilter.Songs to LibrarySort.Album) to listOf("t2", "t3", "t1"),
                     // a1 2001, a2 1999, a3 2020: one album each, so by count the years keep newest first.
                     (LibraryFilter.Years to LibrarySort.Year) to listOf("2020", "2001", "1999"),
+                    (LibraryFilter.Genres to LibrarySort.Name) to listOf("g-ambient", "g-rock"),
+                    (LibraryFilter.Genres to LibrarySort.AlbumCount) to listOf("g-ambient", "g-rock"),
+                    (LibraryFilter.Genres to LibrarySort.TrackCount) to listOf("g-rock", "g-ambient"),
                     (LibraryFilter.Years to LibrarySort.AlbumCount) to listOf("2020", "2001", "1999"),
                 )
             assertThat(expected.keys.map { it.first to it.second })
@@ -638,5 +650,30 @@ class LibraryViewModelTest {
             val viewModel = viewModel(yearPage = YearKey(1970))
 
             assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.Empty)
+        }
+
+    @Test
+    fun `the genres list shows the genres, and offline with none says nothing is downloaded`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Genres)
+            assertThat(viewModel.ids()).containsExactly("g-ambient", "g-rock").inOrder()
+
+            library.offline.value = true
+            library.genres.value = emptyList()
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.NothingDownloaded)
+        }
+
+    @Test
+    fun `play on the genres list plays each genre's tracks once, and the view choice is saved`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.genreTracks.value =
+                mapOf(id("g-ambient") to listOf(tracks[0], tracks[1]), id("g-rock") to listOf(tracks[1]))
+            val viewModel = viewModel(fixedFilter = LibraryFilter.Genres)
+
+            viewModel.onAction(LibraryAction.Top(TopButton.Play))
+            viewModel.onAction(LibraryAction.SetGenresGrid(true))
+
+            assertThat(playback.plays.single().queue).containsExactly(tracks[0], tracks[1]).inOrder()
+            assertThat(viewModel.uiState.value.genresGrid).isTrue()
         }
 }

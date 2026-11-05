@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="genre_back">Back</string>
+    <string name="genre_albums">Albums</string>
+    <string name="genre_album_artists">Album artists</string>
+    <string name="genre_tracks">Tracks</string>
+    <string name="genre_show_all">Show all</string>
+    <string name="genre_not_found_title">Genre not available</string>
+    <string name="genre_not_found_body">Nothing in your library carries it any more.</string>
+</resources>

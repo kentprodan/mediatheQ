@@ -111,6 +111,7 @@
     <string name="settings_entry_library">Library</string>
     <string name="settings_entry_albums">Albums</string>
     <string name="settings_entry_album_artists">Album artists</string>
+    <string name="settings_entry_genres">Genres</string>
     <string name="settings_entry_playlists">Playlists</string>
     <string name="settings_entry_tracks">Tracks</string>
     <string name="settings_entry_search">Search</string>
