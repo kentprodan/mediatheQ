@@ -6,6 +6,7 @@ import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
 
@@ -64,3 +65,27 @@ fun SearchNoDownloadsScreenshot() = Search(SearchUiState.NoResults("zzz", offlin
 @MqPreviews
 @Composable
 fun SearchErrorScreenshot() = Search(SearchUiState.Error(MqError.Storage), query = "mos")
+
+/** Genres are a result group of their own (#130), last. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SearchGenresScreenshot() =
+    Search(
+        SearchUiState.Results(
+            SearchResults(
+                genres =
+                    listOf(
+                        Genre(
+                            PreviewData.album.id.copy(itemId = "g1"),
+                            "Electrónica",
+                            albumCount = 4,
+                            trackCount = 31,
+                            artwork = PreviewData.artwork,
+                        ),
+                        Genre(PreviewData.album.id.copy(itemId = "g2"), "Folk", albumCount = 1, trackCount = 3),
+                    ),
+            ),
+        ),
+        query = "el",
+    )

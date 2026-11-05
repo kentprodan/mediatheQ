@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -33,10 +34,19 @@ class SearchScreenTest {
     private fun show(
         state: SearchUiState,
         onOpenArtist: (MediaId) -> Unit = {},
+        onOpenGenre: (MediaId) -> Unit = {},
     ) {
         composeRule.setContent {
             MediatheqTheme {
-                SearchScreen(state, { actions += it }, {}, onOpenArtist, {}, textFieldState = field)
+                SearchScreen(
+                    state,
+                    { actions += it },
+                    {},
+                    onOpenArtist,
+                    {},
+                    textFieldState = field,
+                    onOpenGenre = onOpenGenre,
+                )
             }
         }
     }
@@ -92,6 +102,19 @@ class SearchScreenTest {
         composeRule.onNodeWithText("Ada Moșoi").performClick()
 
         assertThat(opened).isEqualTo(ada.id)
+        assertThat(actions).contains(SearchAction.ResultOpened)
+    }
+
+    @Test
+    fun `genres show as their own group and open the genre`() {
+        val genre = Genre(MediaId(ServerId("s"), "g"), "Electrónica", albumCount = 2, trackCount = 9)
+        var opened: MediaId? = null
+        show(SearchUiState.Results(SearchResults(genres = listOf(genre))), onOpenGenre = { opened = it })
+
+        composeRule.onNodeWithText("Genres").assertExists()
+        composeRule.onNodeWithText("Electrónica").performClick()
+
+        assertThat(opened).isEqualTo(genre.id)
         assertThat(actions).contains(SearchAction.ResultOpened)
     }
 }
