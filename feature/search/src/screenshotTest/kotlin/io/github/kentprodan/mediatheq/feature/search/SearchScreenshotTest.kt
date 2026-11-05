@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Genre
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
 
@@ -88,4 +89,27 @@ fun SearchGenresScreenshot() =
             ),
         ),
         query = "el",
+    )
+
+/** Record labels are a result group of their own (#131), after genres. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SearchRecordLabelsScreenshot() =
+    Search(
+        SearchUiState.Results(
+            SearchResults(
+                labels =
+                    listOf(
+                        RecordLabel(
+                            PreviewData.album.id.copy(itemId = "l1"),
+                            "Electrecord",
+                            albumCount = 12,
+                            artwork = PreviewData.artwork,
+                        ),
+                        RecordLabel(PreviewData.album.id.copy(itemId = "l2"), "Electra", albumCount = 1),
+                    ),
+            ),
+        ),
+        query = "ele",
     )

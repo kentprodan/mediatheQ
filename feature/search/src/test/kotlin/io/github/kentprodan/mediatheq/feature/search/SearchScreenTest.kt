@@ -14,8 +14,10 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,6 +37,7 @@ class SearchScreenTest {
         state: SearchUiState,
         onOpenArtist: (MediaId) -> Unit = {},
         onOpenGenre: (MediaId) -> Unit = {},
+        onOpenLabel: (RecordLabelKey) -> Unit = {},
     ) {
         composeRule.setContent {
             MediatheqTheme {
@@ -46,6 +49,7 @@ class SearchScreenTest {
                     {},
                     textFieldState = field,
                     onOpenGenre = onOpenGenre,
+                    onOpenLabel = onOpenLabel,
                 )
             }
         }
@@ -115,6 +119,19 @@ class SearchScreenTest {
         composeRule.onNodeWithText("Electrónica").performClick()
 
         assertThat(opened).isEqualTo(genre.id)
+        assertThat(actions).contains(SearchAction.ResultOpened)
+    }
+
+    @Test
+    fun `record labels show as their own group and open the label's page`() {
+        val label = RecordLabel(MediaId(ServerId("s"), "l"), "Electrecord", albumCount = 2)
+        var opened: RecordLabelKey? = null
+        show(SearchUiState.Results(SearchResults(labels = listOf(label))), onOpenLabel = { opened = it })
+
+        composeRule.onNodeWithText("Record labels").assertExists()
+        composeRule.onNodeWithText("Electrecord").performClick()
+
+        assertThat(opened).isEqualTo(RecordLabelKey(label.id, "Electrecord"))
         assertThat(actions).contains(SearchAction.ResultOpened)
     }
 }
