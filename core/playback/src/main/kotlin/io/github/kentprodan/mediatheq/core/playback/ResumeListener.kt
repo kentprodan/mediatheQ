@@ -43,9 +43,17 @@ internal class ResumeListener(
                         recordCurrent()
                     }
                 }
-        } else if (player.playbackState == Player.STATE_READY) {
+        } else if (player.playbackState != Player.STATE_BUFFERING) {
+            // Paused or stopped (idle keeps the position); buffering is mid-seek, the left track is recorded apart.
             recordCurrent()
         }
+    }
+
+    /** Before the player is released: stops the ticker and keeps where playback was. */
+    fun release() {
+        ticker?.cancel()
+        ticker = null
+        recordCurrent()
     }
 
     override fun onPositionDiscontinuity(

@@ -46,6 +46,14 @@ class AlbumResumeTest {
     }
 
     @Test
+    fun `a short interlude paused early keeps its place, near its end resumes with the next track`() {
+        val short = listOf(Track(id("i"), "Intro", emptyList(), 8.seconds)) + tracks
+
+        assertThat(resumeTarget(AlbumResume(id("i"), 3.seconds), short)).isEqualTo(AlbumResume(id("i"), 3.seconds))
+        assertThat(resumeTarget(AlbumResume(id("i"), 5.seconds), short)).isEqualTo(AlbumResume(id("t0"), Duration.ZERO))
+    }
+
+    @Test
     fun `nothing played, a finished album or a track no longer on it has no Resume`() {
         assertThat(resumeTarget(null, tracks)).isNull()
         assertThat(resumeTarget(AlbumResume(id("t2"), 3.minutes), tracks)).isNull()

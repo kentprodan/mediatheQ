@@ -387,6 +387,17 @@ class AlbumViewModelTest {
         }
 
     @Test
+    fun `an album with nothing to tell leaves About out`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.tracks.value = disc1 + disc2
+            library.albums.value = listOf(album)
+
+            assertThat(
+                (viewModel().uiState.value as AlbumUiState.Content).sections,
+            ).containsExactly(AlbumSection.Tracks)
+        }
+
+    @Test
     fun `a title with an edition shows it as the version, and the quality follows its setting`() =
         runTest(mainDispatcherRule.testDispatcher) {
             library.albums.value = listOf(album.copy(title = "Satelit (Deluxe Edition)"))

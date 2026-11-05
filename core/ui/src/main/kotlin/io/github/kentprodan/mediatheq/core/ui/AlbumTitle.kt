@@ -16,11 +16,16 @@ fun albumTitle(title: String): AlbumTitle {
     val match = TRAILING.find(title.trimEnd()) ?: return AlbumTitle(title, null)
     val name = title.substring(0, match.range.first).trimEnd()
     val inside = match.groupValues[1].ifEmpty { match.groupValues[2] }.trim()
-    if (name.isEmpty() || inside.isEmpty() || !EDITION.containsMatchIn(inside)) return AlbumTitle(title, null)
+    if (name.isEmpty() || !EDITION.containsMatchIn(inside) || FEATURING.containsMatchIn(inside)) {
+        return AlbumTitle(title, null)
+    }
     return AlbumTitle(name, inside)
 }
 
 private val TRAILING = Regex("""(?:\(([^()]*)\)|\[([^\[\]]*)])$""")
+
+/** "(feat. Live Band)" names a guest, even when an edition word is in it. */
+private val FEATURING = Regex("""^(feat\b|ft\b|featuring\b|with\b)""", RegexOption.IGNORE_CASE)
 
 private val EDITION =
     Regex(

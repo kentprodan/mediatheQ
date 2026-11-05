@@ -32,7 +32,8 @@ fun resumeTarget(
     val index = tracks.indexOfFirst { it.id == resume.trackId }
     if (index < 0) return null
     val track = tracks[index]
-    val ended = track.duration > Duration.ZERO && resume.position >= track.duration - ENDED
+    // A short interlude counts as finished only in its last half, not from its first second.
+    val ended = track.duration > Duration.ZERO && resume.position >= track.duration - minOf(ENDED, track.duration / 2)
     if (!ended) return resume
     return tracks.getOrNull(index + 1)?.let { AlbumResume(it.id, Duration.ZERO) }
 }

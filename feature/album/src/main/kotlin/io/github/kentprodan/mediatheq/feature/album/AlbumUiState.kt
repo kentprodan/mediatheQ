@@ -66,6 +66,12 @@ sealed interface AlbumUiState {
         /** How often its tracks were played: the server keeps no album count of its own. */
         val playCount: Int get() = tracks.sumOf { it.userData.playCount }
 
+        /** About has an overview or at least one fact row. */
+        private val hasAbout: Boolean
+            get() =
+                !album.overview.isNullOrBlank() || genres.isNotEmpty() || labels.isNotEmpty() ||
+                    album.releaseDate != null || album.dateAdded != null || playCount > 0 || sizeBytes != null
+
         /** The sections that show, in the chosen order; empty ones are left out. */
         val sections: List<AlbumSection>
             get() =
@@ -73,7 +79,7 @@ sealed interface AlbumUiState {
                     when (it) {
                         AlbumSection.Tracks -> true
                         AlbumSection.MoreFromArtist -> page.showMoreFromArtist && moreAlbums.isNotEmpty()
-                        AlbumSection.About -> page.showAbout
+                        AlbumSection.About -> page.showAbout && hasAbout
                     }
                 }
 

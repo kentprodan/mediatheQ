@@ -22,6 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 /** A real ExoPlayer on fake media: no stream is ever resolved, as for a download played offline. */
 @UnstableApi
@@ -33,9 +34,9 @@ class ResumeListenerTest {
         TestExoPlayerBuilder(ApplicationProvider.getApplicationContext())
             .setMediaSourceFactory(FakeMediaSourceFactory())
             .build()
-            .also { player ->
-                player.addListener(ResumeListener(player, { id, position -> recorded += id.itemId to position }, scope))
-            }
+    private val listener =
+        ResumeListener(player, { id, position -> recorded += id.itemId to position }, scope, interval = 1.seconds)
+            .also(player::addListener)
 
     private fun item(id: String): MediaItem =
         Track(MediaId(ServerId("s"), id), id, emptyList(), 3.minutes).toMediaItem(null).withTrackUri()!!
@@ -80,5 +81,33 @@ class ResumeListenerTest {
         advance(player).untilPendingCommandsAreFullyHandled()
 
         assertThat(recorded.last().first).isEqualTo("t1")
+    }
+
+    @Test
+    fun `stopping records where playback was`() {
+        player.playQueue(listOf(item("t1"), item("t2")), startIndex = 0, shuffle = false)
+        advance(player).untilPositionAtLeast(100)
+
+        player.stop()
+        advance(player).untilPendingCommandsAreFullyHandled()
+
+        val (id, position) = recorded.last()
+        assertThat(id).isEqualTo("t1")
+        assertThat(position.inWholeMilliseconds).isAtLeast(100)
+    }
+
+    @Test
+    fun `release stops the ticker and records once more`() {
+        player.playQueue(listOf(item("t1"), item("t2")), startIndex = 0, shuffle = false)
+        advance(player).untilPositionAtLeast(100)
+
+        listener.release()
+        val count = recorded.size
+        assertThat(recorded.last().first).isEqualTo("t1")
+
+        // Past several ticker intervals: nothing more is recorded by the stopped ticker.
+        player.removeListener(listener)
+        advance(player).untilPositionAtLeast(2_500)
+        assertThat(recorded).hasSize(count)
     }
 }

@@ -22,6 +22,9 @@ class AlbumTitleTest {
         listOf(
             "Lose Yourself (feat. Eminem)",
             "Crazy (with Cee-Lo)",
+            "Tonight (feat. Live Band)",
+            "Groove (ft. The Remix Crew)",
+            "Duet (with Special Guest)",
             "Symphony No. 5 (Part 1)",
             "(What's the Story) Morning Glory?",
             "Interlude (Intro)",
