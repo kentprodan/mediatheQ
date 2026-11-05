@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -41,6 +42,10 @@ fun MqCover(
     modifier: Modifier = Modifier,
     blurHash: String? = null,
     shape: Shape = MaterialTheme.shapes.medium,
+    /** Width / height: 1 for covers, wider for an artist backdrop (#133). */
+    aspectRatio: Float = 1f,
+    /** Called when the image cannot be loaded, e.g. a backdrop that is not cached offline. */
+    onError: () -> Unit = {},
 ) {
     val placeholder = remember(blurHash) { blurHash?.let(::blurHashBitmap) }
     // Crop here too, so Coil decodes at the size the cover is drawn (Fit would upscale and blur it).
@@ -48,6 +53,8 @@ fun MqCover(
     val state by asyncPainter.state.collectAsState()
     val painter = model as? Painter ?: asyncPainter
     val success = state as? AsyncImagePainter.State.Success
+    val failed = state is AsyncImagePainter.State.Error
+    LaunchedEffect(failed) { if (failed) onError() }
     val loaded = model is Painter || success != null
     // Memory-cache hits (e.g. scrolling back in a grid) appear at once instead of fading in again.
     val instant = model is Painter || success?.result?.dataSource == DataSource.MEMORY_CACHE
@@ -59,7 +66,7 @@ fun MqCover(
     Box(
         modifier
             .fillMaxWidth()
-            .aspectRatio(1f)
+            .aspectRatio(aspectRatio)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest),
         contentAlignment = Alignment.Center,

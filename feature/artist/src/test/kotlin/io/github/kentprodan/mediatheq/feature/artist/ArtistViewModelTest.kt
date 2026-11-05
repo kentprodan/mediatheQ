@@ -1,7 +1,12 @@
 package io.github.kentprodan.mediatheq.feature.artist
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.ArtistButton
+import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
+import io.github.kentprodan.mediatheq.core.data.ArtistPlayAction
+import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
+import io.github.kentprodan.mediatheq.core.data.MoreAlbumsSort
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -123,22 +128,158 @@ class ArtistViewModelTest {
         }
 
     @Test
-    fun `top tracks stop at five and are empty when nothing was played`() {
-        assertThat(topTracks((1..7).map { track("t$it", plays = it) }).map { it.title })
-            .containsExactly("t7", "t6", "t5", "t4", "t3")
-            .inOrder()
-        assertThat(topTracks(listOf(track("t1"), track("t2")))).isEmpty()
+    fun `top tracks stop at the chosen count, show all keeps every played track, none when nothing was played`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.albumArtists.value = listOf(artist)
+            library.artistTracks.value = mapOf(artistId to (1..20).map { track("t$it", plays = it) })
+            val viewModel = viewModel()
+
+            assertThat(viewModel.content.topTracks).hasSize(15)
+            assertThat(
+                viewModel.content.topTracks
+                    .first()
+                    .title,
+            ).isEqualTo("t20")
+            assertThat(viewModel.content.playedTracks).hasSize(20)
+            preferences.setArtistPage(ArtistPagePreferences(topTracksCount = 5))
+            assertThat(viewModel.content.topTracks.map { it.title })
+                .containsExactly("t20", "t19", "t18", "t17", "t16")
+                .inOrder()
+            assertThat(playedTracks(listOf(track("t1"), track("t2")))).isEmpty()
+        }
+
+    @Test
+    fun `albums follow the sort setting, and so does the album order Play uses`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val older = Album(MediaId(ServerId("s"), "al0"), "Amar", listOf(artist), year = 2010)
+            val inOwn = track("o1").copy(albumId = own.id)
+            val inOlder = track("p1").copy(albumId = older.id)
+            val credit = track("c1")
+            library.albumArtists.value = listOf(artist)
+            library.artistAlbums.value = mapOf(artistId to listOf(own, older))
+            library.artistTracks.value = mapOf(artistId to listOf(inOwn, inOlder, credit))
+            val viewModel = viewModel()
+
+            assertThat(viewModel.content.albums).containsExactly(own, older).inOrder()
+            assertThat(viewModel.content.tracks).containsExactly(inOwn, inOlder, credit).inOrder()
+
+            preferences.setArtistPage(ArtistPagePreferences(albumsSort = MoreAlbumsSort.YearAscending))
+            assertThat(viewModel.content.albums).containsExactly(older, own).inOrder()
+            assertThat(viewModel.content.tracks).containsExactly(inOlder, inOwn, credit).inOrder()
+
+            viewModel.onAction(ArtistAction.Play)
+            assertThat(playback.plays).containsExactly(PlayCall(listOf(inOlder, inOwn, credit), 0, shuffle = false))
+        }
+
+    @Test
+    fun `play follows the play button action`() {
+        val all = tracks
+        val top = playedTracks(tracks).take(2)
+
+        assertThat(playQueue(ArtistPlayAction.Albums, all, top)).isEqualTo(all to false)
+        assertThat(playQueue(ArtistPlayAction.TopTracks, all, top)).isEqualTo(top to false)
+        assertThat(playQueue(ArtistPlayAction.TopTracks, all, emptyList())).isEqualTo(all to false)
+        assertThat(playQueue(ArtistPlayAction.AllShuffled, all, top)).isEqualTo(all to true)
     }
 
     @Test
-    fun `albums use the Library's column setting`() =
+    fun `sections follow the chosen order, empty or switched off ones are left out`() =
         runTest(mainDispatcherRule.testDispatcher) {
             withArtist()
             val viewModel = viewModel()
 
-            preferences.setAlbumColumns(4)
+            assertThat(viewModel.content.sections)
+                .containsExactly(
+                    ArtistSection.Albums,
+                    ArtistSection.TopTracks,
+                    ArtistSection.AppearsOn,
+                    ArtistSection.About,
+                ).inOrder()
 
-            assertThat(viewModel.content.albumColumns).isEqualTo(4)
+            preferences.setArtistPage(
+                ArtistPagePreferences(
+                    sectionOrder =
+                        listOf(
+                            ArtistSection.About,
+                            ArtistSection.AppearsOn,
+                            ArtistSection.Albums,
+                            ArtistSection.TopTracks,
+                        ),
+                    showTopTracks = false,
+                ),
+            )
+            assertThat(viewModel.content.sections)
+                .containsExactly(ArtistSection.About, ArtistSection.AppearsOn, ArtistSection.Albums)
+                .inOrder()
+
+            preferences.setArtistPage(ArtistPagePreferences(showAppearsOn = false, showAbout = false))
+            assertThat(
+                viewModel.content.sections,
+            ).containsExactly(ArtistSection.Albums, ArtistSection.TopTracks).inOrder()
+        }
+
+    @Test
+    fun `about holds the biography and the genres of the artist's albums`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            withArtist()
+            library.albumArtists.value = listOf(artist.copy(overview = "From Bucharest."))
+            library.artistGenres.value = mapOf(artistId to listOf("Folk", "Hip-Hop"))
+
+            val state = viewModel().content
+
+            assertThat(state.artist.overview).isEqualTo("From Bucharest.")
+            assertThat(state.genres).containsExactly("Folk", "Hip-Hop").inOrder()
+            assertThat(state.duration).isEqualTo(12.minutes)
+        }
+
+    @Test
+    fun `an artist only credited on a compilation has no image, backdrop or biography, only appears on`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.creditedArtists.value = listOf(artist)
+            library.appearsOn.value = mapOf(artistId to listOf(compilation))
+            library.artistTracks.value = mapOf(artistId to listOf(track("c1")))
+
+            val state = viewModel().content
+
+            assertThat(state.artist.artwork).isNull()
+            assertThat(state.artist.backdrop).isNull()
+            assertThat(state.sections).containsExactly(ArtistSection.AppearsOn, ArtistSection.About).inOrder()
+        }
+
+    @Test
+    fun `the header buttons queue the artist, download its albums, and hidden ones stay usable`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            withArtist()
+            library.tracks.value =
+                listOf(Track(MediaId(ServerId("s"), "a1"), "a1", listOf(artist), 3.minutes, albumId = own.id))
+            val viewModel = viewModel()
+            preferences.setArtistPage(ArtistPagePreferences(hiddenButtons = setOf(ArtistButton.PlayNext)))
+
+            assertThat(viewModel.content.shows(ArtistButton.PlayNext)).isFalse()
+            assertThat(viewModel.content.shows(ArtistButton.Shuffle)).isTrue()
+            viewModel.onAction(ArtistAction.PlayNext)
+            viewModel.onAction(ArtistAction.AddToQueue)
+            viewModel.onAction(ArtistAction.Download)
+
+            assertThat(playback.playedNext).containsExactly(tracks)
+            assertThat(playback.addedToQueue).containsExactly(tracks)
+            assertThat(
+                downloads.downloads.value
+                    .single()
+                    .origins,
+            ).containsExactly(DownloadOrigin.Album(own.id))
+        }
+
+    @Test
+    fun `a played track from show all plays every played track from it`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            withArtist()
+            val viewModel = viewModel()
+            preferences.setArtistPage(ArtistPagePreferences(topTracksCount = 5))
+
+            viewModel.onAction(ArtistAction.PlayTopTrack(tracks[3].id, all = true))
+
+            assertThat(playback.plays).containsExactly(PlayCall(viewModel.content.playedTracks, 2, shuffle = false))
         }
 
     @Test

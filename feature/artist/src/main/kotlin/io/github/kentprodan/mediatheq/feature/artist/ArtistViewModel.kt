@@ -6,13 +6,16 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.data.ArtistPlayAction
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.downloadAlbums
+import io.github.kentprodan.mediatheq.core.data.sortedFor
 import io.github.kentprodan.mediatheq.core.data.tracksOfAlbums
+import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
@@ -49,8 +52,9 @@ class ArtistViewModel
                 libraryRepository.artistAlbums(artistId),
                 libraryRepository.appearsOn(artistId),
                 libraryRepository.artistTracks(artistId),
-            ) { artist, albums, appearsOn, tracks ->
-                artist?.let { ArtistUiState.Content(it, albums, appearsOn, tracks, topTracks(tracks)) }
+                libraryRepository.artistGenres(artistId),
+            ) { artist, albums, appearsOn, tracks, genres ->
+                artist?.let { ArtistUiState.Content(it, albums, appearsOn, tracks, playedTracks(tracks), genres) }
             }
 
         private val selection = MutableStateFlow(ListSelection<MediaId>())
@@ -60,12 +64,21 @@ class ArtistViewModel
             combine(
                 content,
                 preferencesRepository.preferences
-                    .map { it.albumColumns to it.ratingMode }
+                    .map { it.artistPage to it.ratingMode }
                     .distinctUntilChanged(),
                 // Only the track id: position ticks and play/pause must not rebuild the page.
                 playback.state.map { it.item?.id }.distinctUntilChanged(),
-            ) { content, (columns, ratingMode), currentTrackId ->
-                content?.copy(albumColumns = columns, currentTrackId = currentTrackId, ratingMode = ratingMode)
+            ) { content, (page, ratingMode), currentTrackId ->
+                content?.let {
+                    val albums = it.albums.sortedFor(page.albumsSort)
+                    it.copy(
+                        albums = albums,
+                        tracks = albumOrder(it.tracks, albums),
+                        page = page,
+                        currentTrackId = currentTrackId,
+                        ratingMode = ratingMode,
+                    )
+                }
                     ?: ArtistUiState.NotFound
             }
 
@@ -82,7 +95,8 @@ class ArtistViewModel
             val state = uiState.value as? ArtistUiState.Content ?: return
             when (action) {
                 ArtistAction.Play -> {
-                    if (state.tracks.isNotEmpty()) playback.play(state.tracks)
+                    val (queue, shuffle) = playQueue(state.page.playAction, state.tracks, state.topTracks)
+                    if (queue.isNotEmpty()) playback.play(queue, shuffle = shuffle)
                 }
 
                 // The player picks the random start and keeps the order for unshuffling (PlaybackConnection).
@@ -90,9 +104,22 @@ class ArtistViewModel
                     if (state.tracks.isNotEmpty()) playback.play(state.tracks, shuffle = true)
                 }
 
+                ArtistAction.PlayNext -> {
+                    viewModelScope.launch { commands.run(TopButton.PlayNext, state.tracks) }
+                }
+
+                ArtistAction.AddToQueue -> {
+                    viewModelScope.launch { commands.run(TopButton.AddToQueue, state.tracks) }
+                }
+
+                ArtistAction.Download -> {
+                    viewModelScope.launch { downloads.downloadAlbums(libraryRepository, state.albums.map { it.id }) }
+                }
+
                 is ArtistAction.PlayTopTrack -> {
-                    val index = state.topTracks.indexOfFirst { it.id == action.trackId }
-                    viewModelScope.launch { trackTaps.tap(state.topTracks, index) }
+                    val list = if (action.all) state.playedTracks else state.topTracks
+                    val index = list.indexOfFirst { it.id == action.trackId }
+                    if (index >= 0) viewModelScope.launch { trackTaps.tap(list, index) }
                 }
 
                 is ArtistAction.SwipeTrack -> {
@@ -176,8 +203,28 @@ class ArtistViewModel
         }
     }
 
-/** The most played tracks; ties keep the discography order (the sort is stable). */
-internal fun topTracks(tracks: List<Track>): List<Track> =
-    tracks.filter { it.userData.playCount > 0 }.sortedByDescending { it.userData.playCount }.take(TOP_TRACK_COUNT)
+/** Every played track, most played first; ties keep the discography order (the sort is stable). */
+internal fun playedTracks(tracks: List<Track>): List<Track> =
+    tracks.filter { it.userData.playCount > 0 }.sortedByDescending { it.userData.playCount }
 
-private const val TOP_TRACK_COUNT = 5
+/** The own albums' tracks in [albums]' order (the page's sort), then the tracks the artist is credited on. */
+internal fun albumOrder(
+    tracks: List<Track>,
+    albums: List<Album>,
+): List<Track> {
+    val rank = albums.withIndex().associate { (index, album) -> album.id to index }
+    // Stable: tracks keep their order within an album, credits keep theirs at the end.
+    return tracks.sortedBy { track -> track.albumId?.let(rank::get) ?: Int.MAX_VALUE }
+}
+
+/** What Play starts (#133): the queue and whether it is shuffled. Top tracks fall back to the albums when none. */
+internal fun playQueue(
+    action: ArtistPlayAction,
+    tracks: List<Track>,
+    topTracks: List<Track>,
+): Pair<List<Track>, Boolean> =
+    when (action) {
+        ArtistPlayAction.Albums -> tracks to false
+        ArtistPlayAction.TopTracks -> topTracks.ifEmpty { tracks } to false
+        ArtistPlayAction.AllShuffled -> tracks to true
+    }

@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.data.MoreAlbumsSort
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.resumeTarget
+import io.github.kentprodan.mediatheq.core.data.sortedFor
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -227,23 +228,3 @@ class AlbumViewModel
             fun create(albumId: MediaId): AlbumViewModel
         }
     }
-
-/** "More from <artist>": by year (newest or oldest first, unknown last), or by title; ties by title. */
-internal fun List<Album>.sortedFor(sort: MoreAlbumsSort): List<Album> {
-    val byTitle = compareBy<Album, String>(String.CASE_INSENSITIVE_ORDER) { it.sortName }
-    return when (sort) {
-        MoreAlbumsSort.YearDescending -> {
-            sortedWith(
-                compareBy<Album, Int?>(nullsLast(reverseOrder())) { it.year }.then(byTitle),
-            )
-        }
-
-        MoreAlbumsSort.YearAscending -> {
-            sortedWith(compareBy<Album, Int?>(nullsLast()) { it.year }.then(byTitle))
-        }
-
-        MoreAlbumsSort.Title -> {
-            sortedWith(byTitle)
-        }
-    }
-}
