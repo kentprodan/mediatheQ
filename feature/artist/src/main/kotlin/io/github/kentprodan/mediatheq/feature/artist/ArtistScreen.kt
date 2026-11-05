@@ -310,7 +310,8 @@ fun ArtistTopTracksScreen(
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
 ) {
     val content = state as? ArtistUiState.Content
-    val longPress = rememberSelectLongPress<MediaId> { onAction(ArtistAction.ToggleSelection(it)) }
+    // No multi-select here: a tap always plays (selecting stays on the artist page).
+    val noSelect = { _: MediaId -> {} }
     val swipe =
         trackSwipes(
             onAddToPlaylist,
@@ -341,13 +342,37 @@ fun ArtistTopTracksScreen(
             },
             contentWindowInsets = WindowInsets(0),
         ) { padding ->
-            if (content != null) {
-                LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = padding.calculateTopPadding()).plusBottomBars(),
-                ) {
-                    items(content.playedTracks, key = { it.id.toString() }) { track ->
-                        ArtistTrackRow(track, content, onAction, longPress, swipe, all = true)
+            when {
+                state == ArtistUiState.Loading -> {
+                    Unit
+                }
+
+                content == null || content.playedTracks.isEmpty() -> {
+                    MqEmptyState(
+                        MqIcons.Person,
+                        stringResource(
+                            if (content ==
+                                null
+                            ) {
+                                R.string.artist_not_found_title
+                            } else {
+                                R.string.artist_no_plays
+                            },
+                        ),
+                        Modifier.padding(padding),
+                        actionLabel = stringResource(R.string.artist_back),
+                        onAction = onBack,
+                    )
+                }
+
+                else -> {
+                    LazyColumn(
+                        Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(top = padding.calculateTopPadding()).plusBottomBars(),
+                    ) {
+                        items(content.playedTracks, key = { it.id.toString() }) { track ->
+                            ArtistTrackRow(track, content, onAction, noSelect, swipe, all = true)
+                        }
                     }
                 }
             }

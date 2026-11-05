@@ -501,3 +501,9 @@ fun SettingsArtistSectionsDialogScreenshot() =
             label = { stringResource(it.label) },
         )
     }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsArtistAlbumsSortDialogScreenshot() =
+    MediatheqTheme { ArtistPageDialogContent(ArtistPageDialog.AlbumsSort, ArtistPagePreferences()) }

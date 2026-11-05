@@ -622,11 +622,13 @@ class SettingsScreenTest {
 
         composeRule.onNode(hasText("Show \"Appears on\"") and isToggleable()).performClick()
         composeRule.onNode(hasText("Page content order") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("2") and hasClickAction()).performClick()
 
         assertThat(actions)
             .containsExactly(
                 SettingsAction.SetArtistPage(ArtistPagePreferences(showAppearsOn = false)),
                 SettingsAction.OpenArtistSections,
+                SettingsAction.SetArtistPage(ArtistPagePreferences(albumColumns = 2)),
             ).inOrder()
     }
 

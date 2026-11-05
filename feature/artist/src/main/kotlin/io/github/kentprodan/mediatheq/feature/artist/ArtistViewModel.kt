@@ -54,7 +54,7 @@ class ArtistViewModel
                 libraryRepository.artistTracks(artistId),
                 libraryRepository.artistGenres(artistId),
             ) { artist, albums, appearsOn, tracks, genres ->
-                artist?.let { ArtistUiState.Content(it, albums, appearsOn, tracks, playedTracks(tracks), genres) }
+                artist?.let { ArtistUiState.Content(it, albums, appearsOn, tracks, emptyList(), genres) }
             }
 
         private val selection = MutableStateFlow(ListSelection<MediaId>())
@@ -71,9 +71,12 @@ class ArtistViewModel
             ) { content, (page, ratingMode), currentTrackId ->
                 content?.let {
                     val albums = it.albums.sortedFor(page.albumsSort)
+                    val tracks = albumOrder(it.tracks, albums)
                     it.copy(
                         albums = albums,
-                        tracks = albumOrder(it.tracks, albums),
+                        tracks = tracks,
+                        // Ties keep the page's album order.
+                        playedTracks = playedTracks(tracks),
                         page = page,
                         currentTrackId = currentTrackId,
                         ratingMode = ratingMode,

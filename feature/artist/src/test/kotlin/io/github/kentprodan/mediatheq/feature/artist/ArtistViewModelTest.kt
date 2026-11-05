@@ -410,4 +410,43 @@ class ArtistViewModelTest {
             viewModel.onAction(ArtistAction.AddToPlaylistShown)
             assertThat(viewModel.content.addToPlaylist).isNull()
         }
+
+    @Test
+    fun `offline the page follows the downloads in counts, duration, sections and genres`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            withArtist()
+            library.artistGenres.value = mapOf(artistId to listOf("Folk", "Hip-Hop"))
+            val viewModel = viewModel()
+
+            // Offline the repository's flows keep only downloaded albums and tracks (OfflineFilter, ADR 0021).
+            val downloaded = listOf(tracks[0])
+            library.artistAlbums.value = mapOf(artistId to listOf(own))
+            library.appearsOn.value = mapOf(artistId to emptyList())
+            library.artistTracks.value = mapOf(artistId to downloaded)
+            library.artistGenres.value = mapOf(artistId to listOf("Folk"))
+
+            val state = viewModel.content
+            assertThat(state.tracks).isEqualTo(downloaded)
+            assertThat(state.duration).isEqualTo(3.minutes)
+            assertThat(state.genres).containsExactly("Folk")
+            assertThat(state.sections)
+                .containsExactly(ArtistSection.Albums, ArtistSection.TopTracks, ArtistSection.About)
+                .inOrder()
+        }
+
+    @Test
+    fun `played tracks with the same count follow the page's album order`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val older = Album(MediaId(ServerId("s"), "al0"), "Amar", listOf(artist), year = 2010)
+            val inOwn = track("o1", plays = 3).copy(albumId = own.id)
+            val inOlder = track("p1", plays = 3).copy(albumId = older.id)
+            library.albumArtists.value = listOf(artist)
+            library.artistAlbums.value = mapOf(artistId to listOf(own, older))
+            library.artistTracks.value = mapOf(artistId to listOf(inOwn, inOlder))
+            val viewModel = viewModel()
+
+            preferences.setArtistPage(ArtistPagePreferences(albumsSort = MoreAlbumsSort.YearAscending))
+
+            assertThat(viewModel.content.playedTracks).containsExactly(inOlder, inOwn).inOrder()
+        }
 }

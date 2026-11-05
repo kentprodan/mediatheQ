@@ -61,7 +61,7 @@ sealed interface ArtistUiState {
         private val hasAbout: Boolean
             get() =
                 artist.overview != null || genres.isNotEmpty() || albums.isNotEmpty() || tracks.isNotEmpty() ||
-                    artist.userData.isFavorite || (ratingMode != RatingMode.Off && artist.userData.halfStars != null)
+                    artist.userData.isFavorite || ratingMode != RatingMode.Off
 
         fun shows(button: ArtistButton): Boolean = button !in page.hiddenButtons
 

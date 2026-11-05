@@ -142,4 +142,19 @@ class AppColorSchemeTest {
         assertThat(merged.onSurface).isEqualTo(app.onSurface)
         assertThat(merged.surfaceContainerHigh).isEqualTo(app.surfaceContainerHigh)
     }
+
+    @Test
+    fun `a page's image scheme stays on when the player's cover colors are off, as the player otherwise (ADR 0029)`() {
+        val off = MqThemeState(MqThemeOptions(playerColors = MqPlayerColors.Off), isDark = true)
+        val black = MqThemeState(MqThemeOptions(mode = MqThemeMode.Black), isDark = true, isBlack = true)
+
+        assertThat(imageColorScheme(cover, off)).isSameInstanceAs(cover.dark)
+        assertThat(
+            imageColorScheme(cover, off.copy(options = MqThemeOptions(playerColors = MqPlayerColors.CoverVibrant))),
+        ).isSameInstanceAs(cover.vibrantDark)
+        assertThat(imageColorScheme(cover, black)!!.isBlack()).isTrue()
+        assertThat(imageColorScheme(cover, black.copy(options = black.options.copy(ignoreSurfaces = true))))
+            .isSameInstanceAs(cover.dark)
+        assertThat(imageColorScheme(null, off)).isNull()
+    }
 }
