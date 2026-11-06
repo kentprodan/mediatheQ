@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import android.os.Handler
 import android.view.KeyEvent
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -8,6 +9,15 @@ import io.github.kentprodan.mediatheq.core.data.HeadsetAction
 import io.github.kentprodan.mediatheq.core.data.HeadsetPreferences
 import io.github.kentprodan.mediatheq.core.data.NextButtonAction
 import io.github.kentprodan.mediatheq.core.data.PreviousButtonAction
+
+/** [ClickCounter]'s schedule on [handler]: the result removes what it posted. */
+internal fun handlerSchedule(handler: Handler): (Long, () -> Unit) -> () -> Unit =
+    { delay, block ->
+        // One Runnable for both calls: a lambda converts to a new one each time and would never be removed.
+        val runnable = Runnable(block)
+        handler.postDelayed(runnable, delay)
+        ({ handler.removeCallbacks(runnable) })
+    }
 
 /** The time between the clicks of a double or triple click (#139). */
 internal const val CLICK_WINDOW_MS = 350L

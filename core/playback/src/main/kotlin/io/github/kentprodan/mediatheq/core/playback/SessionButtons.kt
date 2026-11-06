@@ -96,6 +96,7 @@ internal fun nextRepeatMode(mode: Int): Int =
     }
 
 /** The media notification's player commands: previous and next as chosen (System UI, the lock screen, the car). */
+@UnstableApi
 internal fun notificationPlayerCommands(
     commands: Player.Commands,
     preferences: NotificationButtonsPreferences,

@@ -11,6 +11,7 @@ import android.os.Looper
 import android.os.Process
 import android.util.Log
 import android.view.KeyEvent
+import androidx.core.content.IntentCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -338,12 +339,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     if (buttonsChanged) refreshButtons()
                 }
             }
-        val handler = Handler(Looper.getMainLooper())
         headsetButtons =
-            HeadsetButtons(queuePlayer, { audio.headset }) { delay, block ->
-                handler.postDelayed(block, delay)
-                ({ handler.removeCallbacks(block) })
-            }
+            HeadsetButtons(queuePlayer, { audio.headset }, handlerSchedule(Handler(Looper.getMainLooper())))
         return queuePlayer
     }
 
@@ -676,7 +673,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
             intent: Intent,
         ): Boolean {
             if (controllerInfo.controllerVersion != MediaSession.ControllerInfo.LEGACY_CONTROLLER_VERSION) return false
-            val event = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java) ?: return false
+            val event =
+                IntentCompat.getParcelableExtra(intent, Intent.EXTRA_KEY_EVENT, KeyEvent::class.java) ?: return false
             return headsetButtons.onMediaButton(event)
         }
 
