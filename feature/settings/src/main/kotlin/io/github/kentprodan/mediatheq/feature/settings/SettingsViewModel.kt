@@ -275,6 +275,14 @@ class SettingsViewModel
                         library.restoreGenrePageDefaults()
                     }
 
+                    is SettingsAction.SetPlaylistPage -> {
+                        library.setPlaylistPage(action.page)
+                    }
+
+                    SettingsAction.RestorePlaylistPageDefaults -> {
+                        library.restorePlaylistPageDefaults()
+                    }
+
                     SettingsAction.OpenGenreSections -> {
                         genreSectionsDraft.value =
                             genreSectionsDraft(

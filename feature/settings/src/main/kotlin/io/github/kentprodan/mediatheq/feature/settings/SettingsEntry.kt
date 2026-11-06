@@ -17,6 +17,7 @@ import io.github.kentprodan.mediatheq.core.navigation.NavigationSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.NowPlayingSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.PlaylistPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ProvidersSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.SettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.StorageSettingsKey
@@ -51,6 +52,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             onOpenAlbumPage = { navigator.navigateTo(AlbumPageSettingsKey) },
             onOpenArtistPage = { navigator.navigateTo(ArtistPageSettingsKey) },
             onOpenGenrePage = { navigator.navigateTo(GenrePageSettingsKey) },
+            onOpenPlaylistPage = { navigator.navigateTo(PlaylistPageSettingsKey) },
         )
     }
     entry<ThemeSettingsKey> { SettingsPageRoute(SettingsPage.Theme, openAudio, back) }
@@ -62,6 +64,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<AlbumPageSettingsKey> { SettingsPageRoute(SettingsPage.Album, openAudio, back) }
     entry<ArtistPageSettingsKey> { SettingsPageRoute(SettingsPage.Artist, openAudio, back) }
     entry<GenrePageSettingsKey> { SettingsPageRoute(SettingsPage.Genre, openAudio, back) }
+    entry<PlaylistPageSettingsKey> { SettingsPageRoute(SettingsPage.Playlist, openAudio, back) }
     entry<PlaybackSettingsKey> { SettingsPageRoute(SettingsPage.Playback, openAudio, back) }
     entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openAudio, back) }
     entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openAudio, back) }

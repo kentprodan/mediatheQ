@@ -27,6 +27,8 @@ import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.data.PlayerBackground
 import io.github.kentprodan.mediatheq.core.data.PlayerProgress
+import io.github.kentprodan.mediatheq.core.data.PlaylistButton
+import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.PortraitNavStyle
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
@@ -559,3 +561,33 @@ fun SettingsGenreSectionsDialogScreenshot() =
             label = { stringResource(it.label) },
         )
     }
+
+/** Settings -> Playlist page (#135), all defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsPlaylistPageScreenshot() = Page(SettingsPage.Playlist)
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsPlaylistBackgroundDialogScreenshot() =
+    MediatheqTheme { PlaylistPageDialogContent(PlaylistPageDialog.Background, PlaylistPagePreferences()) }
+
+/** Resume and Favorite checked: they move to the header's More menu. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsPlaylistHiddenButtonsDialogScreenshot() =
+    MediatheqTheme {
+        PlaylistPageDialogContent(
+            PlaylistPageDialog.HiddenButtons,
+            PlaylistPagePreferences(hiddenButtons = setOf(PlaylistButton.Resume, PlaylistButton.Favorite)),
+        )
+    }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsPlaylistDynamicColorsDialogScreenshot() =
+    MediatheqTheme { PlaylistPageDialogContent(PlaylistPageDialog.DynamicColors, PlaylistPagePreferences()) }
