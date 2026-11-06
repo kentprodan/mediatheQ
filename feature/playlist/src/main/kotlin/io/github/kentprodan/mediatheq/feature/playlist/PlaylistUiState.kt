@@ -1,9 +1,12 @@
 package io.github.kentprodan.mediatheq.feature.playlist
 
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.PlaylistButton
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
+import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlin.time.Duration
@@ -29,8 +32,18 @@ sealed interface PlaylistUiState {
         val selected: Set<String> = emptySet(),
         /** The last edit that failed (it was undone), until the user dismisses it. */
         val error: MqError? = null,
+        val page: PlaylistPagePreferences = PlaylistPagePreferences(),
+        /** Where Resume starts (#135); `null` hides it (never played from here, or finished). */
+        val resume: ResumePoint? = null,
+        /** Every track of the playlist is downloaded. */
+        val isDownloaded: Boolean = false,
+        /** More -> Edit: selection mode before anything is selected. */
+        val editing: Boolean = false,
     ) : PlaylistUiState {
-        val isSelecting: Boolean get() = selected.isNotEmpty()
+        val isSelecting: Boolean get() = editing || selected.isNotEmpty()
+
+        /** Whether [button] shows in the header (else it is in More). */
+        fun shows(button: PlaylistButton): Boolean = button !in page.hiddenButtons
 
         /** No moves or removals while just-added tracks wait for their server entry ids. */
         val canEdit: Boolean get() = items.none { it.isPending }
@@ -43,6 +56,22 @@ sealed interface PlaylistAction {
     data object Play : PlaylistAction
 
     data object Shuffle : PlaylistAction
+
+    /** Plays on from where the playlist was left. */
+    data object Resume : PlaylistAction
+
+    /** The header's Play next / Add to queue: the whole playlist. */
+    data object PlayAllNext : PlaylistAction
+
+    data object AddAllToQueue : PlaylistAction
+
+    /** Favorite or not: the playlist itself. */
+    data class SetPlaylistFavorite(
+        val isFavorite: Boolean,
+    ) : PlaylistAction
+
+    /** More -> Edit: starts selecting with nothing selected yet. */
+    data object StartEditing : PlaylistAction
 
     /** Items are named by their [PlaylistItem.position]: the same track can be in a playlist twice. */
     data class PlayItem(

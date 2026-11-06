@@ -2,19 +2,25 @@ package io.github.kentprodan.mediatheq.feature.playlist
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.PlaylistButton
+import io.github.kentprodan.mediatheq.core.data.PlaylistHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem.Companion.PENDING_ENTRY_ID
+import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeResumeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
@@ -24,7 +30,9 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class PlaylistViewModelTest {
     @get:Rule
@@ -52,17 +60,35 @@ class PlaylistViewModelTest {
     private fun TestScope.viewModel(): PlaylistViewModel {
         repository.playlists.value = listOf(Playlist(playlistId, "Drum"))
         repository.items.value = mapOf(playlistId to items)
-        val viewModel = PlaylistViewModel(playlistId, repository, playback, trackTaps, commands, userData, downloads)
+        val viewModel = newViewModel()
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
 
     private val PlaylistViewModel.content get() = uiState.value as PlaylistUiState.Content
 
+    private val preferences = FakeLibraryPreferencesRepository()
+    private val resumes = FakeResumeRepository()
+    private val library = FakeLibraryRepository()
+
+    private fun newViewModel() =
+        PlaylistViewModel(
+            playlistId,
+            repository,
+            playback,
+            trackTaps,
+            commands,
+            userData,
+            downloads,
+            preferences,
+            resumes,
+            library,
+        )
+
     @Test
     fun `starts loading`() {
         assertThat(
-            PlaylistViewModel(playlistId, repository, playback, trackTaps, commands, userData, downloads).uiState.value,
+            newViewModel().uiState.value,
         ).isEqualTo(PlaylistUiState.Loading)
     }
 
@@ -97,8 +123,11 @@ class PlaylistViewModelTest {
             viewModel.onAction(PlaylistAction.PlayItem(position = 2))
 
             assertThat(playback.plays)
-                .containsExactly(PlayCall(tracks, 0, false), PlayCall(tracks, 0, true), PlayCall(tracks, 1, false))
-                .inOrder()
+                .containsExactly(
+                    PlayCall(tracks, 0, false, playlistId = playlistId),
+                    PlayCall(tracks, 0, true, playlistId = playlistId),
+                    PlayCall(tracks, 1, false, playlistId = playlistId),
+                ).inOrder()
         }
 
     @Test
@@ -267,5 +296,123 @@ class PlaylistViewModelTest {
 
             assertThat(playback.addedToQueue).containsExactly(listOf(tracks[0], tracks[2]))
             assertThat(viewModel.content.isSelecting).isFalse()
+        }
+
+    @Test
+    fun `never played from here, there is no Resume`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            assertThat(viewModel().content.resume).isNull()
+        }
+
+    @Test
+    fun `Resume plays on from the track and position where the playlist was left`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            resumes.resumes.value = mapOf(playlistId to ResumePoint(tracks[1].id, 42.seconds))
+            val viewModel = viewModel()
+            assertThat(viewModel.content.resume).isEqualTo(ResumePoint(tracks[1].id, 42.seconds))
+
+            viewModel.onAction(PlaylistAction.Resume)
+
+            assertThat(playback.plays.single()).isEqualTo(PlayCall(tracks, 1, false, 42.seconds, playlistId))
+        }
+
+    @Test
+    fun `a finished track resumes at the next one, the last one finished or a removed one hides Resume`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            resumes.resumes.value = mapOf(playlistId to ResumePoint(tracks[0].id, 3.minutes))
+            val viewModel = viewModel()
+            assertThat(viewModel.content.resume).isEqualTo(ResumePoint(tracks[1].id, Duration.ZERO))
+
+            resumes.resumes.value = mapOf(playlistId to ResumePoint(tracks[2].id, 3.minutes))
+            assertThat(viewModel.content.resume).isNull()
+
+            resumes.resumes.value = mapOf(playlistId to ResumePoint(track("gone").id, 10.seconds))
+            assertThat(viewModel.content.resume).isNull()
+        }
+
+    @Test
+    fun `offline, Resume goes by the downloaded tracks the playlist shows`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            // Offline the repository gives only the downloaded items: t2 is not one of them.
+            resumes.resumes.value = mapOf(playlistId to ResumePoint(tracks[0].id, 3.minutes))
+            val viewModel = viewModel()
+            repository.items.value = mapOf(playlistId to listOf(items[0], items[2]))
+
+            assertThat(viewModel.content.resume).isEqualTo(ResumePoint(tracks[2].id, Duration.ZERO))
+        }
+
+    @Test
+    fun `a track in the playlist twice resumes at its first copy`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            repository.items.value =
+                mapOf(playlistId to items + PlaylistItem("e4", 4, tracks[0]))
+            resumes.resumes.value = mapOf(playlistId to ResumePoint(tracks[0].id, 10.seconds))
+
+            viewModel.onAction(PlaylistAction.Resume)
+
+            assertThat(playback.plays.single().startIndex).isEqualTo(0)
+        }
+
+    @Test
+    fun `the downloaded mark follows the whole playlist being downloaded`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            assertThat(viewModel.content.isDownloaded).isFalse()
+
+            library.fullyDownloaded.value = setOf(playlistId)
+
+            assertThat(viewModel.content.isDownloaded).isTrue()
+        }
+
+    @Test
+    fun `the header queues the whole playlist and favorites the playlist itself`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+
+            viewModel.onAction(PlaylistAction.PlayAllNext)
+            viewModel.onAction(PlaylistAction.AddAllToQueue)
+            viewModel.onAction(PlaylistAction.SetPlaylistFavorite(true))
+
+            assertThat(playback.playedNext).containsExactly(tracks)
+            assertThat(playback.addedToQueue).containsExactly(tracks)
+            assertThat(userData.calls).containsExactly("favorite:p1:true")
+        }
+
+    @Test
+    fun `Edit starts selecting with nothing selected, and clearing ends it`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+
+            viewModel.onAction(PlaylistAction.StartEditing)
+            assertThat(viewModel.content.isSelecting).isTrue()
+            assertThat(viewModel.content.selected).isEmpty()
+
+            viewModel.onAction(PlaylistAction.ToggleSelection(2))
+            viewModel.onAction(PlaylistAction.RemoveSelected)
+            assertThat(viewModel.content.isSelecting).isFalse()
+            assertThat(viewModel.content.items.map { it.entryId }).containsExactly("e1", "e3").inOrder()
+
+            viewModel.onAction(PlaylistAction.StartEditing)
+            viewModel.onAction(PlaylistAction.ClearSelection)
+            assertThat(viewModel.content.isSelecting).isFalse()
+        }
+
+    @Test
+    fun `the page settings apply at once`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel()
+            val page =
+                PlaylistPagePreferences(
+                    headerBackground = PlaylistHeaderBackground.None,
+                    hiddenButtons = setOf(PlaylistButton.Shuffle),
+                    dynamicColors = true,
+                )
+
+            preferences.setPlaylistPage(page)
+
+            assertThat(viewModel.content.page).isEqualTo(page)
+            assertThat(viewModel.content.shows(PlaylistButton.Shuffle)).isFalse()
+            assertThat(viewModel.content.shows(PlaylistButton.Resume)).isTrue()
         }
 }

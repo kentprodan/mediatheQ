@@ -28,4 +28,11 @@
     <string name="playlist_create">Create</string>
     <string name="playlist_none_yet">No playlists yet.</string>
     <string name="playlist_add_failed">The tracks could not be added. Try again.</string>
+    <string name="playlist_play">Play</string>
+    <string name="playlist_resume">Resume</string>
+    <string name="playlist_shuffle">Shuffle</string>
+    <string name="playlist_play_next">Play next</string>
+    <string name="playlist_add_to_queue">Add to queue</string>
+    <string name="playlist_edit">Edit</string>
+    <string name="playlist_downloaded">Downloaded</string>
 </resources>

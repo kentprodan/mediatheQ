@@ -13,10 +13,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.PlaylistButton
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
+import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import org.junit.Rule
@@ -25,6 +28,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 // Plain Application: the stateless screen needs no Hilt graph. Tall screen: every row is laid out.
 @RunWith(RobolectricTestRunner::class)
@@ -106,4 +110,31 @@ class PlaylistScreenTest {
         SemanticsMatcher("has custom action $label") { node ->
             node.config.getOrElse(SemanticsActions.CustomActions) { emptyList() }.any { it.label == label }
         }
+
+    @Test
+    fun `More offers Edit, rename and delete, and Edit starts selecting`() {
+        val actions = mutableListOf<PlaylistAction>()
+        show(content, actions)
+
+        composeRule.onNodeWithContentDescription("More options for Drum").performClick()
+        composeRule.onNodeWithText("Rename").assertExists()
+        composeRule.onNodeWithText("Delete playlist").assertExists()
+        composeRule.onNodeWithText("Edit").performClick()
+
+        assertThat(actions).containsExactly(PlaylistAction.StartEditing)
+    }
+
+    @Test
+    fun `Resume shows once the playlist was played from here, and a hidden button moves to More`() {
+        val actions = mutableListOf<PlaylistAction>()
+        val resumed = content.copy(resume = ResumePoint(items[0].track.id, 30.seconds))
+        show(resumed.copy(page = PlaylistPagePreferences(hiddenButtons = setOf(PlaylistButton.Shuffle))), actions)
+
+        composeRule.onNodeWithText("Resume").performClick()
+        composeRule.onNodeWithContentDescription("Shuffle").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("More options for Drum").performClick()
+        composeRule.onNodeWithText("Shuffle").performClick()
+
+        assertThat(actions).containsExactly(PlaylistAction.Resume, PlaylistAction.Shuffle).inOrder()
+    }
 }
