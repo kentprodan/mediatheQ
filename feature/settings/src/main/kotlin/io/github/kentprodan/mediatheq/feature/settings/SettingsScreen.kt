@@ -59,6 +59,7 @@ enum class SettingsPage(
     Library(R.string.settings_library_page),
     Album(R.string.settings_album_page),
     Artist(R.string.settings_artist_page),
+    Genre(R.string.settings_genre_page),
     Playback(R.string.settings_playback),
     Storage(R.string.settings_storage_page),
     Providers(R.string.settings_providers),
@@ -77,6 +78,7 @@ internal fun SettingsPageRoute(
     onOpenLibraryPage: () -> Unit = {},
     onOpenAlbumPage: () -> Unit = {},
     onOpenArtistPage: () -> Unit = {},
+    onOpenGenrePage: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,6 +96,7 @@ internal fun SettingsPageRoute(
         onOpenLibraryPage,
         onOpenAlbumPage,
         onOpenArtistPage,
+        onOpenGenrePage,
     )
 }
 
@@ -116,6 +119,7 @@ fun SettingsPageScreen(
     onOpenLibraryPage: () -> Unit = {},
     onOpenAlbumPage: () -> Unit = {},
     onOpenArtistPage: () -> Unit = {},
+    onOpenGenrePage: () -> Unit = {},
 ) {
     // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
     var dialog by rememberSaveable { mutableStateOf<ThemeDialog?>(null) }
@@ -126,6 +130,7 @@ fun SettingsPageScreen(
     var libraryDialog by rememberSaveable { mutableStateOf<LibraryPageDialog?>(null) }
     var albumDialog by rememberSaveable { mutableStateOf<AlbumPageDialog?>(null) }
     var artistDialog by rememberSaveable { mutableStateOf<ArtistPageDialog?>(null) }
+    var genreDialog by rememberSaveable { mutableStateOf<GenrePageDialog?>(null) }
     val listState = rememberLazyListState()
     // The Home page's rows as shown: a drag moves them here and saves the order once, on drop.
     val homeOrder =
@@ -195,6 +200,15 @@ fun SettingsPageScreen(
                                 trailingContent = { Icon(MqIcons.Person, contentDescription = null) },
                             ) { Text(stringResource(R.string.settings_artist_page)) }
                         }
+                        item { shapes ->
+                            SegmentedListItem(
+                                onClick = onOpenGenrePage,
+                                shapes = shapes,
+                                colors = settingsColors(),
+                                supportingContent = { Text(stringResource(R.string.settings_genre_page_summary)) },
+                                trailingContent = { Icon(MqIcons.Genres, contentDescription = null) },
+                            ) { Text(stringResource(R.string.settings_genre_page)) }
+                        }
                     }
                 }
                 item(key = "ratings") { RatingsGroup(content.library.ratingMode, onAction) }
@@ -232,6 +246,10 @@ fun SettingsPageScreen(
 
             SettingsPage.Artist -> {
                 artistPageGroups(content.library.artistPage, onAction) { artistDialog = it }
+            }
+
+            SettingsPage.Genre -> {
+                genrePageGroups(content.library.genrePage, onAction) { genreDialog = it }
             }
 
             SettingsPage.Playback -> {
@@ -273,6 +291,10 @@ fun SettingsPageScreen(
             ArtistPageDialogHost(it, content.library.artistPage, onAction) { artistDialog = null }
         }
         if (page == SettingsPage.Artist) content.artistSectionsDraft?.let { ArtistSectionsDialog(it, onAction) }
+        genreDialog?.let {
+            GenrePageDialogHost(it, content.library.genrePage, onAction) { genreDialog = null }
+        }
+        if (page == SettingsPage.Genre) content.genreSectionsDraft?.let { GenreSectionsDialog(it, onAction) }
     }
 }
 

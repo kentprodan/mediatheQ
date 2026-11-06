@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.GenreSection
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
@@ -37,6 +38,7 @@ class SettingsViewModel
         private val shortcutsDraft = MutableStateFlow<OrganizeDraft<LibraryShortcut>?>(null)
         private val sectionsDraft = MutableStateFlow<OrganizeDraft<AlbumSection>?>(null)
         private val artistSectionsDraft = MutableStateFlow<OrganizeDraft<ArtistSection>?>(null)
+        private val genreSectionsDraft = MutableStateFlow<OrganizeDraft<GenreSection>?>(null)
 
         val uiState: StateFlow<SettingsUiState> =
             combine(
@@ -44,8 +46,8 @@ class SettingsViewModel
                 audio.preferences,
                 library.preferences,
                 playback.state.map { it.output }.distinctUntilChanged(),
-                combine(entriesDraft, shortcutsDraft, sectionsDraft, artistSectionsDraft, ::Drafts),
-            ) { session, audio, library, output, (draft, shortcuts, sections, artistSections) ->
+                combine(entriesDraft, shortcutsDraft, sectionsDraft, artistSectionsDraft, genreSectionsDraft, ::Drafts),
+            ) { session, audio, library, output, (draft, shortcuts, sections, artistSections, genreSections) ->
                 // Signed out: the app leaves for onboarding, nothing to show meanwhile.
                 (session as? SessionState.LoggedIn)?.let {
                     SettingsUiState.Content(
@@ -58,6 +60,7 @@ class SettingsViewModel
                         shortcuts,
                         sections,
                         artistSections,
+                        genreSections,
                     )
                 } ?: SettingsUiState.Loading
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState.Loading)
@@ -264,6 +267,39 @@ class SettingsViewModel
                         artistSectionsDraft.value = null
                     }
 
+                    is SettingsAction.SetGenrePage -> {
+                        library.setGenrePage(action.page)
+                    }
+
+                    SettingsAction.RestoreGenrePageDefaults -> {
+                        library.restoreGenrePageDefaults()
+                    }
+
+                    SettingsAction.OpenGenreSections -> {
+                        genreSectionsDraft.value =
+                            genreSectionsDraft(
+                                library.preferences
+                                    .first()
+                                    .genrePage.sectionOrder,
+                            )
+                    }
+
+                    is SettingsAction.MoveGenreSection -> {
+                        genreSectionsDraft.update { it?.move(action.from, action.to) }
+                    }
+
+                    SettingsAction.ConfirmGenreSections -> {
+                        genreSectionsDraft.value?.let { draft ->
+                            val page = library.preferences.first().genrePage
+                            library.setGenrePage(page.copy(sectionOrder = draft.order))
+                        }
+                        genreSectionsDraft.value = null
+                    }
+
+                    SettingsAction.DismissGenreSections -> {
+                        genreSectionsDraft.value = null
+                    }
+
                     is SettingsAction.SetOfflineMode -> {
                         library.setOfflineMode(action.on)
                     }
@@ -302,4 +338,5 @@ private data class Drafts(
     val shortcuts: OrganizeDraft<LibraryShortcut>?,
     val albumSections: OrganizeDraft<AlbumSection>?,
     val artistSections: OrganizeDraft<ArtistSection>?,
+    val genreSections: OrganizeDraft<GenreSection>?,
 )

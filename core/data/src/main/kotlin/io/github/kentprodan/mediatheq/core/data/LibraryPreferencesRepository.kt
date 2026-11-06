@@ -63,6 +63,12 @@ interface LibraryPreferencesRepository {
     /** Back to the Artist page defaults only. */
     suspend fun restoreArtistPageDefaults()
 
+    /** Every Genre page value at once (#134); the order is completed, the count is clamped. */
+    suspend fun setGenrePage(page: GenrePagePreferences)
+
+    /** Back to the Genre page defaults only. */
+    suspend fun restoreGenrePageDefaults()
+
     suspend fun setRatingMode(mode: RatingMode)
 
     /** Now Playing's quality label: the format detail or its kind (#125). */

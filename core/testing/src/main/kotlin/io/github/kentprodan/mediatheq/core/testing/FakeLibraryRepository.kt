@@ -85,6 +85,10 @@ class FakeLibraryRepository : LibraryRepository {
 
     override fun genreTracks(genreId: MediaId) = genreTracks.map { it[genreId].orEmpty() }
 
+    val genreTrackArtists = MutableStateFlow<Map<MediaId, List<Artist>>>(emptyMap())
+
+    override fun genreTrackArtists(genreId: MediaId) = genreTrackArtists.map { it[genreId].orEmpty() }
+
     val albumGenres = MutableStateFlow<Map<MediaId, List<String>>>(emptyMap())
     val albumLabels = MutableStateFlow<Map<MediaId, List<RecordLabel>>>(emptyMap())
 

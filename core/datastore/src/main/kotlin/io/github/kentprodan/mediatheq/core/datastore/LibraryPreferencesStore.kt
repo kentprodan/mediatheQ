@@ -140,6 +140,26 @@ class LibraryPreferencesStore
                                 showAbout = prefs[ARP_ABOUT],
                                 dynamicColors = prefs[ARP_DYNAMIC_COLORS],
                             ),
+                        genrePage =
+                            StoredGenrePage(
+                                headerBackground = prefs[GP_BACKGROUND],
+                                hiddenButtons =
+                                    prefs[GP_HIDDEN_BUTTONS]
+                                        ?.split(
+                                            LIST_SEPARATOR,
+                                        )?.filter { it.isNotEmpty() },
+                                sectionOrder =
+                                    prefs[GP_SECTIONS]
+                                        ?.split(
+                                            LIST_SEPARATOR,
+                                        )?.filter { it.isNotEmpty() },
+                                showAlbums = prefs[GP_ALBUMS],
+                                showArtists = prefs[GP_ARTISTS],
+                                showAlbumArtists = prefs[GP_ALBUM_ARTISTS],
+                                showTopTracks = prefs[GP_TOP_TRACKS],
+                                topTracksCount = prefs[GP_TOP_TRACKS_COUNT],
+                                dynamicColors = prefs[GP_DYNAMIC_COLORS],
+                            ),
                         offlineMode = prefs[OFFLINE_MODE],
                         qualityDetail = prefs[QUALITY_DETAIL],
                         sorts =
@@ -251,6 +271,22 @@ class LibraryPreferencesStore
                 prefs.put(AP_TRACK_THUMBNAILS, page.showTrackThumbnails)
                 prefs.put(AP_MULTILINE, page.multilineTrackTitles)
                 prefs.put(AP_ABOUT, page.showAbout)
+            }
+        }
+
+        /** Stores every Genre page value at once (#134); null removes it. */
+        suspend fun setGenrePage(page: StoredGenrePage) {
+            dataStore.edit { prefs ->
+                prefs.put(GP_BACKGROUND, page.headerBackground)
+                // An empty set is stored as an empty string: "none hidden" differs from "not set".
+                prefs.put(GP_HIDDEN_BUTTONS, page.hiddenButtons?.joinToString(LIST_SEPARATOR))
+                prefs.put(GP_SECTIONS, page.sectionOrder?.joinToString(LIST_SEPARATOR))
+                prefs.put(GP_ALBUMS, page.showAlbums)
+                prefs.put(GP_ARTISTS, page.showArtists)
+                prefs.put(GP_ALBUM_ARTISTS, page.showAlbumArtists)
+                prefs.put(GP_TOP_TRACKS, page.showTopTracks)
+                prefs.put(GP_TOP_TRACKS_COUNT, page.topTracksCount)
+                prefs.put(GP_DYNAMIC_COLORS, page.dynamicColors)
             }
         }
 
@@ -371,6 +407,15 @@ class LibraryPreferencesStore
             val ARP_TOP_TRACKS_COUNT = intPreferencesKey("arp_top_tracks_count")
             val ARP_ABOUT = booleanPreferencesKey("arp_about")
             val ARP_DYNAMIC_COLORS = booleanPreferencesKey("arp_dynamic_colors")
+            val GP_BACKGROUND = stringPreferencesKey("gp_background")
+            val GP_HIDDEN_BUTTONS = stringPreferencesKey("gp_hidden_buttons")
+            val GP_SECTIONS = stringPreferencesKey("gp_sections")
+            val GP_ALBUMS = booleanPreferencesKey("gp_albums")
+            val GP_ARTISTS = booleanPreferencesKey("gp_artists")
+            val GP_ALBUM_ARTISTS = booleanPreferencesKey("gp_album_artists")
+            val GP_TOP_TRACKS = booleanPreferencesKey("gp_top_tracks")
+            val GP_TOP_TRACKS_COUNT = intPreferencesKey("gp_top_tracks_count")
+            val GP_DYNAMIC_COLORS = booleanPreferencesKey("gp_dynamic_colors")
             val ALBUM_COLUMNS = intPreferencesKey("album_columns")
             val GENRES_GRID = booleanPreferencesKey("genres_grid")
             val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
@@ -439,6 +484,7 @@ data class StoredLibraryPreferences(
     val libraryPage: StoredLibraryPage = StoredLibraryPage(),
     val albumPage: StoredAlbumPage = StoredAlbumPage(),
     val artistPage: StoredArtistPage = StoredArtistPage(),
+    val genrePage: StoredGenrePage = StoredGenrePage(),
     val qualityDetail: Boolean? = null,
 )
 
@@ -456,6 +502,19 @@ data class StoredAlbumPage(
     val showTrackThumbnails: Boolean? = null,
     val multilineTrackTitles: Boolean? = null,
     val showAbout: Boolean? = null,
+)
+
+/** Genre page values as stored (#134); `null` = not set. */
+data class StoredGenrePage(
+    val headerBackground: String? = null,
+    val hiddenButtons: List<String>? = null,
+    val sectionOrder: List<String>? = null,
+    val showAlbums: Boolean? = null,
+    val showArtists: Boolean? = null,
+    val showAlbumArtists: Boolean? = null,
+    val showTopTracks: Boolean? = null,
+    val topTracksCount: Int? = null,
+    val dynamicColors: Boolean? = null,
 )
 
 /** Artist page values as stored (#133); `null` = not set. */

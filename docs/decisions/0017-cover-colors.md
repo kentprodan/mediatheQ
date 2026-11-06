@@ -26,4 +26,4 @@ Options checked on 2026-10-19:
 
 - One small pure Kotlin dependency, unit-testable on the JVM.
 - Bumps follow the materialkolor release notes. Spec 2025 must stay available.
-- A cover-derived theme applies only inside the player subtree. The rest of the app stays Iris (or Material You). The artist page is the one exception (ADR 0029).
+- A cover-derived theme applies only inside the player subtree. The rest of the app stays Iris (or Material You). The artist and genre pages are the exceptions (ADR 0029).

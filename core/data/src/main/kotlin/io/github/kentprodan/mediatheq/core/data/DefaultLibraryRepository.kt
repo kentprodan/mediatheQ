@@ -122,6 +122,12 @@ class DefaultLibraryRepository
                     libraryDao.genreTracks(genreId.serverId.value, genreId.itemId, all, downloaded)
                 }.map { rows -> rows.map { it.toDomain() } }
 
+        override fun genreTrackArtists(genreId: MediaId): Flow<List<Artist>> =
+            filter
+                .of { all, downloaded ->
+                    libraryDao.genreTrackArtists(genreId.serverId.value, genreId.itemId, all, downloaded)
+                }.map { rows -> rows.map { it.toDomain() } }
+
         override fun albumGenres(albumId: MediaId): Flow<List<String>> =
             libraryDao.albumGenreNames(albumId.serverId.value, albumId.itemId)
 

@@ -72,6 +72,9 @@ interface LibraryRepository {
     /** The tracks tagged with the genre, by name. */
     fun genreTracks(genreId: MediaId): Flow<List<Track>>
 
+    /** Every artist credited on the genre's tracks, by name (#134); offline only on downloaded ones. */
+    fun genreTrackArtists(genreId: MediaId): Flow<List<Artist>>
+
     /** The album's genre names, by name (#132). */
     fun albumGenres(albumId: MediaId): Flow<List<String>>
 

@@ -29,6 +29,12 @@ data class GenreKey(
     @Serializable(with = MediaIdSerializer::class) val id: MediaId,
 ) : NavKey
 
+/** Every track of a genre, most played first: the genre page's "Show all" (#134). */
+@Serializable
+data class GenreTopTracksKey(
+    @Serializable(with = MediaIdSerializer::class) val id: MediaId,
+) : NavKey
+
 /** A record label's page (#131): its albums; [name] titles the page. */
 @Serializable
 data class RecordLabelKey(

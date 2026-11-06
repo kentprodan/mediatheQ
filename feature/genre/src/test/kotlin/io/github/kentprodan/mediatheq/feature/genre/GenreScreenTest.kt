@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Genre
@@ -42,29 +43,42 @@ class GenreScreenTest {
         )
 
     @Test
-    fun `an album opens, Show all asks for every track, and Back goes back`() {
+    fun `an album opens, Show all opens every track, a top track plays, and Back goes back`() {
         val actions = mutableListOf<GenreAction>()
         val opened = mutableListOf<MediaId>()
+        var all = 0
         var back = 0
         composeRule.setContent {
-            MediatheqTheme { GenreScreen(content, { actions += it }, { opened += it }, {}, { back++ }) }
+            MediatheqTheme {
+                GenreScreen(
+                    content.copy(page = GenrePagePreferences(topTracksCount = 5)),
+                    { actions += it },
+                    { opened += it },
+                    {},
+                    { back++ },
+                    onOpenTopTracks = { all++ },
+                )
+            }
         }
 
+        composeRule.onNodeWithText("Play").performClick()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Satelit"))
         composeRule.onNodeWithText("Satelit").performClick()
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Show all"))
         composeRule.onNodeWithText("Show all").performClick()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Track 0"))
+        composeRule.onNodeWithText("Track 0").performClick()
         composeRule.onNodeWithContentDescription("Back").performClick()
 
         assertThat(opened).containsExactly(album.id)
-        assertThat(actions).containsExactly(GenreAction.ShowAllTracks)
+        assertThat(all).isEqualTo(1)
+        assertThat(actions).containsExactly(GenreAction.Play, GenreAction.PlayTrack(tracks[0], all = false)).inOrder()
         assertThat(back).isEqualTo(1)
     }
 
     @Test
     fun `with every track shown there is no Show all`() {
-        composeRule.setContent {
-            MediatheqTheme { GenreScreen(content.copy(allTracks = true), {}, {}, {}, {}) }
-        }
+        composeRule.setContent { MediatheqTheme { GenreScreen(content, {}, {}, {}, {}) } }
 
         composeRule.onNodeWithText("Show all").assertDoesNotExist()
     }

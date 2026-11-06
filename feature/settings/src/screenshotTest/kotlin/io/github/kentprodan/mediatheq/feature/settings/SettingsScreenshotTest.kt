@@ -15,6 +15,9 @@ import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.CoverTap
+import io.github.kentprodan.mediatheq.core.data.GenreButton
+import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
+import io.github.kentprodan.mediatheq.core.data.GenreSection
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
@@ -507,3 +510,52 @@ fun SettingsArtistSectionsDialogScreenshot() =
 @Composable
 fun SettingsArtistAlbumsSortDialogScreenshot() =
     MediatheqTheme { ArtistPageDialogContent(ArtistPageDialog.AlbumsSort, ArtistPagePreferences()) }
+
+/** Settings -> Genre page (#134), all defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsGenrePageScreenshot() = Page(SettingsPage.Genre)
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsGenreBackgroundDialogScreenshot() =
+    MediatheqTheme { GenrePageDialogContent(GenrePageDialog.Background, GenrePagePreferences()) }
+
+/** Add to queue checked: it moves to the header's More menu. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsGenreHiddenButtonsDialogScreenshot() =
+    MediatheqTheme {
+        GenrePageDialogContent(
+            GenrePageDialog.HiddenButtons,
+            GenrePagePreferences(hiddenButtons = setOf(GenreButton.AddToQueue)),
+        )
+    }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsGenreDynamicColorsDialogScreenshot() =
+    MediatheqTheme { GenrePageDialogContent(GenrePageDialog.DynamicColors, GenrePagePreferences()) }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsGenreTopTracksCountDialogScreenshot() =
+    MediatheqTheme { GenrePageDialogContent(GenrePageDialog.TopTracksCount, GenrePagePreferences()) }
+
+/** "Page content order" with the default order; the checks are fixed (switches hide sections). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsGenreSectionsDialogScreenshot() =
+    MediatheqTheme {
+        OrganizeDialogContent(
+            "Page content order",
+            genreSectionsDraft(GenreSection.entries),
+            label = { stringResource(it.label) },
+        )
+    }

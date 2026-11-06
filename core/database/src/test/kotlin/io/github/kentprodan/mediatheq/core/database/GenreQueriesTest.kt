@@ -10,10 +10,13 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ImageColumns
+import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistEntity
+import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
+import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -153,5 +156,81 @@ class GenreQueriesTest {
             syncDao.clearAll()
 
             assertThat(libraryDao.genres(true, emptyList()).first()).isEmpty()
+        }
+
+    @Test
+    fun `every artist credited on the genre's tracks comes once, credit-only ones too, offline only on downloads`() =
+        runTest {
+            sync()
+            syncDao.stageAlbumArtists(listOf("ar1", "ar2").map { ArtistStaging(ArtistEntity("s", it, it, it, true)) })
+            syncDao.stageCreditedArtists(listOf(ArtistStaging(ArtistEntity("s", "guest", "Guest", "Guest", false))))
+            syncDao.stageTracks(
+                listOf(
+                    TrackEntity("s", "t1", "One", "One", albumId = "al1"),
+                    TrackEntity("s", "t5", "Five", "Five", albumId = "al2"),
+                ).map(::TrackStaging),
+            )
+            syncDao.stageTrackArtistLinks(
+                listOf(
+                    TrackArtistEntity("s", "t1", 0, "ar1"),
+                    TrackArtistEntity("s", "t1", 1, "guest"),
+                    TrackArtistEntity("s", "t5", 0, "ar1"),
+                ).map(::TrackArtistStaging),
+            )
+            syncDao.stageTrackGenreLinks(
+                listOf(TrackGenreEntity("s", "t1", "g-rock", "Rock"), TrackGenreEntity("s", "t5", "g-rock", "Rock"))
+                    .map(::TrackGenreStaging),
+            )
+            syncDao.swap(2, "s", "user-1")
+
+            assertThat(libraryDao.genreTrackArtists("s", "g-rock", true, emptyList()).first().map { it.id })
+                // By sort name: "Guest" sorts before "ar1".
+                .containsExactly("guest", "ar1")
+                .inOrder()
+            assertThat(libraryDao.genreTrackArtists("s", "g-rock", false, listOf("t5")).first().map { it.id })
+                .containsExactly("ar1")
+            assertThat(libraryDao.genreTrackArtists("s", "g-folk", true, emptyList()).first()).isEmpty()
+        }
+
+    @Test
+    fun `a genre's tracks keep their plays and length, offline only the downloaded ones, and counts follow`() =
+        runTest {
+            sync()
+            syncDao.stageAlbumArtists(listOf("ar1", "ar2").map { ArtistStaging(ArtistEntity("s", it, it, it, true)) })
+            syncDao.stageAlbums(listOf(AlbumEntity("s", "al1", "Zebra", "Zebra")).map(::AlbumStaging))
+            syncDao.stageAlbumGenreLinks(listOf(AlbumGenreStaging(AlbumGenreEntity("s", "al1", "g-rock", "Rock"))))
+            syncDao.stageTracks(
+                listOf(
+                    TrackEntity(
+                        "s",
+                        "t1",
+                        "One",
+                        "One",
+                        albumId = "al1",
+                        durationMillis = 60_000,
+                        userData = UserDataColumns(playCount = 7),
+                    ),
+                    TrackEntity("s", "t2", "Two", "Two", albumId = "al1"),
+                ).map(::TrackStaging),
+            )
+            syncDao.stageTrackGenreLinks(
+                listOf(TrackGenreEntity("s", "t1", "g-rock", "Rock"), TrackGenreEntity("s", "t2", "g-rock", "Rock"))
+                    .map(::TrackGenreStaging),
+            )
+            syncDao.swap(2, "s", "user-1")
+
+            val online = libraryDao.genreTracks("s", "g-rock", true, emptyList()).first()
+            assertThat(online.map { it.track.id }).containsExactly("t1", "t2").inOrder()
+            assertThat(
+                online
+                    .first()
+                    .track.userData.playCount,
+            ).isEqualTo(7)
+            assertThat(online.first().track.durationMillis).isEqualTo(60_000)
+            val offline = libraryDao.genreTracks("s", "g-rock", false, listOf("t1")).first()
+            assertThat(offline.map { it.track.id }).containsExactly("t1")
+            val rock = libraryDao.genres(false, listOf("t1")).first().single { it.id == "g-rock" }
+            assertThat(rock.trackCount).isEqualTo(1)
+            assertThat(rock.albumCount).isEqualTo(1)
         }
 }

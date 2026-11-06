@@ -12,6 +12,8 @@ import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.EqPreset
+import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
+import io.github.kentprodan.mediatheq.core.data.GenreSection
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryHubStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
@@ -485,5 +487,51 @@ class SettingsViewModelTest {
                     ArtistSection.TopTracks,
                     ArtistSection.AppearsOn,
                 ).inOrder()
+        }
+
+    @Test
+    fun `genre page choices apply at once and restoring resets only that page`() =
+        runTest {
+            signIn()
+            val artist = ArtistPagePreferences(showAbout = false)
+            library.setArtistPage(artist)
+            val chosen = GenrePagePreferences(showAlbumArtists = true, dynamicColors = true)
+
+            viewModel.onAction(SettingsAction.SetGenrePage(chosen))
+            assertThat(content().library.genrePage).isEqualTo(chosen)
+
+            viewModel.onAction(SettingsAction.RestoreGenrePageDefaults)
+            assertThat(library.preferences.value.genrePage).isEqualTo(GenrePagePreferences())
+            assertThat(library.preferences.value.artistPage).isEqualTo(artist)
+        }
+
+    @Test
+    fun `the genre sections are ordered in a draft, stored with OK and dropped with Cancel`() =
+        runTest {
+            signIn()
+            viewModel.uiState.test {
+                viewModel.onAction(SettingsAction.OpenGenreSections)
+                viewModel.onAction(SettingsAction.MoveGenreSection(3, 0))
+                val draft = (expectMostRecentItem() as SettingsUiState.Content).genreSectionsDraft
+                assertThat(draft?.order)
+                    .containsExactly(
+                        GenreSection.TopTracks,
+                        GenreSection.Artists,
+                        GenreSection.AlbumArtists,
+                        GenreSection.Albums,
+                    ).inOrder()
+
+                viewModel.onAction(SettingsAction.ConfirmGenreSections)
+                assertThat((expectMostRecentItem() as SettingsUiState.Content).genreSectionsDraft).isNull()
+
+                viewModel.onAction(SettingsAction.OpenGenreSections)
+                viewModel.onAction(SettingsAction.MoveGenreSection(0, 3))
+                viewModel.onAction(SettingsAction.DismissGenreSections)
+                assertThat((expectMostRecentItem() as SettingsUiState.Content).genreSectionsDraft).isNull()
+            }
+            assertThat(
+                library.preferences.value.genrePage.sectionOrder
+                    .first(),
+            ).isEqualTo(GenreSection.TopTracks)
         }
 }
