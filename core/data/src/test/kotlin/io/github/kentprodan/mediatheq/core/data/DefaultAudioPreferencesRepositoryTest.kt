@@ -198,4 +198,48 @@ class DefaultAudioPreferencesRepositoryTest {
             assertThat(behavior.circular).isFalse()
             assertThat(behavior.weightedShuffle).isFalse()
         }
+
+    @Test
+    fun `audio focus, headset and notification buttons are kept, and each restore resets only its page`() =
+        runTest {
+            val focus = AudioFocusPreferences(ShortFocusAction.Pause, noResumeAfterLongLoss = true)
+            val headset =
+                HeadsetPreferences(
+                    singleClick = HeadsetAction.Nothing,
+                    doubleClick = HeadsetAction.Previous,
+                    tripleClick = HeadsetAction.Next,
+                    nextButton = NextButtonAction.SeekForward,
+                    previousButton = PreviousButtonAction.SeekBack,
+                    slowClicks = true,
+                )
+            val buttons =
+                NotificationButtonsPreferences(
+                    showPrevious = false,
+                    showNext = false,
+                    action1 = SessionButtonAction.Shuffle,
+                    action2 = SessionButtonAction.Nothing,
+                    action3 = SessionButtonAction.Favorite,
+                )
+            repository.setAudioFocus(focus)
+            repository.setHeadset(headset)
+            repository.setNotificationButtons(buttons)
+            val set = repository.preferences.first()
+            assertThat(set.audioFocus).isEqualTo(focus)
+            assertThat(set.headset).isEqualTo(headset)
+            assertThat(set.notificationButtons).isEqualTo(buttons)
+            assertThat(set.notificationButtons.actions)
+                .containsExactly(SessionButtonAction.Shuffle, SessionButtonAction.Favorite)
+                .inOrder()
+
+            repository.setHeadset(null)
+
+            val restored = repository.preferences.first()
+            assertThat(restored.headset).isEqualTo(HeadsetPreferences())
+            assertThat(restored.audioFocus).isEqualTo(focus)
+            assertThat(restored.notificationButtons).isEqualTo(buttons)
+            repository.setAudioFocus(null)
+            repository.setNotificationButtons(null)
+            assertThat(repository.preferences.first().audioFocus).isEqualTo(AudioFocusPreferences())
+            assertThat(repository.preferences.first().notificationButtons).isEqualTo(NotificationButtonsPreferences())
+        }
 }

@@ -99,6 +99,9 @@ data class AudioPreferences(
     /** Losing Wi-Fi restarts the current track at the same position in the metered quality (#138). */
     val forceInstantTranscoding: Boolean = false,
     val behavior: PlaybackBehavior = PlaybackBehavior(),
+    val audioFocus: AudioFocusPreferences = AudioFocusPreferences(),
+    val headset: HeadsetPreferences = HeadsetPreferences(),
+    val notificationButtons: NotificationButtonsPreferences = NotificationButtonsPreferences(),
 ) {
     /** The streaming quality for a network that is [metered] or not. */
     fun qualityFor(metered: Boolean): StreamingQuality = if (metered) meteredQuality else unmeteredQuality

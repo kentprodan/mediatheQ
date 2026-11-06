@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.datastore.AudioPreferencesStore
+import io.github.kentprodan.mediatheq.core.datastore.StoredOutsideControls
 import io.github.kentprodan.mediatheq.core.datastore.StoredPlaybackBehavior
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -37,6 +38,9 @@ class DefaultAudioPreferencesRepository
                     downloadsUnmeteredOnly = stored.downloadsUnmeteredOnly ?: defaults.downloadsUnmeteredOnly,
                     forceInstantTranscoding = stored.forceInstantTranscoding ?: defaults.forceInstantTranscoding,
                     behavior = behavior(stored.behavior),
+                    audioFocus = audioFocus(stored.outside),
+                    headset = headset(stored.outside),
+                    notificationButtons = notificationButtons(stored.outside),
                 )
             }
 
@@ -85,6 +89,56 @@ class DefaultAudioPreferencesRepository
             )
 
         override suspend fun restoreBehaviorDefaults() = store.setBehavior(StoredPlaybackBehavior())
+
+        override suspend fun setAudioFocus(audioFocus: AudioFocusPreferences?) =
+            store.setAudioFocus(audioFocus?.shortAction?.name, audioFocus?.noResumeAfterLongLoss)
+
+        override suspend fun setHeadset(headset: HeadsetPreferences?) =
+            store.setHeadset(
+                headset?.let {
+                    listOf(it.singleClick.name, it.doubleClick.name, it.tripleClick.name) to
+                        (it.nextButton.name to it.previousButton.name)
+                },
+                headset?.slowClicks,
+            )
+
+        override suspend fun setNotificationButtons(buttons: NotificationButtonsPreferences?) =
+            store.setNotificationButtons(
+                buttons?.let { listOf(it.action1.name, it.action2.name, it.action3.name) },
+                buttons?.showPrevious,
+                buttons?.showNext,
+            )
+
+        private fun audioFocus(stored: StoredOutsideControls): AudioFocusPreferences {
+            val defaults = AudioFocusPreferences()
+            return AudioFocusPreferences(
+                shortAction = enumOrNull<ShortFocusAction>(stored.focusShortAction) ?: defaults.shortAction,
+                noResumeAfterLongLoss = stored.focusNoResume ?: defaults.noResumeAfterLongLoss,
+            )
+        }
+
+        private fun headset(stored: StoredOutsideControls): HeadsetPreferences {
+            val defaults = HeadsetPreferences()
+            return HeadsetPreferences(
+                singleClick = enumOrNull<HeadsetAction>(stored.headsetSingle) ?: defaults.singleClick,
+                doubleClick = enumOrNull<HeadsetAction>(stored.headsetDouble) ?: defaults.doubleClick,
+                tripleClick = enumOrNull<HeadsetAction>(stored.headsetTriple) ?: defaults.tripleClick,
+                nextButton = enumOrNull<NextButtonAction>(stored.headsetNext) ?: defaults.nextButton,
+                previousButton = enumOrNull<PreviousButtonAction>(stored.headsetPrevious) ?: defaults.previousButton,
+                slowClicks = stored.headsetSlow ?: defaults.slowClicks,
+            )
+        }
+
+        private fun notificationButtons(stored: StoredOutsideControls): NotificationButtonsPreferences {
+            val defaults = NotificationButtonsPreferences()
+            return NotificationButtonsPreferences(
+                showPrevious = stored.notificationPrevious ?: defaults.showPrevious,
+                showNext = stored.notificationNext ?: defaults.showNext,
+                action1 = enumOrNull<SessionButtonAction>(stored.notificationAction1) ?: defaults.action1,
+                action2 = enumOrNull<SessionButtonAction>(stored.notificationAction2) ?: defaults.action2,
+                action3 = enumOrNull<SessionButtonAction>(stored.notificationAction3) ?: defaults.action3,
+            )
+        }
 
         private fun behavior(stored: StoredPlaybackBehavior): PlaybackBehavior {
             val defaults = PlaybackBehavior()
