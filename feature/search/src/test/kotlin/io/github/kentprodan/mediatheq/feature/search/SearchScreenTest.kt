@@ -4,12 +4,16 @@ import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
@@ -17,12 +21,15 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
+import io.github.kentprodan.mediatheq.core.ui.ListSelection
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.time.Duration
 
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
@@ -115,7 +122,7 @@ class SearchScreenTest {
         var opened: MediaId? = null
         show(SearchUiState.Results(SearchResults(genres = listOf(genre))), onOpenGenre = { opened = it })
 
-        composeRule.onNodeWithText("Genres").assertExists()
+        composeRule.onNode(hasText("Genres") and isHeading()).assertExists()
         composeRule.onNodeWithText("Electrónica").performClick()
 
         assertThat(opened).isEqualTo(genre.id)
@@ -133,5 +140,44 @@ class SearchScreenTest {
 
         assertThat(opened).isEqualTo(RecordLabelKey(label.id, "Electrecord"))
         assertThat(actions).contains(SearchAction.ResultOpened)
+    }
+
+    private val ada = Artist(MediaId(ServerId("s"), "ar"), "Ada")
+    private val song = Track(MediaId(ServerId("s"), "t1"), "Song", listOf(ada), Duration.ZERO)
+    private val found = SearchUiState.Results(SearchResults(artists = listOf(ada), tracks = listOf(song)))
+
+    @Test
+    fun `a chip selects its kind, and a chip with nothing found is disabled`() {
+        show(found)
+
+        composeRule.onNodeWithText("Albums").assertIsNotEnabled()
+        composeRule.onNode(hasText("Songs") and hasClickAction()).performClick()
+
+        assertThat(actions.filterIsInstance<SearchAction.SelectFilter>())
+            .containsExactly(SearchAction.SelectFilter(SearchFilter.Tracks))
+    }
+
+    @Test
+    fun `the heart on a song favorites it`() {
+        show(found)
+
+        composeRule.onNodeWithContentDescription("Favorite").performClick()
+
+        assertThat(actions.filterIsInstance<SearchAction.SetFavorite>())
+            .containsExactly(SearchAction.SetFavorite(song, true))
+    }
+
+    @Test
+    fun `no heart when the setting is off`() {
+        show(found.copy(page = SearchPagePreferences(showFavorite = false)))
+
+        composeRule.onNodeWithContentDescription("Favorite").assertDoesNotExist()
+    }
+
+    @Test
+    fun `no heart while selecting`() {
+        show(found.copy(selection = ListSelection<MediaId>().toggle(song.id)))
+
+        composeRule.onNodeWithContentDescription("Favorite").assertDoesNotExist()
     }
 }

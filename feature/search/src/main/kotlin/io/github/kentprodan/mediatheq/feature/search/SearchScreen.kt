@@ -1,9 +1,12 @@
 package io.github.kentprodan.mediatheq.feature.search
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,10 +16,12 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -289,7 +294,7 @@ private fun Results(
             onRate = { track, stars -> onAction(SearchAction.RateTrack(track, stars)) },
             onCommand = { track, right -> onAction(SearchAction.SwipeTrack(track, right)) },
         )
-    val results = state.results
+    val results = state.shown
     val selection = state.selection
     val longPress = rememberSelectLongPress<MediaId> { onAction(SearchAction.ToggleSelection(it)) }
     LaunchedEffect(state.addToPlaylist) {
@@ -304,6 +309,7 @@ private fun Results(
         id: MediaId,
         open: () -> Unit,
     ): () -> Unit = { if (selection.isActive) onAction(SearchAction.ToggleSelection(id)) else open() }
+    FilterChips(state) { onAction(SearchAction.SelectFilter(it)) }
     SelectableList(
         selection,
         onCommand = { onAction(SearchAction.OnSelection(it)) },
@@ -335,6 +341,9 @@ private fun Results(
                     selected = selection.stateOf(track.id),
                     onSwipe = { swipe(track, it) },
                     showCover = true,
+                    onFavorite =
+                        { it: Boolean -> onAction(SearchAction.SetFavorite(track, it)) }
+                            .takeIf { state.page.showFavorite },
                     menuItems = { close ->
                         QueueMenuItems(
                             onPlayNext = { onAction(SearchAction.PlayNext(track)) },
@@ -369,6 +378,51 @@ private fun Results(
         }
     }
 }
+
+/**
+ * The filter chips (#136): one scrolling row, or wrapped (Settings -> Search page). A chip with nothing found is
+ * disabled; the selected one has a check.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FilterChips(
+    state: SearchUiState.Results,
+    onSelect: (SearchFilter) -> Unit,
+) {
+    val chips: @Composable () -> Unit = {
+        SearchFilter.entries.forEach { filter ->
+            val selected = filter == state.filter
+            FilterChip(
+                selected = selected,
+                onClick = { onSelect(filter) },
+                label = { Text(stringResource(filter.label)) },
+                enabled = state.results.has(filter),
+                leadingIcon = if (selected) ({ Icon(MqIcons.Check, contentDescription = null) }) else null,
+            )
+        }
+    }
+    val arrangement = Arrangement.spacedBy(MediatheqSpacing.s)
+    val padding = Modifier.padding(horizontal = MediatheqSpacing.l)
+    if (state.page.singleLineChips) {
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).then(padding),
+            horizontalArrangement = arrangement,
+        ) { chips() }
+    } else {
+        FlowRow(Modifier.fillMaxWidth().then(padding), horizontalArrangement = arrangement) { chips() }
+    }
+}
+
+private val SearchFilter.label: Int
+    get() =
+        when (this) {
+            SearchFilter.All -> R.string.search_all
+            SearchFilter.Artists -> R.string.search_artists
+            SearchFilter.Albums -> R.string.search_albums
+            SearchFilter.Tracks -> R.string.search_songs
+            SearchFilter.Playlists -> R.string.search_playlists
+            SearchFilter.Genres -> R.string.search_genres
+        }
 
 /** A titled group of results; nothing when [items] is empty. Keys are text so they can be saved in a Bundle. */
 private fun <T : Any> LazyListScope.section(

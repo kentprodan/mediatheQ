@@ -12,6 +12,7 @@
     <string name="search_error_title">Search failed</string>
     <string name="search_error_body">The library on this phone could not be read.</string>
     <string name="search_retry">Retry</string>
+    <string name="search_all">All</string>
     <string name="search_artists">Artists</string>
     <string name="search_albums">Albums</string>
     <string name="search_songs">Songs</string>
