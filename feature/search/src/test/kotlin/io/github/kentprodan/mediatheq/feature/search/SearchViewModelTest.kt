@@ -5,7 +5,11 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
+import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
+import io.github.kentprodan.mediatheq.core.data.SearchSort
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
+import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -319,5 +323,135 @@ class SearchViewModelTest {
 
             assertThat(playback.playedNext).containsExactly(listOf(track))
             assertThat(userData.calls).containsExactly("rating:${track.id.itemId}:4")
+        }
+
+    private val many = (1..25).map { Track(id("m$it"), "Mo $it", listOf(ada), Duration.ZERO) }
+
+    private suspend fun kotlinx.coroutines.test.TestScope.searchMany(): SearchViewModel {
+        library.tracks.value = many
+        backgroundScope.launch { viewModel.uiState.collect() }
+        viewModel.onAction(SearchAction.QueryChanged("mo"))
+        advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+        return viewModel
+    }
+
+    private val SearchViewModel.results get() = uiState.value as SearchUiState.Results
+
+    @Test
+    fun `All shows 20 songs, the Tracks chip all of them, and a favorite keeps the chip`() =
+        test {
+            val viewModel = searchMany()
+            assertThat(viewModel.results.shown.tracks).hasSize(20)
+            assertThat(viewModel.results.shown.artists).containsExactly(ada)
+
+            viewModel.onAction(SearchAction.SelectFilter(SearchFilter.Tracks))
+            assertThat(viewModel.results.shown.tracks).hasSize(25)
+            assertThat(viewModel.results.shown.artists).isEmpty()
+
+            viewModel.onAction(SearchAction.SetFavorite(many[0], true))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            assertThat(library.searches).containsExactly("mo", "mo")
+            assertThat(viewModel.results.filter).isEqualTo(SearchFilter.Tracks)
+        }
+
+    @Test
+    fun `a chip with nothing found shows All, and comes back when the next query has its kind`() =
+        test {
+            val viewModel = searchMany()
+            viewModel.onAction(SearchAction.SelectFilter(SearchFilter.Albums))
+            assertThat(viewModel.results.filter).isEqualTo(SearchFilter.Albums)
+
+            viewModel.onAction(SearchAction.QueryChanged("mo 1"))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            assertThat(viewModel.results.filter).isEqualTo(SearchFilter.All)
+            assertThat(viewModel.results.chosenFilter).isEqualTo(SearchFilter.Albums)
+
+            viewModel.onAction(SearchAction.QueryChanged("mo"))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            assertThat(viewModel.results.filter).isEqualTo(SearchFilter.Albums)
+        }
+
+    @Test
+    fun `on a chip, Select all and the selection act only on what it shows`() =
+        test {
+            val viewModel = searchMany()
+            viewModel.onAction(SearchAction.ToggleSelection(ada.id))
+            viewModel.onAction(SearchAction.SelectFilter(SearchFilter.Tracks))
+            assertThat(viewModel.results.selection.isActive).isFalse()
+
+            viewModel.onAction(SearchAction.SelectAll)
+            assertThat(viewModel.results.selection.size).isEqualTo(25)
+            viewModel.onAction(SearchAction.OnSelection(SelectionCommand.AddToQueue))
+
+            assertThat(playback.addedToQueue.single()).isEqualTo(many.sortedBy { it.title.lowercase() })
+        }
+
+    @Test
+    fun `a song tap follows Same as default, so Play makes the shown songs the queue`() =
+        test {
+            val viewModel = searchMany()
+            viewModel.onAction(SearchAction.SelectFilter(SearchFilter.Tracks))
+            preferences.setSearchPage(SearchPagePreferences(sort = SearchSort.Relevance))
+
+            viewModel.onAction(SearchAction.PlayTrack(many[2]))
+
+            assertThat(playback.plays.single()).isEqualTo(FakePlaybackConnection.PlayCall(many, 2, false))
+        }
+
+    @Test
+    fun `a song tap follows the Search page's own track action`() =
+        test {
+            val viewModel = searchMany()
+            preferences.setNavigation(NavigationPreferences(trackAction = TrackAction.Play))
+            preferences.setSearchPage(SearchPagePreferences(trackAction = TrackAction.PlayOnlyThis))
+
+            viewModel.onAction(SearchAction.PlayTrack(many[2]))
+
+            assertThat(playback.plays.single()).isEqualTo(FakePlaybackConnection.PlayCall(listOf(many[2]), 0, false))
+        }
+
+    @Test
+    fun `the Search page settings apply at once`() =
+        test {
+            val viewModel = searchMany()
+            viewModel.onAction(SearchAction.SelectFilter(SearchFilter.Tracks))
+            val relevance = viewModel.results.shown.tracks
+
+            preferences.setSearchPage(SearchPagePreferences(showFavorite = false, sort = SearchSort.Relevance))
+
+            assertThat(viewModel.results.page.showFavorite).isFalse()
+            assertThat(viewModel.results.shown.tracks).isEqualTo(many)
+            assertThat(relevance).isNotEqualTo(many)
+        }
+
+    @Test
+    fun `a song tap finds the song by id, even when its user data changed meanwhile`() =
+        test {
+            val viewModel = searchMany()
+
+            viewModel.onAction(
+                SearchAction.PlayTrack(many[2].copy(userData = many[2].userData.copy(isFavorite = true))),
+            )
+
+            assertThat(playback.plays.single().startIndex).isEqualTo(2)
+            assertThat(playback.plays.single().queue).hasSize(20)
+        }
+
+    @Test
+    fun `offline, a chip whose kind has no downloads shows All with the downloaded results`() =
+        test {
+            val viewModel = searchMany()
+            viewModel.onAction(SearchAction.SelectFilter(SearchFilter.Albums))
+            assertThat(viewModel.results.filter).isEqualTo(SearchFilter.Albums)
+
+            // The fake gives what the repository would offline: only the downloaded songs.
+            library.albums.value = emptyList()
+            library.albumArtists.value = emptyList()
+            library.offline.value = true
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+
+            assertThat(viewModel.results.filter).isEqualTo(SearchFilter.All)
+            assertThat(viewModel.results.shown.albums).isEmpty()
+            assertThat(viewModel.results.shown.tracks).hasSize(20)
         }
 }

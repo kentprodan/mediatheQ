@@ -27,6 +27,7 @@ import io.github.kentprodan.mediatheq.core.data.PlayerProgress
 import io.github.kentprodan.mediatheq.core.data.PlaylistButton
 import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
+import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
@@ -551,5 +552,21 @@ class SettingsViewModelTest {
             viewModel.onAction(SettingsAction.RestorePlaylistPageDefaults)
             assertThat(library.preferences.value.playlistPage).isEqualTo(PlaylistPagePreferences())
             assertThat(library.preferences.value.genrePage).isEqualTo(genre)
+        }
+
+    @Test
+    fun `search page choices apply at once and restoring resets only that page`() =
+        runTest {
+            signIn()
+            val playlist = PlaylistPagePreferences(dynamicColors = true)
+            library.setPlaylistPage(playlist)
+            val chosen = SearchPagePreferences(showFavorite = false, trackAction = TrackAction.PlayNext)
+
+            viewModel.onAction(SettingsAction.SetSearchPage(chosen))
+            assertThat(content().library.searchPage).isEqualTo(chosen)
+
+            viewModel.onAction(SettingsAction.RestoreSearchPageDefaults)
+            assertThat(library.preferences.value.searchPage).isEqualTo(SearchPagePreferences())
+            assertThat(library.preferences.value.playlistPage).isEqualTo(playlist)
         }
 }

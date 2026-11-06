@@ -75,4 +75,15 @@ class TrackTapsTest {
 
             assertThat(playback.plays.single().playlistId).isEqualTo(playlist)
         }
+
+    @Test
+    fun `a page's own action wins over the default one`() =
+        runTest {
+            preferences.setNavigation(NavigationPreferences(trackAction = TrackAction.Play))
+
+            taps.tap(tracks, 1, action = TrackAction.AddToQueue)
+
+            assertThat(playback.addedToQueue).containsExactly(listOf(tracks[1]))
+            assertThat(playback.plays).isEmpty()
+        }
 }

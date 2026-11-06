@@ -14,16 +14,20 @@ class TrackTaps
         private val playback: PlaybackConnection,
         private val preferences: LibraryPreferencesRepository,
     ) {
-        /** The user tapped [tracks]`[index]`; [tracks] is the list it was tapped in, from playlist [playlistId] if any. */
+        /**
+         * The user tapped [tracks]`[index]`; [tracks] is the list it was tapped in, from playlist [playlistId] if any.
+         * [action] is a page's own choice (Search, #136); `null` = the Default track action.
+         */
         suspend fun tap(
             tracks: List<Track>,
             index: Int,
             playlistId: MediaId? = null,
+            action: TrackAction? = null,
         ) {
             playback.playTrack(
                 tracks,
                 index,
-                preferences.preferences
+                action ?: preferences.preferences
                     .first()
                     .navigation.trackAction,
                 playlistId,

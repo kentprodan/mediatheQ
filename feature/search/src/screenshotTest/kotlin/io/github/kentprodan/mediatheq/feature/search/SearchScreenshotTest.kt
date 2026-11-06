@@ -4,6 +4,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.Composable
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Genre
@@ -113,3 +114,63 @@ fun SearchRecordLabelsScreenshot() =
         ),
         query = "ele",
     )
+
+private val everything =
+    SearchResults(
+        artists = listOf(PreviewData.artist.copy(artwork = PreviewData.artwork)),
+        albums = listOf(PreviewData.album.copy(artwork = PreviewData.artwork), PreviewData.longAlbum),
+        tracks = listOf(PreviewData.track.copy(artwork = PreviewData.artwork), PreviewData.longTrack),
+        playlists = listOf(PreviewData.playlist),
+        genres =
+            listOf(Genre(PreviewData.album.id.copy(itemId = "g1"), "Electrónica", albumCount = 4, trackCount = 31)),
+    )
+
+@Composable
+private fun Chip(
+    filter: SearchFilter,
+    page: SearchPagePreferences = SearchPagePreferences(),
+) = Search(SearchUiState.Results(everything, chosenFilter = filter, page = page), query = "mos")
+
+/** Settings -> Search page: the chips wrap instead of scrolling (#136); no genre found, so Genres is disabled. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SearchChipsWrappedScreenshot() =
+    Search(
+        SearchUiState.Results(
+            everything.copy(genres = emptyList()),
+            page = SearchPagePreferences(singleLineChips = false),
+        ),
+        query = "mos",
+    )
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SearchArtistsChipScreenshot() = Chip(SearchFilter.Artists)
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SearchAlbumsChipScreenshot() = Chip(SearchFilter.Albums)
+
+/** Songs by title, each with its heart (the default). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SearchSongsChipScreenshot() = Chip(SearchFilter.Tracks)
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SearchSongsNoFavoriteScreenshot() = Chip(SearchFilter.Tracks, SearchPagePreferences(showFavorite = false))
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SearchPlaylistsChipScreenshot() = Chip(SearchFilter.Playlists)
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SearchGenresChipScreenshot() = Chip(SearchFilter.Genres)

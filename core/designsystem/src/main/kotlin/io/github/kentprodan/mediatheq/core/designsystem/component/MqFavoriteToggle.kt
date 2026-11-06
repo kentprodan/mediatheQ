@@ -12,12 +12,14 @@ fun MqFavoriteToggle(
     isFavorite: Boolean,
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    /** In a list, name the item ("Favorite Morning Light"). */
+    contentDescription: String = stringResource(R.string.mq_favorite),
 ) {
     MqIconToggle(
         checked = isFavorite,
         onClick = { onToggle(!isFavorite) },
         icon = if (isFavorite) MqIcons.FavoriteFilled else MqIcons.Favorite,
-        contentDescription = stringResource(R.string.mq_favorite),
+        contentDescription = contentDescription,
         modifier = modifier,
     )
 }

@@ -170,6 +170,13 @@ class LibraryPreferencesStore
                                         )?.filter { it.isNotEmpty() },
                                 dynamicColors = prefs[PP_DYNAMIC_COLORS],
                             ),
+                        searchPage =
+                            StoredSearchPage(
+                                singleLineChips = prefs[SP_SINGLE_LINE_CHIPS],
+                                showFavorite = prefs[SP_SHOW_FAVORITE],
+                                trackAction = prefs[SP_TRACK_ACTION],
+                                sort = prefs[SP_SORT],
+                            ),
                         offlineMode = prefs[OFFLINE_MODE],
                         qualityDetail = prefs[QUALITY_DETAIL],
                         sorts =
@@ -291,6 +298,16 @@ class LibraryPreferencesStore
                 // An empty set is stored as an empty string: "none hidden" differs from "not set".
                 prefs.put(PP_HIDDEN_BUTTONS, page.hiddenButtons?.joinToString(LIST_SEPARATOR))
                 prefs.put(PP_DYNAMIC_COLORS, page.dynamicColors)
+            }
+        }
+
+        /** Stores every Search page value at once (#136); null removes it. */
+        suspend fun setSearchPage(page: StoredSearchPage) {
+            dataStore.edit { prefs ->
+                prefs.put(SP_SINGLE_LINE_CHIPS, page.singleLineChips)
+                prefs.put(SP_SHOW_FAVORITE, page.showFavorite)
+                prefs.put(SP_TRACK_ACTION, page.trackAction)
+                prefs.put(SP_SORT, page.sort)
             }
         }
 
@@ -439,6 +456,10 @@ class LibraryPreferencesStore
             val PP_BACKGROUND = stringPreferencesKey("pp_background")
             val PP_HIDDEN_BUTTONS = stringPreferencesKey("pp_hidden_buttons")
             val PP_DYNAMIC_COLORS = booleanPreferencesKey("pp_dynamic_colors")
+            val SP_SINGLE_LINE_CHIPS = booleanPreferencesKey("sp_single_line_chips")
+            val SP_SHOW_FAVORITE = booleanPreferencesKey("sp_show_favorite")
+            val SP_TRACK_ACTION = stringPreferencesKey("sp_track_action")
+            val SP_SORT = stringPreferencesKey("sp_sort")
             val ALBUM_COLUMNS = intPreferencesKey("album_columns")
             val GENRES_GRID = booleanPreferencesKey("genres_grid")
             val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
@@ -509,6 +530,7 @@ data class StoredLibraryPreferences(
     val artistPage: StoredArtistPage = StoredArtistPage(),
     val genrePage: StoredGenrePage = StoredGenrePage(),
     val playlistPage: StoredPlaylistPage = StoredPlaylistPage(),
+    val searchPage: StoredSearchPage = StoredSearchPage(),
     val qualityDetail: Boolean? = null,
 )
 
@@ -533,6 +555,14 @@ data class StoredPlaylistPage(
     val headerBackground: String? = null,
     val hiddenButtons: List<String>? = null,
     val dynamicColors: Boolean? = null,
+)
+
+/** Search page values as stored (#136); `null` = not set (a `null` track action = Same as default). */
+data class StoredSearchPage(
+    val singleLineChips: Boolean? = null,
+    val showFavorite: Boolean? = null,
+    val trackAction: String? = null,
+    val sort: String? = null,
 )
 
 /** Genre page values as stored (#134); `null` = not set. */

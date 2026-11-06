@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -52,6 +53,8 @@ fun TrackRow(
     multilineTitle: Boolean = false,
     /** `false` leaves the artists out (an album page with the album's own artists, #132); the format badge stays. */
     showArtists: Boolean = true,
+    /** A heart toggle before the menu (Search, #136); `null` = none. Hidden while selecting. */
+    onFavorite: ((Boolean) -> Unit)? = null,
 ) {
     val style = LocalMediaListStyle.current
     if (onSwipe != null && selected == null && (style.swipeRight != null || style.swipeLeft != null)) {
@@ -67,11 +70,13 @@ fun TrackRow(
                 supportingContent = supportingContent,
                 multilineTitle = multilineTitle,
                 showArtists = showArtists,
+                onFavorite = onFavorite,
             )
         }
         return
     }
     val trackNumber = track.trackNumber.takeIf { showTrackNumber && !showCover }
+    val heart = onFavorite.takeIf { selected == null }
     val nowPlaying = stringResource(R.string.core_ui_now_playing)
     val rowModifier = if (isCurrent) modifier.semantics { stateDescription = nowPlaying } else modifier
     val leading: (@Composable () -> Unit)? =
@@ -97,7 +102,8 @@ fun TrackRow(
                 RowCover(
                     track.artwork,
                     MqIcons.MusicNote,
-                    isFavorite = track.userData.isFavorite,
+                    // The heart already says it.
+                    isFavorite = track.userData.isFavorite && heart == null,
                     isDownloaded = track.id in LocalMediaListStyle.current.downloaded,
                 )
             }
@@ -144,6 +150,13 @@ fun TrackRow(
     val trailing: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TrackDetails(track)
+            heart?.let {
+                MqFavoriteToggle(
+                    track.userData.isFavorite,
+                    it,
+                    contentDescription = stringResource(R.string.core_ui_favorite_track, track.title),
+                )
+            }
             if (menuItems != null) {
                 OverflowMenu(stringResource(R.string.core_ui_more_options, track.title), items = menuItems)
             }

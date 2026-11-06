@@ -31,6 +31,7 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistButton
 import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.PortraitNavStyle
 import io.github.kentprodan.mediatheq.core.data.RatingMode
+import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
@@ -591,3 +592,21 @@ fun SettingsPlaylistHiddenButtonsDialogScreenshot() =
 @Composable
 fun SettingsPlaylistDynamicColorsDialogScreenshot() =
     MediatheqTheme { PlaylistPageDialogContent(PlaylistPageDialog.DynamicColors, PlaylistPagePreferences()) }
+
+/** Settings -> Search page (#136), all defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsSearchPageScreenshot() = Page(SettingsPage.Search)
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsSearchTrackActionDialogScreenshot() =
+    MediatheqTheme { SearchPageDialogContent(SearchPageDialog.TrackAction, SearchPagePreferences()) }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsSearchSortDialogScreenshot() =
+    MediatheqTheme { SearchPageDialogContent(SearchPageDialog.Sort, SearchPagePreferences()) }

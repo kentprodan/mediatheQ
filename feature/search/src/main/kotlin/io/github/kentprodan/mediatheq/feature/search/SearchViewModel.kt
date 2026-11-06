@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
+import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -54,6 +56,11 @@ class SearchViewModel
         private val selection = MutableStateFlow(ListSelection<MediaId>())
         private val addToPlaylist = MutableStateFlow<List<MediaId>?>(null)
 
+        // Kept apart from the search: a favorite or rating reads the results again and must not reset the chip; it
+        // also stays for the next query (All shows while it has nothing).
+        private val filter = MutableStateFlow(SearchFilter.All)
+        private val page = preferencesRepository.preferences.map { it.searchPage }.distinctUntilChanged()
+
         // The search field restores its own text after process death and sends it again, so this is not saved.
         private val query = MutableStateFlow("")
         private val retries = MutableStateFlow(0)
@@ -71,10 +78,16 @@ class SearchViewModel
                     } else {
                         flow { emit(search(query, offline)) }
                     }
-                }.combine(combine(selection, addToPlaylist, ::Pair)) { state, (selection, addToPlaylist) ->
-                    // Results can change (a favorite read again) while selected.
+                }.combine(combine(selection, addToPlaylist, filter, page, ::Extras)) { state, extras ->
                     if (state is SearchUiState.Results) {
-                        state.copy(selection = selection.retain(state.ids), addToPlaylist = addToPlaylist)
+                        val shown =
+                            state.copy(
+                                addToPlaylist = extras.addToPlaylist,
+                                chosenFilter = extras.filter,
+                                page = extras.page,
+                            )
+                        // Results can change (a favorite read again) while selected, and a chip hides the others.
+                        shown.copy(selection = extras.selection.retain(shown.ids))
                     } else {
                         state
                     }
@@ -92,8 +105,20 @@ class SearchViewModel
                 }
 
                 is SearchAction.PlayTrack -> {
-                    viewModelScope.launch { trackTaps.tap(listOf(action.track), 0) }
+                    // The shown songs are the list it was tapped in: Play makes them the queue (#136).
+                    // By id: a favorite read again changes the track's user data, not which song it is.
+                    val state = uiState.value as? SearchUiState.Results
+                    val shown = state?.shown?.tracks.orEmpty()
+                    val index = shown.indexOfFirst { it.id == action.track.id }
+                    val tracks = if (index >= 0) shown else listOf(action.track)
+                    viewModelScope.launch {
+                        trackTaps.tap(tracks, index.coerceAtLeast(0), action = state?.page?.trackAction)
+                    }
                     saveQuery()
+                }
+
+                is SearchAction.SelectFilter -> {
+                    filter.value = action.filter
                 }
 
                 is SearchAction.Download -> {
@@ -142,7 +167,7 @@ class SearchViewModel
                     val picked = state.selection
                     selection.value = ListSelection()
                     viewModelScope.launch {
-                        val results = state.results
+                        val results = state.shown
                         val albumIds = picked.pick(results.albums) { it.id }.map { it.id }
                         val playlistIds = picked.pick(results.playlists) { it.id }.map { it.id }
                         val loose =
@@ -221,7 +246,7 @@ class SearchViewModel
             query: String,
             offline: Boolean,
         ): SearchUiState =
-            when (val result = libraryRepository.search(query)) {
+            when (val result = libraryRepository.search(query, FULL_LIMIT)) {
                 is MqResult.Failure -> {
                     SearchUiState.Error(result.error)
                 }
@@ -238,5 +263,18 @@ class SearchViewModel
         internal companion object {
             /** Short: a local search takes milliseconds, this only skips the queries of fast typing. */
             const val DEBOUNCE_MILLIS = 50L
+
+            /**
+             * A chip's full list (#136). shortcut: capped at 500 per kind, and every favorite or rating reads them all
+             * again (a few ms locally); page the chip lists if a library ever has more matches.
+             */
+            const val FULL_LIMIT = 500
         }
     }
+
+private data class Extras(
+    val selection: ListSelection<MediaId>,
+    val addToPlaylist: List<MediaId>?,
+    val filter: SearchFilter,
+    val page: SearchPagePreferences,
+)

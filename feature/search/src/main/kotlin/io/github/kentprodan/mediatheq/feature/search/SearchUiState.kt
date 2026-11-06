@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.search
 
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -17,17 +18,27 @@ sealed interface SearchUiState {
     ) : SearchUiState
 
     data class Results(
+        /** Everything found, up to the search's full size per kind. */
         val results: SearchResults,
         /** Multi-select over every kind of result (#123). */
         val selection: ListSelection<MediaId> = ListSelection(),
         /** Tracks of a selection to add to a playlist: the picker opens, then [SearchAction.AddToPlaylistShown]. */
         val addToPlaylist: List<MediaId>? = null,
+        /** The chip chosen (#136); one with nothing to show falls back to All, see [filter]. */
+        val chosenFilter: SearchFilter = SearchFilter.All,
+        val page: SearchPagePreferences = SearchPagePreferences(),
     ) : SearchUiState {
-        /** Every result's id, in the order shown: artists, albums, songs, playlists. */
+        /** The chip in effect. */
+        val filter: SearchFilter get() = if (results.has(chosenFilter)) chosenFilter else SearchFilter.All
+
+        /** What the list shows; selection, Select all and taps act on it only. */
+        val shown: SearchResults by lazy { results.shown(filter, page.sort) }
+
+        /** Every shown result's id, in the order shown: artists, albums, songs, playlists. */
         val ids: List<MediaId>
             get() =
-                results.artists.map { it.id } + results.albums.map { it.id } + results.tracks.map { it.id } +
-                    results.playlists.map { it.id }
+                shown.artists.map { it.id } + shown.albums.map { it.id } + shown.tracks.map { it.id } +
+                    shown.playlists.map { it.id }
     }
 
     data class NoResults(
@@ -108,4 +119,9 @@ sealed interface SearchAction {
     ) : SearchAction
 
     data object AddToPlaylistShown : SearchAction
+
+    /** A filter chip was tapped (#136). */
+    data class SelectFilter(
+        val filter: SearchFilter,
+    ) : SearchAction
 }
