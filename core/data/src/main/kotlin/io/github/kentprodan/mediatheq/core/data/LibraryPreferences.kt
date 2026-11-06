@@ -44,6 +44,7 @@ data class LibraryPreferences(
     val genrePage: GenrePagePreferences = GenrePagePreferences(),
     val playlistPage: PlaylistPagePreferences = PlaylistPagePreferences(),
     val searchPage: SearchPagePreferences = SearchPagePreferences(),
+    val advanced: AdvancedPreferences = AdvancedPreferences(),
     /** Now Playing shows the format detail ("FLAC · 24/96 · 1250 kb/s") instead of its kind (#125). */
     val qualityDetail: Boolean = false,
 ) {

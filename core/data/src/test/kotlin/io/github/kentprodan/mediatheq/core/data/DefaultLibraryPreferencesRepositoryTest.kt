@@ -911,4 +911,38 @@ class DefaultLibraryPreferencesRepositoryTest {
             }
             assertThat(repository.preferences.first().searchPage).isEqualTo(SearchPagePreferences())
         }
+
+    @Test
+    fun `the advanced settings are kept, and restoring them resets only that page`() =
+        runTest {
+            val advanced =
+                AdvancedPreferences(
+                    keepScreenOn = KeepScreenOn.NowPlaying,
+                    orientation = ScreenOrientation.Landscape,
+                    corners = CornerStyle.Large,
+                    showTrackNumber = true,
+                    hideStatusBar = true,
+                )
+            val search = SearchPagePreferences(showFavorite = false)
+            repository.setAdvanced(advanced)
+            repository.setSearchPage(search)
+            assertThat(repository.preferences.first().advanced).isEqualTo(advanced)
+
+            repository.restoreAdvancedDefaults()
+
+            val restored = repository.preferences.first()
+            assertThat(restored.advanced).isEqualTo(AdvancedPreferences())
+            assertThat(restored.searchPage).isEqualTo(search)
+        }
+
+    @Test
+    fun `stored advanced settings with unknown names keep the defaults`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("adv_keep_screen_on")] = "Sometimes"
+                it[stringPreferencesKey("adv_orientation")] = "Upside"
+                it[stringPreferencesKey("adv_corners")] = "Square"
+            }
+            assertThat(repository.preferences.first().advanced).isEqualTo(AdvancedPreferences())
+        }
 }

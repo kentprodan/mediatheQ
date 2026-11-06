@@ -177,6 +177,14 @@ class LibraryPreferencesStore
                                 trackAction = prefs[SP_TRACK_ACTION],
                                 sort = prefs[SP_SORT],
                             ),
+                        advanced =
+                            StoredAdvanced(
+                                keepScreenOn = prefs[ADV_KEEP_SCREEN_ON],
+                                orientation = prefs[ADV_ORIENTATION],
+                                corners = prefs[ADV_CORNERS],
+                                showTrackNumber = prefs[ADV_TRACK_NUMBER],
+                                hideStatusBar = prefs[ADV_HIDE_STATUS_BAR],
+                            ),
                         offlineMode = prefs[OFFLINE_MODE],
                         qualityDetail = prefs[QUALITY_DETAIL],
                         sorts =
@@ -298,6 +306,17 @@ class LibraryPreferencesStore
                 // An empty set is stored as an empty string: "none hidden" differs from "not set".
                 prefs.put(PP_HIDDEN_BUTTONS, page.hiddenButtons?.joinToString(LIST_SEPARATOR))
                 prefs.put(PP_DYNAMIC_COLORS, page.dynamicColors)
+            }
+        }
+
+        /** Stores every Advanced settings value at once (#137); null removes it. */
+        suspend fun setAdvanced(advanced: StoredAdvanced) {
+            dataStore.edit { prefs ->
+                prefs.put(ADV_KEEP_SCREEN_ON, advanced.keepScreenOn)
+                prefs.put(ADV_ORIENTATION, advanced.orientation)
+                prefs.put(ADV_CORNERS, advanced.corners)
+                prefs.put(ADV_TRACK_NUMBER, advanced.showTrackNumber)
+                prefs.put(ADV_HIDE_STATUS_BAR, advanced.hideStatusBar)
             }
         }
 
@@ -460,6 +479,11 @@ class LibraryPreferencesStore
             val SP_SHOW_FAVORITE = booleanPreferencesKey("sp_show_favorite")
             val SP_TRACK_ACTION = stringPreferencesKey("sp_track_action")
             val SP_SORT = stringPreferencesKey("sp_sort")
+            val ADV_KEEP_SCREEN_ON = stringPreferencesKey("adv_keep_screen_on")
+            val ADV_ORIENTATION = stringPreferencesKey("adv_orientation")
+            val ADV_CORNERS = stringPreferencesKey("adv_corners")
+            val ADV_TRACK_NUMBER = booleanPreferencesKey("adv_track_number")
+            val ADV_HIDE_STATUS_BAR = booleanPreferencesKey("adv_hide_status_bar")
             val ALBUM_COLUMNS = intPreferencesKey("album_columns")
             val GENRES_GRID = booleanPreferencesKey("genres_grid")
             val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
@@ -531,6 +555,7 @@ data class StoredLibraryPreferences(
     val genrePage: StoredGenrePage = StoredGenrePage(),
     val playlistPage: StoredPlaylistPage = StoredPlaylistPage(),
     val searchPage: StoredSearchPage = StoredSearchPage(),
+    val advanced: StoredAdvanced = StoredAdvanced(),
     val qualityDetail: Boolean? = null,
 )
 
@@ -555,6 +580,15 @@ data class StoredPlaylistPage(
     val headerBackground: String? = null,
     val hiddenButtons: List<String>? = null,
     val dynamicColors: Boolean? = null,
+)
+
+/** Advanced settings as stored (#137); `null` = not set. */
+data class StoredAdvanced(
+    val keepScreenOn: String? = null,
+    val orientation: String? = null,
+    val corners: String? = null,
+    val showTrackNumber: Boolean? = null,
+    val hideStatusBar: Boolean? = null,
 )
 
 /** Search page values as stored (#136); `null` = not set (a `null` track action = Same as default). */
