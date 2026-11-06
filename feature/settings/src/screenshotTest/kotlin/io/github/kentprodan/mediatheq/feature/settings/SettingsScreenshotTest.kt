@@ -13,18 +13,22 @@ import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.ArtistButton
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
+import io.github.kentprodan.mediatheq.core.data.AudioFocusPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.CoverTap
 import io.github.kentprodan.mediatheq.core.data.GenreButton
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.data.GenreSection
+import io.github.kentprodan.mediatheq.core.data.HeadsetPreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.MiniProgress
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
+import io.github.kentprodan.mediatheq.core.data.NextButtonAction
+import io.github.kentprodan.mediatheq.core.data.NotificationButtonsPreferences
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.data.PlayerBackground
 import io.github.kentprodan.mediatheq.core.data.PlayerProgress
@@ -33,6 +37,7 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.PortraitNavStyle
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
+import io.github.kentprodan.mediatheq.core.data.ShortFocusAction
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
@@ -95,6 +100,55 @@ fun SettingsDecodingScreenshot() = Page(SettingsPage.Decoding)
 @MqPreviews
 @Composable
 fun SettingsPlaybackBehaviorScreenshot() = Page(SettingsPage.PlaybackBehavior)
+
+/** Settings -> Playback -> Audio focus (#139), defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAudioFocusScreenshot() = Page(SettingsPage.AudioFocus)
+
+/** The short interruption dialog's content, Pause selected. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsShortFocusDialogScreenshot() {
+    MediatheqTheme { ShortFocusDialogContent(AudioFocusPreferences(ShortFocusAction.Pause)) }
+}
+
+/** Settings -> Playback -> Headset buttons (#139), defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsHeadsetScreenshot() = Page(SettingsPage.Headset)
+
+/** The Next button dialog's content, Seek forward selected. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsHeadsetNextDialogScreenshot() {
+    MediatheqTheme {
+        HeadsetDialogContent(HeadsetDialog.Next, HeadsetPreferences(nextButton = NextButtonAction.SeekForward))
+    }
+}
+
+/** Settings -> Playback -> Notification buttons (#139), defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsNotificationButtonsScreenshot() = Page(SettingsPage.NotificationButtons)
+
+/** The Action 2 dialog's content, Repeat selected. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsNotificationActionDialogScreenshot() {
+    MediatheqTheme {
+        NotificationActionDialogContent(
+            NotificationActionDialog.Action2,
+            NotificationButtonsPreferences(),
+        )
+    }
+}
 
 /** Offline, cache, and download. */
 @PreviewTest

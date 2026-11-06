@@ -122,6 +122,15 @@ object MqIcons {
     val Tune: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_tune)
 
+    val Headphones: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_headphones)
+
+    val Notifications: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_notifications)
+
+    val VolumeDown: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_volume_down)
+
     val KeyboardArrowDown: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_keyboard_arrow_down)
 

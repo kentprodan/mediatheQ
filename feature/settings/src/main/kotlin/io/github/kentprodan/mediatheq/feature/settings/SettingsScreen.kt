@@ -66,6 +66,9 @@ enum class SettingsPage(
     Playback(R.string.settings_playback),
     PlaybackBehavior(R.string.settings_pb_behavior),
     Decoding(R.string.settings_decoding),
+    AudioFocus(R.string.settings_audio_focus),
+    Headset(R.string.settings_headset),
+    NotificationButtons(R.string.settings_notification_buttons),
     Storage(R.string.settings_storage_page),
     Providers(R.string.settings_providers),
 }
@@ -89,6 +92,9 @@ internal fun SettingsPageRoute(
     onOpenAdvanced: () -> Unit = {},
     onOpenBehavior: () -> Unit = {},
     onOpenDecoding: () -> Unit = {},
+    onOpenAudioFocus: () -> Unit = {},
+    onOpenHeadset: () -> Unit = {},
+    onOpenNotificationButtons: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -112,6 +118,9 @@ internal fun SettingsPageRoute(
         onOpenAdvanced,
         onOpenBehavior,
         onOpenDecoding,
+        onOpenAudioFocus,
+        onOpenHeadset,
+        onOpenNotificationButtons,
     )
 }
 
@@ -140,6 +149,9 @@ fun SettingsPageScreen(
     onOpenAdvanced: () -> Unit = {},
     onOpenBehavior: () -> Unit = {},
     onOpenDecoding: () -> Unit = {},
+    onOpenAudioFocus: () -> Unit = {},
+    onOpenHeadset: () -> Unit = {},
+    onOpenNotificationButtons: () -> Unit = {},
 ) {
     // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
     var dialog by rememberSaveable { mutableStateOf<ThemeDialog?>(null) }
@@ -154,8 +166,11 @@ fun SettingsPageScreen(
     var playlistDialog by rememberSaveable { mutableStateOf<PlaylistPageDialog?>(null) }
     var searchDialog by rememberSaveable { mutableStateOf<SearchPageDialog?>(null) }
     var advancedDialog by rememberSaveable { mutableStateOf<AdvancedDialog?>(null) }
-    // Decoding and Playback behavior have one dialog each: Restore defaults.
+    // Restore defaults of the playback pages (#138, #139), and their choice dialogs.
     var restoring by rememberSaveable { mutableStateOf(false) }
+    var focusChoice by rememberSaveable { mutableStateOf(false) }
+    var headsetDialog by rememberSaveable { mutableStateOf<HeadsetDialog?>(null) }
+    var actionDialog by rememberSaveable { mutableStateOf<NotificationActionDialog?>(null) }
     val listState = rememberLazyListState()
     // The Home page's rows as shown: a drag moves them here and saves the order once, on drop.
     val homeOrder =
@@ -321,7 +336,18 @@ fun SettingsPageScreen(
             }
 
             SettingsPage.Playback -> {
-                playbackHubGroups(content.audio, onAction, onOpenBehavior, onOpenDecoding, onOpenAudio)
+                playbackHubGroups(
+                    content.audio,
+                    onAction,
+                    PlaybackPages(
+                        onOpenBehavior,
+                        onOpenDecoding,
+                        onOpenAudioFocus,
+                        onOpenHeadset,
+                        onOpenNotificationButtons,
+                        onOpenAudio,
+                    ),
+                )
             }
 
             SettingsPage.PlaybackBehavior -> {
@@ -330,6 +356,20 @@ fun SettingsPageScreen(
 
             SettingsPage.Decoding -> {
                 decodingGroups(content.audio, onAction) { restoring = true }
+            }
+
+            SettingsPage.AudioFocus -> {
+                audioFocusGroups(content.audio.audioFocus, onAction, { focusChoice = true }) { restoring = true }
+            }
+
+            SettingsPage.Headset -> {
+                headsetGroups(content.audio.headset, onAction, { headsetDialog = it }) { restoring = true }
+            }
+
+            SettingsPage.NotificationButtons -> {
+                notificationButtonsGroups(content.audio.notificationButtons, onAction, { actionDialog = it }) {
+                    restoring = true
+                }
             }
 
             SettingsPage.Storage -> {
@@ -382,12 +422,19 @@ fun SettingsPageScreen(
         }
         if (restoring) {
             val restore =
-                if (page == SettingsPage.Decoding) {
-                    SettingsAction.RestoreDecodingDefaults
-                } else {
-                    SettingsAction.RestoreBehaviorDefaults
+                when (page) {
+                    SettingsPage.Decoding -> SettingsAction.RestoreDecodingDefaults
+                    SettingsPage.AudioFocus -> SettingsAction.SetAudioFocus(null)
+                    SettingsPage.Headset -> SettingsAction.SetHeadset(null)
+                    SettingsPage.NotificationButtons -> SettingsAction.SetNotificationButtons(null)
+                    else -> SettingsAction.RestoreBehaviorDefaults
                 }
             RestoreDefaultsDialog({ onAction(restore) }) { restoring = false }
+        }
+        if (focusChoice) ShortFocusDialog(content.audio.audioFocus, onAction) { focusChoice = false }
+        headsetDialog?.let { HeadsetDialogHost(it, content.audio.headset, onAction) { headsetDialog = null } }
+        actionDialog?.let {
+            NotificationActionDialogHost(it, content.audio.notificationButtons, onAction) { actionDialog = null }
         }
     }
 }

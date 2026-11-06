@@ -315,6 +315,18 @@ class SettingsViewModel
                         audio.restoreBehaviorDefaults()
                     }
 
+                    is SettingsAction.SetAudioFocus -> {
+                        audio.setAudioFocus(action.focus)
+                    }
+
+                    is SettingsAction.SetHeadset -> {
+                        audio.setHeadset(action.headset)
+                    }
+
+                    is SettingsAction.SetNotificationButtons -> {
+                        audio.setNotificationButtons(action.buttons)
+                    }
+
                     SettingsAction.OpenGenreSections -> {
                         genreSectionsDraft.value =
                             genreSectionsDraft(

@@ -6,10 +6,12 @@ import io.github.kentprodan.mediatheq.core.navigation.AboutSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AdvancedSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistPageSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.AudioFocusSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AudioSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DecodingSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.GenrePageSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.HeadsetSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.HomePageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.InterfaceSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryPageSettingsKey
@@ -17,6 +19,7 @@ import io.github.kentprodan.mediatheq.core.navigation.LicensesKey
 import io.github.kentprodan.mediatheq.core.navigation.MediaListsSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.NavigationSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
+import io.github.kentprodan.mediatheq.core.navigation.NotificationButtonsSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.NowPlayingSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackBehaviorSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
@@ -80,10 +83,16 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             back,
             onOpenBehavior = { navigator.navigateTo(PlaybackBehaviorSettingsKey) },
             onOpenDecoding = { navigator.navigateTo(DecodingSettingsKey) },
+            onOpenAudioFocus = { navigator.navigateTo(AudioFocusSettingsKey) },
+            onOpenHeadset = { navigator.navigateTo(HeadsetSettingsKey) },
+            onOpenNotificationButtons = { navigator.navigateTo(NotificationButtonsSettingsKey) },
         )
     }
     entry<PlaybackBehaviorSettingsKey> { SettingsPageRoute(SettingsPage.PlaybackBehavior, openAudio, back) }
     entry<DecodingSettingsKey> { SettingsPageRoute(SettingsPage.Decoding, openAudio, back) }
+    entry<AudioFocusSettingsKey> { SettingsPageRoute(SettingsPage.AudioFocus, openAudio, back) }
+    entry<HeadsetSettingsKey> { SettingsPageRoute(SettingsPage.Headset, openAudio, back) }
+    entry<NotificationButtonsSettingsKey> { SettingsPageRoute(SettingsPage.NotificationButtons, openAudio, back) }
     entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openAudio, back) }
     entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openAudio, back) }
     entry<AboutSettingsKey> {

@@ -15,15 +15,13 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 
 /**
  * Settings -> Playback (#138): a hub of sub-pages. An entry comes with its page (#120): Output settings, Automatic
- * actions, Transitions, Audio focus, Headset and Notification buttons are added by their own issues. Normalization
+ * actions and Transitions are added by their own issues. Normalization
  * and the Audio page (bit-perfect USB, equalizer) stay here until Output settings takes them.
  */
 internal fun LazyListScope.playbackHubGroups(
     audio: AudioPreferences,
     onAction: (SettingsAction) -> Unit,
-    onOpenBehavior: () -> Unit,
-    onOpenDecoding: () -> Unit,
-    onOpenAudio: () -> Unit,
+    pages: PlaybackPages,
 ) {
     item(key = "playback_hub") {
         Group(R.string.settings_playback) {
@@ -33,14 +31,44 @@ internal fun LazyListScope.playbackHubGroups(
                     R.string.settings_pb_behavior,
                     R.string.settings_pb_behavior_summary,
                     MqIcons.PlayArrow,
-                ) {
-                    onOpenBehavior()
-                }
+                    pages.behavior,
+                )
             }
             item { shapes ->
-                HubRow(shapes, R.string.settings_decoding, R.string.settings_decoding_summary, MqIcons.GraphicEq) {
-                    onOpenDecoding()
-                }
+                HubRow(
+                    shapes,
+                    R.string.settings_decoding,
+                    R.string.settings_decoding_summary,
+                    MqIcons.GraphicEq,
+                    pages.decoding,
+                )
+            }
+            item { shapes ->
+                HubRow(
+                    shapes,
+                    R.string.settings_audio_focus,
+                    R.string.settings_audio_focus_summary,
+                    MqIcons.VolumeDown,
+                    pages.audioFocus,
+                )
+            }
+            item { shapes ->
+                HubRow(
+                    shapes,
+                    R.string.settings_headset,
+                    R.string.settings_headset_summary,
+                    MqIcons.Headphones,
+                    pages.headset,
+                )
+            }
+            item { shapes ->
+                HubRow(
+                    shapes,
+                    R.string.settings_notification_buttons,
+                    R.string.settings_notification_buttons_summary,
+                    MqIcons.Notifications,
+                    pages.notificationButtons,
+                )
             }
         }
     }
@@ -58,11 +86,21 @@ internal fun LazyListScope.playbackHubGroups(
                 )
             }
             item { shapes ->
-                HubRow(shapes, R.string.settings_audio, R.string.settings_audio_summary, MqIcons.Tune, onOpenAudio)
+                HubRow(shapes, R.string.settings_audio, R.string.settings_audio_summary, MqIcons.Tune, pages.audio)
             }
         }
     }
 }
+
+/** Where the Playback hub's rows lead. */
+internal class PlaybackPages(
+    val behavior: () -> Unit,
+    val decoding: () -> Unit,
+    val audioFocus: () -> Unit,
+    val headset: () -> Unit,
+    val notificationButtons: () -> Unit,
+    val audio: () -> Unit,
+)
 
 @androidx.compose.runtime.Composable
 private fun HubRow(
