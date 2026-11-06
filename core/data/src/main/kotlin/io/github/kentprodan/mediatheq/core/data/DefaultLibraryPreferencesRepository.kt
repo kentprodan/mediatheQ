@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.datastore.StoredLibraryPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredMediaLists
 import io.github.kentprodan.mediatheq.core.datastore.StoredNavigation
 import io.github.kentprodan.mediatheq.core.datastore.StoredNowPlaying
+import io.github.kentprodan.mediatheq.core.datastore.StoredPlaylistPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredTheme
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
@@ -45,6 +46,7 @@ class DefaultLibraryPreferencesRepository
                     albumPage = albumPage(stored.albumPage),
                     artistPage = artistPage(stored.artistPage),
                     genrePage = genrePage(stored.genrePage),
+                    playlistPage = playlistPage(stored.playlistPage),
                     qualityDetail = stored.qualityDetail ?: false,
                 )
             }
@@ -264,6 +266,31 @@ class DefaultLibraryPreferencesRepository
         }
 
         override suspend fun restoreGenrePageDefaults() = store.setGenrePage(StoredGenrePage())
+
+        override suspend fun setPlaylistPage(page: PlaylistPagePreferences) {
+            store.setPlaylistPage(
+                StoredPlaylistPage(
+                    headerBackground = page.headerBackground.name,
+                    hiddenButtons = page.hiddenButtons.map { it.name },
+                    dynamicColors = page.dynamicColors,
+                ),
+            )
+        }
+
+        override suspend fun restorePlaylistPageDefaults() = store.setPlaylistPage(StoredPlaylistPage())
+
+        /** Unknown names are dropped. */
+        private fun playlistPage(stored: StoredPlaylistPage): PlaylistPagePreferences {
+            val defaults = PlaylistPagePreferences()
+            return PlaylistPagePreferences(
+                headerBackground =
+                    enumOrNull<PlaylistHeaderBackground>(stored.headerBackground) ?: defaults.headerBackground,
+                hiddenButtons =
+                    stored.hiddenButtons?.mapNotNull { enumOrNull<PlaylistButton>(it) }?.toSet()
+                        ?: defaults.hiddenButtons,
+                dynamicColors = stored.dynamicColors ?: defaults.dynamicColors,
+            )
+        }
 
         /** Unknown names are dropped, the order is completed and a count out of range is clamped. */
         private fun genrePage(stored: StoredGenrePage): GenrePagePreferences {

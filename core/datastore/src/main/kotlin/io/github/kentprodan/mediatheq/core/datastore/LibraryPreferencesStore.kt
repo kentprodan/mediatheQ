@@ -160,6 +160,16 @@ class LibraryPreferencesStore
                                 topTracksCount = prefs[GP_TOP_TRACKS_COUNT],
                                 dynamicColors = prefs[GP_DYNAMIC_COLORS],
                             ),
+                        playlistPage =
+                            StoredPlaylistPage(
+                                headerBackground = prefs[PP_BACKGROUND],
+                                hiddenButtons =
+                                    prefs[PP_HIDDEN_BUTTONS]
+                                        ?.split(
+                                            LIST_SEPARATOR,
+                                        )?.filter { it.isNotEmpty() },
+                                dynamicColors = prefs[PP_DYNAMIC_COLORS],
+                            ),
                         offlineMode = prefs[OFFLINE_MODE],
                         qualityDetail = prefs[QUALITY_DETAIL],
                         sorts =
@@ -271,6 +281,16 @@ class LibraryPreferencesStore
                 prefs.put(AP_TRACK_THUMBNAILS, page.showTrackThumbnails)
                 prefs.put(AP_MULTILINE, page.multilineTrackTitles)
                 prefs.put(AP_ABOUT, page.showAbout)
+            }
+        }
+
+        /** Stores every Playlist page value at once (#135); null removes it. */
+        suspend fun setPlaylistPage(page: StoredPlaylistPage) {
+            dataStore.edit { prefs ->
+                prefs.put(PP_BACKGROUND, page.headerBackground)
+                // An empty set is stored as an empty string: "none hidden" differs from "not set".
+                prefs.put(PP_HIDDEN_BUTTONS, page.hiddenButtons?.joinToString(LIST_SEPARATOR))
+                prefs.put(PP_DYNAMIC_COLORS, page.dynamicColors)
             }
         }
 
@@ -416,6 +436,9 @@ class LibraryPreferencesStore
             val GP_TOP_TRACKS = booleanPreferencesKey("gp_top_tracks")
             val GP_TOP_TRACKS_COUNT = intPreferencesKey("gp_top_tracks_count")
             val GP_DYNAMIC_COLORS = booleanPreferencesKey("gp_dynamic_colors")
+            val PP_BACKGROUND = stringPreferencesKey("pp_background")
+            val PP_HIDDEN_BUTTONS = stringPreferencesKey("pp_hidden_buttons")
+            val PP_DYNAMIC_COLORS = booleanPreferencesKey("pp_dynamic_colors")
             val ALBUM_COLUMNS = intPreferencesKey("album_columns")
             val GENRES_GRID = booleanPreferencesKey("genres_grid")
             val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
@@ -485,6 +508,7 @@ data class StoredLibraryPreferences(
     val albumPage: StoredAlbumPage = StoredAlbumPage(),
     val artistPage: StoredArtistPage = StoredArtistPage(),
     val genrePage: StoredGenrePage = StoredGenrePage(),
+    val playlistPage: StoredPlaylistPage = StoredPlaylistPage(),
     val qualityDetail: Boolean? = null,
 )
 
@@ -502,6 +526,13 @@ data class StoredAlbumPage(
     val showTrackThumbnails: Boolean? = null,
     val multilineTrackTitles: Boolean? = null,
     val showAbout: Boolean? = null,
+)
+
+/** Playlist page values as stored (#135); `null` = not set. */
+data class StoredPlaylistPage(
+    val headerBackground: String? = null,
+    val hiddenButtons: List<String>? = null,
+    val dynamicColors: Boolean? = null,
 )
 
 /** Genre page values as stored (#134); `null` = not set. */

@@ -69,6 +69,12 @@ interface LibraryPreferencesRepository {
     /** Back to the Genre page defaults only. */
     suspend fun restoreGenrePageDefaults()
 
+    /** Every Playlist page value at once (#135). */
+    suspend fun setPlaylistPage(page: PlaylistPagePreferences)
+
+    /** Back to the Playlist page defaults only. */
+    suspend fun restorePlaylistPageDefaults()
+
     suspend fun setRatingMode(mode: RatingMode)
 
     /** Now Playing's quality label: the format detail or its kind (#125). */

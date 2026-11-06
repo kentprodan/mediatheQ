@@ -832,4 +832,43 @@ class DefaultLibraryPreferencesRepositoryTest {
             assertThat(page.topTracksCount).isEqualTo(50)
             assertThat(page.dynamicColors).isFalse()
         }
+
+    @Test
+    fun `the playlist page settings are kept, and restoring them resets only that page`() =
+        runTest {
+            val page =
+                PlaylistPagePreferences(
+                    headerBackground = PlaylistHeaderBackground.ImageColor,
+                    hiddenButtons = setOf(PlaylistButton.Resume, PlaylistButton.Favorite),
+                    dynamicColors = true,
+                )
+            val genre = GenrePagePreferences(showAlbums = false)
+            repository.setPlaylistPage(page)
+            repository.setGenrePage(genre)
+            assertThat(repository.preferences.first().playlistPage).isEqualTo(page)
+
+            repository.restorePlaylistPageDefaults()
+
+            val restored = repository.preferences.first()
+            assertThat(restored.playlistPage).isEqualTo(PlaylistPagePreferences())
+            assertThat(restored.genrePage).isEqualTo(genre)
+        }
+
+    @Test
+    fun `a stored playlist page drops unknown names, and none hidden stays none`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("pp_hidden_buttons")] = "Shuffle,Gone"
+                it[stringPreferencesKey("pp_background")] = "Blur"
+            }
+            assertThat(repository.preferences.first().playlistPage)
+                .isEqualTo(PlaylistPagePreferences(hiddenButtons = setOf(PlaylistButton.Shuffle)))
+
+            repository.setPlaylistPage(PlaylistPagePreferences(hiddenButtons = emptySet()))
+            assertThat(
+                repository.preferences
+                    .first()
+                    .playlistPage.hiddenButtons,
+            ).isEmpty()
+        }
 }
