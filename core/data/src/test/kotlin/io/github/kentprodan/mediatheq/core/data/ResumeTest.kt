@@ -90,4 +90,25 @@ class ResumeTest {
                     .toString(),
             ).isEqualTo("1")
         }
+
+    @Test
+    fun `a track played from a playlist is kept for the playlist too, also without an album`() =
+        runTest {
+            database.syncDao().stageAlbums(listOf(AlbumStaging(AlbumEntity("s", "al1", "A", "A"))))
+            database.syncDao().stageTracks(
+                listOf(
+                    TrackStaging(TrackEntity("s", "t1", "One", "One", albumId = "al1")),
+                    TrackStaging(TrackEntity("s", "t9", "Loose", "Loose")),
+                ),
+            )
+            database.syncDao().swap(1, "s", "user-1")
+
+            repository.record(id("t1"), 42.seconds, playlistId = id("p1"))
+            assertThat(repository.playlistResume(id("p1")).first()).isEqualTo(ResumePoint(id("t1"), 42.seconds))
+            assertThat(repository.resume(id("al1")).first()).isEqualTo(ResumePoint(id("t1"), 42.seconds))
+
+            repository.record(id("t9"), 5.seconds, playlistId = id("p1"))
+            assertThat(repository.playlistResume(id("p1")).first()).isEqualTo(ResumePoint(id("t9"), 5.seconds))
+            assertThat(repository.playlistResume(id("p2")).first()).isNull()
+        }
 }

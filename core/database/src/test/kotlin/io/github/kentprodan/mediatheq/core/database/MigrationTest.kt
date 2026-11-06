@@ -303,12 +303,12 @@ class MigrationTest {
         }
 
     @Test
-    fun `10 to 11 keeps the saved queue from no playlist and adds where playlists were left, without a sync`() =
+    fun `10 to 11 adds where playlists were left and keeps the queue and the sync`() =
         runTest {
             helper.createDatabase(10).apply {
                 execSQL(
-                    "INSERT INTO sync_state (id, last_full_sync_at, owner_server_id, owner_user_id, checkpoint_index) " +
-                        "VALUES (0, 1760000000000, 's', 'u', 0)",
+                    "INSERT INTO sync_state (id, last_full_sync_at, owner_server_id, owner_user_id, " +
+                        "checkpoint_index) VALUES (0, 1760000000000, 's', 'u', 0)",
                 )
                 execSQL(
                     "INSERT INTO queue_entry (position, entry_id, server_id, track_id, shuffle_position) " +

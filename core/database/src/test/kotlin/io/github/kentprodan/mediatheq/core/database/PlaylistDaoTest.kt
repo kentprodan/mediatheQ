@@ -110,7 +110,9 @@ class PlaylistDaoTest {
             resumeDao.savePlaylist(PlaylistResumeEntity("s", "p1", "t1", 60_000))
 
             library("t1")
-            assertThat(resumeDao.playlistResume("s", "p1").first()).isEqualTo(PlaylistResumeEntity("s", "p1", "t1", 60_000))
+            assertThat(
+                resumeDao.playlistResume("s", "p1").first(),
+            ).isEqualTo(PlaylistResumeEntity("s", "p1", "t1", 60_000))
 
             syncDao.clearAll()
             assertThat(resumeDao.playlistResume("s", "p1").first()).isNull()

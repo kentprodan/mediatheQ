@@ -64,4 +64,15 @@ class TrackTapsTest {
 
             assertThat(playback.plays).isEmpty()
         }
+
+    @Test
+    fun `a tap in a playlist plays from that playlist`() =
+        runTest {
+            val playlist = MediaId(ServerId("s"), "p1")
+            preferences.setNavigation(NavigationPreferences(trackAction = TrackAction.Play))
+
+            taps.tap(tracks, 1, playlist)
+
+            assertThat(playback.plays.single().playlistId).isEqualTo(playlist)
+        }
 }

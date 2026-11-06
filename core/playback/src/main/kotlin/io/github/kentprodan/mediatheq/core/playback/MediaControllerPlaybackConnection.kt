@@ -17,6 +17,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.CancellationException
@@ -106,12 +107,15 @@ internal class MediaControllerPlaybackConnection
             startIndex: Int,
             shuffle: Boolean,
             startPosition: Duration,
+            playlistId: MediaId?,
         ) {
             if (queue.isEmpty()) return
             expandRequested.value = true
             playJob?.cancel()
             playJob =
-                command { controller -> controller.playQueue(queue.toMediaItems(), startIndex, shuffle, startPosition) }
+                command { controller ->
+                    controller.playQueue(queue.toMediaItems(playlistId), startIndex, shuffle, startPosition)
+                }
         }
 
         override val queue: StateFlow<List<QueueItem>> =
@@ -152,8 +156,11 @@ internal class MediaControllerPlaybackConnection
             command { it.skipToEntry(entryId) }
         }
 
-        private suspend fun List<Track>.toMediaItems(): List<MediaItem> =
-            map { track -> track.toMediaItem(track.artwork?.let { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) }) }
+        private suspend fun List<Track>.toMediaItems(playlistId: MediaId? = null): List<MediaItem> =
+            map { track ->
+                val artwork = track.artwork?.let { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) }
+                track.toMediaItem(artwork, playlistId = playlistId)
+            }
 
         override fun togglePlayPause() {
             command { Util.handlePlayPauseButtonAction(it) }

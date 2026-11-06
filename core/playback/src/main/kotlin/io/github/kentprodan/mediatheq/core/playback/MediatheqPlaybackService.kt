@@ -189,7 +189,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
         resumeListener =
             ResumeListener(
                 player,
-                record = { trackId, position -> applicationScope.launch { resumes.record(trackId, position) } },
+                record = {
+                    track,
+                    playlist,
+                    position,
+                    ->
+                    applicationScope.launch { resumes.record(track, position, playlist) }
+                },
                 scope = applicationScope + Dispatchers.Main,
             ).also(player::addListener)
         player.addListener(

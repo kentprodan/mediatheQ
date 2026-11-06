@@ -33,10 +33,14 @@ interface QueueRepository {
     suspend fun restore(): SavedQueue?
 }
 
-/** One queue entry as saved: its own id (the same track may be queued twice) and its track. */
+/**
+ * One queue entry as saved: its own id (the same track may be queued twice), its track, and the playlist it was played
+ * from (#135, for that playlist's Resume).
+ */
 data class QueueEntryId(
     val entryId: String,
     val trackId: MediaId,
+    val playlistId: MediaId? = null,
 )
 
 /** Where the player is: the current entry's queue index, the position in it, shuffle and repeat. */
@@ -57,4 +61,5 @@ data class SavedQueue(
 data class SavedEntry(
     val entryId: String,
     val track: Track,
+    val playlistId: MediaId? = null,
 )

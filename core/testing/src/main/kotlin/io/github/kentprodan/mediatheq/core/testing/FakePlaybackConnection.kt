@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.testing
 
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
@@ -16,6 +17,7 @@ class FakePlaybackConnection : PlaybackConnection {
         val startIndex: Int,
         val shuffle: Boolean,
         val startPosition: Duration = Duration.ZERO,
+        val playlistId: MediaId? = null,
     )
 
     override val state = MutableStateFlow(PlayerUiModel())
@@ -42,8 +44,9 @@ class FakePlaybackConnection : PlaybackConnection {
         startIndex: Int,
         shuffle: Boolean,
         startPosition: Duration,
+        playlistId: MediaId?,
     ) {
-        plays += PlayCall(queue, startIndex, shuffle, startPosition)
+        plays += PlayCall(queue, startIndex, shuffle, startPosition, playlistId)
         expandRequested.value = true
     }
 

@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.database.dao.ResumeDao
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumResumeEntity
+import io.github.kentprodan.mediatheq.core.database.entity.PlaylistResumeEntity
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import kotlinx.coroutines.flow.Flow
@@ -20,11 +21,20 @@ class DefaultResumeRepository
                 row?.let { ResumePoint(MediaId(albumId.serverId, it.trackId), it.positionMillis.milliseconds) }
             }
 
+        override fun playlistResume(playlistId: MediaId): Flow<ResumePoint?> =
+            dao.playlistResume(playlistId.serverId.value, playlistId.itemId).map { row ->
+                row?.let { ResumePoint(MediaId(playlistId.serverId, it.trackId), it.positionMillis.milliseconds) }
+            }
+
         override suspend fun record(
             trackId: MediaId,
             position: Duration,
+            playlistId: MediaId?,
         ) {
-            val albumId = dao.albumOf(trackId.serverId.value, trackId.itemId) ?: return
-            dao.save(AlbumResumeEntity(trackId.serverId.value, albumId, trackId.itemId, position.inWholeMilliseconds))
+            val server = trackId.serverId.value
+            val millis = position.inWholeMilliseconds
+            playlistId?.let { dao.savePlaylist(PlaylistResumeEntity(server, it.itemId, trackId.itemId, millis)) }
+            val albumId = dao.albumOf(server, trackId.itemId) ?: return
+            dao.save(AlbumResumeEntity(server, albumId, trackId.itemId, millis))
         }
     }

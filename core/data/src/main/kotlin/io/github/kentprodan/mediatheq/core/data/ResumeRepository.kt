@@ -12,10 +12,17 @@ interface ResumeRepository {
     /** Where [albumId] was left, as recorded; [resumeTarget] turns it into what Resume plays. */
     fun resume(albumId: MediaId): Flow<ResumePoint?>
 
-    /** [trackId] played up to [position]; remembered for its album (a track without one is ignored). */
+    /** Where [playlistId] was left (#135): only tracks played from its page count. */
+    fun playlistResume(playlistId: MediaId): Flow<ResumePoint?>
+
+    /**
+     * [trackId] played up to [position]; remembered for its album (a track without one is ignored) and, when it was
+     * played from a playlist, for [playlistId].
+     */
     suspend fun record(
         trackId: MediaId,
         position: Duration,
+        playlistId: MediaId? = null,
     )
 }
 

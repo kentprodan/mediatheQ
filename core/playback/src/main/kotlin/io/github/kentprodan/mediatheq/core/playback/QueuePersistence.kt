@@ -112,8 +112,11 @@ internal class QueuePersistence(
                     val items =
                         saved.entries.map { entry ->
                             entry.track
-                                .toMediaItem(entry.track.artwork?.let { artworkUrl(it) }, entry.entryId)
-                                .withTrackUri()!!
+                                .toMediaItem(
+                                    entry.track.artwork?.let { artworkUrl(it) },
+                                    entry.entryId,
+                                    entry.playlistId,
+                                ).withTrackUri()!!
                         }
                     // Not prepared: that would open streams (and server sessions) before anyone presses play.
                     player.playWhenReady = false
@@ -217,7 +220,7 @@ internal class QueuePersistence(
                 (0 until player.mediaItemCount).mapNotNull { index ->
                     val item = player.getMediaItemAt(index)
                     val trackId = runCatching { MediaId.parse(item.mediaId) }.getOrNull()
-                    trackId?.let { QueueEntryId(item.entryId() ?: newEntryId(), it) }
+                    trackId?.let { QueueEntryId(item.entryId() ?: newEntryId(), it, item.playlistId()) }
                 }
             } else {
                 null

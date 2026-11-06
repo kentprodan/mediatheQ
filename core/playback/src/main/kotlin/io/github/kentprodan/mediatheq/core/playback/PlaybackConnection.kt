@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +31,8 @@ interface PlaybackConnection {
         shuffle: Boolean = false,
         /** Where in the start track to begin (Resume, #132); ignored when shuffled. */
         startPosition: Duration = Duration.ZERO,
+        /** The playlist [queue] is played from (#135): its entries record into that playlist's Resume. */
+        playlistId: MediaId? = null,
     )
 
     /** Pauses, or plays (also restarting after the queue ended or failed). */
