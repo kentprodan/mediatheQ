@@ -63,7 +63,15 @@ class DefaultAudioPreferencesRepository
 
         override suspend fun restoreDecodingDefaults() = store.clearDecoding()
 
-        override suspend fun setBehavior(behavior: PlaybackBehavior) =
+        override suspend fun setBehavior(
+            switch: BehaviorSwitch,
+            on: Boolean,
+        ) {
+            // Read, change one switch, write: one at a time, so quick taps never undo each other.
+            eqLock.withLock { writeBehavior(preferences.first().behavior.with(switch, on)) }
+        }
+
+        private suspend fun writeBehavior(behavior: PlaybackBehavior) =
             store.setBehavior(
                 StoredPlaybackBehavior(
                     preservePlayNextOrder = behavior.preservePlayNextOrder,

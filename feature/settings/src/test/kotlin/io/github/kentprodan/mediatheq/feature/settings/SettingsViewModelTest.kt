@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.data.ArtistHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
@@ -593,11 +594,11 @@ class SettingsViewModelTest {
     fun `decoding and playback behavior apply at once and each restore resets only its page`() =
         runTest {
             signIn()
-            val behavior = PlaybackBehavior(circular = false, weightedShuffle = false)
+            val behavior = PlaybackBehavior(weightedShuffle = false)
 
             viewModel.onAction(SettingsAction.SetForceInstantTranscoding(true))
             viewModel.onAction(SettingsAction.SetStreamingQuality(metered = true, StreamingQuality.Kbps192))
-            viewModel.onAction(SettingsAction.SetBehavior(behavior))
+            viewModel.onAction(SettingsAction.SetBehavior(BehaviorSwitch.WeightedShuffle, false))
             assertThat(content().audio.forceInstantTranscoding).isTrue()
             assertThat(content().audio.behavior).isEqualTo(behavior)
 

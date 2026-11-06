@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.PlaybackBehavior
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
@@ -121,54 +122,50 @@ internal fun LazyListScope.behaviorGroups(
     onAction: (SettingsAction) -> Unit,
     onRestore: () -> Unit,
 ) {
-    val set = { it: PlaybackBehavior -> onAction(SettingsAction.SetBehavior(it)) }
-    val rows: List<Triple<Int, Int, Pair<Boolean, (Boolean) -> PlaybackBehavior>>> =
-        listOf(
-            Triple(
-                R.string.settings_pb_preserve_play_next,
-                R.string.settings_pb_preserve_play_next_summary,
-                behavior.preservePlayNextOrder to { on -> behavior.copy(preservePlayNextOrder = on) },
-            ),
-            Triple(
-                R.string.settings_pb_rewind_first,
-                R.string.settings_pb_rewind_first_summary,
-                behavior.rewindFirst to { on -> behavior.copy(rewindFirst = on) },
-            ),
-            Triple(
-                R.string.settings_pb_circular,
-                R.string.settings_pb_circular_summary,
-                behavior.circular to { on -> behavior.copy(circular = on) },
-            ),
-            Triple(
-                R.string.settings_pb_keep_paused,
-                R.string.settings_pb_keep_paused_summary,
-                behavior.keepPausedOnSkip to { on -> behavior.copy(keepPausedOnSkip = on) },
-            ),
-            Triple(
-                R.string.settings_pb_stop_repeat_one,
-                R.string.settings_pb_stop_repeat_one_summary,
-                behavior.stopRepeatOneOnSkip to { on -> behavior.copy(stopRepeatOneOnSkip = on) },
-            ),
-            Triple(
-                R.string.settings_pb_retain_state,
-                R.string.settings_pb_retain_state_summary,
-                behavior.retainPlayerState to { on -> behavior.copy(retainPlayerState = on) },
-            ),
-            Triple(
-                R.string.settings_pb_weighted_shuffle,
-                R.string.settings_pb_weighted_shuffle_summary,
-                behavior.weightedShuffle to { on -> behavior.copy(weightedShuffle = on) },
-            ),
-        )
     item(key = "behavior") {
         Group(R.string.settings_pb_queue) {
-            rows.forEach { (title, summary, value) ->
-                val (checked, change) = value
+            BehaviorSwitch.entries.forEach { switch ->
+                val (title, summary) = switch.texts
                 item { shapes ->
-                    SwitchItem(shapes, stringResource(title), stringResource(summary), checked) { set(change(it)) }
+                    SwitchItem(shapes, stringResource(title), stringResource(summary), behavior.isOn(switch)) {
+                        onAction(SettingsAction.SetBehavior(switch, it))
+                    }
                 }
             }
         }
     }
     restoreDefaultsGroup(onRestore)
 }
+
+/** Title and summary of each switch, in the page's order. */
+private val BehaviorSwitch.texts: Pair<Int, Int>
+    get() =
+        when (this) {
+            BehaviorSwitch.PreservePlayNextOrder -> {
+                R.string.settings_pb_preserve_play_next to R.string.settings_pb_preserve_play_next_summary
+            }
+
+            BehaviorSwitch.RewindFirst -> {
+                R.string.settings_pb_rewind_first to R.string.settings_pb_rewind_first_summary
+            }
+
+            BehaviorSwitch.Circular -> {
+                R.string.settings_pb_circular to R.string.settings_pb_circular_summary
+            }
+
+            BehaviorSwitch.KeepPausedOnSkip -> {
+                R.string.settings_pb_keep_paused to R.string.settings_pb_keep_paused_summary
+            }
+
+            BehaviorSwitch.StopRepeatOneOnSkip -> {
+                R.string.settings_pb_stop_repeat_one to R.string.settings_pb_stop_repeat_one_summary
+            }
+
+            BehaviorSwitch.RetainPlayerState -> {
+                R.string.settings_pb_retain_state to R.string.settings_pb_retain_state_summary
+            }
+
+            BehaviorSwitch.WeightedShuffle -> {
+                R.string.settings_pb_weighted_shuffle to R.string.settings_pb_weighted_shuffle_summary
+            }
+        }

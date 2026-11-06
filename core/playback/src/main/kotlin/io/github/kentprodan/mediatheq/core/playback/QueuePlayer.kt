@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import android.os.SystemClock
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -35,13 +36,18 @@ internal class QueuePlayer(
     private val resuming: () -> Boolean = { false },
     private val random: Random = Random,
     private val now: () -> Instant = { Clock.System.now() },
+    private val uptime: () -> Long = SystemClock::uptimeMillis,
 ) : ForwardingPlayer(player) {
+    // When shuffle was last turned on: Shuffle sends it right before its new queue.
+    private var shuffleAskedAt: Long? = null
+
     // Each listener (the session's) behind one that adds the circular skips to its available commands.
     private val wrapped = IdentityHashMap<Player.Listener, Player.Listener>()
 
     override fun setShuffleModeEnabled(shuffleModeEnabled: Boolean) {
         // Before the change, so its event already sees the new order. (Album Shuffle sets the mode before its new
         // queue, which then gets an order of its own: reshuffling the old one here costs nothing.)
+        if (shuffleModeEnabled) shuffleAskedAt = uptime()
         if (shuffleModeEnabled && !this.shuffleModeEnabled && mediaItemCount > 0) {
             setOrder(newOrder(first = currentMediaItemIndex))
         }
@@ -50,13 +56,22 @@ internal class QueuePlayer(
 
     override fun setMediaItems(mediaItems: List<MediaItem>) = setMediaItems(mediaItems, true)
 
-    /** A shuffled new queue (Shuffle sets the mode first): it starts where its order starts. */
+    /**
+     * A new queue from its start: Shuffle's (it turns the mode on right before, and the queue starts where its order
+     * starts), or a controller's without a start index (Android Auto playing a playlist), which follows the
+     * new-queue rule like Play.
+     */
     override fun setMediaItems(
         mediaItems: List<MediaItem>,
         resetPosition: Boolean,
     ) {
         val resumed = resuming()
-        if (!resumed && !behavior().retainPlayerState) repeatMode = REPEAT_MODE_OFF
+        val askedShuffle = shuffleAskedAt?.let { uptime() - it < SHUFFLE_ASKED_WINDOW_MS } == true
+        shuffleAskedAt = null
+        if (!resumed && !behavior().retainPlayerState) {
+            repeatMode = REPEAT_MODE_OFF
+            if (!askedShuffle) super.setShuffleModeEnabled(false)
+        }
         super.setMediaItems(mediaItems, resetPosition)
         if (resumed || !shuffleModeEnabled || mediaItems.isEmpty() || !behavior().weightedShuffle) return
         setOrder(newOrder(first = null))
@@ -70,6 +85,7 @@ internal class QueuePlayer(
         startPositionMs: Long,
     ) {
         val resumed = resuming()
+        shuffleAskedAt = null
         if (!resumed && !behavior().retainPlayerState) {
             repeatMode = REPEAT_MODE_OFF
             super.setShuffleModeEnabled(false)
@@ -116,9 +132,9 @@ internal class QueuePlayer(
 
     override fun seekToNextMediaItem() = skip { next() }
 
-    override fun seekToPrevious() = skip { previous(behavior().rewindFirst) }
+    override fun seekToPrevious() = skip { previous(behavior().rewindFirst, mediaItemOnly = false) }
 
-    override fun seekToPreviousMediaItem() = skip { previous(rewindFirst = false) }
+    override fun seekToPreviousMediaItem() = skip { previous(rewindFirst = false, mediaItemOnly = true) }
 
     override fun getAvailableCommands(): Player.Commands = withSkips(super.getAvailableCommands())
 
@@ -157,13 +173,17 @@ internal class QueuePlayer(
         return true
     }
 
-    private fun previous(rewindFirst: Boolean): Boolean {
+    private fun previous(
+        rewindFirst: Boolean,
+        mediaItemOnly: Boolean,
+    ): Boolean {
         val order = playOrder()
         val place = order.indexOf(currentMediaItemIndex)
-        // The media item variant never rewinds: at the first entry without wrapping it does nothing (as Media3).
         val position = if (rewindFirst) currentPosition.milliseconds else 0.milliseconds
         when (val action = previousAction(position, place, order.size, rewindFirst, wraps())) {
-            PreviousAction.Rewind -> if (rewindFirst || place > 0) seekTo(0) else return false
+            // Previous restarts the first track (as Media3); the media item variant does nothing there.
+            PreviousAction.Rewind -> if (mediaItemOnly) return false else seekTo(0)
+
             is PreviousAction.To -> seekToDefaultPosition(order[action.place])
         }
         return true
@@ -225,6 +245,9 @@ internal class QueuePlayer(
         } as Player.Listener
 
     private companion object {
+        /** Shuffle and its queue arrive as two commands, one right after the other. */
+        const val SHUFFLE_ASKED_WINDOW_MS = 1_000L
+
         val SKIPS =
             intArrayOf(
                 COMMAND_SEEK_TO_NEXT,

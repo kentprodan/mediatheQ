@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.data.GenreSection
@@ -16,7 +17,6 @@ import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
-import io.github.kentprodan.mediatheq.core.data.PlaybackBehavior
 import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
@@ -279,9 +279,10 @@ sealed interface SettingsAction {
 
     data object RestoreDecodingDefaults : SettingsAction
 
-    /** Playback behavior (#138): every value of the page at once. */
+    /** Playback behavior (#138): one switch. */
     data class SetBehavior(
-        val behavior: PlaybackBehavior,
+        val switch: BehaviorSwitch,
+        val on: Boolean,
     ) : SettingsAction
 
     data object RestoreBehaviorDefaults : SettingsAction

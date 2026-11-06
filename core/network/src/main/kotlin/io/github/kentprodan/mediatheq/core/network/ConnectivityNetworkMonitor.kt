@@ -71,11 +71,10 @@ internal class ConnectivityNetworkMonitor
                             network: Network,
                             capabilities: NetworkCapabilities,
                         ) {
-                            trySend(!capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED))
-                        }
-
-                        override fun onLost(network: Network) {
-                            trySend(true)
+                            // Only a network that carries traffic: losing one is not a switch to mobile data.
+                            if (capabilities.canCarryTraffic()) {
+                                trySend(!capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED))
+                            }
                         }
                     }
                 send(isMetered())

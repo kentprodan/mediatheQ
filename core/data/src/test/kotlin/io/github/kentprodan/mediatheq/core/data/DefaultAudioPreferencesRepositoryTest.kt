@@ -5,7 +5,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.datastore.AudioPreferencesStore
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
@@ -174,7 +176,7 @@ class DefaultAudioPreferencesRepositoryTest {
                     retainPlayerState = true,
                     weightedShuffle = false,
                 )
-            repository.setBehavior(behavior)
+            BehaviorSwitch.entries.forEach { repository.setBehavior(it, behavior.isOn(it)) }
             repository.setForceInstantTranscoding(true)
             assertThat(repository.preferences.first().behavior).isEqualTo(behavior)
 
@@ -182,5 +184,18 @@ class DefaultAudioPreferencesRepositoryTest {
 
             assertThat(repository.preferences.first().behavior).isEqualTo(PlaybackBehavior())
             assertThat(repository.preferences.first().forceInstantTranscoding).isTrue()
+        }
+
+    @Test
+    fun `quick behavior switches each keep the other one`() =
+        runTest {
+            coroutineScope {
+                launch { repository.setBehavior(BehaviorSwitch.Circular, false) }
+                launch { repository.setBehavior(BehaviorSwitch.WeightedShuffle, false) }
+            }
+
+            val behavior = repository.preferences.first().behavior
+            assertThat(behavior.circular).isFalse()
+            assertThat(behavior.weightedShuffle).isFalse()
         }
 }

@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.testing
 
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.PlaybackBehavior
@@ -71,8 +72,11 @@ class FakeAudioPreferencesRepository : AudioPreferencesRepository {
             )
     }
 
-    override suspend fun setBehavior(behavior: PlaybackBehavior) {
-        preferences.value = preferences.value.copy(behavior = behavior)
+    override suspend fun setBehavior(
+        switch: BehaviorSwitch,
+        on: Boolean,
+    ) {
+        preferences.value = preferences.value.copy(behavior = preferences.value.behavior.with(switch, on))
     }
 
     override suspend fun restoreBehaviorDefaults() {

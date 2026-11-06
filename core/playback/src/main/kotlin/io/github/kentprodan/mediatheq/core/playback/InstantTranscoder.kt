@@ -18,6 +18,8 @@ import kotlin.random.Random
 internal class InstantTranscoder(
     private val player: ExoPlayer,
     private val enabled: suspend () -> Boolean,
+    /** No network at all (a dead zone, a roam between Wi-Fi networks) is no reason to restart. */
+    private val isOnline: () -> Boolean,
     /** Whether [MediaId] streams in another quality than the metered one and would stream again (not local). */
     private val needsNewStream: suspend (MediaId) -> Boolean,
 ) {
@@ -25,6 +27,8 @@ internal class InstantTranscoder(
 
     /** Every network change, on the player's thread. */
     suspend fun onNetwork(metered: Boolean) {
+        // Offline the buffer plays on; the change counts once a network carries traffic again.
+        if (!isOnline()) return
         val before = wasMetered
         wasMetered = metered
         if (before != false || !metered || !player.wantsToPlay() || !enabled()) return

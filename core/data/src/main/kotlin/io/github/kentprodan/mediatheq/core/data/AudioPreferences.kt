@@ -25,6 +25,17 @@ enum class StreamingQuality(
     Kbps128(128_000),
 }
 
+/** One switch of [PlaybackBehavior], so a change never writes the others back from an older copy. */
+enum class BehaviorSwitch {
+    PreservePlayNextOrder,
+    RewindFirst,
+    Circular,
+    KeepPausedOnSkip,
+    StopRepeatOneOnSkip,
+    RetainPlayerState,
+    WeightedShuffle,
+}
+
 /** Settings -> Playback -> Playback (#138): how the queue and the transport buttons behave, everywhere alike. */
 data class PlaybackBehavior(
     /** Play next entries go after earlier Play next entries, not right after the current track. */
@@ -41,7 +52,32 @@ data class PlaybackBehavior(
     val retainPlayerState: Boolean = false,
     /** Shuffle prefers tracks not played recently, favorites and higher ratings; off, uniform random. */
     val weightedShuffle: Boolean = true,
-)
+) {
+    fun isOn(switch: BehaviorSwitch): Boolean =
+        when (switch) {
+            BehaviorSwitch.PreservePlayNextOrder -> preservePlayNextOrder
+            BehaviorSwitch.RewindFirst -> rewindFirst
+            BehaviorSwitch.Circular -> circular
+            BehaviorSwitch.KeepPausedOnSkip -> keepPausedOnSkip
+            BehaviorSwitch.StopRepeatOneOnSkip -> stopRepeatOneOnSkip
+            BehaviorSwitch.RetainPlayerState -> retainPlayerState
+            BehaviorSwitch.WeightedShuffle -> weightedShuffle
+        }
+
+    fun with(
+        switch: BehaviorSwitch,
+        on: Boolean,
+    ): PlaybackBehavior =
+        when (switch) {
+            BehaviorSwitch.PreservePlayNextOrder -> copy(preservePlayNextOrder = on)
+            BehaviorSwitch.RewindFirst -> copy(rewindFirst = on)
+            BehaviorSwitch.Circular -> copy(circular = on)
+            BehaviorSwitch.KeepPausedOnSkip -> copy(keepPausedOnSkip = on)
+            BehaviorSwitch.StopRepeatOneOnSkip -> copy(stopRepeatOneOnSkip = on)
+            BehaviorSwitch.RetainPlayerState -> copy(retainPlayerState = on)
+            BehaviorSwitch.WeightedShuffle -> copy(weightedShuffle = on)
+        }
+}
 
 /** Validated audio, streaming and storage preferences (media3 skill, sections 3, 6, 7, 9 and 10). */
 data class AudioPreferences(

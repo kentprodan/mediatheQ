@@ -33,7 +33,8 @@ class QueuePlayerTest {
             .build()
     private var behavior = PlaybackBehavior()
     private var resuming = false
-    private val player = QueuePlayer(exoPlayer, { behavior }, { resuming }, Random(1))
+    private var uptime = 0L
+    private val player = QueuePlayer(exoPlayer, { behavior }, { resuming }, Random(1), uptime = { uptime })
 
     private val items: List<MediaItem> =
         (1..5).map {
@@ -223,5 +224,78 @@ class QueuePlayerTest {
 
         assertThat(player.playOrder().first()).isEqualTo(2)
         assertThat(player.playOrder()).containsExactlyElementsIn(0 until items.size)
+    }
+
+    @Test
+    fun `Previous with rewind first off still restarts the first track, the media item variant does nothing there`() {
+        behavior = behavior.copy(rewindFirst = false, circular = false)
+        start()
+        player.seekTo(5_000)
+
+        player.seekToPreviousMediaItem()
+        assertThat(player.currentPosition).isAtLeast(5_000)
+
+        player.seekToPrevious()
+        assertThat(title()).isEqualTo("Track 1")
+        assertThat(player.currentPosition).isLessThan(1_000)
+    }
+
+    @Test
+    fun `a controller's new queue without a start index turns shuffle off, Shuffle's own queue stays shuffled`() {
+        start()
+        player.shuffleModeEnabled = true
+        uptime += 60_000
+
+        player.setMediaItems(items) // Android Auto playing a playlist
+        assertThat(player.shuffleModeEnabled).isFalse()
+
+        player.shuffleModeEnabled = true // Shuffle: the mode, then its queue
+        player.setMediaItems(items, true)
+        assertThat(player.shuffleModeEnabled).isTrue()
+    }
+
+    private fun connect(): Pair<MediaSession, MediaController> {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val session =
+            MediaSession
+                .Builder(context, player)
+                .setCallback(
+                    object : MediaSession.Callback {
+                        override fun onAddMediaItems(
+                            mediaSession: MediaSession,
+                            controller: MediaSession.ControllerInfo,
+                            mediaItems: MutableList<MediaItem>,
+                        ) = Futures.immediateFuture(mediaItems.map { it.withTrackUri()!! }.toMutableList())
+                    },
+                ).build()
+        val future = MediaController.Builder(context, session.token).buildAsync()
+        RobolectricUtil.runMainLooperUntil { future.isDone }
+        return session to future.get()
+    }
+
+    @Test
+    fun `through a MediaController, Previous rewinds, a paused skip plays, and repeat one turns to repeat all`() {
+        start(at = 2)
+        val (session, controller) = connect()
+        player.seekTo(5_000)
+        RobolectricUtil.runMainLooperUntil { controller.currentPosition >= 5_000 }
+
+        controller.seekToPrevious()
+        RobolectricUtil.runMainLooperUntil { player.currentPosition < 1_000 }
+        assertThat(title()).isEqualTo("Track 3")
+
+        player.pause()
+        player.repeatMode = Player.REPEAT_MODE_ONE
+        RobolectricUtil.runMainLooperUntil {
+            controller.repeatMode == Player.REPEAT_MODE_ONE &&
+                !controller.playWhenReady
+        }
+        controller.seekToNext()
+        RobolectricUtil.runMainLooperUntil { player.currentMediaItemIndex == 3 }
+        assertThat(player.playWhenReady).isTrue()
+        assertThat(player.repeatMode).isEqualTo(Player.REPEAT_MODE_ALL)
+
+        controller.release()
+        session.release()
     }
 }

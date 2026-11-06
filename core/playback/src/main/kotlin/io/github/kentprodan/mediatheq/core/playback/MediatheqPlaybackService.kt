@@ -186,6 +186,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             InstantTranscoder(
                 player,
                 enabled = { audioPreferences.preferences.first().forceInstantTranscoding },
+                isOnline = playerNetwork::isOnline,
                 needsNewStream = { id ->
                     val local = downloads.isDownloaded(id) || streamingCache.isFullyCached(originalCacheKey(id))
                     wantsNewStream(

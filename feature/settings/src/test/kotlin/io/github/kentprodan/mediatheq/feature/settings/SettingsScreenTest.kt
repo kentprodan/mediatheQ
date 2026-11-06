@@ -38,6 +38,7 @@ import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistPlayAction
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
@@ -50,7 +51,6 @@ import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.NowPlayingColors
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
-import io.github.kentprodan.mediatheq.core.data.PlaybackBehavior
 import io.github.kentprodan.mediatheq.core.data.PlayerBackground
 import io.github.kentprodan.mediatheq.core.data.PlayerProgress
 import io.github.kentprodan.mediatheq.core.data.PlaylistButton
@@ -770,7 +770,7 @@ class SettingsScreenTest {
 
         composeRule.onNode(hasText("Weighted shuffle") and hasClickAction()).performClick()
 
-        assertThat(actions).containsExactly(SettingsAction.SetBehavior(PlaybackBehavior(weightedShuffle = false)))
+        assertThat(actions).containsExactly(SettingsAction.SetBehavior(BehaviorSwitch.WeightedShuffle, false))
     }
 }
 

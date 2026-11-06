@@ -31,8 +31,11 @@ interface AudioPreferencesRepository {
     /** Back to the Decoding and transcoding defaults only: both qualities and instant transcoding. */
     suspend fun restoreDecodingDefaults()
 
-    /** Every Playback behavior value at once (#138). */
-    suspend fun setBehavior(behavior: PlaybackBehavior)
+    /** One Playback behavior switch (#138); the others keep their stored values. */
+    suspend fun setBehavior(
+        switch: BehaviorSwitch,
+        on: Boolean,
+    )
 
     /** Back to the Playback behavior defaults only. */
     suspend fun restoreBehaviorDefaults()

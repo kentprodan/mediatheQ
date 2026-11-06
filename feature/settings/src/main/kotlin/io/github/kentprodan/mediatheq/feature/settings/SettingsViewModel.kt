@@ -308,7 +308,7 @@ class SettingsViewModel
                     }
 
                     is SettingsAction.SetBehavior -> {
-                        audio.setBehavior(action.behavior)
+                        audio.setBehavior(action.switch, action.on)
                     }
 
                     SettingsAction.RestoreBehaviorDefaults -> {

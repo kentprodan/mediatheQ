@@ -36,7 +36,8 @@ class InstantTranscoderTest {
         TestExoPlayerBuilder(ApplicationProvider.getApplicationContext()).setMediaSourceFactory(sources).build()
     private var enabled = true
     private var needed = true
-    private val transcoder = InstantTranscoder(player, { enabled }, { needed })
+    private var online = true
+    private val transcoder = InstantTranscoder(player, { enabled }, { online }, { needed })
 
     private val items =
         (1..4).map {
@@ -102,5 +103,21 @@ class InstantTranscoderTest {
         assertThat(wantsNewStream(StreamingQuality.Kbps256, StreamingQuality.Kbps256, local = false)).isFalse()
         assertThat(wantsNewStream(StreamingQuality.Original, StreamingQuality.Kbps256, local = true)).isFalse()
         assertThat(wantsNewStream(null, StreamingQuality.Kbps256, local = false)).isFalse()
+    }
+
+    @Test
+    fun `Wi-Fi lost to no network at all does not restart, mobile data arriving then does`() {
+        playSecondAt5Seconds()
+        runBlocking { transcoder.onNetwork(metered = false) }
+
+        online = false
+        runBlocking { transcoder.onNetwork(metered = true) }
+        advance(player).untilPendingCommandsAreFullyHandled()
+        assertThat(created).isEmpty()
+
+        online = true
+        runBlocking { transcoder.onNetwork(metered = true) }
+        advance(player).untilPendingCommandsAreFullyHandled()
+        assertThat(created).containsExactly(items[1].mediaId)
     }
 }
