@@ -127,6 +127,9 @@ internal fun MediaItem.markedPlayedNext(): MediaItem {
 
 internal fun MediaItem.isPlayedNext(): Boolean = mediaMetadata.extras?.getBoolean(EXTRA_PLAYED_NEXT, false) == true
 
+/** The track this queue item plays; `null` for an item that is not one of ours. */
+internal fun MediaItem.queuedTrackId(): MediaId? = runCatching { MediaId.parse(mediaId) }.getOrNull()
+
 /** The queue entry this item is (see [toMediaItem]). */
 internal fun MediaItem.entryId(): String? = mediaMetadata.extras?.getString(EXTRA_ENTRY_ID)
 
