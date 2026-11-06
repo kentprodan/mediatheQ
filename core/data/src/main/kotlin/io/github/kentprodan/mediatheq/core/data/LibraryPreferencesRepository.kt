@@ -81,6 +81,12 @@ interface LibraryPreferencesRepository {
     /** Back to the Search page defaults only. */
     suspend fun restoreSearchPageDefaults()
 
+    /** Every Advanced settings value at once (#137). */
+    suspend fun setAdvanced(advanced: AdvancedPreferences)
+
+    /** Back to the Advanced settings defaults only. */
+    suspend fun restoreAdvancedDefaults()
+
     suspend fun setRatingMode(mode: RatingMode)
 
     /** Now Playing's quality label: the format detail or its kind (#125). */

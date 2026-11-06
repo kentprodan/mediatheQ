@@ -39,4 +39,6 @@
     <string name="nowplaying_cover_tap_play_pause">Play or pause</string>
     <string name="nowplaying_cover_tap_lyrics">Show lyrics</string>
     <string name="nowplaying_cover">Cover</string>
+    <string name="nowplaying_track_number">%1$d / %2$d</string>
+    <string name="nowplaying_track_number_spoken">Track %1$d of %2$d in the queue</string>
 </resources>

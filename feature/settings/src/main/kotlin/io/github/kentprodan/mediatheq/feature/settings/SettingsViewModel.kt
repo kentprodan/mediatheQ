@@ -291,6 +291,14 @@ class SettingsViewModel
                         library.restoreSearchPageDefaults()
                     }
 
+                    is SettingsAction.SetAdvanced -> {
+                        library.setAdvanced(action.advanced)
+                    }
+
+                    SettingsAction.RestoreAdvancedDefaults -> {
+                        library.restoreAdvancedDefaults()
+                    }
+
                     SettingsAction.OpenGenreSections -> {
                         genreSectionsDraft.value =
                             genreSectionsDraft(

@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
+import io.github.kentprodan.mediatheq.core.datastore.StoredAdvanced
 import io.github.kentprodan.mediatheq.core.datastore.StoredAlbumPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredArtistPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredGenrePage
@@ -49,6 +50,7 @@ class DefaultLibraryPreferencesRepository
                     genrePage = genrePage(stored.genrePage),
                     playlistPage = playlistPage(stored.playlistPage),
                     searchPage = searchPage(stored.searchPage),
+                    advanced = advanced(stored.advanced),
                     qualityDetail = stored.qualityDetail ?: false,
                 )
             }
@@ -293,6 +295,32 @@ class DefaultLibraryPreferencesRepository
         }
 
         override suspend fun restoreSearchPageDefaults() = store.setSearchPage(StoredSearchPage())
+
+        override suspend fun setAdvanced(advanced: AdvancedPreferences) {
+            store.setAdvanced(
+                StoredAdvanced(
+                    keepScreenOn = advanced.keepScreenOn.name,
+                    orientation = advanced.orientation.name,
+                    corners = advanced.corners.name,
+                    showTrackNumber = advanced.showTrackNumber,
+                    hideStatusBar = advanced.hideStatusBar,
+                ),
+            )
+        }
+
+        override suspend fun restoreAdvancedDefaults() = store.setAdvanced(StoredAdvanced())
+
+        /** Unknown names fall back to the defaults. */
+        private fun advanced(stored: StoredAdvanced): AdvancedPreferences {
+            val defaults = AdvancedPreferences()
+            return AdvancedPreferences(
+                keepScreenOn = enumOrNull<KeepScreenOn>(stored.keepScreenOn) ?: defaults.keepScreenOn,
+                orientation = enumOrNull<ScreenOrientation>(stored.orientation) ?: defaults.orientation,
+                corners = enumOrNull<CornerStyle>(stored.corners) ?: defaults.corners,
+                showTrackNumber = stored.showTrackNumber ?: defaults.showTrackNumber,
+                hideStatusBar = stored.hideStatusBar ?: defaults.hideStatusBar,
+            )
+        }
 
         /** Unknown names fall back to the defaults (an unknown track action = Same as default). */
         private fun searchPage(stored: StoredSearchPage): SearchPagePreferences {

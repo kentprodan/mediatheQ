@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
@@ -11,8 +12,8 @@ import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
-import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlaybackError
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -41,11 +43,21 @@ class MainViewModel
         libraryRepository: LibraryRepository,
         downloads: DownloadRepository,
     ) : ViewModel() {
-        /** Theme, font and colors; `null` while they are read, so the first frame never shows the wrong colors. */
-        val theme: StateFlow<ThemePreferences?> =
+        /**
+         * Theme, font, colors and corners (#137, read with the theme so the first frame never changes shape); `null`
+         * while they are read, so the first frame never shows the wrong colors.
+         */
+        val theme: StateFlow<MqThemeOptions?> =
             libraryPreferences.preferences
-                .map { it.theme }
+                .map { it.theme.toThemeOptions(it.advanced.corners) }
+                .distinctUntilChanged()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        /** Advanced settings (#137): keep screen on, orientation, status bar. */
+        val advanced: StateFlow<AdvancedPreferences> =
+            libraryPreferences.preferences
+                .map { it.advanced }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AdvancedPreferences())
 
         /** Navigation and media start (#122): the shell's entries and styles. */
         val navigation: StateFlow<NavigationPreferences> =

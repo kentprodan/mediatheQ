@@ -55,6 +55,10 @@ data object PlaylistPageSettingsKey : NavKey
 @Serializable
 data object SearchPageSettingsKey : NavKey
 
+/** Settings -> Advanced settings, from the hub and from Interface (#137). */
+@Serializable
+data object AdvancedSettingsKey : NavKey
+
 /** Settings -> Playback: streaming quality, normalization, Audio. */
 @Serializable
 data object PlaybackSettingsKey : NavKey

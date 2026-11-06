@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
@@ -15,6 +16,7 @@ import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.data.GenreSection
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
+import io.github.kentprodan.mediatheq.core.data.KeepScreenOn
 import io.github.kentprodan.mediatheq.core.data.LibraryHubStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
@@ -568,5 +570,21 @@ class SettingsViewModelTest {
             viewModel.onAction(SettingsAction.RestoreSearchPageDefaults)
             assertThat(library.preferences.value.searchPage).isEqualTo(SearchPagePreferences())
             assertThat(library.preferences.value.playlistPage).isEqualTo(playlist)
+        }
+
+    @Test
+    fun `advanced choices apply at once and restoring resets only that page`() =
+        runTest {
+            signIn()
+            val search = SearchPagePreferences(showFavorite = false)
+            library.setSearchPage(search)
+            val chosen = AdvancedPreferences(keepScreenOn = KeepScreenOn.Always, hideStatusBar = true)
+
+            viewModel.onAction(SettingsAction.SetAdvanced(chosen))
+            assertThat(content().library.advanced).isEqualTo(chosen)
+
+            viewModel.onAction(SettingsAction.RestoreAdvancedDefaults)
+            assertThat(library.preferences.value.advanced).isEqualTo(AdvancedPreferences())
+            assertThat(library.preferences.value.searchPage).isEqualTo(search)
         }
 }

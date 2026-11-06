@@ -337,6 +337,15 @@ private fun TitleBlock(
     val colors = MaterialTheme.colorScheme
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
+            state.trackNumber?.let { (number, count) ->
+                val spoken = stringResource(R.string.nowplaying_track_number_spoken, number, count)
+                Text(
+                    stringResource(R.string.nowplaying_track_number, number, count),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.semantics { contentDescription = spoken },
+                )
+            }
             Text(
                 state.title,
                 style = MaterialTheme.typography.headlineSmallEmphasized,

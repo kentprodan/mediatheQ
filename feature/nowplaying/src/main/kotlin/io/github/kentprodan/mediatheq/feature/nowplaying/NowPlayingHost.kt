@@ -36,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.hideFromAccessibility
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
+import io.github.kentprodan.mediatheq.core.data.KeepScreenOn
 import io.github.kentprodan.mediatheq.core.data.MiniProgress
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqMiniPlayer
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqMiniProgress
@@ -75,6 +77,8 @@ fun NowPlayingHost(
     snackbarHost: @Composable () -> Unit = {},
     /** Opens a page or dialog behind the player (artist, album, Audio settings, Add to playlist, #125). */
     onNavigate: (NavKey) -> Unit = {},
+    /** Advanced settings -> Keep screen on (#137): Always, or While Now Playing is open. */
+    keepScreenOn: KeepScreenOn = KeepScreenOn.Off,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     NowPlayingLayout(
@@ -87,6 +91,7 @@ fun NowPlayingHost(
         snackbarHost = snackbarHost,
         autoExpand = viewModel.autoExpand.collectAsStateWithLifecycle().value,
         onNavigate = onNavigate,
+        keepScreenOn = keepScreenOn,
     )
 }
 
@@ -108,6 +113,8 @@ fun NowPlayingLayout(
     /** Open the player now (playback just started, #122); acknowledged with [NowPlayingAction.AutoExpanded]. */
     autoExpand: Boolean = false,
     onNavigate: (NavKey) -> Unit = {},
+    /** Advanced settings -> Keep screen on (#137): Always, or only while the full player is open. */
+    keepScreenOn: KeepScreenOn = KeepScreenOn.Off,
 ) {
     var expanded by rememberSaveable { mutableStateOf(expandedInitially) }
     LaunchedEffect(autoExpand) {
@@ -134,7 +141,13 @@ fun NowPlayingLayout(
 
     SharedTransitionLayout {
         val sharedScope = this
-        Box(Modifier.fillMaxSize()) {
+        val keepOn =
+            if (keepScreenOn == KeepScreenOn.Always || (expanded && keepScreenOn == KeepScreenOn.NowPlaying)) {
+                Modifier.keepScreenOn()
+            } else {
+                Modifier
+            }
+        Box(Modifier.fillMaxSize().then(keepOn)) {
             // While the player covers the shell, TalkBack must not reach the screens and the bar behind it.
             Box(Modifier.semantics { if (expanded) hideFromAccessibility() }) {
                 content { onBottomBar ->

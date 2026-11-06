@@ -62,6 +62,7 @@ enum class SettingsPage(
     Genre(R.string.settings_genre_page),
     Playlist(R.string.settings_playlist_page),
     Search(R.string.settings_search_page),
+    Advanced(R.string.settings_advanced),
     Playback(R.string.settings_playback),
     Storage(R.string.settings_storage_page),
     Providers(R.string.settings_providers),
@@ -83,6 +84,7 @@ internal fun SettingsPageRoute(
     onOpenGenrePage: () -> Unit = {},
     onOpenPlaylistPage: () -> Unit = {},
     onOpenSearchPage: () -> Unit = {},
+    onOpenAdvanced: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -103,6 +105,7 @@ internal fun SettingsPageRoute(
         onOpenGenrePage,
         onOpenPlaylistPage,
         onOpenSearchPage,
+        onOpenAdvanced,
     )
 }
 
@@ -128,6 +131,7 @@ fun SettingsPageScreen(
     onOpenGenrePage: () -> Unit = {},
     onOpenPlaylistPage: () -> Unit = {},
     onOpenSearchPage: () -> Unit = {},
+    onOpenAdvanced: () -> Unit = {},
 ) {
     // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
     var dialog by rememberSaveable { mutableStateOf<ThemeDialog?>(null) }
@@ -141,6 +145,7 @@ fun SettingsPageScreen(
     var genreDialog by rememberSaveable { mutableStateOf<GenrePageDialog?>(null) }
     var playlistDialog by rememberSaveable { mutableStateOf<PlaylistPageDialog?>(null) }
     var searchDialog by rememberSaveable { mutableStateOf<SearchPageDialog?>(null) }
+    var advancedDialog by rememberSaveable { mutableStateOf<AdvancedDialog?>(null) }
     val listState = rememberLazyListState()
     // The Home page's rows as shown: a drag moves them here and saves the order once, on drop.
     val homeOrder =
@@ -240,6 +245,19 @@ fun SettingsPageScreen(
                     }
                 }
                 item(key = "ratings") { RatingsGroup(content.library.ratingMode, onAction) }
+                item(key = "advanced") {
+                    Group(R.string.settings_advanced) {
+                        item { shapes ->
+                            SegmentedListItem(
+                                onClick = onOpenAdvanced,
+                                shapes = shapes,
+                                colors = settingsColors(),
+                                supportingContent = { Text(stringResource(R.string.settings_advanced_summary)) },
+                                trailingContent = { Icon(MqIcons.Tune, contentDescription = null) },
+                            ) { Text(stringResource(R.string.settings_advanced_settings)) }
+                        }
+                    }
+                }
             }
 
             SettingsPage.Theme -> {
@@ -286,6 +304,10 @@ fun SettingsPageScreen(
 
             SettingsPage.Search -> {
                 searchPageGroups(content.library.searchPage, onAction) { searchDialog = it }
+            }
+
+            SettingsPage.Advanced -> {
+                advancedGroups(content.library.advanced, onAction) { advancedDialog = it }
             }
 
             SettingsPage.Playback -> {
@@ -336,6 +358,9 @@ fun SettingsPageScreen(
         }
         searchDialog?.let {
             SearchPageDialogHost(it, content.library.searchPage, onAction) { searchDialog = null }
+        }
+        advancedDialog?.let {
+            AdvancedDialogHost(it, content.library.advanced, onAction) { advancedDialog = null }
         }
     }
 }

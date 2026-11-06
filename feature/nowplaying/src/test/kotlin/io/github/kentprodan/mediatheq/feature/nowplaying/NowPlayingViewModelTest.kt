@@ -4,6 +4,7 @@ import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
 import io.github.kentprodan.mediatheq.core.data.CoverTap
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
@@ -720,4 +721,27 @@ class NowPlayingViewModelTest {
         assertThat(base.copy(settings = NowPlayingPreferences(showRating = false)).showsRating).isFalse()
         assertThat(base.copy(ratingMode = RatingMode.Off).showsRating).isFalse()
     }
+
+    @Test
+    fun `the track number shows the playing entry's place in the queue only while the setting is on`() =
+        runTest {
+            val viewModel =
+                NowPlayingViewModel(playback, library, userData, lyrics, libraryPreferences, waveforms, downloads)
+            playback.queue.value =
+                (1..12).map { QueueItem("e$it", MediaId(ServerId("s"), "t$it"), "Track $it", "deadmau5") }
+            playback.state.value = playing.copy(currentEntryId = "e3")
+            viewModel.uiState.test {
+                assertThat((expectMostRecentItem() as NowPlayingUiState.Playing).trackNumber).isNull()
+
+                libraryPreferences.setAdvanced(AdvancedPreferences(showTrackNumber = true))
+                assertThat((awaitItem() as NowPlayingUiState.Playing).trackNumber).isEqualTo(QueuePosition(3, 12))
+
+                // The new entry reaches the player state first, then its place in the queue.
+                playback.state.value = playing.copy(currentEntryId = "e4")
+                var next = awaitItem() as NowPlayingUiState.Playing
+                if (next.trackNumber?.number == 3) next = awaitItem() as NowPlayingUiState.Playing
+                assertThat(next.trackNumber).isEqualTo(QueuePosition(4, 12))
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 }
