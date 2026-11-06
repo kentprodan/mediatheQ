@@ -283,6 +283,14 @@ class SettingsViewModel
                         library.restorePlaylistPageDefaults()
                     }
 
+                    is SettingsAction.SetSearchPage -> {
+                        library.setSearchPage(action.page)
+                    }
+
+                    SettingsAction.RestoreSearchPageDefaults -> {
+                        library.restoreSearchPageDefaults()
+                    }
+
                     SettingsAction.OpenGenreSections -> {
                         genreSectionsDraft.value =
                             genreSectionsDraft(

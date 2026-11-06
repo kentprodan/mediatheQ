@@ -54,11 +54,13 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistButton
 import io.github.kentprodan.mediatheq.core.data.PlaylistHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
+import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.TopButton
+import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqSeedPresets
 import io.github.kentprodan.mediatheq.core.model.HomeSection
@@ -682,6 +684,21 @@ class SettingsScreenTest {
                     PlaylistPagePreferences(headerBackground = PlaylistHeaderBackground.ImageColor),
                 ),
                 SettingsAction.SetPlaylistPage(PlaylistPagePreferences(hiddenButtons = setOf(PlaylistButton.Favorite))),
+            ).inOrder()
+    }
+
+    @Test
+    fun `the search page switches apply at once and the track action is chosen in a dialog`() {
+        show(SettingsPage.Search)
+
+        composeRule.onNode(hasText("Show favorite button") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Default track action") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("Play next").performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetSearchPage(SearchPagePreferences(showFavorite = false)),
+                SettingsAction.SetSearchPage(SearchPagePreferences(trackAction = TrackAction.PlayNext)),
             ).inOrder()
     }
 }

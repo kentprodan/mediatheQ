@@ -51,6 +51,10 @@ data object GenrePageSettingsKey : NavKey
 @Serializable
 data object PlaylistPageSettingsKey : NavKey
 
+/** Settings -> Interface -> Page settings -> Search page (#136). */
+@Serializable
+data object SearchPageSettingsKey : NavKey
+
 /** Settings -> Playback: streaming quality, normalization, Audio. */
 @Serializable
 data object PlaybackSettingsKey : NavKey

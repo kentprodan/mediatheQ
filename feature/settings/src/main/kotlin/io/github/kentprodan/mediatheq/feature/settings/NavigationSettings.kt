@@ -306,7 +306,7 @@ private val LandscapeNavStyle.label: Int
             LandscapeNavStyle.SameAsPortrait -> R.string.settings_nav_same_as_portrait
         }
 
-private val TrackAction.label: Int
+internal val TrackAction.label: Int
     get() =
         when (this) {
             TrackAction.Play -> R.string.settings_track_play
