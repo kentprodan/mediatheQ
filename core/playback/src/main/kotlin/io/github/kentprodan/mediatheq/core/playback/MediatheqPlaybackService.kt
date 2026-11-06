@@ -53,7 +53,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -162,8 +161,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         .setUsage(C.USAGE_MEDIA)
                         .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                         .build(),
-                    // handleAudioFocus =
-                    true,
+                    // handleAudioFocus = false: AudioFocusController decides (#139, ADR 0031).
+                    false,
                 ).setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setMediaSourceFactory(
@@ -337,6 +336,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
         var offload: Boolean? = null
         var eqGains = AudioPreferences().eqGainsDb
         lateinit var normalization: NormalizationListener
+        var ducked = false
+        player.addListener(
+            AudioFocusController(
+                getSystemService(AudioManager::class.java),
+                player,
+                settings = { audio.audioFocus },
+                bitPerfect = { audioOutput.state.mode == AudioMode.BitPerfect },
+            ) {
+                ducked = it
+                normalization.apply()
+            },
+        )
 
         fun applyEqualizer() =
             equalizer.apply(player.audioSessionId, audioOutput.state.mode == AudioMode.Processed, eqGains)
@@ -395,7 +406,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     )
                 },
             )
-        normalization = NormalizationListener(player, { settings }) { audioOutput.state.mode }
+        normalization =
+            NormalizationListener(
+                player,
+                { settings },
+                mode = { audioOutput.state.mode },
+                duck = { if (ducked) DUCK_VOLUME else 1f },
+            )
         player.addListener(normalization)
         player.applyOffload(audioOutput.state.offload).also { offload = audioOutput.state.offload }
         player.addListener(
