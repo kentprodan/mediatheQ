@@ -16,6 +16,7 @@ import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
+import io.github.kentprodan.mediatheq.core.data.PlaybackBehavior
 import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
@@ -270,6 +271,20 @@ sealed interface SettingsAction {
     ) : SettingsAction
 
     data object RestoreAdvancedDefaults : SettingsAction
+
+    /** Decoding and transcoding (#138). */
+    data class SetForceInstantTranscoding(
+        val on: Boolean,
+    ) : SettingsAction
+
+    data object RestoreDecodingDefaults : SettingsAction
+
+    /** Playback behavior (#138): every value of the page at once. */
+    data class SetBehavior(
+        val behavior: PlaybackBehavior,
+    ) : SettingsAction
+
+    data object RestoreBehaviorDefaults : SettingsAction
 
     data object OpenGenreSections : SettingsAction
 

@@ -299,6 +299,22 @@ class SettingsViewModel
                         library.restoreAdvancedDefaults()
                     }
 
+                    is SettingsAction.SetForceInstantTranscoding -> {
+                        audio.setForceInstantTranscoding(action.on)
+                    }
+
+                    SettingsAction.RestoreDecodingDefaults -> {
+                        audio.restoreDecodingDefaults()
+                    }
+
+                    is SettingsAction.SetBehavior -> {
+                        audio.setBehavior(action.behavior)
+                    }
+
+                    SettingsAction.RestoreBehaviorDefaults -> {
+                        audio.restoreBehaviorDefaults()
+                    }
+
                     SettingsAction.OpenGenreSections -> {
                         genreSectionsDraft.value =
                             genreSectionsDraft(

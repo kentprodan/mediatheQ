@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.navigation.AdvancedSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AudioSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.DecodingSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.GenrePageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.HomePageSettingsKey
@@ -17,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.navigation.MediaListsSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.NavigationSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.NowPlayingSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.PlaybackBehaviorSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ProvidersSettingsKey
@@ -71,7 +73,17 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<PlaylistPageSettingsKey> { SettingsPageRoute(SettingsPage.Playlist, openAudio, back) }
     entry<SearchPageSettingsKey> { SettingsPageRoute(SettingsPage.Search, openAudio, back) }
     entry<AdvancedSettingsKey> { SettingsPageRoute(SettingsPage.Advanced, openAudio, back) }
-    entry<PlaybackSettingsKey> { SettingsPageRoute(SettingsPage.Playback, openAudio, back) }
+    entry<PlaybackSettingsKey> {
+        SettingsPageRoute(
+            SettingsPage.Playback,
+            openAudio,
+            back,
+            onOpenBehavior = { navigator.navigateTo(PlaybackBehaviorSettingsKey) },
+            onOpenDecoding = { navigator.navigateTo(DecodingSettingsKey) },
+        )
+    }
+    entry<PlaybackBehaviorSettingsKey> { SettingsPageRoute(SettingsPage.PlaybackBehavior, openAudio, back) }
+    entry<DecodingSettingsKey> { SettingsPageRoute(SettingsPage.Decoding, openAudio, back) }
     entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openAudio, back) }
     entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openAudio, back) }
     entry<AboutSettingsKey> {
