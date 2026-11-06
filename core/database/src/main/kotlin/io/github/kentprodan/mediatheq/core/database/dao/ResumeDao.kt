@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 
 /** Where listening to each album stopped (#132). */
 @Dao
-interface AlbumResumeDao {
+interface ResumeDao {
     @Query("SELECT * FROM album_resume WHERE server_id = :serverId AND album_id = :albumId")
     fun resume(
         serverId: String,

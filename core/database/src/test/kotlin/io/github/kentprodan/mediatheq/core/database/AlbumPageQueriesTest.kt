@@ -21,7 +21,7 @@ class AlbumPageQueriesTest {
     private val database = inMemoryDatabase()
     private val libraryDao = database.libraryDao()
     private val syncDao = database.syncDao()
-    private val resumeDao = database.albumResumeDao()
+    private val resumeDao = database.resumeDao()
 
     @After
     fun close() = database.close()

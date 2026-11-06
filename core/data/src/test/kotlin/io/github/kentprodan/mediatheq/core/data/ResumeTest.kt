@@ -5,8 +5,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
-import io.github.kentprodan.mediatheq.core.model.AlbumResume
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
@@ -19,14 +19,14 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-class AlbumResumeTest {
+class ResumeTest {
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
     private val tracks = List(3) { Track(id("t$it"), "T$it", emptyList(), 3.minutes) }
 
     @Test
     fun `Resume continues the track where it stopped`() {
-        val resume = AlbumResume(id("t1"), 70.seconds)
+        val resume = ResumePoint(id("t1"), 70.seconds)
 
         assertThat(resumeTarget(resume, tracks)).isEqualTo(resume)
     }
@@ -34,34 +34,34 @@ class AlbumResumeTest {
     @Test
     fun `a track played to its end resumes with the next one from the start`() {
         assertThat(
-            resumeTarget(AlbumResume(id("t0"), 3.minutes), tracks),
-        ).isEqualTo(AlbumResume(id("t1"), Duration.ZERO))
+            resumeTarget(ResumePoint(id("t0"), 3.minutes), tracks),
+        ).isEqualTo(ResumePoint(id("t1"), Duration.ZERO))
         // Within ten seconds of the end counts as played.
         assertThat(
-            resumeTarget(AlbumResume(id("t0"), 171.seconds), tracks),
-        ).isEqualTo(AlbumResume(id("t1"), Duration.ZERO))
+            resumeTarget(ResumePoint(id("t0"), 171.seconds), tracks),
+        ).isEqualTo(ResumePoint(id("t1"), Duration.ZERO))
         assertThat(
-            resumeTarget(AlbumResume(id("t0"), 169.seconds), tracks),
-        ).isEqualTo(AlbumResume(id("t0"), 169.seconds))
+            resumeTarget(ResumePoint(id("t0"), 169.seconds), tracks),
+        ).isEqualTo(ResumePoint(id("t0"), 169.seconds))
     }
 
     @Test
     fun `a short interlude paused early keeps its place, near its end resumes with the next track`() {
         val short = listOf(Track(id("i"), "Intro", emptyList(), 8.seconds)) + tracks
 
-        assertThat(resumeTarget(AlbumResume(id("i"), 3.seconds), short)).isEqualTo(AlbumResume(id("i"), 3.seconds))
-        assertThat(resumeTarget(AlbumResume(id("i"), 5.seconds), short)).isEqualTo(AlbumResume(id("t0"), Duration.ZERO))
+        assertThat(resumeTarget(ResumePoint(id("i"), 3.seconds), short)).isEqualTo(ResumePoint(id("i"), 3.seconds))
+        assertThat(resumeTarget(ResumePoint(id("i"), 5.seconds), short)).isEqualTo(ResumePoint(id("t0"), Duration.ZERO))
     }
 
     @Test
     fun `nothing played, a finished album or a track no longer on it has no Resume`() {
         assertThat(resumeTarget(null, tracks)).isNull()
-        assertThat(resumeTarget(AlbumResume(id("t2"), 3.minutes), tracks)).isNull()
-        assertThat(resumeTarget(AlbumResume(id("gone"), 10.seconds), tracks)).isNull()
+        assertThat(resumeTarget(ResumePoint(id("t2"), 3.minutes), tracks)).isNull()
+        assertThat(resumeTarget(ResumePoint(id("gone"), 10.seconds), tracks)).isNull()
     }
 
     private val database = inMemoryDatabase()
-    private val repository = DefaultAlbumResumeRepository(database.albumResumeDao())
+    private val repository = DefaultResumeRepository(database.resumeDao())
 
     @After
     fun close() = database.close()
@@ -81,7 +81,7 @@ class AlbumResumeTest {
             repository.record(id("t1"), 42.seconds)
             repository.record(id("t9"), 5.seconds)
 
-            assertThat(repository.resume(id("al1")).first()).isEqualTo(AlbumResume(id("t1"), 42.seconds))
+            assertThat(repository.resume(id("al1")).first()).isEqualTo(ResumePoint(id("t1"), 42.seconds))
             assertThat(
                 database
                     .rows("SELECT COUNT(*) FROM album_resume")

@@ -3,11 +3,11 @@ package io.github.kentprodan.mediatheq.core.database
 import androidx.room3.AutoMigration
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
-import io.github.kentprodan.mediatheq.core.database.dao.AlbumResumeDao
 import io.github.kentprodan.mediatheq.core.database.dao.DownloadOriginDao
 import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
 import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
 import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
+import io.github.kentprodan.mediatheq.core.database.dao.ResumeDao
 import io.github.kentprodan.mediatheq.core.database.dao.SyncDao
 import io.github.kentprodan.mediatheq.core.database.dao.UserDataDao
 import io.github.kentprodan.mediatheq.core.database.dao.WaveformDao
@@ -109,5 +109,5 @@ abstract class MediatheqDatabase : RoomDatabase() {
 
     abstract fun waveformDao(): WaveformDao
 
-    abstract fun albumResumeDao(): AlbumResumeDao
+    abstract fun resumeDao(): ResumeDao
 }

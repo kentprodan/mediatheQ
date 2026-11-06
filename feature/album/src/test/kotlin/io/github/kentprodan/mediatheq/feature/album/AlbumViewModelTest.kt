@@ -7,11 +7,11 @@ import io.github.kentprodan.mediatheq.core.data.MoreAlbumsSort
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.model.Album
-import io.github.kentprodan.mediatheq.core.model.AlbumResume
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
+import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
@@ -19,12 +19,12 @@ import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
-import io.github.kentprodan.mediatheq.core.testing.FakeAlbumResumeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
+import io.github.kentprodan.mediatheq.core.testing.FakeResumeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import io.github.kentprodan.mediatheq.core.ui.AlbumTitle
@@ -69,7 +69,7 @@ class AlbumViewModelTest {
 
     private val downloads = FakeDownloadRepository()
     private val preferences = FakeLibraryPreferencesRepository()
-    private val resumes = FakeAlbumResumeRepository()
+    private val resumes = FakeResumeRepository()
 
     private fun TestScope.viewModel(): AlbumViewModel {
         val viewModel =
@@ -326,18 +326,18 @@ class AlbumViewModelTest {
     @Test
     fun `resume continues where the album was left, and a finished album has none`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            resumes.resumes.value = mapOf(albumId to AlbumResume(disc1[1].id, 70.seconds))
+            resumes.resumes.value = mapOf(albumId to ResumePoint(disc1[1].id, 70.seconds))
             library.albums.value = listOf(album)
             library.tracks.value = disc1 + disc2
             val viewModel = viewModel()
 
             assertThat(
                 (viewModel.uiState.value as AlbumUiState.Content).resume,
-            ).isEqualTo(AlbumResume(disc1[1].id, 70.seconds))
+            ).isEqualTo(ResumePoint(disc1[1].id, 70.seconds))
             viewModel.onAction(AlbumAction.Resume)
             assertThat(playback.plays.single()).isEqualTo(PlayCall(disc1 + disc2, 1, false, 70.seconds))
 
-            resumes.resumes.value = mapOf(albumId to AlbumResume(disc2[0].id, 3.minutes))
+            resumes.resumes.value = mapOf(albumId to ResumePoint(disc2[0].id, 3.minutes))
             assertThat((viewModel.uiState.value as AlbumUiState.Content).resume).isNull()
         }
 
