@@ -31,9 +31,16 @@ internal fun Player.playQueue(
     play()
 }
 
-/** Queues [items] right after the current entry; with nothing queued, plays them. */
+/**
+ * Queues [items] right after the current entry (marked, so the session can keep Play next order, #138); with nothing
+ * queued, plays them.
+ */
 internal fun Player.playNext(items: List<MediaItem>) {
-    if (mediaItemCount == 0) playQueue(items, 0, shuffle = false) else addMediaItems(currentMediaItemIndex + 1, items)
+    if (mediaItemCount == 0) {
+        playQueue(items, 0, shuffle = false)
+    } else {
+        addMediaItems(currentMediaItemIndex + 1, items.map { it.markedPlayedNext() })
+    }
 }
 
 /** Queues [items] at the end; with nothing queued, plays them. */
@@ -93,8 +100,10 @@ internal fun shuffleWithInserted(
     inserted: IntRange,
     current: Int,
     appended: Boolean,
+    /** Entries to pass after [current] first: earlier Play next entries, when their order is kept (#138). */
+    after: Int = 0,
 ): List<Int> {
     val rest = order.filterNot { it in inserted }
-    val at = if (appended) rest.size else rest.indexOf(current) + 1
+    val at = if (appended) rest.size else rest.indexOf(current) + 1 + after
     return rest.take(at) + inserted + rest.drop(at)
 }

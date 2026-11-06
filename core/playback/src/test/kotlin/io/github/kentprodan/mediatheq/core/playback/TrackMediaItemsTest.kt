@@ -6,10 +6,12 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.UserData
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 // Robolectric: the extras are an android.os.Bundle.
 @RunWith(RobolectricTestRunner::class)
@@ -69,5 +71,27 @@ class TrackMediaItemsTest {
 
         assertThat(track.toMediaItem(null, playlistId = playlist).withTrackUri()!!.playlistId()).isEqualTo(playlist)
         assertThat(track.toMediaItem(null).playlistId()).isNull()
+    }
+
+    @Test
+    fun `the shuffle weight travels in the item, and Play next marks it`() {
+        val played = Instant.parse("2026-11-01T10:00:00Z")
+        val track =
+            Track(
+                MediaId(ServerId("s"), "w1"),
+                "Weighted",
+                emptyList(),
+                3.minutes,
+                userData = UserData(isFavorite = true, rating = 8.0, lastPlayedAt = played),
+            )
+        val item = track.toMediaItem(null).withTrackUri()!!
+
+        assertThat(item.shuffleWeight()).isEqualTo(ShuffleWeight(played, isFavorite = true, halfStars = 8))
+        assertThat(item.isPlayedNext()).isFalse()
+        assertThat(item.markedPlayedNext().isPlayedNext()).isTrue()
+        assertThat(item.markedPlayedNext().entryId()).isEqualTo(item.entryId())
+        assertThat(
+            Track(MediaId(ServerId("s"), "w2"), "Plain", emptyList(), 3.minutes).toMediaItem(null).shuffleWeight(),
+        ).isEqualTo(ShuffleWeight())
     }
 }
