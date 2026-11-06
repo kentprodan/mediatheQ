@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Read from disk in a few milliseconds; until then nothing is drawn, rather than the wrong colors.
             val theme = viewModel.theme.collectAsStateWithLifecycle().value ?: return@setContent
-            MediatheqTheme(theme.toThemeOptions()) {
+            MediatheqTheme(theme) {
                 // Android 17: no server can be reached without local network access, so ask before anything else.
                 LocalNetworkGate(
                     onAccess = { justGranted ->

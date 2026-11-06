@@ -39,6 +39,8 @@ data class MqThemeOptions(
     /** No color animation on theme or cover changes. */
     val instantColors: Boolean = false,
     val font: MqFont = MqFont.System,
+    /** Corner size (#137). */
+    val cornerScale: MqCornerScale = MqCornerScale.Normal,
 ) {
     /** Whether the theme is dark when the system is [systemDark]. */
     fun isDark(systemDark: Boolean): Boolean =

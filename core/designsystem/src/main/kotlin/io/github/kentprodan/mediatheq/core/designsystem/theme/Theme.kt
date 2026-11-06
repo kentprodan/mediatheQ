@@ -12,7 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 
 /**
  * The app theme: colors per [options] ([appColorScheme]), expressive motion, [mediatheqTypography] and
- * [MediatheqShapes]. A color change blends app-wide unless [MqThemeOptions.instantColors].
+ * [mediatheqShapes] at the chosen corner size. A color change blends app-wide unless [MqThemeOptions.instantColors].
  */
 @Composable
 fun MediatheqTheme(
@@ -36,7 +36,7 @@ fun MediatheqTheme(
         MaterialExpressiveTheme(
             colorScheme = colorScheme,
             motionScheme = motionScheme,
-            shapes = MediatheqShapes,
+            shapes = remember(options.cornerScale) { mediatheqShapes(options.cornerScale) },
             typography = remember(options.font) { mediatheqTypography(options.font) },
             content = content,
         )

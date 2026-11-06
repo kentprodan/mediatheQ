@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.ColorSource
+import io.github.kentprodan.mediatheq.core.data.CornerStyle
 import io.github.kentprodan.mediatheq.core.data.NowPlayingColors
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
@@ -26,6 +27,9 @@ class ThemeOptionsTest {
         }
         NowPlayingColors.entries.forEach {
             assertThat(ThemePreferences(nowPlayingColors = it).toThemeOptions().playerColors.name).isEqualTo(it.name)
+        }
+        CornerStyle.entries.forEach {
+            assertThat(ThemePreferences().toThemeOptions(it).cornerScale.name).isEqualTo(it.name)
         }
         AppFont.entries.forEach {
             assertThat(

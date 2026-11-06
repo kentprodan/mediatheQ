@@ -3,12 +3,17 @@ package io.github.kentprodan.mediatheq
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
+import io.github.kentprodan.mediatheq.core.data.CornerStyle
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqCornerScale
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeMode
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -111,9 +116,11 @@ class MainViewModelTest {
             assertThat(viewModel.theme.value).isNull()
 
             viewModel.theme.test {
-                assertThat(awaitItem()).isEqualTo(ThemePreferences())
+                assertThat(awaitItem()).isEqualTo(MqThemeOptions())
                 libraryPreferences.setTheme(ThemePreferences(ThemeMode.Black))
-                assertThat(awaitItem()).isEqualTo(ThemePreferences(ThemeMode.Black))
+                assertThat(awaitItem()).isEqualTo(MqThemeOptions(mode = MqThemeMode.Black))
+                libraryPreferences.setAdvanced(AdvancedPreferences(corners = CornerStyle.Large))
+                assertThat(awaitItem()?.cornerScale).isEqualTo(MqCornerScale.Large)
             }
         }
 
