@@ -81,17 +81,18 @@ class HeadsetButtonsTest {
     }
 
     @Test
-    fun `a Bluetooth pause key pauses, it never toggles back on`() {
+    fun `play and pause keys are not clicks, they are left to Media3`() {
         start()
-        player.play()
 
-        press(KeyEvent.KEYCODE_MEDIA_PAUSE)
-        windowEnds()
-        assertThat(player.playWhenReady).isFalse()
+        assertThat(buttons.onMediaButton(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PAUSE))).isFalse()
+        assertThat(buttons.onMediaButton(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY))).isFalse()
+        assertThat(pending).isNull()
+    }
 
-        press(KeyEvent.KEYCODE_MEDIA_PAUSE)
-        windowEnds()
-        assertThat(player.playWhenReady).isFalse()
+    @Test
+    fun `with nothing queued every key is left to Media3, so play resumes the saved queue`() {
+        assertThat(buttons.onMediaButton(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_HEADSETHOOK))).isFalse()
+        assertThat(buttons.onMediaButton(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_NEXT))).isFalse()
     }
 
     @Test

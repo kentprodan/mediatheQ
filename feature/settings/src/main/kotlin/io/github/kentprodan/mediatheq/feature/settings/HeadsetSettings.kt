@@ -119,7 +119,13 @@ internal fun HeadsetDialogContent(
         }
 
         else -> {
-            ChoiceDialogContent(title, HeadsetAction.entries, headset.singleClick) { stringResource(it.label) }
+            val selected =
+                when (dialog) {
+                    HeadsetDialog.Double -> headset.doubleClick
+                    HeadsetDialog.Triple -> headset.tripleClick
+                    else -> headset.singleClick
+                }
+            ChoiceDialogContent(title, HeadsetAction.entries, selected) { stringResource(it.label) }
         }
     }
 }

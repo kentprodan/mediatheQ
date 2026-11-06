@@ -79,9 +79,6 @@ internal class HeadsetButtons(
     private val preferences: () -> HeadsetPreferences,
     schedule: (Long, () -> Unit) -> () -> Unit,
 ) {
-    // The last play key: a Bluetooth device's PLAY or PAUSE means that, whatever the player shows.
-    private var lastKey = KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
-
     private val counter =
         ClickCounter(
             window = { if (preferences().slowClicks) SLOW_CLICK_WINDOW_MS else CLICK_WINDOW_MS },
@@ -93,7 +90,9 @@ internal class HeadsetButtons(
     /** Handles [event] when it is one of our keys (both its down and its up); `false` leaves it to Media3. */
     fun onMediaButton(event: KeyEvent): Boolean {
         val key = event.keyCode
-        if (key !in HANDLED) return false
+        // PLAY and PAUSE (cars, some Bluetooth devices) are not clicks: Media3 runs them at once. With nothing queued
+        // Media3 also handles the rest, so a play press resumes the saved queue (onPlaybackResumption).
+        if (key !in HANDLED || player.mediaItemCount == 0) return false
         if (event.action != KeyEvent.ACTION_DOWN || event.repeatCount != 0) return true
         when (key) {
             KeyEvent.KEYCODE_MEDIA_NEXT -> {
@@ -105,7 +104,6 @@ internal class HeadsetButtons(
             }
 
             else -> {
-                lastKey = key
                 counter.click()
             }
         }
@@ -115,11 +113,7 @@ internal class HeadsetButtons(
     private fun run(action: HeadsetAction) {
         when (action) {
             HeadsetAction.PlayPause -> {
-                when (lastKey) {
-                    KeyEvent.KEYCODE_MEDIA_PLAY -> Util.handlePlayButtonAction(player)
-                    KeyEvent.KEYCODE_MEDIA_PAUSE -> Util.handlePauseButtonAction(player)
-                    else -> Util.handlePlayPauseButtonAction(player)
-                }
+                Util.handlePlayPauseButtonAction(player)
             }
 
             HeadsetAction.Next -> {
@@ -161,8 +155,6 @@ internal class HeadsetButtons(
             setOf(
                 KeyEvent.KEYCODE_HEADSETHOOK,
                 KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
-                KeyEvent.KEYCODE_MEDIA_PLAY,
-                KeyEvent.KEYCODE_MEDIA_PAUSE,
                 KeyEvent.KEYCODE_MEDIA_NEXT,
                 KeyEvent.KEYCODE_MEDIA_PREVIOUS,
             )

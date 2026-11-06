@@ -121,10 +121,16 @@ internal class AudioFocusController(
     }
 
     override fun onPlaybackStateChanged(playbackState: Int) {
-        if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
-            if (!player.playWhenReady || playbackState == Player.STATE_ENDED) abandon()
+        when (playbackState) {
+            Player.STATE_ENDED, Player.STATE_IDLE -> abandon()
+
+            // A new queue, a skip or Play after the end or a stop: playWhenReady stayed true, so no change came.
+            else -> if (player.playWhenReady) requestFocus()
         }
     }
+
+    /** Gives the focus back: the player is released (ExoPlayer no longer does it, `handleAudioFocus = false`). */
+    fun release() = abandon()
 
     private fun requestFocus() {
         if (holding) return

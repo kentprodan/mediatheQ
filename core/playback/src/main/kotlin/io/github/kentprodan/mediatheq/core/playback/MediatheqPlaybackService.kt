@@ -142,6 +142,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var behaviorJob: Job? = null
     private var buttonsJob: Job? = null
     private var buttonState = ButtonState()
+    private lateinit var focusController: AudioFocusController
 
     // The audio settings as last read, on the main thread like the player; the defaults until then (milliseconds).
     private var audio = AudioPreferences()
@@ -351,6 +352,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun startSessionButtons(player: Player) {
         val current = MutableStateFlow(player.currentMediaItem?.queuedTrackId())
+        // A restored queue may already repeat or shuffle: no change event will say so.
+        buttonState = buttonState.copy(repeatMode = player.repeatMode, shuffle = player.shuffleModeEnabled)
         player.addListener(
             object : Player.Listener {
                 override fun onEvents(
@@ -440,7 +443,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         var eqGains = AudioPreferences().eqGainsDb
         lateinit var normalization: NormalizationListener
         var ducked = false
-        player.addListener(
+        focusController =
             AudioFocusController(
                 getSystemService(AudioManager::class.java),
                 player,
@@ -449,8 +452,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
             ) {
                 ducked = it
                 normalization.apply()
-            },
-        )
+            }
+        player.addListener(focusController)
 
         fun applyEqualizer() =
             equalizer.apply(player.audioSessionId, audioOutput.state.mode == AudioMode.Processed, eqGains)
@@ -612,6 +615,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             persistence.saveNow()
             reporter.ended(player.currentPosition.milliseconds)
             resumeListener?.release()
+            focusController.release()
             player.release()
             release()
         }
@@ -691,8 +695,17 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     val id =
                         player.currentMediaItem?.queuedTrackId()
                             ?: return Futures.immediateFuture(SessionResult(SessionError.ERROR_BAD_VALUE))
-                    val favorite = !buttonState.isFavorite
-                    applicationScope.launch { userData.setFavorite(id, favorite) }
+                    // This track's own value: buttonState may still hold the previous track's just after a skip.
+                    applicationScope.launch {
+                        userData.setFavorite(
+                            id,
+                            library
+                                .track(id)
+                                .first()
+                                ?.userData
+                                ?.isFavorite != true,
+                        )
+                    }
                 }
 
                 REPEAT_COMMAND.customAction -> {

@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.playback
 import android.content.Context
 import android.media.AudioManager
 import android.os.Looper
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.test.utils.FakeMediaSourceFactory
@@ -145,6 +146,34 @@ class AudioFocusControllerTest {
 
         assertThat(player.playWhenReady).isFalse()
         assertThat(shadowOf(audioManager).lastAbandonedAudioFocusRequest).isNotNull()
+    }
+
+    @Test
+    fun `a stop gives the focus back`() {
+        play()
+
+        player.stop()
+        advance(player).untilPendingCommandsAreFullyHandled()
+
+        assertThat(shadowOf(audioManager).lastAbandonedAudioFocusRequest).isNotNull()
+    }
+
+    @Test
+    fun `a new queue after the end asks for focus again`() {
+        play()
+        player.seekTo(player.duration)
+        advance(player).untilState(Player.STATE_ENDED)
+        assertThat(shadowOf(audioManager).lastAbandonedAudioFocusRequest).isNotNull()
+
+        // Refused, so a request shows as a pause: playWhenReady itself never changed.
+        shadowOf(audioManager).setNextFocusRequestResponse(AudioManager.AUDIOFOCUS_REQUEST_FAILED)
+        player.setMediaItem(
+            Track(MediaId(ServerId("s"), "t2"), "T2", emptyList(), 3.minutes).toMediaItem(null).withTrackUri()!!,
+        )
+        player.prepare()
+        advance(player).untilPendingCommandsAreFullyHandled()
+
+        assertThat(player.playWhenReady).isFalse()
     }
 
     @Test
