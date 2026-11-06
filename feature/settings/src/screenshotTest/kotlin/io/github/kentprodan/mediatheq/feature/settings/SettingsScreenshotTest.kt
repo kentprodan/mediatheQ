@@ -78,11 +78,23 @@ private fun Page(page: SettingsPage) {
 @Composable
 fun SettingsInterfaceScreenshot() = Page(SettingsPage.Interface)
 
-/** Playback: qualities per network, normalization, the Audio page. */
+/** Playback hub (#138): Playback, Decoding and transcoding, normalization, the Audio page. */
 @PreviewTest
 @MqPreviews
 @Composable
 fun SettingsPlaybackScreenshot() = Page(SettingsPage.Playback)
+
+/** Settings -> Playback -> Decoding and transcoding (#138), defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsDecodingScreenshot() = Page(SettingsPage.Decoding)
+
+/** Settings -> Playback -> Playback (#138), defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsPlaybackBehaviorScreenshot() = Page(SettingsPage.PlaybackBehavior)
 
 /** Offline, cache, and download. */
 @PreviewTest

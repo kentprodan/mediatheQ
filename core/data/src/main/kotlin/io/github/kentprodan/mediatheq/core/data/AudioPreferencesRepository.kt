@@ -25,6 +25,21 @@ interface AudioPreferencesRepository {
 
     suspend fun setDownloadsUnmeteredOnly(on: Boolean)
 
+    /** Settings -> Playback -> Decoding and transcoding (#138). */
+    suspend fun setForceInstantTranscoding(on: Boolean)
+
+    /** Back to the Decoding and transcoding defaults only: both qualities and instant transcoding. */
+    suspend fun restoreDecodingDefaults()
+
+    /** One Playback behavior switch (#138); the others keep their stored values. */
+    suspend fun setBehavior(
+        switch: BehaviorSwitch,
+        on: Boolean,
+    )
+
+    /** Back to the Playback behavior defaults only. */
+    suspend fun restoreBehaviorDefaults()
+
     /**
      * Sets band [index] to [gainDb] (clamped to [AudioPreferences.EQ_GAIN_DB]), starting from the gains heard now and
      * switching to [EqPreset.Custom]. Ignored for an index outside the bands.

@@ -19,8 +19,64 @@ enum class StreamingQuality(
     val bitrate: Int?,
 ) {
     Original(null),
+    Kbps320(320_000),
     Kbps256(256_000),
+    Kbps192(192_000),
     Kbps128(128_000),
+}
+
+/** One switch of [PlaybackBehavior], so a change never writes the others back from an older copy. */
+enum class BehaviorSwitch {
+    PreservePlayNextOrder,
+    RewindFirst,
+    Circular,
+    KeepPausedOnSkip,
+    StopRepeatOneOnSkip,
+    RetainPlayerState,
+    WeightedShuffle,
+}
+
+/** Settings -> Playback -> Playback (#138): how the queue and the transport buttons behave, everywhere alike. */
+data class PlaybackBehavior(
+    /** Play next entries go after earlier Play next entries, not right after the current track. */
+    val preservePlayNextOrder: Boolean = false,
+    /** Previous restarts the track unless it is near its start (3 s). */
+    val rewindFirst: Boolean = true,
+    /** Previous on the first track goes to the last, next on the last to the first. */
+    val circular: Boolean = true,
+    /** Next / previous while paused stay paused; off, a skip starts playing. */
+    val keepPausedOnSkip: Boolean = false,
+    /** A manual skip while repeat one is on switches to repeat all. */
+    val stopRepeatOneOnSkip: Boolean = true,
+    /** Shuffle and repeat carry over to a new queue; off, a new queue starts with repeat off. */
+    val retainPlayerState: Boolean = false,
+    /** Shuffle prefers tracks not played recently, favorites and higher ratings; off, uniform random. */
+    val weightedShuffle: Boolean = true,
+) {
+    fun isOn(switch: BehaviorSwitch): Boolean =
+        when (switch) {
+            BehaviorSwitch.PreservePlayNextOrder -> preservePlayNextOrder
+            BehaviorSwitch.RewindFirst -> rewindFirst
+            BehaviorSwitch.Circular -> circular
+            BehaviorSwitch.KeepPausedOnSkip -> keepPausedOnSkip
+            BehaviorSwitch.StopRepeatOneOnSkip -> stopRepeatOneOnSkip
+            BehaviorSwitch.RetainPlayerState -> retainPlayerState
+            BehaviorSwitch.WeightedShuffle -> weightedShuffle
+        }
+
+    fun with(
+        switch: BehaviorSwitch,
+        on: Boolean,
+    ): PlaybackBehavior =
+        when (switch) {
+            BehaviorSwitch.PreservePlayNextOrder -> copy(preservePlayNextOrder = on)
+            BehaviorSwitch.RewindFirst -> copy(rewindFirst = on)
+            BehaviorSwitch.Circular -> copy(circular = on)
+            BehaviorSwitch.KeepPausedOnSkip -> copy(keepPausedOnSkip = on)
+            BehaviorSwitch.StopRepeatOneOnSkip -> copy(stopRepeatOneOnSkip = on)
+            BehaviorSwitch.RetainPlayerState -> copy(retainPlayerState = on)
+            BehaviorSwitch.WeightedShuffle -> copy(weightedShuffle = on)
+        }
 }
 
 /** Validated audio, streaming and storage preferences (media3 skill, sections 3, 6, 7, 9 and 10). */
@@ -40,6 +96,9 @@ data class AudioPreferences(
     val streamingCacheGb: Int = DEFAULT_CACHE_GB,
     /** Downloads wait for an unmetered network; off = any network. */
     val downloadsUnmeteredOnly: Boolean = true,
+    /** Losing Wi-Fi restarts the current track at the same position in the metered quality (#138). */
+    val forceInstantTranscoding: Boolean = false,
+    val behavior: PlaybackBehavior = PlaybackBehavior(),
 ) {
     /** The streaming quality for a network that is [metered] or not. */
     fun qualityFor(metered: Boolean): StreamingQuality = if (metered) meteredQuality else unmeteredQuality

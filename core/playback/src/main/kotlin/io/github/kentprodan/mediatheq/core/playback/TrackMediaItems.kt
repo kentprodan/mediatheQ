@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.Track
 import java.util.UUID
+import kotlin.time.Instant
 
 /**
  * Queue items carry no real URL: `mediatheq://track/<mediaId>` is resolved into a stream only when the player loads it
@@ -60,6 +61,7 @@ internal fun Track.toMediaItem(
                         playlistId?.let { putString(EXTRA_PLAYLIST_ID, it.toString()) }
                         putGains(this@toMediaItem)
                         putOutputFormat(this@toMediaItem)
+                        putShuffleWeight(this@toMediaItem)
                     },
                 ).setIsPlayable(true)
                 .setIsBrowsable(false)
@@ -96,6 +98,35 @@ internal suspend fun MediaItem.withArtworkData(fetch: suspend (Uri) -> ByteArray
         ).build()
 }
 
+/** What weighted shuffle weighs (#138): when the track was last played, favorite, rating. */
+private fun Bundle.putShuffleWeight(track: Track) {
+    track.userData.lastPlayedAt?.let { putLong(EXTRA_LAST_PLAYED, it.toEpochMilliseconds()) }
+    if (track.userData.isFavorite) putBoolean(EXTRA_FAVORITE, true)
+    track.userData.halfStars?.let { putInt(EXTRA_HALF_STARS, it) }
+}
+
+/** The item's [ShuffleWeight], from its extras; an item without them weighs like a never played one. */
+internal fun MediaItem.shuffleWeight(): ShuffleWeight {
+    val extras = mediaMetadata.extras ?: return ShuffleWeight()
+    return ShuffleWeight(
+        lastPlayedAt = extras.getLong(EXTRA_LAST_PLAYED, 0L).takeIf { it > 0 }?.let(Instant::fromEpochMilliseconds),
+        isFavorite = extras.getBoolean(EXTRA_FAVORITE, false),
+        halfStars = extras.getInt(EXTRA_HALF_STARS, 0).takeIf { it > 0 },
+    )
+}
+
+/**
+ * The item marked as added with Play next (#138), so Preserve Play next order can find the earlier ones.
+ * shortcut: the mark is not saved with the queue, so after a restart earlier Play next entries count as plain ones;
+ * add a queue_entry column if that matters.
+ */
+internal fun MediaItem.markedPlayedNext(): MediaItem {
+    val extras = Bundle(mediaMetadata.extras ?: Bundle()).apply { putBoolean(EXTRA_PLAYED_NEXT, true) }
+    return buildUpon().setMediaMetadata(mediaMetadata.buildUpon().setExtras(extras).build()).build()
+}
+
+internal fun MediaItem.isPlayedNext(): Boolean = mediaMetadata.extras?.getBoolean(EXTRA_PLAYED_NEXT, false) == true
+
 /** The queue entry this item is (see [toMediaItem]). */
 internal fun MediaItem.entryId(): String? = mediaMetadata.extras?.getString(EXTRA_ENTRY_ID)
 
@@ -117,6 +148,10 @@ private const val EXTRA_TRACK_GAIN = "io.github.kentprodan.mediatheq.TRACK_GAIN"
 private const val EXTRA_SAMPLE_RATE = "io.github.kentprodan.mediatheq.SAMPLE_RATE"
 private const val EXTRA_CHANNELS = "io.github.kentprodan.mediatheq.CHANNELS"
 private const val EXTRA_SPATIAL = "io.github.kentprodan.mediatheq.SPATIAL"
+private const val EXTRA_LAST_PLAYED = "io.github.kentprodan.mediatheq.LAST_PLAYED"
+private const val EXTRA_FAVORITE = "io.github.kentprodan.mediatheq.FAVORITE"
+private const val EXTRA_HALF_STARS = "io.github.kentprodan.mediatheq.HALF_STARS"
+private const val EXTRA_PLAYED_NEXT = "io.github.kentprodan.mediatheq.PLAYED_NEXT"
 
 /** The normalization gains (dB) a queue item carries, so the service sets its volume without a lookup. */
 internal data class ItemGains(

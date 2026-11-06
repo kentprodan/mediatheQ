@@ -57,6 +57,31 @@ internal class ConnectivityNetworkMonitor
                 awaitClose { manager.unregisterNetworkCallback(callback) }
             }.distinctUntilChanged()
 
+        override val meteredChanges: Flow<Boolean> =
+            callbackFlow {
+                val manager = manager
+                if (manager == null) {
+                    send(true)
+                    awaitClose()
+                    return@callbackFlow
+                }
+                val callback =
+                    object : ConnectivityManager.NetworkCallback() {
+                        override fun onCapabilitiesChanged(
+                            network: Network,
+                            capabilities: NetworkCapabilities,
+                        ) {
+                            // Only a network that carries traffic: losing one is not a switch to mobile data.
+                            if (capabilities.canCarryTraffic()) {
+                                trySend(!capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED))
+                            }
+                        }
+                    }
+                send(isMetered())
+                manager.registerDefaultNetworkCallback(callback)
+                awaitClose { manager.unregisterNetworkCallback(callback) }
+            }.distinctUntilChanged()
+
         // INTERNET means "may carry traffic", not "internet verified" (VALIDATED); LAN and Tailscale have it.
         private fun NetworkCapabilities.canCarryTraffic() = hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }

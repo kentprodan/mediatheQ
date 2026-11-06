@@ -59,6 +59,14 @@ data object SearchPageSettingsKey : NavKey
 @Serializable
 data object AdvancedSettingsKey : NavKey
 
+/** Settings -> Playback -> Playback: queue and transport behavior (#138). */
+@Serializable
+data object PlaybackBehaviorSettingsKey : NavKey
+
+/** Settings -> Playback -> Decoding and transcoding (#138). */
+@Serializable
+data object DecodingSettingsKey : NavKey
+
 /** Settings -> Playback: streaming quality, normalization, Audio. */
 @Serializable
 data object PlaybackSettingsKey : NavKey

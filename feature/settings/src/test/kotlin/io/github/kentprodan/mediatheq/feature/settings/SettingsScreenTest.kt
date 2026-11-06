@@ -38,6 +38,7 @@ import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistPlayAction
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
@@ -96,6 +97,8 @@ class SettingsScreenTest {
                     onBack = { events += "back" },
                     onOpenTheme = { events += "theme" },
                     onOpenAdvanced = { events += "advanced" },
+                    onOpenBehavior = { events += "behavior" },
+                    onOpenDecoding = { events += "decoding" },
                 )
             }
         }
@@ -139,13 +142,14 @@ class SettingsScreenTest {
     @Test
     fun `each network has its own quality chips, the current one selected`() {
         show(
-            SettingsPage.Playback,
+            SettingsPage.Decoding,
             SettingsUiState.Content("Home", "Ana", AudioPreferences(meteredQuality = StreamingQuality.Kbps128)),
         )
 
-        composeRule.onAllNodesWithText("Original")[0].assertIsSelected()
-        composeRule.onAllNodesWithText("128 kbps")[1].assertIsSelected()
-        composeRule.onAllNodesWithText("256 kbps")[0].performClick()
+        // Mobile data first, then Wi-Fi.
+        composeRule.onAllNodesWithText("128 kbps")[0].assertIsSelected()
+        composeRule.onAllNodesWithText("Original")[1].assertIsSelected()
+        composeRule.onAllNodesWithText("256 kbps")[1].performClick()
 
         assertThat(
             actions,
@@ -186,7 +190,7 @@ class SettingsScreenTest {
     fun `playback opens the audio page, and back works`() {
         show(SettingsPage.Playback)
 
-        composeRule.onNodeWithText("Audio").performClick()
+        composeRule.onNode(hasText("Audio") and hasClickAction()).performClick()
         composeRule.onNodeWithContentDescription("Back").performClick()
 
         assertThat(events).containsExactly("audio", "back").inOrder()
@@ -210,9 +214,15 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `the playback page holds the qualities, normalization and audio`() {
+    fun `the playback hub holds its pages, normalization and audio`() {
         show(SettingsPage.Playback)
-        assertRows("Quality on Wi-Fi", "Quality on mobile data", "Volume normalization", "Audio")
+        assertRows("Decoding and transcoding", "Volume normalization")
+    }
+
+    @Test
+    fun `the decoding page holds both bitrates and instant transcoding`() {
+        show(SettingsPage.Decoding)
+        assertRows("Mobile maximum bitrate", "Wi-Fi maximum bitrate", "Force instant transcoding")
     }
 
     @Test
@@ -728,6 +738,39 @@ class SettingsScreenTest {
         composeRule.onNode(hasText("Advanced settings") and hasClickAction()).performClick()
 
         assertThat(events).containsExactly("advanced")
+    }
+
+    @Test
+    fun `the Playback hub opens its pages and keeps the Audio page reachable`() {
+        show(SettingsPage.Playback)
+
+        composeRule.onNode(hasText("Decoding and transcoding") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Playback") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Audio") and hasClickAction()).performClick()
+
+        assertThat(events).containsExactly("decoding", "behavior", "audio").inOrder()
+    }
+
+    @Test
+    fun `decoding and behavior switches apply at once`() {
+        show(SettingsPage.Decoding)
+        composeRule.onNode(hasText("Force instant transcoding") and hasClickAction()).performClick()
+        composeRule.onAllNodesWithText("192 kbps")[0].performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetForceInstantTranscoding(true),
+                SettingsAction.SetStreamingQuality(metered = true, StreamingQuality.Kbps192),
+            ).inOrder()
+    }
+
+    @Test
+    fun `a playback behavior switch applies at once`() {
+        show(SettingsPage.PlaybackBehavior)
+
+        composeRule.onNode(hasText("Weighted shuffle") and hasClickAction()).performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.SetBehavior(BehaviorSwitch.WeightedShuffle, false))
     }
 }
 

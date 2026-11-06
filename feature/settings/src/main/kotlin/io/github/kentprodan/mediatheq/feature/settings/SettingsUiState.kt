@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.data.GenreSection
@@ -270,6 +271,21 @@ sealed interface SettingsAction {
     ) : SettingsAction
 
     data object RestoreAdvancedDefaults : SettingsAction
+
+    /** Decoding and transcoding (#138). */
+    data class SetForceInstantTranscoding(
+        val on: Boolean,
+    ) : SettingsAction
+
+    data object RestoreDecodingDefaults : SettingsAction
+
+    /** Playback behavior (#138): one switch. */
+    data class SetBehavior(
+        val switch: BehaviorSwitch,
+        val on: Boolean,
+    ) : SettingsAction
+
+    data object RestoreBehaviorDefaults : SettingsAction
 
     data object OpenGenreSections : SettingsAction
 

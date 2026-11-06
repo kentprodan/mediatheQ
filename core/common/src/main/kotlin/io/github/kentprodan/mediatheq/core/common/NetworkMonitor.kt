@@ -18,4 +18,7 @@ interface NetworkMonitor {
 
     /** [isOnline] as it changes; emits the current value first. Offline, only downloads play. */
     val online: Flow<Boolean>
+
+    /** [isMetered] as it changes; emits the current value first (#138: instant transcoding when Wi-Fi is lost). */
+    val meteredChanges: Flow<Boolean>
 }

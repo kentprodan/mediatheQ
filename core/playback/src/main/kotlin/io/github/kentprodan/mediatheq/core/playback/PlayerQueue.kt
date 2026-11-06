@@ -10,6 +10,7 @@ import kotlin.time.Duration
  * Replaces the queue and starts playing (PlaybackConnection.play): at [startIndex], or, with [shuffle], at the first
  * track of the player's fresh shuffle order (so shuffled albums do not always start with track 1). Through a
  * MediaController the start must be left to the player: the controller's own view of the queue is unshuffled.
+ * Unshuffled, shuffle is left to the session's QueuePlayer: off for a new queue unless the state is retained (#138).
  */
 internal fun Player.playQueue(
     items: List<MediaItem>,
@@ -17,7 +18,7 @@ internal fun Player.playQueue(
     shuffle: Boolean,
     startPosition: Duration = Duration.ZERO,
 ) {
-    shuffleModeEnabled = shuffle
+    if (shuffle) shuffleModeEnabled = true
     if (shuffle) {
         setMediaItems(items, true) // resetPosition: start where the shuffle order starts
     } else {
@@ -31,9 +32,16 @@ internal fun Player.playQueue(
     play()
 }
 
-/** Queues [items] right after the current entry; with nothing queued, plays them. */
+/**
+ * Queues [items] right after the current entry (marked, so the session can keep Play next order, #138); with nothing
+ * queued, plays them.
+ */
 internal fun Player.playNext(items: List<MediaItem>) {
-    if (mediaItemCount == 0) playQueue(items, 0, shuffle = false) else addMediaItems(currentMediaItemIndex + 1, items)
+    if (mediaItemCount == 0) {
+        playQueue(items, 0, shuffle = false)
+    } else {
+        addMediaItems(currentMediaItemIndex + 1, items.map { it.markedPlayedNext() })
+    }
 }
 
 /** Queues [items] at the end; with nothing queued, plays them. */
@@ -93,8 +101,10 @@ internal fun shuffleWithInserted(
     inserted: IntRange,
     current: Int,
     appended: Boolean,
+    /** Entries to pass after [current] first: earlier Play next entries, when their order is kept (#138). */
+    after: Int = 0,
 ): List<Int> {
     val rest = order.filterNot { it in inserted }
-    val at = if (appended) rest.size else rest.indexOf(current) + 1
+    val at = if (appended) rest.size else rest.indexOf(current) + 1 + after
     return rest.take(at) + inserted + rest.drop(at)
 }

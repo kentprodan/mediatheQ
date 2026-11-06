@@ -64,6 +64,8 @@ enum class SettingsPage(
     Search(R.string.settings_search_page),
     Advanced(R.string.settings_advanced),
     Playback(R.string.settings_playback),
+    PlaybackBehavior(R.string.settings_pb_behavior),
+    Decoding(R.string.settings_decoding),
     Storage(R.string.settings_storage_page),
     Providers(R.string.settings_providers),
 }
@@ -85,6 +87,8 @@ internal fun SettingsPageRoute(
     onOpenPlaylistPage: () -> Unit = {},
     onOpenSearchPage: () -> Unit = {},
     onOpenAdvanced: () -> Unit = {},
+    onOpenBehavior: () -> Unit = {},
+    onOpenDecoding: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -106,6 +110,8 @@ internal fun SettingsPageRoute(
         onOpenPlaylistPage,
         onOpenSearchPage,
         onOpenAdvanced,
+        onOpenBehavior,
+        onOpenDecoding,
     )
 }
 
@@ -132,6 +138,8 @@ fun SettingsPageScreen(
     onOpenPlaylistPage: () -> Unit = {},
     onOpenSearchPage: () -> Unit = {},
     onOpenAdvanced: () -> Unit = {},
+    onOpenBehavior: () -> Unit = {},
+    onOpenDecoding: () -> Unit = {},
 ) {
     // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
     var dialog by rememberSaveable { mutableStateOf<ThemeDialog?>(null) }
@@ -146,6 +154,8 @@ fun SettingsPageScreen(
     var playlistDialog by rememberSaveable { mutableStateOf<PlaylistPageDialog?>(null) }
     var searchDialog by rememberSaveable { mutableStateOf<SearchPageDialog?>(null) }
     var advancedDialog by rememberSaveable { mutableStateOf<AdvancedDialog?>(null) }
+    // Decoding and Playback behavior have one dialog each: Restore defaults.
+    var restoring by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
     // The Home page's rows as shown: a drag moves them here and saves the order once, on drop.
     val homeOrder =
@@ -311,7 +321,15 @@ fun SettingsPageScreen(
             }
 
             SettingsPage.Playback -> {
-                item(key = "playback") { PlaybackGroup(content.audio, onAction, onOpenAudio) }
+                playbackHubGroups(content.audio, onAction, onOpenBehavior, onOpenDecoding, onOpenAudio)
+            }
+
+            SettingsPage.PlaybackBehavior -> {
+                behaviorGroups(content.audio.behavior, onAction) { restoring = true }
+            }
+
+            SettingsPage.Decoding -> {
+                decodingGroups(content.audio, onAction) { restoring = true }
             }
 
             SettingsPage.Storage -> {
@@ -361,6 +379,15 @@ fun SettingsPageScreen(
         }
         advancedDialog?.let {
             AdvancedDialogHost(it, content.library.advanced, onAction) { advancedDialog = null }
+        }
+        if (restoring) {
+            val restore =
+                if (page == SettingsPage.Decoding) {
+                    SettingsAction.RestoreDecodingDefaults
+                } else {
+                    SettingsAction.RestoreBehaviorDefaults
+                }
+            RestoreDefaultsDialog({ onAction(restore) }) { restoring = false }
         }
     }
 }
@@ -432,50 +459,6 @@ internal fun AccountGroup(
             ) {
                 Text(stringResource(R.string.settings_log_out), color = MaterialTheme.colorScheme.error)
             }
-        }
-    }
-}
-
-@Composable
-internal fun PlaybackGroup(
-    audio: AudioPreferences,
-    onAction: (SettingsAction) -> Unit,
-    onOpenAudio: () -> Unit,
-) {
-    Group(R.string.settings_playback) {
-        listOf(false to R.string.settings_quality_unmetered, true to R.string.settings_quality_metered)
-            .forEach { (metered, title) ->
-                item { shapes ->
-                    ChoiceItem(
-                        shapes,
-                        stringResource(title),
-                        stringResource(R.string.settings_quality_summary),
-                        StreamingQuality.entries,
-                        selected = audio.qualityFor(metered),
-                        label = { it.label() },
-                        onSelect = { onAction(SettingsAction.SetStreamingQuality(metered, it)) },
-                    )
-                }
-            }
-        item { shapes ->
-            ChoiceItem(
-                shapes,
-                stringResource(R.string.settings_normalization),
-                stringResource(R.string.settings_normalization_summary),
-                Normalization.entries,
-                selected = audio.normalization,
-                label = { stringResource(it.label) },
-                onSelect = { onAction(SettingsAction.SetNormalization(it)) },
-            )
-        }
-        item { shapes ->
-            SegmentedListItem(
-                onClick = onOpenAudio,
-                shapes = shapes,
-                colors = settingsColors(),
-                supportingContent = { Text(stringResource(R.string.settings_audio_summary)) },
-                trailingContent = { Icon(MqIcons.Tune, contentDescription = null) },
-            ) { Text(stringResource(R.string.settings_audio)) }
         }
     }
 }
@@ -741,11 +724,11 @@ internal fun <T> ChoiceItem(
 }
 
 @Composable
-private fun StreamingQuality.label(): String =
+internal fun StreamingQuality.label(): String =
     bitrate?.let { stringResource(R.string.settings_quality_kbps, it / 1000) }
         ?: stringResource(R.string.settings_quality_original)
 
-private val Normalization.label: Int
+internal val Normalization.label: Int
     get() =
         when (this) {
             Normalization.Album -> R.string.settings_normalization_album

@@ -59,6 +59,9 @@ internal class QueuePersistence(
     // The shuffle order to put back when the session sets the resumed queue again (see resumption).
     private var resumedShuffleOrder: List<Int>? = null
 
+    /** The session is about to set the resumed queue again: QueuePlayer leaves its state alone (#138). */
+    val resuming: Boolean get() = resumedShuffleOrder != null
+
     private val listener =
         object : Player.Listener {
             // Counted in the direct callbacks: onEvents comes later, and saveNow must already see the change.

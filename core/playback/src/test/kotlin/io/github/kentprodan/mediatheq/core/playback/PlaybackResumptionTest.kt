@@ -80,7 +80,7 @@ class PlaybackResumptionTest {
     private fun connect(): MediaController {
         session =
             MediaSession
-                .Builder(context, QueuePlayer(player))
+                .Builder(context, QueuePlayer(player, resuming = { persistence.resuming }))
                 .setCallback(
                     object : MediaSession.Callback {
                         override fun onPlaybackResumption(

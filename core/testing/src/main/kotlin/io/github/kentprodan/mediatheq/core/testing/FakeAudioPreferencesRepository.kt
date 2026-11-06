@@ -2,8 +2,10 @@ package io.github.kentprodan.mediatheq.core.testing
 
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.Normalization
+import io.github.kentprodan.mediatheq.core.data.PlaybackBehavior
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.withEqBand
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,5 +56,30 @@ class FakeAudioPreferencesRepository : AudioPreferencesRepository {
     ) {
         val gains = withEqBand(preferences.value.eqGainsDb, index, gainDb) ?: return
         preferences.value = preferences.value.copy(eqPreset = EqPreset.Custom, customGainsDb = gains)
+    }
+
+    override suspend fun setForceInstantTranscoding(on: Boolean) {
+        preferences.value = preferences.value.copy(forceInstantTranscoding = on)
+    }
+
+    override suspend fun restoreDecodingDefaults() {
+        val defaults = AudioPreferences()
+        preferences.value =
+            preferences.value.copy(
+                unmeteredQuality = defaults.unmeteredQuality,
+                meteredQuality = defaults.meteredQuality,
+                forceInstantTranscoding = defaults.forceInstantTranscoding,
+            )
+    }
+
+    override suspend fun setBehavior(
+        switch: BehaviorSwitch,
+        on: Boolean,
+    ) {
+        preferences.value = preferences.value.copy(behavior = preferences.value.behavior.with(switch, on))
+    }
+
+    override suspend fun restoreBehaviorDefaults() {
+        preferences.value = preferences.value.copy(behavior = PlaybackBehavior())
     }
 }
