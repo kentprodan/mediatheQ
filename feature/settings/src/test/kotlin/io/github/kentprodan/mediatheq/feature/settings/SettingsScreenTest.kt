@@ -95,6 +95,7 @@ class SettingsScreenTest {
                     onOpenAudio = { events += "audio" },
                     onBack = { events += "back" },
                     onOpenTheme = { events += "theme" },
+                    onOpenAdvanced = { events += "advanced" },
                 )
             }
         }
@@ -717,6 +718,16 @@ class SettingsScreenTest {
                 SettingsAction.SetAdvanced(AdvancedPreferences(keepScreenOn = KeepScreenOn.NowPlaying)),
                 SettingsAction.SetAdvanced(AdvancedPreferences(hideStatusBar = true)),
             ).inOrder()
+    }
+
+    @Test
+    fun `Interface opens Advanced settings`() {
+        show(SettingsPage.Interface)
+
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Advanced settings"))
+        composeRule.onNode(hasText("Advanced settings") and hasClickAction()).performClick()
+
+        assertThat(events).containsExactly("advanced")
     }
 }
 

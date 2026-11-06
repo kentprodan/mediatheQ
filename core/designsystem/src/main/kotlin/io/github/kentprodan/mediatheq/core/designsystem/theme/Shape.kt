@@ -30,6 +30,3 @@ fun mediatheqShapes(scale: MqCornerScale): Shapes {
         extraExtraLarge = corner(48),
     )
 }
-
-/** The Normal shape scale, for previews and code outside [MediatheqTheme]. */
-val MediatheqShapes = mediatheqShapes(MqCornerScale.Normal)
