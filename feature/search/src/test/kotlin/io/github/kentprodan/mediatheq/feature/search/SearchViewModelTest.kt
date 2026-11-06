@@ -423,4 +423,35 @@ class SearchViewModelTest {
             assertThat(viewModel.results.shown.tracks).isEqualTo(many)
             assertThat(relevance).isNotEqualTo(many)
         }
+
+    @Test
+    fun `a song tap finds the song by id, even when its user data changed meanwhile`() =
+        test {
+            val viewModel = searchMany()
+
+            viewModel.onAction(
+                SearchAction.PlayTrack(many[2].copy(userData = many[2].userData.copy(isFavorite = true))),
+            )
+
+            assertThat(playback.plays.single().startIndex).isEqualTo(2)
+            assertThat(playback.plays.single().queue).hasSize(20)
+        }
+
+    @Test
+    fun `offline, a chip whose kind has no downloads shows All with the downloaded results`() =
+        test {
+            val viewModel = searchMany()
+            viewModel.onAction(SearchAction.SelectFilter(SearchFilter.Albums))
+            assertThat(viewModel.results.filter).isEqualTo(SearchFilter.Albums)
+
+            // The fake gives what the repository would offline: only the downloaded songs.
+            library.albums.value = emptyList()
+            library.albumArtists.value = emptyList()
+            library.offline.value = true
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+
+            assertThat(viewModel.results.filter).isEqualTo(SearchFilter.All)
+            assertThat(viewModel.results.shown.albums).isEmpty()
+            assertThat(viewModel.results.shown.tracks).hasSize(20)
+        }
 }

@@ -150,7 +150,13 @@ fun TrackRow(
     val trailing: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TrackDetails(track)
-            heart?.let { MqFavoriteToggle(track.userData.isFavorite, it) }
+            heart?.let {
+                MqFavoriteToggle(
+                    track.userData.isFavorite,
+                    it,
+                    contentDescription = stringResource(R.string.core_ui_favorite_track, track.title),
+                )
+            }
             if (menuItems != null) {
                 OverflowMenu(stringResource(R.string.core_ui_more_options, track.title), items = menuItems)
             }

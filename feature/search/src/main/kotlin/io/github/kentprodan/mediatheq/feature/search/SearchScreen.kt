@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
@@ -34,6 +35,7 @@ import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -316,7 +318,13 @@ private fun Results(
         onSelectAll = { onAction(SearchAction.SelectAll) },
         onClear = { onAction(SearchAction.ClearSelection) },
     ) { bottomSpace ->
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomSpace).plusBottomBars()) {
+        // A new list per chip: the same keys in All and in a chip would keep the old scroll position.
+        val listState = key(state.filter) { rememberLazyListState() }
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            state = listState,
+            contentPadding = PaddingValues(bottom = bottomSpace).plusBottomBars(),
+        ) {
             section("artists", R.string.search_artists, results.artists, { it.id }) { artist ->
                 ArtistRow(
                     artist,

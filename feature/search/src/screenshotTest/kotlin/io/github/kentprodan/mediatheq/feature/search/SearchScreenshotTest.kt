@@ -131,11 +131,18 @@ private fun Chip(
     page: SearchPagePreferences = SearchPagePreferences(),
 ) = Search(SearchUiState.Results(everything, chosenFilter = filter, page = page), query = "mos")
 
-/** Settings -> Search page: the chips wrap instead of scrolling (#136). */
+/** Settings -> Search page: the chips wrap instead of scrolling (#136); no genre found, so Genres is disabled. */
 @PreviewTest
 @MqPreviews
 @Composable
-fun SearchChipsWrappedScreenshot() = Chip(SearchFilter.All, SearchPagePreferences(singleLineChips = false))
+fun SearchChipsWrappedScreenshot() =
+    Search(
+        SearchUiState.Results(
+            everything.copy(genres = emptyList()),
+            page = SearchPagePreferences(singleLineChips = false),
+        ),
+        query = "mos",
+    )
 
 @PreviewTest
 @MqPreviews

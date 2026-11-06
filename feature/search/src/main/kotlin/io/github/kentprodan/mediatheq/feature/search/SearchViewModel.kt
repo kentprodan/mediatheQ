@@ -106,10 +106,13 @@ class SearchViewModel
 
                 is SearchAction.PlayTrack -> {
                     // The shown songs are the list it was tapped in: Play makes them the queue (#136).
+                    // By id: a favorite read again changes the track's user data, not which song it is.
                     val state = uiState.value as? SearchUiState.Results
-                    val tracks = state?.shown?.tracks?.takeIf { action.track in it } ?: listOf(action.track)
+                    val shown = state?.shown?.tracks.orEmpty()
+                    val index = shown.indexOfFirst { it.id == action.track.id }
+                    val tracks = if (index >= 0) shown else listOf(action.track)
                     viewModelScope.launch {
-                        trackTaps.tap(tracks, tracks.indexOf(action.track), action = state?.page?.trackAction)
+                        trackTaps.tap(tracks, index.coerceAtLeast(0), action = state?.page?.trackAction)
                     }
                     saveQuery()
                 }

@@ -161,7 +161,7 @@ class SearchScreenTest {
     fun `the heart on a song favorites it`() {
         show(found)
 
-        composeRule.onNodeWithContentDescription("Favorite").performClick()
+        composeRule.onNodeWithContentDescription("Favorite Song").performClick()
 
         assertThat(actions.filterIsInstance<SearchAction.SetFavorite>())
             .containsExactly(SearchAction.SetFavorite(song, true))
@@ -171,13 +171,13 @@ class SearchScreenTest {
     fun `no heart when the setting is off`() {
         show(found.copy(page = SearchPagePreferences(showFavorite = false)))
 
-        composeRule.onNodeWithContentDescription("Favorite").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Favorite Song").assertDoesNotExist()
     }
 
     @Test
     fun `no heart while selecting`() {
         show(found.copy(selection = ListSelection<MediaId>().toggle(song.id)))
 
-        composeRule.onNodeWithContentDescription("Favorite").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Favorite Song").assertDoesNotExist()
     }
 }
