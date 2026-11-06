@@ -122,6 +122,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private lateinit var waveformAnalyzer: WaveformAnalyzer
     private var waveformJob: Job? = null
     private var behaviorJob: Job? = null
+    private var transcodeJob: Job? = null
 
     /** One background thread for waveform analysis (#124): one file at a time, below playback and the UI. */
     private val waveformWorker =
@@ -181,6 +182,21 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     ),
                 ).build()
         startAudioOutput(player)
+        val transcoder =
+            InstantTranscoder(
+                player,
+                enabled = { audioPreferences.preferences.first().forceInstantTranscoding },
+                needsNewStream = { id ->
+                    val local = downloads.isDownloaded(id) || streamingCache.isFullyCached(originalCacheKey(id))
+                    wantsNewStream(
+                        streamResolver.quality(id),
+                        audioPreferences.preferences.first().meteredQuality,
+                        local,
+                    )
+                },
+            )
+        transcodeJob =
+            applicationScope.launch(Dispatchers.Main) { playerNetwork.meteredChanges.collect(transcoder::onNetwork) }
         reporter =
             PlaybackReporter(
                 repository = playbackRepository,
@@ -452,6 +468,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         prefetcher.stop()
         waveformJob?.cancel()
         behaviorJob?.cancel()
+        transcodeJob?.cancel()
         waveformWorker.close()
         audioSettingsJob?.cancel()
         audioOutput.release()
