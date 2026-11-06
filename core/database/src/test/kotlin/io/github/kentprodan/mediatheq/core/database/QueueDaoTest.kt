@@ -93,4 +93,13 @@ class QueueDaoTest {
             assertThat(queueDao.entries()).isEmpty()
             assertThat(queueDao.state()).isNull()
         }
+
+    @Test
+    fun `the playlist an entry was played from comes back with it`() =
+        runTest {
+            library("t1", "t2")
+            queueDao.replace(listOf(entry(0, "t1").copy(playlistId = "p1"), entry(1, "t2")), state)
+
+            assertThat(queueDao.entries().map { it.playlistId }).containsExactly("p1", null).inOrder()
+        }
 }

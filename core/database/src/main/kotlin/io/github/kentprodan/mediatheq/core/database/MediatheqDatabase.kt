@@ -27,6 +27,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.PendingUserDataEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryStaging
+import io.github.kentprodan.mediatheq.core.database.entity.PlaylistResumeEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.QueueEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.QueueStateEntity
@@ -42,7 +43,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 10,
+    version = 11,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -72,6 +73,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AlbumLabelEntity::class,
         AlbumLabelStaging::class,
         AlbumResumeEntity::class,
+        PlaylistResumeEntity::class,
     ],
     autoMigrations = [
         // 2: the saved play queue (#14) and an index on track.album_id.
@@ -92,6 +94,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 8, to = 9, spec = SyncAlbumPageMigration::class),
         // #133: artists have no backdrop or biography yet.
         AutoMigration(from = 9, to = 10, spec = SyncArtistPageMigration::class),
+        // 11: where each playlist was left, and the playlist a queue entry was played from (#135); no resync.
+        AutoMigration(from = 10, to = 11),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

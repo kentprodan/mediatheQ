@@ -301,4 +301,37 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `10 to 11 keeps the saved queue from no playlist and adds where playlists were left, without a sync`() =
+        runTest {
+            helper.createDatabase(10).apply {
+                execSQL(
+                    "INSERT INTO sync_state (id, last_full_sync_at, owner_server_id, owner_user_id, checkpoint_index) " +
+                        "VALUES (0, 1760000000000, 's', 'u', 0)",
+                )
+                execSQL(
+                    "INSERT INTO queue_entry (position, entry_id, server_id, track_id, shuffle_position) " +
+                        "VALUES (0, 'e0', 's', 't', 0)",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(11)
+
+            connection.prepare("SELECT last_full_sync_at FROM sync_state").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(1760000000000)
+            }
+            connection.prepare("SELECT entry_id, playlist_id FROM queue_entry").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getText(0)).isEqualTo("e0")
+                assertThat(it.isNull(1)).isTrue()
+            }
+            connection.prepare("SELECT COUNT(*) FROM playlist_resume").use {
+                it.step()
+                assertThat(it.getLong(0)).isEqualTo(0)
+            }
+            connection.close()
+        }
 }
