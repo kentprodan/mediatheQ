@@ -40,12 +40,14 @@ import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
+import io.github.kentprodan.mediatheq.core.data.AudioOutputRepository
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
+import io.github.kentprodan.mediatheq.core.data.OutputProfile
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.ResumeRepository
@@ -118,6 +120,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var audioPreferences: AudioPreferencesRepository
 
+    @Inject lateinit var audioOutputs: AudioOutputRepository
+
     @Inject lateinit var libraryPreferences: LibraryPreferencesRepository
 
     @Inject
@@ -161,6 +165,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private lateinit var usbAudio: AudioOutputPort
     private lateinit var audioOutput: AudioOutputController
     private var audioSettingsJob: Job? = null
+    private var outputsJob: Job? = null
     private val equalizer = EqualizerEffect(AudioPreferences.EQ_BANDS_HZ)
 
     @Inject
@@ -440,8 +445,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private fun startAudioOutput(player: ExoPlayer) {
         var settings = AudioSettings()
         var offload: Boolean? = null
-        var eqGains = AudioPreferences().eqGainsDb
+        var eqGains = OutputProfile().eqGainsDb
         lateinit var normalization: NormalizationListener
+        lateinit var outputProfiles: OutputProfileFollower
         var ducked = false
         focusController =
             AudioFocusController(
@@ -490,6 +496,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     normalization.apply()
                     applyEqualizer()
                     session?.sessionExtras = state.toInfo().toBundle()
+                    // Last: a new output's settings decide again, and that change comes back here on its own.
+                    outputProfiles.onDevice(state.output)
                 },
                 atmosConverted = {
                     AudioPolicy.atmosConverted(
@@ -510,6 +518,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
                                 AudioPolicy.convertedKbps(it, convertedDownload(), cap)
                             },
                     )
+                },
+            )
+        outputProfiles =
+            OutputProfileFollower(
+                remember = { device -> applicationScope.launch { audioOutputs.use(device.id, device.name) } },
+                apply = { profile ->
+                    settings = profile.toAudioSettings()
+                    eqGains = profile.eqGainsDb
+                    audioOutput.setSettings(settings)
+                    // The output state may not change with the normalization, so set the volume here too.
+                    normalization.apply()
+                    applyEqualizer()
                 },
             )
         normalization =
@@ -553,21 +573,12 @@ class MediatheqPlaybackService : MediaLibraryService() {
         )
         audioSettingsJob =
             applicationScope.launch(Dispatchers.Main) {
-                audioPreferences.preferences.collect {
-                    settings =
-                        settings.copy(
-                            normalization = it.normalization,
-                            equalizerOn = it.equalizerOn,
-                            bitPerfectUsb = it.bitPerfectUsb,
-                        )
-                    eqGains = it.eqGainsDb
-                    streamingEvictor.maxBytes = gibibytes(it.streamingCacheGb)
-                    audioOutput.setSettings(settings)
-                    // The output state may not change with the normalization, so set the volume here too.
-                    normalization.apply()
-                    applyEqualizer()
-                }
+                audioPreferences.preferences.collect { streamingEvictor.maxBytes = gibibytes(it.streamingCacheGb) }
             }
+        // Each output's own settings (#140); the device media plays on comes with each output decision.
+        outputsJob =
+            applicationScope.launch(Dispatchers.Main) { audioOutputs.outputs.collect(outputProfiles::onOutputs) }
+        outputProfiles.onDevice(audioOutput.state.output)
     }
 
     private fun AudioOutputState.toInfo() =
@@ -608,6 +619,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         transcodeJob?.cancel()
         waveformWorker.close()
         audioSettingsJob?.cancel()
+        outputsJob?.cancel()
         audioOutput.release()
         usbAudio.release()
         equalizer.release()
