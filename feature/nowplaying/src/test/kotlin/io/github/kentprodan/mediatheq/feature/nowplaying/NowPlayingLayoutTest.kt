@@ -1,6 +1,8 @@
 package io.github.kentprodan.mediatheq.feature.nowplaying
 
 import android.app.Application
+import android.view.View
+import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
@@ -27,6 +29,7 @@ import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
 import androidx.navigation3.runtime.NavKey
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.KeepScreenOn
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Artist
@@ -342,5 +345,61 @@ class NowPlayingLayoutTest {
     private companion object {
         const val SETTLE_FRAMES = 180
         const val SHELL_TEXT = "Shell content"
+    }
+
+    private fun View.keepsScreenOn(): Boolean =
+        keepScreenOn || (this is ViewGroup && (0 until childCount).any { getChildAt(it).keepsScreenOn() })
+
+    private fun showWith(keepScreenOn: KeepScreenOn) {
+        composeRule.setContent {
+            MediatheqTheme {
+                NowPlayingLayout(
+                    state,
+                    MutableStateFlow(150.seconds),
+                    { actions += it },
+                    content = { mini -> mini(true) },
+                    keepScreenOn = keepScreenOn,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `with the option, the screen stays on only while the full player is open`() {
+        showWith(KeepScreenOn.NowPlaying)
+        val root = composeRule.activity.window.decorView
+        assertThat(root.keepsScreenOn()).isFalse()
+
+        composeRule.onNode(miniPlayer).performClick()
+        composeRule.waitForIdle()
+        assertThat(root.keepsScreenOn()).isTrue()
+
+        composeRule.onNodeWithContentDescription(closeButton).performClick()
+        composeRule.waitForIdle()
+        assertThat(root.keepsScreenOn()).isFalse()
+    }
+
+    @Test
+    fun `Off lets the screen turn off with the player open`() {
+        showWith(KeepScreenOn.Off)
+
+        composeRule.onNode(miniPlayer).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(
+            composeRule.activity.window.decorView
+                .keepsScreenOn(),
+        ).isFalse()
+    }
+
+    @Test
+    fun `Always keeps the screen on with the player closed`() {
+        showWith(KeepScreenOn.Always)
+        composeRule.waitForIdle()
+
+        assertThat(
+            composeRule.activity.window.decorView
+                .keepsScreenOn(),
+        ).isTrue()
     }
 }
