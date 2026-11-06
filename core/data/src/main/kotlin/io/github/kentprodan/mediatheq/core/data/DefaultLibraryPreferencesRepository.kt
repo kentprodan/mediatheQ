@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.datastore.StoredMediaLists
 import io.github.kentprodan.mediatheq.core.datastore.StoredNavigation
 import io.github.kentprodan.mediatheq.core.datastore.StoredNowPlaying
 import io.github.kentprodan.mediatheq.core.datastore.StoredPlaylistPage
+import io.github.kentprodan.mediatheq.core.datastore.StoredSearchPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredTheme
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
@@ -47,6 +48,7 @@ class DefaultLibraryPreferencesRepository
                     artistPage = artistPage(stored.artistPage),
                     genrePage = genrePage(stored.genrePage),
                     playlistPage = playlistPage(stored.playlistPage),
+                    searchPage = searchPage(stored.searchPage),
                     qualityDetail = stored.qualityDetail ?: false,
                 )
             }
@@ -278,6 +280,30 @@ class DefaultLibraryPreferencesRepository
         }
 
         override suspend fun restorePlaylistPageDefaults() = store.setPlaylistPage(StoredPlaylistPage())
+
+        override suspend fun setSearchPage(page: SearchPagePreferences) {
+            store.setSearchPage(
+                StoredSearchPage(
+                    singleLineChips = page.singleLineChips,
+                    showFavorite = page.showFavorite,
+                    trackAction = page.trackAction?.name,
+                    sort = page.sort.name,
+                ),
+            )
+        }
+
+        override suspend fun restoreSearchPageDefaults() = store.setSearchPage(StoredSearchPage())
+
+        /** Unknown names fall back to the defaults (an unknown track action = Same as default). */
+        private fun searchPage(stored: StoredSearchPage): SearchPagePreferences {
+            val defaults = SearchPagePreferences()
+            return SearchPagePreferences(
+                singleLineChips = stored.singleLineChips ?: defaults.singleLineChips,
+                showFavorite = stored.showFavorite ?: defaults.showFavorite,
+                trackAction = enumOrNull<TrackAction>(stored.trackAction),
+                sort = enumOrNull<SearchSort>(stored.sort) ?: defaults.sort,
+            )
+        }
 
         /** Unknown names are dropped. */
         private fun playlistPage(stored: StoredPlaylistPage): PlaylistPagePreferences {

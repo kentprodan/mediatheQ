@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
+import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.validNavEntries
 import io.github.kentprodan.mediatheq.core.data.validTransparency
@@ -65,6 +66,14 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
 
     override suspend fun restorePlaylistPageDefaults() {
         preferences.value = preferences.value.copy(playlistPage = PlaylistPagePreferences())
+    }
+
+    override suspend fun setSearchPage(page: SearchPagePreferences) {
+        preferences.value = preferences.value.copy(searchPage = page)
+    }
+
+    override suspend fun restoreSearchPageDefaults() {
+        preferences.value = preferences.value.copy(searchPage = SearchPagePreferences())
     }
 
     override suspend fun restoreAlbumPageDefaults() {

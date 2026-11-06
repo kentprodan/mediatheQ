@@ -871,4 +871,44 @@ class DefaultLibraryPreferencesRepositoryTest {
                     .playlistPage.hiddenButtons,
             ).isEmpty()
         }
+
+    @Test
+    fun `the search page settings are kept, and restoring them resets only that page`() =
+        runTest {
+            val page =
+                SearchPagePreferences(
+                    singleLineChips = false,
+                    showFavorite = false,
+                    trackAction = TrackAction.PlayNext,
+                    sort = SearchSort.Relevance,
+                )
+            val playlist = PlaylistPagePreferences(dynamicColors = true)
+            repository.setSearchPage(page)
+            repository.setPlaylistPage(playlist)
+            assertThat(repository.preferences.first().searchPage).isEqualTo(page)
+
+            repository.restoreSearchPageDefaults()
+
+            val restored = repository.preferences.first()
+            assertThat(restored.searchPage).isEqualTo(SearchPagePreferences())
+            assertThat(restored.playlistPage).isEqualTo(playlist)
+        }
+
+    @Test
+    fun `a stored search page with unknown names keeps the defaults, Same as default included`() =
+        runTest {
+            repository.setSearchPage(SearchPagePreferences(trackAction = TrackAction.Play))
+            repository.setSearchPage(SearchPagePreferences(trackAction = null))
+            assertThat(
+                repository.preferences
+                    .first()
+                    .searchPage.trackAction,
+            ).isNull()
+
+            dataStore.edit {
+                it[stringPreferencesKey("sp_track_action")] = "Shout"
+                it[stringPreferencesKey("sp_sort")] = "Year"
+            }
+            assertThat(repository.preferences.first().searchPage).isEqualTo(SearchPagePreferences())
+        }
 }

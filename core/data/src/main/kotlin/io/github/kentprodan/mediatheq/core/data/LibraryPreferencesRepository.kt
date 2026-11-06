@@ -75,6 +75,12 @@ interface LibraryPreferencesRepository {
     /** Back to the Playlist page defaults only. */
     suspend fun restorePlaylistPageDefaults()
 
+    /** Every Search page value at once (#136). */
+    suspend fun setSearchPage(page: SearchPagePreferences)
+
+    /** Back to the Search page defaults only. */
+    suspend fun restoreSearchPageDefaults()
+
     suspend fun setRatingMode(mode: RatingMode)
 
     /** Now Playing's quality label: the format detail or its kind (#125). */
