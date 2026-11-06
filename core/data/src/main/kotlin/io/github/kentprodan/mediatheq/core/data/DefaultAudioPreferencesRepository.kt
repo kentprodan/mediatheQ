@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.datastore.AudioPreferencesStore
+import io.github.kentprodan.mediatheq.core.datastore.StoredPlaybackBehavior
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -34,6 +35,8 @@ class DefaultAudioPreferencesRepository
                         stored.streamingCacheGb?.takeIf { it in AudioPreferences.CACHE_SIZES_GB }
                             ?: defaults.streamingCacheGb,
                     downloadsUnmeteredOnly = stored.downloadsUnmeteredOnly ?: defaults.downloadsUnmeteredOnly,
+                    forceInstantTranscoding = stored.forceInstantTranscoding ?: defaults.forceInstantTranscoding,
+                    behavior = behavior(stored.behavior),
                 )
             }
 
@@ -55,6 +58,38 @@ class DefaultAudioPreferencesRepository
         }
 
         override suspend fun setDownloadsUnmeteredOnly(on: Boolean) = store.setDownloadsUnmeteredOnly(on)
+
+        override suspend fun setForceInstantTranscoding(on: Boolean) = store.setForceInstantTranscoding(on)
+
+        override suspend fun restoreDecodingDefaults() = store.clearDecoding()
+
+        override suspend fun setBehavior(behavior: PlaybackBehavior) =
+            store.setBehavior(
+                StoredPlaybackBehavior(
+                    preservePlayNextOrder = behavior.preservePlayNextOrder,
+                    rewindFirst = behavior.rewindFirst,
+                    circular = behavior.circular,
+                    keepPausedOnSkip = behavior.keepPausedOnSkip,
+                    stopRepeatOneOnSkip = behavior.stopRepeatOneOnSkip,
+                    retainPlayerState = behavior.retainPlayerState,
+                    weightedShuffle = behavior.weightedShuffle,
+                ),
+            )
+
+        override suspend fun restoreBehaviorDefaults() = store.setBehavior(StoredPlaybackBehavior())
+
+        private fun behavior(stored: StoredPlaybackBehavior): PlaybackBehavior {
+            val defaults = PlaybackBehavior()
+            return PlaybackBehavior(
+                preservePlayNextOrder = stored.preservePlayNextOrder ?: defaults.preservePlayNextOrder,
+                rewindFirst = stored.rewindFirst ?: defaults.rewindFirst,
+                circular = stored.circular ?: defaults.circular,
+                keepPausedOnSkip = stored.keepPausedOnSkip ?: defaults.keepPausedOnSkip,
+                stopRepeatOneOnSkip = stored.stopRepeatOneOnSkip ?: defaults.stopRepeatOneOnSkip,
+                retainPlayerState = stored.retainPlayerState ?: defaults.retainPlayerState,
+                weightedShuffle = stored.weightedShuffle ?: defaults.weightedShuffle,
+            )
+        }
 
         override suspend fun setEqBand(
             index: Int,

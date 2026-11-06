@@ -139,4 +139,48 @@ class DefaultAudioPreferencesRepositoryTest {
 
             assertThat(repository.preferences.first()).isEqualTo(AudioPreferences())
         }
+
+    @Test
+    fun `decoding settings are kept, and restoring them resets only that page`() =
+        runTest {
+            repository.setStreamingQuality(metered = true, StreamingQuality.Kbps192)
+            repository.setStreamingQuality(metered = false, StreamingQuality.Kbps320)
+            repository.setForceInstantTranscoding(true)
+            repository.setNormalization(Normalization.Track)
+            val set = repository.preferences.first()
+            assertThat(set.meteredQuality).isEqualTo(StreamingQuality.Kbps192)
+            assertThat(set.unmeteredQuality).isEqualTo(StreamingQuality.Kbps320)
+            assertThat(set.forceInstantTranscoding).isTrue()
+
+            repository.restoreDecodingDefaults()
+
+            val restored = repository.preferences.first()
+            assertThat(restored.meteredQuality).isEqualTo(StreamingQuality.Kbps256)
+            assertThat(restored.unmeteredQuality).isEqualTo(StreamingQuality.Original)
+            assertThat(restored.forceInstantTranscoding).isFalse()
+            assertThat(restored.normalization).isEqualTo(Normalization.Track)
+        }
+
+    @Test
+    fun `playback behavior is kept, and restoring it resets only that page`() =
+        runTest {
+            val behavior =
+                PlaybackBehavior(
+                    preservePlayNextOrder = true,
+                    rewindFirst = false,
+                    circular = false,
+                    keepPausedOnSkip = true,
+                    stopRepeatOneOnSkip = false,
+                    retainPlayerState = true,
+                    weightedShuffle = false,
+                )
+            repository.setBehavior(behavior)
+            repository.setForceInstantTranscoding(true)
+            assertThat(repository.preferences.first().behavior).isEqualTo(behavior)
+
+            repository.restoreBehaviorDefaults()
+
+            assertThat(repository.preferences.first().behavior).isEqualTo(PlaybackBehavior())
+            assertThat(repository.preferences.first().forceInstantTranscoding).isTrue()
+        }
 }
