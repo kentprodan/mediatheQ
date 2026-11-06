@@ -54,6 +54,8 @@ sealed interface NowPlayingUiState {
         val trackId: MediaId? = null,
         /** Settings -> Now playing screens (#126): mini player and Now Playing looks and gestures. */
         val settings: NowPlayingPreferences = NowPlayingPreferences(),
+        /** "3 / 12" near the title (Advanced settings, #137); `null` when off or not in the queue. */
+        val trackNumber: QueuePosition? = null,
     ) : NowPlayingUiState {
         /** The stars show when the page's switch is on and ratings are not off. */
         val showsRating: Boolean get() = settings.showRating && ratingMode != RatingMode.Off
@@ -151,3 +153,9 @@ internal fun RepeatMode.next(): RepeatMode =
         RepeatMode.All -> RepeatMode.One
         RepeatMode.One -> RepeatMode.Off
     }
+
+/** The playing entry's place in the queue, in play order: [number] of [count], from 1. */
+data class QueuePosition(
+    val number: Int,
+    val count: Int,
+)

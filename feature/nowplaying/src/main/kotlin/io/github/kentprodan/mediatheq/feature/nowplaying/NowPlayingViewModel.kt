@@ -79,6 +79,26 @@ class NowPlayingViewModel
                     }
                 }
 
+        // Read only while Advanced settings -> Show track number is on (#137).
+        private val trackNumber =
+            libraryPreferences.preferences
+                .map { it.advanced.showTrackNumber }
+                .distinctUntilChanged()
+                .flatMapLatest { on ->
+                    if (!on) {
+                        flowOf(null)
+                    } else {
+                        combine(playback.queue, playback.state.map { it.currentEntryId }.distinctUntilChanged()) {
+                            queue,
+                            entry,
+                            ->
+                            queue.indexOfFirst { it.entryId == entry }.takeIf { it >= 0 }?.let {
+                                QueuePosition(it + 1, queue.size)
+                            }
+                        }
+                    }
+                }
+
         val uiState: StateFlow<NowPlayingUiState> =
             combine(
                 playback.state,
@@ -111,6 +131,8 @@ class NowPlayingViewModel
                 } else {
                     ui
                 }
+            }.combine(trackNumber) { ui, number ->
+                if (ui is NowPlayingUiState.Playing) ui.copy(trackNumber = number) else ui
             }.stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),

@@ -328,3 +328,19 @@ fun NowPlayingPlayButtonNoStarsScreenshot() {
         )
     }
 }
+
+/** Advanced settings -> Show track number (#137): the place in the queue above the title. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingTrackNumberScreenshot() {
+    MediatheqTheme { Screen(playing.copy(trackNumber = QueuePosition(3, 12))) }
+}
+
+@PreviewTest
+@Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
+@Preview(name = "Landscape 2x", device = "spec:width=915dp,height=412dp,dpi=420", fontScale = 2f)
+@Composable
+fun NowPlayingLandscapeTrackNumberScreenshot() {
+    MediatheqTheme { Screen(playing.copy(trackNumber = QueuePosition(3, 12))) }
+}
