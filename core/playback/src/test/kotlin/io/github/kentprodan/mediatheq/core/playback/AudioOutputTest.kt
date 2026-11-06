@@ -29,8 +29,9 @@ class AudioOutputTest {
     private val player: ExoPlayer =
         TestExoPlayerBuilder(context).setMediaSourceFactory(FakeMediaSourceFactory()).build()
     private var duck = 1f
+    private var settings = AudioSettings()
     private val normalization =
-        NormalizationListener(player, { AudioSettings() }, { mode }, { duck }).also(player::addListener)
+        NormalizationListener(player, { settings }, { mode }, { duck }).also(player::addListener)
 
     @After
     fun release() = player.release()
@@ -60,6 +61,16 @@ class AudioOutputTest {
         assertThat(player.volume).isEqualTo(1f)
 
         player.seekToNextMediaItem()
+        assertThat(player.volume).isEqualTo(1f)
+    }
+
+    @Test
+    fun `an output that bypasses processing plays at full volume`() {
+        player.setMediaItems(listOf(item(1, albumDb = -6.0)))
+
+        settings = AudioSettings(bypass = true)
+        normalization.apply()
+
         assertThat(player.volume).isEqualTo(1f)
     }
 

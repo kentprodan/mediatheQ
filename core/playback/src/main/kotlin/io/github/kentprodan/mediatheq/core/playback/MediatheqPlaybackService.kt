@@ -158,7 +158,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     task.run()
                 }, "MqWaveform")
             }.asCoroutineDispatcher()
-    private lateinit var usbAudio: UsbAudioPort
+    private lateinit var usbAudio: AudioOutputPort
     private lateinit var audioOutput: AudioOutputController
     private var audioSettingsJob: Job? = null
     private val equalizer = EqualizerEffect(AudioPreferences.EQ_BANDS_HZ)
@@ -468,7 +468,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         }
 
         fun convertedDownload(): Boolean = currentId()?.let(streamResolver::isConvertedDownload) == true
-        usbAudio = UsbAudioPort.create(getSystemService(AudioManager::class.java))
+        usbAudio = AudioOutputPort.create(getSystemService(AudioManager::class.java))
         audioOutput =
             AudioOutputController(
                 port = usbAudio,

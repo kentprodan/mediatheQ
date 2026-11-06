@@ -10,8 +10,14 @@ import android.os.Handler
 import android.os.Looper
 import androidx.annotation.RequiresApi
 
-/** The platform side of bit-perfect USB (media3 skill, section 6), behind plain data so the decisions stay testable. */
-internal interface UsbAudioPort {
+/**
+ * The platform side of the audio output: which device media plays on (#140) and bit-perfect USB (media3 skill, section
+ * 6), behind plain data so the decisions stay testable.
+ */
+internal interface AudioOutputPort {
+    /** The device media plays on now; the phone when there is no way to tell. */
+    fun currentOutput(): OutputDevice
+
     /** The USB DAC media is routed to: its mixer attributes, or `null` when there is none (or no way to tell). */
     fun dacCapabilities(): List<MixerCapability>?
 
@@ -33,17 +39,23 @@ internal interface UsbAudioPort {
     fun release()
 
     companion object {
-        /** Mixer attributes need Android 14; below it, never a DAC to play bit-perfect to. */
-        fun create(audioManager: AudioManager): UsbAudioPort =
+        /**
+         * Mixer attributes need Android 14; below it, never a DAC to play bit-perfect to.
+         * shortcut: below Android 14 the output is always the phone (no profiles per device), though Android 13 could
+         * tell it with getAudioDevicesForAttributes; add it if a device below 14 matters.
+         */
+        fun create(audioManager: AudioManager): AudioOutputPort =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                AndroidUsbAudioPort(audioManager)
+                AndroidAudioOutputPort(audioManager)
             } else {
-                NoUsbAudioPort
+                NoAudioOutputPort
             }
     }
 }
 
-private object NoUsbAudioPort : UsbAudioPort {
+private object NoAudioOutputPort : AudioOutputPort {
+    override fun currentOutput() = OutputDevice.Phone
+
     override fun dacCapabilities(): List<MixerCapability>? = null
 
     override fun setPreferred(capability: MixerCapability) = false
@@ -59,9 +71,9 @@ private object NoUsbAudioPort : UsbAudioPort {
 }
 
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-private class AndroidUsbAudioPort(
+private class AndroidAudioOutputPort(
     private val audioManager: AudioManager,
-) : UsbAudioPort {
+) : AudioOutputPort {
     private var dac: AudioDeviceInfo? = null
     private var attributes: Map<MixerCapability, AudioMixerAttributes> = emptyMap()
     private var preferredOn: AudioDeviceInfo? = null
@@ -72,6 +84,11 @@ private class AndroidUsbAudioPort(
     private var ownClearsPending = 0
     private var callback: AudioDeviceCallback? = null
     private var preferenceListener: AudioManager.OnPreferredMixerAttributesChangedListener? = null
+
+    override fun currentOutput(): OutputDevice {
+        val device = audioManager.getAudioDevicesForAttributes(MEDIA).firstOrNull() ?: return OutputDevice.Phone
+        return OutputDevice(outputKind(device.type), device.productName.toString(), device.address)
+    }
 
     override fun dacCapabilities(): List<MixerCapability>? {
         // The device media plays on now: a DAC that is plugged in while music goes to Bluetooth does not count.
