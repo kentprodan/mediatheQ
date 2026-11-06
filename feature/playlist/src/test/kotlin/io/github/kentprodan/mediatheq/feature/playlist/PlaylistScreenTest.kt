@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -136,5 +137,18 @@ class PlaylistScreenTest {
         composeRule.onNodeWithText("Shuffle").performClick()
 
         assertThat(actions).containsExactly(PlaylistAction.Resume, PlaylistAction.Shuffle).inOrder()
+    }
+
+    @Test
+    fun `Edit with nothing selected keeps the toolbar commands off but Select all on`() {
+        val actions = mutableListOf<PlaylistAction>()
+        show(content.copy(editing = true), actions)
+
+        composeRule.onNodeWithText("0 selected").assertExists()
+        composeRule.onNodeWithContentDescription("More actions").performClick()
+        composeRule.onNodeWithText("Add to playlist").assertIsNotEnabled()
+        composeRule.onNodeWithText("Select all").performClick()
+
+        assertThat(actions).containsExactly(PlaylistAction.SelectAll)
     }
 }

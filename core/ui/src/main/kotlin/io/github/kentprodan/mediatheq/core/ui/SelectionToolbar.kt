@@ -30,7 +30,7 @@ val SelectionToolbarSpace = FloatingToolbarDefaults.ContainerSize + FloatingTool
 /**
  * The floating toolbar of a media list while selecting (#123): Clear, "n selected", Play, Play next and Add to queue,
  * then a More menu with Add to playlist, Download, Favorite and Select all. [extraActions] go before More (playlist
- * edit's Remove).
+ * edit's Remove). With nothing selected (playlist Edit) the commands are off; Select all stays.
  */
 @Composable
 fun SelectionToolbar(
@@ -42,6 +42,7 @@ fun SelectionToolbar(
     extraActions: @Composable RowScope.() -> Unit = {},
 ) {
     var more by remember { mutableStateOf(false) }
+    val enabled = count > 0
     HorizontalFloatingToolbar(expanded = true, modifier = modifier.padding(FloatingToolbarDefaults.ScreenOffset)) {
         IconButton(onClick = onClear) {
             Icon(MqIcons.Close, contentDescription = stringResource(R.string.core_ui_clear_selection))
@@ -51,9 +52,13 @@ fun SelectionToolbar(
             Modifier.align(Alignment.CenterVertically).padding(horizontal = MediatheqSpacing.s),
             style = MaterialTheme.typography.labelLarge,
         )
-        CommandButton(MqIcons.PlayArrow, R.string.core_ui_play) { onCommand(SelectionCommand.Play) }
-        CommandButton(MqIcons.PlayNext, R.string.core_ui_play_next) { onCommand(SelectionCommand.PlayNext) }
-        CommandButton(MqIcons.AddToQueue, R.string.core_ui_add_to_queue) { onCommand(SelectionCommand.AddToQueue) }
+        CommandButton(MqIcons.PlayArrow, R.string.core_ui_play, enabled) { onCommand(SelectionCommand.Play) }
+        CommandButton(MqIcons.PlayNext, R.string.core_ui_play_next, enabled) { onCommand(SelectionCommand.PlayNext) }
+        CommandButton(
+            MqIcons.AddToQueue,
+            R.string.core_ui_add_to_queue,
+            enabled,
+        ) { onCommand(SelectionCommand.AddToQueue) }
         extraActions()
         Box {
             IconButton(onClick = { more = true }) {
@@ -72,6 +77,7 @@ fun SelectionToolbar(
                             more = false
                             onCommand(command)
                         },
+                        enabled = enabled,
                     )
                 }
                 DropdownMenuItem(
@@ -91,7 +97,8 @@ fun SelectionToolbar(
 private fun CommandButton(
     icon: ImageVector,
     label: Int,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    IconButton(onClick = onClick) { Icon(icon, contentDescription = stringResource(label)) }
+    IconButton(onClick = onClick, enabled = enabled) { Icon(icon, contentDescription = stringResource(label)) }
 }
