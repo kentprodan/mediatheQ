@@ -1,11 +1,15 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import android.app.PendingIntent
+import android.content.Intent
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import android.util.Log
+import android.view.KeyEvent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -36,7 +40,6 @@ import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
-import io.github.kentprodan.mediatheq.core.data.PlaybackBehavior
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.ResumeRepository
@@ -122,6 +125,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private lateinit var waveformAnalyzer: WaveformAnalyzer
     private var waveformJob: Job? = null
     private var behaviorJob: Job? = null
+
+    // The audio settings as last read, on the main thread like the player; the defaults until then (milliseconds).
+    private var audio = AudioPreferences()
+    private lateinit var headsetButtons: HeadsetButtons
     private var transcodeJob: Job? = null
 
     /** One background thread for waveform analysis (#124): one file at a time, below playback and the UI. */
@@ -303,15 +310,20 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     /** The session's player: Settings -> Playback -> Playback applies to every controller alike (#138). */
     private fun queuePlayer(player: ExoPlayer): QueuePlayer {
-        // Read on the main thread, like the player; the defaults until the setting is read (milliseconds).
-        var behavior = PlaybackBehavior()
-        val queuePlayer = QueuePlayer(player, behavior = { behavior }, resuming = { persistence.resuming })
+        val queuePlayer = QueuePlayer(player, behavior = { audio.behavior }, resuming = { persistence.resuming })
         behaviorJob =
             applicationScope.launch(Dispatchers.Main) {
-                audioPreferences.preferences.map { it.behavior }.distinctUntilChanged().collect {
-                    behavior = it
-                    queuePlayer.onBehaviorChanged()
+                audioPreferences.preferences.collect {
+                    val behaviorChanged = it.behavior != audio.behavior
+                    audio = it
+                    if (behaviorChanged) queuePlayer.onBehaviorChanged()
                 }
+            }
+        val handler = Handler(Looper.getMainLooper())
+        headsetButtons =
+            HeadsetButtons(queuePlayer, { audio.headset }) { delay, block ->
+                handler.postDelayed(block, delay)
+                ({ handler.removeCallbacks(block) })
             }
         return queuePlayer
     }
@@ -529,6 +541,20 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     MediaSession.ConnectionResult.reject()
                 },
             )
+
+        /**
+         * Headset and Bluetooth buttons (#139): clicks counted and keys remapped per Settings -> Playback -> Headset
+         * buttons. Only key events from the system (a platform controller); the notification's buttons are commands.
+         */
+        override fun onMediaButtonEvent(
+            session: MediaSession,
+            controllerInfo: MediaSession.ControllerInfo,
+            intent: Intent,
+        ): Boolean {
+            if (controllerInfo.controllerVersion != MediaSession.ControllerInfo.LEGACY_CONTROLLER_VERSION) return false
+            val event = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java) ?: return false
+            return headsetButtons.onMediaButton(event)
+        }
 
         /** The system asks to play with nothing queued (media button, media card): the saved queue (#43). */
         override fun onPlaybackResumption(
