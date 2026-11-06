@@ -39,7 +39,7 @@ PlaybackConnection (UI side)                         async MediaController -> St
 ## 2. Building the player
 
 - `ExoPlayer.Builder` with:
-  - `setAudioAttributes(AudioAttributes(USAGE_MEDIA, CONTENT_TYPE_MUSIC), handleAudioFocus = true)`
+  - `setAudioAttributes(AudioAttributes(USAGE_MEDIA, CONTENT_TYPE_MUSIC), handleAudioFocus = false)`: `AudioFocusController` owns focus (ADR 0031)
   - `setHandleAudioBecomingNoisy(true)` (pause when headphones unplug)
   - `setWakeMode(C.WAKE_MODE_NETWORK)` for streaming
   - `setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))` (section 9)
@@ -170,8 +170,9 @@ Rules:
   - **Retain player state:** off, a new queue resets repeat (and shuffle unless Shuffle asked for it). The system resuming the saved queue is exempt (`QueuePersistence.resuming`).
   - Automatic skips (`SkipFailedTrackListener`) use the ExoPlayer itself.
 - System playback resumption (#43): `MediatheqMediaButtonReceiver` (a `MediaButtonReceiver`) starts the service only when `QueueRepository.hasSavedQueue` (a SharedPreferences flag read at once, ADR 0020; logout, an empty save and a restore that finds nothing clear it), since a service started in the foreground must play or the system kills the app. `onPlaybackResumption` -> `QueuePersistence.resumptionFuture`: waits for the restore `start()` runs, returns its queue, entry and position, and puts the saved shuffle order back after Media3 sets the items again; for System UI at boot (`isForPlayback = false`) only the current item, its cover as bytes from the server (2 s timeout, none offline). Logout forgets the saved queue; the restore brings nothing back while signed out. Force-stopped apps get no media buttons: test with the task swiped away.
-- Notification via the default `MediaNotification.Provider`; custom buttons (favorite, shuffle) through session custom commands.
-- Audio focus: handled by ExoPlayer (`handleAudioFocus = true`); ducking allowed.
+- Notification via the default `MediaNotification.Provider`; buttons (#139, `SessionButtons.kt`) through `setMediaButtonPreferences`: previous / next can be hidden, Action 1-3 are favorite, repeat or shuffle as session custom commands with icons that follow their state. System UI and Android Auto use the same preferences.
+- Headset buttons (#139, `HeadsetButtons.kt`): `onMediaButtonEvent` counts clicks of HEADSETHOOK / PLAY_PAUSE (PLAY, PAUSE and every key with nothing queued go to Media3, so resumption still works) (`ClickCounter`, 350 ms window, 650 ms in slow mode) into single / double / triple actions, and remaps NEXT / PREVIOUS (next, previous, seek 10 s, nothing). Everything goes through the session's player, so ADR 0030 rules apply.
+- Audio focus (#139, ADR 0031): `AudioFocusController`, not ExoPlayer. Short interruption ducks / pauses / nothing (Duck pauses in bit-perfect), a long one resumes unless turned off, permanent loss pauses; refused focus does not play; `willPauseWhenDucked` is set so the system never ducks behind our back. Becoming noisy stays with ExoPlayer.
 - Sleep timer: lives in the service, survives UI death.
 - Android Auto browse tree (`LibraryCallback.onGetChildren`) is designed now, implemented in Auto & Wear 1.
 

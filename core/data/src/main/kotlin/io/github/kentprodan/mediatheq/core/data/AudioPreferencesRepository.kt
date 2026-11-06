@@ -40,6 +40,15 @@ interface AudioPreferencesRepository {
     /** Back to the Playback behavior defaults only. */
     suspend fun restoreBehaviorDefaults()
 
+    /** Every Audio focus value at once (#139); `null` = that page's defaults. */
+    suspend fun setAudioFocus(audioFocus: AudioFocusPreferences?)
+
+    /** Every Headset buttons value at once (#139); `null` = that page's defaults. */
+    suspend fun setHeadset(headset: HeadsetPreferences?)
+
+    /** Every Notification buttons value at once (#139); `null` = that page's defaults. */
+    suspend fun setNotificationButtons(buttons: NotificationButtonsPreferences?)
+
     /**
      * Sets band [index] to [gainDb] (clamped to [AudioPreferences.EQ_GAIN_DB]), starting from the gains heard now and
      * switching to [EqPreset.Custom]. Ignored for an index outside the bands.

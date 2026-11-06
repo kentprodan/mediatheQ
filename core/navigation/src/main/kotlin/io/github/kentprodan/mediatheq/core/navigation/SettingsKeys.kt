@@ -67,6 +67,18 @@ data object PlaybackBehaviorSettingsKey : NavKey
 @Serializable
 data object DecodingSettingsKey : NavKey
 
+/** Settings -> Playback -> Audio focus (#139). */
+@Serializable
+data object AudioFocusSettingsKey : NavKey
+
+/** Settings -> Playback -> Headset buttons (#139). */
+@Serializable
+data object HeadsetSettingsKey : NavKey
+
+/** Settings -> Playback -> Notification buttons (#139). */
+@Serializable
+data object NotificationButtonsSettingsKey : NavKey
+
 /** Settings -> Playback: streaming quality, normalization, Audio. */
 @Serializable
 data object PlaybackSettingsKey : NavKey

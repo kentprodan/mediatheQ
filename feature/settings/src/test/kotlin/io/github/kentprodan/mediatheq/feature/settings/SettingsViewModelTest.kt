@@ -10,12 +10,15 @@ import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.ArtistHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
+import io.github.kentprodan.mediatheq.core.data.AudioFocusPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.data.GenreSection
+import io.github.kentprodan.mediatheq.core.data.HeadsetAction
+import io.github.kentprodan.mediatheq.core.data.HeadsetPreferences
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
 import io.github.kentprodan.mediatheq.core.data.KeepScreenOn
 import io.github.kentprodan.mediatheq.core.data.LibraryHubStyle
@@ -25,6 +28,7 @@ import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
+import io.github.kentprodan.mediatheq.core.data.NotificationButtonsPreferences
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.data.PlaybackBehavior
 import io.github.kentprodan.mediatheq.core.data.PlayerProgress
@@ -32,7 +36,9 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistButton
 import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
+import io.github.kentprodan.mediatheq.core.data.SessionButtonAction
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.data.ShortFocusAction
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
@@ -609,5 +615,29 @@ class SettingsViewModelTest {
 
             viewModel.onAction(SettingsAction.RestoreBehaviorDefaults)
             assertThat(content().audio.behavior).isEqualTo(PlaybackBehavior())
+        }
+
+    @Test
+    fun `audio focus, headset and notification buttons apply at once and null restores each page`() =
+        runTest {
+            signIn()
+            val focus = AudioFocusPreferences(ShortFocusAction.Pause, noResumeAfterLongLoss = true)
+            val headset = HeadsetPreferences(doubleClick = HeadsetAction.Nothing, slowClicks = true)
+            val buttons = NotificationButtonsPreferences(showNext = false, action1 = SessionButtonAction.Nothing)
+
+            viewModel.onAction(SettingsAction.SetAudioFocus(focus))
+            viewModel.onAction(SettingsAction.SetHeadset(headset))
+            viewModel.onAction(SettingsAction.SetNotificationButtons(buttons))
+            assertThat(content().audio.audioFocus).isEqualTo(focus)
+            assertThat(content().audio.headset).isEqualTo(headset)
+            assertThat(content().audio.notificationButtons).isEqualTo(buttons)
+
+            viewModel.onAction(SettingsAction.SetAudioFocus(null))
+            assertThat(content().audio.audioFocus).isEqualTo(AudioFocusPreferences())
+            assertThat(content().audio.headset).isEqualTo(headset)
+            viewModel.onAction(SettingsAction.SetHeadset(null))
+            viewModel.onAction(SettingsAction.SetNotificationButtons(null))
+            assertThat(content().audio.headset).isEqualTo(HeadsetPreferences())
+            assertThat(content().audio.notificationButtons).isEqualTo(NotificationButtonsPreferences())
         }
 }

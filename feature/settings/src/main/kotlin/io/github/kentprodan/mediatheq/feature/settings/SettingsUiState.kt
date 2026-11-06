@@ -5,17 +5,20 @@ import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
+import io.github.kentprodan.mediatheq.core.data.AudioFocusPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.data.GenreSection
+import io.github.kentprodan.mediatheq.core.data.HeadsetPreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
+import io.github.kentprodan.mediatheq.core.data.NotificationButtonsPreferences
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
@@ -286,6 +289,21 @@ sealed interface SettingsAction {
     ) : SettingsAction
 
     data object RestoreBehaviorDefaults : SettingsAction
+
+    /** Audio focus (#139): the whole page; null restores its defaults. */
+    data class SetAudioFocus(
+        val focus: AudioFocusPreferences?,
+    ) : SettingsAction
+
+    /** Headset buttons (#139): the whole page; null restores its defaults. */
+    data class SetHeadset(
+        val headset: HeadsetPreferences?,
+    ) : SettingsAction
+
+    /** Notification buttons (#139): the whole page; null restores its defaults. */
+    data class SetNotificationButtons(
+        val buttons: NotificationButtonsPreferences?,
+    ) : SettingsAction
 
     data object OpenGenreSections : SettingsAction
 

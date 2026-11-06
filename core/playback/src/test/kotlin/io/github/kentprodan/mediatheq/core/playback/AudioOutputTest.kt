@@ -28,7 +28,9 @@ class AudioOutputTest {
     private var mode = AudioMode.Offload
     private val player: ExoPlayer =
         TestExoPlayerBuilder(context).setMediaSourceFactory(FakeMediaSourceFactory()).build()
-    private val normalization = NormalizationListener(player, { AudioSettings() }, { mode }).also(player::addListener)
+    private var duck = 1f
+    private val normalization =
+        NormalizationListener(player, { AudioSettings() }, { mode }, { duck }).also(player::addListener)
 
     @After
     fun release() = player.release()
@@ -110,5 +112,18 @@ class AudioOutputTest {
         player.applyOffload(false)
         assertThat(player.trackSelectionParameters.audioOffloadPreferences.audioOffloadMode)
             .isEqualTo(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED)
+    }
+
+    @Test
+    fun `an audio focus duck lowers the normalized volume and lets it back`() {
+        player.setMediaItems(listOf(item(1, albumDb = -6.0)))
+
+        duck = DUCK_VOLUME
+        normalization.apply()
+        assertThat(player.volume).isWithin(0.001f).of(0.501f * DUCK_VOLUME)
+
+        duck = 1f
+        normalization.apply()
+        assertThat(player.volume).isWithin(0.001f).of(0.501f)
     }
 }

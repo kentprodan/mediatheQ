@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The media notification's action buttons (#139), also read by TalkBack and the car. -->
+    <string name="playback_button_favorite">Favorite</string>
+    <string name="playback_button_unfavorite">Remove favorite</string>
+    <string name="playback_button_repeat">Repeat</string>
+    <string name="playback_button_shuffle">Shuffle</string>
+</resources>

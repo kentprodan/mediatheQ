@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.datastore
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -46,6 +47,22 @@ class AudioPreferencesStore
                                 stopRepeatOneOnSkip = prefs[PB_STOP_REPEAT_ONE],
                                 retainPlayerState = prefs[PB_RETAIN_STATE],
                                 weightedShuffle = prefs[PB_WEIGHTED_SHUFFLE],
+                            ),
+                        outside =
+                            StoredOutsideControls(
+                                focusShortAction = prefs[AF_SHORT_ACTION],
+                                focusNoResume = prefs[AF_NO_RESUME],
+                                headsetSingle = prefs[HB_SINGLE],
+                                headsetDouble = prefs[HB_DOUBLE],
+                                headsetTriple = prefs[HB_TRIPLE],
+                                headsetNext = prefs[HB_NEXT],
+                                headsetPrevious = prefs[HB_PREVIOUS],
+                                headsetSlow = prefs[HB_SLOW],
+                                notificationPrevious = prefs[NB_PREVIOUS],
+                                notificationNext = prefs[NB_NEXT],
+                                notificationAction1 = prefs[NB_ACTION_1],
+                                notificationAction2 = prefs[NB_ACTION_2],
+                                notificationAction3 = prefs[NB_ACTION_3],
                             ),
                     )
                 }
@@ -110,6 +127,54 @@ class AudioPreferencesStore
             }
         }
 
+        /** Audio focus (#139): every value at once; null removes it (the default). */
+        suspend fun setAudioFocus(
+            shortAction: String?,
+            noResume: Boolean?,
+        ) {
+            dataStore.edit {
+                it.put(AF_SHORT_ACTION, shortAction)
+                it.put(AF_NO_RESUME, noResume)
+            }
+        }
+
+        /** Headset buttons (#139): single / double / triple click, next / previous button, slow clicks. */
+        suspend fun setHeadset(
+            actions: Pair<List<String>, Pair<String, String>>?,
+            slow: Boolean?,
+        ) {
+            dataStore.edit {
+                it.put(HB_SINGLE, actions?.first?.get(0))
+                it.put(HB_DOUBLE, actions?.first?.get(1))
+                it.put(HB_TRIPLE, actions?.first?.get(2))
+                it.put(HB_NEXT, actions?.second?.first)
+                it.put(HB_PREVIOUS, actions?.second?.second)
+                it.put(HB_SLOW, slow)
+            }
+        }
+
+        /** Notification buttons (#139): the three actions, previous and next shown. */
+        suspend fun setNotificationButtons(
+            actions: List<String>?,
+            showPrevious: Boolean?,
+            showNext: Boolean?,
+        ) {
+            dataStore.edit {
+                it.put(NB_ACTION_1, actions?.get(0))
+                it.put(NB_ACTION_2, actions?.get(1))
+                it.put(NB_ACTION_3, actions?.get(2))
+                it.put(NB_PREVIOUS, showPrevious)
+                it.put(NB_NEXT, showNext)
+            }
+        }
+
+        private fun <T> MutablePreferences.put(
+            key: Preferences.Key<T>,
+            value: T?,
+        ) {
+            if (value == null) remove(key) else this[key] = value
+        }
+
         /** Stores the preset [name], and the custom band gains when [bands] is not `null`, in one write. */
         suspend fun setEq(
             name: String,
@@ -139,6 +204,19 @@ class AudioPreferencesStore
             val PB_STOP_REPEAT_ONE = booleanPreferencesKey("pb_stop_repeat_one")
             val PB_RETAIN_STATE = booleanPreferencesKey("pb_retain_state")
             val PB_WEIGHTED_SHUFFLE = booleanPreferencesKey("pb_weighted_shuffle")
+            val AF_SHORT_ACTION = stringPreferencesKey("af_short_action")
+            val AF_NO_RESUME = booleanPreferencesKey("af_no_resume")
+            val HB_SINGLE = stringPreferencesKey("hb_single")
+            val HB_DOUBLE = stringPreferencesKey("hb_double")
+            val HB_TRIPLE = stringPreferencesKey("hb_triple")
+            val HB_NEXT = stringPreferencesKey("hb_next")
+            val HB_PREVIOUS = stringPreferencesKey("hb_previous")
+            val HB_SLOW = booleanPreferencesKey("hb_slow")
+            val NB_PREVIOUS = booleanPreferencesKey("nb_previous")
+            val NB_NEXT = booleanPreferencesKey("nb_next")
+            val NB_ACTION_1 = stringPreferencesKey("nb_action_1")
+            val NB_ACTION_2 = stringPreferencesKey("nb_action_2")
+            val NB_ACTION_3 = stringPreferencesKey("nb_action_3")
         }
     }
 
@@ -156,6 +234,24 @@ data class StoredAudioPreferences(
     val downloadsUnmeteredOnly: Boolean? = null,
     val forceInstantTranscoding: Boolean? = null,
     val behavior: StoredPlaybackBehavior = StoredPlaybackBehavior(),
+    val outside: StoredOutsideControls = StoredOutsideControls(),
+)
+
+/** Audio focus, headset and notification buttons as stored (#139); `null` = not set. */
+data class StoredOutsideControls(
+    val focusShortAction: String? = null,
+    val focusNoResume: Boolean? = null,
+    val headsetSingle: String? = null,
+    val headsetDouble: String? = null,
+    val headsetTriple: String? = null,
+    val headsetNext: String? = null,
+    val headsetPrevious: String? = null,
+    val headsetSlow: Boolean? = null,
+    val notificationPrevious: Boolean? = null,
+    val notificationNext: Boolean? = null,
+    val notificationAction1: String? = null,
+    val notificationAction2: String? = null,
+    val notificationAction3: String? = null,
 )
 
 /** Playback behavior as stored (#138); `null` = not set. */

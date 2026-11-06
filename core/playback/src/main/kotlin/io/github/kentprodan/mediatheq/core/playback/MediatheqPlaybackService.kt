@@ -1,11 +1,17 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import android.app.PendingIntent
+import android.content.Intent
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import android.util.Log
+import android.view.KeyEvent
+import androidx.core.content.IntentCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -23,6 +29,9 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.CacheBitmapLoader
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionError
+import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
@@ -35,23 +44,28 @@ import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
-import io.github.kentprodan.mediatheq.core.data.PlaybackBehavior
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.ResumeRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.WaveformRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
@@ -92,6 +106,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var resumes: ResumeRepository
 
+    @Inject lateinit var library: LibraryRepository
+
+    @Inject lateinit var userData: UserDataRepository
+
     @Inject
     @DownloadCache
     lateinit var downloadCache: Cache
@@ -122,6 +140,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private lateinit var waveformAnalyzer: WaveformAnalyzer
     private var waveformJob: Job? = null
     private var behaviorJob: Job? = null
+    private var buttonsJob: Job? = null
+    private var buttonState = ButtonState()
+    private lateinit var focusController: AudioFocusController
+
+    // The audio settings as last read, on the main thread like the player; the defaults until then (milliseconds).
+    private var audio = AudioPreferences()
+    private lateinit var headsetButtons: HeadsetButtons
     private var transcodeJob: Job? = null
 
     /** One background thread for waveform analysis (#124): one file at a time, below playback and the UI. */
@@ -155,8 +180,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         .setUsage(C.USAGE_MEDIA)
                         .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                         .build(),
-                    // handleAudioFocus =
-                    true,
+                    // handleAudioFocus = false: AudioFocusController decides (#139, ADR 0031).
+                    false,
                 ).setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setMediaSourceFactory(
@@ -290,6 +315,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 ).apply { sessionActivity()?.let(::setSessionActivity) }
                 .setSessionExtras(audioOutput.state.toInfo().toBundle())
                 .build()
+        startSessionButtons(player)
         signOutWatch =
             applicationScope.launch(Dispatchers.Main) {
                 sessionRepository.session.collect { state ->
@@ -303,17 +329,108 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     /** The session's player: Settings -> Playback -> Playback applies to every controller alike (#138). */
     private fun queuePlayer(player: ExoPlayer): QueuePlayer {
-        // Read on the main thread, like the player; the defaults until the setting is read (milliseconds).
-        var behavior = PlaybackBehavior()
-        val queuePlayer = QueuePlayer(player, behavior = { behavior }, resuming = { persistence.resuming })
+        val queuePlayer = QueuePlayer(player, behavior = { audio.behavior }, resuming = { persistence.resuming })
         behaviorJob =
             applicationScope.launch(Dispatchers.Main) {
-                audioPreferences.preferences.map { it.behavior }.distinctUntilChanged().collect {
-                    behavior = it
-                    queuePlayer.onBehaviorChanged()
+                audioPreferences.preferences.collect {
+                    val behaviorChanged = it.behavior != audio.behavior
+                    val buttonsChanged = it.notificationButtons != audio.notificationButtons
+                    audio = it
+                    if (behaviorChanged) queuePlayer.onBehaviorChanged()
+                    if (buttonsChanged) refreshButtons()
                 }
             }
+        headsetButtons =
+            HeadsetButtons(queuePlayer, { audio.headset }, handlerSchedule(Handler(Looper.getMainLooper())))
         return queuePlayer
+    }
+
+    /**
+     * The notification's action buttons (#139): their icons follow repeat, shuffle and the playing track's favorite
+     * (from the library, so a favorite set in the app shows at once).
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun startSessionButtons(player: Player) {
+        val current = MutableStateFlow(player.currentMediaItem?.queuedTrackId())
+        // A restored queue may already repeat or shuffle: no change event will say so.
+        buttonState = buttonState.copy(repeatMode = player.repeatMode, shuffle = player.shuffleModeEnabled)
+        player.addListener(
+            object : Player.Listener {
+                override fun onEvents(
+                    player: Player,
+                    events: Player.Events,
+                ) {
+                    if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+                        current.value =
+                            player.currentMediaItem?.queuedTrackId()
+                    }
+                    if (events.containsAny(
+                            Player.EVENT_REPEAT_MODE_CHANGED,
+                            Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED,
+                        )
+                    ) {
+                        buttonState =
+                            buttonState.copy(repeatMode = player.repeatMode, shuffle = player.shuffleModeEnabled)
+                        refreshButtons()
+                    }
+                }
+            },
+        )
+        buttonsJob =
+            applicationScope.launch(Dispatchers.Main) {
+                current
+                    .flatMapLatest { id ->
+                        id?.let { library.track(it).map { track -> track?.userData?.isFavorite == true } }
+                            ?: flowOf(false)
+                    }.distinctUntilChanged()
+                    .collect {
+                        buttonState = buttonState.copy(isFavorite = it)
+                        refreshButtons()
+                    }
+            }
+    }
+
+    private fun buttonNames() =
+        ButtonNames(
+            favorite = getString(R.string.playback_button_favorite),
+            unfavorite = getString(R.string.playback_button_unfavorite),
+            repeat = getString(R.string.playback_button_repeat),
+            shuffle = getString(R.string.playback_button_shuffle),
+        )
+
+    private fun currentButtons() = sessionButtons(audio.notificationButtons, buttonState, buttonNames())
+
+    /** The buttons again, and the notification's previous / next as chosen. */
+    private fun refreshButtons() {
+        val session = session ?: return
+        session.setMediaButtonPreferences(currentButtons())
+        session.mediaNotificationControllerInfo?.let { controller ->
+            val result = connectionFor(session, controller)
+            session.setAvailableCommands(controller, result.availableSessionCommands, result.availablePlayerCommands)
+        }
+    }
+
+    /**
+     * Our app, the notification and trusted controllers: the default commands without the player volume, plus the
+     * action buttons' commands; the notification's previous / next as Settings -> Notification buttons says.
+     */
+    private fun connectionFor(
+        session: MediaSession,
+        controller: MediaSession.ControllerInfo,
+    ): MediaSession.ConnectionResult {
+        val accepted = acceptWithoutPlayerVolume(session, controller)
+        val players =
+            if (session.isMediaNotificationController(controller)) {
+                notificationPlayerCommands(accepted.availablePlayerCommands, audio.notificationButtons)
+            } else {
+                accepted.availablePlayerCommands
+            }
+        return MediaSession.ConnectionResult
+            .AcceptedResultBuilder(session)
+            .setAvailablePlayerCommands(players)
+            .setAvailableSessionCommands(withButtonCommands(accepted.availableSessionCommands))
+            .setMediaButtonPreferences(currentButtons())
+            .build()
     }
 
     /**
@@ -325,6 +442,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
         var offload: Boolean? = null
         var eqGains = AudioPreferences().eqGainsDb
         lateinit var normalization: NormalizationListener
+        var ducked = false
+        focusController =
+            AudioFocusController(
+                getSystemService(AudioManager::class.java),
+                player,
+                settings = { audio.audioFocus },
+                bitPerfect = { audioOutput.state.mode == AudioMode.BitPerfect },
+            ) {
+                ducked = it
+                normalization.apply()
+            }
+        player.addListener(focusController)
 
         fun applyEqualizer() =
             equalizer.apply(player.audioSessionId, audioOutput.state.mode == AudioMode.Processed, eqGains)
@@ -383,7 +512,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     )
                 },
             )
-        normalization = NormalizationListener(player, { settings }) { audioOutput.state.mode }
+        normalization =
+            NormalizationListener(
+                player,
+                { settings },
+                mode = { audioOutput.state.mode },
+                duck = { if (ducked) DUCK_VOLUME else 1f },
+            )
         player.addListener(normalization)
         player.applyOffload(audioOutput.state.offload).also { offload = audioOutput.state.offload }
         player.addListener(
@@ -469,6 +604,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         prefetcher.stop()
         waveformJob?.cancel()
         behaviorJob?.cancel()
+        buttonsJob?.cancel()
         transcodeJob?.cancel()
         waveformWorker.close()
         audioSettingsJob?.cancel()
@@ -479,6 +615,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             persistence.saveNow()
             reporter.ended(player.currentPosition.milliseconds)
             resumeListener?.release()
+            focusController.release()
             player.release()
             release()
         }
@@ -524,11 +661,67 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 if (controller.packageName == packageName || controller.isTrusted ||
                     session.isMediaNotificationController(controller)
                 ) {
-                    acceptWithoutPlayerVolume(session, controller)
+                    connectionFor(session, controller)
                 } else {
                     MediaSession.ConnectionResult.reject()
                 },
             )
+
+        /**
+         * Headset and Bluetooth buttons (#139): clicks counted and keys remapped per Settings -> Playback -> Headset
+         * buttons. Only key events from the system (a platform controller); the notification's buttons are commands.
+         */
+        override fun onMediaButtonEvent(
+            session: MediaSession,
+            controllerInfo: MediaSession.ControllerInfo,
+            intent: Intent,
+        ): Boolean {
+            if (controllerInfo.controllerVersion != MediaSession.ControllerInfo.LEGACY_CONTROLLER_VERSION) return false
+            val event =
+                IntentCompat.getParcelableExtra(intent, Intent.EXTRA_KEY_EVENT, KeyEvent::class.java) ?: return false
+            return headsetButtons.onMediaButton(event)
+        }
+
+        /** The notification's action buttons (#139). */
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: SessionCommand,
+            args: Bundle,
+        ): ListenableFuture<SessionResult> {
+            val player = session.player
+            when (customCommand.customAction) {
+                FAVORITE_COMMAND.customAction -> {
+                    val id =
+                        player.currentMediaItem?.queuedTrackId()
+                            ?: return Futures.immediateFuture(SessionResult(SessionError.ERROR_BAD_VALUE))
+                    // This track's own value: buttonState may still hold the previous track's just after a skip.
+                    applicationScope.launch {
+                        userData.setFavorite(
+                            id,
+                            library
+                                .track(id)
+                                .first()
+                                ?.userData
+                                ?.isFavorite != true,
+                        )
+                    }
+                }
+
+                REPEAT_COMMAND.customAction -> {
+                    player.repeatMode = nextRepeatMode(player.repeatMode)
+                }
+
+                SHUFFLE_COMMAND.customAction -> {
+                    player.shuffleModeEnabled = !player.shuffleModeEnabled
+                }
+
+                else -> {
+                    return super.onCustomCommand(session, controller, customCommand, args)
+                }
+            }
+            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+        }
 
         /** The system asks to play with nothing queued (media button, media card): the saved queue (#43). */
         override fun onPlaybackResumption(
