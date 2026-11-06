@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performScrollToNode
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.navigation.AboutSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.AdvancedSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.InterfaceSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
@@ -55,6 +56,7 @@ class SettingsHubScreenTest {
             "Interface",
             "Playback",
             "Offline, cache, and download",
+            "Advanced",
             "Manage offline files",
             "Manage media providers",
         ).forEach(::open)
@@ -83,6 +85,7 @@ class SettingsHubScreenTest {
                 InterfaceSettingsKey,
                 PlaybackSettingsKey,
                 StorageSettingsKey,
+                AdvancedSettingsKey,
                 DownloadsKey,
                 ProvidersSettingsKey,
                 AboutSettingsKey,

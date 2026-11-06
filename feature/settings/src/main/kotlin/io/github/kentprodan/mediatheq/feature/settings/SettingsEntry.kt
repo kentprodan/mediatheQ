@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.settings
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import io.github.kentprodan.mediatheq.core.navigation.AboutSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.AdvancedSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AudioSettingsKey
@@ -55,6 +56,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             onOpenGenrePage = { navigator.navigateTo(GenrePageSettingsKey) },
             onOpenPlaylistPage = { navigator.navigateTo(PlaylistPageSettingsKey) },
             onOpenSearchPage = { navigator.navigateTo(SearchPageSettingsKey) },
+            onOpenAdvanced = { navigator.navigateTo(AdvancedSettingsKey) },
         )
     }
     entry<ThemeSettingsKey> { SettingsPageRoute(SettingsPage.Theme, openAudio, back) }
@@ -68,6 +70,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<GenrePageSettingsKey> { SettingsPageRoute(SettingsPage.Genre, openAudio, back) }
     entry<PlaylistPageSettingsKey> { SettingsPageRoute(SettingsPage.Playlist, openAudio, back) }
     entry<SearchPageSettingsKey> { SettingsPageRoute(SettingsPage.Search, openAudio, back) }
+    entry<AdvancedSettingsKey> { SettingsPageRoute(SettingsPage.Advanced, openAudio, back) }
     entry<PlaybackSettingsKey> { SettingsPageRoute(SettingsPage.Playback, openAudio, back) }
     entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openAudio, back) }
     entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openAudio, back) }
@@ -85,6 +88,7 @@ internal val SettingsHubEntry.key: NavKey
             SettingsHubEntry.Interface -> InterfaceSettingsKey
             SettingsHubEntry.Playback -> PlaybackSettingsKey
             SettingsHubEntry.Storage -> StorageSettingsKey
+            SettingsHubEntry.Advanced -> AdvancedSettingsKey
             SettingsHubEntry.ManageOfflineFiles -> DownloadsKey
             SettingsHubEntry.Providers -> ProvidersSettingsKey
             SettingsHubEntry.About -> AboutSettingsKey

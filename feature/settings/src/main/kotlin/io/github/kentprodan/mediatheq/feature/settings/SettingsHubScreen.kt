@@ -19,6 +19,7 @@ enum class SettingsHubEntry(
     Interface(R.string.settings_interface),
     Playback(R.string.settings_playback),
     Storage(R.string.settings_storage_page),
+    Advanced(R.string.settings_advanced),
     ManageOfflineFiles(R.string.settings_manage_offline),
     Providers(R.string.settings_providers),
     About(R.string.settings_about),
@@ -27,7 +28,12 @@ enum class SettingsHubEntry(
 internal val hubGroups =
     listOf(
         R.string.settings_title to
-            listOf(SettingsHubEntry.Interface, SettingsHubEntry.Playback, SettingsHubEntry.Storage),
+            listOf(
+                SettingsHubEntry.Interface,
+                SettingsHubEntry.Playback,
+                SettingsHubEntry.Storage,
+                SettingsHubEntry.Advanced,
+            ),
         R.string.settings_group_misc to listOf(SettingsHubEntry.ManageOfflineFiles, SettingsHubEntry.Providers),
         R.string.settings_about to listOf(SettingsHubEntry.About),
     )
@@ -82,6 +88,7 @@ private val SettingsHubEntry.icon: ImageVector
             SettingsHubEntry.Interface -> MqIcons.TouchApp
             SettingsHubEntry.Playback -> MqIcons.Radio
             SettingsHubEntry.Storage -> MqIcons.DownloadForOffline
+            SettingsHubEntry.Advanced -> MqIcons.Tune
             SettingsHubEntry.ManageOfflineFiles -> MqIcons.Download
             SettingsHubEntry.Providers -> MqIcons.Devices
             SettingsHubEntry.About -> MqIcons.Info

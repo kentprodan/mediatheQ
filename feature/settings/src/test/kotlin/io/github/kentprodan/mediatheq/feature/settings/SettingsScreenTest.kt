@@ -31,6 +31,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumButton
 import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AppFont
@@ -40,6 +41,7 @@ import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
+import io.github.kentprodan.mediatheq.core.data.KeepScreenOn
 import io.github.kentprodan.mediatheq.core.data.LibraryHubStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
@@ -699,6 +701,21 @@ class SettingsScreenTest {
             .containsExactly(
                 SettingsAction.SetSearchPage(SearchPagePreferences(showFavorite = false)),
                 SettingsAction.SetSearchPage(SearchPagePreferences(trackAction = TrackAction.PlayNext)),
+            ).inOrder()
+    }
+
+    @Test
+    fun `the advanced settings apply at once, a dialog choice and a switch`() {
+        show(SettingsPage.Advanced)
+
+        composeRule.onNode(hasText("Keep screen on") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("While Now Playing is open").performClick()
+        composeRule.onNode(hasText("Hide status bar") and hasClickAction()).performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetAdvanced(AdvancedPreferences(keepScreenOn = KeepScreenOn.NowPlaying)),
+                SettingsAction.SetAdvanced(AdvancedPreferences(hideStatusBar = true)),
             ).inOrder()
     }
 }

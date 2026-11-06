@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.tools.screenshot.PreviewTest
+import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumButton
 import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
@@ -610,3 +611,27 @@ fun SettingsSearchTrackActionDialogScreenshot() =
 @Composable
 fun SettingsSearchSortDialogScreenshot() =
     MediatheqTheme { SearchPageDialogContent(SearchPageDialog.Sort, SearchPagePreferences()) }
+
+/** Settings -> Advanced settings (#137), all defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAdvancedScreenshot() = Page(SettingsPage.Advanced)
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAdvancedKeepScreenOnDialogScreenshot() =
+    MediatheqTheme { AdvancedDialogContent(AdvancedDialog.KeepScreenOn, AdvancedPreferences()) }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAdvancedOrientationDialogScreenshot() =
+    MediatheqTheme { AdvancedDialogContent(AdvancedDialog.Orientation, AdvancedPreferences()) }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAdvancedCornersDialogScreenshot() =
+    MediatheqTheme { AdvancedDialogContent(AdvancedDialog.Corners, AdvancedPreferences()) }

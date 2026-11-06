@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.settings
 
+import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
@@ -262,6 +263,13 @@ sealed interface SettingsAction {
     ) : SettingsAction
 
     data object RestoreSearchPageDefaults : SettingsAction
+
+    /** Advanced settings (#137): every value of the page at once. */
+    data class SetAdvanced(
+        val advanced: AdvancedPreferences,
+    ) : SettingsAction
+
+    data object RestoreAdvancedDefaults : SettingsAction
 
     data object OpenGenreSections : SettingsAction
 
