@@ -21,9 +21,9 @@ import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Album
-import io.github.kentprodan.mediatheq.core.model.AlbumResume
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
@@ -178,7 +178,7 @@ class AlbumScreenTest {
             MediatheqTheme {
                 AlbumScreen(
                     albumId,
-                    content.copy(resume = AlbumResume(tracks[1].id, 30.seconds)),
+                    content.copy(resume = ResumePoint(tracks[1].id, 30.seconds)),
                     { actions += it },
                     onBack = {},
                 )

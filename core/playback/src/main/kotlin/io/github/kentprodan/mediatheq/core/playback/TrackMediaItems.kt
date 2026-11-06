@@ -34,11 +34,12 @@ internal fun Uri.trackId(): MediaId? =
 
 /**
  * What a controller sends: id and display metadata only (the session adds the URI). [entryId] tells queue entries
- * apart, since the same track can be queued twice.
+ * apart, since the same track can be queued twice; [playlistId] is the playlist it is played from (#135), if any.
  */
 internal fun Track.toMediaItem(
     artworkUrl: String?,
     entryId: String = newEntryId(),
+    playlistId: MediaId? = null,
 ): MediaItem =
     MediaItem
         .Builder()
@@ -56,6 +57,7 @@ internal fun Track.toMediaItem(
                 .setExtras(
                     Bundle().apply {
                         putQueueExtras(entryId, artwork)
+                        playlistId?.let { putString(EXTRA_PLAYLIST_ID, it.toString()) }
                         putGains(this@toMediaItem)
                         putOutputFormat(this@toMediaItem)
                     },
@@ -99,9 +101,14 @@ internal fun MediaItem.entryId(): String? = mediaMetadata.extras?.getString(EXTR
 
 internal fun newEntryId(): String = UUID.randomUUID().toString()
 
+/** The playlist this item was played from (#135), or `null`. */
+internal fun MediaItem.playlistId(): MediaId? =
+    mediaMetadata.extras?.getString(EXTRA_PLAYLIST_ID)?.let { runCatching { MediaId.parse(it) }.getOrNull() }
+
 // The entry id and the cover travel with the item as plain strings (other processes, e.g. System UI, unbundle the
 // extras), so screens can show the cover without a lookup.
 private const val EXTRA_ENTRY_ID = "io.github.kentprodan.mediatheq.ENTRY_ID"
+private const val EXTRA_PLAYLIST_ID = "io.github.kentprodan.mediatheq.PLAYLIST_ID"
 private const val EXTRA_ARTWORK_ID = "io.github.kentprodan.mediatheq.ARTWORK_ID"
 private const val EXTRA_ARTWORK_TAG = "io.github.kentprodan.mediatheq.ARTWORK_TAG"
 private const val EXTRA_ARTWORK_BLUR_HASH = "io.github.kentprodan.mediatheq.ARTWORK_BLUR_HASH"

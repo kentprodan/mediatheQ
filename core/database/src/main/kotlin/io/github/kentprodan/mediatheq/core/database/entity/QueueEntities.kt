@@ -14,6 +14,8 @@ data class QueueEntryEntity(
     @ColumnInfo(name = "track_id") val trackId: String,
     /** Where the entry plays while shuffle is on. */
     @ColumnInfo(name = "shuffle_position") val shufflePosition: Int,
+    /** The playlist the entry was played from (#135), for its Resume; `null` from anywhere else. */
+    @ColumnInfo(name = "playlist_id") val playlistId: String? = null,
 )
 
 /** The single saved player state row: which entry plays, where, whether shuffle is on and how it repeats. */

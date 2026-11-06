@@ -25,3 +25,7 @@ ADR 0017 builds a full color scheme from the album cover and applies it only ins
 
 - The genre page uses the same pipeline with two differences. Its seed is the header image, the cover of the genre's most played album (genres have no server image, jellyfin R17). Its own setting defaults to Off (the issue's table).
 - The genre's "Image color" header gradient also uses that cover's `primaryContainer`.
+
+## Addendum: the playlist page (#135, 2026-11-06)
+
+- The playlist page uses the same pipeline. Its seed is the playlist's image (the server's collage, jellyfin R6); its own setting defaults to Off (the issue's table). The "Image color" header gradient uses that image's `primaryContainer`.

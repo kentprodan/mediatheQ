@@ -173,4 +173,24 @@ class DefaultQueueRepositoryTest {
 
             assertThat(repository.restore()).isNull()
         }
+
+    @Test
+    fun `the playlist an entry was played from comes back with it`() =
+        runTest {
+            library("t1", "t2")
+            val playlist = MediaId(ServerId("s"), "p1")
+            val saved =
+                entries("t1", "t2").mapIndexed { i, entry ->
+                    if (i ==
+                        0
+                    ) {
+                        entry.copy(playlistId = playlist)
+                    } else {
+                        entry
+                    }
+                }
+            repository.saveQueue(saved, emptyList(), QueuePlace(0, Duration.ZERO, false))
+
+            assertThat(repository.restore()!!.entries.map { it.playlistId }).containsExactly(playlist, null).inOrder()
+        }
 }

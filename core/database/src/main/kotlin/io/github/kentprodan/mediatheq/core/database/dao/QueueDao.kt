@@ -24,7 +24,7 @@ interface QueueDao {
     @Transaction
     @Query(
         """
-        SELECT q.position AS queue_position, q.entry_id, q.shuffle_position, t.* FROM queue_entry q
+        SELECT q.position AS queue_position, q.entry_id, q.shuffle_position, q.playlist_id, t.* FROM queue_entry q
         JOIN track t ON t.server_id = q.server_id AND t.id = q.track_id
         ORDER BY q.position
         """,
@@ -69,6 +69,8 @@ data class QueuedTrack(
     @ColumnInfo(name = "queue_position") val queuePosition: Int,
     @ColumnInfo(name = "entry_id") val entryId: String,
     @ColumnInfo(name = "shuffle_position") val shufflePosition: Int,
+    /** The playlist the entry was played from (#135), or `null`. */
+    @ColumnInfo(name = "playlist_id") val playlistId: String?,
     @Embedded val track: TrackEntity,
     @Relation(
         entity = TrackArtistEntity::class,

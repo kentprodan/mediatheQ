@@ -29,17 +29,30 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 class ResumeListenerTest {
     private val recorded = mutableListOf<Pair<String, Duration>>()
+    private val playlists = mutableListOf<String?>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
     private val player: ExoPlayer =
         TestExoPlayerBuilder(ApplicationProvider.getApplicationContext())
             .setMediaSourceFactory(FakeMediaSourceFactory())
             .build()
     private val listener =
-        ResumeListener(player, { id, position -> recorded += id.itemId to position }, scope, interval = 1.seconds)
-            .also(player::addListener)
+        ResumeListener(
+            player,
+            { id, playlist, position ->
+                recorded += id.itemId to position
+                playlists += playlist?.itemId
+            },
+            scope,
+            interval = 1.seconds,
+        ).also(player::addListener)
 
-    private fun item(id: String): MediaItem =
-        Track(MediaId(ServerId("s"), id), id, emptyList(), 3.minutes).toMediaItem(null).withTrackUri()!!
+    private fun item(
+        id: String,
+        playlist: String? = null,
+    ): MediaItem =
+        Track(MediaId(ServerId("s"), id), id, emptyList(), 3.minutes)
+            .toMediaItem(null, playlistId = playlist?.let { MediaId(ServerId("s"), it) })
+            .withTrackUri()!!
 
     @After
     fun release() {
@@ -109,5 +122,21 @@ class ResumeListenerTest {
         player.removeListener(listener)
         advance(player).untilPositionAtLeast(2_500)
         assertThat(recorded).hasSize(count)
+    }
+
+    @Test
+    fun `a track played from a playlist is recorded for that playlist, others for none`() {
+        player.playQueue(listOf(item("t1", playlist = "p1")), startIndex = 0, shuffle = false)
+        advance(player).untilPositionAtLeast(100)
+        player.pause()
+        advance(player).untilPendingCommandsAreFullyHandled()
+        assertThat(playlists.last()).isEqualTo("p1")
+
+        player.playQueue(listOf(item("t2")), startIndex = 0, shuffle = false)
+        advance(player).untilPositionAtLeast(100)
+        player.pause()
+        advance(player).untilPendingCommandsAreFullyHandled()
+        assertThat(recorded.last().first).isEqualTo("t2")
+        assertThat(playlists.last()).isNull()
     }
 }

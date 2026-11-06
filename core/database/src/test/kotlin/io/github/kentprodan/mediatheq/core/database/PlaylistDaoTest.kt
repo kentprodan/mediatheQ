@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
+import io.github.kentprodan.mediatheq.core.database.entity.PlaylistResumeEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
@@ -98,5 +99,22 @@ class PlaylistDaoTest {
             assertThat(playlistDao.entryRows("s", "p1")).isEmpty()
             assertThat(libraryDao.search("drum", 10, true, emptyList()).playlists).isEmpty()
             assertThat(libraryDao.playlists(true, emptyList()).first()).isEmpty()
+        }
+
+    @Test
+    fun `where a playlist was left survives a full sync and is forgotten on sign-out`() =
+        runTest {
+            val resumeDao = database.resumeDao()
+            library("t1")
+            resumeDao.savePlaylist(PlaylistResumeEntity("s", "p1", "t1", 30_000))
+            resumeDao.savePlaylist(PlaylistResumeEntity("s", "p1", "t1", 60_000))
+
+            library("t1")
+            assertThat(
+                resumeDao.playlistResume("s", "p1").first(),
+            ).isEqualTo(PlaylistResumeEntity("s", "p1", "t1", 60_000))
+
+            syncDao.clearAll()
+            assertThat(resumeDao.playlistResume("s", "p1").first()).isNull()
         }
 }

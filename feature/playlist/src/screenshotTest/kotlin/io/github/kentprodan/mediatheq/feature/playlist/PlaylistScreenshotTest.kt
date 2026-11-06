@@ -2,11 +2,17 @@ package io.github.kentprodan.mediatheq.feature.playlist
 
 import androidx.compose.runtime.Composable
 import com.android.tools.screenshot.PreviewTest
+import io.github.kentprodan.mediatheq.core.data.PlaylistButton
+import io.github.kentprodan.mediatheq.core.data.PlaylistHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
+import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.designsystem.theme.coverColorsOf
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
+import kotlin.time.Duration.Companion.seconds
 
 private val playlist = PreviewData.playlist
 private val items =
@@ -15,8 +21,16 @@ private val items =
         PlaylistItem("e$i", i, base.copy(id = MediaId(base.id.serverId, "t$i"), artwork = PreviewData.artwork))
     }
 
+/** A deep green image: the page's colors with dynamic colors on (previews load no images). */
+private val green = coverColorsOf(IntArray(SEED_PIXELS) { 0xFF2E7D32.toInt() })
+
 @Composable
-private fun Playlist(state: PlaylistUiState) = MediatheqTheme { PlaylistScreen(state, onAction = {}, onBack = {}) }
+private fun Playlist(
+    state: PlaylistUiState,
+    colors: Boolean = false,
+) = MediatheqTheme { PlaylistScreen(state, onAction = {}, onBack = {}, imageColors = green.takeIf { colors }) }
+
+private val content = PlaylistUiState.Content(playlist, items)
 
 /** Drag handles on every row; at fontScale 2.0 (part of @MqPreviews) titles ellipsize. */
 @PreviewTest
@@ -57,3 +71,41 @@ fun PlaylistNotFoundScreenshot() = Playlist(PlaylistUiState.NotFound)
 @MqPreviews
 @Composable
 fun PlaylistLoadingScreenshot() = Playlist(PlaylistUiState.Loading)
+
+/** Played from here and all downloaded: Resume after Play, the downloaded mark before the counts. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun PlaylistResumeScreenshot() =
+    Playlist(content.copy(resume = ResumePoint(items[2].track.id, 30.seconds), isDownloaded = true))
+
+/** "Image color": the image's color as a gradient behind a smaller image. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun PlaylistImageColorScreenshot() =
+    Playlist(content.copy(page = PlaylistPagePreferences(headerBackground = PlaylistHeaderBackground.ImageColor)), true)
+
+/** No background, and every hideable button hidden (they are in More). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun PlaylistNoBackgroundScreenshot() =
+    Playlist(
+        content.copy(
+            page =
+                PlaylistPagePreferences(
+                    headerBackground = PlaylistHeaderBackground.None,
+                    hiddenButtons = PlaylistButton.entries.toSet(),
+                ),
+        ),
+    )
+
+/** Dynamic colors on: the whole page takes the playlist image's scheme. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun PlaylistDynamicColorsScreenshot() =
+    Playlist(content.copy(page = PlaylistPagePreferences(dynamicColors = true)), true)
+
+private const val SEED_PIXELS = 64

@@ -62,4 +62,12 @@ class TrackMediaItemsTest {
     fun `a track without a known format carries none`() {
         assertThat(track.toMediaItem(null).outputFormat()).isNull()
     }
+
+    @Test
+    fun `queue items carry the playlist they are played from, also through the session`() {
+        val playlist = MediaId(ServerId("s"), "p1")
+
+        assertThat(track.toMediaItem(null, playlistId = playlist).withTrackUri()!!.playlistId()).isEqualTo(playlist)
+        assertThat(track.toMediaItem(null).playlistId()).isNull()
+    }
 }

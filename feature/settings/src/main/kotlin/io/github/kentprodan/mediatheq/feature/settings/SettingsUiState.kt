@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
+import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
@@ -246,6 +247,13 @@ sealed interface SettingsAction {
     ) : SettingsAction
 
     data object RestoreGenrePageDefaults : SettingsAction
+
+    /** Playlist page (#135): every value of the page at once. */
+    data class SetPlaylistPage(
+        val page: PlaylistPagePreferences,
+    ) : SettingsAction
+
+    data object RestorePlaylistPageDefaults : SettingsAction
 
     data object OpenGenreSections : SettingsAction
 

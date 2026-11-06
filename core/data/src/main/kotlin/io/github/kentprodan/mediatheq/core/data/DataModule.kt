@@ -15,7 +15,7 @@ internal interface DataModule {
     fun waveformRepository(repository: DefaultWaveformRepository): WaveformRepository
 
     @Binds
-    fun albumResumeRepository(repository: DefaultAlbumResumeRepository): AlbumResumeRepository
+    fun resumeRepository(repository: DefaultResumeRepository): ResumeRepository
 
     @Binds
     fun sessionRepository(repository: DefaultSessionRepository): SessionRepository

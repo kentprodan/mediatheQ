@@ -341,4 +341,19 @@ class QueuePersistenceTest {
 
             assertThat(repository.entries.map { it.trackId.itemId }).containsExactly("t1")
         }
+
+    @Test
+    fun `the playlist an entry was played from comes back and is saved again`() =
+        runTest {
+            val playlist = MediaId(ServerId("s"), "p1")
+            val queue = saved(QueuePlace(0, Duration.ZERO, shuffle = false))
+            repository.saved = queue.copy(entries = queue.entries.map { it.copy(playlistId = playlist) })
+
+            start()
+            runCurrent()
+            wait(2.seconds)
+
+            assertThat(player.getMediaItemAt(0).playlistId()).isEqualTo(playlist)
+            assertThat(repository.entries.map { it.playlistId }.distinct()).containsExactly(playlist)
+        }
 }

@@ -37,6 +37,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -46,8 +48,10 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.kentprodan.mediatheq.core.data.PlaylistHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialog
@@ -59,7 +63,13 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.mqReorderItem
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.component.rememberMqReorderState
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColorCache
+import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColors
+import io.github.kentprodan.mediatheq.core.designsystem.theme.LocalMqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqCoverTheme
+import io.github.kentprodan.mediatheq.core.designsystem.theme.imageColorScheme
+import io.github.kentprodan.mediatheq.core.designsystem.theme.rememberCoverColors
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
@@ -89,8 +99,9 @@ internal fun PlaylistRoute(
 }
 
 /**
- * Stateless playlist page: collapsing top bar, cover, Play / Shuffle, tracks with drag handles. A long press starts
- * selecting; the floating toolbar then removes the selection. Rename and delete are in the top bar's menu.
+ * Stateless playlist page: the header (#135: image, name, counts, buttons; rename, delete, download and edit in More),
+ * then the tracks with drag handles. A long press (or More -> Edit) starts selecting; the floating toolbar then acts on
+ * the selection. With dynamic colors on the page takes the playlist image's scheme.
  */
 @Composable
 fun PlaylistScreen(
@@ -99,6 +110,24 @@ fun PlaylistScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
+    /** Screenshots: these colors instead of the image's (previews load no images). */
+    imageColors: CoverColors? = null,
+) {
+    val content = state as? PlaylistUiState.Content
+    PlaylistColors(content, imageColors) { imageColor ->
+        PlaylistPage(state, content, imageColor, onAction, onBack, modifier, onAddToPlaylist)
+    }
+}
+
+@Composable
+private fun PlaylistPage(
+    state: PlaylistUiState,
+    content: PlaylistUiState.Content?,
+    imageColor: Color?,
+    onAction: (PlaylistAction) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier,
+    onAddToPlaylist: (List<MediaId>) -> Unit,
 ) {
     val swipe =
         trackSwipes(
@@ -107,7 +136,7 @@ fun PlaylistScreen(
             onCommand = { track, right -> onAction(PlaylistAction.SwipeTrack(track, right)) },
         )
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val content = state as? PlaylistUiState.Content
+    val drawsUnderBar = content != null && content.page.headerBackground != PlaylistHeaderBackground.None
     var dialog by rememberSaveable { mutableStateOf<PlaylistDialog?>(null) }
     BackHandler(enabled = content?.isSelecting == true) { onAction(PlaylistAction.ClearSelection) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -122,46 +151,26 @@ fun PlaylistScreen(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeFlexibleTopAppBar(
-                title = { Text(content?.playlist?.name.orEmpty(), maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                subtitle = {
-                    if (content != null) {
-                        Text(
-                            listOfNotNull(
-                                formatTrackCount(content.items.size),
-                                formatTotalDuration(content.duration).takeIf { content.items.isNotEmpty() },
-                            ).joinToString(" · "),
-                            maxLines = 1,
-                        )
-                    }
+                // The header shows the name; the bar names the playlist only once it has nearly collapsed.
+                title = {
+                    Text(
+                        content?.playlist?.name.orEmpty(),
+                        Modifier.graphicsLayer { alpha = titleAlpha(scrollBehavior.state.collapsedFraction) },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.playlist_back))
                     }
                 },
-                actions = {
-                    if (content != null) {
-                        OverflowMenu(stringResource(R.string.playlist_more_options, content.playlist.name)) { close ->
-                            DownloadMenuItem({ onAction(PlaylistAction.Download()) }, close)
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.playlist_rename)) },
-                                leadingIcon = { Icon(MqIcons.Edit, contentDescription = null) },
-                                onClick = {
-                                    dialog = PlaylistDialog.Rename
-                                    close()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.playlist_delete)) },
-                                leadingIcon = { Icon(MqIcons.Delete, contentDescription = null) },
-                                onClick = {
-                                    dialog = PlaylistDialog.Delete
-                                    close()
-                                },
-                            )
-                        }
-                    }
-                },
+                colors =
+                    if (drawsUnderBar) {
+                        TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    } else {
+                        TopAppBarDefaults.topAppBarColors()
+                    },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -194,11 +203,22 @@ fun PlaylistScreen(
                         } else {
                             MediatheqSpacing.l
                         }
+                    val barHeight = padding.calculateTopPadding()
                     PlaylistList(
                         state,
                         onAction,
-                        PaddingValues(top = padding.calculateTopPadding(), bottom = toolbarSpace).plusBottomBars(),
+                        PaddingValues(top = if (drawsUnderBar) 0.dp else barHeight, bottom = toolbarSpace)
+                            .plusBottomBars(),
                         swipe,
+                        header = {
+                            PlaylistHeader(
+                                state,
+                                topPadding = if (drawsUnderBar) barHeight else 0.dp,
+                                imageColor = imageColor,
+                                onAction = onAction,
+                                onDialog = { dialog = it },
+                            )
+                        },
                     )
                     if (state.isSelecting) {
                         PlaylistSelectionToolbar(
@@ -251,6 +271,7 @@ private fun PlaylistList(
     onAction: (PlaylistAction) -> Unit,
     contentPadding: PaddingValues,
     onSwipe: (Track, Boolean) -> Unit,
+    header: @Composable () -> Unit,
 ) {
     // A local copy follows the finger while dragging; the repository gets one move when it is dropped.
     var rows by remember(state.items) { mutableStateOf(state.items) }
@@ -270,14 +291,7 @@ private fun PlaylistList(
         )
     val canReorder = state.canEdit && !state.isSelecting
     LazyColumn(Modifier.fillMaxSize(), listState, contentPadding = contentPadding) {
-        item(key = "header") { PlaylistHeader(state) }
-        item(key = "buttons") {
-            MqPlayShuffleButtons(
-                enabled = state.items.isNotEmpty(),
-                onPlay = { onAction(PlaylistAction.Play) },
-                onShuffle = { onAction(PlaylistAction.Shuffle) },
-            )
-        }
+        item(key = "header") { header() }
         if (rows.isEmpty()) {
             item(key = "empty") {
                 MqEmptyState(
@@ -408,22 +422,6 @@ private fun PlaylistRow(
     }
 }
 
-@Composable
-private fun PlaylistHeader(state: PlaylistUiState.Content) {
-    Column(
-        Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.m),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        MqCover(
-            model = state.playlist.artwork,
-            contentDescription = null,
-            modifier = Modifier.fillMaxWidth(COVER_WIDTH_FRACTION),
-            blurHash = state.playlist.artwork?.blurHash,
-            shape = MaterialTheme.shapes.extraLarge,
-        )
-    }
-}
-
 /** The shared selection toolbar (#123); Remove joins it while the playlist can be edited. */
 @Composable
 private fun PlaylistSelectionToolbar(
@@ -492,5 +490,27 @@ private fun DeleteDialog(
     }
 }
 
-private const val HEADER_ITEMS = 2
-private const val COVER_WIDTH_FRACTION = 0.6f
+/** The header, before the rows. */
+private const val HEADER_ITEMS = 1
+
+/** The playlist image's colors (ADR 0029): the page's scheme with dynamic colors on, the gradient's color either way. */
+@Composable
+private fun PlaylistColors(
+    content: PlaylistUiState.Content?,
+    override: CoverColors?,
+    page: @Composable (imageColor: Color?) -> Unit,
+) {
+    val cache = remember { CoverColorCache() }
+    val seed = content?.playlist?.artwork
+    val colors = override ?: rememberCoverColors(seed?.let { "${it.itemId}/${it.tag}" }, seed, cache)
+    val theme = LocalMqTheme.current
+    val dynamic = content?.page?.dynamicColors == true
+    val scheme = remember(colors, theme, dynamic) { imageColorScheme(colors, theme).takeIf { dynamic } }
+    MqCoverTheme(scheme) { page((scheme ?: colors?.scheme(theme.isDark, vibrant = false))?.primaryContainer) }
+}
+
+/** Hidden while the bar is open, fading in over the last part of the collapse. */
+private fun titleAlpha(collapsedFraction: Float): Float =
+    ((collapsedFraction - TITLE_FADE_START) / (1f - TITLE_FADE_START)).coerceIn(0f, 1f)
+
+private const val TITLE_FADE_START = 0.7f

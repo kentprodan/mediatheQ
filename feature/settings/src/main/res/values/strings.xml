@@ -321,6 +321,9 @@
     <string name="settings_arp_about_summary">The biography, genres, counts and rating.</string>
     <string name="settings_genre_page">Genre page</string>
     <string name="settings_genre_page_summary">The genre header, its buttons, sections and colors.</string>
+    <string name="settings_playlist_page">Playlist page</string>
+    <string name="settings_playlist_page_summary">The playlist header, its buttons and colors.</string>
+    <string name="settings_pp_dynamic_colors_image">From playlist image</string>
     <string name="settings_gp_header">Header</string>
     <string name="settings_gp_background">Header background</string>
     <string name="settings_gp_background_image">Image</string>

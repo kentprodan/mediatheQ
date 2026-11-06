@@ -10,10 +10,14 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
+import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
+import io.github.kentprodan.mediatheq.core.data.ResumeRepository
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.resumeTarget
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
@@ -40,10 +44,23 @@ class PlaylistViewModel
         private val commands: TrackCommands,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
+        private val preferences: LibraryPreferencesRepository,
+        private val resumes: ResumeRepository,
+        private val library: LibraryRepository,
     ) : ViewModel() {
         private val selected = MutableStateFlow(emptySet<String>())
         private val error = MutableStateFlow<MqError?>(null)
         private val deleted = MutableStateFlow(false)
+        private val editing = MutableStateFlow(false)
+
+        /** The page settings, where the playlist was left and whether it is all downloaded. */
+        private val extras =
+            combine(
+                preferences.preferences.map { it.playlistPage }.distinctUntilChanged(),
+                resumes.playlistResume(playlistId),
+                library.fullyDownloaded.map { playlistId in it }.distinctUntilChanged(),
+                ::Triple,
+            )
 
         val uiState: StateFlow<PlaylistUiState> =
             combine(
@@ -51,8 +68,9 @@ class PlaylistViewModel
                 repository.items(playlistId),
                 // Only the track id: position ticks and play/pause must not rebuild the list.
                 playback.state.map { it.item?.id }.distinctUntilChanged(),
-                combine(selected, error, deleted, ::Triple),
-            ) { playlist, items, currentTrackId, (selected, error, deleted) ->
+                combine(selected, error, deleted, editing) { s, e, d, ed -> Selection(s, e, d, ed) },
+                extras,
+            ) { playlist, items, currentTrackId, (selected, error, deleted, editing), (page, resume, downloaded) ->
                 when {
                     deleted -> {
                         PlaylistUiState.Deleted
@@ -65,7 +83,19 @@ class PlaylistViewModel
                     else -> {
                         // An edit may have removed selected items meanwhile.
                         val entryIds = items.mapTo(HashSet()) { it.entryId }
-                        PlaylistUiState.Content(playlist, items, currentTrackId, selected intersect entryIds, error)
+                        PlaylistUiState.Content(
+                            playlist,
+                            items,
+                            currentTrackId,
+                            selected intersect entryIds,
+                            error,
+                            page,
+                            // shortcut: a track in the playlist twice resumes at its first copy; entry ids if it matters.
+                            // After a shuffled session "finished, so the next one" follows the playlist's order.
+                            resumeTarget(resume, items.map { it.track }),
+                            downloaded,
+                            editing,
+                        )
                     }
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlaylistUiState.Loading)
@@ -82,16 +112,48 @@ class PlaylistViewModel
             fun item(position: Int) = items.firstOrNull { it.position == position }
             when (action) {
                 PlaylistAction.Play -> {
-                    if (items.isNotEmpty()) playback.play(items.map { it.track })
+                    if (items.isNotEmpty()) playback.play(items.map { it.track }, playlistId = playlistId)
                 }
 
                 PlaylistAction.Shuffle -> {
-                    if (items.isNotEmpty()) playback.play(items.map { it.track }, shuffle = true)
+                    if (items.isNotEmpty()) {
+                        playback.play(
+                            items.map { it.track },
+                            shuffle = true,
+                            playlistId = playlistId,
+                        )
+                    }
+                }
+
+                PlaylistAction.Resume -> {
+                    val tracks = items.map { it.track }
+                    val resume = content.resume
+                    val index = tracks.indexOfFirst { it.id == resume?.trackId }
+                    if (resume != null && index >= 0) {
+                        playback.play(tracks, index, startPosition = resume.position, playlistId = playlistId)
+                    }
+                }
+
+                // Queued from the header, not played from the playlist: they do not move its Resume.
+                PlaylistAction.PlayAllNext -> {
+                    playback.playNext(items.map { it.track })
+                }
+
+                PlaylistAction.AddAllToQueue -> {
+                    playback.addToQueue(items.map { it.track })
+                }
+
+                is PlaylistAction.SetPlaylistFavorite -> {
+                    viewModelScope.launch { userData.setFavorite(playlistId, action.isFavorite) }
+                }
+
+                PlaylistAction.StartEditing -> {
+                    editing.value = true
                 }
 
                 is PlaylistAction.PlayItem -> {
                     val index = items.indexOfFirst { it.position == action.position }
-                    viewModelScope.launch { trackTaps.tap(items.map { it.track }, index) }
+                    viewModelScope.launch { trackTaps.tap(items.map { it.track }, index, playlistId) }
                 }
 
                 is PlaylistAction.Download -> {
@@ -145,7 +207,7 @@ class PlaylistViewModel
                 }
 
                 PlaylistAction.ClearSelection -> {
-                    selected.value = emptySet()
+                    endSelection()
                 }
 
                 PlaylistAction.SelectAll -> {
@@ -154,7 +216,7 @@ class PlaylistViewModel
 
                 is PlaylistAction.OnSelection -> {
                     val picked = items.filter { it.entryId in content.selected }.map { it.track }
-                    selected.value = emptySet()
+                    endSelection()
                     when (action.command) {
                         SelectionCommand.Play -> commands.run(TopButton.Play, picked)
 
@@ -173,7 +235,7 @@ class PlaylistViewModel
 
                 PlaylistAction.RemoveSelected -> {
                     val entries = items.filter { it.entryId in content.selected }
-                    selected.value = emptySet()
+                    endSelection()
                     remove(content, entries)
                 }
 
@@ -204,6 +266,11 @@ class PlaylistViewModel
             }
         }
 
+        private fun endSelection() {
+            selected.value = emptySet()
+            editing.value = false
+        }
+
         private fun remove(
             content: PlaylistUiState.Content,
             entries: List<PlaylistItem>,
@@ -224,3 +291,10 @@ class PlaylistViewModel
             fun create(playlistId: MediaId): PlaylistViewModel
         }
     }
+
+private data class Selection(
+    val selected: Set<String>,
+    val error: MqError?,
+    val deleted: Boolean,
+    val editing: Boolean,
+)

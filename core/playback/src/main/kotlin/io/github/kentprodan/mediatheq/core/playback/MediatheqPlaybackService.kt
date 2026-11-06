@@ -30,7 +30,6 @@ import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
-import io.github.kentprodan.mediatheq.core.data.AlbumResumeRepository
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
@@ -39,6 +38,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
+import io.github.kentprodan.mediatheq.core.data.ResumeRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.WaveformRepository
@@ -88,7 +88,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var waveforms: WaveformRepository
 
-    @Inject lateinit var albumResume: AlbumResumeRepository
+    @Inject lateinit var resumes: ResumeRepository
 
     @Inject
     @DownloadCache
@@ -189,7 +189,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
         resumeListener =
             ResumeListener(
                 player,
-                record = { trackId, position -> applicationScope.launch { albumResume.record(trackId, position) } },
+                record = {
+                    track,
+                    playlist,
+                    position,
+                    ->
+                    applicationScope.launch { resumes.record(track, position, playlist) }
+                },
                 scope = applicationScope + Dispatchers.Main,
             ).also(player::addListener)
         player.addListener(

@@ -50,6 +50,9 @@ import io.github.kentprodan.mediatheq.core.data.NowPlayingColors
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.data.PlayerBackground
 import io.github.kentprodan.mediatheq.core.data.PlayerProgress
+import io.github.kentprodan.mediatheq.core.data.PlaylistButton
+import io.github.kentprodan.mediatheq.core.data.PlaylistHeaderBackground
+import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
@@ -660,6 +663,25 @@ class SettingsScreenTest {
             .containsExactly(
                 SettingsAction.SetGenrePage(GenrePagePreferences(showAlbumArtists = true)),
                 SettingsAction.SetGenrePage(GenrePagePreferences(dynamicColors = true)),
+            ).inOrder()
+    }
+
+    @Test
+    fun `the playlist page background and hidden buttons are chosen in dialogs`() {
+        show(SettingsPage.Playlist)
+
+        composeRule.onNode(hasText("Header background") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("Image color (gradient)").performClick()
+        composeRule.onNode(hasText("Hidden buttons") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("Favorite").performClick()
+        composeRule.onNodeWithText("OK").performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetPlaylistPage(
+                    PlaylistPagePreferences(headerBackground = PlaylistHeaderBackground.ImageColor),
+                ),
+                SettingsAction.SetPlaylistPage(PlaylistPagePreferences(hiddenButtons = setOf(PlaylistButton.Favorite))),
             ).inOrder()
     }
 }

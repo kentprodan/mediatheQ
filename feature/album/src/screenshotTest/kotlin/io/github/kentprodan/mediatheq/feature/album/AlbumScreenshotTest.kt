@@ -9,10 +9,10 @@ import io.github.kentprodan.mediatheq.core.data.AlbumHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
-import io.github.kentprodan.mediatheq.core.model.AlbumResume
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
+import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
@@ -51,7 +51,7 @@ fun AlbumCoverImageScreenshot() =
                         },
                     ),
                 ),
-        ).copy(resume = AlbumResume(tracks[1].id, 30.seconds)),
+        ).copy(resume = ResumePoint(tracks[1].id, 30.seconds)),
     )
 
 /** Header background "Cover color": a gradient from the cover's color (the fixture has none: the tonal fallback). */

@@ -5,7 +5,9 @@ import io.github.kentprodan.mediatheq.core.database.dao.TrackWithArtists
 import io.github.kentprodan.mediatheq.core.database.entity.QueueEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.QueueStateEntity
 import io.github.kentprodan.mediatheq.core.datastore.SavedQueueFlag
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import javax.inject.Inject
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -34,6 +36,7 @@ class DefaultQueueRepository
                         entry.trackId.serverId.value,
                         entry.trackId.itemId,
                         shufflePositions[i],
+                        entry.playlistId?.itemId,
                     )
                 },
                 place.toEntity(),
@@ -62,6 +65,7 @@ class DefaultQueueRepository
                         SavedEntry(
                             it.entryId,
                             TrackWithArtists(it.track, it.credits, it.album).toDomain(),
+                            it.playlistId?.let { id -> MediaId(ServerId(it.track.serverId), id) },
                         )
                     },
                 shuffleOrder = rows.indices.sortedBy { rows[it].shufflePosition },

@@ -6,12 +6,12 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.kentprodan.mediatheq.core.data.AlbumResumeRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.MoreAlbumsSort
+import io.github.kentprodan.mediatheq.core.data.ResumeRepository
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.resumeTarget
@@ -50,7 +50,7 @@ class AlbumViewModel
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
         preferences: LibraryPreferencesRepository,
-        private val resumes: AlbumResumeRepository,
+        private val resumes: ResumeRepository,
     ) : ViewModel() {
         private val selection = MutableStateFlow(ListSelection<MediaId>())
 
