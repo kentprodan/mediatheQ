@@ -162,13 +162,4 @@ class DefaultAudioPreferencesRepository
                 store.setEq(EqPreset.Custom.name, gains.joinToString(","))
             }
         }
-
-        private inline fun <reified E : Enum<E>> enumOrNull(name: String?): E? =
-            enumValues<E>().firstOrNull { it.name == name }
-
-        // Anything but one valid gain per band is dropped: an old or damaged value means the defaults.
-        private fun String.toGains(): List<Float>? =
-            split(",")
-                .map { it.toFloatOrNull()?.takeIf { gain -> gain in AudioPreferences.EQ_GAIN_DB } ?: return null }
-                .takeIf { it.size == AudioPreferences.EQ_BANDS_HZ.size }
     }
