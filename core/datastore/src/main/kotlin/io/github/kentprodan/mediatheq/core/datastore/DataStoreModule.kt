@@ -54,6 +54,8 @@ internal interface DataStoreModule {
         ): DataStore<Preferences> =
             PreferenceDataStoreFactory.create(
                 corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+                // The global equalizer and normalization become the phone's profile (#140).
+                migrations = listOf(AudioOutputStore.GlobalToPhoneMigration),
             ) { context.preferencesDataStoreFile("audio_prefs") }
     }
 }

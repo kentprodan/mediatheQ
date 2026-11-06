@@ -60,7 +60,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.rememberCoverColor
 import io.github.kentprodan.mediatheq.core.navigation.AddToPlaylistKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
-import io.github.kentprodan.mediatheq.core.navigation.AudioSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.OutputKey
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -287,7 +287,7 @@ fun NowPlayingLayout(
                                                         },
                                                         onOpenEqualizer = {
                                                             expanded = false
-                                                            onNavigate(AudioSettingsKey)
+                                                            onNavigate(OutputKey())
                                                         },
                                                         onAddToPlaylist = {
                                                             expanded = false

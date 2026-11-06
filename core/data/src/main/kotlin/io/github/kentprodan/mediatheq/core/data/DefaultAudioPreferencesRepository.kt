@@ -17,18 +17,13 @@ class DefaultAudioPreferencesRepository
     constructor(
         private val store: AudioPreferencesStore,
     ) : AudioPreferencesRepository {
-        // setEqBand reads the gains, then writes them: one at a time.
-        private val eqLock = Mutex()
+        // setBehavior reads the switches, then writes them: one at a time.
+        private val lock = Mutex()
 
         override val preferences: Flow<AudioPreferences> =
             store.values.map { stored ->
                 val defaults = AudioPreferences()
                 AudioPreferences(
-                    bitPerfectUsb = stored.bitPerfectUsb ?: defaults.bitPerfectUsb,
-                    equalizerOn = stored.equalizerOn ?: defaults.equalizerOn,
-                    eqPreset = EqPreset.entries.firstOrNull { it.name == stored.eqPreset } ?: defaults.eqPreset,
-                    customGainsDb = stored.eqBands?.toGains() ?: defaults.customGainsDb,
-                    normalization = enumOrNull<Normalization>(stored.normalization) ?: defaults.normalization,
                     unmeteredQuality =
                         enumOrNull<StreamingQuality>(stored.unmeteredQuality) ?: defaults.unmeteredQuality,
                     meteredQuality = enumOrNull<StreamingQuality>(stored.meteredQuality) ?: defaults.meteredQuality,
@@ -43,14 +38,6 @@ class DefaultAudioPreferencesRepository
                     notificationButtons = notificationButtons(stored.outside),
                 )
             }
-
-        override suspend fun setBitPerfectUsb(on: Boolean) = store.setBitPerfectUsb(on)
-
-        override suspend fun setEqualizerOn(on: Boolean) = store.setEqualizerOn(on)
-
-        override suspend fun setEqPreset(preset: EqPreset) = store.setEq(preset.name, bands = null)
-
-        override suspend fun setNormalization(normalization: Normalization) = store.setNormalization(normalization.name)
 
         override suspend fun setStreamingQuality(
             metered: Boolean,
@@ -72,7 +59,7 @@ class DefaultAudioPreferencesRepository
             on: Boolean,
         ) {
             // Read, change one switch, write: one at a time, so quick taps never undo each other.
-            eqLock.withLock { writeBehavior(preferences.first().behavior.with(switch, on)) }
+            lock.withLock { writeBehavior(preferences.first().behavior.with(switch, on)) }
         }
 
         private suspend fun writeBehavior(behavior: PlaybackBehavior) =
@@ -151,15 +138,5 @@ class DefaultAudioPreferencesRepository
                 retainPlayerState = stored.retainPlayerState ?: defaults.retainPlayerState,
                 weightedShuffle = stored.weightedShuffle ?: defaults.weightedShuffle,
             )
-        }
-
-        override suspend fun setEqBand(
-            index: Int,
-            gainDb: Float,
-        ) {
-            eqLock.withLock {
-                val gains = withEqBand(preferences.first().eqGainsDb, index, gainDb) ?: return
-                store.setEq(EqPreset.Custom.name, gains.joinToString(","))
-            }
         }
     }

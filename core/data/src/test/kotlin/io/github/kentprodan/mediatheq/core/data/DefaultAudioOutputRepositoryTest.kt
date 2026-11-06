@@ -85,6 +85,20 @@ class DefaultAudioOutputRepositoryTest {
         }
 
     @Test
+    fun `custom gains are kept while another preset is chosen, an unknown band is ignored`() =
+        runTest {
+            repository.setEqBand(OutputId.Phone, 0, 5f)
+            repository.setEqBand(OutputId.Phone, 5, 1f)
+            val custom = outputs().profileOf(OutputId.Phone)
+
+            repository.setProfile(OutputId.Phone, custom.copy(eqPreset = EqPreset.Vocal))
+            assertThat(outputs().profileOf(OutputId.Phone).eqGainsDb).isEqualTo(EqPreset.Vocal.gainsDb)
+            repository.setProfile(OutputId.Phone, custom.copy(eqPreset = EqPreset.Custom))
+
+            assertThat(outputs().profileOf(OutputId.Phone).eqGainsDb).containsExactly(5f, 0f, 0f, 0f, 0f).inOrder()
+        }
+
+    @Test
     fun `forgetting the current output makes the phone current, the phone stays`() =
         runTest {
             repository.use(headphones, "MOMENTUM 4")

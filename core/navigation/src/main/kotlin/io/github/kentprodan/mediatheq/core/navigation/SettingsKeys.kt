@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.navigation
 
 import androidx.navigation3.runtime.NavKey
+import io.github.kentprodan.mediatheq.core.model.OutputId
 import kotlinx.serialization.Serializable
 
 /** The Settings hub, opened from Home: categories that open their own pages (#120). */
@@ -95,9 +96,15 @@ data object ProvidersSettingsKey : NavKey
 @Serializable
 data object AboutSettingsKey : NavKey
 
-/** Settings -> Playback -> Audio: bit-perfect USB and the equalizer. */
+/** Settings -> Playback -> Output settings (#140): every remembered output, the current one marked. */
 @Serializable
-data object AudioSettingsKey : NavKey
+data object OutputSettingsKey : NavKey
+
+/** One output's settings and equalizer (#140); `null` = the current output (Now Playing's Equalizer button). */
+@Serializable
+data class OutputKey(
+    @Serializable(with = OutputIdSerializer::class) val id: OutputId? = null,
+) : NavKey
 
 /** Settings -> About -> Open-source licenses (#70). */
 @Serializable

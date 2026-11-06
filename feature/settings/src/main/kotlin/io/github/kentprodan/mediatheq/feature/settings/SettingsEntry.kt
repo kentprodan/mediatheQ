@@ -7,7 +7,6 @@ import io.github.kentprodan.mediatheq.core.navigation.AdvancedSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AudioFocusSettingsKey
-import io.github.kentprodan.mediatheq.core.navigation.AudioSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DecodingSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.GenrePageSettingsKey
@@ -21,6 +20,8 @@ import io.github.kentprodan.mediatheq.core.navigation.NavigationSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.NotificationButtonsSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.NowPlayingSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.OutputKey
+import io.github.kentprodan.mediatheq.core.navigation.OutputSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackBehaviorSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistPageSettingsKey
@@ -43,12 +44,12 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     licenseNotices: () -> String,
 ) {
     val back: () -> Unit = { navigator.back() }
-    val openAudio: () -> Unit = { navigator.navigateTo(AudioSettingsKey) }
+    val openOutputs: () -> Unit = { navigator.navigateTo(OutputSettingsKey) }
     entry<SettingsKey> { SettingsHubRoute(onOpen = { navigator.navigateTo(it.key) }, onBack = back) }
     entry<InterfaceSettingsKey> {
         SettingsPageRoute(
             SettingsPage.Interface,
-            openAudio,
+            openOutputs,
             back,
             onOpenTheme = { navigator.navigateTo(ThemeSettingsKey) },
             onOpenNavigation = { navigator.navigateTo(NavigationSettingsKey) },
@@ -64,22 +65,22 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             onOpenAdvanced = { navigator.navigateTo(AdvancedSettingsKey) },
         )
     }
-    entry<ThemeSettingsKey> { SettingsPageRoute(SettingsPage.Theme, openAudio, back) }
-    entry<NavigationSettingsKey> { SettingsPageRoute(SettingsPage.Navigation, openAudio, back) }
-    entry<MediaListsSettingsKey> { SettingsPageRoute(SettingsPage.MediaLists, openAudio, back) }
-    entry<NowPlayingSettingsKey> { SettingsPageRoute(SettingsPage.NowPlaying, openAudio, back) }
-    entry<HomePageSettingsKey> { SettingsPageRoute(SettingsPage.Home, openAudio, back) }
-    entry<LibraryPageSettingsKey> { SettingsPageRoute(SettingsPage.Library, openAudio, back) }
-    entry<AlbumPageSettingsKey> { SettingsPageRoute(SettingsPage.Album, openAudio, back) }
-    entry<ArtistPageSettingsKey> { SettingsPageRoute(SettingsPage.Artist, openAudio, back) }
-    entry<GenrePageSettingsKey> { SettingsPageRoute(SettingsPage.Genre, openAudio, back) }
-    entry<PlaylistPageSettingsKey> { SettingsPageRoute(SettingsPage.Playlist, openAudio, back) }
-    entry<SearchPageSettingsKey> { SettingsPageRoute(SettingsPage.Search, openAudio, back) }
-    entry<AdvancedSettingsKey> { SettingsPageRoute(SettingsPage.Advanced, openAudio, back) }
+    entry<ThemeSettingsKey> { SettingsPageRoute(SettingsPage.Theme, openOutputs, back) }
+    entry<NavigationSettingsKey> { SettingsPageRoute(SettingsPage.Navigation, openOutputs, back) }
+    entry<MediaListsSettingsKey> { SettingsPageRoute(SettingsPage.MediaLists, openOutputs, back) }
+    entry<NowPlayingSettingsKey> { SettingsPageRoute(SettingsPage.NowPlaying, openOutputs, back) }
+    entry<HomePageSettingsKey> { SettingsPageRoute(SettingsPage.Home, openOutputs, back) }
+    entry<LibraryPageSettingsKey> { SettingsPageRoute(SettingsPage.Library, openOutputs, back) }
+    entry<AlbumPageSettingsKey> { SettingsPageRoute(SettingsPage.Album, openOutputs, back) }
+    entry<ArtistPageSettingsKey> { SettingsPageRoute(SettingsPage.Artist, openOutputs, back) }
+    entry<GenrePageSettingsKey> { SettingsPageRoute(SettingsPage.Genre, openOutputs, back) }
+    entry<PlaylistPageSettingsKey> { SettingsPageRoute(SettingsPage.Playlist, openOutputs, back) }
+    entry<SearchPageSettingsKey> { SettingsPageRoute(SettingsPage.Search, openOutputs, back) }
+    entry<AdvancedSettingsKey> { SettingsPageRoute(SettingsPage.Advanced, openOutputs, back) }
     entry<PlaybackSettingsKey> {
         SettingsPageRoute(
             SettingsPage.Playback,
-            openAudio,
+            openOutputs,
             back,
             onOpenBehavior = { navigator.navigateTo(PlaybackBehaviorSettingsKey) },
             onOpenDecoding = { navigator.navigateTo(DecodingSettingsKey) },
@@ -88,17 +89,18 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             onOpenNotificationButtons = { navigator.navigateTo(NotificationButtonsSettingsKey) },
         )
     }
-    entry<PlaybackBehaviorSettingsKey> { SettingsPageRoute(SettingsPage.PlaybackBehavior, openAudio, back) }
-    entry<DecodingSettingsKey> { SettingsPageRoute(SettingsPage.Decoding, openAudio, back) }
-    entry<AudioFocusSettingsKey> { SettingsPageRoute(SettingsPage.AudioFocus, openAudio, back) }
-    entry<HeadsetSettingsKey> { SettingsPageRoute(SettingsPage.Headset, openAudio, back) }
-    entry<NotificationButtonsSettingsKey> { SettingsPageRoute(SettingsPage.NotificationButtons, openAudio, back) }
-    entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openAudio, back) }
-    entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openAudio, back) }
+    entry<PlaybackBehaviorSettingsKey> { SettingsPageRoute(SettingsPage.PlaybackBehavior, openOutputs, back) }
+    entry<DecodingSettingsKey> { SettingsPageRoute(SettingsPage.Decoding, openOutputs, back) }
+    entry<AudioFocusSettingsKey> { SettingsPageRoute(SettingsPage.AudioFocus, openOutputs, back) }
+    entry<HeadsetSettingsKey> { SettingsPageRoute(SettingsPage.Headset, openOutputs, back) }
+    entry<NotificationButtonsSettingsKey> { SettingsPageRoute(SettingsPage.NotificationButtons, openOutputs, back) }
+    entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openOutputs, back) }
+    entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openOutputs, back) }
     entry<AboutSettingsKey> {
         AboutSettingsScreen(versionName, onOpenShowcase, onOpenLicenses = { navigator.navigateTo(LicensesKey) }, back)
     }
-    entry<AudioSettingsKey> { AudioSettingsRoute(onBack = back) }
+    entry<OutputSettingsKey> { OutputListRoute(onOpen = { navigator.navigateTo(OutputKey(it)) }, onBack = back) }
+    entry<OutputKey> { OutputRoute(it.id, onBack = back) }
     entry<LicensesKey> { LicensesRoute(licensesReport, licenseNotices, onBack = back) }
 }
 
