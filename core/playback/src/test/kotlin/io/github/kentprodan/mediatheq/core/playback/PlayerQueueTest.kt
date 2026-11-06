@@ -90,10 +90,12 @@ class PlayerQueueTest {
     }
 
     @Test
-    fun `a new queue replaces the old one`() {
-        player.playQueue(items, startIndex = 0, shuffle = true)
+    fun `a new queue replaces the old one, and the session's player turns shuffle off for it`() {
+        // Shuffle off is the session player's rule (#138), so through it, as every controller is.
+        val session = QueuePlayer(player)
+        session.playQueue(items, startIndex = 0, shuffle = true)
 
-        player.playQueue(items.take(2), startIndex = 1, shuffle = false)
+        session.playQueue(items.take(2), startIndex = 1, shuffle = false)
 
         assertThat(player.mediaItemCount).isEqualTo(2)
         assertThat(currentTitle()).isEqualTo("Track 2")

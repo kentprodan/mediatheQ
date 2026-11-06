@@ -36,6 +36,7 @@ import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
+import io.github.kentprodan.mediatheq.core.data.PlaybackBehavior
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.ResumeRepository
@@ -49,6 +50,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -119,6 +121,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var prefetchJob: Job? = null
     private lateinit var waveformAnalyzer: WaveformAnalyzer
     private var waveformJob: Job? = null
+    private var behaviorJob: Job? = null
 
     /** One background thread for waveform analysis (#124): one file at a time, below playback and the UI. */
     private val waveformWorker =
@@ -256,7 +259,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         prefetchJob = prefetcher.start()
         session =
             MediaLibrarySession
-                .Builder(this, QueuePlayer(player), LibraryCallback())
+                .Builder(this, queuePlayer(player), LibraryCallback())
                 // Notification artwork through the app client too (cleartext rule, ADR 0013); kept covers of downloads
                 // are `file:` URIs (#154), read locally.
                 .setBitmapLoader(
@@ -279,6 +282,21 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     }
                 }
             }
+    }
+
+    /** The session's player: Settings -> Playback -> Playback applies to every controller alike (#138). */
+    private fun queuePlayer(player: ExoPlayer): QueuePlayer {
+        // Read on the main thread, like the player; the defaults until the setting is read (milliseconds).
+        var behavior = PlaybackBehavior()
+        val queuePlayer = QueuePlayer(player, behavior = { behavior }, resuming = { persistence.resuming })
+        behaviorJob =
+            applicationScope.launch(Dispatchers.Main) {
+                audioPreferences.preferences.map { it.behavior }.distinctUntilChanged().collect {
+                    behavior = it
+                    queuePlayer.onBehaviorChanged()
+                }
+            }
+        return queuePlayer
     }
 
     /**
@@ -433,6 +451,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         prefetchJob?.cancel()
         prefetcher.stop()
         waveformJob?.cancel()
+        behaviorJob?.cancel()
         waveformWorker.close()
         audioSettingsJob?.cancel()
         audioOutput.release()
