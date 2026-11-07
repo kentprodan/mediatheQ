@@ -11,20 +11,17 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
-import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Settings and its Audio page: every value comes from its repository, so a change shows (and applies) at once. */
+/** Settings and its pages: every value comes from its repository, so a change shows (and applies) at once. */
 @HiltViewModel
 class SettingsViewModel
     @Inject
@@ -32,7 +29,6 @@ class SettingsViewModel
         private val session: SessionRepository,
         private val audio: AudioPreferencesRepository,
         private val library: LibraryPreferencesRepository,
-        playback: PlaybackConnection,
     ) : ViewModel() {
         private val entriesDraft = MutableStateFlow<NavEntriesDraft?>(null)
         private val shortcutsDraft = MutableStateFlow<OrganizeDraft<LibraryShortcut>?>(null)
@@ -45,9 +41,8 @@ class SettingsViewModel
                 session.session,
                 audio.preferences,
                 library.preferences,
-                playback.state.map { it.output }.distinctUntilChanged(),
                 combine(entriesDraft, shortcutsDraft, sectionsDraft, artistSectionsDraft, genreSectionsDraft, ::Drafts),
-            ) { session, audio, library, output, (draft, shortcuts, sections, artistSections, genreSections) ->
+            ) { session, audio, library, (draft, shortcuts, sections, artistSections, genreSections) ->
                 // Signed out: the app leaves for onboarding, nothing to show meanwhile.
                 (session as? SessionState.LoggedIn)?.let {
                     SettingsUiState.Content(
@@ -55,7 +50,6 @@ class SettingsViewModel
                         it.userName,
                         audio,
                         library,
-                        output,
                         draft,
                         shortcuts,
                         sections,
@@ -74,10 +68,6 @@ class SettingsViewModel
 
                     is SettingsAction.SetStreamingQuality -> {
                         audio.setStreamingQuality(action.metered, action.quality)
-                    }
-
-                    is SettingsAction.SetNormalization -> {
-                        audio.setNormalization(action.normalization)
                     }
 
                     is SettingsAction.SetStreamingCacheGb -> {
@@ -362,22 +352,6 @@ class SettingsViewModel
 
                     is SettingsAction.SetRatingMode -> {
                         library.setRatingMode(action.mode)
-                    }
-
-                    is SettingsAction.SetBitPerfectUsb -> {
-                        audio.setBitPerfectUsb(action.on)
-                    }
-
-                    is SettingsAction.SetEqualizerOn -> {
-                        audio.setEqualizerOn(action.on)
-                    }
-
-                    is SettingsAction.SetEqPreset -> {
-                        audio.setEqPreset(action.preset)
-                    }
-
-                    is SettingsAction.SetEqBand -> {
-                        audio.setEqBand(action.index, action.gainDb)
                     }
                 }
             }

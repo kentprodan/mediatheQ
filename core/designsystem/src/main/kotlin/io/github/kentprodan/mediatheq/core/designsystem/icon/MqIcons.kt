@@ -131,6 +131,12 @@ object MqIcons {
     val VolumeDown: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_volume_down)
 
+    val Smartphone: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_smartphone)
+
+    val Usb: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_usb)
+
     val KeyboardArrowDown: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_keyboard_arrow_down)
 

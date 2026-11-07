@@ -36,6 +36,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0029](0029-artist-page-colors-from-image.md) | The artist page takes its colors from the artist image | Accepted |
 | [0030](0030-playback-behavior-in-the-session-player.md) | Playback behavior lives in the session's player; weighted shuffle by default | Accepted |
 | [0031](0031-own-audio-focus-handling.md) | The playback service handles audio focus itself | Accepted |
+| [0032](0032-audio-profiles-per-output.md) | Audio settings per output device | Accepted |
 
 Template for new ADRs:
 

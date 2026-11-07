@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import android.media.AudioFormat
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.model.OutputKind
 import org.junit.Test
 
 class AudioOutputControllerTest {
@@ -157,7 +158,11 @@ class AudioOutputControllerTest {
         assertThat(changes).containsExactly(AudioOutputState(offload = false, mode = AudioMode.Processed))
     }
 
-    private class FakeUsbAudioPort : UsbAudioPort {
+    private class FakeUsbAudioPort : AudioOutputPort {
+        var output = OutputDevice.Phone
+
+        override fun currentOutput() = output
+
         var capabilities: List<MixerCapability>? = null
         var accepts = true
         var preferred: MixerCapability? = null
@@ -336,5 +341,16 @@ class AudioOutputControllerTest {
         controller.refresh("ready")
 
         assertThat(changes).containsExactly(AudioOutputState(played = PlayedStream(known = true, convertedKbps = 256)))
+    }
+
+    @Test
+    fun `the device media plays on is published with each decision`() {
+        val headphones = OutputDevice(OutputKind.Bluetooth, "MOMENTUM 4", "00:11:22:33:44:55")
+        controller.refresh("test")
+
+        port.output = headphones
+        controller.onDeviceChanged()
+
+        assertThat(controller.state.output).isEqualTo(headphones)
     }
 }

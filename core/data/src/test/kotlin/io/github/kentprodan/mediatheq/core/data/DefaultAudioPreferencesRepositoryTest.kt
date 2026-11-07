@@ -16,88 +16,12 @@ class DefaultAudioPreferencesRepositoryTest {
     private val repository = DefaultAudioPreferencesRepository(AudioPreferencesStore(dataStore))
 
     @Test
-    fun `defaults are bit-perfect off and a flat equalizer that is off`() =
-        runTest {
-            val preferences = repository.preferences.first()
-
-            assertThat(preferences).isEqualTo(AudioPreferences())
-            assertThat(preferences.bitPerfectUsb).isFalse()
-            assertThat(preferences.equalizerOn).isFalse()
-            assertThat(preferences.eqGainsDb).containsExactly(0f, 0f, 0f, 0f, 0f).inOrder()
-        }
-
-    @Test
-    fun `toggles are kept`() =
-        runTest {
-            repository.setBitPerfectUsb(true)
-            repository.setEqualizerOn(true)
-
-            val preferences = repository.preferences.first()
-            assertThat(preferences.bitPerfectUsb).isTrue()
-            assertThat(preferences.equalizerOn).isTrue()
-        }
-
-    @Test
-    fun `a preset gives its gains`() =
-        runTest {
-            repository.setEqPreset(EqPreset.BassBoost)
-
-            assertThat(repository.preferences.first().eqGainsDb).isEqualTo(EqPreset.BassBoost.gainsDb)
-        }
-
-    @Test
-    fun `moving a band starts from the preset heard and switches to custom`() =
-        runTest {
-            repository.setEqPreset(EqPreset.BassBoost)
-
-            repository.setEqBand(index = 4, gainDb = 3f)
-
-            val preferences = repository.preferences.first()
-            assertThat(preferences.eqPreset).isEqualTo(EqPreset.Custom)
-            assertThat(preferences.eqGainsDb).containsExactly(6f, 4f, 0f, 0f, 3f).inOrder()
-        }
-
-    @Test
-    fun `custom gains are kept while another preset is chosen`() =
-        runTest {
-            repository.setEqBand(index = 0, gainDb = 5f)
-            repository.setEqPreset(EqPreset.Vocal)
-
-            repository.setEqPreset(EqPreset.Custom)
-
-            assertThat(repository.preferences.first().eqGainsDb).containsExactly(5f, 0f, 0f, 0f, 0f).inOrder()
-        }
-
-    @Test
-    fun `a band gain is clamped and an unknown band is ignored`() =
-        runTest {
-            repository.setEqBand(index = 2, gainDb = 30f)
-            repository.setEqBand(index = 5, gainDb = 1f)
-
-            assertThat(repository.preferences.first().eqGainsDb).containsExactly(0f, 0f, 12f, 0f, 0f).inOrder()
-        }
-
-    @Test
-    fun `damaged stored values fall back to the defaults`() =
-        runTest {
-            dataStore.edit {
-                it[stringPreferencesKey("eq_preset")] = "Loudness"
-                it[stringPreferencesKey("eq_bands")] = "1,2,x"
-            }
-
-            val preferences = repository.preferences.first()
-            assertThat(preferences.eqPreset).isEqualTo(EqPreset.Flat)
-            assertThat(preferences.customGainsDb).isEqualTo(AudioPreferences().customGainsDb)
-        }
-
-    @Test
-    fun `streaming defaults are original on Wi-Fi, 256 on mobile, album gain, 2 GB, Wi-Fi downloads`() =
+    fun `streaming defaults are original on Wi-Fi, 256 on mobile, 2 GB, Wi-Fi downloads`() =
         runTest {
             val preferences = repository.preferences.first()
 
             assertThat(preferences.qualityFor(metered = false)).isEqualTo(StreamingQuality.Original)
             assertThat(preferences.qualityFor(metered = true)).isEqualTo(StreamingQuality.Kbps256)
-            assertThat(preferences.normalization).isEqualTo(Normalization.Album)
             assertThat(preferences.streamingCacheGb).isEqualTo(2)
             assertThat(preferences.downloadsUnmeteredOnly).isTrue()
         }
@@ -107,14 +31,12 @@ class DefaultAudioPreferencesRepositoryTest {
         runTest {
             repository.setStreamingQuality(metered = true, StreamingQuality.Kbps128)
             repository.setStreamingQuality(metered = false, StreamingQuality.Kbps256)
-            repository.setNormalization(Normalization.Track)
             repository.setStreamingCacheGb(8)
             repository.setDownloadsUnmeteredOnly(false)
 
             val preferences = repository.preferences.first()
             assertThat(preferences.meteredQuality).isEqualTo(StreamingQuality.Kbps128)
             assertThat(preferences.unmeteredQuality).isEqualTo(StreamingQuality.Kbps256)
-            assertThat(preferences.normalization).isEqualTo(Normalization.Track)
             assertThat(preferences.streamingCacheGb).isEqualTo(8)
             assertThat(preferences.downloadsUnmeteredOnly).isFalse()
         }
@@ -131,7 +53,6 @@ class DefaultAudioPreferencesRepositoryTest {
     fun `unknown stored names and sizes fall back to the defaults`() =
         runTest {
             dataStore.edit {
-                it[stringPreferencesKey("normalization")] = "Loudest"
                 it[stringPreferencesKey("metered_quality")] = "Kbps999"
                 it[
                     androidx.datastore.preferences.core
@@ -148,7 +69,6 @@ class DefaultAudioPreferencesRepositoryTest {
             repository.setStreamingQuality(metered = true, StreamingQuality.Kbps192)
             repository.setStreamingQuality(metered = false, StreamingQuality.Kbps320)
             repository.setForceInstantTranscoding(true)
-            repository.setNormalization(Normalization.Track)
             val set = repository.preferences.first()
             assertThat(set.meteredQuality).isEqualTo(StreamingQuality.Kbps192)
             assertThat(set.unmeteredQuality).isEqualTo(StreamingQuality.Kbps320)
@@ -160,7 +80,6 @@ class DefaultAudioPreferencesRepositoryTest {
             assertThat(restored.meteredQuality).isEqualTo(StreamingQuality.Kbps256)
             assertThat(restored.unmeteredQuality).isEqualTo(StreamingQuality.Original)
             assertThat(restored.forceInstantTranscoding).isFalse()
-            assertThat(restored.normalization).isEqualTo(Normalization.Track)
         }
 
     @Test

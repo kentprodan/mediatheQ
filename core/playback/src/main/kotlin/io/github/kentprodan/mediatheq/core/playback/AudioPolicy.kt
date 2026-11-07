@@ -24,6 +24,8 @@ internal data class AudioSettings(
     val normalization: Normalization = Normalization.Album,
     val equalizerOn: Boolean = false,
     val bitPerfectUsb: Boolean = false,
+    /** The output's Bypass processing (#140): no equalizer, no normalization; bit-perfect is unaffected. */
+    val bypass: Boolean = false,
 )
 
 /** The one place that decides offload, bit-perfect, EQ and normalization (media3 skill, sections 5-7). Pure. */
@@ -39,7 +41,7 @@ internal object AudioPolicy {
     ): AudioMode =
         when {
             wantsBitPerfect(settings, route) && bitPerfectFormat -> AudioMode.BitPerfect
-            settings.equalizerOn -> AudioMode.Processed
+            equalizer(settings) -> AudioMode.Processed
             else -> AudioMode.Offload
         }
 
@@ -50,7 +52,14 @@ internal object AudioPolicy {
     fun offload(
         settings: AudioSettings,
         route: AudioRoute,
-    ): Boolean = !settings.equalizerOn && !wantsBitPerfect(settings, route)
+    ): Boolean = !equalizer(settings) && !wantsBitPerfect(settings, route)
+
+    /** Whether the equalizer is wanted: on, and the output does not bypass processing. */
+    private fun equalizer(settings: AudioSettings) = settings.equalizerOn && !settings.bypass
+
+    /** The normalization that applies: none when the output bypasses processing (#140). */
+    fun normalization(settings: AudioSettings): Normalization =
+        if (settings.bypass) Normalization.Off else settings.normalization
 
     /** Whether to look for a bit-perfect mixer attribute at all. */
     fun wantsBitPerfect(

@@ -27,7 +27,6 @@ import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
-import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 
 /** What Settings and its Audio page show. */
 sealed interface SettingsUiState {
@@ -39,8 +38,6 @@ sealed interface SettingsUiState {
         val userName: String,
         val audio: AudioPreferences = AudioPreferences(),
         val library: LibraryPreferences = LibraryPreferences(),
-        /** What the output does with the audio settings (bit-perfect, why the equalizer is unavailable). */
-        val output: AudioOutputInfo = AudioOutputInfo(),
         /** The "Organize your navigation" dialog while it is open (#122). */
         val entriesDraft: NavEntriesDraft? = null,
         /** The Library page's "Organize" dialog while it is open (#129). */
@@ -114,10 +111,6 @@ sealed interface SettingsAction {
     data class SetStreamingQuality(
         val metered: Boolean,
         val quality: StreamingQuality,
-    ) : SettingsAction
-
-    data class SetNormalization(
-        val normalization: Normalization,
     ) : SettingsAction
 
     data class SetStreamingCacheGb(
@@ -326,23 +319,5 @@ sealed interface SettingsAction {
 
     data class SetRatingMode(
         val mode: RatingMode,
-    ) : SettingsAction
-
-    data class SetBitPerfectUsb(
-        val on: Boolean,
-    ) : SettingsAction
-
-    data class SetEqualizerOn(
-        val on: Boolean,
-    ) : SettingsAction
-
-    data class SetEqPreset(
-        val preset: EqPreset,
-    ) : SettingsAction
-
-    /** Set equalizer band [index] to [gainDb]. */
-    data class SetEqBand(
-        val index: Int,
-        val gainDb: Float,
     ) : SettingsAction
 }

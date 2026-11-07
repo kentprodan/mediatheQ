@@ -197,4 +197,22 @@ class AudioPolicyTest {
             AudioPolicy.convertedKbps(PlayMethod.DirectStream, convertedDownload = false, qualityKbps = 128),
         ).isNull()
     }
+
+    @Test
+    fun `bypass turns the equalizer and normalization off, so audio is offloaded`() {
+        val bypass = AudioSettings(equalizerOn = true, normalization = Normalization.Track, bypass = true)
+
+        assertThat(AudioPolicy.decide(bypass, AudioRoute.Other, bitPerfectFormat = false)).isEqualTo(AudioMode.Offload)
+        assertThat(AudioPolicy.offload(bypass, AudioRoute.Other)).isTrue()
+        assertThat(AudioPolicy.normalization(bypass)).isEqualTo(Normalization.Off)
+        assertThat(AudioPolicy.normalization(bypass.copy(bypass = false))).isEqualTo(Normalization.Track)
+    }
+
+    @Test
+    fun `bypass leaves bit-perfect as it is`() {
+        val both = bitPerfect.copy(bypass = true)
+
+        assertThat(AudioPolicy.decide(both, AudioRoute.UsbDac, bitPerfectFormat = true)).isEqualTo(AudioMode.BitPerfect)
+        assertThat(AudioPolicy.offload(both, AudioRoute.UsbDac)).isFalse()
+    }
 }

@@ -76,7 +76,7 @@ enum class SettingsPage(
 @Composable
 internal fun SettingsPageRoute(
     page: SettingsPage,
-    onOpenAudio: () -> Unit,
+    onOpenOutputs: () -> Unit,
     onBack: () -> Unit,
     onOpenTheme: () -> Unit = {},
     onOpenNavigation: () -> Unit = {},
@@ -102,7 +102,7 @@ internal fun SettingsPageRoute(
         page,
         state,
         viewModel::onAction,
-        onOpenAudio,
+        onOpenOutputs,
         onBack,
         onOpenTheme,
         onOpenNavigation,
@@ -133,7 +133,7 @@ fun SettingsPageScreen(
     page: SettingsPage,
     state: SettingsUiState,
     onAction: (SettingsAction) -> Unit,
-    onOpenAudio: () -> Unit,
+    onOpenOutputs: () -> Unit,
     onBack: () -> Unit,
     onOpenTheme: () -> Unit = {},
     onOpenNavigation: () -> Unit = {},
@@ -337,15 +337,13 @@ fun SettingsPageScreen(
 
             SettingsPage.Playback -> {
                 playbackHubGroups(
-                    content.audio,
-                    onAction,
                     PlaybackPages(
                         onOpenBehavior,
                         onOpenDecoding,
                         onOpenAudioFocus,
                         onOpenHeadset,
                         onOpenNotificationButtons,
-                        onOpenAudio,
+                        onOpenOutputs,
                     ),
                 )
             }
@@ -740,6 +738,7 @@ internal fun <T> ChoiceItem(
     selected: T,
     label: @Composable (T) -> String,
     onSelect: (T) -> Unit,
+    enabled: Boolean = true,
 ) {
     SegmentedListItem(
         shapes = shapes,
@@ -756,6 +755,7 @@ internal fun <T> ChoiceItem(
                             selected = option == selected,
                             onClick = { onSelect(option) },
                             label = { Text(label(option)) },
+                            enabled = enabled,
                             leadingIcon =
                                 if (option == selected) {
                                     { Icon(MqIcons.Check, contentDescription = null) }

@@ -67,8 +67,7 @@ class SettingsViewModelTest {
     private val session = FakeSessionRepository()
     private val audio = FakeAudioPreferencesRepository()
     private val library = FakeLibraryPreferencesRepository()
-    private val playback = FakePlaybackConnection()
-    private val viewModel by lazy { SettingsViewModel(session, audio, library, playback) }
+    private val viewModel by lazy { SettingsViewModel(session, audio, library) }
 
     private fun signIn() {
         session.session.value = SessionState.LoggedIn("Home", "Ana")
@@ -81,22 +80,13 @@ class SettingsViewModelTest {
         }
 
     @Test
-    fun `the account, the preferences and the output show`() =
+    fun `the account and the preferences show`() =
         runTest {
             signIn()
-            playback.state.value = PlayerUiModel(output = AudioOutputInfo(usbDacConnected = true))
 
             viewModel.uiState.test {
                 assertThat(expectMostRecentItem())
-                    .isEqualTo(
-                        SettingsUiState.Content(
-                            "Home",
-                            "Ana",
-                            AudioPreferences(),
-                            LibraryPreferences(),
-                            AudioOutputInfo(usbDacConnected = true),
-                        ),
-                    )
+                    .isEqualTo(SettingsUiState.Content("Home", "Ana", AudioPreferences(), LibraryPreferences()))
             }
         }
 
@@ -119,35 +109,18 @@ class SettingsViewModelTest {
 
             viewModel.onAction(SettingsAction.SetStreamingQuality(metered = true, StreamingQuality.Kbps128))
             viewModel.onAction(SettingsAction.SetStreamingQuality(metered = false, StreamingQuality.Kbps256))
-            viewModel.onAction(SettingsAction.SetNormalization(Normalization.Off))
             viewModel.onAction(SettingsAction.SetStreamingCacheGb(8))
             viewModel.onAction(SettingsAction.SetDownloadsUnmeteredOnly(false))
 
             assertThat(audio.preferences.value)
                 .isEqualTo(
                     AudioPreferences(
-                        normalization = Normalization.Off,
                         unmeteredQuality = StreamingQuality.Kbps256,
                         meteredQuality = StreamingQuality.Kbps128,
                         streamingCacheGb = 8,
                         downloadsUnmeteredOnly = false,
                     ),
                 )
-        }
-
-    @Test
-    fun `audio actions reach the audio preferences`() =
-        runTest {
-            viewModel.onAction(SettingsAction.SetBitPerfectUsb(true))
-            viewModel.onAction(SettingsAction.SetEqualizerOn(true))
-            viewModel.onAction(SettingsAction.SetEqPreset(EqPreset.Vocal))
-            viewModel.onAction(SettingsAction.SetEqBand(0, 5f))
-
-            val preferences = audio.preferences.value
-            assertThat(preferences.bitPerfectUsb).isTrue()
-            assertThat(preferences.equalizerOn).isTrue()
-            assertThat(preferences.eqPreset).isEqualTo(EqPreset.Custom)
-            assertThat(preferences.eqGainsDb.first()).isEqualTo(5f)
         }
 
     @Test

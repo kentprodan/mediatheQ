@@ -93,7 +93,7 @@ class SettingsScreenTest {
                     page,
                     content,
                     { actions += it },
-                    onOpenAudio = { events += "audio" },
+                    onOpenOutputs = { events += "outputs" },
                     onBack = { events += "back" },
                     onOpenTheme = { events += "theme" },
                     onOpenAdvanced = { events += "advanced" },
@@ -187,13 +187,13 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `playback opens the audio page, and back works`() {
+    fun `playback opens the output settings, and back works`() {
         show(SettingsPage.Playback)
 
-        composeRule.onNode(hasText("Audio") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Output settings") and hasClickAction()).performClick()
         composeRule.onNodeWithContentDescription("Back").performClick()
 
-        assertThat(events).containsExactly("audio", "back").inOrder()
+        assertThat(events).containsExactly("outputs", "back").inOrder()
     }
 
     @Test
@@ -214,9 +214,10 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `the playback hub holds its pages, normalization and audio`() {
+    fun `the playback hub holds its pages, normalization lives per output`() {
         show(SettingsPage.Playback)
-        assertRows("Decoding and transcoding", "Volume normalization")
+        assertRows("Decoding and transcoding", "Output settings")
+        composeRule.onNodeWithText("Volume normalization").assertDoesNotExist()
     }
 
     @Test
@@ -741,14 +742,14 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `the Playback hub opens its pages and keeps the Audio page reachable`() {
+    fun `the Playback hub opens its pages and the output settings`() {
         show(SettingsPage.Playback)
 
         composeRule.onNode(hasText("Decoding and transcoding") and hasClickAction()).performClick()
         composeRule.onNode(hasText("Playback") and hasClickAction()).performClick()
-        composeRule.onNode(hasText("Audio") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Output settings") and hasClickAction()).performClick()
 
-        assertThat(events).containsExactly("decoding", "behavior", "audio").inOrder()
+        assertThat(events).containsExactly("decoding", "behavior", "outputs").inOrder()
     }
 
     @Test
