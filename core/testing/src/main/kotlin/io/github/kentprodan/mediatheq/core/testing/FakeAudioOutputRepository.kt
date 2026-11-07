@@ -39,6 +39,11 @@ class FakeAudioOutputRepository : AudioOutputRepository {
             )
     }
 
+    override suspend fun updateProfile(
+        id: OutputId,
+        change: (OutputProfile) -> OutputProfile,
+    ) = setProfile(id, change(outputs.value.profileOf(id)))
+
     override suspend fun setEqBand(
         id: OutputId,
         index: Int,

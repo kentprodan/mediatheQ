@@ -28,6 +28,12 @@ sealed interface OutputSettingsAction {
         val profile: OutputProfile?,
     ) : OutputSettingsAction
 
+    /** Changes [id]'s profile from its stored value (one setting); the repository applies it to the stored profile. */
+    data class UpdateProfile(
+        val id: OutputId,
+        val change: (OutputProfile) -> OutputProfile,
+    ) : OutputSettingsAction
+
     data class SetEqBand(
         val id: OutputId,
         val index: Int,

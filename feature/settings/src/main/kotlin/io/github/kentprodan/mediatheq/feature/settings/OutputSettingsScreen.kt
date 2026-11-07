@@ -14,6 +14,7 @@ import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -168,7 +169,10 @@ fun OutputScreen(
     var tab by rememberSaveable { mutableIntStateOf(initialTab) }
     var restoring by rememberSaveable { mutableStateOf(false) }
     val content = state as? OutputSettingsUiState.Content
-    val output = content?.output(id)
+    // "The current output" is fixed when the page opens: a route change while editing must not swap the page.
+    var pinned by rememberSaveable { mutableStateOf(id?.toString()) }
+    LaunchedEffect(content != null) { if (pinned == null && content != null) pinned = content.current.toString() }
+    val output = content?.output(pinned?.let(OutputId::parseOrNull) ?: id)
     val tabs =
         listOf(stringResource(R.string.settings_output_tab_settings), stringResource(R.string.settings_audio_equalizer))
     SettingsScaffold(output?.displayName().orEmpty(), onBack) {
@@ -181,7 +185,14 @@ fun OutputScreen(
                 AudioOutputInfo(bitPerfectSupported = content.info.bitPerfectSupported)
             }
         item(key = "tabs") { MqTabButtons(tabs, tab, { tab = it }, Modifier.fillMaxWidth()) }
-        val set = { profile: OutputProfile -> onAction(OutputSettingsAction.SetProfile(output.id, profile)) }
+        // One setting at a time, applied to the stored profile: a quick second tap never undoes the first.
+        val set = {
+            change: (
+                OutputProfile,
+            ) -> OutputProfile,
+            ->
+            onAction(OutputSettingsAction.UpdateProfile(output.id, change))
+        }
         if (tab == SETTINGS_TAB) {
             outputSettingsGroups(output, info, set) { restoring = true }
         } else {
@@ -198,7 +209,7 @@ fun OutputScreen(
 private fun LazyListScope.outputSettingsGroups(
     output: RememberedOutput,
     info: AudioOutputInfo,
-    set: (OutputProfile) -> Unit,
+    set: ((OutputProfile) -> OutputProfile) -> Unit,
     onRestore: () -> Unit,
 ) {
     val profile = output.profile
@@ -216,7 +227,7 @@ private fun LazyListScope.outputSettingsGroups(
                     Normalization.entries,
                     selected = profile.normalization,
                     label = { stringResource(it.label) },
-                    onSelect = { set(profile.copy(normalization = it)) },
+                    onSelect = { set { p -> p.copy(normalization = it) } },
                     enabled = !profile.bypass,
                 )
             }
@@ -226,7 +237,7 @@ private fun LazyListScope.outputSettingsGroups(
                     stringResource(R.string.settings_output_bypass),
                     stringResource(R.string.settings_output_bypass_summary),
                     profile.bypass,
-                ) { set(profile.copy(bypass = it)) }
+                ) { set { p -> p.copy(bypass = it) } }
             }
             // The phone's value only seeds new DACs (#140, ADR 0032): it is not shown there.
             if (output.id.kind == OutputKind.Usb) {
@@ -237,7 +248,7 @@ private fun LazyListScope.outputSettingsGroups(
                         bitPerfectSummary(info),
                         profile.bitPerfectUsb && info.bitPerfectSupported,
                         enabled = info.bitPerfectSupported,
-                    ) { set(profile.copy(bitPerfectUsb = it)) }
+                    ) { set { p -> p.copy(bitPerfectUsb = it) } }
                 }
             }
         }
@@ -259,7 +270,7 @@ private fun bitPerfectSummary(info: AudioOutputInfo): String {
 private fun LazyListScope.equalizerGroups(
     output: RememberedOutput,
     info: AudioOutputInfo,
-    set: (OutputProfile) -> Unit,
+    set: ((OutputProfile) -> OutputProfile) -> Unit,
     onBand: (Int, Float) -> Unit,
 ) {
     val profile = output.profile
@@ -280,7 +291,7 @@ private fun LazyListScope.equalizerGroups(
                     reason ?: stringResource(R.string.settings_audio_equalizer_summary),
                     profile.equalizerOn,
                     enabled = reason == null,
-                ) { set(profile.copy(equalizerOn = it)) }
+                ) { set { p -> p.copy(equalizerOn = it) } }
             }
             item { shapes ->
                 ChoiceItem(
@@ -290,7 +301,7 @@ private fun LazyListScope.equalizerGroups(
                     EqPreset.entries,
                     selected = profile.eqPreset,
                     label = { stringResource(it.label) },
-                    onSelect = { set(profile.copy(eqPreset = it)) },
+                    onSelect = { set { p -> p.copy(eqPreset = it) } },
                     enabled = adjustable,
                 )
             }

@@ -65,6 +65,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -520,9 +521,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     )
                 },
             )
+        // The device to remember as current: written one after the other, the last one wins (#140).
+        val usedDevice = MutableStateFlow<OutputDevice?>(null)
         outputProfiles =
             OutputProfileFollower(
-                remember = { device -> applicationScope.launch { audioOutputs.use(device.id, device.name) } },
+                remember = { usedDevice.value = it },
                 apply = { profile ->
                     settings = profile.toAudioSettings()
                     eqGains = profile.eqGainsDb
@@ -577,7 +580,12 @@ class MediatheqPlaybackService : MediaLibraryService() {
             }
         // Each output's own settings (#140); the device media plays on comes with each output decision.
         outputsJob =
-            applicationScope.launch(Dispatchers.Main) { audioOutputs.outputs.collect(outputProfiles::onOutputs) }
+            applicationScope.launch(Dispatchers.Main) {
+                launch { audioOutputs.outputs.collect(outputProfiles::onOutputs) }
+                usedDevice.filterNotNull().collect { audioOutputs.use(it.id, it.name) }
+            }
+        // The real device first: the controller's initial state says phone until its first decision.
+        audioOutput.refresh("start")
         outputProfiles.onDevice(audioOutput.state.output)
     }
 

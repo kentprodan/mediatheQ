@@ -7,7 +7,9 @@ import io.github.kentprodan.mediatheq.core.datastore.AudioOutputStore
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
@@ -96,6 +98,21 @@ class DefaultAudioOutputRepositoryTest {
             repository.setProfile(OutputId.Phone, custom.copy(eqPreset = EqPreset.Custom))
 
             assertThat(outputs().profileOf(OutputId.Phone).eqGainsDb).containsExactly(5f, 0f, 0f, 0f, 0f).inOrder()
+        }
+
+    @Test
+    fun `quick changes of different settings each keep the other`() =
+        runTest {
+            coroutineScope {
+                launch { repository.updateProfile(OutputId.Phone) { it.copy(bypass = true) } }
+                launch { repository.setEqBand(OutputId.Phone, 0, 5f) }
+                launch { repository.updateProfile(OutputId.Phone) { it.copy(normalization = Normalization.Off) } }
+            }
+
+            val profile = outputs().profileOf(OutputId.Phone)
+            assertThat(profile.bypass).isTrue()
+            assertThat(profile.normalization).isEqualTo(Normalization.Off)
+            assertThat(profile.eqGainsDb.first()).isEqualTo(5f)
         }
 
     @Test

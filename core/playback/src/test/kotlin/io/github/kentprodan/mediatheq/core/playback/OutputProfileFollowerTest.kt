@@ -104,16 +104,46 @@ class OutputProfileFollowerTest {
         assertThat(controller.state.offload).isFalse()
     }
 
+    @Test
+    fun `a DAC whose profile wants bit-perfect plays bit-perfect, and back on the phone the preference is cleared`() {
+        val cd = PcmFormat(AudioFormat.ENCODING_PCM_16BIT, 44_100, AudioFormat.CHANNEL_OUT_STEREO)
+        val port = FakePort()
+        lateinit var controller: AudioOutputController
+        val follower = OutputProfileFollower({}) { controller.setSettings(it.toAudioSettings()) }
+        controller = AudioOutputController(port, { cd }, { follower.onDevice(it.output) }, { false })
+        follower.onOutputs(outputs)
+        controller.refresh("start")
+
+        port.output = dac
+        port.capabilities = listOf(MixerCapability(cd, bitPerfect = true))
+        controller.onDeviceChanged()
+        assertThat(controller.state.mode).isEqualTo(AudioMode.BitPerfect)
+        assertThat(port.preferred).isEqualTo(MixerCapability(cd, bitPerfect = true))
+
+        port.output = OutputDevice.Phone
+        port.capabilities = null
+        controller.onDeviceChanged()
+        assertThat(controller.state.mode).isEqualTo(AudioMode.Processed)
+        assertThat(port.preferred).isNull()
+    }
+
     private class FakePort : AudioOutputPort {
         var output = OutputDevice.Phone
+        var capabilities: List<MixerCapability>? = null
+        var preferred: MixerCapability? = null
 
         override fun currentOutput() = output
 
-        override fun dacCapabilities(): List<MixerCapability>? = null
+        override fun dacCapabilities(): List<MixerCapability>? = capabilities
 
-        override fun setPreferred(capability: MixerCapability) = false
+        override fun setPreferred(capability: MixerCapability): Boolean {
+            preferred = capability
+            return true
+        }
 
-        override fun clearPreferred() = Unit
+        override fun clearPreferred() {
+            preferred = null
+        }
 
         override fun watch(
             onChange: () -> Unit,

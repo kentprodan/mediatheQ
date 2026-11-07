@@ -17,7 +17,7 @@ class DefaultAudioOutputRepository
     constructor(
         private val store: AudioOutputStore,
     ) : AudioOutputRepository {
-        // setEqBand reads the profile, then writes it: one at a time.
+        // updateProfile reads the profile, then writes it: one at a time.
         private val lock = Mutex()
 
         override val outputs: Flow<RememberedOutputs> =
@@ -46,16 +46,24 @@ class DefaultAudioOutputRepository
             profile: OutputProfile?,
         ) = store.setProfile(id.toString(), profile?.toStored() ?: StoredOutputProfile())
 
+        override suspend fun updateProfile(
+            id: OutputId,
+            change: (OutputProfile) -> OutputProfile,
+        ) {
+            lock.withLock { setProfile(id, change(outputs.first().profileOf(id))) }
+        }
+
         override suspend fun setEqBand(
             id: OutputId,
             index: Int,
             gainDb: Float,
-        ) {
-            lock.withLock {
-                val profile = outputs.first().profileOf(id)
-                val gains = withEqBand(profile.eqGainsDb, index, gainDb) ?: return
-                setProfile(id, profile.copy(eqPreset = EqPreset.Custom, customGainsDb = gains))
-            }
+        ) = updateProfile(id) { profile ->
+            withEqBand(
+                profile.eqGainsDb,
+                index,
+                gainDb,
+            )?.let { profile.copy(eqPreset = EqPreset.Custom, customGainsDb = it) }
+                ?: profile
         }
 
         override suspend fun forget(id: OutputId) = store.forget(id.toString())

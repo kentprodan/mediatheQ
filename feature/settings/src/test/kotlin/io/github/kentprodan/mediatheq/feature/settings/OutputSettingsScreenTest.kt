@@ -2,6 +2,9 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
@@ -94,7 +97,7 @@ class OutputSettingsScreenTest {
 
         composeRule.onNodeWithText("Bit-perfect USB").performClick()
 
-        assertThat(actions).containsExactly(OutputSettingsAction.SetProfile(dac, OutputProfile(bitPerfectUsb = true)))
+        assertThat(changed(dac)).isEqualTo(OutputProfile(bitPerfectUsb = true))
     }
 
     @Test
@@ -106,7 +109,25 @@ class OutputSettingsScreenTest {
         composeRule.onNodeWithText("Vocal").assertIsNotEnabled()
         composeRule.onNodeWithText("Uses more battery", substring = true).performClick()
 
-        assertThat(actions)
-            .containsExactly(OutputSettingsAction.SetProfile(headphones, OutputProfile(equalizerOn = true)))
+        assertThat(changed(headphones)).isEqualTo(OutputProfile(equalizerOn = true))
+    }
+
+    @Test
+    fun `the current output's page stays on it when the route changes meanwhile`() {
+        var state by mutableStateOf(state())
+        composeRule.setContent { MediatheqTheme { OutputScreen(state, null, { actions += it }, onBack = {}) } }
+        composeRule.onNodeWithText("MOMENTUM 4").assertExists()
+
+        state = state.copy(current = dac)
+
+        composeRule.onNodeWithText("MOMENTUM 4").assertExists()
+        composeRule.onNodeWithText("Apple USB-C").assertDoesNotExist()
+    }
+
+    /** The one change sent for [id], applied to the default profile. */
+    private fun changed(id: OutputId): OutputProfile {
+        val update = actions.single() as OutputSettingsAction.UpdateProfile
+        assertThat(update.id).isEqualTo(id)
+        return update.change(OutputProfile())
     }
 }

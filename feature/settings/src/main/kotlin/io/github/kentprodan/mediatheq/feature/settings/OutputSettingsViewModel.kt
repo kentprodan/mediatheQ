@@ -34,6 +34,7 @@ class OutputSettingsViewModel
             viewModelScope.launch {
                 when (action) {
                     is OutputSettingsAction.SetProfile -> outputs.setProfile(action.id, action.profile)
+                    is OutputSettingsAction.UpdateProfile -> outputs.updateProfile(action.id, action.change)
                     is OutputSettingsAction.SetEqBand -> outputs.setEqBand(action.id, action.index, action.gainDb)
                     is OutputSettingsAction.Forget -> outputs.forget(action.id)
                 }

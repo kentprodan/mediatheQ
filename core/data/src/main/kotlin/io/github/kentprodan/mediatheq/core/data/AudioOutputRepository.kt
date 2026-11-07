@@ -19,6 +19,15 @@ interface AudioOutputRepository {
         profile: OutputProfile?,
     )
 
+    /**
+     * Changes [id]'s profile from its stored value, one change at a time, so quick edits never undo each other.
+     * Outputs that are not remembered are ignored.
+     */
+    suspend fun updateProfile(
+        id: OutputId,
+        change: (OutputProfile) -> OutputProfile,
+    )
+
     /** Sets one equalizer band of [id] (switching to [EqPreset.Custom]), clamped; other bands keep their gains. */
     suspend fun setEqBand(
         id: OutputId,

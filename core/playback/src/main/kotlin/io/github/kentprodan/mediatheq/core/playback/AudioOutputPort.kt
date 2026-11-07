@@ -154,6 +154,9 @@ private class AndroidAudioOutputPort(
                         onPreferenceDropped()
                     }
                 }.also { audioManager.addOnPreferredMixerAttributesChangedListener(main::post, it) }
+        // shortcut: only devices added or removed decide again at once; picking another output in the system output
+        // switcher while both stay connected applies at the next track or playback state change. Add a routing listener if
+        // that matters on the phone (#140).
         callback =
             object : AudioDeviceCallback() {
                 override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) = onChange()
