@@ -45,7 +45,7 @@ internal class NormalizationListener(
     /** Sets the current track's volume now, e.g. after the mode changed (bit-perfect plays at full volume). */
     fun apply() {
         val gains = player.currentMediaItem?.gains() ?: ItemGains(null, null)
-        player.volume = AudioPolicy.volume(gains, settings().normalization, mode()) * duck()
+        player.volume = AudioPolicy.volume(gains, AudioPolicy.normalization(settings()), mode()) * duck()
     }
 }
 

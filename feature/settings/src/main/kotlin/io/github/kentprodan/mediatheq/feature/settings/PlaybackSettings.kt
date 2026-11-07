@@ -14,15 +14,10 @@ import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 
 /**
- * Settings -> Playback (#138): a hub of sub-pages. An entry comes with its page (#120): Output settings, Automatic
- * actions and Transitions are added by their own issues. Normalization
- * and the Audio page (bit-perfect USB, equalizer) stay here until Output settings takes them.
+ * Settings -> Playback (#138): a hub of sub-pages. An entry comes with its page (#120): Automatic actions and
+ * Transitions are added by their own issues. Normalization and the equalizer live in Output settings, per output (#140).
  */
-internal fun LazyListScope.playbackHubGroups(
-    audio: AudioPreferences,
-    onAction: (SettingsAction) -> Unit,
-    pages: PlaybackPages,
-) {
+internal fun LazyListScope.playbackHubGroups(pages: PlaybackPages) {
     item(key = "playback_hub") {
         Group(R.string.settings_playback) {
             item { shapes ->
@@ -41,6 +36,15 @@ internal fun LazyListScope.playbackHubGroups(
                     R.string.settings_decoding_summary,
                     MqIcons.GraphicEq,
                     pages.decoding,
+                )
+            }
+            item { shapes ->
+                HubRow(
+                    shapes,
+                    R.string.settings_outputs,
+                    R.string.settings_outputs_summary,
+                    MqIcons.Tune,
+                    pages.outputs,
                 )
             }
             item { shapes ->
@@ -72,24 +76,6 @@ internal fun LazyListScope.playbackHubGroups(
             }
         }
     }
-    item(key = "playback_audio") {
-        Group(R.string.settings_audio) {
-            item { shapes ->
-                ChoiceItem(
-                    shapes,
-                    stringResource(R.string.settings_normalization),
-                    stringResource(R.string.settings_normalization_summary),
-                    Normalization.entries,
-                    selected = audio.normalization,
-                    label = { stringResource(it.label) },
-                    onSelect = { onAction(SettingsAction.SetNormalization(it)) },
-                )
-            }
-            item { shapes ->
-                HubRow(shapes, R.string.settings_audio, R.string.settings_audio_summary, MqIcons.Tune, pages.audio)
-            }
-        }
-    }
 }
 
 /** Where the Playback hub's rows lead. */
@@ -99,7 +85,7 @@ internal class PlaybackPages(
     val audioFocus: () -> Unit,
     val headset: () -> Unit,
     val notificationButtons: () -> Unit,
-    val audio: () -> Unit,
+    val outputs: () -> Unit,
 )
 
 @androidx.compose.runtime.Composable

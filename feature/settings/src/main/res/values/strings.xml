@@ -23,8 +23,6 @@
     <string name="settings_normalization_album">Album</string>
     <string name="settings_normalization_track">Track</string>
     <string name="settings_normalization_off">Off</string>
-    <string name="settings_audio">Audio</string>
-    <string name="settings_audio_summary">Bit-perfect USB and the equalizer</string>
 
     <string name="settings_storage">Downloads and storage</string>
     <string name="settings_offline_mode">Offline mode</string>
@@ -183,7 +181,22 @@
     <string name="settings_showcase">Theme showcase</string>
     <string name="settings_showcase_summary">Design system components, for manual checks</string>
 
-    <string name="settings_audio_close">Back</string>
+    <string name="settings_outputs">Output settings</string>
+    <string name="settings_outputs_summary">Normalization and equalizer for each output.</string>
+    <string name="settings_outputs_intro">Configure playback, normalization and equalizer separately for each output device.</string>
+    <string name="settings_outputs_devices">Outputs</string>
+    <string name="settings_output_phone">Phone</string>
+    <string name="settings_output_current">Current output</string>
+    <string name="settings_output_forget">Forget %1$s</string>
+    <string name="settings_output_forget_message">Forget %1$s? Its settings are removed. The next time it plays, it starts from the phone\'s settings.</string>
+    <string name="settings_output_forget_confirm">Forget</string>
+    <string name="settings_output_tab_settings">Settings</string>
+    <string name="settings_output_processing">Processing</string>
+    <string name="settings_output_bypass">Bypass processing</string>
+    <string name="settings_output_bypass_summary">No normalization and no equalizer on this output</string>
+    <string name="settings_output_bypassed">Off: this output bypasses processing.</string>
+    <string name="settings_eq_preset">Preset</string>
+    <string name="settings_eq_bands">Bands</string>
     <string name="settings_audio_bit_perfect">Bit-perfect USB</string>
     <string name="settings_audio_bit_perfect_summary">Sends audio unchanged to a USB DAC. Phone volume and the equalizer do not apply then.</string>
     <string name="settings_audio_bit_perfect_active">Bit-perfect at %1$s. Volume is set on the DAC.</string>

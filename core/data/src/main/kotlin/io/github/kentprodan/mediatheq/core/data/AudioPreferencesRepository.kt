@@ -6,14 +6,6 @@ import kotlinx.coroutines.flow.Flow
 interface AudioPreferencesRepository {
     val preferences: Flow<AudioPreferences>
 
-    suspend fun setBitPerfectUsb(on: Boolean)
-
-    suspend fun setEqualizerOn(on: Boolean)
-
-    suspend fun setEqPreset(preset: EqPreset)
-
-    suspend fun setNormalization(normalization: Normalization)
-
     /** The quality on [metered] networks, or on unmetered ones. */
     suspend fun setStreamingQuality(
         metered: Boolean,
@@ -48,15 +40,6 @@ interface AudioPreferencesRepository {
 
     /** Every Notification buttons value at once (#139); `null` = that page's defaults. */
     suspend fun setNotificationButtons(buttons: NotificationButtonsPreferences?)
-
-    /**
-     * Sets band [index] to [gainDb] (clamped to [AudioPreferences.EQ_GAIN_DB]), starting from the gains heard now and
-     * switching to [EqPreset.Custom]. Ignored for an index outside the bands.
-     */
-    suspend fun setEqBand(
-        index: Int,
-        gainDb: Float,
-    )
 }
 
 /** [gains] with band [index] set to [gainDb], clamped; `null` for an index outside the bands. */

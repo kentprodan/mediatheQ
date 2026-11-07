@@ -31,6 +31,8 @@ internal data class AudioOutputState(
      * effort: another app on the DAC can still block it. Only then does the indicator say bit-perfect.
      */
     val bitPerfectConfirmed: Boolean = false,
+    /** The device media plays on (#140): its profile sets the settings. */
+    val output: OutputDevice = OutputDevice.Phone,
 )
 
 /**
@@ -38,7 +40,7 @@ internal data class AudioOutputState(
  * skill, section 6), and reports the resulting [AudioOutputState] through [onChange]. Main thread only.
  */
 internal class AudioOutputController(
-    private val port: UsbAudioPort,
+    private val port: AudioOutputPort,
     /** The playing track's output format; `null` when stopped or unknown. */
     private val currentFormat: () -> PcmFormat?,
     private val onChange: (AudioOutputState) -> Unit,
@@ -110,6 +112,7 @@ internal class AudioOutputController(
                 atmosConverted = atmosConverted(),
                 played = played(),
                 bitPerfectConfirmed = confirmed && mode == AudioMode.BitPerfect,
+                output = port.currentOutput(),
             ),
         )
     }

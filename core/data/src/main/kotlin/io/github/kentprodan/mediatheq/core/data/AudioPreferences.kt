@@ -79,15 +79,11 @@ data class PlaybackBehavior(
         }
 }
 
-/** Validated audio, streaming and storage preferences (media3 skill, sections 3, 6, 7, 9 and 10). */
+/**
+ * Validated streaming, storage and playback preferences (media3 skill, sections 3, 9 and 10). Equalizer,
+ * normalization and bit-perfect are per output: [OutputProfile] (#140).
+ */
 data class AudioPreferences(
-    /** Send audio unchanged to a USB DAC when one is connected. Off by default: phone volume stops working. */
-    val bitPerfectUsb: Boolean = false,
-    val equalizerOn: Boolean = false,
-    val eqPreset: EqPreset = EqPreset.Flat,
-    /** The [EqPreset.Custom] gains, kept while another preset is chosen. */
-    val customGainsDb: List<Float> = FLAT_GAINS_DB,
-    val normalization: Normalization = Normalization.Album,
     /** Quality on unmetered networks (Wi-Fi, Ethernet). */
     val unmeteredQuality: StreamingQuality = StreamingQuality.Original,
     /** Quality on metered networks (mobile data). */
@@ -106,17 +102,12 @@ data class AudioPreferences(
     /** The streaming quality for a network that is [metered] or not. */
     fun qualityFor(metered: Boolean): StreamingQuality = if (metered) meteredQuality else unmeteredQuality
 
-    /** The gains the equalizer applies, one per band of [EQ_BANDS_HZ]. */
-    val eqGainsDb: List<Float> get() = eqPreset.gainsDb ?: customGainsDb
-
     companion object {
         /** Band centers in Hz (simple 5-band equalizer, no parametric editor). */
         val EQ_BANDS_HZ = listOf(60, 230, 910, 3_600, 14_000)
 
         /** The gain range of one band, in dB. */
         val EQ_GAIN_DB = -12f..12f
-
-        private val FLAT_GAINS_DB = List(EQ_BANDS_HZ.size) { 0f }
 
         val CACHE_SIZES_GB = listOf(1, 2, 4, 8)
         const val DEFAULT_CACHE_GB = 2
