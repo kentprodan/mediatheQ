@@ -80,6 +80,10 @@ data object HeadsetSettingsKey : NavKey
 @Serializable
 data object NotificationButtonsSettingsKey : NavKey
 
+/** Settings -> Playback -> Transitions (#142). */
+@Serializable
+data object TransitionsSettingsKey : NavKey
+
 /** Settings -> Playback -> Automatic actions (#141). */
 @Serializable
 data object AutoActionsSettingsKey : NavKey

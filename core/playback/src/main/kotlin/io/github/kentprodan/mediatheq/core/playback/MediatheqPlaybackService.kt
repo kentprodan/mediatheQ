@@ -149,6 +149,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var buttonState = ButtonState()
     private lateinit var focusController: AudioFocusController
     private lateinit var autoActions: AutoActionsController
+    private lateinit var fader: VolumeFader
 
     // The audio settings as last read, on the main thread like the player; the defaults until then (milliseconds).
     private var audio = AudioPreferences()
@@ -345,6 +346,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 behavior = { audio.behavior },
                 resuming = { persistence.resuming },
                 stopPauses = { autoActions.stopPauses() },
+                fadeOut = fader::fadeOutThen,
+                onPlay = fader::cancelFadeOut,
+                finishFade = fader::finish,
             )
         behaviorJob =
             applicationScope.launch(Dispatchers.Main) {
@@ -550,9 +554,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 player,
                 { settings },
                 mode = { audioOutput.state.mode },
-                duck = { if (ducked) DUCK_VOLUME else 1f },
+                duck = { (if (ducked) DUCK_VOLUME else 1f) * fader.factor },
             )
         player.addListener(normalization)
+        // Fades (#142): bit-perfect has no volume to ramp.
+        fader =
+            VolumeFader(
+                player,
+                settings = { audio.transitions },
+                fixedVolume = { audioOutput.state.mode == AudioMode.BitPerfect },
+                schedule = handlerSchedule(Handler(Looper.getMainLooper())),
+            ) { normalization.apply() }
+        player.addListener(fader)
         player.applyOffload(audioOutput.state.offload).also { offload = audioOutput.state.offload }
         player.addListener(
             object : Player.Listener {
@@ -619,6 +632,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
      * "Pause playback on task removal" pauses it first (#141).
      */
     override fun onTaskRemoved(rootIntent: android.content.Intent?) {
+        // A fade out in progress pauses now: the check below must see it.
+        fader.finish()
         autoActions.on(AutoEvent.TaskRemoved)
         val player = session?.player
         if (player == null || !player.playWhenReady || player.mediaItemCount == 0) {
@@ -643,6 +658,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         audioSettingsJob?.cancel()
         outputsJob?.cancel()
         autoActions.release()
+        fader.release()
         audioOutput.release()
         usbAudio.release()
         equalizer.release()

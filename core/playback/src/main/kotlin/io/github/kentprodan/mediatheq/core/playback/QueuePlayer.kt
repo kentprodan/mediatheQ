@@ -27,7 +27,8 @@ import kotlin.time.Instant
  * - a new queue resets repeat (and shuffle, unless asked for) unless [PlaybackBehavior.retainPlayerState]; never while
  *   the system resumes the saved queue ([resuming]: QueuePersistence puts its state back).
  *
- * - a controller's stop (car, watch, headset key) pauses instead while [stopPauses] (#141).
+ * - a controller's stop (car, watch, headset key) pauses instead while [stopPauses] (#141);
+ * - pause and stop wait for the fade out, and play cancels it (#142).
  *
  * Automatic skips (a track that cannot load) use the ExoPlayer itself, not these rules.
  */
@@ -40,6 +41,12 @@ internal class QueuePlayer(
     private val now: () -> Instant = { Clock.System.now() },
     private val uptime: () -> Long = SystemClock::uptimeMillis,
     private val stopPauses: () -> Boolean = { false },
+    /** Runs the pause or stop it is given after the fade out (#142, [VolumeFader.fadeOutThen]). */
+    private val fadeOut: (() -> Unit) -> Unit = { it() },
+    /** Play was asked for: a running fade out is cancelled. */
+    private val onPlay: () -> Unit = {},
+    /** Ends a running fade out now ([VolumeFader.finish]): a skip must see the player paused. */
+    private val finishFade: () -> Unit = {},
 ) : ForwardingPlayer(player) {
     // When shuffle was last turned on: Shuffle sends it right before its new queue.
     private var shuffleAskedAt: Long? = null
@@ -131,7 +138,16 @@ internal class QueuePlayer(
         setOrder(shuffleWithInserted(playOrder(), at until at + mediaItems.size, currentMediaItemIndex, appended, run))
     }
 
-    override fun stop() = if (stopPauses()) pause() else super.stop()
+    override fun stop() = if (stopPauses()) pause() else fadeOut { super.stop() }
+
+    override fun pause() = fadeOut { super.pause() }
+
+    override fun play() {
+        onPlay()
+        super.play()
+    }
+
+    override fun setPlayWhenReady(playWhenReady: Boolean) = if (playWhenReady) play() else pause()
 
     override fun seekToNext() = skip { next() }
 
@@ -161,6 +177,7 @@ internal class QueuePlayer(
 
     /** A manual skip: stop repeat one first; afterwards, unless paused skips stay paused, play. */
     private inline fun skip(move: () -> Boolean) {
+        finishFade()
         val rules = behavior()
         val paused = !playWhenReady
         if (rules.stopRepeatOneOnSkip && repeatMode == REPEAT_MODE_ONE) repeatMode = REPEAT_MODE_ALL

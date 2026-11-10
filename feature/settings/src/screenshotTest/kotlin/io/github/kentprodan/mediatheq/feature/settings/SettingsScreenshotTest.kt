@@ -115,6 +115,12 @@ fun SettingsShortFocusDialogScreenshot() {
     MediatheqTheme { ShortFocusDialogContent(AudioFocusPreferences(ShortFocusAction.Pause)) }
 }
 
+/** Settings -> Playback -> Transitions (#142), defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsTransitionsScreenshot() = Page(SettingsPage.Transitions)
+
 /** Settings -> Playback -> Automatic actions (#141), defaults. */
 @PreviewTest
 @MqPreviews

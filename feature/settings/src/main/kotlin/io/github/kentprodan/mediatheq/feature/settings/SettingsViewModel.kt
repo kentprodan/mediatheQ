@@ -309,6 +309,10 @@ class SettingsViewModel
                         audio.setAudioFocus(action.focus)
                     }
 
+                    is SettingsAction.SetTransitions -> {
+                        audio.setTransitions(action.transitions)
+                    }
+
                     is SettingsAction.SetAutoActions -> {
                         audio.setAutoActions(action.actions)
                     }

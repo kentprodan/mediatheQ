@@ -31,6 +31,7 @@ import io.github.kentprodan.mediatheq.core.navigation.SearchPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.SettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.StorageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ThemeSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.TransitionsSettingsKey
 
 /**
  * Registers the Settings hub, its pages, the Audio page and the open-source licenses. [versionName] is the app's;
@@ -89,6 +90,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             onOpenHeadset = { navigator.navigateTo(HeadsetSettingsKey) },
             onOpenNotificationButtons = { navigator.navigateTo(NotificationButtonsSettingsKey) },
             onOpenAutoActions = { navigator.navigateTo(AutoActionsSettingsKey) },
+            onOpenTransitions = { navigator.navigateTo(TransitionsSettingsKey) },
         )
     }
     entry<PlaybackBehaviorSettingsKey> { SettingsPageRoute(SettingsPage.PlaybackBehavior, openOutputs, back) }
@@ -97,6 +99,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<HeadsetSettingsKey> { SettingsPageRoute(SettingsPage.Headset, openOutputs, back) }
     entry<NotificationButtonsSettingsKey> { SettingsPageRoute(SettingsPage.NotificationButtons, openOutputs, back) }
     entry<AutoActionsSettingsKey> { SettingsPageRoute(SettingsPage.AutoActions, openOutputs, back) }
+    entry<TransitionsSettingsKey> { SettingsPageRoute(SettingsPage.Transitions, openOutputs, back) }
     entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openOutputs, back) }
     entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openOutputs, back) }
     entry<AboutSettingsKey> {

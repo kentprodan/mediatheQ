@@ -29,6 +29,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
@@ -65,6 +66,7 @@ import io.github.kentprodan.mediatheq.core.data.ThemeMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TrackAction
+import io.github.kentprodan.mediatheq.core.data.TransitionsPreferences
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqSeedPresets
 import io.github.kentprodan.mediatheq.core.model.HomeSection
@@ -101,6 +103,7 @@ class SettingsScreenTest {
                     onOpenBehavior = { events += "behavior" },
                     onOpenDecoding = { events += "decoding" },
                     onOpenAutoActions = { events += "auto" },
+                    onOpenTransitions = { events += "transitions" },
                 )
             }
         }
@@ -752,6 +755,48 @@ class SettingsScreenTest {
         composeRule.onNode(hasText("Output settings") and hasClickAction()).performClick()
 
         assertThat(events).containsExactly("decoding", "behavior", "outputs").inOrder()
+    }
+
+    @Test
+    fun `the Playback hub opens Transitions`() {
+        show(SettingsPage.Playback)
+        scrollTo("Transitions")
+
+        composeRule.onNode(hasText("Transitions") and hasClickAction()).performClick()
+
+        assertThat(events).containsExactly("transitions")
+    }
+
+    @Test
+    fun `fades show Disabled or their length, and a slider saves its new length`() {
+        show(
+            SettingsPage.Transitions,
+            SettingsUiState.Content(
+                "Home",
+                "Ana",
+                AudioPreferences(transitions = TransitionsPreferences(fadeOutMs = 300)),
+            ),
+        )
+        assertRows("Fade in", "Fade out")
+        composeRule.onNodeWithText("Disabled").assertExists()
+        composeRule.onNodeWithText("300 ms").assertExists()
+
+        composeRule
+            .onNodeWithContentDescription("Fade in")
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(500f) }
+
+        assertThat(actions)
+            .containsExactly(SettingsAction.SetTransitions(TransitionsPreferences(fadeInMs = 500, fadeOutMs = 300)))
+    }
+
+    @Test
+    fun `fades restore their defaults after a confirmation`() {
+        show(SettingsPage.Transitions)
+        scrollTo("Restore defaults")
+        composeRule.onNodeWithText("Restore defaults").performClick()
+        composeRule.onNode(hasText("Restore") and hasClickAction()).performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.SetTransitions(null))
     }
 
     @Test

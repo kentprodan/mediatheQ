@@ -99,6 +99,7 @@ data class AudioPreferences(
     val headset: HeadsetPreferences = HeadsetPreferences(),
     val notificationButtons: NotificationButtonsPreferences = NotificationButtonsPreferences(),
     val autoActions: AutoActionsPreferences = AutoActionsPreferences(),
+    val transitions: TransitionsPreferences = TransitionsPreferences(),
 ) {
     /** The streaming quality for a network that is [metered] or not. */
     fun qualityFor(metered: Boolean): StreamingQuality = if (metered) meteredQuality else unmeteredQuality

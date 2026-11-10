@@ -34,7 +34,7 @@ internal class NormalizationListener(
     private val player: Player,
     private val settings: () -> AudioSettings,
     private val mode: () -> AudioMode,
-    /** The factor of an audio focus duck (#139); 1 otherwise. */
+    /** The factor of an audio focus duck (#139) and of a running fade (#142); 1 otherwise. */
     private val duck: () -> Float = { 1f },
 ) : Player.Listener {
     override fun onMediaItemTransition(

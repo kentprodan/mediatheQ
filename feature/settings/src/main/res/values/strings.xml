@@ -382,6 +382,15 @@
     <string name="settings_af_pause">Pause</string>
     <string name="settings_af_no_resume">Do not resume after a long interruption</string>
     <string name="settings_af_no_resume_summary">After a phone call or another player, playback stays paused</string>
+    <string name="settings_transitions">Transitions</string>
+    <string name="settings_transitions_summary">Fade in and fade out.</string>
+    <string name="settings_tr_fades">Fades</string>
+    <string name="settings_tr_fade_in">Fade in</string>
+    <string name="settings_tr_fade_in_summary">On play, resume and seek</string>
+    <string name="settings_tr_fade_out">Fade out</string>
+    <string name="settings_tr_fade_out_summary">On pause and stop; not when a call or another app interrupts</string>
+    <string name="settings_disabled">Disabled</string>
+    <string name="settings_ms">%1$d ms</string>
     <string name="settings_auto_actions">Automatic actions</string>
     <string name="settings_auto_actions_summary">Headphones, Bluetooth, volume and stop.</string>
     <string name="settings_aa_events">Device events</string>

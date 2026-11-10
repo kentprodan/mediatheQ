@@ -69,6 +69,7 @@ enum class SettingsPage(
     AudioFocus(R.string.settings_audio_focus),
     Headset(R.string.settings_headset),
     NotificationButtons(R.string.settings_notification_buttons),
+    Transitions(R.string.settings_transitions),
     AutoActions(R.string.settings_auto_actions),
     Storage(R.string.settings_storage_page),
     Providers(R.string.settings_providers),
@@ -97,6 +98,7 @@ internal fun SettingsPageRoute(
     onOpenHeadset: () -> Unit = {},
     onOpenNotificationButtons: () -> Unit = {},
     onOpenAutoActions: () -> Unit = {},
+    onOpenTransitions: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -124,6 +126,7 @@ internal fun SettingsPageRoute(
         onOpenHeadset,
         onOpenNotificationButtons,
         onOpenAutoActions,
+        onOpenTransitions,
     )
 }
 
@@ -156,6 +159,7 @@ fun SettingsPageScreen(
     onOpenHeadset: () -> Unit = {},
     onOpenNotificationButtons: () -> Unit = {},
     onOpenAutoActions: () -> Unit = {},
+    onOpenTransitions: () -> Unit = {},
 ) {
     // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
     var dialog by rememberSaveable { mutableStateOf<ThemeDialog?>(null) }
@@ -349,6 +353,7 @@ fun SettingsPageScreen(
                         onOpenNotificationButtons,
                         onOpenOutputs,
                         onOpenAutoActions,
+                        onOpenTransitions,
                     ),
                 )
             }
@@ -373,6 +378,10 @@ fun SettingsPageScreen(
                 notificationButtonsGroups(content.audio.notificationButtons, onAction, { actionDialog = it }) {
                     restoring = true
                 }
+            }
+
+            SettingsPage.Transitions -> {
+                transitionsGroups(content.audio.transitions, onAction) { restoring = true }
             }
 
             SettingsPage.AutoActions -> {
@@ -435,6 +444,7 @@ fun SettingsPageScreen(
                     SettingsPage.Headset -> SettingsAction.SetHeadset(null)
                     SettingsPage.NotificationButtons -> SettingsAction.SetNotificationButtons(null)
                     SettingsPage.AutoActions -> SettingsAction.SetAutoActions(null)
+                    SettingsPage.Transitions -> SettingsAction.SetTransitions(null)
                     else -> SettingsAction.RestoreBehaviorDefaults
                 }
             RestoreDefaultsDialog({ onAction(restore) }) { restoring = false }
