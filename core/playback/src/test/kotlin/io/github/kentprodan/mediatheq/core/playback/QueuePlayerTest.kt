@@ -36,7 +36,21 @@ class QueuePlayerTest {
     private var uptime = 0L
     private var stopPauses = false
     private val player =
-        QueuePlayer(exoPlayer, { behavior }, { resuming }, Random(1), uptime = { uptime }, stopPauses = { stopPauses })
+        QueuePlayer(
+            exoPlayer,
+            { behavior },
+            { resuming },
+            Random(1),
+            uptime = { uptime },
+            stopPauses = { stopPauses },
+            fadeOut = { action -> if (fading) faded = action else action() },
+            onPlay = { plays++ },
+        )
+
+    // A fade out holds the pause or stop until the test runs it.
+    private var fading = false
+    private var faded: (() -> Unit)? = null
+    private var plays = 0
 
     private val items: List<MediaItem> =
         (1..5).map {
@@ -273,6 +287,31 @@ class QueuePlayerTest {
         val future = MediaController.Builder(context, session.token).buildAsync()
         RobolectricUtil.runMainLooperUntil { future.isDone }
         return session to future.get()
+    }
+
+    @Test
+    fun `pause and stop wait for the fade out, and play tells the fader`() {
+        start()
+        player.play()
+        assertThat(plays).isEqualTo(1)
+        fading = true
+
+        player.pause()
+        assertThat(exoPlayer.playWhenReady).isTrue()
+        faded!!()
+        assertThat(exoPlayer.playWhenReady).isFalse()
+
+        player.playWhenReady = true
+        assertThat(plays).isEqualTo(2)
+        player.playWhenReady = false
+        assertThat(exoPlayer.playWhenReady).isTrue()
+        faded!!()
+        assertThat(exoPlayer.playWhenReady).isFalse()
+
+        player.stop()
+        assertThat(exoPlayer.playbackState).isNotEqualTo(Player.STATE_IDLE)
+        faded!!()
+        assertThat(exoPlayer.playbackState).isEqualTo(Player.STATE_IDLE)
     }
 
     @Test
