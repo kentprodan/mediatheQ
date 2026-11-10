@@ -14,8 +14,8 @@ import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 
 /**
- * Settings -> Playback (#138): a hub of sub-pages. An entry comes with its page (#120): Automatic actions and
- * Transitions are added by their own issues. Normalization and the equalizer live in Output settings, per output (#140).
+ * Settings -> Playback (#138): a hub of sub-pages. An entry comes with its page (#120): Transitions is added by its
+ * own issue. Normalization and the equalizer live in Output settings, per output (#140).
  */
 internal fun LazyListScope.playbackHubGroups(pages: PlaybackPages) {
     item(key = "playback_hub") {
@@ -74,6 +74,15 @@ internal fun LazyListScope.playbackHubGroups(pages: PlaybackPages) {
                     pages.notificationButtons,
                 )
             }
+            item { shapes ->
+                HubRow(
+                    shapes,
+                    R.string.settings_auto_actions,
+                    R.string.settings_auto_actions_summary,
+                    MqIcons.Devices,
+                    pages.autoActions,
+                )
+            }
         }
     }
 }
@@ -86,6 +95,7 @@ internal class PlaybackPages(
     val headset: () -> Unit,
     val notificationButtons: () -> Unit,
     val outputs: () -> Unit,
+    val autoActions: () -> Unit,
 )
 
 @androidx.compose.runtime.Composable

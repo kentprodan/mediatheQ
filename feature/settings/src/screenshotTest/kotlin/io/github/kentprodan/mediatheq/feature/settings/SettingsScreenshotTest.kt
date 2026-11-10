@@ -115,6 +115,12 @@ fun SettingsShortFocusDialogScreenshot() {
     MediatheqTheme { ShortFocusDialogContent(AudioFocusPreferences(ShortFocusAction.Pause)) }
 }
 
+/** Settings -> Playback -> Automatic actions (#141), defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAutoActionsScreenshot() = Page(SettingsPage.AutoActions)
+
 /** Settings -> Playback -> Headset buttons (#139), defaults. */
 @PreviewTest
 @MqPreviews

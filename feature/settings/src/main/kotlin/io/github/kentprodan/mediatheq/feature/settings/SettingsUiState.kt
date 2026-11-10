@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioFocusPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.AutoActionsPreferences
 import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.EqPreset
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
@@ -286,6 +287,11 @@ sealed interface SettingsAction {
     /** Audio focus (#139): the whole page; null restores its defaults. */
     data class SetAudioFocus(
         val focus: AudioFocusPreferences?,
+    ) : SettingsAction
+
+    /** Automatic actions (#141): the whole page; null restores its defaults. */
+    data class SetAutoActions(
+        val actions: AutoActionsPreferences?,
     ) : SettingsAction
 
     /** Headset buttons (#139): the whole page; null restores its defaults. */

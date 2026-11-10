@@ -69,6 +69,7 @@ enum class SettingsPage(
     AudioFocus(R.string.settings_audio_focus),
     Headset(R.string.settings_headset),
     NotificationButtons(R.string.settings_notification_buttons),
+    AutoActions(R.string.settings_auto_actions),
     Storage(R.string.settings_storage_page),
     Providers(R.string.settings_providers),
 }
@@ -95,6 +96,7 @@ internal fun SettingsPageRoute(
     onOpenAudioFocus: () -> Unit = {},
     onOpenHeadset: () -> Unit = {},
     onOpenNotificationButtons: () -> Unit = {},
+    onOpenAutoActions: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -121,6 +123,7 @@ internal fun SettingsPageRoute(
         onOpenAudioFocus,
         onOpenHeadset,
         onOpenNotificationButtons,
+        onOpenAutoActions,
     )
 }
 
@@ -152,6 +155,7 @@ fun SettingsPageScreen(
     onOpenAudioFocus: () -> Unit = {},
     onOpenHeadset: () -> Unit = {},
     onOpenNotificationButtons: () -> Unit = {},
+    onOpenAutoActions: () -> Unit = {},
 ) {
     // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
     var dialog by rememberSaveable { mutableStateOf<ThemeDialog?>(null) }
@@ -344,6 +348,7 @@ fun SettingsPageScreen(
                         onOpenHeadset,
                         onOpenNotificationButtons,
                         onOpenOutputs,
+                        onOpenAutoActions,
                     ),
                 )
             }
@@ -368,6 +373,10 @@ fun SettingsPageScreen(
                 notificationButtonsGroups(content.audio.notificationButtons, onAction, { actionDialog = it }) {
                     restoring = true
                 }
+            }
+
+            SettingsPage.AutoActions -> {
+                autoActionsGroups(content.audio.autoActions, onAction) { restoring = true }
             }
 
             SettingsPage.Storage -> {
@@ -425,6 +434,7 @@ fun SettingsPageScreen(
                     SettingsPage.AudioFocus -> SettingsAction.SetAudioFocus(null)
                     SettingsPage.Headset -> SettingsAction.SetHeadset(null)
                     SettingsPage.NotificationButtons -> SettingsAction.SetNotificationButtons(null)
+                    SettingsPage.AutoActions -> SettingsAction.SetAutoActions(null)
                     else -> SettingsAction.RestoreBehaviorDefaults
                 }
             RestoreDefaultsDialog({ onAction(restore) }) { restoring = false }
