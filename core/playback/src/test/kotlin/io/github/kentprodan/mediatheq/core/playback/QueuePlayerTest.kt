@@ -34,7 +34,9 @@ class QueuePlayerTest {
     private var behavior = PlaybackBehavior()
     private var resuming = false
     private var uptime = 0L
-    private val player = QueuePlayer(exoPlayer, { behavior }, { resuming }, Random(1), uptime = { uptime })
+    private var stopPauses = false
+    private val player =
+        QueuePlayer(exoPlayer, { behavior }, { resuming }, Random(1), uptime = { uptime }, stopPauses = { stopPauses })
 
     private val items: List<MediaItem> =
         (1..5).map {
@@ -271,6 +273,27 @@ class QueuePlayerTest {
         val future = MediaController.Builder(context, session.token).buildAsync()
         RobolectricUtil.runMainLooperUntil { future.isDone }
         return session to future.get()
+    }
+
+    @Test
+    fun `a MediaController's stop pauses and keeps the queue ready when asked, else it stops`() {
+        start()
+        val (session, controller) = connect()
+        controller.play()
+        RobolectricUtil.runMainLooperUntil { exoPlayer.playWhenReady }
+
+        stopPauses = true
+        controller.stop()
+        RobolectricUtil.runMainLooperUntil { !exoPlayer.playWhenReady }
+        assertThat(exoPlayer.playbackState).isNotEqualTo(Player.STATE_IDLE)
+        assertThat(exoPlayer.mediaItemCount).isEqualTo(5)
+
+        stopPauses = false
+        controller.stop()
+        RobolectricUtil.runMainLooperUntil { exoPlayer.playbackState == Player.STATE_IDLE }
+        assertThat(exoPlayer.mediaItemCount).isEqualTo(5)
+        controller.release()
+        session.release()
     }
 
     @Test

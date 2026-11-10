@@ -28,6 +28,7 @@ import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.CacheBitmapLoader
 import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaNotification
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionError
@@ -148,6 +149,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var buttonsJob: Job? = null
     private var buttonState = ButtonState()
     private lateinit var focusController: AudioFocusController
+    private lateinit var autoActions: AutoActionsController
+
+    // The media card was swiped away: the stop that follows is a real one (ADR 0033).
+    private var dismissed = false
 
     // The audio settings as last read, on the main thread like the player; the defaults until then (milliseconds).
     private var audio = AudioPreferences()
@@ -213,6 +218,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     ),
                 ).build()
         startAudioOutput(player)
+        autoActions =
+            AutoActionsController(this, getSystemService(AudioManager::class.java), player) { audio.autoActions }
+        autoActions.start()
         val transcoder =
             InstantTranscoder(
                 player,
@@ -335,7 +343,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     /** The session's player: Settings -> Playback -> Playback applies to every controller alike (#138). */
     private fun queuePlayer(player: ExoPlayer): QueuePlayer {
-        val queuePlayer = QueuePlayer(player, behavior = { audio.behavior }, resuming = { persistence.resuming })
+        val queuePlayer =
+            QueuePlayer(
+                player,
+                behavior = { audio.behavior },
+                resuming = { persistence.resuming },
+                stopPauses = { autoActions.stopPauses(dismissed.also { dismissed = false }) },
+            )
         behaviorJob =
             applicationScope.launch(Dispatchers.Main) {
                 audioPreferences.preferences.collect {
@@ -604,8 +618,12 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 
-    /** Stops with the task only when nothing is playing; otherwise music keeps going (with its notification). */
+    /**
+     * Stops with the task only when nothing is playing; otherwise music keeps going (with its notification), unless
+     * "Pause playback on task removal" pauses it first (#141).
+     */
     override fun onTaskRemoved(rootIntent: android.content.Intent?) {
+        autoActions.on(AutoEvent.TaskRemoved)
         val player = session?.player
         if (player == null || !player.playWhenReady || player.mediaItemCount == 0) {
             // The process may die soon after; end the server session (and any transcode) now.
@@ -628,6 +646,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         waveformWorker.close()
         audioSettingsJob?.cancel()
         outputsJob?.cancel()
+        autoActions.release()
         audioOutput.release()
         usbAudio.release()
         equalizer.release()
@@ -696,6 +715,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
             controllerInfo: MediaSession.ControllerInfo,
             intent: Intent,
         ): Boolean {
+            // Swiping the media card away arrives as a stop key with this mark (#141).
+            dismissed = intent.getBooleanExtra(MediaNotification.NOTIFICATION_DISMISSED_EVENT_KEY, false)
             if (controllerInfo.controllerVersion != MediaSession.ControllerInfo.LEGACY_CONTROLLER_VERSION) return false
             val event =
                 IntentCompat.getParcelableExtra(intent, Intent.EXTRA_KEY_EVENT, KeyEvent::class.java) ?: return false

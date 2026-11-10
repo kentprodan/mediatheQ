@@ -18,9 +18,9 @@ So a start from a device broadcast cannot play on Android 17, and the battery ba
 ## Decision
 
 - Automatic actions run inside `MediatheqPlaybackService` only. No manifest receiver for Bluetooth or USB, no `BLUETOOTH_CONNECT` permission, no battery optimization banner, no keep-alive of any kind.
-- **Auto play:** one `AudioDeviceCallback` in the service. An added output of a wired / USB type or a Bluetooth type plays what is queued (the service restores the saved queue when it starts). It covers LE Audio too and needs no permission. The first callback (devices already there) is ignored.
+- **Auto play:** one `AudioDeviceCallback` in the service. An added output of a wired / USB type or a Bluetooth type plays what is queued (the service restores the saved queue when it starts). It covers LE Audio too and needs no permission. Outputs already there when the service starts do not count (a device gets a new id on every connect).
 - **Volume:** a receiver for the platform's volume broadcast, registered while the service lives (Media3's own `StreamVolumeManager` listens the same way; ExoPlayer's device volume listener needs device volume control on, which would also hand controllers the volume commands).
-- **Stop as pause:** in `QueuePlayer`, the session's player (ADR 0030), so every controller gets it. The media notification is exempt: dismissing the media card sends a stop, and a pause would bring the card back.
+- **Stop as pause:** in `QueuePlayer`, the session's player (ADR 0030), so every controller gets it. Dismissing the media card is exempt: it arrives as a stop key marked `NOTIFICATION_DISMISSED_EVENT_KEY`, and a pause would bring the card back.
 - The decision (event + settings + state -> play / pause / nothing) is one pure function, `autoAction`.
 - Each setting's summary states the limit: it works while the app is open or up to about 10 minutes after a pause, and not once the app is swiped away while paused.
 
