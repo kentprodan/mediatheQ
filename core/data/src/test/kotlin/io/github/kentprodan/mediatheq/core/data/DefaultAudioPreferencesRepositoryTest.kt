@@ -178,6 +178,22 @@ class DefaultAudioPreferencesRepositoryTest {
         }
 
     @Test
+    fun `fades are off by default, kept in steps of 100 ms up to a second, and restore resets only that page`() =
+        runTest {
+            assertThat(repository.preferences.first().transitions).isEqualTo(TransitionsPreferences(0, 0))
+            val actions = AutoActionsPreferences(volumePause = true)
+            repository.setAutoActions(actions)
+
+            repository.setTransitions(TransitionsPreferences(fadeInMs = 370, fadeOutMs = 5_000))
+            assertThat(repository.preferences.first().transitions).isEqualTo(TransitionsPreferences(300, 1_000))
+
+            repository.setTransitions(null)
+            val restored = repository.preferences.first()
+            assertThat(restored.transitions).isEqualTo(TransitionsPreferences())
+            assertThat(restored.autoActions).isEqualTo(actions)
+        }
+
+    @Test
     fun `automatic actions are kept, and their restore resets only that page`() =
         runTest {
             val focus = AudioFocusPreferences(ShortFocusAction.Pause, noResumeAfterLongLoss = true)

@@ -38,6 +38,11 @@ class DefaultAudioPreferencesRepository
                     headset = headset(stored.outside),
                     notificationButtons = notificationButtons(stored.outside),
                     autoActions = autoActions(stored.autoActions),
+                    transitions =
+                        TransitionsPreferences(
+                            fadeInMs = TransitionsPreferences.fadeMs(stored.fadeInMs ?: 0),
+                            fadeOutMs = TransitionsPreferences.fadeMs(stored.fadeOutMs ?: 0),
+                        ),
                 )
             }
 
@@ -107,6 +112,12 @@ class DefaultAudioPreferencesRepository
                     pauseOnTaskRemoval = autoActions?.pauseOnTaskRemoval,
                     ignoreRemoteStop = autoActions?.ignoreRemoteStop,
                 ),
+            )
+
+        override suspend fun setTransitions(transitions: TransitionsPreferences?) =
+            store.setFades(
+                transitions?.fadeInMs?.let(TransitionsPreferences::fadeMs),
+                transitions?.fadeOutMs?.let(TransitionsPreferences::fadeMs),
             )
 
         private fun autoActions(stored: StoredAutoActions): AutoActionsPreferences {

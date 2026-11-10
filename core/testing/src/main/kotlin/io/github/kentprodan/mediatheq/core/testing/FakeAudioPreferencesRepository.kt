@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.data.HeadsetPreferences
 import io.github.kentprodan.mediatheq.core.data.NotificationButtonsPreferences
 import io.github.kentprodan.mediatheq.core.data.PlaybackBehavior
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
+import io.github.kentprodan.mediatheq.core.data.TransitionsPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /** In-memory [AudioPreferencesRepository] with the same rules as the real one. */
@@ -74,5 +75,17 @@ class FakeAudioPreferencesRepository : AudioPreferencesRepository {
 
     override suspend fun setAutoActions(autoActions: AutoActionsPreferences?) {
         preferences.value = preferences.value.copy(autoActions = autoActions ?: AutoActionsPreferences())
+    }
+
+    override suspend fun setTransitions(transitions: TransitionsPreferences?) {
+        val fades = transitions ?: TransitionsPreferences()
+        preferences.value =
+            preferences.value.copy(
+                transitions =
+                    TransitionsPreferences(
+                        TransitionsPreferences.fadeMs(fades.fadeInMs),
+                        TransitionsPreferences.fadeMs(fades.fadeOutMs),
+                    ),
+            )
     }
 }

@@ -43,6 +43,9 @@ interface AudioPreferencesRepository {
 
     /** Every Automatic actions value at once (#141); `null` = that page's defaults. */
     suspend fun setAutoActions(autoActions: AutoActionsPreferences?)
+
+    /** Every Transitions value at once (#142), fade lengths rounded to valid ones; `null` = that page's defaults. */
+    suspend fun setTransitions(transitions: TransitionsPreferences?)
 }
 
 /** [gains] with band [index] set to [gainDb], clamped; `null` for an index outside the bands. */

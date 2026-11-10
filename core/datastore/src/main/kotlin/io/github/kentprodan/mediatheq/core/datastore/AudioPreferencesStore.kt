@@ -59,6 +59,8 @@ class AudioPreferencesStore
                                 notificationAction2 = prefs[NB_ACTION_2],
                                 notificationAction3 = prefs[NB_ACTION_3],
                             ),
+                        fadeInMs = prefs[TR_FADE_IN_MS],
+                        fadeOutMs = prefs[TR_FADE_OUT_MS],
                         autoActions =
                             StoredAutoActions(
                                 volumePause = prefs[AA_VOLUME_PAUSE],
@@ -170,6 +172,17 @@ class AudioPreferencesStore
             }
         }
 
+        /** Transitions (#142): both fade lengths at once; null removes one (the default). */
+        suspend fun setFades(
+            fadeInMs: Int?,
+            fadeOutMs: Int?,
+        ) {
+            dataStore.edit {
+                it.put(TR_FADE_IN_MS, fadeInMs)
+                it.put(TR_FADE_OUT_MS, fadeOutMs)
+            }
+        }
+
         private fun <T> MutablePreferences.put(
             key: Preferences.Key<T>,
             value: T?,
@@ -203,6 +216,8 @@ class AudioPreferencesStore
             val NB_ACTION_1 = stringPreferencesKey("nb_action_1")
             val NB_ACTION_2 = stringPreferencesKey("nb_action_2")
             val NB_ACTION_3 = stringPreferencesKey("nb_action_3")
+            val TR_FADE_IN_MS = intPreferencesKey("tr_fade_in_ms")
+            val TR_FADE_OUT_MS = intPreferencesKey("tr_fade_out_ms")
             val AA_VOLUME_PAUSE = booleanPreferencesKey("aa_volume_pause")
             val AA_HEADPHONE_PLAY = booleanPreferencesKey("aa_headphone_play")
             val AA_BLUETOOTH_PLAY = booleanPreferencesKey("aa_bluetooth_play")
@@ -221,6 +236,8 @@ data class StoredAudioPreferences(
     val behavior: StoredPlaybackBehavior = StoredPlaybackBehavior(),
     val outside: StoredOutsideControls = StoredOutsideControls(),
     val autoActions: StoredAutoActions = StoredAutoActions(),
+    val fadeInMs: Int? = null,
+    val fadeOutMs: Int? = null,
 )
 
 /** Automatic actions as stored (#141); `null` = not set. */
