@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.testing
 import io.github.kentprodan.mediatheq.core.data.AudioFocusPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.AutoActionsPreferences
 import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.HeadsetPreferences
 import io.github.kentprodan.mediatheq.core.data.NotificationButtonsPreferences
@@ -69,5 +70,9 @@ class FakeAudioPreferencesRepository : AudioPreferencesRepository {
 
     override suspend fun setNotificationButtons(buttons: NotificationButtonsPreferences?) {
         preferences.value = preferences.value.copy(notificationButtons = buttons ?: NotificationButtonsPreferences())
+    }
+
+    override suspend fun setAutoActions(autoActions: AutoActionsPreferences?) {
+        preferences.value = preferences.value.copy(autoActions = autoActions ?: AutoActionsPreferences())
     }
 }
