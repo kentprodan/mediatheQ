@@ -26,6 +26,7 @@ import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
+import io.github.kentprodan.mediatheq.core.data.TransitionsPreferences
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 
@@ -287,6 +288,11 @@ sealed interface SettingsAction {
     /** Audio focus (#139): the whole page; null restores its defaults. */
     data class SetAudioFocus(
         val focus: AudioFocusPreferences?,
+    ) : SettingsAction
+
+    /** Transitions (#142): the whole page; null restores its defaults. */
+    data class SetTransitions(
+        val transitions: TransitionsPreferences?,
     ) : SettingsAction
 
     /** Automatic actions (#141): the whole page; null restores its defaults. */

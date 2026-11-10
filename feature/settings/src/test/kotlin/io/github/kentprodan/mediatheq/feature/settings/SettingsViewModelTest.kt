@@ -47,6 +47,7 @@ import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.data.TrackInfo
+import io.github.kentprodan.mediatheq.core.data.TransitionsPreferences
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
@@ -589,6 +590,21 @@ class SettingsViewModelTest {
 
             viewModel.onAction(SettingsAction.RestoreBehaviorDefaults)
             assertThat(content().audio.behavior).isEqualTo(PlaybackBehavior())
+        }
+
+    @Test
+    fun `fades apply at once and null restores only that page`() =
+        runTest {
+            signIn()
+            val actions = AutoActionsPreferences(volumePause = true)
+            viewModel.onAction(SettingsAction.SetAutoActions(actions))
+
+            viewModel.onAction(SettingsAction.SetTransitions(TransitionsPreferences(fadeInMs = 300, fadeOutMs = 800)))
+            assertThat(content().audio.transitions).isEqualTo(TransitionsPreferences(300, 800))
+
+            viewModel.onAction(SettingsAction.SetTransitions(null))
+            assertThat(content().audio.transitions).isEqualTo(TransitionsPreferences())
+            assertThat(content().audio.autoActions).isEqualTo(actions)
         }
 
     @Test
