@@ -142,16 +142,26 @@ class VolumeFaderTest {
     }
 
     @Test
-    fun `a second pause during the fade out cuts at once`() {
+    fun `a second pause or a stop during the fade out cuts at once and both run`() {
         start()
         pass(400)
         fader.fadeOutThen { actions++ }
         pass(50)
 
         fader.fadeOutThen { actions += 10 }
-        assertThat(actions).isEqualTo(1)
+        assertThat(actions).isEqualTo(11)
+        assertThat(fader.factor).isEqualTo(1f)
         pass(500)
-        assertThat(actions).isEqualTo(1)
+        assertThat(actions).isEqualTo(11)
+    }
+
+    @Test
+    fun `a volume that becomes fixed while fading in is full at once`() {
+        start()
+        assertThat(fader.factor).isEqualTo(0f)
+
+        fixedVolume = true
+        assertThat(fader.factor).isEqualTo(1f)
     }
 
     @Test

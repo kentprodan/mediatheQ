@@ -45,7 +45,10 @@ class QueuePlayerTest {
             stopPauses = { stopPauses },
             fadeOut = { action -> if (fading) faded = action else action() },
             onPlay = { plays++ },
+            finishFade = { finished++ },
         )
+
+    private var finished = 0
 
     // A fade out holds the pause or stop until the test runs it.
     private var fading = false
@@ -312,6 +315,14 @@ class QueuePlayerTest {
         assertThat(exoPlayer.playbackState).isNotEqualTo(Player.STATE_IDLE)
         faded!!()
         assertThat(exoPlayer.playbackState).isEqualTo(Player.STATE_IDLE)
+    }
+
+    @Test
+    fun `a skip ends a running fade out first`() {
+        start()
+        player.seekToNext()
+        player.seekToPrevious()
+        assertThat(finished).isEqualTo(2)
     }
 
     @Test

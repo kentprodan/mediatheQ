@@ -29,8 +29,11 @@ internal class VolumeFader(
     /** The factor changed: set the player volume again. */
     private val onChange: () -> Unit,
 ) : Player.Listener {
-    var factor = 1f
-        private set
+    /** What the player volume is multiplied by; always 1 while the volume is fixed. */
+    val factor: Float
+        get() = if (fixedVolume()) 1f else ramped
+
+    private var ramped = 1f
 
     // Silent and waiting for audio to start, to fade in from there.
     private var armed = false
@@ -66,16 +69,20 @@ internal class VolumeFader(
 
     /**
      * Fades out, then runs [action] (the pause or the stop). At once when fade out is off, nothing plays or the
-     * volume is fixed. Asked again during the fade (a second pause), the fade is cut and its action runs now.
+     * volume is fixed. Asked again during the fade (a second pause, a stop after the pause), the fade is cut and both
+     * actions run now.
      */
     fun fadeOutThen(action: () -> Unit) {
-        if (pending != null) return finish()
+        if (pending != null) {
+            finish()
+            return action()
+        }
         val duration = settings().fadeOutMs
         if (duration <= 0 || fixedVolume() || !player.isPlaying) return action()
         armed = false
         pending = action
         // From where the volume is: a fade out during a fade in takes its share of the time.
-        ramp(to = 0f, (duration * factor).toInt()) { finish() }
+        ramp(to = 0f, (duration * ramped).toInt()) { finish() }
     }
 
     /** Ends a running fade out now: its pause or stop happens at once (a second pause, the app swiped away). */
@@ -91,7 +98,7 @@ internal class VolumeFader(
     fun cancelFadeOut() {
         if (pending == null) return
         pending = null
-        ramp(to = 1f, (settings().fadeOutMs * (1f - factor)).toInt()) {}
+        ramp(to = 1f, (settings().fadeOutMs * (1f - ramped)).toInt()) {}
     }
 
     /** Before the player is released: nothing pending runs any more. */
@@ -113,7 +120,7 @@ internal class VolumeFader(
         done: () -> Unit,
     ) {
         stopRamp()
-        val from = factor
+        val from = ramped
         val start = now()
 
         fun tick() {
@@ -135,8 +142,8 @@ internal class VolumeFader(
     }
 
     private fun set(value: Float) {
-        if (factor == value) return
-        factor = value
+        if (ramped == value) return
+        ramped = value
         onChange()
     }
 

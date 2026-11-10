@@ -348,6 +348,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 stopPauses = { autoActions.stopPauses() },
                 fadeOut = fader::fadeOutThen,
                 onPlay = fader::cancelFadeOut,
+                finishFade = fader::finish,
             )
         behaviorJob =
             applicationScope.launch(Dispatchers.Main) {

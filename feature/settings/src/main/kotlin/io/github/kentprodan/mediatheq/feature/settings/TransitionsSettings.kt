@@ -8,6 +8,7 @@ import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,6 +60,8 @@ private fun FadeItem(
     onMs: (Int) -> Unit,
 ) {
     var dragged by remember { mutableStateOf<Float?>(null) }
+    // The thumb stays where it was released until the saved value arrives.
+    LaunchedEffect(ms) { dragged = null }
     val shown = TransitionsPreferences.fadeMs(dragged?.roundToInt() ?: ms)
     val value =
         if (shown == 0) stringResource(R.string.settings_disabled) else stringResource(R.string.settings_ms, shown)
@@ -74,7 +77,6 @@ private fun FadeItem(
                     onValueChange = { dragged = it },
                     onValueChangeFinished = {
                         dragged?.let { onMs(TransitionsPreferences.fadeMs(it.roundToInt())) }
-                        dragged = null
                     },
                     valueRange = 0f..TransitionsPreferences.MAX_FADE_MS.toFloat(),
                     steps = TransitionsPreferences.MAX_FADE_MS / TransitionsPreferences.FADE_STEP_MS - 1,

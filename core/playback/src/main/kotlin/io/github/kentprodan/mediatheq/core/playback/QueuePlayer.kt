@@ -45,6 +45,8 @@ internal class QueuePlayer(
     private val fadeOut: (() -> Unit) -> Unit = { it() },
     /** Play was asked for: a running fade out is cancelled. */
     private val onPlay: () -> Unit = {},
+    /** Ends a running fade out now ([VolumeFader.finish]): a skip must see the player paused. */
+    private val finishFade: () -> Unit = {},
 ) : ForwardingPlayer(player) {
     // When shuffle was last turned on: Shuffle sends it right before its new queue.
     private var shuffleAskedAt: Long? = null
@@ -175,6 +177,7 @@ internal class QueuePlayer(
 
     /** A manual skip: stop repeat one first; afterwards, unless paused skips stay paused, play. */
     private inline fun skip(move: () -> Boolean) {
+        finishFade()
         val rules = behavior()
         val paused = !playWhenReady
         if (rules.stopRepeatOneOnSkip && repeatMode == REPEAT_MODE_ONE) repeatMode = REPEAT_MODE_ALL
