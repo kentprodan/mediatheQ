@@ -8,6 +8,7 @@ import android.os.Looper
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaNotification
 import androidx.media3.test.utils.FakeMediaSourceFactory
 import androidx.media3.test.utils.TestExoPlayerBuilder
 import androidx.media3.test.utils.robolectric.TestPlayerRunHelper.advance
@@ -189,12 +190,52 @@ class AutoActionsControllerTest {
     }
 
     @Test
-    fun `a stop pauses instead, except a dismissed media card or with the setting off`() {
+    fun `a stop pauses instead, except with the setting off`() {
         start(playing = true)
-        assertThat(actions.stopPauses(dismissal = false)).isTrue()
-        assertThat(actions.stopPauses(dismissal = true)).isFalse()
+        assertThat(actions.stopPauses()).isTrue()
 
         settings = settings.copy(ignoreRemoteStop = false)
-        assertThat(actions.stopPauses(dismissal = false)).isFalse()
+        assertThat(actions.stopPauses()).isFalse()
+    }
+
+    @Test
+    fun `the stop of a dismissed media card is a real one, once`() {
+        start(playing = true)
+        val stopKey = Intent(Intent.ACTION_MEDIA_BUTTON)
+        actions.onMediaButton(Intent(stopKey).putExtra(MediaNotification.NOTIFICATION_DISMISSED_EVENT_KEY, true))
+        assertThat(actions.stopPauses()).isFalse()
+        assertThat(actions.stopPauses()).isTrue()
+
+        // A dismissal whose stop never came is forgotten at the next button.
+        actions.onMediaButton(Intent(stopKey).putExtra(MediaNotification.NOTIFICATION_DISMISSED_EVENT_KEY, true))
+        actions.onMediaButton(stopKey)
+        assertThat(actions.stopPauses()).isTrue()
+    }
+
+    @Test
+    fun `nothing starts by itself during a call`() {
+        volume(5)
+        start(playing = true)
+        volume(0)
+        audioManager.mode = AudioManager.MODE_IN_CALL
+
+        connect(AudioDeviceInfo.TYPE_WIRED_HEADPHONES)
+        volume(3)
+        assertThat(player.playWhenReady).isFalse()
+
+        audioManager.mode = AudioManager.MODE_NORMAL
+        connect(AudioDeviceInfo.TYPE_WIRED_HEADPHONES)
+        assertThat(player.playWhenReady).isTrue()
+    }
+
+    @Test
+    fun `a pause by volume 0 is not resumed by another output's volume`() {
+        volume(5)
+        start(playing = true)
+        volume(0)
+
+        actions.onOutputsRemoved()
+        volume(3)
+        assertThat(player.playWhenReady).isFalse()
     }
 }

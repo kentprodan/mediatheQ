@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
+import androidx.media3.session.MediaNotification
 import io.github.kentprodan.mediatheq.core.data.AutoActionsPreferences
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 
@@ -106,6 +107,9 @@ internal class AutoActionsController(
     private var expected: Boolean? = null
     private var volumeZero = isVolumeZero()
 
+    // The media card was swiped away: the stop that follows is a real one.
+    private var dismissed = false
+
     // Outputs already there are not "connected" now. A device gets a new id on every connect.
     private val known = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).map { it.id }.toSet()
 
@@ -113,6 +117,8 @@ internal class AutoActionsController(
         object : AudioDeviceCallback() {
             override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) =
                 onOutputsAdded(addedDevices.filter { it.isSink && it.id !in known }.map { it.type })
+
+            override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) = onOutputsRemoved()
         }
 
     private val volume =
@@ -148,8 +154,25 @@ internal class AutoActionsController(
     /** Outputs of these `AudioDeviceInfo` types were just connected (several at once count once per event). */
     fun onOutputsAdded(types: List<Int>) = types.mapNotNull(::connectEvent).distinct().forEach(::on)
 
+    /**
+     * An output went away: the volume now read is another output's, so a pause by volume 0 on the old one is not
+     * resumed by it.
+     */
+    fun onOutputsRemoved() {
+        pausedByVolume = false
+        volumeZero = isVolumeZero()
+    }
+
+    /** Every media button event, before Media3 handles it: remembers the media card's dismissal for [stopPauses]. */
+    fun onMediaButton(intent: Intent) {
+        dismissed = intent.getBooleanExtra(MediaNotification.NOTIFICATION_DISMISSED_EVENT_KEY, false)
+    }
+
     fun on(event: AutoEvent) {
-        when (autoAction(event, settings(), state())) {
+        val action = autoAction(event, settings(), state())
+        // Never start music over a call: the focus held from before the call would let it play.
+        if (action == AutoAction.Play && inCall()) return
+        when (action) {
             AutoAction.Play -> {
                 pausedByVolume = false
                 if (!player.playWhenReady) expected = true
@@ -170,11 +193,14 @@ internal class AutoActionsController(
     }
 
     /**
-     * A controller's stop pauses instead. Not a [dismissal]: the media card swiped away must really stop, or the card
-     * comes back.
+     * A controller's stop pauses instead. Not after the media card was swiped away ([onMediaButton]): that must
+     * really stop, or the card comes back.
      */
-    fun stopPauses(dismissal: Boolean): Boolean =
-        !dismissal && autoAction(AutoEvent.RemoteStop, settings(), state()) == AutoAction.Pause
+    fun stopPauses(): Boolean {
+        val dismissal = dismissed
+        dismissed = false
+        return !dismissal && autoAction(AutoEvent.RemoteStop, settings(), state()) == AutoAction.Pause
+    }
 
     override fun onPlayWhenReadyChanged(
         playWhenReady: Boolean,
@@ -192,6 +218,9 @@ internal class AutoActionsController(
     private fun state() = AutoState(player.wantsToPlay(), player.mediaItemCount > 0, pausedByVolume)
 
     private fun isVolumeZero() = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) == 0
+
+    private fun inCall() =
+        audioManager.mode == AudioManager.MODE_IN_CALL || audioManager.mode == AudioManager.MODE_IN_COMMUNICATION
 }
 
 /** The platform's volume broadcast (hidden in the SDK; Media3's StreamVolumeManager listens to it too). */

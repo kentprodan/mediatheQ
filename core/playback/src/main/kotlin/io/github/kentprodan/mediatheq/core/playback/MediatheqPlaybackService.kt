@@ -28,7 +28,6 @@ import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.CacheBitmapLoader
 import androidx.media3.session.MediaLibraryService
-import androidx.media3.session.MediaNotification
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionError
@@ -150,9 +149,6 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var buttonState = ButtonState()
     private lateinit var focusController: AudioFocusController
     private lateinit var autoActions: AutoActionsController
-
-    // The media card was swiped away: the stop that follows is a real one (ADR 0033).
-    private var dismissed = false
 
     // The audio settings as last read, on the main thread like the player; the defaults until then (milliseconds).
     private var audio = AudioPreferences()
@@ -348,7 +344,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 player,
                 behavior = { audio.behavior },
                 resuming = { persistence.resuming },
-                stopPauses = { autoActions.stopPauses(dismissed.also { dismissed = false }) },
+                stopPauses = { autoActions.stopPauses() },
             )
         behaviorJob =
             applicationScope.launch(Dispatchers.Main) {
@@ -715,8 +711,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
             controllerInfo: MediaSession.ControllerInfo,
             intent: Intent,
         ): Boolean {
-            // Swiping the media card away arrives as a stop key with this mark (#141).
-            dismissed = intent.getBooleanExtra(MediaNotification.NOTIFICATION_DISMISSED_EVENT_KEY, false)
+            // Swiping the media card away arrives as a stop key with a mark (#141).
+            autoActions.onMediaButton(intent)
             if (controllerInfo.controllerVersion != MediaSession.ControllerInfo.LEGACY_CONTROLLER_VERSION) return false
             val event =
                 IntentCompat.getParcelableExtra(intent, Intent.EXTRA_KEY_EVENT, KeyEvent::class.java) ?: return false
