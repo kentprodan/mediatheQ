@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioFocusPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.AutoActionsPreferences
 import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.EqPreset
@@ -588,6 +589,22 @@ class SettingsViewModelTest {
 
             viewModel.onAction(SettingsAction.RestoreBehaviorDefaults)
             assertThat(content().audio.behavior).isEqualTo(PlaybackBehavior())
+        }
+
+    @Test
+    fun `automatic actions apply at once and null restores only that page`() =
+        runTest {
+            signIn()
+            val focus = AudioFocusPreferences(ShortFocusAction.Pause)
+            val actions = AutoActionsPreferences(volumePause = true, headphonePlay = false, bluetoothPlay = true)
+            viewModel.onAction(SettingsAction.SetAudioFocus(focus))
+
+            viewModel.onAction(SettingsAction.SetAutoActions(actions))
+            assertThat(content().audio.autoActions).isEqualTo(actions)
+
+            viewModel.onAction(SettingsAction.SetAutoActions(null))
+            assertThat(content().audio.autoActions).isEqualTo(AutoActionsPreferences())
+            assertThat(content().audio.audioFocus).isEqualTo(focus)
         }
 
     @Test

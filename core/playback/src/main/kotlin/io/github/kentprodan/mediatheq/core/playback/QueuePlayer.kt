@@ -27,6 +27,8 @@ import kotlin.time.Instant
  * - a new queue resets repeat (and shuffle, unless asked for) unless [PlaybackBehavior.retainPlayerState]; never while
  *   the system resumes the saved queue ([resuming]: QueuePersistence puts its state back).
  *
+ * - a controller's stop (car, watch, headset key) pauses instead while [stopPauses] (#141).
+ *
  * Automatic skips (a track that cannot load) use the ExoPlayer itself, not these rules.
  */
 @UnstableApi
@@ -37,6 +39,7 @@ internal class QueuePlayer(
     private val random: Random = Random,
     private val now: () -> Instant = { Clock.System.now() },
     private val uptime: () -> Long = SystemClock::uptimeMillis,
+    private val stopPauses: () -> Boolean = { false },
 ) : ForwardingPlayer(player) {
     // When shuffle was last turned on: Shuffle sends it right before its new queue.
     private var shuffleAskedAt: Long? = null
@@ -127,6 +130,8 @@ internal class QueuePlayer(
         if (!shuffleModeEnabled || mediaItems.isEmpty()) return
         setOrder(shuffleWithInserted(playOrder(), at until at + mediaItems.size, currentMediaItemIndex, appended, run))
     }
+
+    override fun stop() = if (stopPauses()) pause() else super.stop()
 
     override fun seekToNext() = skip { next() }
 

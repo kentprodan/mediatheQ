@@ -80,6 +80,10 @@ data object HeadsetSettingsKey : NavKey
 @Serializable
 data object NotificationButtonsSettingsKey : NavKey
 
+/** Settings -> Playback -> Automatic actions (#141). */
+@Serializable
+data object AutoActionsSettingsKey : NavKey
+
 /** Settings -> Playback: streaming quality, normalization, Audio. */
 @Serializable
 data object PlaybackSettingsKey : NavKey

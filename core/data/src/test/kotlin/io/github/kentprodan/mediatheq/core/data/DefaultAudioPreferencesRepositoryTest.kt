@@ -161,4 +161,42 @@ class DefaultAudioPreferencesRepositoryTest {
             assertThat(repository.preferences.first().audioFocus).isEqualTo(AudioFocusPreferences())
             assertThat(repository.preferences.first().notificationButtons).isEqualTo(NotificationButtonsPreferences())
         }
+
+    @Test
+    fun `automatic actions default to headphone auto play and ignore remote stop`() =
+        runTest {
+            assertThat(repository.preferences.first().autoActions)
+                .isEqualTo(
+                    AutoActionsPreferences(
+                        volumePause = false,
+                        headphonePlay = true,
+                        bluetoothPlay = false,
+                        pauseOnTaskRemoval = false,
+                        ignoreRemoteStop = true,
+                    ),
+                )
+        }
+
+    @Test
+    fun `automatic actions are kept, and their restore resets only that page`() =
+        runTest {
+            val focus = AudioFocusPreferences(ShortFocusAction.Pause, noResumeAfterLongLoss = true)
+            val actions =
+                AutoActionsPreferences(
+                    volumePause = true,
+                    headphonePlay = false,
+                    bluetoothPlay = true,
+                    pauseOnTaskRemoval = true,
+                    ignoreRemoteStop = false,
+                )
+            repository.setAudioFocus(focus)
+            repository.setAutoActions(actions)
+            assertThat(repository.preferences.first().autoActions).isEqualTo(actions)
+
+            repository.setAutoActions(null)
+
+            val restored = repository.preferences.first()
+            assertThat(restored.autoActions).isEqualTo(AutoActionsPreferences())
+            assertThat(restored.audioFocus).isEqualTo(focus)
+        }
 }

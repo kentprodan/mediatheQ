@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.navigation.AdvancedSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AudioFocusSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.AutoActionsSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DecodingSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.GenrePageSettingsKey
@@ -87,6 +88,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             onOpenAudioFocus = { navigator.navigateTo(AudioFocusSettingsKey) },
             onOpenHeadset = { navigator.navigateTo(HeadsetSettingsKey) },
             onOpenNotificationButtons = { navigator.navigateTo(NotificationButtonsSettingsKey) },
+            onOpenAutoActions = { navigator.navigateTo(AutoActionsSettingsKey) },
         )
     }
     entry<PlaybackBehaviorSettingsKey> { SettingsPageRoute(SettingsPage.PlaybackBehavior, openOutputs, back) }
@@ -94,6 +96,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<AudioFocusSettingsKey> { SettingsPageRoute(SettingsPage.AudioFocus, openOutputs, back) }
     entry<HeadsetSettingsKey> { SettingsPageRoute(SettingsPage.Headset, openOutputs, back) }
     entry<NotificationButtonsSettingsKey> { SettingsPageRoute(SettingsPage.NotificationButtons, openOutputs, back) }
+    entry<AutoActionsSettingsKey> { SettingsPageRoute(SettingsPage.AutoActions, openOutputs, back) }
     entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openOutputs, back) }
     entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openOutputs, back) }
     entry<AboutSettingsKey> {

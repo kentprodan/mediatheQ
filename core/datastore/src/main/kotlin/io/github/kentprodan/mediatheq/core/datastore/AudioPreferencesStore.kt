@@ -59,6 +59,14 @@ class AudioPreferencesStore
                                 notificationAction2 = prefs[NB_ACTION_2],
                                 notificationAction3 = prefs[NB_ACTION_3],
                             ),
+                        autoActions =
+                            StoredAutoActions(
+                                volumePause = prefs[AA_VOLUME_PAUSE],
+                                headphonePlay = prefs[AA_HEADPHONE_PLAY],
+                                bluetoothPlay = prefs[AA_BLUETOOTH_PLAY],
+                                pauseOnTaskRemoval = prefs[AA_PAUSE_TASK_REMOVAL],
+                                ignoreRemoteStop = prefs[AA_IGNORE_REMOTE_STOP],
+                            ),
                     )
                 }
 
@@ -151,6 +159,17 @@ class AudioPreferencesStore
             }
         }
 
+        /** Automatic actions (#141): every value at once; null removes it (the default). */
+        suspend fun setAutoActions(actions: StoredAutoActions) {
+            dataStore.edit {
+                it.put(AA_VOLUME_PAUSE, actions.volumePause)
+                it.put(AA_HEADPHONE_PLAY, actions.headphonePlay)
+                it.put(AA_BLUETOOTH_PLAY, actions.bluetoothPlay)
+                it.put(AA_PAUSE_TASK_REMOVAL, actions.pauseOnTaskRemoval)
+                it.put(AA_IGNORE_REMOTE_STOP, actions.ignoreRemoteStop)
+            }
+        }
+
         private fun <T> MutablePreferences.put(
             key: Preferences.Key<T>,
             value: T?,
@@ -184,6 +203,11 @@ class AudioPreferencesStore
             val NB_ACTION_1 = stringPreferencesKey("nb_action_1")
             val NB_ACTION_2 = stringPreferencesKey("nb_action_2")
             val NB_ACTION_3 = stringPreferencesKey("nb_action_3")
+            val AA_VOLUME_PAUSE = booleanPreferencesKey("aa_volume_pause")
+            val AA_HEADPHONE_PLAY = booleanPreferencesKey("aa_headphone_play")
+            val AA_BLUETOOTH_PLAY = booleanPreferencesKey("aa_bluetooth_play")
+            val AA_PAUSE_TASK_REMOVAL = booleanPreferencesKey("aa_pause_task_removal")
+            val AA_IGNORE_REMOTE_STOP = booleanPreferencesKey("aa_ignore_remote_stop")
         }
     }
 
@@ -196,6 +220,16 @@ data class StoredAudioPreferences(
     val forceInstantTranscoding: Boolean? = null,
     val behavior: StoredPlaybackBehavior = StoredPlaybackBehavior(),
     val outside: StoredOutsideControls = StoredOutsideControls(),
+    val autoActions: StoredAutoActions = StoredAutoActions(),
+)
+
+/** Automatic actions as stored (#141); `null` = not set. */
+data class StoredAutoActions(
+    val volumePause: Boolean? = null,
+    val headphonePlay: Boolean? = null,
+    val bluetoothPlay: Boolean? = null,
+    val pauseOnTaskRemoval: Boolean? = null,
+    val ignoreRemoteStop: Boolean? = null,
 )
 
 /** Audio focus, headset and notification buttons as stored (#139); `null` = not set. */

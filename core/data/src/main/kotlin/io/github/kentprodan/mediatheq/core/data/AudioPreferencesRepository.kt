@@ -40,6 +40,9 @@ interface AudioPreferencesRepository {
 
     /** Every Notification buttons value at once (#139); `null` = that page's defaults. */
     suspend fun setNotificationButtons(buttons: NotificationButtonsPreferences?)
+
+    /** Every Automatic actions value at once (#141); `null` = that page's defaults. */
+    suspend fun setAutoActions(autoActions: AutoActionsPreferences?)
 }
 
 /** [gains] with band [index] set to [gainDb], clamped; `null` for an index outside the bands. */

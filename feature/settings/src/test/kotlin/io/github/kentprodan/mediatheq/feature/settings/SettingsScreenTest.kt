@@ -38,6 +38,7 @@ import io.github.kentprodan.mediatheq.core.data.AppFont
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistPlayAction
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.AutoActionsPreferences
 import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
@@ -99,6 +100,7 @@ class SettingsScreenTest {
                     onOpenAdvanced = { events += "advanced" },
                     onOpenBehavior = { events += "behavior" },
                     onOpenDecoding = { events += "decoding" },
+                    onOpenAutoActions = { events += "auto" },
                 )
             }
         }
@@ -750,6 +752,55 @@ class SettingsScreenTest {
         composeRule.onNode(hasText("Output settings") and hasClickAction()).performClick()
 
         assertThat(events).containsExactly("decoding", "behavior", "outputs").inOrder()
+    }
+
+    @Test
+    fun `the Playback hub opens Automatic actions`() {
+        show(SettingsPage.Playback)
+        scrollTo("Automatic actions")
+
+        composeRule.onNode(hasText("Automatic actions") and hasClickAction()).performClick()
+
+        assertThat(events).containsExactly("auto")
+    }
+
+    @Test
+    fun `automatic actions show their defaults, say Android's limit and apply at once`() {
+        show(SettingsPage.AutoActions)
+        assertRows(
+            "Volume auto play / pause",
+            "Headphone auto play",
+            "Bluetooth auto play",
+            "Pause playback on task removal",
+            "Ignore remote stop command",
+        )
+        scrollTo("Volume auto play / pause")
+        composeRule.onNode(isToggleable() and hasText("Volume auto play / pause")).assertIsOff()
+        composeRule
+            .onNode(isToggleable() and hasText("Headphone auto play"))
+            .assertIsOn()
+            .assert(hasText("for about 10 minutes after a pause", substring = true))
+        scrollTo("Bluetooth auto play")
+        composeRule.onNode(isToggleable() and hasText("Bluetooth auto play")).assertIsOff().performClick()
+        scrollTo("Ignore remote stop command")
+        composeRule.onNode(isToggleable() and hasText("Ignore remote stop command")).assertIsOn()
+
+        assertThat(actions)
+            .containsExactly(SettingsAction.SetAutoActions(AutoActionsPreferences(bluetoothPlay = true)))
+    }
+
+    @Test
+    fun `automatic actions restore their defaults after a confirmation`() {
+        show(
+            SettingsPage.AutoActions,
+            SettingsUiState.Content("Home", "Ana", AudioPreferences(autoActions = AutoActionsPreferences(true))),
+        )
+        scrollTo("Restore defaults")
+        composeRule.onNodeWithText("Restore defaults").performClick()
+        // The group title says "Restore" too: the dialog's button is the clickable one.
+        composeRule.onNode(hasText("Restore") and hasClickAction()).performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.SetAutoActions(null))
     }
 
     @Test

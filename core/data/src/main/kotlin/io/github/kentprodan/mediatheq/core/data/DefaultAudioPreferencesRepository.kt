@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.datastore.AudioPreferencesStore
+import io.github.kentprodan.mediatheq.core.datastore.StoredAutoActions
 import io.github.kentprodan.mediatheq.core.datastore.StoredOutsideControls
 import io.github.kentprodan.mediatheq.core.datastore.StoredPlaybackBehavior
 import kotlinx.coroutines.flow.Flow
@@ -36,6 +37,7 @@ class DefaultAudioPreferencesRepository
                     audioFocus = audioFocus(stored.outside),
                     headset = headset(stored.outside),
                     notificationButtons = notificationButtons(stored.outside),
+                    autoActions = autoActions(stored.autoActions),
                 )
             }
 
@@ -95,6 +97,28 @@ class DefaultAudioPreferencesRepository
                 buttons?.showPrevious,
                 buttons?.showNext,
             )
+
+        override suspend fun setAutoActions(autoActions: AutoActionsPreferences?) =
+            store.setAutoActions(
+                StoredAutoActions(
+                    volumePause = autoActions?.volumePause,
+                    headphonePlay = autoActions?.headphonePlay,
+                    bluetoothPlay = autoActions?.bluetoothPlay,
+                    pauseOnTaskRemoval = autoActions?.pauseOnTaskRemoval,
+                    ignoreRemoteStop = autoActions?.ignoreRemoteStop,
+                ),
+            )
+
+        private fun autoActions(stored: StoredAutoActions): AutoActionsPreferences {
+            val defaults = AutoActionsPreferences()
+            return AutoActionsPreferences(
+                volumePause = stored.volumePause ?: defaults.volumePause,
+                headphonePlay = stored.headphonePlay ?: defaults.headphonePlay,
+                bluetoothPlay = stored.bluetoothPlay ?: defaults.bluetoothPlay,
+                pauseOnTaskRemoval = stored.pauseOnTaskRemoval ?: defaults.pauseOnTaskRemoval,
+                ignoreRemoteStop = stored.ignoreRemoteStop ?: defaults.ignoreRemoteStop,
+            )
+        }
 
         private fun audioFocus(stored: StoredOutsideControls): AudioFocusPreferences {
             val defaults = AudioFocusPreferences()
