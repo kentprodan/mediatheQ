@@ -357,8 +357,8 @@
     <string name="settings_force_instant_transcoding">Force instant transcoding</string>
     <string name="settings_force_instant_transcoding_summary">When Wi-Fi is lost, the playing track restarts at the same place in the mobile quality, not from the next track</string>
     <string name="settings_pb_behavior">Playback</string>
-    <string name="settings_pb_behavior_summary">Queue, next and previous, shuffle.</string>
-    <string name="settings_pb_queue">Queue and buttons</string>
+    <string name="settings_pb_behavior_summary">Queue, next and previous, shuffle, Bluetooth lyrics.</string>
+    <string name="settings_pb_queue">Queue, buttons and displays</string>
     <string name="settings_pb_preserve_play_next">Preserve Play next order</string>
     <string name="settings_pb_preserve_play_next_summary">Play next adds after earlier Play next tracks, not right after the current one</string>
     <string name="settings_pb_rewind_first">Previous button rewinds first</string>
@@ -373,6 +373,8 @@
     <string name="settings_pb_retain_state_summary">Shuffle and repeat carry over to a new queue</string>
     <string name="settings_pb_weighted_shuffle">Weighted shuffle</string>
     <string name="settings_pb_weighted_shuffle_summary">Prefers tracks not played recently, favorites and higher ratings</string>
+    <string name="settings_pb_bluetooth_lyrics">Bluetooth lyrics</string>
+    <string name="settings_pb_bluetooth_lyrics_summary">Shows the current lyrics line on car and Bluetooth displays. Scrobblers and apps reading the title see the lyrics too, and the car\'s track list stays empty</string>
     <string name="settings_nothing">Nothing</string>
     <string name="settings_audio_focus">Audio focus</string>
     <string name="settings_audio_focus_summary">Navigation prompts, notifications and calls.</string>

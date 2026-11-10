@@ -758,6 +758,16 @@ class SettingsScreenTest {
     }
 
     @Test
+    fun `Bluetooth lyrics is off by default on the Playback page and applies at once`() {
+        show(SettingsPage.PlaybackBehavior)
+        scrollTo("Bluetooth lyrics")
+
+        composeRule.onNode(isToggleable() and hasText("Bluetooth lyrics")).assertIsOff().performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.SetBehavior(BehaviorSwitch.BluetoothLyrics, true))
+    }
+
+    @Test
     fun `the Playback hub opens Transitions`() {
         show(SettingsPage.Playback)
         scrollTo("Transitions")

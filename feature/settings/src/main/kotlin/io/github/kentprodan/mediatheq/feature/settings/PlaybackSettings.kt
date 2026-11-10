@@ -160,7 +160,7 @@ internal fun LazyListScope.decodingGroups(
     restoreDefaultsGroup(onRestore)
 }
 
-/** Settings -> Playback -> Playback (#138): how the queue and the transport buttons behave. */
+/** Settings -> Playback -> Playback (#138): how the queue and the transport buttons behave, and Bluetooth lyrics (#143). */
 internal fun LazyListScope.behaviorGroups(
     behavior: PlaybackBehavior,
     onAction: (SettingsAction) -> Unit,
@@ -211,5 +211,9 @@ private val BehaviorSwitch.texts: Pair<Int, Int>
 
             BehaviorSwitch.WeightedShuffle -> {
                 R.string.settings_pb_weighted_shuffle to R.string.settings_pb_weighted_shuffle_summary
+            }
+
+            BehaviorSwitch.BluetoothLyrics -> {
+                R.string.settings_pb_bluetooth_lyrics to R.string.settings_pb_bluetooth_lyrics_summary
             }
         }
