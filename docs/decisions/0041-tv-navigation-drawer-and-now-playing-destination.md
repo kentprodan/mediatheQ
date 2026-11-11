@@ -1,6 +1,6 @@
 # 0041. TV navigation: one Navigation 3 back stack, a drawer, Now Playing as a destination
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-11
 
 ## Context

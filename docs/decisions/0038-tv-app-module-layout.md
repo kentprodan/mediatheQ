@@ -1,6 +1,6 @@
 # 0038. TV app module layout: `:app-tv`, `:feature-tv:*`, shared core
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-11
 
 ## Context

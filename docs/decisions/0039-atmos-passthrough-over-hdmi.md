@@ -1,6 +1,6 @@
 # 0039. Dolby Atmos passthrough over HDMI: capabilities from Media3, decision in `AudioPolicy`, truth from the audio track
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-11
 
 ## Context

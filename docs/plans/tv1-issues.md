@@ -532,7 +532,7 @@ you type, diacritic-insensitive (the FTS of #17), Select opens or plays.
 
 ---
 
-## T13. Lyrics on TV Now Playing (optional)
+## T13. Lyrics on TV Now Playing
 
 Labels: `type:feature`, `area:ui`
 

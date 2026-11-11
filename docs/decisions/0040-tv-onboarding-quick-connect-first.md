@@ -1,6 +1,6 @@
 # 0040. TV onboarding is its own feature, Quick Connect first
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-11
 
 ## Context

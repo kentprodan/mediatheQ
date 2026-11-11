@@ -106,7 +106,7 @@ Pure Kotlin helpers in `:core:ui` that TV needs too (`DurationFormat`, `NameOrde
 | Two apps from one repo doubles some work (settings, licenses, onboarding) | different toolkits | TV 1 keeps settings minimal; licenses list reuses the AboutLibraries JSON |
 | `getLaunchIntentForPackage` returns `null` on TV | needs a `LAUNCHER` category | TV activity declares both categories (Google's snippet) and a device test asserts the session activity |
 
-## 7. Decisions taken for the owner (recommended option first)
+## 7. Decisions (owner answers 2026-11-11: every recommended option, plus lyrics in TV 1)
 
 1. **TV UI toolkit:** `androidx.tv:tv-material:1.1.0` + Compose Foundation lazy lists (recommended) / Material 3 Expressive with our own focus handling / Leanback. ADR 0037.
 2. **Separate application id** `io.github.kentprodan.mediatheq.tv` (recommended: a TV box and a phone never share an install, the phone manifest stays untouched, the Jellyfin device list shows it apart) / same id with a `LEANBACK_LAUNCHER` activity inside `:app`. ADR 0038.
@@ -115,14 +115,14 @@ Pure Kotlin helpers in `:core:ui` that TV needs too (`DurationFormat`, `NameOrde
 5. **Dolby Atmos passthrough is a per-HDMI-output switch, default on** (recommended, fits ADR 0032) / a global "Prefer Dolby Atmos: Automatic / Off" setting as the media3 skill once sketched.
 6. **TV onboarding is its own feature with its own ViewModels** (recommended) / extracting shared ViewModels into a module both apps depend on. ADR 0040.
 7. **Now Playing is a destination on the TV back stack plus a strip in the drawer footer** (recommended) / an overlay like the phone's mini player. ADR 0041.
-8. **No downloads, no offline mode, no equalizer, no lyrics settings, no video on TV 1** (recommended) / lyrics display is kept as the last, optional issue.
+8. **No downloads, no offline mode, no equalizer, no lyrics settings, no video on TV 1** (recommended) / lyrics display is kept as the last, optional issue. **Owner: lyrics on TV Now Playing are in TV 1 (T13, not optional).**
 9. **TV screenshot variants:** 1080p, dark theme, font scale 1.0 and 1.3 (recommended; TV apps are dark and 2.0 breaks every 10-foot layout) / the phone's light + dark, 1.0 + 2.0. Needs a testing-skill change.
 
 ## 8. Open questions for the owner
 
-1. Does the LG TV's sound menu offer "Pass-through" for eARC and is eARC (not ARC) active between the TV and the DSN11RG? The manual test depends on it.
-2. Should the TV app show the owner's **second account** switcher in TV 1 (ADR 0036 works, but the UI costs a screen)? Plan: sign-in to one account only; switcher comes with TV 2.
-3. Is a lyrics screen on TV wanted in TV 1 (issue 13) or later?
+1. Answered: eARC (not ARC) is active between the TV and the DSN11RG and the TV offers "Pass-through".
+2. Answered: no account switcher on TV in TV 1 (one account; the switcher comes later).
+3. Answered: lyrics are in TV 1 (T13).
 4. The Jellyfin `Client` name in the auth header: keep `mediatheQ` (device model distinguishes the box) or `mediatheQ TV`? Plan: keep `mediatheQ` (one interceptor, no change).
 5. Should "Prefer original even on a capped quality" apply to **all** tracks on the TV (Ethernet is unmetered, so Original is the default anyway)? Plan: no, only the Atmos rule.
 

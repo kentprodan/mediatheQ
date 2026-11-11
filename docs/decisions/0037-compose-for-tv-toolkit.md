@@ -1,6 +1,6 @@
 # 0037. Compose for TV: tv-material 1.1.0, Compose Foundation lists, own TV design system
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-11
 
 ## Context
