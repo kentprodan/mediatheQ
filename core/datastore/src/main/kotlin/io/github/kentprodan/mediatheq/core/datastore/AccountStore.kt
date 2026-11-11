@@ -96,7 +96,11 @@ class AccountStore
         val syncRecords: Flow<Map<String, StoredSyncRecord>> =
             dataStore.data
                 .map { prefs ->
-                    prefs.ids().mapNotNull { id -> prefs[key(SYNC, id)]?.let(::decodeSyncRecord)?.let { id to it } }.toMap()
+                    prefs
+                        .ids()
+                        .mapNotNull { id ->
+                            prefs[key(SYNC, id)]?.let(::decodeSyncRecord)?.let { id to it }
+                        }.toMap()
                 }.catch { if (it is IOException) emit(emptyMap()) else throw it }
 
         /**

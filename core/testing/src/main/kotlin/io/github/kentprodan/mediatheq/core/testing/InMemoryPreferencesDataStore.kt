@@ -12,12 +12,13 @@ import java.io.IOException
 
 /**
  * A preferences DataStore in memory: no files, so tests behave the same on Windows and Linux. Set [failing] to make
- * reads and writes throw `IOException` like a broken disk.
+ * reads and writes throw `IOException` like a broken disk, [failingWrites] only the writes.
  */
 class InMemoryPreferencesDataStore : DataStore<Preferences> {
     private val mutex = Mutex()
     private val state = MutableStateFlow(emptyPreferences())
     var failing = false
+    var failingWrites = false
 
     /** What is stored right now, bypassing [failing]. */
     val current: Preferences get() = state.value
@@ -26,7 +27,7 @@ class InMemoryPreferencesDataStore : DataStore<Preferences> {
 
     override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
         mutex.withLock {
-            if (failing) throw IOException("disk failure")
+            if (failing || failingWrites) throw IOException("disk failure")
             transform(state.value).also { state.value = it }
         }
 }

@@ -4,6 +4,7 @@ import androidx.sqlite.SQLiteException
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.common.map
 import io.github.kentprodan.mediatheq.core.database.dao.SyncDao
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumGenreStaging
@@ -18,6 +19,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
+import io.github.kentprodan.mediatheq.core.datastore.StoredSyncRecord
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.server.LibraryPage
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
@@ -42,6 +44,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
@@ -153,6 +156,7 @@ class DefaultLibrarySyncRepository
             val account =
                 (accountStore.account.first() as? MqResult.Success)?.value
                     ?: return MqResult.Failure(MqError.Unauthorized)
+            val startedAt = clock.now()
             val result =
                 try {
                     fetchAll(signedIn(account))
@@ -174,16 +178,36 @@ class DefaultLibrarySyncRepository
                 } catch (_: SQLiteException) {
                     SyncStatus.Failed(MqError.Storage, null)
                 }
+            record(result, startedAt)
             if ((result as? MqResult.Failure)?.error == MqError.Unauthorized) {
                 // Signing out wipes, which cancels this sync; the expiry notice must still be recorded.
                 withContext(NonCancellable) { sessionRepository.onUnauthorized() }
             }
-            return result
+            return result.map { }
+        }
+
+        /** Saves how this run ended for the Sync manager (#148); a cancelled run never gets here. */
+        private suspend fun record(
+            result: MqResult<Int>,
+            startedAt: Instant,
+        ) {
+            val now = clock.now()
+            val record =
+                when (result) {
+                    is MqResult.Success -> StoredSyncRecord(now, null, result.value, now - startedAt)
+                    is MqResult.Failure -> StoredSyncRecord(now, result.error, 0, now - startedAt)
+                }
+            try {
+                accountStore.saveSyncRecord(record)
+            } catch (_: IOException) {
+                // Only the Sync manager's record is lost; the library itself is fine.
+            }
         }
 
         private suspend fun signedIn(account: StoredAccount) = accountStore.signedInServer(account)
 
-        private suspend fun fetchAll(server: SignedInServer): MqResult<Unit> {
+        /** Fetches and swaps in the whole library; the number of tracks it now has. */
+        private suspend fun fetchAll(server: SignedInServer): MqResult<Int> {
             val account = server.serverId.value to server.userId
             var state = syncDao.state() ?: SyncStateEntity()
             val now = clock.now().toEpochMilliseconds()
@@ -223,10 +247,11 @@ class DefaultLibrarySyncRepository
                     }
                 }
             }
+            val tracks = syncDao.stagedTrackCount()
             syncDao.swap(clock.now().toEpochMilliseconds(), account.first, account.second)
             // Pages fetched before a favorite or rating reached the server carry the old value.
             userData.reapplyOverrides()
-            return MqResult.Success(Unit)
+            return MqResult.Success(tracks)
         }
 
         /** Fetches one page of [step] at [index] and stages it; returns where to continue, `null` when done. */
