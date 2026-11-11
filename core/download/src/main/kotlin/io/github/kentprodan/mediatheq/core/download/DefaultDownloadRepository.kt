@@ -267,15 +267,18 @@ internal class DefaultDownloadRepository
             }
         }
 
-        override fun removeSong(id: MediaId) {
+        override fun removeOrigin(
+            ids: List<MediaId>,
+            origin: DownloadOrigin,
+        ) {
             scope.launch(ioDispatcher) {
-                val orphan =
+                val orphans =
                     originsLock.withLock {
-                        val left = origins.origins.first()[id].orEmpty() - DownloadOrigin.Single
-                        origins.remove(listOf(id), DownloadOrigin.Single)
-                        left.isEmpty()
+                        val kept = origins.origins.first()
+                        origins.remove(ids, origin)
+                        ids.filter { (kept[it].orEmpty() - origin).isEmpty() }
                     }
-                if (orphan) delete(listOf(id))
+                delete(orphans)
             }
         }
 

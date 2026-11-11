@@ -54,7 +54,10 @@ fun DownloadsContentScreenshot() =
         DownloadsUiState.Content(
             totals,
             downloading,
-            albums = listOf(DownloadedAlbum(PreviewData.album, listOf(track(1, "Strobe")), 42_700_000, 20.minutes)),
+            albums =
+                listOf(
+                    DownloadedAlbum(PreviewData.album, listOf(track(1, "Strobe")), 42_700_000, 20.minutes, auto = true),
+                ),
             playlists =
                 listOf(
                     DownloadedPlaylist(
@@ -68,6 +71,11 @@ fun DownloadsContentScreenshot() =
                 listOf(
                     TrackDownload(track(1, "Strobe"), DownloadState.Completed),
                     TrackDownload(track(5, "Animal Rights"), DownloadState.Completed, converted = true),
+                    TrackDownload(
+                        track(7, "Ghosts 'n' Stuff"),
+                        DownloadState.Completed,
+                        origins = setOf(io.github.kentprodan.mediatheq.core.data.DownloadOrigin.Favorite),
+                    ),
                 ),
         ),
     )

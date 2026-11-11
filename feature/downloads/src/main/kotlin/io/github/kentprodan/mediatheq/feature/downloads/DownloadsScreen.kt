@@ -127,8 +127,10 @@ private fun Content(
                 AlbumRow(
                     downloaded.album,
                     onClick = { onOpenAlbum(downloaded.album.id) },
-                    details = sizeAndDuration(downloaded.bytes, downloaded.duration),
-                    menuItems = { close -> CollectionMenuItems(downloaded.tracks, origin, onAction, close) },
+                    details = autoMark(downloaded.auto, sizeAndDuration(downloaded.bytes, downloaded.duration)),
+                    menuItems = { close ->
+                        CollectionMenuItems(downloaded.tracks, origin.takeUnless { downloaded.auto }, onAction, close)
+                    },
                 )
             }
         }
@@ -140,8 +142,10 @@ private fun Content(
                 PlaylistRow(
                     downloaded.playlist.copy(name = name),
                     onClick = { onOpenPlaylist(downloaded.playlist.id) },
-                    details = sizeAndDuration(downloaded.bytes, downloaded.duration),
-                    menuItems = { close -> CollectionMenuItems(downloaded.tracks, origin, onAction, close) },
+                    details = autoMark(downloaded.auto, sizeAndDuration(downloaded.bytes, downloaded.duration)),
+                    menuItems = { close ->
+                        CollectionMenuItems(downloaded.tracks, origin.takeUnless { downloaded.auto }, onAction, close)
+                    },
                 )
             }
         }
@@ -208,10 +212,18 @@ private fun sizeAndDuration(
         formatTotalDuration(duration),
     )
 
+/** "Auto · [details]" for a favorite's automatic download (#145). */
+@Composable
+private fun autoMark(
+    auto: Boolean,
+    details: String,
+): String = if (auto) stringResource(R.string.downloads_auto_details, details) else details
+
+/** [origin] `null`: an automatic download, removed by unfavoriting, not here (#145). */
 @Composable
 private fun ColumnScope.CollectionMenuItems(
     tracks: List<Track>,
-    origin: DownloadOrigin,
+    origin: DownloadOrigin?,
     onAction: (DownloadsAction) -> Unit,
     close: () -> Unit,
 ) {
@@ -231,7 +243,9 @@ private fun ColumnScope.CollectionMenuItems(
             close()
         },
     )
-    RemoveDownloadMenuItem(onClick = { onAction(DownloadsAction.RemoveCollection(origin)) }, close = close)
+    if (origin != null) {
+        RemoveDownloadMenuItem(onClick = { onAction(DownloadsAction.RemoveCollection(origin)) }, close = close)
+    }
 }
 
 @Composable
@@ -262,14 +276,20 @@ private fun DownloadRow(
                     },
                 )
             }
-            RemoveDownloadMenuItem(onClick = { onAction(remove(track)) }, close = close)
+            // A favorite's automatic download goes by unfavoriting it (#145).
+            if (!download.autoOnly) RemoveDownloadMenuItem(onClick = { onAction(remove(track)) }, close = close)
         },
         supportingContent =
             when (val state = download.state) {
                 DownloadState.Completed -> {
                     // The server's conversion (#68): the device cannot play the original, e.g. Dolby Atmos on a Pixel.
-                    if (download.converted) {
-                        { StatusText(stringResource(R.string.downloads_converted)) }
+                    val notes =
+                        listOfNotNull(
+                            stringResource(R.string.downloads_auto).takeIf { download.autoOnly },
+                            stringResource(R.string.downloads_converted).takeIf { download.converted },
+                        )
+                    if (notes.isNotEmpty()) {
+                        { StatusText(notes.joinToString(" · ")) }
                     } else {
                         null
                     }
@@ -293,6 +313,10 @@ private fun DownloadRow(
             },
     )
 }
+
+/** Only kept as a favorite's automatic download (#145): every origin is automatic. */
+private val TrackDownload.autoOnly: Boolean
+    get() = origins.isNotEmpty() && origins.all { it.auto }
 
 @Composable
 private fun DownloadProgress(progress: Float?) {

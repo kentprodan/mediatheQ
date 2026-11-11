@@ -62,13 +62,16 @@ class FakeDownloadRepository(
         downloads.update { current -> current.map { if (it.track.id == id) it.copy(state = state) else it } }
     }
 
-    override fun removeSong(id: MediaId) {
+    override fun removeOrigin(
+        ids: List<MediaId>,
+        origin: DownloadOrigin,
+    ) {
         downloads.update { current ->
             current.mapNotNull {
                 when {
-                    it.track.id != id -> it
-                    it.origins == setOf(DownloadOrigin.Single) -> null
-                    else -> it.copy(origins = it.origins - DownloadOrigin.Single)
+                    it.track.id !in ids -> it
+                    (it.origins - origin).isEmpty() -> null
+                    else -> it.copy(origins = it.origins - origin)
                 }
             }
         }
