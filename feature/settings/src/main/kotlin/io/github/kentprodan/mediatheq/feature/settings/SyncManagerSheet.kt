@@ -20,6 +20,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,7 +38,11 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.ui.formatTimeAgo
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
+import kotlinx.coroutines.delay
+import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 /** Settings -> Sync manager (#148) as a bottom sheet over the hub. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,15 +52,23 @@ internal fun SyncManagerSheet(
     viewModel: SyncManagerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // "5 minutes ago" moves on while the sheet stays open.
+    val now by produceState(Clock.System.now()) {
+        while (true) {
+            delay(1.minutes)
+            value = Clock.System.now()
+        }
+    }
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        SyncManagerContent(state, viewModel::onAction)
+        SyncManagerContent(state, now, viewModel::onAction)
     }
 }
 
-/** The sheet's content: a card per account, then Sync all. Stateless. */
+/** The sheet's content: a card per account, then Sync all; [now] dates the last syncs. Stateless. */
 @Composable
 fun SyncManagerContent(
     state: SyncManagerUiState,
+    now: Instant,
     onAction: (SyncManagerAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -72,7 +85,11 @@ fun SyncManagerContent(
             style = MaterialTheme.typography.titleLarge,
         )
         val content = state as? SyncManagerUiState.Content ?: return@Column
-        content.cards.forEach { card -> SyncCardView(card, onRetry = { onAction(SyncManagerAction.Retry(card.id)) }) }
+        // Without a network or in offline mode no server is asked, so Retry would do nothing.
+        val canCheck = content.offline != OfflineReason.NoNetwork && content.offline != OfflineReason.OfflineMode
+        content.cards.forEach { card ->
+            SyncCardView(card, now, canCheck, onRetry = { onAction(SyncManagerAction.Retry(card.id)) })
+        }
         Button(
             onClick = { onAction(SyncManagerAction.SyncAll) },
             modifier = Modifier.fillMaxWidth(),
@@ -94,6 +111,8 @@ fun SyncManagerContent(
 @Composable
 private fun SyncCardView(
     card: SyncCard,
+    now: Instant,
+    canCheck: Boolean,
     onRetry: () -> Unit,
 ) {
     Surface(
@@ -115,7 +134,7 @@ private fun SyncCardView(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                IconButton(onClick = onRetry, enabled = card.connection != Connection.Checking) {
+                IconButton(onClick = onRetry, enabled = canCheck && card.connection != Connection.Checking) {
                     Icon(MqIcons.Refresh, stringResource(R.string.settings_sync_retry, card.serverName))
                 }
             }
@@ -149,9 +168,9 @@ private fun SyncCardView(
                     }
                 }
 
-                card.last != null && card.ago != null -> {
+                card.last != null -> {
                     Text(
-                        lastSyncLine(card.last, card.ago),
+                        lastSyncLine(card.last, now - card.last.finishedAt),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

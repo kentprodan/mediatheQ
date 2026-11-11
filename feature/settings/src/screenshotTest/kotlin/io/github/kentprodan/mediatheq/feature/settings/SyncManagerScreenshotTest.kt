@@ -26,7 +26,6 @@ private val home =
         active = true,
         connection = Connection.Online,
         last = success,
-        ago = 5.minutes,
         running = null,
     )
 private val office =
@@ -38,7 +37,6 @@ private val office =
         active = false,
         connection = Connection.Checking,
         last = null,
-        ago = null,
         running = null,
     )
 
@@ -46,7 +44,9 @@ private val office =
 @Composable
 private fun Sheet(state: SyncManagerUiState) {
     MediatheqTheme {
-        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) { SyncManagerContent(state, {}) }
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+        ) { SyncManagerContent(state, finished + 5.minutes, {}) }
     }
 }
 
@@ -72,7 +72,7 @@ fun SyncManagerRunningScreenshot() {
 @MqPreviews
 @Composable
 fun SyncManagerFailedScreenshot() {
-    val failed = home.copy(last = SyncRecord(finished, MqError.Unauthorized, 0, 3.seconds), ago = 2.hours)
+    val failed = home.copy(last = SyncRecord(finished - 2.hours, MqError.Unauthorized, 0, 3.seconds))
     Sheet(SyncManagerUiState.Content(listOf(failed), null, false))
 }
 

@@ -169,6 +169,8 @@ class DefaultLibrarySyncRepository
                     // following the account, and the next sign-out would leave the library behind (#51).
                     MqResult.Failure(MqError.Unknown(e))
                 }
+            // The record first: the card must not show the previous result once the sync shows as finished.
+            record(result, startedAt)
             mutableStatus.value =
                 try {
                     when (result) {
@@ -178,7 +180,6 @@ class DefaultLibrarySyncRepository
                 } catch (_: SQLiteException) {
                     SyncStatus.Failed(MqError.Storage, null)
                 }
-            record(result, startedAt)
             if ((result as? MqResult.Failure)?.error == MqError.Unauthorized) {
                 // Signing out wipes, which cancels this sync; the expiry notice must still be recorded.
                 withContext(NonCancellable) { sessionRepository.onUnauthorized() }

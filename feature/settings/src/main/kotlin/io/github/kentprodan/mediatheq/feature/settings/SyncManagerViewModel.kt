@@ -15,16 +15,15 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
 /** Settings -> Sync manager (#148): each account's last sync and connection, and Sync all. */
@@ -37,7 +36,6 @@ class SyncManagerViewModel
         private val session: SessionRepository,
         network: NetworkMonitor,
         offlineFilter: OfflineFilter,
-        private val clock: Clock,
     ) : ViewModel() {
         private val connections = MutableStateFlow<Map<String, Connection>>(emptyMap())
         private val checks = mutableMapOf<String, Job>()
@@ -52,9 +50,12 @@ class SyncManagerViewModel
                 }
             }.distinctUntilChanged()
 
+        /** Asks every server while the sheet shows (each time it opens) and again when the network comes back. */
+        private val checkedWhileShown =
+            deviceOffline.onEach { offline -> if (offline == null) accounts.accounts.first().forEach(::check) }
+
         val uiState: StateFlow<SyncManagerUiState> =
-            combine(accounts.accounts, sync.status, deviceOffline, connections) { list, status, offline, checked ->
-                val now = clock.now()
+            combine(accounts.accounts, sync.status, checkedWhileShown, connections) { list, status, offline, checked ->
                 val cards =
                     list.map { account ->
                         SyncCard(
@@ -72,7 +73,6 @@ class SyncManagerViewModel
                                     checked[account.id] ?: Connection.Checking
                                 },
                             last = account.lastSync,
-                            ago = account.lastSync?.let { now - it.finishedAt },
                             running =
                                 (status as? SyncStatus.Running)?.takeIf { account.active }?.let {
                                     SyncProgress(it.step, it.fetched, it.total)
@@ -86,15 +86,6 @@ class SyncManagerViewModel
                     syncing = status is SyncStatus.Running,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncManagerUiState.Loading)
-
-        init {
-            viewModelScope.launch {
-                // Asks every server when the sheet opens, and again when the network comes back.
-                deviceOffline.collectLatest { offline ->
-                    if (offline == null) accounts.accounts.first().forEach(::check)
-                }
-            }
-        }
 
         fun onAction(action: SyncManagerAction) {
             when (action) {

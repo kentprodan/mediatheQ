@@ -2,7 +2,6 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import io.github.kentprodan.mediatheq.core.data.SyncRecord
 import io.github.kentprodan.mediatheq.core.data.SyncStep
-import kotlin.time.Duration
 
 /** Settings -> Sync manager (#148). */
 sealed interface SyncManagerUiState {
@@ -26,9 +25,8 @@ data class SyncCard(
     val baseUrl: String,
     val active: Boolean,
     val connection: Connection,
-    /** The last sync and how long ago it ended; `null` before the first one. */
+    /** The last sync, `null` before the first one. */
     val last: SyncRecord?,
-    val ago: Duration?,
     /** The sync running now (active account only). */
     val running: SyncProgress?,
 )

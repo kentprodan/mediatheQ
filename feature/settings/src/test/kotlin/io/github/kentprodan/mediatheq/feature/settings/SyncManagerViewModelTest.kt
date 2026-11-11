@@ -23,7 +23,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -50,7 +52,6 @@ class SyncManagerViewModelTest {
             session,
             network,
             OfflineFilter(preferences, network) { FakeDownloadRepository() },
-            clock,
         )
     }
 
@@ -68,7 +69,7 @@ class SyncManagerViewModelTest {
 
             assertThat(content.cards.map { it.id }).containsExactly(home.id, office.id).inOrder()
             assertThat(content.cards[0].last).isEqualTo(record)
-            assertThat(content.cards[0].ago).isEqualTo(5.minutes)
+
             assertThat(content.cards[1].last).isNull()
             assertThat(content.offline).isNull()
             assertThat(content.syncing).isFalse()
@@ -81,6 +82,21 @@ class SyncManagerViewModelTest {
 
             assertThat(session.checkedAddresses).containsExactly(home.baseUrl, office.baseUrl)
             assertThat(content.cards.map { it.connection }).containsExactly(Connection.Online, Connection.Online)
+        }
+
+    @Test
+    fun `the servers are asked again each time the sheet opens`() =
+        runTest {
+            val first = backgroundScope.launch { viewModel.uiState.collect {} }
+            runCurrent()
+            first.cancel()
+            advanceTimeBy(6.seconds)
+
+            backgroundScope.launch { viewModel.uiState.collect {} }
+            runCurrent()
+
+            assertThat(session.checkedAddresses)
+                .containsExactly(home.baseUrl, office.baseUrl, home.baseUrl, office.baseUrl)
         }
 
     @Test

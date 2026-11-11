@@ -29,6 +29,7 @@ class SyncManagerContentTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private val actions = mutableListOf<SyncManagerAction>()
+    private val finished = Instant.fromEpochSeconds(1_000_000)
     private val card =
         SyncCard(
             "mediatheq.db",
@@ -37,13 +38,19 @@ class SyncManagerContentTest {
             "http://nas:8096",
             active = true,
             connection = Connection.Online,
-            last = SyncRecord(Instant.fromEpochSeconds(0), null, 3120, 24.seconds),
-            ago = 5.minutes,
+            last = SyncRecord(finished, null, 3120, 24.seconds),
             running = null,
         )
 
     private fun show(state: SyncManagerUiState) =
-        composeRule.setContent { MediatheqTheme { SyncManagerContent(state, onAction = { actions += it }) } }
+        composeRule.setContent {
+            MediatheqTheme {
+                SyncManagerContent(state, finished + 5.minutes, onAction = {
+                    actions +=
+                        it
+                })
+            }
+        }
 
     @Test
     fun `the last sync shows its time, count and duration, and Sync all syncs`() {
@@ -68,6 +75,7 @@ class SyncManagerContentTest {
 
         composeRule.onNodeWithText("Sync all").assertIsNotEnabled()
         composeRule.onNodeWithText("Offline mode is on: turn it off to sync.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Check Home again").assertIsNotEnabled()
     }
 
     @Test
