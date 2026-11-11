@@ -1,6 +1,6 @@
 # 0044. Subsonic server identity: a generated `ServerId` kept with the account
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-11
 
 ## Context

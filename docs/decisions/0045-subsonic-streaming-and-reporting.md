@@ -1,6 +1,6 @@
 # 0045. Subsonic streaming: `stream` with raw or Opus, progressive only, scrobble reporting
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-11
 
 ## Context

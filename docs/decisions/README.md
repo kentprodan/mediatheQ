@@ -46,11 +46,11 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0039](0039-atmos-passthrough-over-hdmi.md) | Dolby Atmos passthrough over HDMI: capabilities from Media3, decision in `AudioPolicy`, truth from the audio track | Accepted |
 | [0040](0040-tv-onboarding-quick-connect-first.md) | TV onboarding is its own feature, Quick Connect first | Accepted |
 | [0041](0041-tv-navigation-drawer-and-now-playing-destination.md) | TV navigation: one Navigation 3 back stack, a drawer, Now Playing as a destination | Accepted |
-| [0042](0042-opensubsonic-provider-navidrome.md) | Second provider: OpenSubsonic for Navidrome, own thin client | Proposed |
-| [0043](0043-provider-kind-per-account-and-runtime-provider-registry.md) | Provider kind per account; providers in a Hilt map; `:core:data` forwards to the active one | Proposed |
-| [0044](0044-subsonic-server-identity.md) | Subsonic server identity: a generated `ServerId` kept with the account | Proposed |
-| [0045](0045-subsonic-streaming-and-reporting.md) | Subsonic streaming: `stream` with raw or Opus, progressive only, scrobble reporting | Proposed |
-| [0046](0046-subsonic-credentials-in-an-interceptor.md) | Subsonic credentials: password encrypted like a token, added by an interceptor, URLs stay clean | Proposed |
+| [0042](0042-opensubsonic-provider-navidrome.md) | Second provider: OpenSubsonic for Navidrome, own thin client | Accepted |
+| [0043](0043-provider-kind-per-account-and-runtime-provider-registry.md) | Provider kind per account; providers in a Hilt map; `:core:data` forwards to the active one | Accepted |
+| [0044](0044-subsonic-server-identity.md) | Subsonic server identity: a generated `ServerId` kept with the account | Accepted |
+| [0045](0045-subsonic-streaming-and-reporting.md) | Subsonic streaming: `stream` with raw or Opus, progressive only, scrobble reporting | Accepted |
+| [0046](0046-subsonic-credentials-in-an-interceptor.md) | Subsonic credentials: password encrypted like a token, added by an interceptor, URLs stay clean | Accepted |
 
 Template for new ADRs:
 

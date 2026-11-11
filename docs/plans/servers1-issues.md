@@ -3,7 +3,8 @@
 Drafts for the milestone `Servers 1 · Navidrome`, in order. Each is one branch, one PR. Numbers `S1`-`S10` are
 placeholders until the issues exist on GitHub; "Depends on" uses them. Labels proposed per issue. All follow the
 format of #146 / #147. Plan: [servers1-navidrome.md](servers1-navidrome.md). Manual tests run on the Pixel 9 against
-the pinned Navidrome test server (`tools/navidrome`, S1) unless the item says otherwise.
+the pinned Navidrome test server (`tools/navidrome`, S1) unless the item says otherwise, and again against the owner's
+own Navidrome server.
 
 ---
 

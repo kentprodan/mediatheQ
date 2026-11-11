@@ -155,8 +155,10 @@ the plain `stream` parameters cover the three cases above with one request less.
 
 ## 10. Open questions for the owner
 
-1. Will the owner run a Navidrome of his own (LAN / Tailscale) for daily use, or is the test server enough? Plan: the test server for fixtures and manual tests; the exit criterion does not need a week of daily use (Jellyfin stays the main server).
-2. Sync at app start when stale (decision 6): also for Jellyfin accounts? Plan: yes, it is harmless with live events (the WebSocket connect already triggers nothing on its own).
+Owner answers (2026-11-11): every recommended decision in section 9 is accepted (ADRs 0042-0046 Accepted).
+
+1. Answered: the owner has (or will have) a Navidrome of their own. Fixtures still come from the pinned test server (no personal data); the manual tests also run against the owner's server.
+2. Answered: yes, sync at app start when stale for both providers.
 3. Progress reporting through `reportPlayback` (`playbackReport` extension, in 0.64.2): wanted in Servers 1 for Navidrome's Now Playing view? Plan: no, scrobble only; `reportPlayback` is a one-issue follow-up.
 4. Quality label when Navidrome caps the bitrate server-side: show the requested quality (plan) or fetch `getNowPlaying` to read the real one? Plan: requested quality; the skill documents the Players page.
 5. Should the Subsonic login screen offer the plain "password in the request" fallback (`p`) for servers that refuse token auth (error 41, LDAP users)? Plan: no; show error 41's `helpUrl` text and stop.

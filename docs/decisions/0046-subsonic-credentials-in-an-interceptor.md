@@ -1,6 +1,6 @@
 # 0046. Subsonic credentials: password encrypted like a token, added by an interceptor, URLs stay clean
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-11
 
 ## Context

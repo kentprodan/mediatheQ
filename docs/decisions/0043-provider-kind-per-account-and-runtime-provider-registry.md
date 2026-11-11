@@ -1,6 +1,6 @@
 # 0043. Provider kind per account; providers in a Hilt map; `:core:data` forwards to the active one
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-11
 
 ## Context
