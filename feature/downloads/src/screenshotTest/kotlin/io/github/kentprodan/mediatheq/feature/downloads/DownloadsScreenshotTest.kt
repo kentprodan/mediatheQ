@@ -86,3 +86,19 @@ fun DownloadsContentScreenshot() =
 @Composable
 fun DownloadsOnlyDownloadingScreenshot() =
     Downloads(DownloadsUiState.Content(DownloadTotals(0, 0.minutes, 41_000_000_000), downloading))
+
+/** The SD card holding the downloads is out (#146): the notice above the kept downloads. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun DownloadsUnavailableScreenshot() =
+    Downloads(
+        DownloadsUiState.Content(
+            DownloadTotals(42_700_000, 20.minutes, 0),
+            albums =
+                listOf(
+                    DownloadedAlbum(PreviewData.album, listOf(track(1, "Strobe")), 42_700_000, 20.minutes),
+                ),
+            unavailableOn = "SD card",
+        ),
+    )

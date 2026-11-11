@@ -104,7 +104,9 @@ internal class GuardedCache(
         key: String,
         position: Long,
         length: Long,
-    ): Long = cache()?.getCachedLength(key, position, length) ?: -(if (length == C.LENGTH_UNSET.toLong()) Long.MAX_VALUE else length)
+    ): Long =
+        cache()?.getCachedLength(key, position, length)
+            ?: -(if (length == C.LENGTH_UNSET.toLong()) Long.MAX_VALUE else length)
 
     override fun getCachedBytes(
         key: String,
@@ -117,7 +119,8 @@ internal class GuardedCache(
         mutations: ContentMetadataMutations,
     ) = required().applyContentMetadataMutations(key, mutations)
 
-    override fun getContentMetadata(key: String): ContentMetadata = cache()?.getContentMetadata(key) ?: DefaultContentMetadata.EMPTY
+    override fun getContentMetadata(key: String): ContentMetadata =
+        cache()?.getContentMetadata(key) ?: DefaultContentMetadata.EMPTY
 
     private companion object {
         const val UID_UNSET = -1L

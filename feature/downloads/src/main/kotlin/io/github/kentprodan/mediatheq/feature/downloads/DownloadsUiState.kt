@@ -21,6 +21,8 @@ sealed interface DownloadsUiState {
         val playlists: List<DownloadedPlaylist> = emptyList(),
         /** Tracks downloaded on their own. */
         val songs: List<TrackDownload> = emptyList(),
+        /** The name of the SD card the downloads are on while it is missing (#146): they are kept, not playable. */
+        val unavailableOn: String? = null,
     ) : DownloadsUiState
 }
 

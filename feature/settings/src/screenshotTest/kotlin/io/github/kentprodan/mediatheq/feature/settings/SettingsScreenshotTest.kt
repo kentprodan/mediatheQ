@@ -228,6 +228,49 @@ fun SettingsDownloadQualityDialogScreenshot() {
     MediatheqTheme { StorageDialogContent(StorageDialog.DownloadQuality, AudioPreferences(), LibraryPreferences()) }
 }
 
+private val locations =
+    listOf(
+        io.github.kentprodan.mediatheq.core.data
+            .StorageLocation(null, null, 12_000_000_000, current = true),
+        io.github.kentprodan.mediatheq.core.data.StorageLocation(
+            "/storage/card/files",
+            "SD card",
+            58_000_000_000,
+            current = false,
+        ),
+    )
+
+/** Offline, cache, and download -> General with an SD card (#146): the storage location row. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsStorageGeneralWithCardScreenshot() {
+    MediatheqTheme {
+        SettingsPageScreen(SettingsPage.StorageGeneral, content.copy(storageLocations = locations), {}, {}, {})
+    }
+}
+
+/** The storage location dialog's content (#146): internal storage selected, an SD card. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsStorageLocationDialogScreenshot() {
+    MediatheqTheme { StorageDialogContent(StorageDialog.Location, AudioPreferences(), LibraryPreferences(), locations) }
+}
+
+/** The move's progress dialog (#146), 40 % copied. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsMoveDownloadsScreenshot() {
+    MediatheqTheme {
+        MoveProgressContent(
+            io.github.kentprodan.mediatheq.core.data.StorageMove
+                .Moving(0.4f),
+        )
+    }
+}
+
 /** Manage media providers: the account and Log out. */
 @PreviewTest
 @MqPreviews

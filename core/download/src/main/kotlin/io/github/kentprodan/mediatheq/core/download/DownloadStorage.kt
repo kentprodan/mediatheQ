@@ -77,8 +77,10 @@ internal class DownloadStorage
             scope.launch { volumes.changes.collect { availableState.value = isMounted() } }
             // Dispatched, not immediate: the manager may be under construction right now (it needs this class).
             scope.launch(Dispatchers.Main) {
-                combine(available, move) { available, move -> !available || move is StorageMove.Moving || move == StorageMove.Done }
-                    .distinctUntilChanged()
+                combine(available, move) { available, move ->
+                    !available || move is StorageMove.Moving ||
+                        move == StorageMove.Done
+                }.distinctUntilChanged()
                     .collect { paused -> manager.get().run { if (paused) pauseDownloads() else resumeDownloads() } }
             }
             // A copy left by a move that did not finish, or the folder a finished move left behind.
@@ -92,7 +94,14 @@ internal class DownloadStorage
                     val removable = volumes.removable()
                     if (removable.isEmpty()) return@map emptyList()
                     listOf(StorageLocation(null, null, freeBytes(context.filesDir), path == null)) +
-                        removable.map { StorageLocation(it.filesDir.path, it.name, freeBytes(it.filesDir), it.filesDir.path == path) }
+                        removable.map {
+                            StorageLocation(
+                                it.filesDir.path,
+                                it.name,
+                                freeBytes(it.filesDir),
+                                it.filesDir.path == path,
+                            )
+                        }
                 }.flowOn(ioDispatcher)
 
         override fun moveTo(location: StorageLocation) {
@@ -107,7 +116,14 @@ internal class DownloadStorage
                             copyDownloads(downloadDir, File(target, DOWNLOADS), freeBytes(target)) {
                                 moveState.value = StorageMove.Moving(it)
                             }
-                            val saved = preferences.edit().putString(KEY_PATH, location.id).putString(KEY_NAME, location.name).commit()
+                            val saved =
+                                preferences
+                                    .edit()
+                                    .putString(
+                                        KEY_PATH,
+                                        location.id,
+                                    ).putString(KEY_NAME, location.name)
+                                    .commit()
                             if (!saved) {
                                 File(target, DOWNLOADS).deleteRecursively()
                                 throw IOException("The new location was not saved")
@@ -131,7 +147,12 @@ internal class DownloadStorage
         }
 
         override suspend fun otherFilesDirs(): List<File> =
-            withContext(ioDispatcher) { (listOf(context.filesDir) + volumes.removable().map { it.filesDir }).filter { it != root } }
+            withContext(ioDispatcher) {
+                (listOf(context.filesDir) + volumes.removable().map { it.filesDir }).filter {
+                    it !=
+                        root
+                }
+            }
 
         private fun freeBytes(dir: File) = runCatching { StatFs(dir.path).availableBytes }.getOrDefault(0)
 

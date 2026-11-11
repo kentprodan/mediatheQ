@@ -43,6 +43,8 @@ import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.data.SessionButtonAction
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.ShortFocusAction
+import io.github.kentprodan.mediatheq.core.data.StorageLocation
+import io.github.kentprodan.mediatheq.core.data.StorageMove
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
@@ -56,6 +58,7 @@ import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
@@ -72,7 +75,8 @@ class SettingsViewModelTest {
     private val session = FakeSessionRepository()
     private val audio = FakeAudioPreferencesRepository()
     private val library = FakeLibraryPreferencesRepository()
-    private val viewModel by lazy { SettingsViewModel(session, audio, library) }
+    private val storage = FakeDownloadStorageRepository()
+    private val viewModel by lazy { SettingsViewModel(session, audio, library, storage) }
 
     private fun signIn() {
         session.session.value = SessionState.LoggedIn("Home", "Ana")
@@ -628,6 +632,39 @@ class SettingsViewModelTest {
 
             viewModel.onAction(SettingsAction.SetImages(null))
             assertThat(content().library.images).isEqualTo(ImagePreferences())
+        }
+
+    @Test
+    fun `the storage locations show, a move restarts the app once the copy is done`() =
+        runTest {
+            signIn()
+            val card = StorageLocation("/storage/card/files", "SD card", 10, current = false)
+            storage.locations.value = listOf(StorageLocation(null, null, 5, current = true), card)
+            assertThat(content().storageLocations.map { it.name }).containsExactly(null, "SD card").inOrder()
+
+            viewModel.onAction(SettingsAction.MoveDownloads(card))
+            storage.move.value = StorageMove.Moving(0.5f)
+            assertThat(content().storageMove).isEqualTo(StorageMove.Moving(0.5f))
+            assertThat(storage.restarts).isEqualTo(0)
+
+            storage.move.value = StorageMove.Done
+            assertThat(storage.moves).containsExactly(card)
+            assertThat(storage.restarts).isEqualTo(1)
+        }
+
+    @Test
+    fun `a failed move keeps the app running until the message is dismissed`() =
+        runTest {
+            signIn()
+            val card = StorageLocation("/storage/card/files", "SD card", 10, current = false)
+
+            viewModel.onAction(SettingsAction.MoveDownloads(card))
+            storage.move.value = StorageMove.Failed(noSpace = true)
+            assertThat(content().storageMove).isEqualTo(StorageMove.Failed(noSpace = true))
+
+            viewModel.onAction(SettingsAction.DismissMoveDownloads)
+            assertThat(content().storageMove).isEqualTo(StorageMove.Idle)
+            assertThat(storage.restarts).isEqualTo(0)
         }
 
     @Test

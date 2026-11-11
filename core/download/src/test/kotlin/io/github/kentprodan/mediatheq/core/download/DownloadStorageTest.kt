@@ -76,7 +76,12 @@ class DownloadStorageTest {
 
     @Test
     fun `a copy reports its progress up to the whole`() {
-        val from = Files.createTempDirectory("internal").toFile().apply { File(this, "a.exo").writeBytes(ByteArray(10)) }
+        val from =
+            Files
+                .createTempDirectory(
+                    "internal",
+                ).toFile()
+                .apply { File(this, "a.exo").writeBytes(ByteArray(10)) }
         val progress = mutableListOf<Float>()
 
         copyDownloads(from, File(card, "downloads"), Long.MAX_VALUE) { progress += it }
@@ -87,7 +92,12 @@ class DownloadStorageTest {
 
     @Test
     fun `too little room copies nothing`() {
-        val from = Files.createTempDirectory("internal").toFile().apply { File(this, "a.exo").writeBytes(ByteArray(10)) }
+        val from =
+            Files
+                .createTempDirectory(
+                    "internal",
+                ).toFile()
+                .apply { File(this, "a.exo").writeBytes(ByteArray(10)) }
 
         assertThrows(NotEnoughSpaceException::class.java) { copyDownloads(from, File(card, "downloads"), 5) {} }
 
@@ -96,7 +106,12 @@ class DownloadStorageTest {
 
     @Test
     fun `a failed copy leaves the downloads where they were`() {
-        val from = Files.createTempDirectory("internal").toFile().apply { File(this, "a.exo").writeBytes(ByteArray(10)) }
+        val from =
+            Files
+                .createTempDirectory(
+                    "internal",
+                ).toFile()
+                .apply { File(this, "a.exo").writeBytes(ByteArray(10)) }
         val blocked = File(card, "file").apply { writeText("not a folder") }
 
         assertThrows(IOException::class.java) { copyDownloads(from, File(blocked, "downloads"), Long.MAX_VALUE) {} }
@@ -154,7 +169,11 @@ class DownloadStorageTest {
 
     @Test
     fun `downloads on a card that is out are unavailable and paused, and come back with it`() {
-        preferences.edit().putString("path", card.path).putString("name", "SD card").commit()
+        preferences
+            .edit()
+            .putString("path", card.path)
+            .putString("name", "SD card")
+            .commit()
         val storage = storage()
         RobolectricUtil.runMainLooperUntil { manager.downloadsPaused }
 
@@ -222,9 +241,18 @@ class DownloadStorageTest {
         converted: Boolean,
     ) {
         val server = FakeDataSet().apply { newDefaultData().appendReadData(SIZE) }
-        val spec = DataSpec.Builder().setUri("mediatheq://download").setKey(key).setLength(SIZE.toLong()).build()
+        val spec =
+            DataSpec
+                .Builder()
+                .setUri("mediatheq://download")
+                .setKey(key)
+                .setLength(SIZE.toLong())
+                .build()
         CacheWriter(CacheDataSource(cache, FakeDataSource(server)), spec, null, null).cache()
-        cache.applyContentMetadataMutations(key, ContentMetadataMutations().set(CONVERTED_DOWNLOAD, if (converted) 1L else 0L))
+        cache.applyContentMetadataMutations(
+            key,
+            ContentMetadataMutations().set(CONVERTED_DOWNLOAD, if (converted) 1L else 0L),
+        )
     }
 
     private fun read(
@@ -232,7 +260,14 @@ class DownloadStorageTest {
         key: String,
     ): ByteArray {
         val source = CacheDataSource(cache, null)
-        source.open(DataSpec.Builder().setUri("mediatheq://download").setKey(key).setLength(SIZE.toLong()).build())
+        source.open(
+            DataSpec
+                .Builder()
+                .setUri("mediatheq://download")
+                .setKey(key)
+                .setLength(SIZE.toLong())
+                .build(),
+        )
         return DataSourceUtil.readToEnd(source).also { source.close() }
     }
 

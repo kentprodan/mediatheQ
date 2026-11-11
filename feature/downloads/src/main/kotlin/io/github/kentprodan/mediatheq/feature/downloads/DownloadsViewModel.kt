@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
+import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
@@ -23,6 +24,7 @@ class DownloadsViewModel
         library: LibraryRepository,
         private val playback: PlaybackConnection,
         private val trackTaps: TrackTaps,
+        storage: DownloadStorageRepository,
     ) : ViewModel() {
         val uiState: StateFlow<DownloadsUiState> =
             combine(
@@ -30,11 +32,13 @@ class DownloadsViewModel
                 downloadRepository.freeBytes,
                 library.albums().map { albums -> albums.associateBy { it.id } },
                 library.allPlaylists().map { playlists -> playlists.associateBy { it.id } },
-            ) { downloads, freeBytes, albums, playlists ->
+                storage.available,
+            ) { downloads, freeBytes, albums, playlists, available ->
                 if (downloads.isEmpty()) {
                     DownloadsUiState.Empty
                 } else {
                     downloadsContent(downloads, albums, playlists, freeBytes)
+                        .copy(unavailableOn = if (available) null else storage.locationName.orEmpty())
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DownloadsUiState.Loading)
 

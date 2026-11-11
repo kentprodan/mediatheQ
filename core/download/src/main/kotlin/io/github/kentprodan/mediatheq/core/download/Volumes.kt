@@ -45,7 +45,8 @@ internal class AndroidVolumes
                     ?.let { Volume(dir, it.getDescription(context)) }
             }
 
-        override fun isMounted(dir: File): Boolean = Environment.getExternalStorageState(dir) == Environment.MEDIA_MOUNTED
+        override fun isMounted(dir: File): Boolean =
+            Environment.getExternalStorageState(dir) == Environment.MEDIA_MOUNTED
 
         override val changes: Flow<Unit> =
             callbackFlow {

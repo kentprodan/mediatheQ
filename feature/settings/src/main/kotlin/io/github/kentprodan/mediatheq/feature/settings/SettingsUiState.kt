@@ -24,6 +24,8 @@ import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
+import io.github.kentprodan.mediatheq.core.data.StorageLocation
+import io.github.kentprodan.mediatheq.core.data.StorageMove
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.TransitionsPreferences
@@ -50,6 +52,9 @@ sealed interface SettingsUiState {
         val artistSectionsDraft: OrganizeDraft<ArtistSection>? = null,
         /** The Genre page's "Page content order" dialog while it is open (#134). */
         val genreSectionsDraft: OrganizeDraft<GenreSection>? = null,
+        /** Where downloads can live (#146); empty without a removable volume. */
+        val storageLocations: List<StorageLocation> = emptyList(),
+        val storageMove: StorageMove = StorageMove.Idle,
     ) : SettingsUiState {
         /** Downloads left the navigation: the hub offers "Manage offline files" instead (#122). */
         val showsManageOfflineFiles: Boolean get() = MainNavEntry.Downloads !in library.navigation.entries
@@ -328,6 +333,13 @@ sealed interface SettingsAction {
 
     /** Offline, cache, and download -> General (#144): back to its defaults. */
     data object RestoreOfflineDefaults : SettingsAction
+
+    /** Moves the downloads to [location] (#146); the app restarts once they are copied. */
+    data class MoveDownloads(
+        val location: StorageLocation,
+    ) : SettingsAction
+
+    data object DismissMoveDownloads : SettingsAction
 
     /** Download quality (#144). */
     data class SetDownloadQuality(

@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
@@ -47,8 +48,9 @@ class DownloadsViewModelTest {
         )
     private val library = FakeLibraryRepository().apply { albums.value = listOf(albumA) }
     private val playback = FakePlaybackConnection()
+    private val storage = FakeDownloadStorageRepository().apply { locationName = "SD card" }
     private val trackTaps by lazy { TrackTaps(playback, FakeLibraryPreferencesRepository()) }
-    private val viewModel by lazy { DownloadsViewModel(repository, library, playback, trackTaps) }
+    private val viewModel by lazy { DownloadsViewModel(repository, library, playback, trackTaps, storage) }
 
     private suspend fun content(): DownloadsUiState.Content {
         lateinit var content: DownloadsUiState.Content
@@ -69,6 +71,17 @@ class DownloadsViewModelTest {
             assertThat(content.albums).containsExactly(DownloadedAlbum(albumA, listOf(a1), 100, 3.minutes))
             assertThat(content.songs.map { it.track }).containsExactly(song)
             assertThat(content.playlists).isEmpty()
+        }
+
+    @Test
+    fun `with the SD card out the downloads stay listed with a notice naming the card`() =
+        runTest {
+            assertThat(content().unavailableOn).isNull()
+
+            storage.available.value = false
+
+            assertThat(content().unavailableOn).isEqualTo("SD card")
+            assertThat(content().albums).isNotEmpty()
         }
 
     @Test
