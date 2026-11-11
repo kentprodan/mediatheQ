@@ -32,3 +32,9 @@ though, is one file the player reads back from the download cache by its key, sn
 - Risk: with no length, a conversion the server cuts off but ends cleanly would be taken as complete (a short file). Not
   seen so far; a check of the decoded duration against the track's would catch it if it ever shows.
 - Playing a converted Atmos download does not show the "Dolby Atmos not available" note yet (#89).
+- Update 2026-11-11 (#144): Download quality. Original is the rule above; Opus 320 / 256 / 192 always ask for one
+  converted Ogg file at that bitrate (a profile with no direct play at all: the Jellyfin client then sends no direct
+  play profile, since an empty one means "any" to the server). `CONVERTED_DOWNLOAD` now holds the conversion's bitrate
+  in kb/s (0 = the original; 1, from before, reads as 256), so Now Playing shows the real one. The quality is read
+  when the download's data source opens: a paused original resumed after a change to a bitrate fails as "cannot
+  continue" and must be downloaded again.
