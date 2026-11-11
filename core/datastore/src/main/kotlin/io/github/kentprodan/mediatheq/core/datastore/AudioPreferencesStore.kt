@@ -42,6 +42,7 @@ class AudioPreferencesStore
                                 stopRepeatOneOnSkip = prefs[PB_STOP_REPEAT_ONE],
                                 retainPlayerState = prefs[PB_RETAIN_STATE],
                                 weightedShuffle = prefs[PB_WEIGHTED_SHUFFLE],
+                                bluetoothLyrics = prefs[PB_BLUETOOTH_LYRICS],
                             ),
                         outside =
                             StoredOutsideControls(
@@ -117,6 +118,7 @@ class AudioPreferencesStore
                 put(PB_STOP_REPEAT_ONE, behavior.stopRepeatOneOnSkip)
                 put(PB_RETAIN_STATE, behavior.retainPlayerState)
                 put(PB_WEIGHTED_SHUFFLE, behavior.weightedShuffle)
+                put(PB_BLUETOOTH_LYRICS, behavior.bluetoothLyrics)
             }
         }
 
@@ -203,6 +205,7 @@ class AudioPreferencesStore
             val PB_STOP_REPEAT_ONE = booleanPreferencesKey("pb_stop_repeat_one")
             val PB_RETAIN_STATE = booleanPreferencesKey("pb_retain_state")
             val PB_WEIGHTED_SHUFFLE = booleanPreferencesKey("pb_weighted_shuffle")
+            val PB_BLUETOOTH_LYRICS = booleanPreferencesKey("pb_bluetooth_lyrics")
             val AF_SHORT_ACTION = stringPreferencesKey("af_short_action")
             val AF_NO_RESUME = booleanPreferencesKey("af_no_resume")
             val HB_SINGLE = stringPreferencesKey("hb_single")
@@ -275,4 +278,5 @@ data class StoredPlaybackBehavior(
     val stopRepeatOneOnSkip: Boolean? = null,
     val retainPlayerState: Boolean? = null,
     val weightedShuffle: Boolean? = null,
+    val bluetoothLyrics: Boolean? = null,
 )

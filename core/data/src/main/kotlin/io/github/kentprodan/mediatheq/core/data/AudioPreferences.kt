@@ -34,9 +34,13 @@ enum class BehaviorSwitch {
     StopRepeatOneOnSkip,
     RetainPlayerState,
     WeightedShuffle,
+    BluetoothLyrics,
 }
 
-/** Settings -> Playback -> Playback (#138): how the queue and the transport buttons behave, everywhere alike. */
+/**
+ * Settings -> Playback -> Playback (#138): how the queue and the transport buttons behave, everywhere alike, and
+ * what Bluetooth displays show (#143).
+ */
 data class PlaybackBehavior(
     /** Play next entries go after earlier Play next entries, not right after the current track. */
     val preservePlayNextOrder: Boolean = false,
@@ -52,6 +56,8 @@ data class PlaybackBehavior(
     val retainPlayerState: Boolean = false,
     /** Shuffle prefers tracks not played recently, favorites and higher ratings; off, uniform random. */
     val weightedShuffle: Boolean = true,
+    /** Bluetooth displays show the current synced lyrics line as the title (#143, ADR 0034). */
+    val bluetoothLyrics: Boolean = false,
 ) {
     fun isOn(switch: BehaviorSwitch): Boolean =
         when (switch) {
@@ -62,6 +68,7 @@ data class PlaybackBehavior(
             BehaviorSwitch.StopRepeatOneOnSkip -> stopRepeatOneOnSkip
             BehaviorSwitch.RetainPlayerState -> retainPlayerState
             BehaviorSwitch.WeightedShuffle -> weightedShuffle
+            BehaviorSwitch.BluetoothLyrics -> bluetoothLyrics
         }
 
     fun with(
@@ -76,6 +83,7 @@ data class PlaybackBehavior(
             BehaviorSwitch.StopRepeatOneOnSkip -> copy(stopRepeatOneOnSkip = on)
             BehaviorSwitch.RetainPlayerState -> copy(retainPlayerState = on)
             BehaviorSwitch.WeightedShuffle -> copy(weightedShuffle = on)
+            BehaviorSwitch.BluetoothLyrics -> copy(bluetoothLyrics = on)
         }
 }
 

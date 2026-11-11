@@ -318,6 +318,80 @@ class QueuePlayerTest {
     }
 
     @Test
+    fun `a lyrics line is the title and the real title the display title, for the getter, listeners and controllers`() {
+        start()
+        val seen = mutableListOf<String?>()
+        player.addListener(
+            object : Player.Listener {
+                override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) {
+                    seen += mediaMetadata.title?.toString()
+                }
+            },
+        )
+        val (session, controller) = connect()
+
+        player.setLyricsTitle("A line of lyrics")
+        assertThat(player.mediaMetadata.title.toString()).isEqualTo("A line of lyrics")
+        assertThat(player.mediaMetadata.displayTitle.toString()).isEqualTo("Track 1")
+        assertThat(player.mediaMetadata.artist).isEqualTo(exoPlayer.mediaMetadata.artist)
+        // The queue's item keeps its own title: the app's screens read that.
+        assertThat(
+            player.currentMediaItem!!
+                .mediaMetadata.title
+                .toString(),
+        ).isEqualTo("Track 1")
+        RobolectricUtil.runMainLooperUntil { controller.mediaMetadata.title?.toString() == "A line of lyrics" }
+        assertThat(
+            controller.currentMediaItem!!
+                .mediaMetadata.title
+                .toString(),
+        ).isEqualTo("Track 1")
+
+        player.setLyricsTitle(null)
+        assertThat(player.mediaMetadata.title.toString()).isEqualTo("Track 1")
+        assertThat(player.mediaMetadata.displayTitle).isNull()
+        RobolectricUtil.runMainLooperUntil { controller.mediaMetadata.title?.toString() == "Track 1" }
+        assertThat(seen).containsExactly("A line of lyrics", "Track 1").inOrder()
+        controller.release()
+        session.release()
+    }
+
+    @Test
+    fun `a lyrics line ends with its track, the next track never carries it`() {
+        start()
+        // What a listener reads during the transition, as the session does to publish the new track.
+        val duringTransition = mutableListOf<String?>()
+        val events = mutableListOf<String?>()
+        player.addListener(
+            object : Player.Listener {
+                override fun onMediaItemTransition(
+                    mediaItem: MediaItem?,
+                    reason: Int,
+                ) {
+                    duringTransition += player.mediaMetadata.title?.toString()
+                }
+
+                override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) {
+                    events += mediaMetadata.title?.toString()
+                }
+            },
+        )
+        player.setLyricsTitle("A line of lyrics")
+
+        player.seekToNextMediaItem()
+        RobolectricUtil.runMainLooperUntil { duringTransition.isNotEmpty() && events.size >= 2 }
+
+        assertThat(duringTransition).containsExactly("Track 2")
+        assertThat(events).containsExactly("A line of lyrics", "Track 2").inOrder()
+        assertThat(player.mediaMetadata.displayTitle).isNull()
+
+        // A line for the new track shows again.
+        player.setLyricsTitle("A line of lyrics")
+        assertThat(player.mediaMetadata.title.toString()).isEqualTo("A line of lyrics")
+        assertThat(player.mediaMetadata.displayTitle.toString()).isEqualTo("Track 2")
+    }
+
+    @Test
     fun `a skip ends a running fade out first`() {
         start()
         player.seekToNext()

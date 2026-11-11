@@ -94,6 +94,7 @@ class DefaultAudioPreferencesRepositoryTest {
                     stopRepeatOneOnSkip = false,
                     retainPlayerState = true,
                     weightedShuffle = false,
+                    bluetoothLyrics = true,
                 )
             BehaviorSwitch.entries.forEach { repository.setBehavior(it, behavior.isOn(it)) }
             repository.setForceInstantTranscoding(true)

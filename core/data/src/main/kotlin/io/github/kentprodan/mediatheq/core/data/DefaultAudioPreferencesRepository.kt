@@ -79,6 +79,7 @@ class DefaultAudioPreferencesRepository
                     stopRepeatOneOnSkip = behavior.stopRepeatOneOnSkip,
                     retainPlayerState = behavior.retainPlayerState,
                     weightedShuffle = behavior.weightedShuffle,
+                    bluetoothLyrics = behavior.bluetoothLyrics,
                 ),
             )
 
@@ -172,6 +173,7 @@ class DefaultAudioPreferencesRepository
                 stopRepeatOneOnSkip = stored.stopRepeatOneOnSkip ?: defaults.stopRepeatOneOnSkip,
                 retainPlayerState = stored.retainPlayerState ?: defaults.retainPlayerState,
                 weightedShuffle = stored.weightedShuffle ?: defaults.weightedShuffle,
+                bluetoothLyrics = stored.bluetoothLyrics ?: defaults.bluetoothLyrics,
             )
         }
     }
