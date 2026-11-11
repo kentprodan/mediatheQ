@@ -94,7 +94,6 @@ internal interface DownloadModule {
             databaseProvider: DatabaseProvider,
             @DownloadCache cache: Cache,
             @DownloadSource source: DataSource.Factory,
-            storage: DownloadStorage,
         ): DownloadManager =
             DownloadManager(
                 context,
@@ -105,8 +104,6 @@ internal interface DownloadModule {
             ).apply {
                 maxParallelDownloads = AudioPreferences.DEFAULT_PARALLEL_DOWNLOADS
                 requirements = requirements(unmeteredOnly = true)
-                // Before the stored downloads start: with the card out they would only fail (#146).
-                if (!storage.available.value) pauseDownloads()
             }
     }
 }

@@ -28,9 +28,10 @@ Two Media3 behaviors decide the design:
   folder in any location not in use is deleted: what a finished move left behind, or a copy a killed move left.
 - **The cache is guarded** (`GuardedCache`): no call reaches the `SimpleCache` while the location's volume is not
   mounted (mount broadcasts, `Environment.getExternalStorageState`) or its folder is gone. Calls that write throw a
-  `CacheException`, reads answer "nothing cached". The cache opens on first use with the volume there, so a card put
+  `CacheException`, reads answer "nothing cached", so streams go to the server. No move starts from a missing card. The cache opens on first use with the volume there, so a card put
   in after the app started works without a restart.
-- **While the card is out**, downloads are paused (also before the stored ones start at app start), `completedIds` is
+- **While the card is out** (from the eject broadcast on), downloads are paused (the download service pauses them again
+  after Media3 resumes them on start; they resume only while the service runs), `completedIds` is
   empty and `isDownloaded` false: offline mode lists them as missing, online they stream. The Downloads tab keeps
   listing them with a notice; free space shows 0. A new download waits paused until the card is back. Nothing is
   deleted; everything comes back when the card does.

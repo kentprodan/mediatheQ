@@ -77,14 +77,29 @@ internal class DownloadStorage
             scope.launch { volumes.changes.collect { availableState.value = isMounted() } }
             // Dispatched, not immediate: the manager may be under construction right now (it needs this class).
             scope.launch(Dispatchers.Main) {
-                combine(available, move) { available, move ->
-                    !available || move is StorageMove.Moving ||
-                        move == StorageMove.Done
-                }.distinctUntilChanged()
-                    .collect { paused -> manager.get().run { if (paused) pauseDownloads() else resumeDownloads() } }
+                combine(available, move) { _, _ -> holdsDownloads() }
+                    .distinctUntilChanged()
+                    .collect { hold ->
+                        // A new manager starts paused, and the service resumes it when it starts (after the local
+                        // network check): resumed here only while the service runs.
+                        if (hold) manager.get().pauseDownloads() else if (serviceRunning) manager.get().resumeDownloads()
+                    }
             }
-            // A copy left by a move that did not finish, or the folder a finished move left behind.
-            scope.launch(ioDispatcher) { otherFilesDirs().forEach { File(it, DOWNLOADS).deleteRecursively() } }
+        }
+
+        // A copy left by a move that did not finish, or the folder a finished move left behind.
+        private val cleanup = scope.launch(ioDispatcher) { otherFilesDirs().forEach { File(it, DOWNLOADS).deleteRecursively() } }
+
+        @Volatile private var serviceRunning = false
+
+        /** Downloads stay paused: the card is out, or a move is copying or done (the app restarts). */
+        private fun holdsDownloads() =
+            !available.value || move.value is StorageMove.Moving || move.value == StorageMove.Done
+
+        /** The download service started (it has just resumed the manager) or stopped; main thread. */
+        fun onServiceRunning(running: Boolean) {
+            serviceRunning = running
+            if (running && holdsDownloads()) manager.get().pauseDownloads()
         }
 
         override val locations: Flow<List<StorageLocation>> =
@@ -110,6 +125,8 @@ internal class DownloadStorage
             scope.launch {
                 moveState.value =
                     try {
+                        if (!available.value) throw IOException("The downloads' volume is missing")
+                        cleanup.join()
                         withContext(Dispatchers.Main) { manager.get().awaitPaused() }
                         val target = location.id?.let(::File) ?: context.filesDir
                         withContext(ioDispatcher) {

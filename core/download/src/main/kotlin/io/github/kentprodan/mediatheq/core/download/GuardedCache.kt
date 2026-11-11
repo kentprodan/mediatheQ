@@ -15,6 +15,7 @@ import java.util.TreeSet
  * The download cache, touched only while its volume is there (#146, ADR 0035). A SimpleCache that misses one file drops
  * every span whose file is gone, which on a removed SD card would erase the whole index; here nothing reaches it then.
  * Opened on first use with the volume present, so a card put in after the app started works without a restart.
+ * Streams read through it too: with the card out the non-blocking read answers "not cached" and they go upstream.
  * shortcut: a card pulled between the check and SimpleCache's own read can still drop spans; a lock with the mount
  * broadcast if that shows up.
  */
@@ -67,7 +68,7 @@ internal class GuardedCache(
         key: String,
         position: Long,
         length: Long,
-    ): CacheSpan? = required().startReadWriteNonBlocking(key, position, length)
+    ): CacheSpan? = cache()?.startReadWriteNonBlocking(key, position, length)
 
     override fun startFile(
         key: String,

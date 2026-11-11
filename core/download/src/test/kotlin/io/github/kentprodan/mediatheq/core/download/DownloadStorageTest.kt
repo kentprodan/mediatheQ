@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.download
 
 import android.app.Application
 import android.content.Context
+import android.os.Looper
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSourceUtil
@@ -32,6 +33,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowStatFs
 import java.io.File
 import java.io.IOException
@@ -175,8 +177,9 @@ class DownloadStorageTest {
             .putString("name", "SD card")
             .commit()
         val storage = storage()
-        RobolectricUtil.runMainLooperUntil { manager.downloadsPaused }
+        serviceStarts(storage)
 
+        assertThat(manager.downloadsPaused).isTrue()
         assertThat(storage.available.value).isFalse()
         assertThat(storage.locationName).isEqualTo("SD card")
         assertThat(storage.filesDir).isEqualTo(context.filesDir)
@@ -211,6 +214,7 @@ class DownloadStorageTest {
     fun `a move that fails keeps the location and resumes the downloads`() {
         val blocked = File(card, "file").apply { writeText("not a folder") }
         val storage = storage()
+        serviceStarts(storage)
         File(storage.downloadDir, "a.exo").apply { parentFile!!.mkdirs() }.writeBytes(ByteArray(10))
 
         storage.moveTo(StorageLocation(blocked.path, "SD card", 0, current = false))
@@ -223,8 +227,49 @@ class DownloadStorageTest {
         assertThat(storage.move.value).isEqualTo(StorageMove.Idle)
     }
 
-    private fun storage() =
-        DownloadStorage(
+    @Test
+    fun `without the download service nothing resumes the downloads`() {
+        storage()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertThat(manager.downloadsPaused).isTrue()
+    }
+
+    @Test
+    fun `no move from a card that is out, where an empty copy would replace every download`() {
+        preferences.edit().putString("path", card.path).commit()
+        val storage = storage()
+
+        storage.moveTo(StorageLocation(null, null, Long.MAX_VALUE, current = false))
+
+        assertThat(storage.move.value).isEqualTo(StorageMove.Failed(noSpace = false))
+        assertThat(preferences.getString("path", null)).isEqualTo(card.path)
+    }
+
+    @Test
+    fun `with the card out a stream reads from the server`() {
+        val guarded = GuardedCache(card, { false }) { open(File(card, "downloads")) }
+        val server = FakeDataSet().apply { setRandomData("song", SIZE) }
+        val source = CacheDataSource(guarded, FakeDataSource(server))
+
+        source.open(DataSpec.Builder().setUri("song").setKey("s1:t2").build())
+        val bytes = DataSourceUtil.readToEnd(source).also { source.close() }
+
+        assertThat(bytes).hasLength(SIZE)
+    }
+
+    /** What the service does when it starts: DownloadService resumes the manager, then tells the storage. */
+    private fun serviceStarts(storage: DownloadStorage) {
+        shadowOf(Looper.getMainLooper()).idle()
+        manager.resumeDownloads()
+        storage.onServiceRunning(true)
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    private fun storage(): DownloadStorage {
+        // The manager first: it waits on the main looper, which must not happen inside a looper task.
+        check(manager.isInitialized)
+        return DownloadStorage(
             context,
             preferences,
             volumes,
@@ -232,6 +277,7 @@ class DownloadStorageTest {
             CoroutineScope(Dispatchers.Unconfined),
             Dispatchers.Unconfined,
         )
+    }
 
     private fun open(folder: File): Cache = SimpleCache(folder, NoOpCacheEvictor(), database).also { caches += it }
 

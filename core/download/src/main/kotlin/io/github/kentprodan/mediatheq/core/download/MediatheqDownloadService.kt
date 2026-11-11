@@ -30,6 +30,19 @@ class MediatheqDownloadService :
     ) {
     @Inject lateinit var manager: DownloadManager
 
+    @Inject internal lateinit var storage: DownloadStorage
+
+    // DownloadService resumes the manager when it starts: paused again while the card is out or a move runs (#146).
+    override fun onCreate() {
+        super.onCreate()
+        storage.onServiceRunning(true)
+    }
+
+    override fun onDestroy() {
+        storage.onServiceRunning(false)
+        super.onDestroy()
+    }
+
     private val notifications by lazy { DownloadNotificationHelper(this, CHANNEL_ID) }
 
     override fun getDownloadManager(): DownloadManager = manager

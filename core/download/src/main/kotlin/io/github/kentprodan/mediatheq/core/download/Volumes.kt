@@ -45,8 +45,12 @@ internal class AndroidVolumes
                     ?.let { Volume(dir, it.getDescription(context)) }
             }
 
+        /** Volumes being ejected: still mounted, but their files are left alone from then on. */
+        private val ejecting = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
         override fun isMounted(dir: File): Boolean =
-            Environment.getExternalStorageState(dir) == Environment.MEDIA_MOUNTED
+            Environment.getExternalStorageState(dir) == Environment.MEDIA_MOUNTED &&
+                ejecting.none { dir.path.startsWith(it) }
 
         override val changes: Flow<Unit> =
             callbackFlow {
@@ -56,12 +60,19 @@ internal class AndroidVolumes
                             context: Context,
                             intent: Intent,
                         ) {
+                            intent.data?.path?.let { volume ->
+                                if (intent.action == Intent.ACTION_MEDIA_EJECT) {
+                                    ejecting += volume
+                                } else if (intent.action == Intent.ACTION_MEDIA_MOUNTED) {
+                                    ejecting -= volume
+                                }
+                            }
                             trySend(Unit)
                         }
                     }
                 val filter =
                     IntentFilter().apply {
-                        // Eject comes before the unmount: the files are left alone from then on.
+
                         MOUNT_ACTIONS.forEach(::addAction)
                         addDataScheme("file")
                     }
@@ -101,7 +112,13 @@ internal fun copyDownloads(
     var copied = 0L
     try {
         files.forEach { file ->
-            val copy = file.copyTo(File(to, file.relativeTo(from).path))
+            val copy = File(to, file.relativeTo(from).path).apply { parentFile?.mkdirs() }
+            file.inputStream().use { input ->
+                java.io.FileOutputStream(copy).use { output ->
+                    input.copyTo(output)
+                    output.fd.sync()
+                }
+            }
             if (copy.length() != file.length()) throw java.io.IOException("Incomplete copy of ${file.name}")
             copied += file.length()
             onProgress(copied.toFloat() / total)
