@@ -537,4 +537,37 @@
     <string name="settings_home_show">Show %1$s</string>
     <string name="settings_home_shown">Shown</string>
     <string name="settings_home_hidden">Hidden</string>
+    <string name="settings_sync_manager">Sync manager</string>
+    <string name="settings_sync_all">Sync all</string>
+    <string name="settings_sync_retry">Check %1$s again</string>
+    <string name="settings_sync_checking">Checking</string>
+    <string name="settings_sync_online">Online</string>
+    <string name="settings_sync_offline">Offline</string>
+    <string name="settings_sync_running">Running</string>
+    <string name="settings_sync_never">Never synced</string>
+    <string name="settings_sync_successful">Successful</string>
+    <string name="settings_sync_failed">Failed: %1$s</string>
+    <string name="settings_sync_progress">%1$s: %2$d of %3$d</string>
+    <string name="settings_sync_last_line">%1$s · %2$s in %3$s</string>
+    <plurals name="settings_sync_seconds">
+        <item quantity="one">%1$d second</item>
+        <item quantity="other">%1$d seconds</item>
+    </plurals>
+    <string name="settings_sync_when_active">Syncs when it becomes the active provider</string>
+    <string name="settings_sync_reason_no_network">No network: sync needs a connection to the server.</string>
+    <string name="settings_sync_reason_offline_mode">Offline mode is on: turn it off to sync.</string>
+    <string name="settings_sync_reason_unreachable">The active server does not answer. Check it again with the refresh button.</string>
+    <string name="settings_sync_step_album_artists">Album artists</string>
+    <string name="settings_sync_step_albums">Albums</string>
+    <string name="settings_sync_step_tracks">Tracks</string>
+    <string name="settings_sync_step_playlists">Playlists</string>
+    <string name="settings_sync_step_playlist_entries">Playlist tracks</string>
+    <string name="settings_sync_error_network">server unreachable</string>
+    <string name="settings_sync_error_unauthorized">signed out, sign in again</string>
+    <string name="settings_sync_error_forbidden">access denied</string>
+    <string name="settings_sync_error_not_found">not found on the server</string>
+    <string name="settings_sync_error_server">server error %1$d</string>
+    <string name="settings_sync_error_client">request refused (%1$d)</string>
+    <string name="settings_sync_error_storage">phone storage error</string>
+    <string name="settings_sync_error_unknown">unexpected error</string>
 </resources>

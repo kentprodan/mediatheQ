@@ -53,7 +53,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
 ) {
     val back: () -> Unit = { navigator.back() }
     val openOutputs: () -> Unit = { navigator.navigateTo(OutputSettingsKey) }
-    entry<SettingsKey> { SettingsHubRoute(onOpen = { navigator.navigateTo(it.key) }, onBack = back) }
+    entry<SettingsKey> { SettingsHubRoute(onOpen = { entry -> entry.key?.let(navigator::navigateTo) }, onBack = back) }
     entry<InterfaceSettingsKey> {
         SettingsPageRoute(
             SettingsPage.Interface,
@@ -140,8 +140,8 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<LicensesKey> { LicensesRoute(licensesReport, licenseNotices, onBack = back) }
 }
 
-/** The page a hub entry opens. */
-internal val SettingsHubEntry.key: NavKey
+/** The page a hub entry opens; `null` for Sync manager, a sheet over the hub. */
+internal val SettingsHubEntry.key: NavKey?
     get() =
         when (this) {
             SettingsHubEntry.Interface -> InterfaceSettingsKey
@@ -150,5 +150,6 @@ internal val SettingsHubEntry.key: NavKey
             SettingsHubEntry.Advanced -> AdvancedSettingsKey
             SettingsHubEntry.ManageOfflineFiles -> DownloadsKey
             SettingsHubEntry.Providers -> ProvidersSettingsKey
+            SettingsHubEntry.SyncManager -> null
             SettingsHubEntry.About -> AboutSettingsKey
         }
