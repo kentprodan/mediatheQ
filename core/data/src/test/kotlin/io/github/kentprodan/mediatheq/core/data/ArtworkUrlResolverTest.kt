@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
@@ -43,6 +44,14 @@ class ArtworkUrlResolverTest {
         assertThat(artworkWidthBucket(0)).isEqualTo(512)
     }
 
+    @Test
+    fun `high quality images ask one size up, at most 2048`() {
+        assertThat(listOf(1, 129, 300, 513, 1500, 4000).map { artworkWidthBucket(it, highQuality = true) })
+            .containsExactly(256, 512, 1024, 2048, 2048, 2048)
+            .inOrder()
+        assertThat(artworkWidthBucket(null, highQuality = true)).isEqualTo(1024)
+    }
+
     @get:Rule
     val folder = TemporaryFolder()
 
@@ -55,7 +64,7 @@ class ArtworkUrlResolverTest {
         val covers =
             DownloadedCovers(downloads, library, source, accountStore, folder.root, dispatcher, backgroundScope)
                 .also { it.start() }
-        return ArtworkUrlResolver(accountStore, source, backgroundScope, covers)
+        return ArtworkUrlResolver(accountStore, source, backgroundScope, covers, FakeLibraryPreferencesRepository())
     }
 
     @Test
