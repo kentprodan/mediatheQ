@@ -33,6 +33,9 @@ data class LibraryPreferences(
     val ratingMode: RatingMode = RatingMode.WholeStars,
     /** Only downloads show and play, also with a network (#63); without one, offline mode is on anyway. */
     val offlineMode: Boolean = false,
+    /** When offline mode turns on by itself (#144). */
+    val autoOffline: AutoOffline = AutoOffline.NoNetwork,
+    val images: ImagePreferences = ImagePreferences(),
     val theme: ThemePreferences = ThemePreferences(),
     val navigation: NavigationPreferences = NavigationPreferences(),
     val mediaLists: MediaListPreferences = MediaListPreferences(),

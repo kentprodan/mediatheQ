@@ -13,8 +13,27 @@ import javax.inject.Provider
 import javax.inject.Singleton
 
 /**
- * Offline mode (#63): on with the setting, and on by itself without a network. While it is on, library reads keep only
- * completed downloads (ADR 0021); turning it off shows the whole library again at once, without a sync.
+ * Offline mode turned on while there is a network (#144): by the switch, or by [AutoOffline.NotOnWifi] on a metered
+ * network. The player sees no network then; without one it plays only downloads anyway.
+ */
+internal fun forcedOffline(
+    switchOn: Boolean,
+    auto: AutoOffline,
+    metered: Boolean,
+): Boolean = switchOn || (auto == AutoOffline.NotOnWifi && metered)
+
+/** Offline mode as the library sees it: [forcedOffline], or no network unless automatic offline mode is Never. */
+internal fun offlineActive(
+    switchOn: Boolean,
+    auto: AutoOffline,
+    online: Boolean,
+    metered: Boolean,
+): Boolean = forcedOffline(switchOn, auto, metered) || (!online && auto != AutoOffline.Never)
+
+/**
+ * Offline mode (#63, #144): on with the setting, and on by itself per Automatic offline mode (no network, or not on
+ * Wi-Fi). While it is on, library reads keep only completed downloads (ADR 0021); turning it off shows the whole
+ * library again at once, without a sync.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
@@ -26,8 +45,16 @@ class OfflineFilter
         // A Provider: the download repository reads the library's tracks itself.
         private val downloads: Provider<DownloadRepository>,
     ) {
+        private val settings = preferences.preferences.map { it.offlineMode to it.autoOffline }.distinctUntilChanged()
+
         val active: Flow<Boolean> =
-            combine(preferences.preferences.map { it.offlineMode }, network.online) { on, online -> on || !online }
+            combine(settings, network.online, network.meteredChanges) { (on, auto), online, metered ->
+                offlineActive(on, auto, online, metered)
+            }.distinctUntilChanged()
+
+        /** [forcedOffline] as it changes: what the player treats as no network, besides having none (#144). */
+        val forced: Flow<Boolean> =
+            combine(settings, network.meteredChanges) { (on, auto), metered -> forcedOffline(on, auto, metered) }
                 .distinctUntilChanged()
 
         /** [query] over everything, or over the item ids of completed downloads while offline mode is on. */

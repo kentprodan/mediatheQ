@@ -17,6 +17,15 @@ interface AudioPreferencesRepository {
 
     suspend fun setDownloadsUnmeteredOnly(on: Boolean)
 
+    /** Ignored outside [AudioPreferences.DOWNLOAD_QUALITIES] (#144). */
+    suspend fun setDownloadQuality(quality: StreamingQuality)
+
+    /** Ignored outside [AudioPreferences.PARALLEL_DOWNLOADS] (#144). */
+    suspend fun setMaxParallelDownloads(count: Int)
+
+    /** Back to the Media page's defaults (#144): Wi-Fi only, original quality, two at once. */
+    suspend fun restoreDownloadDefaults()
+
     /** Settings -> Playback -> Decoding and transcoding (#138). */
     suspend fun setForceInstantTranscoding(on: Boolean)
 

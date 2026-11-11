@@ -24,13 +24,38 @@
     <string name="settings_normalization_track">Track</string>
     <string name="settings_normalization_off">Off</string>
 
-    <string name="settings_storage">Downloads and storage</string>
+    <string name="settings_st_general">General</string>
+    <string name="settings_st_general_summary">Offline mode and when it turns on by itself.</string>
+    <string name="settings_st_media">Media</string>
+    <string name="settings_st_media_summary">Downloads: network, quality, how many at once.</string>
+    <string name="settings_st_playback">Playback</string>
+    <string name="settings_st_playback_summary">The cache of recently played files.</string>
+    <string name="settings_st_images">Images</string>
+    <string name="settings_st_images_summary">Cover cache, mobile data and size.</string>
+    <string name="settings_st_offline">Offline</string>
+    <string name="settings_st_auto_offline">Automatic offline mode</string>
+    <string name="settings_st_auto_no_network">No network</string>
+    <string name="settings_st_auto_not_wifi">Not on Wi-Fi</string>
+    <string name="settings_st_auto_never">Never</string>
+    <string name="settings_st_downloads">Downloads</string>
+    <string name="settings_st_download_quality">Download quality</string>
+    <string name="settings_st_parallel">Max simultaneous downloads</string>
+    <string name="settings_st_parallel_summary">Lowering it lets running downloads finish first.</string>
+    <string name="settings_st_cache">Playback cache</string>
+    <string name="settings_st_cache_intro">Recently played files are kept so they play again without the network. Downloads are separate and never removed by the cache.</string>
+    <string name="settings_st_covers">Covers</string>
+    <string name="settings_st_persistent">Persistent image cache</string>
+    <string name="settings_st_persistent_summary">Covers are kept in app storage, which the system never clears. A change clears the image cache at the next app start.</string>
+    <string name="settings_st_images_wifi">Wi-Fi only image downloads</string>
+    <string name="settings_st_images_wifi_summary">On mobile data only covers already cached show.</string>
+    <string name="settings_st_hq">High quality images</string>
+    <string name="settings_st_hq_summary">Larger covers from the server: sharper, but more storage and memory.</string>
     <string name="settings_offline_mode">Offline mode</string>
-    <string name="settings_offline_mode_summary">Show and play only downloads. On by itself without a network.</string>
+    <string name="settings_offline_mode_summary">Show and play only downloads.</string>
     <string name="settings_downloads_unmetered">Download on Wi-Fi only</string>
     <string name="settings_downloads_unmetered_summary">Off: downloads also use mobile data.</string>
     <string name="settings_cache">Streaming cache</string>
-    <string name="settings_cache_summary">Recently played files are kept so they play again without the network.</string>
+
     <string name="settings_cache_gb">%1$d GB</string>
 
     <string name="settings_appearance">Appearance</string>

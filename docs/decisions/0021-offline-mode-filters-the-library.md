@@ -36,3 +36,8 @@ from Room through `LibraryRepository` and `PlaylistRepository`.
 - New list queries must take the same two parameters, or they would leak non-downloaded items into offline mode.
 - Add to playlist lists every playlist, also in offline mode (`LibraryRepository.allPlaylists`): adding needs the
   server, not downloads.
+- Update 2026-11-11 (#144): Automatic offline mode decides when offline mode turns on by itself: No network (as
+  before), Not on Wi-Fi (also on any metered network: mobile data, a metered hotspot, Tailscale over mobile data;
+  `NetworkMonitor.meteredChanges`, the same rule as Wi-Fi only downloads) or Never. `OfflineFilter.active` is the
+  library's view; `OfflineFilter.forced` (the switch and Not on Wi-Fi, without the network part) is what
+  `OfflineModeNetwork` gives the player, which adds no network itself.

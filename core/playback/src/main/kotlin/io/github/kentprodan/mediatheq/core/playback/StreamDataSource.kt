@@ -56,7 +56,7 @@ internal fun streamDataSourceFactory(
         onOpen(itemId)
         if (downloads.isDownloaded(itemId)) {
             val key = downloadCacheKey(itemId)
-            resolver.playLocal(itemId, converted = downloadCache.isConvertedDownload(key))
+            resolver.playLocal(itemId, convertedKbps = downloadCache.convertedDownloadKbps(key))
             return@Factory dataSpec.buildUpon().setKey(key).build()
         }
         val original = originalCacheKey(itemId)
@@ -105,12 +105,14 @@ internal fun downloadDataSourceFactory(
         // copy (refused before asking the server), and an original never continues a converted one. Downloading again
         // starts over.
         if (dataSpec.position > 0 && cache.isConvertedDownload(key)) throw cannotContinue()
-        val stream = awaitStream { resolver.downloadStream(itemId) }
+        val download = awaitStream { resolver.downloadStream(itemId) }
+        val stream = download.stream
         val converted = stream.playMethod != PlayMethod.DirectPlay
         if (dataSpec.position > 0 && converted) throw cannotContinue()
+        // The conversion's bitrate in kb/s (#144), 0 for the original.
         cache.applyContentMetadataMutations(
             key,
-            ContentMetadataMutations().set(CONVERTED_DOWNLOAD, if (converted) 1L else 0L),
+            ContentMetadataMutations().set(CONVERTED_DOWNLOAD, if (converted) download.convertedKbps.toLong() else 0L),
         )
         dataSpec.withUri(stream.url.toUri()).withAdditionalHeaders(runBlocking { resolver.headers() })
     }
@@ -120,7 +122,21 @@ private fun cannotContinue() =
 
 /** Whether the download [key] in this download cache is (or began as) the server's conversion. */
 @UnstableApi
-internal fun Cache.isConvertedDownload(key: String): Boolean = getContentMetadata(key).get(CONVERTED_DOWNLOAD, 0L) == 1L
+internal fun Cache.isConvertedDownload(key: String): Boolean = convertedDownloadKbps(key) != null
+
+/**
+ * The bitrate of the download [key] when it is the server's conversion, `null` for the original. Downloads from before
+ * #144 stored 1 and were always Opus 256 (ADR 0024).
+ */
+@UnstableApi
+internal fun Cache.convertedDownloadKbps(key: String): Int? =
+    when (val value = getContentMetadata(key).get(CONVERTED_DOWNLOAD, 0L)) {
+        0L -> null
+        1L -> OPUS_256_KBPS
+        else -> value.toInt()
+    }
+
+private const val OPUS_256_KBPS = 256
 
 /**
  * A download's key in the download cache: its track id. Downloads (`:core:download`) use [MediaId.toString] as
@@ -129,7 +145,7 @@ internal fun Cache.isConvertedDownload(key: String): Boolean = getContentMetadat
 internal fun downloadCacheKey(itemId: MediaId): String = itemId.toString()
 
 // Runs on the loader thread, which may block (ResolvingDataSource.Resolver contract).
-private fun awaitStream(resolve: suspend () -> MqResult<PlaybackStream>): PlaybackStream =
+private fun <T> awaitStream(resolve: suspend () -> MqResult<T>): T =
     when (val result = runBlocking { resolve() }) {
         is MqResult.Success -> result.value
         is MqResult.Failure -> throw StreamUnavailableException(result.error)

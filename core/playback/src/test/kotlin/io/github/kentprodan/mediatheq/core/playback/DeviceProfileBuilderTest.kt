@@ -78,6 +78,28 @@ class DeviceProfileBuilderTest {
     }
 
     @Test
+    fun `a download at a bitrate never plays the original and converts to one Opus Ogg file at that bitrate`() {
+        for (quality in listOf(StreamingQuality.Kbps320, StreamingQuality.Kbps256, StreamingQuality.Kbps192)) {
+            val download = DeviceProfileBuilder.download(pixel, quality)
+
+            assertThat(download.directPlayContainers).isEmpty()
+            assertThat(download.directPlayCodecs).isEmpty()
+            assertThat(download.maxStreamingBitrate).isEqualTo(quality.bitrate)
+            assertThat(download.transcoding)
+                .isEqualTo(
+                    TranscodingTarget(container = "ogg", codec = "opus", bitrate = quality.bitrate!!, maxChannels = 2),
+                )
+            assertThat(download.transcoding.segmented).isFalse()
+        }
+    }
+
+    @Test
+    fun `a download at Original is today's download profile`() {
+        assertThat(DeviceProfileBuilder.download(pixel, StreamingQuality.Original))
+            .isEqualTo(DeviceProfileBuilder.download(pixel))
+    }
+
+    @Test
     fun `original quality still converts formats the device cannot decode, to Opus 256`() {
         assertThat(DeviceProfileBuilder.build(pixel, StreamingQuality.Original).transcoding)
             .isEqualTo(DeviceProfileBuilder.OPUS_256)

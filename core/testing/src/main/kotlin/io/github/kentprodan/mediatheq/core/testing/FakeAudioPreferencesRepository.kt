@@ -36,6 +36,28 @@ class FakeAudioPreferencesRepository : AudioPreferencesRepository {
         preferences.value = preferences.value.copy(downloadsUnmeteredOnly = on)
     }
 
+    override suspend fun setDownloadQuality(quality: StreamingQuality) {
+        if (quality in AudioPreferences.DOWNLOAD_QUALITIES) {
+            preferences.value = preferences.value.copy(downloadQuality = quality)
+        }
+    }
+
+    override suspend fun setMaxParallelDownloads(count: Int) {
+        if (count in AudioPreferences.PARALLEL_DOWNLOADS) {
+            preferences.value = preferences.value.copy(maxParallelDownloads = count)
+        }
+    }
+
+    override suspend fun restoreDownloadDefaults() {
+        val defaults = AudioPreferences()
+        preferences.value =
+            preferences.value.copy(
+                downloadsUnmeteredOnly = defaults.downloadsUnmeteredOnly,
+                downloadQuality = defaults.downloadQuality,
+                maxParallelDownloads = defaults.maxParallelDownloads,
+            )
+    }
+
     override suspend fun setForceInstantTranscoding(on: Boolean) {
         preferences.value = preferences.value.copy(forceInstantTranscoding = on)
     }

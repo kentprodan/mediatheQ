@@ -162,11 +162,57 @@ fun SettingsNotificationActionDialogScreenshot() {
     }
 }
 
-/** Offline, cache, and download. */
+/** Offline, cache, and download (#144): the hub of four pages. */
 @PreviewTest
 @MqPreviews
 @Composable
 fun SettingsStorageScreenshot() = Page(SettingsPage.Storage)
+
+/** Offline, cache, and download -> General, defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsStorageGeneralScreenshot() = Page(SettingsPage.StorageGeneral)
+
+/** Offline, cache, and download -> Media, defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsStorageMediaScreenshot() = Page(SettingsPage.StorageMedia)
+
+/** Offline, cache, and download -> Playback, defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsStoragePlaybackScreenshot() = Page(SettingsPage.StoragePlayback)
+
+/** Offline, cache, and download -> Images, defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsStorageImagesScreenshot() = Page(SettingsPage.StorageImages)
+
+/** The automatic offline mode dialog's content, Not on Wi-Fi selected. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAutoOfflineDialogScreenshot() {
+    MediatheqTheme {
+        StorageDialogContent(
+            StorageDialog.AutoOffline,
+            AudioPreferences(),
+            LibraryPreferences(autoOffline = io.github.kentprodan.mediatheq.core.data.AutoOffline.NotOnWifi),
+        )
+    }
+}
+
+/** The download quality dialog's content, Original selected. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsDownloadQualityDialogScreenshot() {
+    MediatheqTheme { StorageDialogContent(StorageDialog.DownloadQuality, AudioPreferences(), LibraryPreferences()) }
+}
 
 /** Manage media providers: the account and Log out. */
 @PreviewTest

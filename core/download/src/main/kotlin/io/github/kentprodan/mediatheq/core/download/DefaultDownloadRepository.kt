@@ -126,6 +126,13 @@ internal class DefaultDownloadRepository
                     .distinctUntilChanged()
                     .collect { manager.requirements = DownloadModule.requirements(it) }
             }
+            // Settings -> Offline, cache, and download -> Media (#144); lowering it lets running downloads finish.
+            scope.launch(Dispatchers.Main.immediate) {
+                audioPreferences.preferences
+                    .map { it.maxParallelDownloads }
+                    .distinctUntilChanged()
+                    .collect { manager.maxParallelDownloads = it }
+            }
             scope.launch(ioDispatcher) {
                 val stored =
                     manager.downloadIndex.getDownloads().use { cursor ->
@@ -187,7 +194,8 @@ internal class DefaultDownloadRepository
                     .mapNotNull { (id, download) ->
                         val live = current[download.request.id] ?: download
                         val state = downloadState(live.state, live.percentDownloaded, notMet) ?: return@mapNotNull null
-                        val converted = cache.getContentMetadata(download.request.id).get(CONVERTED_DOWNLOAD, 0L) == 1L
+                        // The conversion's bitrate (#144), or 1 before; 0 = the original.
+                        val converted = cache.getContentMetadata(download.request.id).get(CONVERTED_DOWNLOAD, 0L) != 0L
                         TrackDownload(
                             tracks[id] ?: download.fallbackTrack(id),
                             state,

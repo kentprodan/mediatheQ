@@ -19,6 +19,7 @@ import dagger.hilt.components.SingletonComponent
 import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.DownloadCoverDir
 import io.github.kentprodan.mediatheq.core.common.DownloadSource
+import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import java.io.File
 import java.util.concurrent.Executors
@@ -36,7 +37,8 @@ internal interface DownloadModule {
         fun requirements(unmeteredOnly: Boolean) =
             Requirements(if (unmeteredOnly) Requirements.NETWORK_UNMETERED else Requirements.NETWORK)
 
-        private const val MAX_PARALLEL_DOWNLOADS = 2
+        /** Enough threads for the most parallel downloads the setting allows (#144). */
+        private val DOWNLOAD_THREADS = AudioPreferences.PARALLEL_DOWNLOADS.last
 
         /** Media3's own SQLite database for the download index (and later the streaming cache, #21). */
         @Provides
@@ -75,9 +77,9 @@ internal interface DownloadModule {
                 databaseProvider,
                 cache,
                 source,
-                Executors.newFixedThreadPool(MAX_PARALLEL_DOWNLOADS),
+                Executors.newFixedThreadPool(DOWNLOAD_THREADS),
             ).apply {
-                maxParallelDownloads = MAX_PARALLEL_DOWNLOADS
+                maxParallelDownloads = AudioPreferences.DEFAULT_PARALLEL_DOWNLOADS
                 requirements = requirements(unmeteredOnly = true)
             }
     }

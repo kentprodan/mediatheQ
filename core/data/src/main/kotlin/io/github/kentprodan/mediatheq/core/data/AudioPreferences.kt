@@ -100,6 +100,10 @@ data class AudioPreferences(
     val streamingCacheGb: Int = DEFAULT_CACHE_GB,
     /** Downloads wait for an unmetered network; off = any network. */
     val downloadsUnmeteredOnly: Boolean = true,
+    /** New downloads (#144): the original when the device plays it, or always one Opus file at this bitrate. */
+    val downloadQuality: StreamingQuality = StreamingQuality.Original,
+    /** How many downloads run at once, one of [PARALLEL_DOWNLOADS] (#144). */
+    val maxParallelDownloads: Int = DEFAULT_PARALLEL_DOWNLOADS,
     /** Losing Wi-Fi restarts the current track at the same position in the metered quality (#138). */
     val forceInstantTranscoding: Boolean = false,
     val behavior: PlaybackBehavior = PlaybackBehavior(),
@@ -120,6 +124,17 @@ data class AudioPreferences(
         val EQ_GAIN_DB = -12f..12f
 
         val CACHE_SIZES_GB = listOf(1, 2, 4, 8)
+
+        /** The download qualities offered (#144): 128 kbps is too poor to keep. */
+        val DOWNLOAD_QUALITIES =
+            listOf(
+                StreamingQuality.Original,
+                StreamingQuality.Kbps320,
+                StreamingQuality.Kbps256,
+                StreamingQuality.Kbps192,
+            )
+        val PARALLEL_DOWNLOADS = 1..4
+        const val DEFAULT_PARALLEL_DOWNLOADS = 2
         const val DEFAULT_CACHE_GB = 2
     }
 }

@@ -34,8 +34,8 @@ class StreamResolver
             val quality: StreamingQuality,
             /** Played from the download, not from the server. */
             val local: Boolean = false,
-            /** Played from a download that is the server's conversion, not the original file (#68). */
-            val converted: Boolean = false,
+            /** Played from a download that is the server's conversion at this bitrate, not the original file (#68). */
+            val convertedKbps: Int? = null,
         )
 
         private val decoderMimeTypes by lazy { decoders.mimeTypes() }
@@ -80,16 +80,17 @@ class StreamResolver
 
         /**
          * Records that [itemId] plays from its download, so progress reports still reach the server: a direct play with
-         * a play session of our own (no server stream was asked for), also when the download is [converted].
+         * a play session of our own (no server stream was asked for), also when the download is the server's conversion
+         * at [convertedKbps].
          */
         fun playLocal(
             itemId: MediaId,
-            converted: Boolean = false,
+            convertedKbps: Int? = null,
         ) {
             val known = streams[itemId]?.takeIf { it.local }
             if (known != null) {
                 // A download that replaced the cached original (or the other way round) keeps the play session.
-                streams[itemId] = Resolved(known.stream, known.quality, local = true, converted = converted)
+                streams[itemId] = Resolved(known.stream, known.quality, local = true, convertedKbps = convertedKbps)
                 return
             }
             val stream =
@@ -102,19 +103,26 @@ class StreamResolver
                     playSessionId = UUID.randomUUID().toString().replace("-", ""),
                     canSeek = true,
                 )
-            streams[itemId] = Resolved(stream, StreamingQuality.Original, local = true, converted = converted)
+            streams[itemId] = Resolved(stream, StreamingQuality.Original, local = true, convertedKbps = convertedKbps)
         }
 
         /** Whether [itemId] plays from a download that is the server's conversion (still reported as a direct play). */
-        fun isConvertedDownload(itemId: MediaId): Boolean = streams[itemId]?.let { it.local && it.converted } == true
+        fun isConvertedDownload(itemId: MediaId): Boolean = convertedDownloadKbps(itemId) != null
+
+        /** The bitrate of the converted download [itemId] plays from, `null` when it plays anything else. */
+        fun convertedDownloadKbps(itemId: MediaId): Int? = streams[itemId]?.takeIf { it.local }?.convertedKbps
 
         /**
-         * The file to download [itemId] from, whatever the streaming quality: the original when the device plays it as it
-         * is, else one converted file (Opus 256 in Ogg, #68, ADR 0024). Never HLS: a download is one file. Not remembered:
+         * The file to download [itemId] from, whatever the streaming quality: per Download quality (#144) the original
+         * when the device plays it as it is, else one converted file (Opus in Ogg, #68, ADR 0024). Never HLS: a download
+         * is one file. Not remembered:
          * downloads never share the player's streams or play sessions.
          */
-        suspend fun downloadStream(itemId: MediaId): MqResult<PlaybackStream> =
-            when (val result = playbackRepository.stream(itemId, DeviceProfileBuilder.download(decoderMimeTypes))) {
+        suspend fun downloadStream(itemId: MediaId): MqResult<DownloadStream> {
+            // The quality of now (#144): a download that continues later asks again, at the quality of then.
+            val quality = audioPreferences.preferences.first().downloadQuality
+            val profile = DeviceProfileBuilder.download(decoderMimeTypes, quality)
+            return when (val result = playbackRepository.stream(itemId, profile)) {
                 is MqResult.Failure -> {
                     result
                 }
@@ -123,10 +131,11 @@ class StreamResolver
                     if (result.value.segmented) {
                         MqResult.Failure(MqError.Client(0, "download: the server gave a playlist, not a file"))
                     } else {
-                        result
+                        MqResult.Success(DownloadStream(result.value, profile.transcoding.bitrate / BITS_PER_KBIT))
                     }
                 }
             }
+        }
 
         private suspend fun currentQuality(): StreamingQuality =
             audioPreferences.preferences.first().qualityFor(networkMonitor.isMetered())
@@ -140,3 +149,11 @@ class StreamResolver
         /** Request headers (authentication) for stream requests, from the current token. */
         suspend fun headers(): Map<String, String> = playbackRepository.streamHeaders()
     }
+
+/** The file a download reads, and the bitrate the server converts it to when it is not the original (#144). */
+data class DownloadStream(
+    val stream: PlaybackStream,
+    val convertedKbps: Int,
+)
+
+private const val BITS_PER_KBIT = 1000

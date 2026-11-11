@@ -111,13 +111,28 @@ class StreamResolverTest {
         }
 
     @Test
+    fun `a download asks at the Download quality of now and knows its bitrate`() =
+        runTest {
+            audioPreferences.setDownloadQuality(StreamingQuality.Kbps192)
+            repository.playMethod = PlayMethod.Transcode
+
+            val result = resolver.downloadStream(itemId) as MqResult.Success
+
+            val profile = repository.streamRequests.single().second
+            assertThat(profile.directPlayCodecs).isEmpty()
+            assertThat(profile.transcoding.bitrate).isEqualTo(192_000)
+            assertThat(result.value.convertedKbps).isEqualTo(192)
+        }
+
+    @Test
     fun `a download the server converts to one file is accepted`() =
         runTest {
             repository.playMethod = PlayMethod.Transcode
 
             val result = resolver.downloadStream(itemId)
 
-            assertThat((result as MqResult.Success).value.playMethod).isEqualTo(PlayMethod.Transcode)
+            assertThat((result as MqResult.Success).value.stream.playMethod).isEqualTo(PlayMethod.Transcode)
+            assertThat(result.value.convertedKbps).isEqualTo(256)
         }
 
     @Test
@@ -142,7 +157,7 @@ class StreamResolverTest {
 
     @Test
     fun `a converted download still reports as a direct play, but is known as converted`() {
-        resolver.playLocal(itemId, converted = true)
+        resolver.playLocal(itemId, convertedKbps = 256)
 
         assertThat(resolver.current(itemId)?.playMethod).isEqualTo(PlayMethod.DirectPlay)
         assertThat(resolver.isConvertedDownload(itemId)).isTrue()
@@ -161,7 +176,7 @@ class StreamResolverTest {
         resolver.playLocal(itemId)
         val session = resolver.current(itemId)!!.playSessionId
 
-        resolver.playLocal(itemId, converted = true)
+        resolver.playLocal(itemId, convertedKbps = 256)
 
         assertThat(resolver.isConvertedDownload(itemId)).isTrue()
         assertThat(resolver.current(itemId)!!.playSessionId).isEqualTo(session)
@@ -170,7 +185,7 @@ class StreamResolverTest {
 
     @Test
     fun `a cached original replacing a converted download is no longer converted, in the same play session`() {
-        resolver.playLocal(itemId, converted = true)
+        resolver.playLocal(itemId, convertedKbps = 256)
         val session = resolver.current(itemId)!!.playSessionId
 
         resolver.playLocal(itemId)

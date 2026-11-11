@@ -39,6 +39,13 @@ class DefaultLibraryPreferencesRepository
                             }.toMap(),
                     ratingMode = enumOrNull<RatingMode>(stored.ratingMode) ?: RatingMode.WholeStars,
                     offlineMode = stored.offlineMode ?: false,
+                    autoOffline = enumOrNull<AutoOffline>(stored.autoOffline) ?: AutoOffline.NoNetwork,
+                    images =
+                        ImagePreferences(
+                            persistentCache = stored.imagePersistent ?: false,
+                            wifiOnly = stored.imageWifiOnly ?: false,
+                            highQuality = stored.imageHighQuality ?: false,
+                        ),
                     theme = theme(stored.theme, stored.dynamicColor),
                     navigation = navigation(stored.navigation),
                     mediaLists = mediaLists(stored.mediaLists),
@@ -496,6 +503,13 @@ class DefaultLibraryPreferencesRepository
         override suspend fun setQualityDetail(on: Boolean) = store.setQualityDetail(on)
 
         override suspend fun setOfflineMode(on: Boolean) = store.setOfflineMode(on)
+
+        override suspend fun setAutoOffline(mode: AutoOffline) = store.setAutoOffline(mode.name)
+
+        override suspend fun restoreOfflineDefaults() = store.clearOffline()
+
+        override suspend fun setImages(images: ImagePreferences?) =
+            store.setImages(images?.persistentCache, images?.wifiOnly, images?.highQuality)
 
         override suspend fun setSort(
             filter: LibraryFilter,

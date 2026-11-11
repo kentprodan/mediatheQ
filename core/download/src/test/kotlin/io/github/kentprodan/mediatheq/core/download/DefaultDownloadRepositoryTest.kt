@@ -349,6 +349,33 @@ class DefaultDownloadRepositoryTest {
         }
 
     @Test
+    fun `the download manager runs as many downloads at once as the setting says`() =
+        runTest {
+            repository()
+            RobolectricUtil.runMainLooperUntil { manager.maxParallelDownloads == 2 }
+
+            audioPreferences.setMaxParallelDownloads(4)
+
+            RobolectricUtil.runMainLooperUntil { manager.maxParallelDownloads == 4 }
+        }
+
+    @Test
+    fun `a download converted at a bitrate says so like one from before`() =
+        runTest {
+            partial(done, converted = false)
+            cache.applyContentMetadataMutations(
+                done.id.toString(),
+                ContentMetadataMutations().set(CONVERTED_DOWNLOAD, 192L),
+            )
+            val repository = repository(Download.STATE_COMPLETED to done)
+
+            repository.downloads.test {
+                assertThat(expectMostRecentItem().single().converted).isTrue()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun `before the stored downloads are read, a completed download already counts as on the device`() =
         runTest {
             // The index read is queued but not run yet: the player started the process (e.g. offline, cold start).

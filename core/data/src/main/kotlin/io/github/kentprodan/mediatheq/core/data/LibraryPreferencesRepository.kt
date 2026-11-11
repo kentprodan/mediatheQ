@@ -94,6 +94,14 @@ interface LibraryPreferencesRepository {
 
     suspend fun setOfflineMode(on: Boolean)
 
+    suspend fun setAutoOffline(mode: AutoOffline)
+
+    /** Back to the General page's defaults (#144): offline mode off, automatic offline mode without a network. */
+    suspend fun restoreOfflineDefaults()
+
+    /** Every Images value at once (#144); `null` = that page's defaults. */
+    suspend fun setImages(images: ImagePreferences?)
+
     /** Ignored when [filter] does not offer [sort]. */
     suspend fun setSort(
         filter: LibraryFilter,

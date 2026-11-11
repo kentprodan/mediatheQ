@@ -40,10 +40,12 @@ import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistPlayAction
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AutoActionsPreferences
+import io.github.kentprodan.mediatheq.core.data.AutoOffline
 import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
+import io.github.kentprodan.mediatheq.core.data.ImagePreferences
 import io.github.kentprodan.mediatheq.core.data.KeepScreenOn
 import io.github.kentprodan.mediatheq.core.data.LibraryHubStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
@@ -85,6 +87,7 @@ class SettingsScreenTest {
 
     private val actions = mutableListOf<SettingsAction>()
     private val events = mutableListOf<String>()
+    private val opened = mutableListOf<SettingsPage>()
 
     private fun show(
         page: SettingsPage,
@@ -104,6 +107,7 @@ class SettingsScreenTest {
                     onOpenDecoding = { events += "decoding" },
                     onOpenAutoActions = { events += "auto" },
                     onOpenTransitions = { events += "transitions" },
+                    onOpenStoragePage = { opened += it },
                 )
             }
         }
@@ -163,7 +167,7 @@ class SettingsScreenTest {
 
     @Test
     fun `switches are whole rows with their state`() {
-        show(SettingsPage.Storage)
+        show(SettingsPage.StorageMedia)
         scrollTo("Download on Wi-Fi only")
 
         composeRule.onNode(isToggleable() and hasText("Download on Wi-Fi only")).assertIsOn().performClick()
@@ -173,7 +177,7 @@ class SettingsScreenTest {
 
     @Test
     fun `the offline mode switch sends its new state`() {
-        show(SettingsPage.Storage)
+        show(SettingsPage.StorageGeneral)
         scrollTo("Offline mode")
 
         composeRule.onNode(isToggleable() and hasText("Offline mode")).assertIsOff().performClick()
@@ -232,9 +236,103 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `the storage page holds offline mode, downloads and the cache`() {
+    fun `the offline, cache and download hub opens its four pages`() {
         show(SettingsPage.Storage)
-        assertRows("Offline mode", "Download on Wi-Fi only", "Streaming cache")
+        listOf("General", "Media", "Playback", "Images").forEach {
+            composeRule.onNode(hasText(it) and hasClickAction()).performClick()
+        }
+
+        assertThat(opened)
+            .containsExactly(
+                SettingsPage.StorageGeneral,
+                SettingsPage.StorageMedia,
+                SettingsPage.StoragePlayback,
+                SettingsPage.StorageImages,
+            ).inOrder()
+    }
+
+    @Test
+    fun `each offline, cache and download page holds its own settings`() {
+        show(SettingsPage.StorageGeneral)
+        assertRows("Offline mode", "Automatic offline mode")
+    }
+
+    @Test
+    fun `the media page holds the download settings`() {
+        show(SettingsPage.StorageMedia)
+        assertRows("Download on Wi-Fi only", "Download quality", "Max simultaneous downloads")
+    }
+
+    @Test
+    fun `the playback page holds the cache with its intro`() {
+        show(SettingsPage.StoragePlayback)
+        assertRows("Streaming cache")
+        composeRule.onNodeWithText("Downloads are separate", substring = true).assertExists()
+    }
+
+    @Test
+    fun `the images page holds the three cover switches, off by default`() {
+        show(SettingsPage.StorageImages)
+        assertRows("Persistent image cache", "Wi-Fi only image downloads", "High quality images")
+        composeRule.onNode(isToggleable() and hasText("High quality images")).assertIsOff().performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.SetImages(ImagePreferences(highQuality = true)))
+    }
+
+    @Test
+    fun `automatic offline mode and download quality are choice dialogs`() {
+        show(SettingsPage.StorageGeneral)
+        composeRule.onNode(hasText("Automatic offline mode") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("Not on Wi-Fi").performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.SetAutoOffline(AutoOffline.NotOnWifi))
+    }
+
+    @Test
+    fun `the download quality dialog offers no 128 kbps, and max downloads are chips`() {
+        show(SettingsPage.StorageMedia)
+        composeRule.onNode(hasText("Download quality") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("128 kbps").assertDoesNotExist()
+        composeRule.onNodeWithText("192 kbps").performClick()
+        scrollTo("Max simultaneous downloads")
+        composeRule.onNodeWithText("4").performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetDownloadQuality(StreamingQuality.Kbps192),
+                SettingsAction.SetMaxParallelDownloads(4),
+            ).inOrder()
+    }
+
+    @Test
+    fun `the General page's Restore defaults resets offline mode and its automatic mode`() {
+        restore(SettingsPage.StorageGeneral)
+        assertThat(actions).containsExactly(SettingsAction.RestoreOfflineDefaults)
+    }
+
+    @Test
+    fun `the Media page's Restore defaults resets the download settings`() {
+        restore(SettingsPage.StorageMedia)
+        assertThat(actions).containsExactly(SettingsAction.RestoreDownloadDefaults)
+    }
+
+    @Test
+    fun `the Playback page's Restore defaults sets the cache back to 2 GB`() {
+        restore(SettingsPage.StoragePlayback)
+        assertThat(actions).containsExactly(SettingsAction.SetStreamingCacheGb(AudioPreferences.DEFAULT_CACHE_GB))
+    }
+
+    @Test
+    fun `the Images page's Restore defaults resets the cover switches`() {
+        restore(SettingsPage.StorageImages)
+        assertThat(actions).containsExactly(SettingsAction.SetImages(null))
+    }
+
+    private fun restore(page: SettingsPage) {
+        show(page)
+        scrollTo("Restore defaults")
+        composeRule.onNodeWithText("Restore defaults").performClick()
+        composeRule.onNode(hasText("Restore") and hasClickAction()).performClick()
     }
 
     @Test

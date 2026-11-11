@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioFocusPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AutoActionsPreferences
+import io.github.kentprodan.mediatheq.core.data.AutoOffline
 import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.ColorSource
 import io.github.kentprodan.mediatheq.core.data.EqPreset
@@ -21,6 +22,7 @@ import io.github.kentprodan.mediatheq.core.data.GenreSection
 import io.github.kentprodan.mediatheq.core.data.HeadsetAction
 import io.github.kentprodan.mediatheq.core.data.HeadsetPreferences
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
+import io.github.kentprodan.mediatheq.core.data.ImagePreferences
 import io.github.kentprodan.mediatheq.core.data.KeepScreenOn
 import io.github.kentprodan.mediatheq.core.data.LibraryHubStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
@@ -590,6 +592,36 @@ class SettingsViewModelTest {
 
             viewModel.onAction(SettingsAction.RestoreBehaviorDefaults)
             assertThat(content().audio.behavior).isEqualTo(PlaybackBehavior())
+        }
+
+    @Test
+    fun `offline, download and image settings apply at once, and each page restores only its own`() =
+        runTest {
+            signIn()
+            viewModel.onAction(SettingsAction.SetOfflineMode(true))
+            viewModel.onAction(SettingsAction.SetAutoOffline(AutoOffline.NotOnWifi))
+            viewModel.onAction(SettingsAction.SetDownloadsUnmeteredOnly(false))
+            viewModel.onAction(SettingsAction.SetDownloadQuality(StreamingQuality.Kbps256))
+            viewModel.onAction(SettingsAction.SetMaxParallelDownloads(3))
+            viewModel.onAction(SettingsAction.SetImages(ImagePreferences(wifiOnly = true)))
+            assertThat(content().library.autoOffline).isEqualTo(AutoOffline.NotOnWifi)
+            assertThat(content().audio.downloadQuality).isEqualTo(StreamingQuality.Kbps256)
+            assertThat(content().audio.maxParallelDownloads).isEqualTo(3)
+            assertThat(content().library.images).isEqualTo(ImagePreferences(wifiOnly = true))
+
+            viewModel.onAction(SettingsAction.RestoreOfflineDefaults)
+            assertThat(content().library.offlineMode).isFalse()
+            assertThat(content().library.autoOffline).isEqualTo(AutoOffline.NoNetwork)
+            assertThat(content().audio.downloadQuality).isEqualTo(StreamingQuality.Kbps256)
+
+            viewModel.onAction(SettingsAction.RestoreDownloadDefaults)
+            assertThat(content().audio.downloadsUnmeteredOnly).isTrue()
+            assertThat(content().audio.downloadQuality).isEqualTo(StreamingQuality.Original)
+            assertThat(content().audio.maxParallelDownloads).isEqualTo(2)
+            assertThat(content().library.images).isEqualTo(ImagePreferences(wifiOnly = true))
+
+            viewModel.onAction(SettingsAction.SetImages(null))
+            assertThat(content().library.images).isEqualTo(ImagePreferences())
         }
 
     @Test

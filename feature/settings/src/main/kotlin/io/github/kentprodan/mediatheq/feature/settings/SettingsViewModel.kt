@@ -350,6 +350,30 @@ class SettingsViewModel
                         genreSectionsDraft.value = null
                     }
 
+                    is SettingsAction.SetAutoOffline -> {
+                        library.setAutoOffline(action.mode)
+                    }
+
+                    SettingsAction.RestoreOfflineDefaults -> {
+                        library.restoreOfflineDefaults()
+                    }
+
+                    is SettingsAction.SetDownloadQuality -> {
+                        audio.setDownloadQuality(action.quality)
+                    }
+
+                    is SettingsAction.SetMaxParallelDownloads -> {
+                        audio.setMaxParallelDownloads(action.count)
+                    }
+
+                    SettingsAction.RestoreDownloadDefaults -> {
+                        audio.restoreDownloadDefaults()
+                    }
+
+                    is SettingsAction.SetImages -> {
+                        library.setImages(action.images)
+                    }
+
                     is SettingsAction.SetOfflineMode -> {
                         library.setOfflineMode(action.on)
                     }

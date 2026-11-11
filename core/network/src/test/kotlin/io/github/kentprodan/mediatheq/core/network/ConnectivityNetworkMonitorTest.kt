@@ -5,6 +5,8 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,7 +23,7 @@ import org.robolectric.shadows.ShadowNetworkCapabilities
 class ConnectivityNetworkMonitorTest {
     private val context: Context = RuntimeEnvironment.getApplication()
     private val manager = context.getSystemService(ConnectivityManager::class.java)!!
-    private val monitor = ConnectivityNetworkMonitor(context)
+    private val monitor = ConnectivityNetworkMonitor(context, CoroutineScope(Dispatchers.Unconfined))
 
     @Test
     fun `no active network is offline`() {

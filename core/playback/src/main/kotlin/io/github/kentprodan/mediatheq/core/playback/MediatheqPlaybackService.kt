@@ -47,10 +47,10 @@ import io.github.kentprodan.mediatheq.core.data.AudioOutputRepository
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
-import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
 import io.github.kentprodan.mediatheq.core.data.LyricsRepository
+import io.github.kentprodan.mediatheq.core.data.OfflineFilter
 import io.github.kentprodan.mediatheq.core.data.OutputProfile
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
@@ -129,7 +129,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var audioOutputs: AudioOutputRepository
 
-    @Inject lateinit var libraryPreferences: LibraryPreferencesRepository
+    @Inject lateinit var offlineFilter: OfflineFilter
 
     @Inject
     @StreamingCache
@@ -185,7 +185,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     override fun onCreate() {
         super.onCreate()
         val playerNetwork =
-            OfflineModeNetwork(networkMonitor, libraryPreferences.preferences.map { it.offlineMode }, applicationScope)
+            // The switch and Automatic offline mode's Not on Wi-Fi (#144); no network is OfflineModeNetwork's own.
+            OfflineModeNetwork(networkMonitor, offlineFilter.forced, applicationScope)
         val player =
             ExoPlayer
                 .Builder(this)
@@ -561,7 +562,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         convertedKbps =
                             method?.let {
                                 val cap = currentId()?.let(streamResolver::quality)?.bitrate?.div(BITS_PER_KBIT)
-                                AudioPolicy.convertedKbps(it, convertedDownload(), cap)
+                                AudioPolicy.convertedKbps(
+                                    it,
+                                    currentId()?.let(streamResolver::convertedDownloadKbps),
+                                    cap,
+                                )
                             },
                     )
                 },

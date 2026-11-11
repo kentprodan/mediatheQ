@@ -37,9 +37,22 @@ object DeviceProfileBuilder {
             maxStreamingBitrate = quality.bitrate,
         )
 
-    /** For a download: the original whenever the device plays it as it is, else one converted file. */
-    fun download(decoderMimeTypes: Set<String>): DeviceProfile =
-        build(decoderMimeTypes, StreamingQuality.Original).copy(transcoding = OPUS_256_FILE)
+    /**
+     * For a download (#144): at [quality] Original the original whenever the device plays it as it is, else one Opus
+     * 256 file; at a bitrate always one Opus file at that bitrate (no direct play at all), smaller than the original.
+     */
+    fun download(
+        decoderMimeTypes: Set<String>,
+        quality: StreamingQuality = StreamingQuality.Original,
+    ): DeviceProfile {
+        val bitrate = quality.bitrate ?: return build(decoderMimeTypes, quality).copy(transcoding = OPUS_256_FILE)
+        return DeviceProfile(
+            directPlayContainers = emptyList(),
+            directPlayCodecs = emptyList(),
+            transcoding = OPUS_256_FILE.copy(bitrate = bitrate),
+            maxStreamingBitrate = bitrate,
+        )
+    }
 
     /**
      * Jellyfin codec name -> decoder MIME type needed; `null` = Media3 handles it without a platform decoder (PCM).
