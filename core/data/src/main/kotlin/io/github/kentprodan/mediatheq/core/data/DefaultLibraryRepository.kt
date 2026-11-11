@@ -42,6 +42,9 @@ class DefaultLibraryRepository
         override fun albums(): Flow<List<Album>> =
             filter.of(libraryDao::albums).map { rows -> rows.map { it.toDomain() } }
 
+        override fun allAlbums(): Flow<List<Album>> =
+            libraryDao.albums(all = true, downloaded = emptyList()).map { rows -> rows.map { it.toDomain() } }
+
         override fun track(id: MediaId): Flow<Track?> =
             libraryDao.track(id.serverId.value, id.itemId).map { it?.toDomain() }
 

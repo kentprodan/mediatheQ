@@ -25,6 +25,9 @@ interface LibraryRepository {
     /** All albums by sort name; emits again after each completed sync, never with a half-synced library. */
     fun albums(): Flow<List<Album>>
 
+    /** Every album, also in offline mode (#145: favorites are decided on the whole library). */
+    fun allAlbums(): Flow<List<Album>>
+
     /** One track with its artists, `null` when it is not (or no longer) in the library. */
     fun track(id: MediaId): Flow<Track?>
 

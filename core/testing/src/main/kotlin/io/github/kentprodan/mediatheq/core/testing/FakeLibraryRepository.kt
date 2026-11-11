@@ -35,6 +35,8 @@ class FakeLibraryRepository : LibraryRepository {
 
     override fun albums() = albums
 
+    override fun allAlbums() = albums
+
     override fun track(id: MediaId) = tracks.map { list -> list.firstOrNull { it.id == id } }
 
     override fun album(id: MediaId) = albums.map { list -> list.firstOrNull { it.id == id } }
