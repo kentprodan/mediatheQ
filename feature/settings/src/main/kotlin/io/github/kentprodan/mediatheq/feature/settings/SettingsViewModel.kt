@@ -6,10 +6,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.data.GenreSection
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.data.StorageMove
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,6 +31,7 @@ class SettingsViewModel
         private val session: SessionRepository,
         private val audio: AudioPreferencesRepository,
         private val library: LibraryPreferencesRepository,
+        private val storage: DownloadStorageRepository,
     ) : ViewModel() {
         private val entriesDraft = MutableStateFlow<NavEntriesDraft?>(null)
         private val shortcutsDraft = MutableStateFlow<OrganizeDraft<LibraryShortcut>?>(null)
@@ -42,7 +45,14 @@ class SettingsViewModel
                 audio.preferences,
                 library.preferences,
                 combine(entriesDraft, shortcutsDraft, sectionsDraft, artistSectionsDraft, genreSectionsDraft, ::Drafts),
-            ) { session, audio, library, (draft, shortcuts, sections, artistSections, genreSections) ->
+                combine(storage.locations, storage.move, ::Pair),
+            ) {
+                session,
+                audio,
+                library,
+                (draft, shortcuts, sections, artistSections, genreSections),
+                (locations, move),
+                ->
                 // Signed out: the app leaves for onboarding, nothing to show meanwhile.
                 (session as? SessionState.LoggedIn)?.let {
                     SettingsUiState.Content(
@@ -55,6 +65,8 @@ class SettingsViewModel
                         sections,
                         artistSections,
                         genreSections,
+                        locations,
+                        move,
                     )
                 } ?: SettingsUiState.Loading
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState.Loading)
@@ -356,6 +368,17 @@ class SettingsViewModel
 
                     SettingsAction.RestoreOfflineDefaults -> {
                         library.restoreOfflineDefaults()
+                    }
+
+                    is SettingsAction.MoveDownloads -> {
+                        storage.moveTo(action.location)
+                        // A checked copy applies at the next start (ADR 0035).
+                        val end = storage.move.first { it == StorageMove.Done || it is StorageMove.Failed }
+                        if (end == StorageMove.Done) storage.restart()
+                    }
+
+                    SettingsAction.DismissMoveDownloads -> {
+                        storage.dismissMove()
                     }
 
                     is SettingsAction.SetDownloadQuality -> {

@@ -401,7 +401,9 @@ fun SettingsPageScreen(
             }
 
             SettingsPage.StorageGeneral -> {
-                storageGeneralGroups(content.library, onAction, { storageDialog = it }) { restoring = true }
+                storageGeneralGroups(content.library, content.storageLocations, onAction, { storageDialog = it }) {
+                    restoring = true
+                }
             }
 
             SettingsPage.StorageMedia -> {
@@ -513,8 +515,11 @@ fun SettingsPageScreen(
         }
         if (focusChoice) ShortFocusDialog(content.audio.audioFocus, onAction) { focusChoice = false }
         storageDialog?.let {
-            StorageDialogHost(it, content.audio, content.library, onAction) { storageDialog = null }
+            StorageDialogHost(it, content.audio, content.library, content.storageLocations, onAction) {
+                storageDialog = null
+            }
         }
+        MoveDownloadsDialog(content.storageMove) { onAction(SettingsAction.DismissMoveDownloads) }
         headsetDialog?.let { HeadsetDialogHost(it, content.audio.headset, onAction) { headsetDialog = null } }
         actionDialog?.let {
             NotificationActionDialogHost(it, content.audio.notificationButtons, onAction) { actionDialog = null }

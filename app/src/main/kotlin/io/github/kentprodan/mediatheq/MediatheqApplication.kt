@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.DefaultLibrarySyncRepository
+import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadedCovers
 import io.github.kentprodan.mediatheq.core.data.FavoriteDownloads
 import io.github.kentprodan.mediatheq.core.data.ImagePreferences
@@ -61,6 +62,9 @@ class MediatheqApplication :
     lateinit var networkMonitor: NetworkMonitor
 
     @Inject
+    lateinit var downloadStorage: DownloadStorageRepository
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -94,7 +98,8 @@ class MediatheqApplication :
     /**
      * Covers load through the app OkHttp client, so the local-network cleartext rule applies (ADR 0013). The service
      * loader is off: otherwise Coil would add its own client, which skips that rule. The disk cache's place follows
-     * Persistent image cache as it was when the loader was made (#144): a change applies at the next app start.
+     * Persistent image cache as it was when the loader was made (#144): a change applies at the next app start. A
+     * persistent cache lives with the downloads (#146: internal storage or the SD card), internal while the card is out.
      */
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader
@@ -103,10 +108,15 @@ class MediatheqApplication :
             .diskCache {
                 // Coil asks for it on a fetch thread, once; the settings are read by then.
                 val persistent = runBlocking { images.filterNotNull().first() }.persistentCache
-                unusedImageCacheDir(persistent, filesDir, cacheDir).deleteRecursively()
+                val files = downloadStorage.filesDir
+                unusedImageCacheDir(persistent, files, cacheDir).deleteRecursively()
+                // What a move left behind (#146); never the card's copy while the card is out.
+                runBlocking { downloadStorage.otherFilesDirs() }
+                    .filter { it != files }
+                    .forEach { imageCacheDir(persistent = true, it, cacheDir).deleteRecursively() }
                 DiskCache
                     .Builder()
-                    .directory(imageCacheDir(persistent, filesDir, cacheDir).toOkioPath())
+                    .directory(imageCacheDir(persistent, files, cacheDir).toOkioPath())
                     .build()
             }.components {
                 // On the main thread for every cover: values in memory only, no system call.

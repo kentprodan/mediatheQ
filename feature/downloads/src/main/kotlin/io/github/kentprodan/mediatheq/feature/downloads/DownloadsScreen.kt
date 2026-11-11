@@ -115,6 +115,7 @@ private fun Content(
     onOpenPlaylist: (MediaId) -> Unit,
 ) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()) {
+        state.unavailableOn?.let { name -> item(key = "unavailable") { UnavailableNotice(name) } }
         item(key = "totals") { Totals(state.totals) }
         section(R.string.downloads_section_downloading, state.downloading.isNotEmpty()) {
             items(state.downloading, key = { "downloading-${it.track.id}" }) {
@@ -176,6 +177,23 @@ private fun LazyListScope.section(
         )
     }
     rows()
+}
+
+/** The downloads' SD card is missing (#146): why nothing plays offline, and that nothing was deleted. */
+@Composable
+private fun UnavailableNotice(name: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
+    ) {
+        Text(
+            stringResource(R.string.downloads_unavailable, name.ifEmpty { stringResource(R.string.downloads_sd_card) }),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(MediatheqSpacing.l),
+        )
+    }
 }
 
 /** "3.8 GB · 12 h 5 min", then a bar of the share of the device's space the downloads take. */

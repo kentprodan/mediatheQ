@@ -39,6 +39,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0032](0032-audio-profiles-per-output.md) | Audio settings per output device | Accepted |
 | [0033](0033-automatic-actions-only-while-the-service-lives.md) | Automatic actions work only while the playback service lives | Accepted |
 | [0034](0034-bluetooth-lyrics-in-the-session-title.md) | Bluetooth lyrics ride in the session title, the real title in the display title | Accepted |
+| [0035](0035-downloads-on-removable-storage.md) | Downloads on removable storage: moved with a restart, guarded while the card is out | Accepted |
 
 Template for new ADRs:
 

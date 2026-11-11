@@ -10,6 +10,8 @@
     <string name="downloads_section_songs">Songs</string>
     <string name="downloads_size_duration">%1$s · %2$s</string>
     <string name="downloads_free_space">%1$s free on this device</string>
+    <string name="downloads_unavailable">Your downloads are on %1$s, which is not available. Nothing was deleted: they come back when it is put back in.</string>
+    <string name="downloads_sd_card">the SD card</string>
     <string name="downloads_play">Play</string>
     <string name="downloads_playlist">Playlist</string>
     <string name="downloads_shuffle">Shuffle</string>

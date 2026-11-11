@@ -33,6 +33,17 @@
     <string name="settings_st_images">Images</string>
     <string name="settings_st_images_summary">Cover cache, mobile data and size.</string>
     <string name="settings_st_offline">Offline</string>
+    <string name="settings_st_storage">Storage</string>
+    <string name="settings_st_location">Storage location (downloads and images)</string>
+    <string name="settings_st_location_free">%1$s · %2$s free</string>
+    <string name="settings_st_internal">Internal storage</string>
+    <string name="settings_st_location_missing">Not available</string>
+    <string name="settings_st_moving">Moving downloads</string>
+    <string name="settings_st_moving_summary">Downloads are paused until the move is done. The app restarts at the end.</string>
+    <string name="settings_st_restarting">Done. Restarting the app…</string>
+    <string name="settings_st_move_failed">Downloads not moved</string>
+    <string name="settings_st_move_no_space">There is not enough free space there. Your downloads stay where they were.</string>
+    <string name="settings_st_move_error">The copy could not be completed. Your downloads stay where they were.</string>
     <string name="settings_st_auto_offline">Automatic offline mode</string>
     <string name="settings_st_auto_no_network">No network</string>
     <string name="settings_st_auto_not_wifi">Not on Wi-Fi</string>
