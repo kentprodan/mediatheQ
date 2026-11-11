@@ -318,6 +318,50 @@ class QueuePlayerTest {
     }
 
     @Test
+    fun `a lyrics line is the title and the real title the display title, for the getter, listeners and controllers`() {
+        start()
+        val seen = mutableListOf<String?>()
+        player.addListener(
+            object : Player.Listener {
+                override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) {
+                    seen += mediaMetadata.title?.toString()
+                }
+            },
+        )
+        val (session, controller) = connect()
+
+        player.setLyricsTitle("A line of lyrics")
+        assertThat(player.mediaMetadata.title.toString()).isEqualTo("A line of lyrics")
+        assertThat(player.mediaMetadata.displayTitle.toString()).isEqualTo("Track 1")
+        assertThat(player.mediaMetadata.artist).isEqualTo(exoPlayer.mediaMetadata.artist)
+        // The queue's item keeps its own title: the app's screens read that.
+        assertThat(
+            player.currentMediaItem!!
+                .mediaMetadata.title
+                .toString(),
+        ).isEqualTo("Track 1")
+        RobolectricUtil.runMainLooperUntil { controller.mediaMetadata.title?.toString() == "A line of lyrics" }
+        assertThat(
+            controller.currentMediaItem!!
+                .mediaMetadata.title
+                .toString(),
+        ).isEqualTo("Track 1")
+
+        // The player's own metadata event (a new track) carries the line too.
+        player.seekToNextMediaItem()
+        RobolectricUtil.runMainLooperUntil { seen.size >= 2 }
+        assertThat(seen.last()).isEqualTo("A line of lyrics")
+
+        player.setLyricsTitle(null)
+        assertThat(player.mediaMetadata.title.toString()).isEqualTo("Track 2")
+        assertThat(player.mediaMetadata.displayTitle).isNull()
+        RobolectricUtil.runMainLooperUntil { controller.mediaMetadata.title?.toString() == "Track 2" }
+        assertThat(seen.last()).isEqualTo("Track 2")
+        controller.release()
+        session.release()
+    }
+
+    @Test
     fun `a skip ends a running fade out first`() {
         start()
         player.seekToNext()

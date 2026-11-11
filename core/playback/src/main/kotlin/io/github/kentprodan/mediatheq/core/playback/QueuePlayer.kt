@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.playback
 import android.os.SystemClock
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -28,7 +29,9 @@ import kotlin.time.Instant
  *   the system resumes the saved queue ([resuming]: QueuePersistence puts its state back).
  *
  * - a controller's stop (car, watch, headset key) pauses instead while [stopPauses] (#141);
- * - pause and stop wait for the fade out, and play cancels it (#142).
+ * - pause and stop wait for the fade out, and play cancels it (#142);
+ * - Bluetooth lyrics: the metadata's title is the lyrics line set with [setLyricsTitle], the real title its
+ *   display title (#143, ADR 0034). The queue's items keep their own metadata.
  *
  * Automatic skips (a track that cannot load) use the ExoPlayer itself, not these rules.
  */
@@ -138,6 +141,28 @@ internal class QueuePlayer(
         setOrder(shuffleWithInserted(playOrder(), at until at + mediaItems.size, currentMediaItemIndex, appended, run))
     }
 
+    // The lyrics line shown as the title (#143); null = the real title.
+    private var lyricsTitle: String? = null
+
+    /** The lyrics line Bluetooth displays show as the title, or `null` for the real one; listeners are told. */
+    fun setLyricsTitle(line: String?) {
+        if (line == lyricsTitle) return
+        lyricsTitle = line
+        val metadata = mediaMetadata
+        wrapped.keys.forEach { it.onMediaMetadataChanged(metadata) }
+    }
+
+    override fun getMediaMetadata(): MediaMetadata = withLyricsTitle(super.getMediaMetadata())
+
+    private fun withLyricsTitle(metadata: MediaMetadata): MediaMetadata {
+        val line = lyricsTitle ?: return metadata
+        return metadata
+            .buildUpon()
+            .setTitle(line)
+            .setDisplayTitle(metadata.displayTitle ?: metadata.title)
+            .build()
+    }
+
     override fun stop() = if (stopPauses()) pause() else fadeOut { super.stop() }
 
     override fun pause() = fadeOut { super.pause() }
@@ -230,7 +255,7 @@ internal class QueuePlayer(
 
     /**
      * [listener] with [withSkips] applied to `onAvailableCommandsChanged` (the session sends that value to controllers,
-     * it does not ask again). A proxy, so every other callback reaches the listener as it is: Kotlin's `by` delegation
+     * it does not ask again) and the lyrics title to `onMediaMetadataChanged`. A proxy, so every other callback reaches the listener as it is: Kotlin's `by` delegation
      * does not forward the Java default methods `Player.Listener` is made of, and a hand-written copy of its ~40
      * callbacks would silently miss new ones.
      */
@@ -252,10 +277,13 @@ internal class QueuePlayer(
 
                 else -> {
                     val forwarded =
-                        if (method.name == "onAvailableCommandsChanged") {
-                            arrayOf<Any?>(withSkips(args!![0] as Player.Commands))
-                        } else {
-                            args ?: emptyArray()
+                        when (method.name) {
+                            "onAvailableCommandsChanged" -> arrayOf<Any?>(withSkips(args!![0] as Player.Commands))
+
+                            // The session keeps the value it is given: it must be the one the getter returns.
+                            "onMediaMetadataChanged" -> arrayOf<Any?>(withLyricsTitle(args!![0] as MediaMetadata))
+
+                            else -> args ?: emptyArray()
                         }
                     try {
                         method.invoke(listener, *forwarded)

@@ -15,6 +15,7 @@ import androidx.core.content.IntentCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -27,6 +28,7 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.CacheBitmapLoader
+import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
@@ -38,6 +40,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.AudioOutputRepository
@@ -47,6 +50,7 @@ import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
+import io.github.kentprodan.mediatheq.core.data.LyricsRepository
 import io.github.kentprodan.mediatheq.core.data.OutputProfile
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
@@ -113,6 +117,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var userData: UserDataRepository
 
+    @Inject lateinit var lyricsRepository: LyricsRepository
+
     @Inject
     @DownloadCache
     lateinit var downloadCache: Cache
@@ -150,6 +156,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private lateinit var focusController: AudioFocusController
     private lateinit var autoActions: AutoActionsController
     private lateinit var fader: VolumeFader
+    private lateinit var bluetoothLyrics: BluetoothLyrics
 
     // The audio settings as last read, on the main thread like the player; the defaults until then (milliseconds).
     private var audio = AudioPreferences()
@@ -310,6 +317,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 onCached = { waveformAnalyzer.offer(listOf(it)) },
             )
         prefetchJob = prefetcher.start()
+        // The notification keeps the real title while a lyrics line is the session title (#143, ADR 0034).
+        setMediaNotificationProvider(
+            object : DefaultMediaNotificationProvider(this) {
+                override fun getNotificationContentTitle(metadata: MediaMetadata): CharSequence? =
+                    metadata.displayTitle ?: metadata.title
+            },
+        )
         session =
             MediaLibrarySession
                 .Builder(this, queuePlayer(player), LibraryCallback())
@@ -350,14 +364,27 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 onPlay = fader::cancelFadeOut,
                 finishFade = fader::finish,
             )
+        bluetoothLyrics =
+            BluetoothLyrics(
+                player,
+                enabled = { audio.behavior.bluetoothLyrics },
+                load = { (lyricsRepository.lyrics(it) as? MqResult.Success)?.value },
+                scope = applicationScope + Dispatchers.Main,
+                schedule = handlerSchedule(Handler(Looper.getMainLooper())),
+                onTitle = queuePlayer::setLyricsTitle,
+            )
+        player.addListener(bluetoothLyrics)
         behaviorJob =
             applicationScope.launch(Dispatchers.Main) {
                 audioPreferences.preferences.collect {
                     val behaviorChanged = it.behavior != audio.behavior
+                    val lyricsChanged = it.behavior.bluetoothLyrics != audio.behavior.bluetoothLyrics
                     val buttonsChanged = it.notificationButtons != audio.notificationButtons
                     audio = it
                     if (behaviorChanged) queuePlayer.onBehaviorChanged()
-                    if (buttonsChanged) refreshButtons()
+                    // Bluetooth lyrics also hide the queue from the platform session (ADR 0034).
+                    if (buttonsChanged || lyricsChanged) refreshButtons()
+                    if (lyricsChanged) bluetoothLyrics.onSettingChanged()
                 }
             }
         headsetButtons =
@@ -441,7 +468,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
         val accepted = acceptWithoutPlayerVolume(session, controller)
         val players =
             if (session.isMediaNotificationController(controller)) {
-                notificationPlayerCommands(accepted.availablePlayerCommands, audio.notificationButtons)
+                notificationPlayerCommands(
+                    accepted.availablePlayerCommands,
+                    audio.notificationButtons,
+                    hideQueue = audio.behavior.bluetoothLyrics,
+                )
             } else {
                 accepted.availablePlayerCommands
             }
@@ -659,6 +690,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         outputsJob?.cancel()
         autoActions.release()
         fader.release()
+        bluetoothLyrics.release()
         audioOutput.release()
         usbAudio.release()
         equalizer.release()

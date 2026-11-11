@@ -82,6 +82,14 @@ class SessionButtonsTest {
                 .addAllCommands()
                 .build()
 
+        // Bluetooth lyrics hide the queue from the platform session, and only then.
+        assertThat(
+            notificationPlayerCommands(all, NotificationButtonsPreferences()).contains(Player.COMMAND_GET_TIMELINE),
+        ).isTrue()
+        assertThat(
+            notificationPlayerCommands(all, NotificationButtonsPreferences(), hideQueue = true)
+                .contains(Player.COMMAND_GET_TIMELINE),
+        ).isFalse()
         val commands = notificationPlayerCommands(all, NotificationButtonsPreferences(showPrevious = false))
 
         assertThat(commands.contains(Player.COMMAND_SEEK_TO_PREVIOUS)).isFalse()

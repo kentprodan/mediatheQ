@@ -95,15 +95,21 @@ internal fun nextRepeatMode(mode: Int): Int =
         else -> Player.REPEAT_MODE_OFF
     }
 
-/** The media notification's player commands: previous and next as chosen (System UI, the lock screen, the car). */
+/**
+ * The media notification's player commands: previous and next as chosen (System UI, the lock screen, the car).
+ * Media3 applies them to the platform session too, so [hideQueue] (Bluetooth lyrics on, #143) leaves it without a
+ * queue: Bluetooth holds back a title that differs from the queue's active item (ADR 0034).
+ */
 @UnstableApi
 internal fun notificationPlayerCommands(
     commands: Player.Commands,
     preferences: NotificationButtonsPreferences,
+    hideQueue: Boolean = false,
 ): Player.Commands =
     commands
         .buildUpon()
         .apply {
+            if (hideQueue) remove(Player.COMMAND_GET_TIMELINE)
             if (!preferences.showPrevious) {
                 removeAll(Player.COMMAND_SEEK_TO_PREVIOUS, Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
             }
