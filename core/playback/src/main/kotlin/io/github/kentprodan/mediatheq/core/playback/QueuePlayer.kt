@@ -141,13 +141,20 @@ internal class QueuePlayer(
         setOrder(shuffleWithInserted(playOrder(), at until at + mediaItems.size, currentMediaItemIndex, appended, run))
     }
 
-    // The lyrics line shown as the title (#143); null = the real title.
+    // The lyrics line shown as the title (#143), and the queue entry it belongs to; null = the real title.
     private var lyricsTitle: String? = null
+    private var lyricsEntry: String? = null
 
-    /** The lyrics line Bluetooth displays show as the title, or `null` for the real one; listeners are told. */
+    /**
+     * The lyrics line Bluetooth displays show as the title of the entry playing now, or `null` for the real one;
+     * listeners are told. The line ends with its entry: the next track never carries it, not even for the moment
+     * before it is cleared.
+     */
     fun setLyricsTitle(line: String?) {
-        if (line == lyricsTitle) return
+        val entry = currentMediaItem?.entryId()
+        if (line == lyricsTitle && (line == null || entry == lyricsEntry)) return
         lyricsTitle = line
+        lyricsEntry = entry
         val metadata = mediaMetadata
         wrapped.keys.forEach { it.onMediaMetadataChanged(metadata) }
     }
@@ -156,6 +163,7 @@ internal class QueuePlayer(
 
     private fun withLyricsTitle(metadata: MediaMetadata): MediaMetadata {
         val line = lyricsTitle ?: return metadata
+        if (currentMediaItem?.entryId() != lyricsEntry) return metadata
         return metadata
             .buildUpon()
             .setTitle(line)

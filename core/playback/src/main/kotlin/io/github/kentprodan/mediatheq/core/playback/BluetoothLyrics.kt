@@ -69,6 +69,8 @@ internal class BluetoothLyrics(
         player: Player,
         events: Player.Events,
     ) {
+        // A new entry starts with the real title, also the same track again (repeat one, queued twice).
+        if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) show(null)
         if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_TIMELINE_CHANGED)) follow()
         if (events.containsAny(
                 Player.EVENT_IS_PLAYING_CHANGED,

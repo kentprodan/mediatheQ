@@ -347,18 +347,48 @@ class QueuePlayerTest {
                 .toString(),
         ).isEqualTo("Track 1")
 
-        // The player's own metadata event (a new track) carries the line too.
-        player.seekToNextMediaItem()
-        RobolectricUtil.runMainLooperUntil { seen.size >= 2 }
-        assertThat(seen.last()).isEqualTo("A line of lyrics")
-
         player.setLyricsTitle(null)
-        assertThat(player.mediaMetadata.title.toString()).isEqualTo("Track 2")
+        assertThat(player.mediaMetadata.title.toString()).isEqualTo("Track 1")
         assertThat(player.mediaMetadata.displayTitle).isNull()
-        RobolectricUtil.runMainLooperUntil { controller.mediaMetadata.title?.toString() == "Track 2" }
-        assertThat(seen.last()).isEqualTo("Track 2")
+        RobolectricUtil.runMainLooperUntil { controller.mediaMetadata.title?.toString() == "Track 1" }
+        assertThat(seen).containsExactly("A line of lyrics", "Track 1").inOrder()
         controller.release()
         session.release()
+    }
+
+    @Test
+    fun `a lyrics line ends with its track, the next track never carries it`() {
+        start()
+        // What a listener reads during the transition, as the session does to publish the new track.
+        val duringTransition = mutableListOf<String?>()
+        val events = mutableListOf<String?>()
+        player.addListener(
+            object : Player.Listener {
+                override fun onMediaItemTransition(
+                    mediaItem: MediaItem?,
+                    reason: Int,
+                ) {
+                    duringTransition += player.mediaMetadata.title?.toString()
+                }
+
+                override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) {
+                    events += mediaMetadata.title?.toString()
+                }
+            },
+        )
+        player.setLyricsTitle("A line of lyrics")
+
+        player.seekToNextMediaItem()
+        RobolectricUtil.runMainLooperUntil { duringTransition.isNotEmpty() && events.size >= 2 }
+
+        assertThat(duringTransition).containsExactly("Track 2")
+        assertThat(events).containsExactly("A line of lyrics", "Track 2").inOrder()
+        assertThat(player.mediaMetadata.displayTitle).isNull()
+
+        // A line for the new track shows again.
+        player.setLyricsTitle("A line of lyrics")
+        assertThat(player.mediaMetadata.title.toString()).isEqualTo("A line of lyrics")
+        assertThat(player.mediaMetadata.displayTitle.toString()).isEqualTo("Track 2")
     }
 
     @Test

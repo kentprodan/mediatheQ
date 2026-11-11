@@ -193,6 +193,27 @@ class BluetoothLyricsTest {
     }
 
     @Test
+    fun `the same track again starts with the real title`() {
+        player.repeatMode = androidx.media3.common.Player.REPEAT_MODE_ONE
+        start()
+        seek(3_500)
+        pass(1_000)
+
+        // The same entry again, as repeat one does at the end of the track.
+        lyrics.onEvents(
+            player,
+            androidx.media3.common.Player.Events(
+                androidx.media3.common.FlagSet
+                    .Builder()
+                    .add(androidx.media3.common.Player.EVENT_MEDIA_ITEM_TRANSITION)
+                    .build(),
+            ),
+        )
+
+        assertThat(titles.take(2)).containsExactly("Fourth", null).inOrder()
+    }
+
+    @Test
     fun `lyrics that arrive after a fast skip are dropped`() {
         start()
         player.seekTo(2, 1_200)
