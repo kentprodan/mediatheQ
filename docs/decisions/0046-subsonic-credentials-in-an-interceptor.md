@@ -17,7 +17,7 @@ and cache keys. `getCoverArt` and `stream` are authenticated endpoints.
 - The **password** is the account's secret: `StoredAccount.accessToken` holds it, encrypted as today (ADR 0013). The
   app never sends `p`; it sends `t` + `s` with a new random salt (16 hex characters) per request.
 - `SubsonicAuthInterceptor` is the only code that writes credentials. It is registered into the shared OkHttp client
-  through the `Set<Interceptor>` multibinding `:core:network` already assembles (no module edge) and acts only on
+  through a `Set<Interceptor>` multibinding added to `:core:network`'s `NetworkModule` (empty until a provider contributes; no module edge) and acts only on
   requests to `/rest/*` on the host of the signed-in Subsonic account. It appends `u`, `t`, `s`, `v=1.16.1`,
   `c=mediatheQ`, `f=json`: as a **POST form body** when the server lists `formPost`, else as query parameters.
 - URLs produced by the provider (`imageUrl`, `PlaybackStream.url`) and handed to Coil, Media3 or the cache carry
