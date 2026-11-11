@@ -41,3 +41,9 @@ from Room through `LibraryRepository` and `PlaylistRepository`.
   `NetworkMonitor.meteredChanges`, the same rule as Wi-Fi only downloads) or Never. `OfflineFilter.active` is the
   library's view; `OfflineFilter.forced` (the switch and Not on Wi-Fi, without the network part) is what
   `OfflineModeNetwork` gives the player, which adds no network itself.
+- Update 2026-11-11 (#145): Automatic downloads of favorites use automatic download origins (`AutoAlbum`,
+  `AutoPlaylist`, `Favorite`; stored kinds of the #168 origins table, no schema change), apart from the manual ones,
+  so unfavoriting removes only what was downloaded automatically. `FavoriteDownloads` decides on the whole library
+  (unfiltered reads), only for the signed-in server, never with an empty library (downloads outlive sign-out), and
+  only when the setting or the favorites change. An older app skips the new kinds: after a downgrade, automatic-only
+  tracks drop out of the Downloads lists.
