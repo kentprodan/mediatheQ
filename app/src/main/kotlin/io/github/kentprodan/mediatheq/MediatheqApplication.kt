@@ -62,6 +62,7 @@ class MediatheqApplication :
 
     // Images settings (#144), kept in memory: the image loader asks on every request.
     private lateinit var images: StateFlow<ImagePreferences?>
+    private lateinit var metered: StateFlow<Boolean>
 
     override fun onCreate() {
         super.onCreate()
@@ -73,6 +74,8 @@ class MediatheqApplication :
         downloadedCovers.start()
         images =
             libraryPreferences.preferences.map { it.images }.stateIn(applicationScope, SharingStarted.Eagerly, null)
+        metered =
+            networkMonitor.meteredChanges.stateIn(applicationScope, SharingStarted.Eagerly, networkMonitor.isMetered())
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) = liveSync.setForeground(true)
@@ -100,9 +103,10 @@ class MediatheqApplication :
                     .directory(imageCacheDir(persistent, filesDir, cacheDir).toOkioPath())
                     .build()
             }.components {
+                // On the main thread for every cover: values in memory only, no system call.
                 add(
-                    ArtworkInterceptor(artworkUrls) {
-                        imageNetworkPolicy(images.value?.wifiOnly == true, networkMonitor.isMetered())
+                    ArtworkInterceptor(artworkUrls::url) {
+                        imageNetworkPolicy(images.value?.wifiOnly == true, metered.value)
                     },
                 )
                 add(OkHttpNetworkFetcherFactory(callFactory = { okHttpClient }))

@@ -55,7 +55,7 @@
     <string name="settings_downloads_unmetered">Download on Wi-Fi only</string>
     <string name="settings_downloads_unmetered_summary">Off: downloads also use mobile data.</string>
     <string name="settings_cache">Streaming cache</string>
-    <string name="settings_cache_summary">Recently played files are kept so they play again without the network.</string>
+
     <string name="settings_cache_gb">%1$d GB</string>
 
     <string name="settings_appearance">Appearance</string>

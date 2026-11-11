@@ -19,7 +19,8 @@ annotation class DownloadCache
 annotation class DownloadCoverDir
 
 /**
- * Content metadata of a download in the [DownloadCache]: 1 when the file is the server's conversion (the device cannot
- * play the original, #68), 0 for the original. Written by the download source, read for the Downloads tab.
+ * Content metadata of a download in the [DownloadCache]: the bitrate in kb/s when the file is the server's conversion
+ * (#68, #144), 0 for the original; 1, written before #144, means Opus 256. Written by the download source, read for
+ * the Downloads tab and Now Playing.
  */
 const val CONVERTED_DOWNLOAD = "mediatheq.converted"
