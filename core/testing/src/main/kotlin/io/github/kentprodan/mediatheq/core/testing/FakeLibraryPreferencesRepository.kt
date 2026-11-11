@@ -166,6 +166,25 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
         preferences.value = preferences.value.copy(offlineMode = on)
     }
 
+    override suspend fun setAutoOffline(mode: io.github.kentprodan.mediatheq.core.data.AutoOffline) {
+        preferences.value = preferences.value.copy(autoOffline = mode)
+    }
+
+    override suspend fun restoreOfflineDefaults() {
+        val defaults = LibraryPreferences()
+        preferences.value =
+            preferences.value.copy(offlineMode = defaults.offlineMode, autoOffline = defaults.autoOffline)
+    }
+
+    override suspend fun setImages(images: io.github.kentprodan.mediatheq.core.data.ImagePreferences?) {
+        preferences.value =
+            preferences.value.copy(
+                images =
+                    images ?: io.github.kentprodan.mediatheq.core.data
+                        .ImagePreferences(),
+            )
+    }
+
     override suspend fun setQualityDetail(on: Boolean) {
         preferences.value = preferences.value.copy(qualityDetail = on)
     }

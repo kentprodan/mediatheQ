@@ -32,6 +32,13 @@ class DefaultAudioPreferencesRepository
                         stored.streamingCacheGb?.takeIf { it in AudioPreferences.CACHE_SIZES_GB }
                             ?: defaults.streamingCacheGb,
                     downloadsUnmeteredOnly = stored.downloadsUnmeteredOnly ?: defaults.downloadsUnmeteredOnly,
+                    downloadQuality =
+                        enumOrNull<StreamingQuality>(stored.downloadQuality)
+                            ?.takeIf { it in AudioPreferences.DOWNLOAD_QUALITIES }
+                            ?: defaults.downloadQuality,
+                    maxParallelDownloads =
+                        stored.maxParallelDownloads?.takeIf { it in AudioPreferences.PARALLEL_DOWNLOADS }
+                            ?: defaults.maxParallelDownloads,
                     forceInstantTranscoding = stored.forceInstantTranscoding ?: defaults.forceInstantTranscoding,
                     behavior = behavior(stored.behavior),
                     audioFocus = audioFocus(stored.outside),
@@ -56,6 +63,16 @@ class DefaultAudioPreferencesRepository
         }
 
         override suspend fun setDownloadsUnmeteredOnly(on: Boolean) = store.setDownloadsUnmeteredOnly(on)
+
+        override suspend fun setDownloadQuality(quality: StreamingQuality) {
+            if (quality in AudioPreferences.DOWNLOAD_QUALITIES) store.setDownloadQuality(quality.name)
+        }
+
+        override suspend fun setMaxParallelDownloads(count: Int) {
+            if (count in AudioPreferences.PARALLEL_DOWNLOADS) store.setMaxParallelDownloads(count)
+        }
+
+        override suspend fun restoreDownloadDefaults() = store.clearDownloads()
 
         override suspend fun setForceInstantTranscoding(on: Boolean) = store.setForceInstantTranscoding(on)
 

@@ -186,6 +186,10 @@ class LibraryPreferencesStore
                                 hideStatusBar = prefs[ADV_HIDE_STATUS_BAR],
                             ),
                         offlineMode = prefs[OFFLINE_MODE],
+                        autoOffline = prefs[AUTO_OFFLINE],
+                        imagePersistent = prefs[IMG_PERSISTENT],
+                        imageWifiOnly = prefs[IMG_WIFI_ONLY],
+                        imageHighQuality = prefs[IMG_HIGH_QUALITY],
                         qualityDetail = prefs[QUALITY_DETAIL],
                         sorts =
                             prefs
@@ -400,6 +404,38 @@ class LibraryPreferencesStore
             dataStore.edit { it[OFFLINE_MODE] = on }
         }
 
+        /** Automatic offline mode (#144), as its name. */
+        suspend fun setAutoOffline(name: String) {
+            dataStore.edit { it[AUTO_OFFLINE] = name }
+        }
+
+        /** Removes offline mode and automatic offline mode (#144): the defaults apply again. */
+        suspend fun clearOffline() {
+            dataStore.edit {
+                it.remove(OFFLINE_MODE)
+                it.remove(AUTO_OFFLINE)
+            }
+        }
+
+        /** Images (#144): every value at once; null removes it (the default). */
+        suspend fun setImages(
+            persistent: Boolean?,
+            wifiOnly: Boolean?,
+            highQuality: Boolean?,
+        ) {
+            dataStore.edit { prefs ->
+                fun put(
+                    key: Preferences.Key<Boolean>,
+                    value: Boolean?,
+                ) {
+                    if (value == null) prefs.remove(key) else prefs[key] = value
+                }
+                put(IMG_PERSISTENT, persistent)
+                put(IMG_WIFI_ONLY, wifiOnly)
+                put(IMG_HIGH_QUALITY, highQuality)
+            }
+        }
+
         /** Stores the sort [name] for the Library tab [tab]. */
         suspend fun setSort(
             tab: String,
@@ -489,6 +525,10 @@ class LibraryPreferencesStore
             val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
             val RATING_MODE = stringPreferencesKey("rating_mode")
             val OFFLINE_MODE = booleanPreferencesKey("offline_mode")
+            val AUTO_OFFLINE = stringPreferencesKey("auto_offline")
+            val IMG_PERSISTENT = booleanPreferencesKey("img_persistent")
+            val IMG_WIFI_ONLY = booleanPreferencesKey("img_wifi_only")
+            val IMG_HIGH_QUALITY = booleanPreferencesKey("img_high_quality")
             val QUALITY_DETAIL = booleanPreferencesKey("np_quality_detail")
             val THEME_MODE = stringPreferencesKey("theme_mode")
             val COLOR_SOURCE = stringPreferencesKey("color_source")
@@ -544,6 +584,10 @@ data class StoredLibraryPreferences(
     val dynamicColor: Boolean? = null,
     val ratingMode: String? = null,
     val offlineMode: Boolean? = null,
+    val autoOffline: String? = null,
+    val imagePersistent: Boolean? = null,
+    val imageWifiOnly: Boolean? = null,
+    val imageHighQuality: Boolean? = null,
     val theme: StoredTheme = StoredTheme(),
     val navigation: StoredNavigation = StoredNavigation(),
     val mediaLists: StoredMediaLists = StoredMediaLists(),

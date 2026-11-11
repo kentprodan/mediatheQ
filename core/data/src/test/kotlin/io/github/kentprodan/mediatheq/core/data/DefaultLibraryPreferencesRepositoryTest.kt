@@ -18,6 +18,40 @@ class DefaultLibraryPreferencesRepositoryTest {
     private val repository = DefaultLibraryPreferencesRepository(LibraryPreferencesStore(dataStore))
 
     @Test
+    fun `offline mode keeps its stored value, automatic offline defaults to no network, restore resets both only`() =
+        runTest {
+            // A value stored before #144 under the same key.
+            dataStore.edit { it[booleanPreferencesKey("offline_mode")] = true }
+            assertThat(repository.preferences.first().offlineMode).isTrue()
+            assertThat(repository.preferences.first().autoOffline).isEqualTo(AutoOffline.NoNetwork)
+
+            repository.setAutoOffline(AutoOffline.NotOnWifi)
+            repository.setImages(ImagePreferences(wifiOnly = true))
+            assertThat(repository.preferences.first().autoOffline).isEqualTo(AutoOffline.NotOnWifi)
+
+            repository.restoreOfflineDefaults()
+            val restored = repository.preferences.first()
+            assertThat(restored.offlineMode).isFalse()
+            assertThat(restored.autoOffline).isEqualTo(AutoOffline.NoNetwork)
+            assertThat(restored.images).isEqualTo(ImagePreferences(wifiOnly = true))
+        }
+
+    @Test
+    fun `image settings are off by default, kept, and null restores them only`() =
+        runTest {
+            assertThat(repository.preferences.first().images).isEqualTo(ImagePreferences(false, false, false))
+            val images = ImagePreferences(persistentCache = true, wifiOnly = true, highQuality = true)
+            repository.setAutoOffline(AutoOffline.Never)
+
+            repository.setImages(images)
+            assertThat(repository.preferences.first().images).isEqualTo(images)
+
+            repository.setImages(null)
+            assertThat(repository.preferences.first().images).isEqualTo(ImagePreferences())
+            assertThat(repository.preferences.first().autoOffline).isEqualTo(AutoOffline.Never)
+        }
+
+    @Test
     fun `recent searches come newest first, without repeats, at most ten`() =
         runTest {
             (1..12).forEach { repository.addRecentSearch("q$it") }

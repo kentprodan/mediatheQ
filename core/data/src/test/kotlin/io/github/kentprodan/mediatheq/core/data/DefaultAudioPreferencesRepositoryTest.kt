@@ -164,6 +164,47 @@ class DefaultAudioPreferencesRepositoryTest {
         }
 
     @Test
+    fun `downloads default to Wi-Fi only, the original and two at once, keep valid choices and restore together`() =
+        runTest {
+            val defaults = repository.preferences.first()
+            assertThat(defaults.downloadQuality).isEqualTo(StreamingQuality.Original)
+            assertThat(defaults.maxParallelDownloads).isEqualTo(2)
+
+            repository.setDownloadsUnmeteredOnly(false)
+            repository.setDownloadQuality(StreamingQuality.Kbps192)
+            repository.setDownloadQuality(StreamingQuality.Kbps128)
+            repository.setMaxParallelDownloads(4)
+            repository.setMaxParallelDownloads(5)
+            repository.setStreamingCacheGb(8)
+            val set = repository.preferences.first()
+            assertThat(set.downloadQuality).isEqualTo(StreamingQuality.Kbps192)
+            assertThat(set.maxParallelDownloads).isEqualTo(4)
+
+            repository.restoreDownloadDefaults()
+            val restored = repository.preferences.first()
+            assertThat(restored.downloadsUnmeteredOnly).isTrue()
+            assertThat(restored.downloadQuality).isEqualTo(StreamingQuality.Original)
+            assertThat(restored.maxParallelDownloads).isEqualTo(2)
+            assertThat(restored.streamingCacheGb).isEqualTo(8)
+        }
+
+    @Test
+    fun `stored download values outside the offered ones read as the defaults`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("download_quality")] = "Kbps128"
+                it[
+                    androidx.datastore.preferences.core
+                        .intPreferencesKey("max_parallel_downloads"),
+                ] = 9
+            }
+
+            val preferences = repository.preferences.first()
+            assertThat(preferences.downloadQuality).isEqualTo(StreamingQuality.Original)
+            assertThat(preferences.maxParallelDownloads).isEqualTo(2)
+        }
+
+    @Test
     fun `automatic actions default to headphone auto play and ignore remote stop`() =
         runTest {
             assertThat(repository.preferences.first().autoActions)
