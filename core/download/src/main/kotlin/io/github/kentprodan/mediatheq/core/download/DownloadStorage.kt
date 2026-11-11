@@ -1,7 +1,6 @@
 package io.github.kentprodan.mediatheq.core.download
 
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
 import android.os.StatFs
 import androidx.media3.common.util.UnstableApi
@@ -162,12 +161,6 @@ internal class DownloadStorage
 
         override fun dismissMove() {
             if (moveState.value is StorageMove.Failed) moveState.value = StorageMove.Idle
-        }
-
-        override fun restart() {
-            val launch = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return
-            context.startActivity(Intent.makeRestartActivityTask(launch.component))
-            Runtime.getRuntime().exit(0)
         }
 
         override suspend fun otherFilesDirs(): List<File> =

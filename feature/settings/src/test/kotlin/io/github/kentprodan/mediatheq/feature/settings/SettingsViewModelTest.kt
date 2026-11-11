@@ -76,7 +76,8 @@ class SettingsViewModelTest {
     private val audio = FakeAudioPreferencesRepository()
     private val library = FakeLibraryPreferencesRepository()
     private val storage = FakeDownloadStorageRepository()
-    private val viewModel by lazy { SettingsViewModel(session, audio, library, storage) }
+    private var restarts = 0
+    private val viewModel by lazy { SettingsViewModel(session, audio, library, storage) { restarts++ } }
 
     private fun signIn() {
         session.session.value = SessionState.LoggedIn("Home", "Ana")
@@ -95,7 +96,7 @@ class SettingsViewModelTest {
 
             viewModel.uiState.test {
                 assertThat(expectMostRecentItem())
-                    .isEqualTo(SettingsUiState.Content("Home", "Ana", AudioPreferences(), LibraryPreferences()))
+                    .isEqualTo(SettingsUiState.Content(AudioPreferences(), LibraryPreferences()))
             }
         }
 
@@ -147,16 +148,6 @@ class SettingsViewModelTest {
                         offlineMode = true,
                     ),
                 )
-        }
-
-    @Test
-    fun `log out signs out`() =
-        runTest {
-            signIn()
-
-            viewModel.onAction(SettingsAction.LogOut)
-
-            assertThat(session.session.value).isEqualTo(SessionState.LoggedOut())
         }
 
     @Test
@@ -645,11 +636,11 @@ class SettingsViewModelTest {
             viewModel.onAction(SettingsAction.MoveDownloads(card))
             storage.move.value = StorageMove.Moving(0.5f)
             assertThat(content().storageMove).isEqualTo(StorageMove.Moving(0.5f))
-            assertThat(storage.restarts).isEqualTo(0)
+            assertThat(restarts).isEqualTo(0)
 
             storage.move.value = StorageMove.Done
             assertThat(storage.moves).containsExactly(card)
-            assertThat(storage.restarts).isEqualTo(1)
+            assertThat(restarts).isEqualTo(1)
         }
 
     @Test
@@ -664,7 +655,7 @@ class SettingsViewModelTest {
 
             viewModel.onAction(SettingsAction.DismissMoveDownloads)
             assertThat(content().storageMove).isEqualTo(StorageMove.Idle)
-            assertThat(storage.restarts).isEqualTo(0)
+            assertThat(restarts).isEqualTo(0)
         }
 
     @Test

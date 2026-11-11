@@ -18,6 +18,12 @@ internal interface DataModule {
     fun resumeRepository(repository: DefaultResumeRepository): ResumeRepository
 
     @Binds
+    fun accountRepository(repository: DefaultAccountRepository): AccountRepository
+
+    @Binds
+    fun appRestarter(restarter: DefaultAppRestarter): AppRestarter
+
+    @Binds
     fun sessionRepository(repository: DefaultSessionRepository): SessionRepository
 
     @Binds

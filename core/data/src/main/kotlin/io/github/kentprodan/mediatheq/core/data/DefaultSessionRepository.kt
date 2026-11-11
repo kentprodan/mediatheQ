@@ -3,10 +3,13 @@ package io.github.kentprodan.mediatheq.core.data
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.common.getOrNull
 import io.github.kentprodan.mediatheq.core.common.isLocalNetwork
+import io.github.kentprodan.mediatheq.core.database.AccountDatabases
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.model.QuickConnectCode
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.server.AuthSession
 import io.github.kentprodan.mediatheq.core.server.AuthSource
 import io.github.kentprodan.mediatheq.core.server.ServerConnection
@@ -16,7 +19,9 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
@@ -34,6 +39,8 @@ class DefaultSessionRepository
     constructor(
         private val authSource: AuthSource,
         private val accountStore: AccountStore,
+        private val databases: AccountDatabases,
+        private val restarter: AppRestarter,
         private val queue: QueueRepository,
         @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : SessionRepository {
@@ -53,6 +60,9 @@ class DefaultSessionRepository
                     }
                 }
             }
+
+        override val activeServerId: Flow<ServerId?> =
+            accountStore.account.map { it.getOrNull()?.serverId }.distinctUntilChanged()
 
         override suspend fun checkServer(address: String): ServerCheck {
             val baseUrl = normalizeServerAddress(address) ?: return ServerCheck.InvalidAddress
@@ -139,7 +149,11 @@ class DefaultSessionRepository
 
         private suspend fun connection(baseUrl: String) = ServerConnection(baseUrl, accountStore.deviceId())
 
-        /** Stores a successful login, replacing any older token (R9). */
+        /**
+         * Stores a successful login, replacing any older token of the same server and user (R9). With no active account
+         * it becomes active: a new one takes the open (empty) database, a saved one is opened by a restart. With one
+         * active, a new account is added beside it (#147).
+         */
         private suspend fun save(
             baseUrl: String,
             serverName: String,
@@ -147,6 +161,14 @@ class DefaultSessionRepository
         ): MqResult<Unit> {
             val session = (result as? MqResult.Success)?.value ?: return result as MqResult.Failure
             return try {
+                val saved =
+                    accountStore.accounts
+                        .first()
+                        .getOrNull()
+                        .orEmpty()
+                val existing = saved.firstOrNull { it.serverId == session.serverId && it.userId == session.userId }
+                val noneActive = saved.none { it.id == databases.open }
+                val id = existing?.id ?: if (noneActive) databases.open else databases.newName()
                 accountStore.save(
                     StoredAccount(
                         baseUrl = baseUrl,
@@ -155,9 +177,11 @@ class DefaultSessionRepository
                         userId = session.userId,
                         userName = session.userName,
                         accessToken = session.accessToken,
+                        id = id,
                     ),
                 )
                 logoutReason.value = null
+                if (noneActive && id != databases.open && databases.select(id)) restarter.restart()
                 MqResult.Success(Unit)
             } catch (_: GeneralSecurityException) {
                 MqResult.Failure(MqError.Storage)

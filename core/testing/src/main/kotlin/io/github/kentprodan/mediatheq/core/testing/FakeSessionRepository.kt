@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /** [SessionRepository] with settable results; successful logins switch [session] to logged in. */
 class FakeSessionRepository : SessionRepository {
     override val session = MutableStateFlow<SessionState>(SessionState.LoggedOut())
+    override val activeServerId = MutableStateFlow<ServerId?>(null)
 
     var serverCheck: ServerCheck =
         ServerCheck.Supported(

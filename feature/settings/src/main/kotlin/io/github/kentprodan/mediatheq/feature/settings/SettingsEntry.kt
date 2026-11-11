@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.settings
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import io.github.kentprodan.mediatheq.core.navigation.AboutSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.AddAccountKey
 import io.github.kentprodan.mediatheq.core.navigation.AdvancedSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistPageSettingsKey
@@ -21,6 +22,7 @@ import io.github.kentprodan.mediatheq.core.navigation.NavigationSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.NotificationButtonsSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.NowPlayingSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.OnboardingLoginKey
 import io.github.kentprodan.mediatheq.core.navigation.OutputKey
 import io.github.kentprodan.mediatheq.core.navigation.OutputSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackBehaviorSettingsKey
@@ -123,7 +125,13 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<StorageMediaSettingsKey> { SettingsPageRoute(SettingsPage.StorageMedia, openOutputs, back) }
     entry<StoragePlaybackSettingsKey> { SettingsPageRoute(SettingsPage.StoragePlayback, openOutputs, back) }
     entry<StorageImagesSettingsKey> { SettingsPageRoute(SettingsPage.StorageImages, openOutputs, back) }
-    entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openOutputs, back) }
+    entry<ProvidersSettingsKey> {
+        ProvidersRoute(
+            onAdd = { navigator.navigateTo(AddAccountKey) },
+            onSignInAgain = { navigator.navigateTo(OnboardingLoginKey(it.baseUrl, it.serverName, returnSteps = 1)) },
+            onBack = back,
+        )
+    }
     entry<AboutSettingsKey> {
         AboutSettingsScreen(versionName, onOpenShowcase, onOpenLicenses = { navigator.navigateTo(LicensesKey) }, back)
     }

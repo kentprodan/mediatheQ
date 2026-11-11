@@ -66,6 +66,9 @@ class QuickConnectViewModel
                         if (approved.value) {
                             val login = sessionRepository.loginWithQuickConnect(key.baseUrl, key.serverName, code)
                             if (login is MqResult.Failure) fail(login.error)
+                            if (login is MqResult.Success && key.returnSteps > 0) {
+                                state.value = QuickConnectUiState.Done(key.serverName)
+                            }
                             return
                         }
                     }

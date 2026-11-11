@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -24,10 +25,12 @@ import io.github.kentprodan.mediatheq.feature.onboarding.R
 internal fun QuickConnectRoute(
     key: OnboardingQuickConnectKey,
     onCancel: () -> Unit,
+    onDone: () -> Unit = {},
     viewModel: QuickConnectViewModel =
         hiltViewModel<QuickConnectViewModel, QuickConnectViewModel.Factory>(creationCallback = { it.create(key) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(state is QuickConnectUiState.Done) { if (state is QuickConnectUiState.Done) onDone() }
     QuickConnectScreen(state, viewModel::onAction, onCancel)
 }
 
@@ -44,7 +47,7 @@ fun QuickConnectScreen(
         modifier = modifier,
     ) {
         when (state) {
-            is QuickConnectUiState.Starting -> {
+            is QuickConnectUiState.Starting, is QuickConnectUiState.Done -> {
                 MqLoadingIndicator(Modifier.fillMaxWidth())
             }
 

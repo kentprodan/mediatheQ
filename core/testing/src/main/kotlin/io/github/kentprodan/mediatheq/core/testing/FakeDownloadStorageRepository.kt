@@ -14,7 +14,6 @@ class FakeDownloadStorageRepository(
     override var locationName: String? = null
     override val move = MutableStateFlow<StorageMove>(StorageMove.Idle)
     val moves = mutableListOf<StorageLocation>()
-    var restarts = 0
 
     override fun moveTo(location: StorageLocation) {
         moves += location
@@ -22,10 +21,6 @@ class FakeDownloadStorageRepository(
 
     override fun dismissMove() {
         move.value = StorageMove.Idle
-    }
-
-    override fun restart() {
-        restarts++
     }
 
     override suspend fun otherFilesDirs(): List<File> = emptyList()

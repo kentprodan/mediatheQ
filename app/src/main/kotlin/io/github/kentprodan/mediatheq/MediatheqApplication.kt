@@ -13,6 +13,7 @@ import coil3.serviceLoaderEnabled
 import dagger.hilt.android.HiltAndroidApp
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
+import io.github.kentprodan.mediatheq.core.data.AccountRepository
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.DefaultLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okio.Path.Companion.toOkioPath
@@ -65,6 +67,9 @@ class MediatheqApplication :
     lateinit var downloadStorage: DownloadStorageRepository
 
     @Inject
+    lateinit var accounts: AccountRepository
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -82,6 +87,8 @@ class MediatheqApplication :
         downloadedCovers.start()
         // Downloads the favorites by themselves, per Settings -> Offline, cache, and download -> Media (#145).
         favoriteDownloads.start()
+        // The database of an account removed while it was open goes now that another one is open (#147).
+        applicationScope.launch { accounts.cleanUp() }
         images =
             libraryPreferences.preferences.map { it.images }.stateIn(applicationScope, SharingStarted.Eagerly, null)
         metered =

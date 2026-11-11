@@ -92,7 +92,7 @@ class SettingsScreenTest {
 
     private fun show(
         page: SettingsPage,
-        content: SettingsUiState = SettingsUiState.Content("Home", "Ana"),
+        content: SettingsUiState = SettingsUiState.Content(),
     ) {
         composeRule.setContent {
             MediatheqTheme {
@@ -139,21 +139,10 @@ class SettingsScreenTest {
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(text, substring = true))
 
     @Test
-    fun `manage media providers shows the account, and log out sends its action`() {
-        show(SettingsPage.Providers)
-
-        composeRule.onNodeWithText("Home").assertExists()
-        composeRule.onNodeWithText("Ana").assertExists()
-        composeRule.onNodeWithText("Log out").performClick()
-
-        assertThat(actions).containsExactly(SettingsAction.LogOut)
-    }
-
-    @Test
     fun `each network has its own quality chips, the current one selected`() {
         show(
             SettingsPage.Decoding,
-            SettingsUiState.Content("Home", "Ana", AudioPreferences(meteredQuality = StreamingQuality.Kbps128)),
+            SettingsUiState.Content(AudioPreferences(meteredQuality = StreamingQuality.Kbps128)),
         )
 
         // Mobile data first, then Wi-Fi.
@@ -349,12 +338,6 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `the providers page holds the account and log out`() {
-        show(SettingsPage.Providers)
-        assertRows("Server", "Signed in as", "Log out")
-    }
-
-    @Test
     fun `a page shows nothing until its settings are read`() {
         show(SettingsPage.Interface, SettingsUiState.Loading)
 
@@ -415,7 +398,7 @@ class SettingsScreenTest {
     @Test
     fun `a preset seed sets the custom color`() {
         val theme = ThemePreferences(colorSource = ColorSource.Custom)
-        show(SettingsPage.Theme, SettingsUiState.Content("Home", "Ana", library = LibraryPreferences(theme = theme)))
+        show(SettingsPage.Theme, SettingsUiState.Content(library = LibraryPreferences(theme = theme)))
 
         composeRule.onNodeWithContentDescription("Color 3 of 8").performClick()
 
@@ -563,7 +546,7 @@ class SettingsScreenTest {
 
     @Test
     fun `the stars row is off and disabled while ratings are off, the fallback while no waveform is used`() {
-        val content = SettingsUiState.Content("Home", "Ana")
+        val content = SettingsUiState.Content()
         show(
             SettingsPage.NowPlaying,
             content.copy(
@@ -713,8 +696,6 @@ class SettingsScreenTest {
         show(
             SettingsPage.Library,
             SettingsUiState.Content(
-                "Home",
-                "Ana",
                 library = LibraryPreferences(libraryPage = LibraryPagePreferences(style = LibraryHubStyle.List)),
             ),
         )
@@ -892,11 +873,7 @@ class SettingsScreenTest {
     fun `fades show Disabled or their length, and a slider saves its new length`() {
         show(
             SettingsPage.Transitions,
-            SettingsUiState.Content(
-                "Home",
-                "Ana",
-                AudioPreferences(transitions = TransitionsPreferences(fadeOutMs = 300)),
-            ),
+            SettingsUiState.Content(AudioPreferences(transitions = TransitionsPreferences(fadeOutMs = 300))),
         )
         assertRows("Fade in", "Fade out")
         composeRule.onNodeWithText("Disabled").assertExists()
@@ -959,7 +936,7 @@ class SettingsScreenTest {
     fun `automatic actions restore their defaults after a confirmation`() {
         show(
             SettingsPage.AutoActions,
-            SettingsUiState.Content("Home", "Ana", AudioPreferences(autoActions = AutoActionsPreferences(true))),
+            SettingsUiState.Content(AudioPreferences(autoActions = AutoActionsPreferences(true))),
         )
         scrollTo("Restore defaults")
         composeRule.onNodeWithText("Restore defaults").performClick()

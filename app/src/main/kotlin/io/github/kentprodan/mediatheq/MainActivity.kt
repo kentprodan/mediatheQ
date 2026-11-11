@@ -28,6 +28,9 @@ import io.github.kentprodan.mediatheq.feature.genre.genreEntry
 import io.github.kentprodan.mediatheq.feature.home.homeEntry
 import io.github.kentprodan.mediatheq.feature.library.libraryEntry
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingHost
+import io.github.kentprodan.mediatheq.feature.onboarding.login.loginEntry
+import io.github.kentprodan.mediatheq.feature.onboarding.quickconnect.quickConnectEntry
+import io.github.kentprodan.mediatheq.feature.onboarding.server.serverEntry
 import io.github.kentprodan.mediatheq.feature.playlist.addToPlaylistEntry
 import io.github.kentprodan.mediatheq.feature.playlist.playlistEntry
 import io.github.kentprodan.mediatheq.feature.search.searchEntry
@@ -106,6 +109,10 @@ class MainActivity : ComponentActivity() {
                                         searchEntry(navigator)
                                         downloadsEntry(navigator, isTab = { TopLevelTab.Downloads in navigator.tabs })
                                         addToPlaylistEntry(navigator)
+                                        // Adding an account or signing in again from Settings (#147).
+                                        serverEntry(navigator)
+                                        loginEntry(navigator)
+                                        quickConnectEntry(navigator)
                                         placeholders(
                                             navigator,
                                             includeHome = false,

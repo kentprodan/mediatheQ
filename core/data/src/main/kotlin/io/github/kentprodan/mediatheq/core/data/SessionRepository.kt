@@ -2,12 +2,19 @@ package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.QuickConnectCode
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import kotlinx.coroutines.flow.Flow
 
-/** Signing in to and out of a media server. One server for now. */
+/**
+ * Signing in to and out of the active media server account (#147: several accounts are saved, one is active). A login
+ * while an account is active adds the account (or renews its token) without switching to it.
+ */
 interface SessionRepository {
     /** The current session; emits again on every login, logout and expiry. */
     val session: Flow<SessionState>
+
+    /** The active account's server, `null` when signed out. */
+    val activeServerId: Flow<ServerId?>
 
     /** Normalizes [address], checks the cleartext rule and asks the server who it is. */
     suspend fun checkServer(address: String): ServerCheck

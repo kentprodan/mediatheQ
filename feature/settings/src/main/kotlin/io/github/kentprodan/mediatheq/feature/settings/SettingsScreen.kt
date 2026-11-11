@@ -76,7 +76,6 @@ enum class SettingsPage(
     StorageMedia(R.string.settings_st_media),
     StoragePlayback(R.string.settings_st_playback),
     StorageImages(R.string.settings_st_images),
-    Providers(R.string.settings_providers),
 }
 
 @Composable
@@ -417,10 +416,6 @@ fun SettingsPageScreen(
             SettingsPage.StorageImages -> {
                 storageImagesGroups(content.library.images, onAction) { restoring = true }
             }
-
-            SettingsPage.Providers -> {
-                item(key = "account") { AccountGroup(content, onAction) }
-            }
         }
     }
     val content = state as? SettingsUiState.Content
@@ -575,26 +570,6 @@ internal fun SettingsScaffold(
             verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
             content = groups,
         )
-    }
-}
-
-@Composable
-internal fun AccountGroup(
-    content: SettingsUiState.Content,
-    onAction: (SettingsAction) -> Unit,
-) {
-    Group(R.string.settings_account) {
-        item { shapes -> InfoItem(shapes, stringResource(R.string.settings_server), content.serverName) }
-        item { shapes -> InfoItem(shapes, stringResource(R.string.settings_user), content.userName) }
-        item { shapes ->
-            SegmentedListItem(
-                onClick = { onAction(SettingsAction.LogOut) },
-                shapes = shapes,
-                colors = settingsColors(),
-            ) {
-                Text(stringResource(R.string.settings_log_out), color = MaterialTheme.colorScheme.error)
-            }
-        }
     }
 }
 

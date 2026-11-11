@@ -71,6 +71,19 @@ class QuickConnectViewModelTest {
         }
 
     @Test
+    fun `inside the app an approved code ends in Done`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = QuickConnectViewModel(key.copy(returnSteps = 3), repository)
+            repository.quickConnectApprovals = listOf(MqResult.Success(true))
+            runCurrent()
+
+            nextPoll()
+
+            assertThat(viewModel.uiState.value).isEqualTo(QuickConnectUiState.Done("Home"))
+            viewModel.viewModelScope.cancel()
+        }
+
+    @Test
     fun `an expired code offers a new one`() =
         test { viewModel ->
             repository.quickConnectApprovals = listOf(MqResult.Failure(MqError.NotFound))

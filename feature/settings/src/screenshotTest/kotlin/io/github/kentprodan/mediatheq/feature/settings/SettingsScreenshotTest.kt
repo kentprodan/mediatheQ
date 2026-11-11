@@ -58,8 +58,6 @@ import io.github.kentprodan.mediatheq.core.ui.label
 
 private val content =
     SettingsUiState.Content(
-        "Home server",
-        "Ana",
         AudioPreferences(meteredQuality = StreamingQuality.Kbps128),
         LibraryPreferences(albumColumns = 3, ratingMode = RatingMode.HalfStars),
     )
@@ -270,12 +268,6 @@ fun SettingsMoveDownloadsScreenshot() {
         )
     }
 }
-
-/** Manage media providers: the account and Log out. */
-@PreviewTest
-@MqPreviews
-@Composable
-fun SettingsProvidersScreenshot() = Page(SettingsPage.Providers)
 
 /** About: version, licenses, showcase. */
 @PreviewTest

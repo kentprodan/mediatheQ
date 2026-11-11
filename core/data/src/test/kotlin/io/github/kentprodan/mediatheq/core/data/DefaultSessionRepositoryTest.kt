@@ -8,6 +8,8 @@ import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.model.QuickConnectCode
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.ServerInfo
+import io.github.kentprodan.mediatheq.core.server.AuthSession
+import io.github.kentprodan.mediatheq.core.testing.FakeAccountDatabases
 import io.github.kentprodan.mediatheq.core.testing.FakeAuthSource
 import io.github.kentprodan.mediatheq.core.testing.FakeQueueRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
@@ -23,12 +25,67 @@ class DefaultSessionRepositoryTest {
     private val dataStore = InMemoryPreferencesDataStore()
     private val accountStore = AccountStore(dataStore, cipher)
     private val queue = FakeQueueRepository()
-    private val repository = DefaultSessionRepository(authSource, accountStore, queue, Dispatchers.Unconfined)
+    private val databases = FakeAccountDatabases()
+    private val restarts = mutableListOf<Unit>()
+    private val repository =
+        DefaultSessionRepository(
+            authSource,
+            accountStore,
+            databases,
+            { restarts += Unit },
+            queue,
+            Dispatchers.Unconfined,
+        )
 
     private suspend fun loginAs(token: String) {
         authSource.login = MqResult.Success(FakeAuthSource.session(token))
         repository.login("http://192.168.1.10:8096", "Home", "Ana", "pw")
     }
+
+    @Test
+    fun `a login while an account is active adds the new one beside it, still inactive`() =
+        runTest {
+            loginAs("token-1")
+            authSource.login = MqResult.Success(AuthSession(ServerId("server-2"), "user-2", "Bo", "token-2"))
+
+            repository.login("https://office.org", "Office", "Bo", "pw")
+
+            val accounts = (accountStore.accounts.first() as MqResult.Success).value
+            assertThat(accounts.map { it.id }).containsExactly("mediatheq.db", "mediatheq-1.db").inOrder()
+            assertThat(repository.session.first()).isEqualTo(SessionState.LoggedIn("Home", "Ana"))
+            assertThat(repository.activeServerId.first()).isEqualTo(ServerId("server-1"))
+            assertThat(restarts).isEmpty()
+        }
+
+    @Test
+    fun `signing in again to a saved account renews its token and keeps its database`() =
+        runTest {
+            loginAs("token-1")
+            authSource.login = MqResult.Success(AuthSession(ServerId("server-2"), "user-2", "Bo", "token-2"))
+            repository.login("https://office.org", "Office", "Bo", "pw")
+            authSource.login = MqResult.Success(AuthSession(ServerId("server-2"), "user-2", "Bo", "token-3"))
+
+            repository.login("https://office.org", "Office", "Bo", "pw")
+
+            val accounts = (accountStore.accounts.first() as MqResult.Success).value
+            assertThat(accounts.map { it.id to it.accessToken })
+                .containsExactly("mediatheq.db" to "token-1", "mediatheq-1.db" to "token-3")
+                .inOrder()
+        }
+
+    @Test
+    fun `with none active, signing in to a saved account opens its database by a restart`() =
+        runTest {
+            loginAs("token-1")
+            authSource.login = MqResult.Success(AuthSession(ServerId("server-2"), "user-2", "Bo", "token-2"))
+            repository.login("https://office.org", "Office", "Bo", "pw")
+            repository.onUnauthorized()
+
+            repository.login("https://office.org", "Office", "Bo", "pw")
+
+            assertThat(databases.selected).isEqualTo("mediatheq-1.db")
+            assertThat(restarts).hasSize(1)
+        }
 
     @Test
     fun `starts logged out`() =

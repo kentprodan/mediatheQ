@@ -38,8 +38,6 @@ sealed interface SettingsUiState {
     data object Loading : SettingsUiState
 
     data class Content(
-        val serverName: String,
-        val userName: String,
         val audio: AudioPreferences = AudioPreferences(),
         val library: LibraryPreferences = LibraryPreferences(),
         /** The "Organize your navigation" dialog while it is open (#122). */
@@ -112,8 +110,6 @@ fun navEntriesDraft(entries: List<MainNavEntry>): NavEntriesDraft =
     OrganizeDraft.of(entries, MainNavEntry.entries, setOf(MainNavEntry.Home), NavigationPreferences.MAX_ENTRIES)
 
 sealed interface SettingsAction {
-    data object LogOut : SettingsAction
-
     /** The quality on [metered] networks (mobile data), or on unmetered ones (Wi-Fi). */
     data class SetStreamingQuality(
         val metered: Boolean,

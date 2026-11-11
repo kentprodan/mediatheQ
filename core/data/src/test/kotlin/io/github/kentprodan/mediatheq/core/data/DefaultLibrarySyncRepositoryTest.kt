@@ -465,6 +465,25 @@ class DefaultLibrarySyncRepositoryTest {
         }
 
     @Test
+    fun `adding another account beside the active one keeps the library`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 10)
+            signIn()
+            val repository = repository()
+            repository.start()
+            repository.status.first { it is SyncStatus.Idle && it.lastSyncedAt != null }
+            val tracks = count("track")
+
+            accountStore.save(
+                StoredAccount("https://office.org", ServerId("other"), "Office", "u2", "Bo", "t2", "mediatheq-2.db"),
+            )
+            advanceUntilIdle()
+
+            assertThat(tracks).isGreaterThan(0)
+            assertThat(count("track")).isEqualTo(tracks)
+        }
+
+    @Test
     fun `signing out wipes the library, also a sync in flight`() =
         runTest(dispatcher) {
             fillSource()
@@ -696,6 +715,9 @@ class DefaultLibrarySyncRepositoryTest {
                     io.github.kentprodan.mediatheq.core.testing
                         .FakeAuthSource(),
                     accountStore,
+                    io.github.kentprodan.mediatheq.core.testing
+                        .FakeAccountDatabases(),
+                    {},
                     io.github.kentprodan.mediatheq.core.testing
                         .FakeQueueRepository(),
                     dispatcher,

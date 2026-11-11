@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -47,6 +48,13 @@ class FakeDownloadRepository(
 
     override fun remove(ids: List<MediaId>) {
         downloads.update { current -> current.filterNot { it.track.id in ids } }
+    }
+
+    val removedServers = mutableListOf<ServerId>()
+
+    override suspend fun removeServer(serverId: ServerId) {
+        removedServers += serverId
+        downloads.update { current -> current.filterNot { it.track.id.serverId == serverId } }
     }
 
     override fun isDownloaded(id: MediaId) =

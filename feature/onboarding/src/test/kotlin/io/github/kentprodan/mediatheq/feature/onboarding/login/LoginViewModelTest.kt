@@ -44,6 +44,31 @@ class LoginViewModelTest {
     }
 
     @Test
+    fun `in onboarding a sign-in is not done by itself, the app switches to the shell`() {
+        assertThat(viewModel().signIn().done).isFalse()
+    }
+
+    @Test
+    fun `inside the app (adding an account) a sign-in is done, and Quick Connect goes one step further back`() {
+        val adding = LoginViewModel(key.copy(returnSteps = 2), repository)
+
+        adding.onAction(LoginAction.OpenQuickConnect)
+        assertThat(
+            adding.uiState.value.nextKey
+                ?.returnSteps,
+        ).isEqualTo(3)
+        assertThat(adding.signIn().done).isTrue()
+        assertThat(viewModel().uiState.value.nextKey).isNull()
+    }
+
+    @Test
+    fun `a failed sign-in inside the app is not done`() {
+        repository.login = MqResult.Failure(MqError.Unauthorized)
+
+        assertThat(LoginViewModel(key.copy(returnSteps = 1), repository).signIn().done).isFalse()
+    }
+
+    @Test
     fun `wrong credentials, unreachable server and storage each have their own error`() {
         mapOf(
             MqError.Unauthorized to LoginError.WrongCredentials,

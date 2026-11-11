@@ -202,6 +202,23 @@ class DownloadedCoversTest {
         }
 
     @Test
+    fun `covers of another account's server stay for when it is active again`() =
+        runTest(dispatcher) {
+            signIn()
+            accountStore.save(
+                StoredAccount("https://office.org", ServerId("o"), "Office", "u2", "Bo", "t2", id = "mediatheq-2.db"),
+            )
+            folder.newFile("o_al9_tag.jpg")
+            setUpAlbum()
+            covers()
+
+            download(track(1))
+            runCurrent()
+
+            assertThat(folder.root.list()).asList().contains("o_al9_tag.jpg")
+        }
+
+    @Test
     fun `files from an earlier run are found again, and stray ones are removed`() =
         runTest(dispatcher) {
             signIn()

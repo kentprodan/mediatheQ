@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.DownloadCoverDir
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.common.getOrNull
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -66,7 +67,10 @@ class DownloadedCovers
             withTimeoutOrNull(FIRST_PASS_TIMEOUT) { firstPass.await() }
         }
 
-        /** Keeps the covers of the tracks [ids] (the completed downloads) and deletes every other file. */
+        /**
+         * Keeps the covers of the tracks [ids] (the completed downloads) and deletes every other file, except those of
+         * other accounts' servers: they wait for their account (#147).
+         */
         internal suspend fun keep(ids: Set<MediaId>) {
             val wanted = mutableMapOf<String, Artwork>() // file name -> cover to keep
             val names = mutableMapOf<String, String>() // artwork item id -> file name
@@ -79,7 +83,23 @@ class DownloadedCovers
                 track.artwork?.let { names[it.itemId] = name }
             }
             dir.mkdirs()
-            dir.listFiles()?.filter { it.name !in wanted }?.forEach { it.delete() }
+            val active =
+                accountStore.account
+                    .first()
+                    .getOrNull()
+                    ?.serverId
+            val others =
+                accountStore.accounts
+                    .first()
+                    .getOrNull()
+                    .orEmpty()
+                    .map { it.serverId }
+                    .filter { it != active }
+                    .map { fileName(it.value, null) }
+            dir
+                .listFiles()
+                ?.filter { it.name !in wanted && others.none { prefix -> it.name.startsWith(prefix) } }
+                ?.forEach { it.delete() }
             publish(names)
             firstPass.complete(Unit)
             val baseUrl = accountStore.baseUrl.first() ?: return
@@ -111,15 +131,20 @@ class DownloadedCovers
             }
         }
 
+        /** `server_item_tag.jpg`; without [cover], the prefix of every file of the server. */
         private fun fileName(
             serverId: String,
-            cover: Artwork,
-        ) = listOf(
-            serverId,
-            cover.itemId,
-            cover.tag,
-        ).joinToString("_") { part -> part.filter { it.isLetterOrDigit() } } +
-            ".jpg"
+            cover: Artwork?,
+        ) = if (cover == null) {
+            serverId.filter { it.isLetterOrDigit() } + "_"
+        } else {
+            listOf(
+                serverId,
+                cover.itemId,
+                cover.tag,
+            ).joinToString("_") { part -> part.filter { it.isLetterOrDigit() } } +
+                ".jpg"
+        }
 
         private companion object {
             /** Sharp in Now Playing; lists scale it down. */
