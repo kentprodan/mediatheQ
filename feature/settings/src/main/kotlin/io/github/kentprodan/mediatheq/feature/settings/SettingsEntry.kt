@@ -29,6 +29,10 @@ import io.github.kentprodan.mediatheq.core.navigation.PlaylistPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ProvidersSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.SearchPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.SettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.StorageGeneralSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.StorageImagesSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.StorageMediaSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.StoragePlaybackSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.StorageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ThemeSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.TransitionsSettingsKey
@@ -100,7 +104,25 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<NotificationButtonsSettingsKey> { SettingsPageRoute(SettingsPage.NotificationButtons, openOutputs, back) }
     entry<AutoActionsSettingsKey> { SettingsPageRoute(SettingsPage.AutoActions, openOutputs, back) }
     entry<TransitionsSettingsKey> { SettingsPageRoute(SettingsPage.Transitions, openOutputs, back) }
-    entry<StorageSettingsKey> { SettingsPageRoute(SettingsPage.Storage, openOutputs, back) }
+    entry<StorageSettingsKey> {
+        SettingsPageRoute(
+            SettingsPage.Storage,
+            openOutputs,
+            back,
+            onOpenStoragePage = { page ->
+                when (page) {
+                    SettingsPage.StorageGeneral -> StorageGeneralSettingsKey
+                    SettingsPage.StorageMedia -> StorageMediaSettingsKey
+                    SettingsPage.StoragePlayback -> StoragePlaybackSettingsKey
+                    else -> StorageImagesSettingsKey
+                }.let(navigator::navigateTo)
+            },
+        )
+    }
+    entry<StorageGeneralSettingsKey> { SettingsPageRoute(SettingsPage.StorageGeneral, openOutputs, back) }
+    entry<StorageMediaSettingsKey> { SettingsPageRoute(SettingsPage.StorageMedia, openOutputs, back) }
+    entry<StoragePlaybackSettingsKey> { SettingsPageRoute(SettingsPage.StoragePlayback, openOutputs, back) }
+    entry<StorageImagesSettingsKey> { SettingsPageRoute(SettingsPage.StorageImages, openOutputs, back) }
     entry<ProvidersSettingsKey> { SettingsPageRoute(SettingsPage.Providers, openOutputs, back) }
     entry<AboutSettingsKey> {
         AboutSettingsScreen(versionName, onOpenShowcase, onOpenLicenses = { navigator.navigateTo(LicensesKey) }, back)

@@ -72,6 +72,10 @@ enum class SettingsPage(
     Transitions(R.string.settings_transitions),
     AutoActions(R.string.settings_auto_actions),
     Storage(R.string.settings_storage_page),
+    StorageGeneral(R.string.settings_st_general),
+    StorageMedia(R.string.settings_st_media),
+    StoragePlayback(R.string.settings_st_playback),
+    StorageImages(R.string.settings_st_images),
     Providers(R.string.settings_providers),
 }
 
@@ -99,6 +103,7 @@ internal fun SettingsPageRoute(
     onOpenNotificationButtons: () -> Unit = {},
     onOpenAutoActions: () -> Unit = {},
     onOpenTransitions: () -> Unit = {},
+    onOpenStoragePage: (SettingsPage) -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -127,6 +132,7 @@ internal fun SettingsPageRoute(
         onOpenNotificationButtons,
         onOpenAutoActions,
         onOpenTransitions,
+        onOpenStoragePage,
     )
 }
 
@@ -160,7 +166,9 @@ fun SettingsPageScreen(
     onOpenNotificationButtons: () -> Unit = {},
     onOpenAutoActions: () -> Unit = {},
     onOpenTransitions: () -> Unit = {},
+    onOpenStoragePage: (SettingsPage) -> Unit = {},
 ) {
+    var storageDialog by rememberSaveable { mutableStateOf<StorageDialog?>(null) }
     // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
     var dialog by rememberSaveable { mutableStateOf<ThemeDialog?>(null) }
     var navigationDialog by rememberSaveable { mutableStateOf<NavigationDialog?>(null) }
@@ -389,7 +397,23 @@ fun SettingsPageScreen(
             }
 
             SettingsPage.Storage -> {
-                item(key = "storage") { StorageGroup(content.audio, content.library, onAction) }
+                storageHubGroups(onOpenStoragePage)
+            }
+
+            SettingsPage.StorageGeneral -> {
+                storageGeneralGroups(content.library, onAction, { storageDialog = it }) { restoring = true }
+            }
+
+            SettingsPage.StorageMedia -> {
+                storageMediaGroups(content.audio, onAction, { storageDialog = it }) { restoring = true }
+            }
+
+            SettingsPage.StoragePlayback -> {
+                storagePlaybackGroups(content.audio, onAction) { restoring = true }
+            }
+
+            SettingsPage.StorageImages -> {
+                storageImagesGroups(content.library.images, onAction) { restoring = true }
             }
 
             SettingsPage.Providers -> {
@@ -439,17 +463,58 @@ fun SettingsPageScreen(
         if (restoring) {
             val restore =
                 when (page) {
-                    SettingsPage.Decoding -> SettingsAction.RestoreDecodingDefaults
-                    SettingsPage.AudioFocus -> SettingsAction.SetAudioFocus(null)
-                    SettingsPage.Headset -> SettingsAction.SetHeadset(null)
-                    SettingsPage.NotificationButtons -> SettingsAction.SetNotificationButtons(null)
-                    SettingsPage.AutoActions -> SettingsAction.SetAutoActions(null)
-                    SettingsPage.Transitions -> SettingsAction.SetTransitions(null)
-                    else -> SettingsAction.RestoreBehaviorDefaults
+                    SettingsPage.Decoding -> {
+                        SettingsAction.RestoreDecodingDefaults
+                    }
+
+                    SettingsPage.AudioFocus -> {
+                        SettingsAction.SetAudioFocus(null)
+                    }
+
+                    SettingsPage.Headset -> {
+                        SettingsAction.SetHeadset(null)
+                    }
+
+                    SettingsPage.NotificationButtons -> {
+                        SettingsAction.SetNotificationButtons(null)
+                    }
+
+                    SettingsPage.AutoActions -> {
+                        SettingsAction.SetAutoActions(null)
+                    }
+
+                    SettingsPage.Transitions -> {
+                        SettingsAction.SetTransitions(null)
+                    }
+
+                    SettingsPage.StorageGeneral -> {
+                        SettingsAction.RestoreOfflineDefaults
+                    }
+
+                    SettingsPage.StorageMedia -> {
+                        SettingsAction.RestoreDownloadDefaults
+                    }
+
+                    SettingsPage.StoragePlayback -> {
+                        SettingsAction.SetStreamingCacheGb(
+                            AudioPreferences.DEFAULT_CACHE_GB,
+                        )
+                    }
+
+                    SettingsPage.StorageImages -> {
+                        SettingsAction.SetImages(null)
+                    }
+
+                    else -> {
+                        SettingsAction.RestoreBehaviorDefaults
+                    }
                 }
             RestoreDefaultsDialog({ onAction(restore) }) { restoring = false }
         }
         if (focusChoice) ShortFocusDialog(content.audio.audioFocus, onAction) { focusChoice = false }
+        storageDialog?.let {
+            StorageDialogHost(it, content.audio, content.library, onAction) { storageDialog = null }
+        }
         headsetDialog?.let { HeadsetDialogHost(it, content.audio.headset, onAction) { headsetDialog = null } }
         actionDialog?.let {
             NotificationActionDialogHost(it, content.audio.notificationButtons, onAction) { actionDialog = null }
@@ -524,45 +589,6 @@ internal fun AccountGroup(
             ) {
                 Text(stringResource(R.string.settings_log_out), color = MaterialTheme.colorScheme.error)
             }
-        }
-    }
-}
-
-@Composable
-internal fun StorageGroup(
-    audio: AudioPreferences,
-    library: LibraryPreferences,
-    onAction: (SettingsAction) -> Unit,
-) {
-    Group(R.string.settings_storage) {
-        item { shapes ->
-            SwitchItem(
-                shapes,
-                stringResource(R.string.settings_offline_mode),
-                stringResource(R.string.settings_offline_mode_summary),
-                checked = library.offlineMode,
-                onCheckedChange = { onAction(SettingsAction.SetOfflineMode(it)) },
-            )
-        }
-        item { shapes ->
-            SwitchItem(
-                shapes,
-                stringResource(R.string.settings_downloads_unmetered),
-                stringResource(R.string.settings_downloads_unmetered_summary),
-                checked = audio.downloadsUnmeteredOnly,
-                onCheckedChange = { onAction(SettingsAction.SetDownloadsUnmeteredOnly(it)) },
-            )
-        }
-        item { shapes ->
-            ChoiceItem(
-                shapes,
-                stringResource(R.string.settings_cache),
-                stringResource(R.string.settings_cache_summary),
-                AudioPreferences.CACHE_SIZES_GB,
-                selected = audio.streamingCacheGb,
-                label = { stringResource(R.string.settings_cache_gb, it) },
-                onSelect = { onAction(SettingsAction.SetStreamingCacheGb(it)) },
-            )
         }
     }
 }

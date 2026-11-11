@@ -80,6 +80,22 @@ data object HeadsetSettingsKey : NavKey
 @Serializable
 data object NotificationButtonsSettingsKey : NavKey
 
+/** Settings -> Offline, cache, and download -> General (#144). */
+@Serializable
+data object StorageGeneralSettingsKey : NavKey
+
+/** Settings -> Offline, cache, and download -> Media (#144). */
+@Serializable
+data object StorageMediaSettingsKey : NavKey
+
+/** Settings -> Offline, cache, and download -> Playback (#144). */
+@Serializable
+data object StoragePlaybackSettingsKey : NavKey
+
+/** Settings -> Offline, cache, and download -> Images (#144). */
+@Serializable
+data object StorageImagesSettingsKey : NavKey
+
 /** Settings -> Playback -> Transitions (#142). */
 @Serializable
 data object TransitionsSettingsKey : NavKey

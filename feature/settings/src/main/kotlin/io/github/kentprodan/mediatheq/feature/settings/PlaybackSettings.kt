@@ -109,7 +109,7 @@ internal class PlaybackPages(
 )
 
 @androidx.compose.runtime.Composable
-private fun HubRow(
+internal fun HubRow(
     shapes: androidx.compose.material3.ListItemShapes,
     title: Int,
     summary: Int,

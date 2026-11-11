@@ -321,6 +321,32 @@ sealed interface SettingsAction {
 
     data object DismissGenreSections : SettingsAction
 
+    /** Automatic offline mode (#144). */
+    data class SetAutoOffline(
+        val mode: io.github.kentprodan.mediatheq.core.data.AutoOffline,
+    ) : SettingsAction
+
+    /** Offline, cache, and download -> General (#144): back to its defaults. */
+    data object RestoreOfflineDefaults : SettingsAction
+
+    /** Download quality (#144). */
+    data class SetDownloadQuality(
+        val quality: StreamingQuality,
+    ) : SettingsAction
+
+    /** Max simultaneous downloads (#144). */
+    data class SetMaxParallelDownloads(
+        val count: Int,
+    ) : SettingsAction
+
+    /** Offline, cache, and download -> Media (#144): back to its defaults. */
+    data object RestoreDownloadDefaults : SettingsAction
+
+    /** Offline, cache, and download -> Images (#144): the whole page; null restores its defaults. */
+    data class SetImages(
+        val images: io.github.kentprodan.mediatheq.core.data.ImagePreferences?,
+    ) : SettingsAction
+
     data class SetOfflineMode(
         val on: Boolean,
     ) : SettingsAction
