@@ -79,6 +79,11 @@ private fun ServerCheck.toError(): ServerError =
             ServerError.CleartextNotAllowed
         }
 
+        // Only when editing an account's address.
+        ServerCheck.OtherServer -> {
+            ServerError.Other
+        }
+
         is ServerCheck.Failed -> {
             when (error) {
                 MqError.Network -> ServerError.Unreachable

@@ -35,6 +35,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeDownloadOrigins
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -56,6 +57,9 @@ class DefaultDownloadRepositoryTest {
     private val index = DefaultDownloadIndex(database)
     private val cache = SimpleCache(Files.createTempDirectory("downloads").toFile(), NoOpCacheEvictor(), database)
     private val library = FakeLibraryRepository()
+    private val session =
+        io.github.kentprodan.mediatheq.core.testing
+            .FakeSessionRepository()
     private val audioPreferences = FakeAudioPreferencesRepository()
     private val origins = FakeDownloadOrigins()
     private val storage = FakeDownloadStorageRepository()
@@ -372,6 +376,45 @@ class DefaultDownloadRepositoryTest {
             assertThat(origins.origins.value).isEmpty()
         }
 
+    private val otherAccount = waiting.copy(id = MediaId(ServerId("server-2"), "t9"), title = "Track t9")
+
+    @Test
+    fun `another account's downloads are neither listed nor on the device`() =
+        runTest {
+            session.activeServerId.value = ServerId("server-1")
+            val repository = repository(Download.STATE_COMPLETED to done, Download.STATE_COMPLETED to otherAccount)
+
+            assertThat(repository.completedIds.first()).containsExactly(done.id)
+            assertThat(repository.downloads.first().map { it.track.id }).containsExactly(done.id)
+        }
+
+    @Test
+    fun `another account's unfinished downloads wait until it is active again`() =
+        runTest {
+            session.activeServerId.value = ServerId("server-1")
+            repository(Download.STATE_QUEUED to waiting, Download.STATE_QUEUED to otherAccount)
+            testScheduler.runCurrent()
+            RobolectricUtil.runMainLooperUntil { index.getDownload(otherAccount.id.toString())?.stopReason == 147 }
+
+            session.activeServerId.value = ServerId("server-2")
+            testScheduler.runCurrent()
+            RobolectricUtil.runMainLooperUntil {
+                index.getDownload(otherAccount.id.toString())?.stopReason == Download.STOP_REASON_NONE &&
+                    index.getDownload(waiting.id.toString())?.stopReason == 147
+            }
+        }
+
+    @Test
+    fun `removing a server deletes only its downloads`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done, Download.STATE_COMPLETED to otherAccount)
+
+            repository.removeServer(ServerId("server-2"))
+
+            assertThat(startedIntents().map { it.getStringExtra(DownloadService.KEY_CONTENT_ID) })
+                .containsExactly(otherAccount.id.toString())
+        }
+
     @Test
     fun `removing a download forgets its origins`() =
         runTest {
@@ -469,6 +512,7 @@ class DefaultDownloadRepositoryTest {
             origins,
             storage,
             library,
+            session,
             audioPreferences,
             backgroundScope,
             dispatcher,

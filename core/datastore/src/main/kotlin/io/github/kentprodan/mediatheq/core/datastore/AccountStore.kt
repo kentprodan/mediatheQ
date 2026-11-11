@@ -1,9 +1,13 @@
 package io.github.kentprodan.mediatheq.core.datastore
 
+import androidx.datastore.core.DataMigration
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import io.github.kentprodan.mediatheq.core.common.ActiveDatabase
+import io.github.kentprodan.mediatheq.core.common.DEFAULT_DATABASE
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -18,8 +22,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * The one server account and the per-install DeviceId (jellyfin skill, section 2). Multiple servers come later; the
- * token is stored only encrypted.
+ * The saved server accounts in the user's order (#147) and the per-install DeviceId (jellyfin skill, section 2). Each
+ * account's id is the file name of its database; the active one is the account whose database this process opened
+ * ([activeId], ADR 0036). Tokens are stored only encrypted (ADR 0013).
  */
 @Singleton
 class AccountStore
@@ -27,57 +32,82 @@ class AccountStore
     constructor(
         private val dataStore: DataStore<Preferences>,
         private val cipher: TokenCipher,
+        @param:ActiveDatabase private val activeId: String = DEFAULT_DATABASE,
     ) {
         /**
-         * The saved account, `null` when signed out. Fails with [MqError.Storage] when the token cannot be decrypted
-         * (e.g. the Keystore key is gone); the caller treats that as signed out.
+         * Every saved account whose token can be decrypted (one that cannot, e.g. after the Keystore key was lost, is
+         * left out until signed in again). Fails with [MqError.Storage] when the disk cannot be read.
+         */
+        val accounts: Flow<MqResult<List<StoredAccount>>> =
+            dataStore.data
+                .map { prefs -> MqResult.Success(prefs.ids().mapNotNull { prefs.readOrNull(it) }) }
+                .catch<MqResult<List<StoredAccount>>> {
+                    if (it is IOException) emit(MqResult.Failure(MqError.Storage)) else throw it
+                }
+
+        /**
+         * The active account, `null` when signed out. Fails with [MqError.Storage] when the disk cannot be read or its
+         * token cannot be decrypted; the caller treats that as signed out.
          */
         val account: Flow<MqResult<StoredAccount?>> =
             dataStore.data
-                .map { prefs ->
-                    val encrypted = prefs[TOKEN] ?: return@map MqResult.Success(null)
-                    try {
-                        MqResult.Success(
-                            StoredAccount(
-                                baseUrl = prefs[BASE_URL].orEmpty(),
-                                serverId = ServerId(prefs[SERVER_ID].orEmpty()),
-                                serverName = prefs[SERVER_NAME].orEmpty(),
-                                userId = prefs[USER_ID].orEmpty(),
-                                userName = prefs[USER_NAME].orEmpty(),
-                                accessToken = cipher.decrypt(encrypted),
-                            ),
-                        )
-                    } catch (_: GeneralSecurityException) {
-                        MqResult.Failure(MqError.Storage)
-                    } catch (_: IllegalArgumentException) {
-                        // A corrupt value: token not Base64, or an empty ServerId.
-                        MqResult.Failure(MqError.Storage)
+                .map<Preferences, MqResult<StoredAccount?>> { prefs ->
+                    if (activeId !in prefs.ids()) {
+                        MqResult.Success(null)
+                    } else {
+                        prefs.readOrNull(activeId)?.let { MqResult.Success(it) } ?: MqResult.Failure(MqError.Storage)
                     }
                 }.catch { if (it is IOException) emit(MqResult.Failure(MqError.Storage)) else throw it }
 
-        /** The signed-in server's base URL, `null` when signed out. Cheap: no token decryption. */
+        /** Every saved account's id, also those whose token cannot be read; `null` when the disk cannot be read. */
+        suspend fun ids(): List<String>? =
+            try {
+                dataStore.data.first().ids()
+            } catch (_: IOException) {
+                null
+            }
+
+        /** The active account's base URL, `null` when signed out. Cheap: no token decryption. */
         val baseUrl: Flow<String?> =
             dataStore.data
-                .map { prefs -> prefs[BASE_URL]?.takeIf { prefs[TOKEN] != null } }
+                .map { prefs -> prefs[key(BASE_URL, activeId)]?.takeIf { activeId in prefs.ids() } }
                 .catch { if (it is IOException) emit(null) else throw it }
 
-        /** Replaces the saved account (R9: one token per server, the newest wins). Throws on IO or crypto failure. */
+        /**
+         * Writes [account] under its id: replaces a saved one (R9: one token per server, the newest wins) or adds it at
+         * the end. Throws on IO or crypto failure.
+         */
         suspend fun save(account: StoredAccount) {
+            require(',' !in account.id && account.id.isNotEmpty())
             val encrypted = cipher.encrypt(account.accessToken)
-            dataStore.edit {
-                it[BASE_URL] = account.baseUrl
-                it[SERVER_ID] = account.serverId.value
-                it[SERVER_NAME] = account.serverName
-                it[USER_ID] = account.userId
-                it[USER_NAME] = account.userName
-                it[TOKEN] = encrypted
+            dataStore.edit { prefs ->
+                prefs[key(BASE_URL, account.id)] = account.baseUrl
+                prefs[key(SERVER_ID, account.id)] = account.serverId.value
+                prefs[key(SERVER_NAME, account.id)] = account.serverName
+                prefs[key(USER_ID, account.id)] = account.userId
+                prefs[key(USER_NAME, account.id)] = account.userName
+                prefs[key(TOKEN, account.id)] = encrypted
+                val ids = prefs.ids()
+                if (account.id !in ids) prefs.setIds(ids + account.id)
             }
         }
 
-        /** Forgets the account and its token; the DeviceId stays. Throws `IOException` when the disk fails. */
-        suspend fun clear() {
+        /** Forgets the account [id] and its token; the DeviceId stays. Throws `IOException` when the disk fails. */
+        suspend fun remove(id: String) {
             dataStore.edit { prefs ->
-                listOf(BASE_URL, SERVER_ID, SERVER_NAME, USER_ID, USER_NAME, TOKEN).forEach { prefs.remove(it) }
+                FIELDS.forEach { prefs.remove(key(it, id)) }
+                prefs.setIds(prefs.ids() - id)
+            }
+        }
+
+        /** Forgets the active account. */
+        suspend fun clear() = remove(activeId)
+
+        /** Puts the accounts in the order of [ids]; ids not saved are ignored, saved ones left out keep their place last. */
+        suspend fun reorder(ids: List<String>) {
+            dataStore.edit { prefs ->
+                val saved = prefs.ids()
+                prefs.setIds(ids.filter { it in saved } + saved.filter { it !in ids })
             }
         }
 
@@ -99,13 +129,69 @@ class AccountStore
 
         private val fallbackDeviceId by lazy { UUID.randomUUID().toString() }
 
-        private companion object {
-            val BASE_URL = stringPreferencesKey("base_url")
-            val SERVER_ID = stringPreferencesKey("server_id")
-            val SERVER_NAME = stringPreferencesKey("server_name")
-            val USER_ID = stringPreferencesKey("user_id")
-            val USER_NAME = stringPreferencesKey("user_name")
-            val TOKEN = stringPreferencesKey("access_token_encrypted")
-            val DEVICE_ID = stringPreferencesKey("device_id")
+        private fun Preferences.readOrNull(id: String): StoredAccount? =
+            try {
+                read(id)
+            } catch (_: GeneralSecurityException) {
+                null
+            } catch (_: IllegalArgumentException) {
+                // A corrupt value: token not Base64, or an empty ServerId.
+                null
+            }
+
+        private fun Preferences.read(id: String): StoredAccount? {
+            val encrypted = this[key(TOKEN, id)] ?: return null
+            return StoredAccount(
+                baseUrl = this[key(BASE_URL, id)].orEmpty(),
+                serverId = ServerId(this[key(SERVER_ID, id)].orEmpty()),
+                serverName = this[key(SERVER_NAME, id)].orEmpty(),
+                userId = this[key(USER_ID, id)].orEmpty(),
+                userName = this[key(USER_NAME, id)].orEmpty(),
+                accessToken = cipher.decrypt(encrypted),
+                id = id,
+            )
+        }
+
+        companion object {
+            private const val BASE_URL = "base_url"
+            private const val SERVER_ID = "server_id"
+            private const val SERVER_NAME = "server_name"
+            private const val USER_ID = "user_id"
+            private const val USER_NAME = "user_name"
+            private const val TOKEN = "access_token_encrypted"
+            private val FIELDS = listOf(BASE_URL, SERVER_ID, SERVER_NAME, USER_ID, USER_NAME, TOKEN)
+            private val IDS = stringPreferencesKey("account_ids")
+            private val DEVICE_ID = stringPreferencesKey("device_id")
+
+            private fun key(
+                field: String,
+                id: String,
+            ) = stringPreferencesKey("$field@$id")
+
+            private fun Preferences.ids(): List<String> = this[IDS]?.split(',')?.filter { it.isNotEmpty() }.orEmpty()
+
+            private fun MutablePreferences.setIds(ids: List<String>) {
+                this[IDS] = ids.joinToString(",")
+            }
+
+            /** The single account of the app before #147 becomes the first account, on the default database. */
+            val SingleToListMigration: DataMigration<Preferences> =
+                object : DataMigration<Preferences> {
+                    override suspend fun shouldMigrate(currentData: Preferences) =
+                        FIELDS.any { stringPreferencesKey(it) in currentData }
+
+                    override suspend fun migrate(currentData: Preferences): Preferences =
+                        currentData.toMutablePreferences().apply {
+                            val hadToken = stringPreferencesKey(TOKEN) in this
+                            FIELDS.forEach { field ->
+                                val old = stringPreferencesKey(field)
+                                this[old]?.let { if (hadToken) this[key(field, DEFAULT_DATABASE)] = it }
+                                remove(old)
+                            }
+                            if (hadToken && DEFAULT_DATABASE !in ids()) setIds(ids() + DEFAULT_DATABASE)
+                        }
+
+                    override suspend fun cleanUp() = Unit
+                }
         }
     }

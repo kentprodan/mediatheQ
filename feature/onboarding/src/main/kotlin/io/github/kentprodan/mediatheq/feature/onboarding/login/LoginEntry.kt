@@ -7,5 +7,7 @@ import io.github.kentprodan.mediatheq.core.navigation.OnboardingLoginKey
 
 /** Registers the username + password screen. */
 fun EntryProviderScope<NavKey>.loginEntry(navigator: Navigator) {
-    entry<OnboardingLoginKey> { key -> LoginRoute(key, onNavigate = navigator::navigateTo) }
+    entry<OnboardingLoginKey> { key ->
+        LoginRoute(key, onNavigate = navigator::navigateTo, onDone = { repeat(key.returnSteps) { navigator.back() } })
+    }
 }

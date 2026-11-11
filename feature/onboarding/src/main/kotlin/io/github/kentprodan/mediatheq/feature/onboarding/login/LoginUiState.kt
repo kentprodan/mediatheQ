@@ -2,7 +2,10 @@ package io.github.kentprodan.mediatheq.feature.onboarding.login
 
 import io.github.kentprodan.mediatheq.core.navigation.OnboardingQuickConnectKey
 
-/** The sign-in form. A successful sign-in switches the whole app to the shell, so it has no state here. */
+/**
+ * The sign-in form. In onboarding a successful sign-in switches the whole app to the shell; inside the app (#147) it
+ * sets [done] and the screen goes back.
+ */
 data class LoginUiState(
     val serverName: String,
     val userName: String = "",
@@ -11,6 +14,7 @@ data class LoginUiState(
     val error: LoginError? = null,
     val quickConnect: QuickConnectAvailability = QuickConnectAvailability.Checking,
     val nextKey: OnboardingQuickConnectKey? = null,
+    val done: Boolean = false,
 )
 
 enum class LoginError { WrongCredentials, Unreachable, Storage, Other }

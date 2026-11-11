@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.Flow
 
@@ -10,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
  * copy, never anything on the server (jellyfin R5).
  */
 interface DownloadRepository {
-    /** Every download with its track, in album order (album, disc, track number). */
+    /** Every download of the active account's server (#147) with its track, in album order (album, disc, track number). */
     val downloads: Flow<List<TrackDownload>>
 
     /**
@@ -33,6 +34,9 @@ interface DownloadRepository {
 
     /** Deletes the local copies of [ids], whatever they were downloaded through. */
     fun remove(ids: List<MediaId>)
+
+    /** Deletes every download of [serverId] (an account removed, #147); returns once they are gone or after a while. */
+    suspend fun removeServer(serverId: ServerId)
 
     /** Forgets an album or playlist [origin] and deletes the tracks no other origin keeps; ignores [DownloadOrigin.Single]. */
     fun removeCollection(origin: DownloadOrigin)

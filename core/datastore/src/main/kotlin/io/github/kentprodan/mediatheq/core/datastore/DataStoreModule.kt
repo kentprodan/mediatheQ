@@ -34,6 +34,8 @@ internal interface DataStoreModule {
             PreferenceDataStoreFactory.create(
                 // A truncated file (e.g. power loss mid-write) means signed out, not a crash on every start.
                 corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+                // The one account before #147 becomes the first of the list.
+                migrations = listOf(AccountStore.SingleToListMigration),
             ) { context.preferencesDataStoreFile("account") }
 
         @Provides

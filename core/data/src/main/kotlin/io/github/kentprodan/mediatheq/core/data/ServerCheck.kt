@@ -11,6 +11,9 @@ sealed interface ServerCheck {
         val info: ServerInfo,
     ) : ServerCheck
 
+    /** Another server than the account's, when editing its address (#147). */
+    data object OtherServer : ServerCheck
+
     /** A Jellyfin server older than 12. */
     data class Unsupported(
         val info: ServerInfo,

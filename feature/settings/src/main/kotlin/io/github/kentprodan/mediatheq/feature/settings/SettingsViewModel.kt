@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
+import io.github.kentprodan.mediatheq.core.data.AppRestarter
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
@@ -32,6 +33,7 @@ class SettingsViewModel
         private val audio: AudioPreferencesRepository,
         private val library: LibraryPreferencesRepository,
         private val storage: DownloadStorageRepository,
+        private val restarter: AppRestarter,
     ) : ViewModel() {
         private val entriesDraft = MutableStateFlow<NavEntriesDraft?>(null)
         private val shortcutsDraft = MutableStateFlow<OrganizeDraft<LibraryShortcut>?>(null)
@@ -56,8 +58,6 @@ class SettingsViewModel
                 // Signed out: the app leaves for onboarding, nothing to show meanwhile.
                 (session as? SessionState.LoggedIn)?.let {
                     SettingsUiState.Content(
-                        it.serverName,
-                        it.userName,
                         audio,
                         library,
                         draft,
@@ -74,10 +74,6 @@ class SettingsViewModel
         fun onAction(action: SettingsAction) {
             viewModelScope.launch {
                 when (action) {
-                    SettingsAction.LogOut -> {
-                        session.logout()
-                    }
-
                     is SettingsAction.SetStreamingQuality -> {
                         audio.setStreamingQuality(action.metered, action.quality)
                     }
@@ -374,7 +370,7 @@ class SettingsViewModel
                         storage.moveTo(action.location)
                         // A checked copy applies at the next start (ADR 0035).
                         val end = storage.move.first { it == StorageMove.Done || it is StorageMove.Failed }
-                        if (end == StorageMove.Done) storage.restart()
+                        if (end == StorageMove.Done) restarter.restart()
                     }
 
                     SettingsAction.DismissMoveDownloads -> {

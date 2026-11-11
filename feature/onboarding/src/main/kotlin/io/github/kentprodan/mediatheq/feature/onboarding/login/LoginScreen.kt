@@ -37,6 +37,7 @@ import io.github.kentprodan.mediatheq.feature.onboarding.R
 internal fun LoginRoute(
     key: OnboardingLoginKey,
     onNavigate: (OnboardingQuickConnectKey) -> Unit,
+    onDone: () -> Unit = {},
     viewModel: LoginViewModel =
         hiltViewModel<LoginViewModel, LoginViewModel.Factory>(creationCallback = { it.create(key) }),
 ) {
@@ -47,6 +48,7 @@ internal fun LoginRoute(
             viewModel.onAction(LoginAction.NavigationHandled)
         }
     }
+    LaunchedEffect(state.done) { if (state.done) onDone() }
     LoginScreen(state, viewModel::onAction)
 }
 

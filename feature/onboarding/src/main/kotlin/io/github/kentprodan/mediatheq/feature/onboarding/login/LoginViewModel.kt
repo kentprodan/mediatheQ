@@ -55,7 +55,16 @@ class LoginViewModel
                 }
 
                 LoginAction.OpenQuickConnect -> {
-                    state.update { it.copy(nextKey = OnboardingQuickConnectKey(key.baseUrl, key.serverName)) }
+                    state.update {
+                        it.copy(
+                            nextKey =
+                                OnboardingQuickConnectKey(
+                                    key.baseUrl,
+                                    key.serverName,
+                                    if (key.returnSteps > 0) key.returnSteps + 1 else 0,
+                                ),
+                        )
+                    }
                 }
 
                 LoginAction.NavigationHandled -> {
@@ -74,6 +83,7 @@ class LoginViewModel
                     it.copy(
                         submitting = false,
                         error = (result as? MqResult.Failure)?.error?.toLoginError(),
+                        done = result is MqResult.Success && key.returnSteps > 0,
                     )
                 }
             }

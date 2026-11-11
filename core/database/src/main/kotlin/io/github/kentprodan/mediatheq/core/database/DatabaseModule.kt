@@ -3,11 +3,13 @@ package io.github.kentprodan.mediatheq.core.database
 import android.content.Context
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.github.kentprodan.mediatheq.core.common.ActiveDatabase
 import io.github.kentprodan.mediatheq.core.database.dao.DownloadOriginDao
 import io.github.kentprodan.mediatheq.core.database.dao.LibraryDao
 import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
@@ -21,17 +23,30 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
+internal interface AccountDatabasesModule {
+    @Binds
+    fun accountDatabases(databases: SharedPreferencesAccountDatabases): AccountDatabases
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
 object DatabaseModule {
     @Provides
     @Singleton
     fun database(
         @ApplicationContext context: Context,
+        databases: AccountDatabases,
     ): MediatheqDatabase =
         Room
-            .databaseBuilder(context, MediatheqDatabase::class.java, "mediatheq.db")
+            .databaseBuilder(context, MediatheqDatabase::class.java, databases.open)
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
             .build()
+
+    /** The active account's database file name, which is also its id (#147). */
+    @Provides
+    @ActiveDatabase
+    fun activeDatabase(databases: AccountDatabases): String = databases.open
 
     @Provides
     fun libraryDao(database: MediatheqDatabase): LibraryDao = database.libraryDao()

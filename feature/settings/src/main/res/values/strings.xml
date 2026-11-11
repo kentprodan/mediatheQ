@@ -7,10 +7,31 @@
     <string name="settings_storage_page">Offline, cache, and download</string>
     <string name="settings_providers">Manage media providers</string>
 
-    <string name="settings_account">Account</string>
-    <string name="settings_server">Server</string>
-    <string name="settings_user">Signed in as</string>
-    <string name="settings_log_out">Log out</string>
+    <string name="settings_providers_add">Add media provider</string>
+    <string name="settings_providers_active">Active</string>
+    <string name="settings_providers_account_line">%1$s · %2$s</string>
+    <string name="settings_providers_menu">More options for %1$s</string>
+    <string name="settings_providers_make_active">Make active</string>
+    <string name="settings_providers_edit_address">Edit address</string>
+    <string name="settings_providers_sign_in_again">Sign in again</string>
+    <string name="settings_providers_sync_now">Sync now</string>
+    <string name="settings_providers_remove">Sign out and remove</string>
+    <string name="settings_providers_switch_title">Switch to %1$s?</string>
+    <string name="settings_providers_switch_message">The app restarts on this account\'s library and queue. Playback stops.</string>
+    <string name="settings_providers_switch_confirm">Switch</string>
+    <string name="settings_providers_remove_title">Remove %1$s?</string>
+    <string name="settings_providers_remove_message">Signs out and deletes this account\'s library, queue and waiting changes from this device.</string>
+    <string name="settings_providers_remove_downloads">Also delete its downloads</string>
+    <string name="settings_providers_remove_confirm">Remove</string>
+    <string name="settings_providers_jellyfin">Jellyfin</string>
+    <string name="settings_providers_address">Server address</string>
+    <string name="settings_providers_save">Save</string>
+    <string name="settings_providers_error_invalid">Not a valid address</string>
+    <string name="settings_providers_error_cleartext">http:// works only on the local network; use https://</string>
+    <string name="settings_providers_error_unreachable">The server cannot be reached</string>
+    <string name="settings_providers_error_other_server">Another server answers at this address</string>
+    <string name="settings_providers_error_unsupported">Needs Jellyfin 12 or newer</string>
+    <string name="settings_providers_error_other">The address could not be saved</string>
 
     <string name="settings_playback">Playback</string>
     <string name="settings_quality_unmetered">Wi-Fi maximum bitrate</string>

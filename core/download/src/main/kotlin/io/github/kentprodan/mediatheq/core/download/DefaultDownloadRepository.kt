@@ -22,9 +22,11 @@ import io.github.kentprodan.mediatheq.core.data.DownloadOrigins
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
+import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -44,6 +46,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -66,6 +70,7 @@ internal class DefaultDownloadRepository
         private val origins: DownloadOrigins,
         private val storage: DownloadStorageRepository,
         private val libraryRepository: LibraryRepository,
+        session: SessionRepository,
         audioPreferences: AudioPreferencesRepository,
         @ApplicationScope private val scope: CoroutineScope,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -73,6 +78,15 @@ internal class DefaultDownloadRepository
     ) : DownloadRepository {
         /** Every download by track: the stored index at start, then the manager's changes. */
         private val entries = MutableStateFlow<Map<MediaId, Download>>(emptyMap())
+
+        // The active account's server (#147): other accounts' downloads stay in the shared index, unlisted and held.
+        private val activeServer = session.activeServerId
+
+        /** [entries] of the active server; all of them while signed out. */
+        private val mine =
+            combine(entries, activeServer) { entries, server ->
+                if (server == null) entries else entries.filterKeys { it.serverId == server }
+            }
         private val notMetRequirements = MutableStateFlow(manager.notMetRequirements)
 
         // Until the stored index is in [entries], answers come from the index itself, and removals are remembered so
@@ -152,6 +166,7 @@ internal class DefaultDownloadRepository
                 indexRead.value = true
                 originless()
             }
+            scope.launch { activeServer.collect { holdOtherAccounts(it) } }
         }
 
         // Progress is not a manager event; while someone watches, read it once a second.
@@ -173,7 +188,9 @@ internal class DefaultDownloadRepository
                 val known = origins.origins.first()
                 val tracks = libraryRepository.allTracks().first().associateBy { it.id }
                 if (tracks.isEmpty()) return@withLock
-                entries.value.keys
+                mine
+                    .first()
+                    .keys
                     .filter { it !in known && it !in requested }
                     .groupBy { tracks[it]?.albumId }
                     .forEach { (albumId, ids) ->
@@ -186,7 +203,7 @@ internal class DefaultDownloadRepository
 
         override val downloads: Flow<List<TrackDownload>> =
             combine(
-                entries,
+                mine,
                 notMetRequirements,
                 ticks,
                 libraryRepository.allTracks().map { tracks -> tracks.associateBy { it.id } },
@@ -212,7 +229,7 @@ internal class DefaultDownloadRepository
 
         // With the SD card out (#146) none is on the device: offline lists them as missing, online they stream.
         override val completedIds: Flow<Set<MediaId>> =
-            combine(entries, indexRead, storage.available) { entries, read, available ->
+            combine(mine, indexRead, storage.available) { entries, read, available ->
                 when {
                     !read -> null
                     !available -> emptySet()
@@ -299,6 +316,43 @@ internal class DefaultDownloadRepository
             scope.launch(ioDispatcher) { delete(ids) }
         }
 
+        override suspend fun removeServer(serverId: ServerId) {
+            indexRead.first { it }
+            val ids = entries.value.keys.filter { it.serverId == serverId }
+            if (ids.isEmpty()) return
+            delete(ids)
+            // The app may restart next (the active account removed): wait until the index forgot them.
+            withTimeoutOrNull(REMOVE_TIMEOUT) { entries.first { current -> ids.none { it in current } } }
+        }
+
+        /**
+         * Downloads of another account's server cannot run (the stream would be asked from the active server): they wait
+         * with [OTHER_ACCOUNT] as stop reason until their account is active again (#147).
+         */
+        private suspend fun holdOtherAccounts(active: ServerId?) {
+            if (active == null) return
+            indexRead.first { it }
+            // The stored stop reasons: the manager's events may not have reached [entries] yet.
+            val changes =
+                withContext(ioDispatcher) {
+                    entries.value.keys.mapNotNull { id ->
+                        val download = manager.downloadIndex.getDownload(id.toString()) ?: return@mapNotNull null
+                        if (download.state == Download.STATE_COMPLETED || download.state == Download.STATE_FAILED) {
+                            return@mapNotNull null
+                        }
+                        val reason = if (id.serverId == active) Download.STOP_REASON_NONE else OTHER_ACCOUNT
+                        val change =
+                            download.stopReason != reason && OTHER_ACCOUNT in setOf(reason, download.stopReason)
+                        if (change) download.request.id to reason else null
+                    }
+                }
+            withContext(Dispatchers.Main.immediate) {
+                changes.forEach { (id, reason) ->
+                    manager.setStopReason(id, reason)
+                }
+            }
+        }
+
         private suspend fun delete(ids: List<MediaId>) {
             if (ids.isEmpty()) return
             originsLock.withLock { origins.forget(ids) }
@@ -318,6 +372,10 @@ internal class DefaultDownloadRepository
 
         private companion object {
             val PROGRESS_INTERVAL: Duration = 1.seconds
+            val REMOVE_TIMEOUT: Duration = 10.seconds
+
+            /** The stop reason of a download whose account is not active. */
+            const val OTHER_ACCOUNT = 147
 
             /** Not fetched: the download source finds the track by the request's cache key. */
             val DOWNLOAD_URI = "mediatheq://download".toUri()

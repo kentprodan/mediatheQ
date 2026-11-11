@@ -7,5 +7,11 @@ import io.github.kentprodan.mediatheq.core.navigation.OnboardingQuickConnectKey
 
 /** Registers the Quick Connect screen; Cancel goes back to the login form. */
 fun EntryProviderScope<NavKey>.quickConnectEntry(navigator: Navigator) {
-    entry<OnboardingQuickConnectKey> { key -> QuickConnectRoute(key, onCancel = { navigator.back() }) }
+    entry<OnboardingQuickConnectKey> { key ->
+        QuickConnectRoute(
+            key,
+            onCancel = { navigator.back() },
+            onDone = { repeat(key.returnSteps) { navigator.back() } },
+        )
+    }
 }

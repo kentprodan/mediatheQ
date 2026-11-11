@@ -29,9 +29,6 @@ interface DownloadStorageRepository {
     /** Back to [StorageMove.Idle] after a failed move. */
     fun dismissMove()
 
-    /** Restarts the app so a finished move takes effect. */
-    fun restart()
-
     /** The files folders not in use, where a leftover copy may be (deleted at start). */
     suspend fun otherFilesDirs(): List<File>
 }
