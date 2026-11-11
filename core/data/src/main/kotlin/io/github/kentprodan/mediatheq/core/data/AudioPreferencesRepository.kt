@@ -23,7 +23,16 @@ interface AudioPreferencesRepository {
     /** Ignored outside [AudioPreferences.PARALLEL_DOWNLOADS] (#144). */
     suspend fun setMaxParallelDownloads(count: Int)
 
-    /** Back to the Media page's defaults (#144): Wi-Fi only, original quality, two at once. */
+    /** Automatic downloads of favorites (#145). */
+    suspend fun setAutoDownloads(mode: AutoDownloads)
+
+    /** Remove when unfavorited (#145). */
+    suspend fun setRemoveUnfavorited(on: Boolean)
+
+    /**
+     * Back to the Media page's defaults (#144, #145): Wi-Fi only, original quality, two at once, no automatic
+     * downloads, remove when unfavorited.
+     */
     suspend fun restoreDownloadDefaults()
 
     /** Settings -> Playback -> Decoding and transcoding (#138). */

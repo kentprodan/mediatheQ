@@ -206,6 +206,20 @@ fun SettingsAutoOfflineDialogScreenshot() {
     }
 }
 
+/** The automatic downloads of favorites dialog's content, tracks and albums selected (#145). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAutoDownloadsDialogScreenshot() {
+    MediatheqTheme {
+        StorageDialogContent(
+            StorageDialog.AutoDownloads,
+            AudioPreferences(autoDownloads = io.github.kentprodan.mediatheq.core.data.AutoDownloads.TracksAndAlbums),
+            LibraryPreferences(),
+        )
+    }
+}
+
 /** The download quality dialog's content, Original selected. */
 @PreviewTest
 @MqPreviews

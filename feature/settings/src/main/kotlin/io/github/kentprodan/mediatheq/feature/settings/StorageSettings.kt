@@ -6,6 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
+import io.github.kentprodan.mediatheq.core.data.AutoDownloads
 import io.github.kentprodan.mediatheq.core.data.AutoOffline
 import io.github.kentprodan.mediatheq.core.data.ImagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
@@ -45,7 +46,7 @@ internal fun LazyListScope.storageHubGroups(onOpen: (SettingsPage) -> Unit) {
 }
 
 /** The pages' choice dialogs. */
-internal enum class StorageDialog { AutoOffline, DownloadQuality }
+internal enum class StorageDialog { AutoOffline, DownloadQuality, AutoDownloads }
 
 /** General: offline mode and when it turns on by itself. */
 internal fun LazyListScope.storageGeneralGroups(
@@ -112,6 +113,26 @@ internal fun LazyListScope.storageMediaGroups(
                     label = { it.toString() },
                     onSelect = { onAction(SettingsAction.SetMaxParallelDownloads(it)) },
                 )
+            }
+        }
+    }
+    item(key = "auto_downloads") {
+        Group(R.string.settings_st_favorites) {
+            item { shapes ->
+                DialogItem(
+                    shapes,
+                    stringResource(R.string.settings_st_auto_downloads),
+                    stringResource(audio.autoDownloads.label),
+                ) { onOpenDialog(StorageDialog.AutoDownloads) }
+            }
+            item { shapes ->
+                SwitchItem(
+                    shapes,
+                    stringResource(R.string.settings_st_remove_unfavorited),
+                    stringResource(R.string.settings_st_remove_unfavorited_summary),
+                    audio.removeUnfavorited,
+                    enabled = audio.autoDownloads != AutoDownloads.Disabled,
+                ) { onAction(SettingsAction.SetRemoveUnfavorited(it)) }
             }
         }
     }
@@ -206,6 +227,17 @@ internal fun StorageDialogHost(
         )
     }
 
+    StorageDialog.AutoDownloads -> {
+        ChoiceDialog(
+            stringResource(R.string.settings_st_auto_downloads),
+            AutoDownloads.entries,
+            audio.autoDownloads,
+            { stringResource(it.label) },
+            { onAction(SettingsAction.SetAutoDownloads(it)) },
+            onDismiss,
+        )
+    }
+
     StorageDialog.DownloadQuality -> {
         ChoiceDialog(
             stringResource(R.string.settings_st_download_quality),
@@ -233,6 +265,14 @@ internal fun StorageDialogContent(
         ) { stringResource(it.label) }
     }
 
+    StorageDialog.AutoDownloads -> {
+        ChoiceDialogContent(
+            stringResource(R.string.settings_st_auto_downloads),
+            AutoDownloads.entries,
+            audio.autoDownloads,
+        ) { stringResource(it.label) }
+    }
+
     StorageDialog.DownloadQuality -> {
         ChoiceDialogContent(
             stringResource(R.string.settings_st_download_quality),
@@ -241,6 +281,15 @@ internal fun StorageDialogContent(
         ) { it.label() }
     }
 }
+
+private val AutoDownloads.label: Int
+    get() =
+        when (this) {
+            AutoDownloads.Disabled -> R.string.settings_st_auto_dl_disabled
+            AutoDownloads.Tracks -> R.string.settings_st_auto_dl_tracks
+            AutoDownloads.TracksAndAlbums -> R.string.settings_st_auto_dl_albums
+            AutoDownloads.TracksAlbumsAndPlaylists -> R.string.settings_st_auto_dl_playlists
+        }
 
 private val AutoOffline.label: Int
     get() =

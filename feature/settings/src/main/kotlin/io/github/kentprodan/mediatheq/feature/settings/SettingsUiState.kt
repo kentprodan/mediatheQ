@@ -339,6 +339,16 @@ sealed interface SettingsAction {
         val count: Int,
     ) : SettingsAction
 
+    /** Automatic downloads of favorites (#145). */
+    data class SetAutoDownloads(
+        val mode: io.github.kentprodan.mediatheq.core.data.AutoDownloads,
+    ) : SettingsAction
+
+    /** Remove when unfavorited (#145). */
+    data class SetRemoveUnfavorited(
+        val on: Boolean,
+    ) : SettingsAction
+
     /** Offline, cache, and download -> Media (#144): back to its defaults. */
     data object RestoreDownloadDefaults : SettingsAction
 
