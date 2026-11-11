@@ -148,14 +148,19 @@ private fun DeviceProfile.toDto() =
         name = "mediatheQ",
         maxStreamingBitrate = maxStreamingBitrate ?: 1_000_000_000,
         musicStreamingTranscodingBitrate = transcoding.bitrate,
+        // An empty container or codec list means "any" to Jellyfin: nothing to play as it is = no profile at all.
         directPlayProfiles =
-            listOf(
-                DirectPlayProfileDto(
-                    "Audio",
-                    directPlayContainers.joinToString(","),
-                    directPlayCodecs.joinToString(","),
-                ),
-            ),
+            if (directPlayContainers.isEmpty() || directPlayCodecs.isEmpty()) {
+                emptyList()
+            } else {
+                listOf(
+                    DirectPlayProfileDto(
+                        "Audio",
+                        directPlayContainers.joinToString(","),
+                        directPlayCodecs.joinToString(","),
+                    ),
+                )
+            },
         transcodingProfiles =
             listOf(
                 TranscodingProfileDto(

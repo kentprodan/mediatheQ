@@ -105,6 +105,31 @@ class JellyfinPlaybackSourceTest {
         }
 
     @Test
+    fun `a profile with nothing to play as it is sends no direct play profile, so the server always converts`() =
+        runTest {
+            enqueue("items_playbackinfo/transcode.json")
+            val convertOnly =
+                DeviceProfile(
+                    directPlayContainers = emptyList(),
+                    directPlayCodecs = emptyList(),
+                    transcoding =
+                        TranscodingTarget(
+                            container = "ogg",
+                            codec = "opus",
+                            bitrate = 192_000,
+                            maxChannels = 2,
+                        ),
+                    maxStreamingBitrate = 192_000,
+                )
+
+            source.stream(server(), itemId, convertOnly)
+
+            val profile = body()["DeviceProfile"]!!.jsonObject
+            assertThat(profile["DirectPlayProfiles"].toString()).isEqualTo("[]")
+            assertThat(profile["MusicStreamingTranscodingBitrate"].toString()).isEqualTo("192000")
+        }
+
+    @Test
     fun `an unlimited profile sends a large explicit cap, never the server default`() =
         runTest {
             enqueue("items_playbackinfo/direct_play.json")

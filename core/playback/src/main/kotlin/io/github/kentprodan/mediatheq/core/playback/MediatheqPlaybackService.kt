@@ -562,7 +562,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         convertedKbps =
                             method?.let {
                                 val cap = currentId()?.let(streamResolver::quality)?.bitrate?.div(BITS_PER_KBIT)
-                                AudioPolicy.convertedKbps(it, convertedDownload(), cap)
+                                AudioPolicy.convertedKbps(
+                                    it,
+                                    currentId()?.let(streamResolver::convertedDownloadKbps),
+                                    cap,
+                                )
                             },
                     )
                 },

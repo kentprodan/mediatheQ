@@ -82,17 +82,17 @@ internal object AudioPolicy {
     /**
      * The bitrate of the server's conversion that plays (#125), `null` when the original file plays: a transcode at
      * the stream's quality cap ([qualityKbps], none for Original: then only an undecodable format converts, to Opus
-     * 256), or a converted download (always Opus 256, ADR 0024).
+     * 256), or a converted download at the bitrate it was made with ([convertedDownloadKbps], #144).
      * shortcut: a DirectStream (remux) counts as the original codec; Jellyfin reports remuxes as transcodes, so one
      * shows as converted. Read the codec and bitrate from the transcoding URL if that matters.
      */
     fun convertedKbps(
         playMethod: PlayMethod,
-        convertedDownload: Boolean,
+        convertedDownloadKbps: Int?,
         qualityKbps: Int?,
     ): Int? =
         when {
-            convertedDownload -> CONVERTED_DOWNLOAD_KBPS
+            convertedDownloadKbps != null -> convertedDownloadKbps
             playMethod == PlayMethod.Transcode -> qualityKbps ?: CONVERTED_DOWNLOAD_KBPS
             else -> null
         }
