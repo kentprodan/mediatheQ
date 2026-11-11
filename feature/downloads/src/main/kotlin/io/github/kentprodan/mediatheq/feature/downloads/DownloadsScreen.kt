@@ -277,7 +277,7 @@ private fun DownloadRow(
                 )
             }
             // A favorite's automatic download goes by unfavoriting it (#145).
-            if (!download.autoOnly) RemoveDownloadMenuItem(onClick = { onAction(remove(track)) }, close = close)
+            if (download.removable) RemoveDownloadMenuItem(onClick = { onAction(remove(track)) }, close = close)
         },
         supportingContent =
             when (val state = download.state) {
@@ -317,6 +317,16 @@ private fun DownloadRow(
 /** Only kept as a favorite's automatic download (#145): every origin is automatic. */
 private val TrackDownload.autoOnly: Boolean
     get() = origins.isNotEmpty() && origins.all { it.auto }
+
+/**
+ * Remove does something here: a download under way goes whatever its origin; a finished song listed as a favorite
+ * (#145) goes only when it was also downloaded on its own (Remove takes that away).
+ */
+private val TrackDownload.removable: Boolean
+    get() =
+        state != DownloadState.Completed ||
+            DownloadOrigin.Single in origins ||
+            (origins.isEmpty())
 
 @Composable
 private fun DownloadProgress(progress: Float?) {

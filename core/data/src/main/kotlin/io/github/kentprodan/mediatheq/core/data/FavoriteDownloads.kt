@@ -174,11 +174,14 @@ class FavoriteDownloads
                             .let { byAlbum -> favoriteAlbums.associateWith { byAlbum[it].orEmpty() } },
                     playlists =
                         if (mode.playlists) {
-                            favoritePlaylists.associateWith { id -> playlists.items(id).first().map { it.track } }
+                            favoritePlaylists.associateWith { id -> playlists.allItems(id).first().map { it.track } }
                         } else {
                             favoritePlaylists.associateWith { emptyList() }
                         },
                 )
+            // After the stored downloads are read: before that every favorite would look missing, and queuing a
+            // finished download again would take it off the device until it downloads anew.
+            downloads.completedIds.first()
             val origins = downloads.downloads.first().associate { it.track.id to it.origins }
             val plan = favoriteDownloadPlan(mode, removeUnfavorited, server, favorites, origins)
             plan.download.forEach { (origin, list) -> downloads.download(list, origin) }

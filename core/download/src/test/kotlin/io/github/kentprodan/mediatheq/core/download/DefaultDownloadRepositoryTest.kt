@@ -287,6 +287,53 @@ class DefaultDownloadRepositoryTest {
         }
 
     @Test
+    fun `an unfavorited album's automatic origin goes, and a track kept by hand stays`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done, Download.STATE_COMPLETED to waiting)
+            val autoAlbum = DownloadOrigin.Album(done.albumId!!, auto = true)
+            repository.download(listOf(done, waiting), autoAlbum)
+            origins.removeCollection(DownloadOrigin.Album(waiting.albumId!!))
+            startedIntents()
+
+            repository.removeCollection(autoAlbum)
+
+            val removed = startedIntents().map { it.getStringExtra(DownloadService.KEY_CONTENT_ID) }
+            assertThat(removed).containsExactly(waiting.id.toString())
+            assertThat(origins.origins.value).containsExactly(done.id, setOf(DownloadOrigin.Album(done.albumId!!)))
+        }
+
+    @Test
+    fun `an unfavorited track loses its favorite origin and goes only when nothing else keeps it`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done, Download.STATE_COMPLETED to waiting)
+            repository.download(listOf(done, waiting), DownloadOrigin.Favorite)
+            origins.removeCollection(DownloadOrigin.Album(waiting.albumId!!))
+            startedIntents()
+
+            repository.removeOrigin(listOf(done.id, waiting.id), DownloadOrigin.Favorite)
+
+            val removed = startedIntents().map { it.getStringExtra(DownloadService.KEY_CONTENT_ID) }
+            assertThat(removed).containsExactly(waiting.id.toString())
+            assertThat(origins.origins.value).containsExactly(done.id, setOf(DownloadOrigin.Album(done.albumId!!)))
+        }
+
+    @Test
+    fun `a favorite added and its album's automatic origin removed in one go keep the track`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done)
+            val autoAlbum = DownloadOrigin.Album(done.albumId!!, auto = true)
+            origins.removeCollection(DownloadOrigin.Album(done.albumId!!))
+            repository.download(listOf(done), autoAlbum)
+            startedIntents()
+
+            repository.download(listOf(done), DownloadOrigin.Favorite)
+            repository.removeCollection(autoAlbum)
+
+            assertThat(startedIntents()).isEmpty()
+            assertThat(origins.origins.value).containsExactly(done.id, setOf(DownloadOrigin.Favorite))
+        }
+
+    @Test
     fun `removing the songs as a collection does nothing`() =
         runTest {
             val repository = repository(Download.STATE_COMPLETED to done)

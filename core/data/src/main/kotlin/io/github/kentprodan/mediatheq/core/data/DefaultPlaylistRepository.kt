@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.common.map
 import io.github.kentprodan.mediatheq.core.database.dao.PlaylistDao
+import io.github.kentprodan.mediatheq.core.database.dao.PlaylistTrack
 import io.github.kentprodan.mediatheq.core.database.dao.TrackWithArtists
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
@@ -61,15 +62,19 @@ class DefaultPlaylistRepository
                     downloaded,
                     ->
                     playlistDao.tracks(id.serverId.value, id.itemId, all, downloaded)
-                }.map { rows ->
-                    rows.map {
-                        PlaylistItem(
-                            it.entryId,
-                            it.position,
-                            TrackWithArtists(it.track, it.credits, it.album).toDomain(),
-                        )
-                    }
-                }
+                }.map(::toItems)
+
+        override fun allItems(id: MediaId): Flow<List<PlaylistItem>> =
+            playlistDao.tracks(id.serverId.value, id.itemId, all = true, downloaded = emptyList()).map(::toItems)
+
+        private fun toItems(rows: List<PlaylistTrack>): List<PlaylistItem> =
+            rows.map {
+                PlaylistItem(
+                    it.entryId,
+                    it.position,
+                    TrackWithArtists(it.track, it.credits, it.album).toDomain(),
+                )
+            }
 
         override suspend fun create(name: String): MqResult<MediaId> =
             inAppScope {
