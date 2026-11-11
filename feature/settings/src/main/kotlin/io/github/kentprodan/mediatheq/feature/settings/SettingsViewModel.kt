@@ -366,6 +366,14 @@ class SettingsViewModel
                         audio.setMaxParallelDownloads(action.count)
                     }
 
+                    is SettingsAction.SetAutoDownloads -> {
+                        audio.setAutoDownloads(action.mode)
+                    }
+
+                    is SettingsAction.SetRemoveUnfavorited -> {
+                        audio.setRemoveUnfavorited(action.on)
+                    }
+
                     SettingsAction.RestoreDownloadDefaults -> {
                         audio.restoreDownloadDefaults()
                     }

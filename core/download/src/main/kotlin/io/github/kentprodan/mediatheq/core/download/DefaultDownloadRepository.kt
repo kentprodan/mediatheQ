@@ -27,6 +27,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -223,7 +224,11 @@ internal class DefaultDownloadRepository
         ) {
             tracks.forEach { requested += it.id }
             if (origin != null) {
-                scope.launch(ioDispatcher) { originsLock.withLock { origins.add(tracks.map { it.id }, origin) } }
+                // Undispatched: origin changes take the (fair) lock in call order, so a favorite added and a
+                // collection removed in one pass (#145) never delete the track the favorite keeps.
+                scope.launch(ioDispatcher, CoroutineStart.UNDISPATCHED) {
+                    originsLock.withLock { origins.add(tracks.map { it.id }, origin) }
+                }
             }
             val known = entries.value
             tracks
@@ -256,7 +261,7 @@ internal class DefaultDownloadRepository
         override fun removeCollection(origin: DownloadOrigin) {
             // Songs go one by one (removeSong): "every song" is no collection to remove.
             if (origin == DownloadOrigin.Single) return
-            scope.launch(ioDispatcher) {
+            scope.launch(ioDispatcher, CoroutineStart.UNDISPATCHED) {
                 val orphans =
                     originsLock.withLock {
                         val kept = origins.origins.first()
@@ -267,15 +272,18 @@ internal class DefaultDownloadRepository
             }
         }
 
-        override fun removeSong(id: MediaId) {
-            scope.launch(ioDispatcher) {
-                val orphan =
+        override fun removeOrigin(
+            ids: List<MediaId>,
+            origin: DownloadOrigin,
+        ) {
+            scope.launch(ioDispatcher, CoroutineStart.UNDISPATCHED) {
+                val orphans =
                     originsLock.withLock {
-                        val left = origins.origins.first()[id].orEmpty() - DownloadOrigin.Single
-                        origins.remove(listOf(id), DownloadOrigin.Single)
-                        left.isEmpty()
+                        val kept = origins.origins.first()
+                        origins.remove(ids, origin)
+                        ids.filter { (kept[it].orEmpty() - origin).isEmpty() }
                     }
-                if (orphan) delete(listOf(id))
+                delete(orphans)
             }
         }
 

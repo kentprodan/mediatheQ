@@ -2,10 +2,12 @@ package io.github.kentprodan.mediatheq.feature.downloads
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -45,12 +47,13 @@ class DownloadsScreenTest {
     private fun show(
         downloading: List<TrackDownload> = emptyList(),
         songs: List<TrackDownload> = emptyList(),
+        autoAlbum: Boolean = false,
     ) {
         val state =
             DownloadsUiState.Content(
                 DownloadTotals(1_000_000, 20.minutes, 9_000_000),
                 downloading,
-                listOf(DownloadedAlbum(album, listOf(done), 500_000, 10.minutes)),
+                listOf(DownloadedAlbum(album, listOf(done), 500_000, 10.minutes, auto = autoAlbum)),
                 listOf(DownloadedPlaylist(playlist, listOf(done), 500_000, 10.minutes)),
                 songs,
             )
@@ -107,6 +110,18 @@ class DownloadsScreenTest {
                 DownloadsAction.PlayCollection(listOf(done), shuffle = true),
                 DownloadsAction.RemoveCollection(DownloadOrigin.Album(album.id)),
             ).inOrder()
+    }
+
+    @Test
+    fun `a favorite's automatic download says Auto and has no Remove, it goes by unfavoriting`() {
+        show(
+            songs = listOf(TrackDownload(done, DownloadState.Completed, origins = setOf(DownloadOrigin.Favorite))),
+            autoAlbum = true,
+        )
+        composeRule.onAllNodesWithText("Auto", substring = true).assertCountEquals(2)
+
+        composeRule.onNodeWithContentDescription("More options for For Lack of a Better Name").performClick()
+        composeRule.onNodeWithText("Remove download").assertDoesNotExist()
     }
 
     @Test

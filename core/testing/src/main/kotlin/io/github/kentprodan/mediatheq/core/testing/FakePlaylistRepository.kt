@@ -27,6 +27,8 @@ class FakePlaylistRepository : PlaylistRepository {
 
     override fun items(id: MediaId): Flow<List<PlaylistItem>> = items.map { it[id].orEmpty() }
 
+    override fun allItems(id: MediaId): Flow<List<PlaylistItem>> = items(id)
+
     /** Calls of [refresh], kept apart from [calls] (the screen refreshes on its own when it opens). */
     val refreshes = mutableListOf<MediaId>()
 

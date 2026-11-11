@@ -16,6 +16,7 @@ import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.DefaultLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadedCovers
+import io.github.kentprodan.mediatheq.core.data.FavoriteDownloads
 import io.github.kentprodan.mediatheq.core.data.ImagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
@@ -51,6 +52,9 @@ class MediatheqApplication :
     lateinit var downloadedCovers: DownloadedCovers
 
     @Inject
+    lateinit var favoriteDownloads: FavoriteDownloads
+
+    @Inject
     lateinit var libraryPreferences: LibraryPreferencesRepository
 
     @Inject
@@ -72,6 +76,8 @@ class MediatheqApplication :
         liveSync.start()
         // Keeps the covers of downloaded albums on the device, so they show offline (#154).
         downloadedCovers.start()
+        // Downloads the favorites by themselves, per Settings -> Offline, cache, and download -> Media (#145).
+        favoriteDownloads.start()
         images =
             libraryPreferences.preferences.map { it.images }.stateIn(applicationScope, SharingStarted.Eagerly, null)
         metered =

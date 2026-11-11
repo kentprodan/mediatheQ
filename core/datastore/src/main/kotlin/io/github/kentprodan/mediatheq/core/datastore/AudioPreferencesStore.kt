@@ -34,6 +34,8 @@ class AudioPreferencesStore
                         downloadsUnmeteredOnly = prefs[DOWNLOADS_UNMETERED_ONLY],
                         downloadQuality = prefs[DOWNLOAD_QUALITY],
                         maxParallelDownloads = prefs[MAX_PARALLEL_DOWNLOADS],
+                        autoDownloads = prefs[AUTO_DOWNLOADS],
+                        removeUnfavorited = prefs[REMOVE_UNFAVORITED],
                         forceInstantTranscoding = prefs[FORCE_INSTANT_TRANSCODING],
                         behavior =
                             StoredPlaybackBehavior(
@@ -100,12 +102,23 @@ class AudioPreferencesStore
             dataStore.edit { it[MAX_PARALLEL_DOWNLOADS] = count }
         }
 
-        /** Removes Wi-Fi only downloads, the download quality and the parallel downloads (#144). */
+        /** Automatic downloads of favorites (#145), as its name. */
+        suspend fun setAutoDownloads(name: String) {
+            dataStore.edit { it[AUTO_DOWNLOADS] = name }
+        }
+
+        suspend fun setRemoveUnfavorited(on: Boolean) {
+            dataStore.edit { it[REMOVE_UNFAVORITED] = on }
+        }
+
+        /** Removes every Media page value (#144, #145): Wi-Fi only, quality, parallel, automatic downloads. */
         suspend fun clearDownloads() {
             dataStore.edit {
                 it.remove(DOWNLOADS_UNMETERED_ONLY)
                 it.remove(DOWNLOAD_QUALITY)
                 it.remove(MAX_PARALLEL_DOWNLOADS)
+                it.remove(AUTO_DOWNLOADS)
+                it.remove(REMOVE_UNFAVORITED)
             }
         }
 
@@ -219,6 +232,8 @@ class AudioPreferencesStore
             val DOWNLOADS_UNMETERED_ONLY = booleanPreferencesKey("downloads_unmetered_only")
             val DOWNLOAD_QUALITY = stringPreferencesKey("download_quality")
             val MAX_PARALLEL_DOWNLOADS = intPreferencesKey("max_parallel_downloads")
+            val AUTO_DOWNLOADS = stringPreferencesKey("auto_downloads")
+            val REMOVE_UNFAVORITED = booleanPreferencesKey("remove_unfavorited")
             val FORCE_INSTANT_TRANSCODING = booleanPreferencesKey("force_instant_transcoding")
             val PB_PRESERVE_PLAY_NEXT = booleanPreferencesKey("pb_preserve_play_next")
             val PB_REWIND_FIRST = booleanPreferencesKey("pb_rewind_first")
@@ -259,6 +274,8 @@ data class StoredAudioPreferences(
     val downloadsUnmeteredOnly: Boolean? = null,
     val downloadQuality: String? = null,
     val maxParallelDownloads: Int? = null,
+    val autoDownloads: String? = null,
+    val removeUnfavorited: Boolean? = null,
     val forceInstantTranscoding: Boolean? = null,
     val behavior: StoredPlaybackBehavior = StoredPlaybackBehavior(),
     val outside: StoredOutsideControls = StoredOutsideControls(),

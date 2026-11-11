@@ -48,6 +48,14 @@ class FakeAudioPreferencesRepository : AudioPreferencesRepository {
         }
     }
 
+    override suspend fun setAutoDownloads(mode: io.github.kentprodan.mediatheq.core.data.AutoDownloads) {
+        preferences.value = preferences.value.copy(autoDownloads = mode)
+    }
+
+    override suspend fun setRemoveUnfavorited(on: Boolean) {
+        preferences.value = preferences.value.copy(removeUnfavorited = on)
+    }
+
     override suspend fun restoreDownloadDefaults() {
         val defaults = AudioPreferences()
         preferences.value =
@@ -55,6 +63,8 @@ class FakeAudioPreferencesRepository : AudioPreferencesRepository {
                 downloadsUnmeteredOnly = defaults.downloadsUnmeteredOnly,
                 downloadQuality = defaults.downloadQuality,
                 maxParallelDownloads = defaults.maxParallelDownloads,
+                autoDownloads = defaults.autoDownloads,
+                removeUnfavorited = defaults.removeUnfavorited,
             )
     }
 

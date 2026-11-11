@@ -38,7 +38,13 @@ interface DownloadRepository {
     fun removeCollection(origin: DownloadOrigin)
 
     /** Removes [id] from the songs downloaded on their own; deletes it only when no album or playlist keeps it. */
-    fun removeSong(id: MediaId)
+    fun removeSong(id: MediaId) = removeOrigin(listOf(id), DownloadOrigin.Single)
+
+    /** Forgets [origin] for [ids]; deletes the ones no other origin keeps (a favorite track no longer one, #145). */
+    fun removeOrigin(
+        ids: List<MediaId>,
+        origin: DownloadOrigin,
+    )
 
     /**
      * True when [id] is fully on the device. Safe from any thread; right after app start it may read the disk, so call

@@ -36,6 +36,8 @@ class DefaultAudioPreferencesRepository
                         enumOrNull<StreamingQuality>(stored.downloadQuality)
                             ?.takeIf { it in AudioPreferences.DOWNLOAD_QUALITIES }
                             ?: defaults.downloadQuality,
+                    autoDownloads = enumOrNull<AutoDownloads>(stored.autoDownloads) ?: defaults.autoDownloads,
+                    removeUnfavorited = stored.removeUnfavorited ?: defaults.removeUnfavorited,
                     maxParallelDownloads =
                         stored.maxParallelDownloads?.takeIf { it in AudioPreferences.PARALLEL_DOWNLOADS }
                             ?: defaults.maxParallelDownloads,
@@ -71,6 +73,10 @@ class DefaultAudioPreferencesRepository
         override suspend fun setMaxParallelDownloads(count: Int) {
             if (count in AudioPreferences.PARALLEL_DOWNLOADS) store.setMaxParallelDownloads(count)
         }
+
+        override suspend fun setAutoDownloads(mode: AutoDownloads) = store.setAutoDownloads(mode.name)
+
+        override suspend fun setRemoveUnfavorited(on: Boolean) = store.setRemoveUnfavorited(on)
 
         override suspend fun restoreDownloadDefaults() = store.clearDownloads()
 

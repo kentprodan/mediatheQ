@@ -18,6 +18,32 @@ class DefaultDownloadOriginsTest {
     private val album = DownloadOrigin.Album(id("a1"))
     private val playlist = DownloadOrigin.Playlist(id("p1"))
 
+    @Test
+    fun `automatic origins are kept apart from the manual ones and read back as they were`() =
+        runTest {
+            val autoAlbum = DownloadOrigin.Album(id("a1"), auto = true)
+            val autoPlaylist = DownloadOrigin.Playlist(id("p1"), auto = true)
+            origins.add(listOf(id("t1")), album)
+            origins.add(listOf(id("t1")), autoAlbum)
+            origins.add(listOf(id("t2")), autoPlaylist)
+            origins.add(listOf(id("t3")), DownloadOrigin.Favorite)
+
+            assertThat(origins.origins.first())
+                .containsExactly(
+                    id("t1"),
+                    setOf(album, autoAlbum),
+                    id("t2"),
+                    setOf(autoPlaylist),
+                    id("t3"),
+                    setOf(DownloadOrigin.Favorite),
+                )
+
+            origins.removeCollection(autoAlbum)
+            origins.remove(listOf(id("t3")), DownloadOrigin.Favorite)
+            assertThat(origins.origins.first()[id("t1")]).containsExactly(album)
+            assertThat(origins.origins.first()[id("t3")]).isNull()
+        }
+
     @After
     fun close() = database.close()
 

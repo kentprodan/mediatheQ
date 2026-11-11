@@ -8,18 +8,30 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-/** What a download was started from (#168): the Downloads tab groups by it. */
+/**
+ * What a download was started from (#168): the Downloads tab groups by it. An [auto] origin is a favorite's automatic
+ * download (#145), a different origin from the manual one: removing it keeps what the manual one holds.
+ */
 sealed interface DownloadOrigin {
+    val auto: Boolean get() = false
+
     data class Album(
         val id: MediaId,
+        override val auto: Boolean = false,
     ) : DownloadOrigin
 
     data class Playlist(
         val id: MediaId,
+        override val auto: Boolean = false,
     ) : DownloadOrigin
 
     /** The track on its own (a track menu, the Songs tab). */
     data object Single : DownloadOrigin
+
+    /** A favorite track, downloaded by itself (#145). */
+    data object Favorite : DownloadOrigin {
+        override val auto: Boolean get() = true
+    }
 }
 
 /**
@@ -68,7 +80,7 @@ internal class DefaultDownloadOrigins
         override suspend fun removeCollection(origin: DownloadOrigin) {
             val server =
                 (origin as? DownloadOrigin.Album)?.id?.serverId ?: (origin as? DownloadOrigin.Playlist)?.id?.serverId
-            // A Single origin belongs to its tracks: they are removed with forget.
+            // Single and Favorite origins belong to their tracks: they are removed per track.
             if (server != null) dao.removeCollection(origin.kind, server.value, origin.collectionId)
         }
 
@@ -85,9 +97,10 @@ internal class DefaultDownloadOrigins
         private val DownloadOrigin.kind: String
             get() =
                 when (this) {
-                    is DownloadOrigin.Album -> ALBUM
-                    is DownloadOrigin.Playlist -> PLAYLIST
+                    is DownloadOrigin.Album -> if (auto) AUTO_ALBUM else ALBUM
+                    is DownloadOrigin.Playlist -> if (auto) AUTO_PLAYLIST else PLAYLIST
                     DownloadOrigin.Single -> SINGLE
+                    DownloadOrigin.Favorite -> FAVORITE
                 }
 
         private val DownloadOrigin.collectionId: String
@@ -95,7 +108,7 @@ internal class DefaultDownloadOrigins
                 when (this) {
                     is DownloadOrigin.Album -> id.itemId
                     is DownloadOrigin.Playlist -> id.itemId
-                    DownloadOrigin.Single -> ""
+                    DownloadOrigin.Single, DownloadOrigin.Favorite -> ""
                 }
 
         // The collection is on the track's server; an unknown kind (a newer app's) is skipped.
@@ -104,6 +117,9 @@ internal class DefaultDownloadOrigins
                 ALBUM -> DownloadOrigin.Album(MediaId(ServerId(serverId), collectionId))
                 PLAYLIST -> DownloadOrigin.Playlist(MediaId(ServerId(serverId), collectionId))
                 SINGLE -> DownloadOrigin.Single
+                AUTO_ALBUM -> DownloadOrigin.Album(MediaId(ServerId(serverId), collectionId), auto = true)
+                AUTO_PLAYLIST -> DownloadOrigin.Playlist(MediaId(ServerId(serverId), collectionId), auto = true)
+                FAVORITE -> DownloadOrigin.Favorite
                 else -> null
             }
 
@@ -111,5 +127,10 @@ internal class DefaultDownloadOrigins
             const val ALBUM = "Album"
             const val PLAYLIST = "Playlist"
             const val SINGLE = "Single"
+
+            // Automatic downloads of favorites (#145); an older app skips these kinds.
+            const val AUTO_ALBUM = "AutoAlbum"
+            const val AUTO_PLAYLIST = "AutoPlaylist"
+            const val FAVORITE = "Favorite"
         }
     }

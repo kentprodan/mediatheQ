@@ -17,6 +17,9 @@ interface PlaylistRepository {
     /** The entries in playlist order; entries whose track is not in the library are left out. */
     fun items(id: MediaId): Flow<List<PlaylistItem>>
 
+    /** [items] also in offline mode (#145: favorites are decided on the whole library). */
+    fun allItems(id: MediaId): Flow<List<PlaylistItem>>
+
     /** Creates an empty playlist named [name] and returns its id; tracks follow with [add]. */
     suspend fun create(name: String): MqResult<MediaId>
 

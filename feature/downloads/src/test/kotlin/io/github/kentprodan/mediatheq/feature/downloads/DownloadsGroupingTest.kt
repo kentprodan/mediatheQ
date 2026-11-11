@@ -48,6 +48,36 @@ class DownloadsGroupingTest {
     }
 
     @Test
+    fun `an album downloaded both by hand and as a favorite shows once, as a manual one`() {
+        val autoA = DownloadOrigin.Album(albumA.id, auto = true)
+        val autoB = DownloadOrigin.Album(albumB.id, auto = true)
+        val content =
+            downloadsContent(
+                listOf(
+                    done(track("t1"), albumA, autoA),
+                    done(track("t2"), autoA),
+                    done(track("t3", "B"), autoB),
+                ),
+                emptyMap(),
+                emptyMap(),
+                freeBytes = 0,
+            )
+
+        val (a, b) = content.albums.sortedBy { it.album.id.itemId }
+        assertThat(a.tracks.map { it.id.itemId }).containsExactly("t1", "t2")
+        assertThat(a.auto).isFalse()
+        assertThat(b.auto).isTrue()
+    }
+
+    @Test
+    fun `favorite tracks show under songs`() {
+        val favorite = track("t9")
+        val content = downloadsContent(listOf(done(favorite, DownloadOrigin.Favorite)), emptyMap(), emptyMap(), 0)
+
+        assertThat(content.songs.single().track).isEqualTo(favorite)
+    }
+
+    @Test
     fun `sizes and durations add up per collection`() {
         val content =
             downloadsContent(

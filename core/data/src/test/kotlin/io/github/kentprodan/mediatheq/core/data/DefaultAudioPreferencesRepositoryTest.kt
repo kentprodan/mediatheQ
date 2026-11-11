@@ -180,8 +180,15 @@ class DefaultAudioPreferencesRepositoryTest {
             assertThat(set.downloadQuality).isEqualTo(StreamingQuality.Kbps192)
             assertThat(set.maxParallelDownloads).isEqualTo(4)
 
+            repository.setAutoDownloads(AutoDownloads.TracksAndAlbums)
+            repository.setRemoveUnfavorited(false)
+            assertThat(repository.preferences.first().autoDownloads).isEqualTo(AutoDownloads.TracksAndAlbums)
+            assertThat(repository.preferences.first().removeUnfavorited).isFalse()
+
             repository.restoreDownloadDefaults()
             val restored = repository.preferences.first()
+            assertThat(restored.autoDownloads).isEqualTo(AutoDownloads.Disabled)
+            assertThat(restored.removeUnfavorited).isTrue()
             assertThat(restored.downloadsUnmeteredOnly).isTrue()
             assertThat(restored.downloadQuality).isEqualTo(StreamingQuality.Original)
             assertThat(restored.maxParallelDownloads).isEqualTo(2)

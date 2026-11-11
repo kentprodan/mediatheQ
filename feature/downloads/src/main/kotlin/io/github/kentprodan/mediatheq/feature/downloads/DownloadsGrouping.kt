@@ -21,39 +21,50 @@ internal fun downloadsContent(
 ): DownloadsUiState.Content {
     val (done, downloading) = downloads.partition { it.state == DownloadState.Completed }
 
-    fun <O : DownloadOrigin> byOrigin(type: Class<O>) =
+    // Grouped by the collection, whether its origin is manual or automatic (#145); automatic when no manual one.
+    fun <O : DownloadOrigin> byOrigin(
+        type: Class<O>,
+        id: (O) -> MediaId,
+    ): Map<MediaId, Pair<List<TrackDownload>, Boolean>> =
         done
             .flatMap { download -> download.origins.filterIsInstance(type).map { it to download } }
-            .groupBy({ it.first }, { it.second })
+            .groupBy({ id(it.first) })
+            .mapValues { (_, pairs) -> pairs.map { it.second }.distinct() to pairs.all { it.first.auto } }
     return DownloadsUiState.Content(
         totals = DownloadTotals(done.sumOf { it.bytes }, done.duration(), freeBytes),
         downloading = downloading,
         albums =
-            byOrigin(DownloadOrigin.Album::class.java)
-                .map { (origin, tracks) ->
+            byOrigin(DownloadOrigin.Album::class.java) { it.id }
+                .map { (id, grouped) ->
+                    val (tracks, auto) = grouped
                     val album =
-                        albums[origin.id] ?: Album(
-                            origin.id,
+                        albums[id] ?: Album(
+                            id,
                             tracks
                                 .first()
                                 .track.albumTitle
                                 .orEmpty(),
                             emptyList(),
                         )
-                    DownloadedAlbum(album, tracks.map { it.track }, tracks.sumOf { it.bytes }, tracks.duration())
+                    DownloadedAlbum(album, tracks.map { it.track }, tracks.sumOf { it.bytes }, tracks.duration(), auto)
                 }.sortedBy { it.album.sortName.lowercase() },
         playlists =
-            byOrigin(DownloadOrigin.Playlist::class.java)
-                .map { (origin, tracks) ->
+            byOrigin(DownloadOrigin.Playlist::class.java) { it.id }
+                .map { (id, grouped) ->
+                    val (tracks, auto) = grouped
                     // shortcut: tracks in album order, not the playlist's; read the playlist's items if it matters.
                     DownloadedPlaylist(
-                        playlists[origin.id] ?: Playlist(origin.id, ""),
+                        playlists[id] ?: Playlist(id, ""),
                         tracks.map { it.track },
                         tracks.sumOf { it.bytes },
                         tracks.duration(),
+                        auto,
                     )
                 }.sortedBy { it.playlist.sortName.lowercase() },
-        songs = done.filter { DownloadOrigin.Single in it.origins }.sortedBy { it.track.sortName.lowercase() },
+        songs =
+            done
+                .filter { DownloadOrigin.Single in it.origins || DownloadOrigin.Favorite in it.origins }
+                .sortedBy { it.track.sortName.lowercase() },
     )
 }
 

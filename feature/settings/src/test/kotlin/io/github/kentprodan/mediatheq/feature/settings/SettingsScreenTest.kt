@@ -40,6 +40,7 @@ import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistPlayAction
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AutoActionsPreferences
+import io.github.kentprodan.mediatheq.core.data.AutoDownloads
 import io.github.kentprodan.mediatheq.core.data.AutoOffline
 import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.ColorSource
@@ -286,6 +287,18 @@ class SettingsScreenTest {
         composeRule.onNodeWithText("Not on Wi-Fi").performClick()
 
         assertThat(actions).containsExactly(SettingsAction.SetAutoOffline(AutoOffline.NotOnWifi))
+    }
+
+    @Test
+    fun `automatic downloads of favorites is a choice dialog, and its remove switch is off while disabled`() {
+        show(SettingsPage.StorageMedia)
+        scrollTo("Remove when unfavorited")
+        composeRule.onNode(isToggleable() and hasText("Remove when unfavorited")).assertIsNotEnabled()
+
+        composeRule.onNode(hasText("Automatic downloads of favorites") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("Favorite tracks and albums").performClick()
+
+        assertThat(actions).containsExactly(SettingsAction.SetAutoDownloads(AutoDownloads.TracksAndAlbums))
     }
 
     @Test

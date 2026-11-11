@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioFocusPreferences
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
 import io.github.kentprodan.mediatheq.core.data.AutoActionsPreferences
+import io.github.kentprodan.mediatheq.core.data.AutoDownloads
 import io.github.kentprodan.mediatheq.core.data.AutoOffline
 import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.ColorSource
@@ -614,7 +615,12 @@ class SettingsViewModelTest {
             assertThat(content().library.autoOffline).isEqualTo(AutoOffline.NoNetwork)
             assertThat(content().audio.downloadQuality).isEqualTo(StreamingQuality.Kbps256)
 
+            viewModel.onAction(SettingsAction.SetAutoDownloads(AutoDownloads.Tracks))
+            viewModel.onAction(SettingsAction.SetRemoveUnfavorited(false))
+            assertThat(content().audio.autoDownloads).isEqualTo(AutoDownloads.Tracks)
+            assertThat(content().audio.removeUnfavorited).isFalse()
             viewModel.onAction(SettingsAction.RestoreDownloadDefaults)
+            assertThat(content().audio.autoDownloads).isEqualTo(AutoDownloads.Disabled)
             assertThat(content().audio.downloadsUnmeteredOnly).isTrue()
             assertThat(content().audio.downloadQuality).isEqualTo(StreamingQuality.Original)
             assertThat(content().audio.maxParallelDownloads).isEqualTo(2)

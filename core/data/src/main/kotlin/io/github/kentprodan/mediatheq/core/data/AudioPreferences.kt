@@ -104,6 +104,10 @@ data class AudioPreferences(
     val downloadQuality: StreamingQuality = StreamingQuality.Original,
     /** How many downloads run at once, one of [PARALLEL_DOWNLOADS] (#144). */
     val maxParallelDownloads: Int = DEFAULT_PARALLEL_DOWNLOADS,
+    /** Favorites that download by themselves (#145). */
+    val autoDownloads: AutoDownloads = AutoDownloads.Disabled,
+    /** An automatic download goes when its item is no longer a favorite (#145); manual ones never. */
+    val removeUnfavorited: Boolean = true,
     /** Losing Wi-Fi restarts the current track at the same position in the metered quality (#138). */
     val forceInstantTranscoding: Boolean = false,
     val behavior: PlaybackBehavior = PlaybackBehavior(),

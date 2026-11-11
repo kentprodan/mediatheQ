@@ -37,6 +37,8 @@ data class DownloadedAlbum(
     val tracks: List<Track>,
     val bytes: Long,
     val duration: Duration,
+    /** Only a favorite's automatic download (#145): no Remove, unfavorite it instead. */
+    val auto: Boolean = false,
 )
 
 /** A playlist downloaded as a whole, with what of it is on the device. */
@@ -45,6 +47,8 @@ data class DownloadedPlaylist(
     val tracks: List<Track>,
     val bytes: Long,
     val duration: Duration,
+    /** Only a favorite's automatic download (#145): no Remove, unfavorite it instead. */
+    val auto: Boolean = false,
 )
 
 sealed interface DownloadsAction {
