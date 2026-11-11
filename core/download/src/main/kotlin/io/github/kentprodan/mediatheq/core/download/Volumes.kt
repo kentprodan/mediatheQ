@@ -46,7 +46,9 @@ internal class AndroidVolumes
             }
 
         /** Volumes being ejected: still mounted, but their files are left alone from then on. */
-        private val ejecting = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+        private val ejecting =
+            java.util.concurrent.ConcurrentHashMap
+                .newKeySet<String>()
 
         override fun isMounted(dir: File): Boolean =
             Environment.getExternalStorageState(dir) == Environment.MEDIA_MOUNTED &&

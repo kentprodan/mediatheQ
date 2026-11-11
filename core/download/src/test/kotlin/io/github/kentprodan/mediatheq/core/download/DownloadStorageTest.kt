@@ -252,7 +252,13 @@ class DownloadStorageTest {
         val server = FakeDataSet().apply { setRandomData("song", SIZE) }
         val source = CacheDataSource(guarded, FakeDataSource(server))
 
-        source.open(DataSpec.Builder().setUri("song").setKey("s1:t2").build())
+        source.open(
+            DataSpec
+                .Builder()
+                .setUri("song")
+                .setKey("s1:t2")
+                .build(),
+        )
         val bytes = DataSourceUtil.readToEnd(source).also { source.close() }
 
         assertThat(bytes).hasLength(SIZE)

@@ -82,13 +82,20 @@ internal class DownloadStorage
                     .collect { hold ->
                         // A new manager starts paused, and the service resumes it when it starts (after the local
                         // network check): resumed here only while the service runs.
-                        if (hold) manager.get().pauseDownloads() else if (serviceRunning) manager.get().resumeDownloads()
+                        if (hold) {
+                            manager.get().pauseDownloads()
+                        } else if (serviceRunning) {
+                            manager.get().resumeDownloads()
+                        }
                     }
             }
         }
 
         // A copy left by a move that did not finish, or the folder a finished move left behind.
-        private val cleanup = scope.launch(ioDispatcher) { otherFilesDirs().forEach { File(it, DOWNLOADS).deleteRecursively() } }
+        private val cleanup =
+            scope.launch(ioDispatcher) {
+                otherFilesDirs().forEach { File(it, DOWNLOADS).deleteRecursively() }
+            }
 
         @Volatile private var serviceRunning = false
 
