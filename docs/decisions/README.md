@@ -41,6 +41,11 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0034](0034-bluetooth-lyrics-in-the-session-title.md) | Bluetooth lyrics ride in the session title, the real title in the display title | Accepted |
 | [0035](0035-downloads-on-removable-storage.md) | Downloads on removable storage: moved with a restart, guarded while the card is out | Accepted |
 | [0036](0036-one-database-per-account.md) | One database per account; switching accounts restarts the app | Accepted |
+| [0037](0037-compose-for-tv-toolkit.md) | Compose for TV: tv-material 1.1.0, Compose Foundation lists, own TV design system | Accepted |
+| [0038](0038-tv-app-module-layout.md) | TV app module layout: `:app-tv`, `:feature-tv:*`, shared core | Accepted |
+| [0039](0039-atmos-passthrough-over-hdmi.md) | Dolby Atmos passthrough over HDMI: capabilities from Media3, decision in `AudioPolicy`, truth from the audio track | Accepted |
+| [0040](0040-tv-onboarding-quick-connect-first.md) | TV onboarding is its own feature, Quick Connect first | Accepted |
+| [0041](0041-tv-navigation-drawer-and-now-playing-destination.md) | TV navigation: one Navigation 3 back stack, a drawer, Now Playing as a destination | Accepted |
 
 Template for new ADRs:
 
