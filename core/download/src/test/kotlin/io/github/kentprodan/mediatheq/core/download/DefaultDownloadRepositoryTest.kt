@@ -32,6 +32,7 @@ import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadOrigins
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -57,6 +58,7 @@ class DefaultDownloadRepositoryTest {
     private val library = FakeLibraryRepository()
     private val audioPreferences = FakeAudioPreferencesRepository()
     private val origins = FakeDownloadOrigins()
+    private val storage = FakeDownloadStorageRepository()
     private lateinit var manager: DownloadManager
 
     private val done = track("t1", "Album A", 2)
@@ -115,6 +117,22 @@ class DefaultDownloadRepositoryTest {
                 expectNoEvents()
                 testScheduler.runCurrent()
                 assertThat(awaitItem()).containsExactly(done.id)
+            }
+        }
+
+    @Test
+    fun `with the SD card out no download is on the device, and they come back with it`() =
+        runTest {
+            val repository = repository(Download.STATE_COMPLETED to done)
+            storage.available.value = false
+
+            repository.completedIds.test {
+                assertThat(awaitItem()).isEmpty()
+                assertThat(repository.isDownloaded(done.id)).isFalse()
+
+                storage.available.value = true
+                assertThat(awaitItem()).containsExactly(done.id)
+                assertThat(repository.isDownloaded(done.id)).isTrue()
             }
         }
 
@@ -449,6 +467,7 @@ class DefaultDownloadRepositoryTest {
             manager,
             cache,
             origins,
+            storage,
             library,
             audioPreferences,
             backgroundScope,

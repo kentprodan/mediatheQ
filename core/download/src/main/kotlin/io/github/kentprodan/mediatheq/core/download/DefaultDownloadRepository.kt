@@ -20,6 +20,7 @@ import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigins
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
+import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.DownloadState
@@ -63,6 +64,7 @@ internal class DefaultDownloadRepository
         private val manager: DownloadManager,
         @DownloadCache private val cache: Cache,
         private val origins: DownloadOrigins,
+        private val storage: DownloadStorageRepository,
         private val libraryRepository: LibraryRepository,
         audioPreferences: AudioPreferencesRepository,
         @ApplicationScope private val scope: CoroutineScope,
@@ -208,14 +210,20 @@ internal class DefaultDownloadRepository
             }.distinctUntilChanged()
                 .flowOn(defaultDispatcher)
 
+        // With the SD card out (#146) none is on the device: offline lists them as missing, online they stream.
         override val completedIds: Flow<Set<MediaId>> =
-            combine(entries, indexRead) { entries, read ->
-                if (read) entries.filterValues { it.state == Download.STATE_COMPLETED }.keys else null
+            combine(entries, indexRead, storage.available) { entries, read, available ->
+                when {
+                    !read -> null
+                    !available -> emptySet()
+                    else -> entries.filterValues { it.state == Download.STATE_COMPLETED }.keys
+                }
             }.filterNotNull().distinctUntilChanged()
 
         override val freeBytes: Flow<Long> =
-            combine(entries, ticks) { _, _ -> StatFs(context.filesDir.path).availableBytes }
-                .distinctUntilChanged()
+            combine(entries, ticks, storage.available) { _, _, available ->
+                if (available) StatFs(storage.filesDir.path).availableBytes else 0L
+            }.distinctUntilChanged()
                 .flowOn(ioDispatcher)
 
         override fun download(
@@ -300,6 +308,7 @@ internal class DefaultDownloadRepository
         }
 
         override fun isDownloaded(id: MediaId): Boolean {
+            if (!storage.available.value) return false
             val download =
                 entries.value[id]
                     // Right after start (e.g. the player starting the process offline) the index is not read yet.
