@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +34,7 @@ class DownloadsViewModel
     ) : ViewModel() {
         private val filter = MutableStateFlow("")
         private val cleanup = MutableStateFlow<CleanupPreview?>(null)
+        private var preview: Job? = null
 
         private val grouped =
             combine(
@@ -116,15 +118,19 @@ class DownloadsViewModel
                 }
 
                 DownloadsAction.AskCleanup -> {
-                    viewModelScope.launch { cleanup.value = downloadRepository.cleanupPreview() }
+                    preview?.cancel()
+                    preview = viewModelScope.launch { cleanup.value = downloadRepository.cleanupPreview() }
                 }
 
                 DownloadsAction.ConfirmCleanup -> {
+                    preview?.cancel()
                     cleanup.value = null
                     viewModelScope.launch { downloadRepository.cleanup() }
                 }
 
                 DownloadsAction.DismissCleanup -> {
+                    // A preview still on its way must not open the dialog again.
+                    preview?.cancel()
                     cleanup.value = null
                 }
             }

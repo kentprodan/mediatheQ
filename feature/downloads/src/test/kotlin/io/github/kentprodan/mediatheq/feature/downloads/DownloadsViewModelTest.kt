@@ -5,6 +5,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.AutoDownloads
 import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
+import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.DownloadState
@@ -20,6 +21,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesReposit
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -165,6 +167,28 @@ class DownloadsViewModelTest {
 
             assertThat(content().cleanup).isNull()
             assertThat(repository.cleanups).isEqualTo(1)
+        }
+
+    @Test
+    fun `a preview arriving after Cancel does not open the dialog again`() =
+        runTest {
+            val slow = CompletableDeferred<Unit>()
+            val repository =
+                object : DownloadRepository by repository {
+                    override suspend fun cleanupPreview(): CleanupPreview {
+                        slow.await()
+                        return CleanupPreview(1, 1)
+                    }
+                }
+            val viewModel = DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences)
+
+            viewModel.onAction(DownloadsAction.AskCleanup)
+            viewModel.onAction(DownloadsAction.DismissCleanup)
+            slow.complete(Unit)
+
+            viewModel.uiState.test {
+                assertThat((expectMostRecentItem() as DownloadsUiState.Content).cleanup).isNull()
+            }
         }
 
     @Test

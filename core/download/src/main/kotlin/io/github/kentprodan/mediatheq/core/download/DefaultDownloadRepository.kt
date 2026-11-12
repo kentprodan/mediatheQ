@@ -377,9 +377,13 @@ internal class DefaultDownloadRepository
 
         override suspend fun cleanup() {
             val (selection, _) = withContext(ioDispatcher) { selectCleanup() }
-            delete(selection.failed)
+            // A failed download the user just asked again for is starting over: keep it.
+            delete(selection.failed.filter { it !in restarting })
+            // The manager's own list, read on its thread.
+            val running =
+                withContext(Dispatchers.Main.immediate) { manager.currentDownloads.map { it.request.id }.toSet() }
             withContext(ioDispatcher) {
-                selection.orphans.filter(::stillOrphan).forEach(cache::removeResource)
+                selection.orphans.filter { it !in running && stillOrphan(it) }.forEach(cache::removeResource)
             }
         }
 
@@ -399,7 +403,6 @@ internal class DefaultDownloadRepository
         private fun stillOrphan(key: String): Boolean {
             val id = runCatching { MediaId.parse(key) }.getOrNull()
             return manager.downloadIndex.getDownload(key) == null &&
-                manager.currentDownloads.none { it.request.id == key } &&
                 id !in requested &&
                 id !in restarting
         }

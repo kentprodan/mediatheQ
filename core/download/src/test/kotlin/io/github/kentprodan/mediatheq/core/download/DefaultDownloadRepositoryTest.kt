@@ -183,6 +183,19 @@ class DefaultDownloadRepositoryTest {
         }
 
     @Test
+    fun `a failed download asked again for before cleanup confirms is kept`() =
+        runTest {
+            val repository = repository(Download.STATE_FAILED to failed)
+            startedIntents()
+
+            repository.download(listOf(failed))
+            repository.cleanup()
+
+            val removed = startedIntents().mapNotNull { it.getStringExtra(DownloadService.KEY_CONTENT_ID) }
+            assertThat(removed).doesNotContain(failed.id.toString())
+        }
+
+    @Test
     fun `another account's completed download is never leftover data`() =
         runTest {
             val office = done.copy(id = MediaId(ServerId("office"), "t9"))
