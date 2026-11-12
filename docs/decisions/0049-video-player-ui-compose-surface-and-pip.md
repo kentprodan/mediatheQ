@@ -1,6 +1,6 @@
 # 0049. Video player UI: `media3-ui-compose` surface, own Expressive controls, `SubtitleView` for cues, a full-screen destination, platform PiP
 
-- Status: Proposed (owner approval pending)
+- Status: Accepted (owner, 2026-11-12)
 - Date: 2026-11-12
 
 ## Context

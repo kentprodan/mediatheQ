@@ -1,6 +1,6 @@
 # 0050. Video stream selection: device profile from real capabilities, HLS fMP4 transcodes, server-decided subtitle delivery, downloads as originals
 
-- Status: Proposed (owner approval pending)
+- Status: Accepted (owner, 2026-11-12)
 - Date: 2026-11-12
 
 ## Context
@@ -35,11 +35,21 @@ page lists "HDR support" without naming Dolby Vision (checked 2026-11-12).
   as `MediaItem.SubtitleConfiguration` through the authenticated data source (URLs token-free, R10 applies to
   `DeliveryUrl`), embedded ones are selected with `TrackSelectionOverride`, burned-in ones are shown as such. A track
   change that needs a new server stream re-resolves at the current position with a new play session.
-- **Defaults** come from Settings -> Playback -> Video (subtitle mode Off / Forced only / Language, preferred audio
-  language), else the server's default indexes.
+- **Defaults and remembered choices:** a choice made in the player, on the movie page, on an episode row or for a
+  whole season is stored in the account database (`video_track_choice`: item or season id, indexes and languages;
+  no foreign keys, cleared on sign-out) and resolved item > season > Settings -> Playback -> Video (subtitle mode
+  Off / Forced only (default) / Language, preferred audio language) > the server's default indexes. A season choice
+  carries to episodes with other stream orders by language and flags.
+- **Quality** is a `VideoQuality(maxHeight, bitrate)` per network kind (Original, 1080p, 720p, 480p, 360p; defaults
+  Original on unmetered and 480p on metered): `MaxStreamingBitrate` plus a `Height LessThanEqual` condition, so
+  larger files transcode scaled down.
 - **Downloads are originals only:** `DeviceProfileBuilder.videoDownload` has no transcoding profile; a `PlaybackInfo`
-  answer that is not a direct play fails the download with a message. External text subtitles download beside the
-  file under `<MediaId>:sub:<index>` keys. No `DownloadHelper`, no HLS downloads in Mobile 3.
+  answer that is not a direct play fails the download with a message. A movie, a single episode or a season can be
+  downloaded (no series download). External text subtitles download beside the file under `<MediaId>:sub:<index>`
+  keys. No `DownloadHelper`, no HLS downloads in Mobile 3.
+- **Media segments** (Intro Skipper): read from Jellyfin's `/MediaSegments/{itemId}` only (the owner's server runs
+  the Jellyfin 12 plugin line, which mirrors its detections there and has no legacy `IntroTimestamps` route); the
+  player shows Skip intro / Skip recap / Skip credits or skips by itself per Settings -> Video -> Skipping.
 
 ## Consequences
 

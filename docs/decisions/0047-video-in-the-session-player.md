@@ -1,6 +1,6 @@
 # 0047. Video plays in the session's player; a video replaces the music queue and hands it back
 
-- Status: Proposed (owner approval pending)
+- Status: Accepted (owner, 2026-11-12)
 - Date: 2026-11-12
 
 ## Context
@@ -42,3 +42,5 @@ or the one session player with a video item on it.
   hands the surface directly; the issue that first plays a video proves the controller path with a device test.
 - The notification shows the video's poster and title; media buttons work for video as for music.
 - If daily use shows that music should resume by itself after a video, that is one setting in a later issue.
+- In the `Video` app mode (ADR 0051) the hand-back does not happen: the saved music queue stays saved and is
+  restored only after a switch back to `Music` or `Both`.

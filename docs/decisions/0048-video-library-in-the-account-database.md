@@ -1,6 +1,6 @@
 # 0048. Video library in the account database: `series`, `season`, `video`, `video_stream`, synced with the music
 
-- Status: Proposed (owner approval pending)
+- Status: Accepted (owner, 2026-11-12)
 - Date: 2026-11-12
 
 ## Context
