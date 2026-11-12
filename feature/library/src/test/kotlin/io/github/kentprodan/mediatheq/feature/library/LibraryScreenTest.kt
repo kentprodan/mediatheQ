@@ -4,13 +4,19 @@ import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
@@ -27,6 +33,7 @@ import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
+import kotlinx.coroutines.launch
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -237,5 +244,44 @@ class LibraryScreenTest {
                 LibraryAction.ToggleSelection(albums[2].id),
                 LibraryAction.OnSelection(SelectionCommand.AddToQueue),
             ).inOrder()
+    }
+
+    @Test
+    fun `typing in search in list keeps every letter in order, while the list answers a frame late`() {
+        val actions = mutableListOf<LibraryAction>()
+        composeRule.setContent {
+            // The ViewModel's state comes back a frame after each change (#186).
+            var search by remember { mutableStateOf<String?>("") }
+            val scope = rememberCoroutineScope()
+            MediatheqTheme {
+                LibraryScreen(
+                    LibraryUiState(
+                        content = LibraryContent.Albums(albums),
+                        listFilter = LibraryListFilter(search = search),
+                    ),
+                    onAction = { action ->
+                        actions += action
+                        if (action is LibraryAction.Search) {
+                            scope.launch {
+                                withFrameNanos {}
+                                search = action.text
+                            }
+                        }
+                    },
+                    {},
+                    {},
+                    {},
+                )
+            }
+        }
+
+        val field = composeRule.onNode(hasSetTextAction())
+        listOf("a", "b", "c").forEach {
+            field.performTextInput(it)
+            composeRule.waitForIdle()
+        }
+
+        field.assertTextEquals("abc", includeEditableText = true)
+        assertThat(actions.last()).isEqualTo(LibraryAction.Search("abc"))
     }
 }

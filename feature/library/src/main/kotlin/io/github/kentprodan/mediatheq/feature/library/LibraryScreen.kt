@@ -22,6 +22,8 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -43,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -86,6 +89,7 @@ import io.github.kentprodan.mediatheq.core.ui.SelectionToolbar
 import io.github.kentprodan.mediatheq.core.ui.SelectionToolbarSpace
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.trackSwipes
+import kotlinx.coroutines.flow.drop
 
 @Composable
 internal fun LibraryRoute(
@@ -493,9 +497,14 @@ private fun SearchInList(
 ) {
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
+    // The field owns its text and cursor; the list's state answers a frame late and would move the cursor (#186).
+    // The ViewModel never pushes text back, only closes the search.
+    val field = rememberTextFieldState(text)
+    LaunchedEffect(field) {
+        snapshotFlow { field.text.toString() }.drop(1).collect { onAction(LibraryAction.Search(it)) }
+    }
     OutlinedTextField(
-        value = text,
-        onValueChange = { onAction(LibraryAction.Search(it)) },
+        field,
         modifier =
             Modifier
                 .fillMaxWidth()
@@ -509,6 +518,6 @@ private fun SearchInList(
                 Icon(MqIcons.Close, contentDescription = stringResource(R.string.library_close_search))
             }
         },
-        singleLine = true,
+        lineLimits = TextFieldLineLimits.SingleLine,
     )
 }
