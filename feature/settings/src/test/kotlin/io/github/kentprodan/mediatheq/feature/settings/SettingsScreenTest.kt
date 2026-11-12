@@ -114,19 +114,6 @@ class SettingsScreenTest {
         }
     }
 
-    private fun showAbout() {
-        composeRule.setContent {
-            MediatheqTheme {
-                AboutSettingsScreen(
-                    "1.2.3",
-                    onOpenShowcase = { events += "showcase" },
-                    onOpenLicenses = { events += "licenses" },
-                    onBack = { events += "back" },
-                )
-            }
-        }
-    }
-
     /** The titles of a page's rows, so every setting is on exactly one page. */
     private fun assertRows(vararg titles: String) {
         titles.forEach { title ->
@@ -193,17 +180,6 @@ class SettingsScreenTest {
         composeRule.onNodeWithContentDescription("Back").performClick()
 
         assertThat(events).containsExactly("outputs", "back").inOrder()
-    }
-
-    @Test
-    fun `about shows the version and opens the licenses and the showcase`() {
-        showAbout()
-
-        composeRule.onNodeWithText("1.2.3").assertExists()
-        composeRule.onNodeWithText("Open-source licenses").performClick()
-        composeRule.onNodeWithText("Theme showcase").performClick()
-
-        assertThat(events).containsExactly("licenses", "showcase").inOrder()
     }
 
     @Test

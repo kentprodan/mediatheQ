@@ -1,0 +1,20 @@
+name: Feature request
+description: An idea for mediatheQ (opened from Settings -> Contact support)
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like mediatheQ to do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it help you?
+  - type: input
+    id: device
+    attributes:
+      label: Device and app version
+      description: Filled in by the app. No account, server address or token.
+      placeholder: mediatheQ 0.1.0 (1), Android 17, Google Pixel 9

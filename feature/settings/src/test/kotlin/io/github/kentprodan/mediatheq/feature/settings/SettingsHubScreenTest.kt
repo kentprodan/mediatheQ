@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.google.common.truth.Truth.assertThat
@@ -65,8 +66,51 @@ class SettingsHubScreenTest {
         ).forEach(::open)
         // "About" is both a group title and its entry: the clickable row is the entry.
         open("About")
+        open("Changelog")
+        open("Contact support")
 
         assertThat(opened).containsExactlyElementsIn(SettingsHubEntry.entries).inOrder()
+    }
+
+    @Test
+    fun `the About group holds About, Changelog and Contact support`() {
+        assertThat(hubGroups.last())
+            .isEqualTo(
+                R.string.settings_about to
+                    listOf(SettingsHubEntry.About, SettingsHubEntry.Changelog, SettingsHubEntry.ContactSupport),
+            )
+    }
+
+    private fun showRoute() =
+        composeRule.setContent {
+            MediatheqTheme {
+                SettingsHubRoute(
+                    AboutInfo("1.2.3", 42, "17", "Google Pixel 9"),
+                    changelog = { "## [Unreleased]\n### Added\n- A changelog line\n" },
+                    onOpen = { opened += it },
+                    onBack = {},
+                )
+            }
+        }
+
+    @Test
+    fun `Changelog opens its sheet over the hub`() {
+        showRoute()
+
+        open("Changelog")
+
+        composeRule.onNodeWithText("A changelog line", substring = true).assertExists()
+        assertThat(opened).isEmpty()
+    }
+
+    @Test
+    fun `Contact support opens its dialog over the hub`() {
+        showRoute()
+
+        open("Contact support")
+
+        composeRule.onNodeWithText("Make a feature request").assertExists()
+        assertThat(opened).isEmpty()
     }
 
     @Test
@@ -87,6 +131,8 @@ class SettingsHubScreenTest {
                 null,
                 BackupSettingsKey,
                 AboutSettingsKey,
+                null,
+                null,
             ).inOrder()
     }
 

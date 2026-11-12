@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqAppMark
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqArtistAvatar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCarouselItem
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqColorSwatch
@@ -105,6 +106,14 @@ fun ArtistAvatarScreenshot() {
             }
         }
     }
+}
+
+/** The app's mark (#151). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun AppMarkScreenshot() {
+    MediatheqTheme { Surface { MqAppMark() } }
 }
 
 private val CoverWidth = 112.dp

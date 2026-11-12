@@ -1,5 +1,7 @@
 package io.github.kentprodan.mediatheq
 
+import android.content.pm.ApplicationInfo
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -34,6 +36,7 @@ import io.github.kentprodan.mediatheq.feature.onboarding.server.serverEntry
 import io.github.kentprodan.mediatheq.feature.playlist.addToPlaylistEntry
 import io.github.kentprodan.mediatheq.feature.playlist.playlistEntry
 import io.github.kentprodan.mediatheq.feature.search.searchEntry
+import io.github.kentprodan.mediatheq.feature.settings.AboutInfo
 import io.github.kentprodan.mediatheq.feature.settings.settingsEntry
 import io.github.kentprodan.mediatheq.navigation.AppShell
 import io.github.kentprodan.mediatheq.navigation.OnboardingHost
@@ -96,8 +99,9 @@ class MainActivity : ComponentActivity() {
                                         homeEntry(navigator, onOpenDownloads = openDownloads)
                                         settingsEntry(
                                             navigator,
-                                            versionName = versionName(),
+                                            about = aboutInfo(),
                                             onOpenShowcase = { navigator.navigateTo(ThemeShowcaseKey) },
+                                            changelog = applicationContext::changelog,
                                             licensesReport = applicationContext::licensesReport,
                                             licenseNotices = applicationContext::licenseNotices,
                                         )
@@ -160,6 +164,29 @@ private fun android.content.Context.licensesReport(): String =
 private fun android.content.Context.licenseNotices(): String =
     resources.openRawResource(R.raw.license_notices).bufferedReader().use { it.readText() }
 
-/** The app's version, for Settings -> About. */
-private fun android.app.Activity.versionName(): String =
-    packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
+/** The bundled CHANGELOG.md (#151), for Settings -> About -> Changelog. */
+private fun android.content.Context.changelog(): String =
+    resources.openRawResource(R.raw.changelog).bufferedReader().use { it.readText() }
+
+/** The app's version and the phone, for Settings -> About and Contact support (#151). */
+private fun android.app.Activity.aboutInfo(): AboutInfo {
+    val packageInfo = packageManager.getPackageInfo(packageName, 0)
+    // "Google" + "Pixel 9"; a model that already starts with its maker keeps its own name.
+    val device =
+        if (Build.MODEL.startsWith(
+                Build.MANUFACTURER,
+                ignoreCase = true,
+            )
+        ) {
+            Build.MODEL
+        } else {
+            "${Build.MANUFACTURER} ${Build.MODEL}"
+        }
+    return AboutInfo(
+        versionName = packageInfo.versionName.orEmpty(),
+        versionCode = packageInfo.longVersionCode,
+        androidVersion = Build.VERSION.RELEASE,
+        device = device,
+        debug = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0,
+    )
+}

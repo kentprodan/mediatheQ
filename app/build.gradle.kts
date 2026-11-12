@@ -1,4 +1,5 @@
 import io.github.kentprodan.mediatheq.buildlogic.CollectLicenseNoticesTask
+import io.github.kentprodan.mediatheq.buildlogic.CopyChangelogTask
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 
@@ -73,6 +74,12 @@ androidComponents {
                 )
             }
         variant.sources.res?.addGeneratedSourceDirectory(notices, CollectLicenseNoticesTask::outputDirectory)
+        // The changelog, shown offline in Settings -> About (#151).
+        val changelog =
+            tasks.register<CopyChangelogTask>("copy${variant.name.replaceFirstChar(Char::uppercase)}Changelog") {
+                this.changelog.set(rootProject.file("CHANGELOG.md"))
+            }
+        variant.sources.res?.addGeneratedSourceDirectory(changelog, CopyChangelogTask::outputDirectory)
     }
 }
 
@@ -122,7 +129,7 @@ tasks.withType<Test>().configureEach {
     val report = layout.buildDirectory.file("generated/aboutLibraries/release/res/raw/aboutlibraries.json")
     val license = rootProject.file("LICENSE")
     val notices = layout.buildDirectory.file("generated/res/collectReleaseLicenseNotices/raw/license_notices.json")
-    dependsOn("prepareLibraryDefinitionsRelease", "collectReleaseLicenseNotices")
+    dependsOn("prepareLibraryDefinitionsRelease", "collectReleaseLicenseNotices", "copyReleaseChangelog")
     inputs.file(report).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file(notices).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file(license).withPathSensitivity(PathSensitivity.RELATIVE)
@@ -136,6 +143,20 @@ tasks.withType<Test>().configureEach {
             .invariantSeparatorsPath,
     )
     systemProperty("mediatheq.license", license.relativeTo(projectDir).invariantSeparatorsPath)
+    val changelog = layout.buildDirectory.file("generated/res/copyReleaseChangelog/raw/changelog.md")
+    inputs.file(changelog).withPathSensitivity(PathSensitivity.RELATIVE)
+    systemProperty(
+        "mediatheq.changelog",
+        changelog
+            .get()
+            .asFile
+            .relativeTo(projectDir)
+            .invariantSeparatorsPath,
+    )
+    systemProperty(
+        "mediatheq.changelogSource",
+        rootProject.file("CHANGELOG.md").relativeTo(projectDir).invariantSeparatorsPath,
+    )
     systemProperty(
         "mediatheq.licenseNotices",
         notices

@@ -522,19 +522,6 @@ fun SettingsPageScreen(
     }
 }
 
-/** Settings -> About: the version and the app's own pages; needs no settings. */
-@Composable
-fun AboutSettingsScreen(
-    versionName: String,
-    onOpenShowcase: () -> Unit,
-    onOpenLicenses: () -> Unit,
-    onBack: () -> Unit,
-) {
-    SettingsScaffold(stringResource(R.string.settings_about), onBack) {
-        item(key = "about") { AboutGroup(versionName, onOpenShowcase, onOpenLicenses) }
-    }
-}
-
 /** The frame of the hub and every Settings page: top bar with back, then the groups. */
 @Composable
 internal fun SettingsScaffold(
@@ -653,33 +640,6 @@ internal fun RatingsGroup(
     }
 }
 
-@Composable
-internal fun AboutGroup(
-    versionName: String,
-    onOpenShowcase: () -> Unit,
-    onOpenLicenses: () -> Unit,
-) {
-    Group(R.string.settings_about) {
-        item { shapes -> InfoItem(shapes, stringResource(R.string.settings_version), versionName) }
-        item { shapes ->
-            SegmentedListItem(
-                onClick = onOpenLicenses,
-                shapes = shapes,
-                colors = settingsColors(),
-                supportingContent = { Text(stringResource(R.string.settings_license_summary)) },
-            ) { Text(stringResource(R.string.settings_license)) }
-        }
-        item { shapes ->
-            SegmentedListItem(
-                onClick = onOpenShowcase,
-                shapes = shapes,
-                colors = settingsColors(),
-                supportingContent = { Text(stringResource(R.string.settings_showcase_summary)) },
-            ) { Text(stringResource(R.string.settings_showcase)) }
-        }
-    }
-}
-
 /**
  * One tonal container for every row; a switched-on row keeps it too (the switch shows the state), so the groups read
  * as cards on the screen's surface.
@@ -718,19 +678,6 @@ internal class GroupScope {
     fun item(row: @Composable (ListItemShapes) -> Unit) {
         rows += row
     }
-}
-
-@Composable
-private fun InfoItem(
-    shapes: ListItemShapes,
-    title: String,
-    value: String,
-) {
-    SegmentedListItem(
-        shapes = shapes,
-        colors = settingsColors(),
-        supportingContent = { Text(value) },
-    ) { Text(title) }
 }
 
 /** A whole-row switch: TalkBack reads title, summary and state as one control. */

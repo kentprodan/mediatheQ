@@ -39,4 +39,7 @@ object MediatheqSizes {
 
     /** The narrowest Library hub tile at font scale 1 (#129): room for "Playlists"; larger fonts widen it. */
     val libraryTileMinWidth = 88.dp
+
+    /** The app's mark on the About page (#151). */
+    val appMark = 96.dp
 }
