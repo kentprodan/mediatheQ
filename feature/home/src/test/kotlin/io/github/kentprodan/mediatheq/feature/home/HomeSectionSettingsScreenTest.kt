@@ -35,10 +35,14 @@ class HomeSectionSettingsScreenTest {
     private val section = HomeSection.FavoriteAlbums
     private val albums = listOf(Album(MediaId(ServerId("s"), "a"), "Satelit", emptyList()))
 
-    private fun show(display: HomeDisplay = HomeDisplay.Row) {
+    private fun show(
+        display: HomeDisplay = HomeDisplay.Row,
+        section: HomeSection = this.section,
+        items: HomeItems = HomeItems.Albums(albums),
+    ) {
         val content =
             HomeSectionSettingsUiState.Content(
-                HomeSectionContent(section, section.defaultSettings.copy(display = display), HomeItems.Albums(albums)),
+                HomeSectionContent(section, section.defaultSettings.copy(display = display), items),
                 copyFrom = listOf(HomeSection.RandomAlbums, HomeSection.LastPlayedAlbums),
             )
         composeRule.setContent {
@@ -64,9 +68,17 @@ class HomeSectionSettingsScreenTest {
         composeRule.onNodeWithText("Satelit").assertExists()
         open("Show play button")
 
-        assertThat(
-            actions,
-        ).containsExactly(HomeSectionSettingsAction.Set(section.defaultSettings.copy(playButton = true)))
+        val set = actions.single() as HomeSectionSettingsAction.Set
+        assertThat(set.change(section.defaultSettings)).isEqualTo(section.defaultSettings.copy(playButton = true))
+    }
+
+    @Test
+    fun `a playlist section hides the options its cards cannot draw`() {
+        show(section = HomeSection.FavoritePlaylists, items = HomeItems.Playlists(emptyList()))
+        composeRule.onNode(page).performScrollToNode(row("Hide if empty"))
+        composeRule.onNodeWithText("Show play button").assertExists()
+        composeRule.onNodeWithText("Favorite status on covers").assertDoesNotExist()
+        composeRule.onNodeWithText("Offline status on covers").assertDoesNotExist()
     }
 
     @Test

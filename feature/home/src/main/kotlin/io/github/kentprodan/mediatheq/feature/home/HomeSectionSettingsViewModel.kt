@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.time.Clock
 
 /**
@@ -52,26 +54,34 @@ class HomeSectionSettingsViewModel
             }.flowOn(defaultDispatcher)
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeSectionSettingsUiState.Loading)
 
+        // Each action reads what the previous one stored.
+        private val writes = Mutex()
+
         fun onAction(action: HomeSectionSettingsAction) {
             viewModelScope.launch {
-                when (action) {
-                    is HomeSectionSettingsAction.Set -> {
-                        preferences.setHomeSectionSettings(section, action.settings)
-                    }
+                writes.withLock { apply(action) }
+            }
+        }
 
-                    is HomeSectionSettingsAction.CopyFrom -> {
-                        val home = preferences.preferences.first().home
-                        preferences.setHomeSectionSettings(section, home.settingsOf(action.from))
-                    }
+        private suspend fun apply(action: HomeSectionSettingsAction) {
+            when (action) {
+                is HomeSectionSettingsAction.Set -> {
+                    val home = preferences.preferences.first().home
+                    preferences.setHomeSectionSettings(section, action.change(home.settingsOf(section)))
+                }
 
-                    HomeSectionSettingsAction.ApplyToAll -> {
-                        val home = preferences.preferences.first().home
-                        preferences.applyHomeSectionSettings(section.kind, home.settingsOf(section))
-                    }
+                is HomeSectionSettingsAction.CopyFrom -> {
+                    val home = preferences.preferences.first().home
+                    preferences.setHomeSectionSettings(section, home.settingsOf(action.from))
+                }
 
-                    HomeSectionSettingsAction.Restore -> {
-                        preferences.restoreHomeSection(section)
-                    }
+                HomeSectionSettingsAction.ApplyToAll -> {
+                    val home = preferences.preferences.first().home
+                    preferences.applyHomeSectionSettings(section.kind, home.settingsOf(section))
+                }
+
+                HomeSectionSettingsAction.Restore -> {
+                    preferences.restoreHomeSection(section)
                 }
             }
         }

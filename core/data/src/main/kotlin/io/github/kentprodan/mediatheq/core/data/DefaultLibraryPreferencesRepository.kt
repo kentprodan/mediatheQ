@@ -180,7 +180,7 @@ class DefaultLibraryPreferencesRepository
 
         override suspend fun resetHomeRows() = store.setHome(StoredHome())
 
-        // Until the section settings are stored (#182), the page holds only the rows.
+        // The whole Home page: rows and each section's settings (#182).
         override suspend fun restoreHomeDefaults() = store.setHome(StoredHome(), clearSections = true)
 
         override suspend fun setHomeSectionSettings(

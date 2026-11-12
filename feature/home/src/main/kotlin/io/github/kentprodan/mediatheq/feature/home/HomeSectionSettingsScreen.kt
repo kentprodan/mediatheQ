@@ -138,7 +138,9 @@ private fun LazyListScope.settingsGroups(
 ) {
     val settings = state.settings
     val kind = state.section.kind
-    val set = { next: HomeSectionSettings -> onAction(HomeSectionSettingsAction.Set(next)) }
+    val set = { change: (HomeSectionSettings) -> HomeSectionSettings ->
+        onAction(HomeSectionSettingsAction.Set(change))
+    }
     val cards = kind != HomeKind.Tracks && kind != HomeKind.Shortcuts
     val cardOptions = cards && settings.display != HomeDisplay.Carousel
     item(key = "settings") {
@@ -151,17 +153,17 @@ private fun LazyListScope.settingsGroups(
                 }
             }
             if (cards && settings.display == HomeDisplay.Grid) {
-                row { shapes -> RowsRow(shapes, settings.gridRows) { set(settings.copy(gridRows = it)) } }
+                row { shapes -> RowsRow(shapes, settings.gridRows) { set { s -> s.copy(gridRows = it) } } }
             }
             if (kind != HomeKind.Shortcuts) {
-                row { shapes -> MaxItemsRow(shapes, settings.maxItems) { set(settings.copy(maxItems = it)) } }
+                row { shapes -> MaxItemsRow(shapes, settings.maxItems) { set { s -> s.copy(maxItems = it) } } }
             }
             row { shapes ->
                 SwitchRow(
                     shapes,
                     R.string.home_section_header,
                     settings.showHeader,
-                ) { set(settings.copy(showHeader = it)) }
+                ) { set { s -> s.copy(showHeader = it) } }
             }
             if (kind != HomeKind.Shortcuts) {
                 row { shapes ->
@@ -171,11 +173,12 @@ private fun LazyListScope.settingsGroups(
                         settings.moreIndicator,
                         enabled = settings.showHeader,
                     ) {
-                        set(settings.copy(moreIndicator = it))
+                        set { s -> s.copy(moreIndicator = it) }
                     }
                 }
             }
-            if (cardOptions) {
+            // Artist cards are always centered.
+            if (cardOptions && kind != HomeKind.Artists) {
                 row { shapes ->
                     ChoiceRow(
                         shapes,
@@ -187,7 +190,7 @@ private fun LazyListScope.settingsGroups(
             if ((cardOptions && kind != HomeKind.Artists) || kind == HomeKind.Tracks) {
                 row { shapes ->
                     SwitchRow(shapes, R.string.home_section_subtitles, settings.hideSubtitles) {
-                        set(settings.copy(hideSubtitles = it))
+                        set { s -> s.copy(hideSubtitles = it) }
                     }
                 }
             }
@@ -197,18 +200,19 @@ private fun LazyListScope.settingsGroups(
                         shapes,
                         R.string.home_section_play,
                         settings.playButton,
-                    ) { set(settings.copy(playButton = it)) }
+                    ) { set { s -> s.copy(playButton = it) } }
                 }
+            }
+            // Only album covers draw the status marks.
+            if (cardOptions && kind == HomeKind.Albums) {
                 row { shapes ->
                     ChoiceRow(shapes, R.string.home_section_favorite, triLabel(settings.favoriteOverlay)) {
                         onOpen(SectionDialog.FavoriteOverlay)
                     }
                 }
-                if (kind != HomeKind.Artists) {
-                    row { shapes ->
-                        ChoiceRow(shapes, R.string.home_section_offline, triLabel(settings.offlineOverlay)) {
-                            onOpen(SectionDialog.OfflineOverlay)
-                        }
+                row { shapes ->
+                    ChoiceRow(shapes, R.string.home_section_offline, triLabel(settings.offlineOverlay)) {
+                        onOpen(SectionDialog.OfflineOverlay)
                     }
                 }
             }
@@ -216,7 +220,7 @@ private fun LazyListScope.settingsGroups(
             if (kind != HomeKind.Shortcuts) {
                 row { shapes ->
                     SwitchRow(shapes, R.string.home_section_hide_empty, settings.hideIfEmpty) {
-                        set(settings.copy(hideIfEmpty = it))
+                        set { s -> s.copy(hideIfEmpty = it) }
                     }
                 }
             }
@@ -255,7 +259,9 @@ private fun SectionDialogHost(
     onDismiss: () -> Unit,
 ) {
     val settings = state.settings
-    val set = { next: HomeSectionSettings -> onAction(HomeSectionSettingsAction.Set(next)) }
+    val set = { change: (HomeSectionSettings) -> HomeSectionSettings ->
+        onAction(HomeSectionSettingsAction.Set(change))
+    }
     when (dialog) {
         SectionDialog.Display -> {
             ChoiceDialog(
@@ -263,7 +269,7 @@ private fun SectionDialogHost(
                 listOf(HomeDisplay.Row, HomeDisplay.Grid, HomeDisplay.Carousel),
                 settings.display,
                 { displayLabel(it) },
-                { set(settings.copy(display = it)) },
+                { set { s -> s.copy(display = it) } },
                 onDismiss,
             )
         }
@@ -272,20 +278,20 @@ private fun SectionDialogHost(
             TriDialog(
                 R.string.home_section_center,
                 settings.centerText,
-                { set(settings.copy(centerText = it)) },
+                { set { s -> s.copy(centerText = it) } },
                 onDismiss,
             )
         }
 
         SectionDialog.FavoriteOverlay -> {
             TriDialog(R.string.home_section_favorite, settings.favoriteOverlay, {
-                set(settings.copy(favoriteOverlay = it))
+                set { s -> s.copy(favoriteOverlay = it) }
             }, onDismiss)
         }
 
         SectionDialog.OfflineOverlay -> {
             TriDialog(R.string.home_section_offline, settings.offlineOverlay, {
-                set(settings.copy(offlineOverlay = it))
+                set { s -> s.copy(offlineOverlay = it) }
             }, onDismiss)
         }
 

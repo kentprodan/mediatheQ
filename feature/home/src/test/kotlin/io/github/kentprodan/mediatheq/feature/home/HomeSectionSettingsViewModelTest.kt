@@ -65,11 +65,10 @@ class HomeSectionSettingsViewModelTest {
         }
 
     @Test
-    fun `a change is stored at once and the preview follows`() =
+    fun `two quick changes both land, stored at once, and the preview follows`() =
         test {
-            viewModel.onAction(
-                HomeSectionSettingsAction.Set(content.settings.copy(display = HomeDisplay.Grid, maxItems = 5)),
-            )
+            viewModel.onAction(HomeSectionSettingsAction.Set { it.copy(display = HomeDisplay.Grid) })
+            viewModel.onAction(HomeSectionSettingsAction.Set { it.copy(maxItems = 5) })
             runCurrent()
 
             assertThat(

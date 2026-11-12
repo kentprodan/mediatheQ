@@ -18,8 +18,9 @@ sealed interface HomeSectionSettingsUiState {
 }
 
 sealed interface HomeSectionSettingsAction {
-    data class Set(
-        val settings: HomeSectionSettings,
+    /** A change applied to the stored settings, so two quick changes both land. */
+    class Set(
+        val change: (HomeSectionSettings) -> HomeSectionSettings,
     ) : HomeSectionSettingsAction
 
     /** Takes [from]'s settings (a section of the same kind). */
