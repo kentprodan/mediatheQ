@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.navigation.HomeSectionListKey
 import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.ListSelection
@@ -29,6 +30,8 @@ data class LibraryUiState(
     val yearPage: YearKey? = null,
     /** Set on a record label's page (#131): the albums of that label. */
     val labelPage: RecordLabelKey? = null,
+    /** Set on a Home section's full list (#183): the section's order, no sort button. */
+    val sectionPage: HomeSectionListKey? = null,
     val albumColumns: Int = LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
     /** The Genres list as a grid of covers (#130). */
     val genresGrid: Boolean = false,

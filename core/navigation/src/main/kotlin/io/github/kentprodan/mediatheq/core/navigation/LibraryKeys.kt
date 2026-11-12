@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.navigation
 
 import androidx.navigation3.runtime.NavKey
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import kotlinx.serialization.Serializable
@@ -70,4 +71,10 @@ data class LibraryListKey(
 @Serializable
 data class YearKey(
     val year: Int?,
+) : NavKey
+
+/** A Home section's full list (#183), from its header on Home: a Library list in the section's order, with Back. */
+@Serializable
+data class HomeSectionListKey(
+    val section: HomeSection,
 ) : NavKey

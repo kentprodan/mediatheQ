@@ -46,6 +46,7 @@ import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.ui.title
 
 /**
  * The Library list header (#123): icon and title (with back when [onBack] is set and not hidden), the top button row
@@ -76,7 +77,7 @@ internal fun LibraryHeader(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (state.filter == LibraryFilter.Playlists) {
+            if (state.filter == LibraryFilter.Playlists && state.sectionPage == null) {
                 IconButton(onClick = onNewPlaylist) {
                     Icon(MqIcons.Add, contentDescription = stringResource(R.string.library_new_playlist))
                 }
@@ -137,30 +138,12 @@ private fun ToolRow(
     onAction: (LibraryAction) -> Unit,
     onSelect: (() -> Unit)?,
 ) {
-    var sortMenu by rememberSaveable { mutableStateOf(false) }
     var filterMenu by rememberSaveable { mutableStateOf(false) }
     var viewMenu by rememberSaveable { mutableStateOf(false) }
     val listFilter = state.listFilter
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box {
-            val ascending = state.sort.ascending != state.header.invertedSortArrows
-            TextButton(onClick = { sortMenu = true }, enabled = state.filter.sorts.size > 1) {
-                Text(stringResource(state.sort.label), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Icon(
-                    if (ascending) MqIcons.ArrowUpward else MqIcons.ArrowDownward,
-                    contentDescription = null,
-                    Modifier.padding(start = ButtonDefaults.IconSpacing).size(ButtonDefaults.IconSize),
-                )
-            }
-            DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
-                state.filter.sorts.forEach { sort ->
-                    CheckedMenuItem(stringResource(sort.label), checked = sort == state.sort) {
-                        onAction(LibraryAction.SelectSort(sort))
-                        sortMenu = false
-                    }
-                }
-            }
-        }
+        // A Home section's list keeps the section's order (#183): no sort.
+        if (state.sectionPage == null) SortButton(state, onAction)
         Box(Modifier.weight(1f))
         // Years, genres and labels are no items of their own: nothing to filter, select or search (#129-#131).
         val itemTools =
@@ -286,6 +269,33 @@ private fun CheckMenuItem(
     )
 }
 
+@Composable
+private fun SortButton(
+    state: LibraryUiState,
+    onAction: (LibraryAction) -> Unit,
+) {
+    var sortMenu by rememberSaveable { mutableStateOf(false) }
+    Box {
+        val ascending = state.sort.ascending != state.header.invertedSortArrows
+        TextButton(onClick = { sortMenu = true }, enabled = state.filter.sorts.size > 1) {
+            Text(stringResource(state.sort.label), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Icon(
+                if (ascending) MqIcons.ArrowUpward else MqIcons.ArrowDownward,
+                contentDescription = null,
+                Modifier.padding(start = ButtonDefaults.IconSpacing).size(ButtonDefaults.IconSize),
+            )
+        }
+        DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
+            state.filter.sorts.forEach { sort ->
+                CheckedMenuItem(stringResource(sort.label), checked = sort == state.sort) {
+                    onAction(LibraryAction.SelectSort(sort))
+                    sortMenu = false
+                }
+            }
+        }
+    }
+}
+
 /** The natural direction of a sort: names up (A to Z), dates, years and counts down (newest / most first). */
 internal val LibrarySort.ascending: Boolean
     get() =
@@ -297,6 +307,7 @@ private val LibraryUiState.title: String
     @Composable get() =
         yearPage?.let { page -> page.year?.toString() ?: stringResource(R.string.library_unknown_year) }
             ?: labelPage?.name
+            ?: sectionPage?.let { stringResource(it.section.title) }
             ?: stringResource(filter.label)
 
 private val LibraryUiState.titleIcon: ImageVector

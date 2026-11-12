@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
+import io.github.kentprodan.mediatheq.core.model.HomeKind
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.navigation.AddToPlaylistKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumArtistsKey
@@ -12,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.navigation.AlbumsKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
 import io.github.kentprodan.mediatheq.core.navigation.GenreKey
 import io.github.kentprodan.mediatheq.core.navigation.GenresKey
+import io.github.kentprodan.mediatheq.core.navigation.HomeSectionListKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryListKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
@@ -36,6 +39,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
         inTab: Boolean,
         yearPage: YearKey? = null,
         labelPage: RecordLabelKey? = null,
+        sectionPage: HomeSectionListKey? = null,
     ) = LibraryRoute(
         onOpenAlbum = { navigator.navigateTo(AlbumKey(it)) },
         onOpenArtist = { navigator.navigateTo(ArtistKey(it)) },
@@ -50,11 +54,13 @@ fun EntryProviderScope<NavKey>.libraryEntry(
         onOpenLabel = { navigator.navigateTo(it) },
         yearPage = yearPage,
         labelPage = labelPage,
+        sectionPage = sectionPage,
     )
     entry<LibraryKey> { LibraryHubRoute(onOpen = { navigator.navigateTo(LibraryListKey(it)) }) }
     entry<LibraryListKey> { Library(it.shortcut.filter, inTab = true) }
     entry<YearKey> { Library(LibraryFilter.Albums, inTab = true, yearPage = it) }
     entry<RecordLabelKey> { Library(LibraryFilter.Albums, inTab = true, labelPage = it) }
+    entry<HomeSectionListKey> { Library(it.section.filter, inTab = true, sectionPage = it) }
     entry<AlbumsKey> { Library(LibraryFilter.Albums, inTab = false) }
     entry<AlbumArtistsKey> { Library(LibraryFilter.Artists, inTab = false) }
     entry<PlaylistsKey> { Library(LibraryFilter.Playlists, inTab = false) }
@@ -62,6 +68,16 @@ fun EntryProviderScope<NavKey>.libraryEntry(
     entry<GenresKey> { Library(LibraryFilter.Genres, inTab = false) }
     entry<RecordLabelsKey> { Library(LibraryFilter.RecordLabels, inTab = false) }
 }
+
+/** The Library list of a Home section's kind (#183); Shortcuts have no list. */
+internal val HomeSection.filter: LibraryFilter
+    get() =
+        when (kind) {
+            HomeKind.Artists -> LibraryFilter.Artists
+            HomeKind.Tracks -> LibraryFilter.Songs
+            HomeKind.Playlists -> LibraryFilter.Playlists
+            HomeKind.Albums, HomeKind.Shortcuts -> LibraryFilter.Albums
+        }
 
 /** The list a hub tile opens. */
 internal val LibraryShortcut.filter: LibraryFilter

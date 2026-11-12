@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.HomeLibrary
+import io.github.kentprodan.mediatheq.core.data.HomeShuffle
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
@@ -13,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.homeItems
+import io.github.kentprodan.mediatheq.core.data.homeLibrary
 import io.github.kentprodan.mediatheq.core.data.mixTracks
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection

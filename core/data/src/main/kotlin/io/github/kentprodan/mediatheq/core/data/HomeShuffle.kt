@@ -1,4 +1,4 @@
-package io.github.kentprodan.mediatheq.feature.home
+package io.github.kentprodan.mediatheq.core.data
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,7 +11,7 @@ import kotlin.random.Random
  * new one (not on every library change or every time Home is opened again).
  */
 @Singleton
-class HomeShuffle internal constructor(
+class HomeShuffle(
     initial: Long,
 ) {
     @Inject

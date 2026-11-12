@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.home
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.HomeItems
+import io.github.kentprodan.mediatheq.core.data.HomeShuffle
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.HomeDisplay
 import io.github.kentprodan.mediatheq.core.model.HomeKind
