@@ -107,7 +107,11 @@ class MainActivity : ComponentActivity() {
                                         genreEntry(navigator)
                                         playlistEntry(navigator)
                                         searchEntry(navigator)
-                                        downloadsEntry(navigator, isTab = { TopLevelTab.Downloads in navigator.tabs })
+                                        // Opened from Settings on another tab (#149), it has a back button.
+                                        downloadsEntry(navigator, isTab = {
+                                            navigator.currentTab ==
+                                                TopLevelTab.Downloads
+                                        })
                                         addToPlaylistEntry(navigator)
                                         // Adding an account or signing in again from Settings (#147).
                                         serverEntry(navigator)

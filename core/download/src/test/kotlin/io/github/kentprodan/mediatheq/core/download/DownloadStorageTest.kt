@@ -192,6 +192,44 @@ class DownloadStorageTest {
     }
 
     @Test
+    fun `the user's pause holds the downloads, also when a card comes back, until resumed`() {
+        preferences
+            .edit()
+            .putString("path", card.path)
+            .putString("name", "SD card")
+            .commit()
+        val storage = storage()
+        serviceStarts(storage)
+        storage.setPausedByUser(true)
+
+        volumes.mounted += card
+        volumes.changes.tryEmit(Unit)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertThat(storage.available.value).isTrue()
+        assertThat(manager.downloadsPaused).isTrue()
+
+        storage.setPausedByUser(false)
+        RobolectricUtil.runMainLooperUntil { !manager.downloadsPaused }
+    }
+
+    @Test
+    fun `resuming with the card out keeps the downloads paused`() {
+        preferences
+            .edit()
+            .putString("path", card.path)
+            .putString("name", "SD card")
+            .commit()
+        val storage = storage()
+        serviceStarts(storage)
+        storage.setPausedByUser(true)
+
+        storage.setPausedByUser(false)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertThat(manager.downloadsPaused).isTrue()
+    }
+
+    @Test
     fun `a move copies the downloads, saves the card, and the next start uses it and clears the old folder`() {
         volumes.mounted += card
         volumes.removable = listOf(Volume(card, "SD card"))

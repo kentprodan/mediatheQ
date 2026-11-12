@@ -17,6 +17,7 @@ import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigins
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
@@ -361,6 +362,51 @@ internal class DefaultDownloadRepository
             }
         }
 
+        override val paused: Flow<Boolean> = storage.pausedByUser
+
+        override fun pauseAll() = storage.setPausedByUser(true)
+
+        override fun resumeAll() = storage.setPausedByUser(false)
+
+        override suspend fun cleanupPreview(): CleanupPreview =
+            withContext(ioDispatcher) {
+                val (selection, downloads) = selectCleanup()
+                val failedBytes = selection.failed.sumOf { downloads[it.toString()]?.bytesDownloaded ?: 0 }
+                CleanupPreview(selection.failed.size, failedBytes + selection.orphans.sumOf { cache.cachedBytes(it) })
+            }
+
+        override suspend fun cleanup() {
+            val (selection, _) = withContext(ioDispatcher) { selectCleanup() }
+            // A failed download the user just asked again for is starting over: keep it.
+            delete(selection.failed.filter { it !in restarting })
+            // The manager's own list, read on its thread.
+            val running =
+                withContext(Dispatchers.Main.immediate) { manager.currentDownloads.map { it.request.id }.toSet() }
+            withContext(ioDispatcher) {
+                selection.orphans.filter { it !in running && stillOrphan(it) }.forEach(cache::removeResource)
+            }
+        }
+
+        /** The selection now, from the stored index (every server) and the download cache; nothing while the card is out. */
+        private suspend fun selectCleanup(): Pair<CleanupSelection, Map<String, Download>> {
+            indexRead.first { it }
+            if (!storage.available.value) return CleanupSelection(emptyList(), emptyList()) to emptyMap()
+            val downloads =
+                manager.downloadIndex.getDownloads().use { cursor ->
+                    buildMap { while (cursor.moveToNext()) cursor.download.let { put(it.request.id, it) } }
+                }
+            val active = activeServer.first()
+            return cleanupSelection(downloads.mapValues { it.value.state }, cache.keys, active) to downloads
+        }
+
+        /** Checked right before deleting: a download added or restarted since the selection keeps its data. */
+        private fun stillOrphan(key: String): Boolean {
+            val id = runCatching { MediaId.parse(key) }.getOrNull()
+            return manager.downloadIndex.getDownload(key) == null &&
+                id !in requested &&
+                id !in restarting
+        }
+
         override fun isDownloaded(id: MediaId): Boolean {
             if (!storage.available.value) return false
             val download =
@@ -410,3 +456,7 @@ private fun Download.fallbackTrack(id: MediaId) =
         artists = emptyList(),
         duration = Duration.ZERO,
     )
+
+/** Bytes of [key] in this cache, whatever spans it has. */
+@UnstableApi
+private fun Cache.cachedBytes(key: String): Long = getCachedSpans(key).sumOf { it.length }

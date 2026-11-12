@@ -3,14 +3,19 @@ package io.github.kentprodan.mediatheq.feature.downloads
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -25,8 +30,13 @@ class DownloadsViewModel
         private val playback: PlaybackConnection,
         private val trackTaps: TrackTaps,
         storage: DownloadStorageRepository,
+        audioPreferences: AudioPreferencesRepository,
     ) : ViewModel() {
-        val uiState: StateFlow<DownloadsUiState> =
+        private val filter = MutableStateFlow("")
+        private val cleanup = MutableStateFlow<CleanupPreview?>(null)
+        private var preview: Job? = null
+
+        private val grouped =
             combine(
                 downloadRepository.downloads,
                 downloadRepository.freeBytes,
@@ -34,12 +44,31 @@ class DownloadsViewModel
                 library.allPlaylists().map { playlists -> playlists.associateBy { it.id } },
                 storage.available,
             ) { downloads, freeBytes, albums, playlists, available ->
-                if (downloads.isEmpty()) {
-                    DownloadsUiState.Empty
-                } else {
-                    downloadsContent(downloads, albums, playlists, freeBytes)
-                        .copy(unavailableOn = if (available) null else storage.locationName.orEmpty())
-                }
+                downloadsContent(downloads, albums, playlists, freeBytes)
+                    .copy(unavailableOn = if (available) null else storage.locationName.orEmpty())
+            }
+
+        private val rules =
+            audioPreferences.preferences
+                .map {
+                    AutoRules(
+                        it.autoDownloads,
+                        it.removeUnfavorited,
+                    )
+                }.distinctUntilChanged()
+
+        val uiState: StateFlow<DownloadsUiState> =
+            combine(
+                grouped,
+                downloadRepository.paused,
+                rules,
+                filter,
+                cleanup,
+            ) { content, paused, rules, filter, cleanup ->
+                val hasFiles =
+                    content.albums.isNotEmpty() || content.playlists.isNotEmpty() || content.songs.isNotEmpty()
+                filterDownloads(content, filter)
+                    .copy(paused = paused, rules = rules, filter = filter, hasFiles = hasFiles, cleanup = cleanup)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DownloadsUiState.Loading)
 
         fun onAction(action: DownloadsAction) {
@@ -74,6 +103,35 @@ class DownloadsViewModel
 
                 is DownloadsAction.RemoveCollection -> {
                     downloadRepository.removeCollection(action.origin)
+                }
+
+                DownloadsAction.PauseAll -> {
+                    downloadRepository.pauseAll()
+                }
+
+                DownloadsAction.ResumeAll -> {
+                    downloadRepository.resumeAll()
+                }
+
+                is DownloadsAction.Filter -> {
+                    filter.value = action.text
+                }
+
+                DownloadsAction.AskCleanup -> {
+                    preview?.cancel()
+                    preview = viewModelScope.launch { cleanup.value = downloadRepository.cleanupPreview() }
+                }
+
+                DownloadsAction.ConfirmCleanup -> {
+                    preview?.cancel()
+                    cleanup.value = null
+                    viewModelScope.launch { downloadRepository.cleanup() }
+                }
+
+                DownloadsAction.DismissCleanup -> {
+                    // A preview still on its way must not open the dialog again.
+                    preview?.cancel()
+                    cleanup.value = null
                 }
             }
         }

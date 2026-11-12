@@ -1,10 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="downloads_title">Downloads</string>
+    <string name="downloads_title">Manage offline files</string>
+    <string name="downloads_tab_files">Files</string>
+    <string name="downloads_tab_queue">Queue</string>
+    <string name="downloads_tab_rules">Rules</string>
+    <string name="downloads_filter">Filter offline files</string>
+    <string name="downloads_no_matches">No matches</string>
+    <string name="downloads_summary_manual">Manual downloads: %1$s · %2$s</string>
+    <string name="downloads_summary_auto">Automatic downloads: %1$s · %2$s</string>
+    <string name="downloads_summary_total">Total: %1$s</string>
+    <plurals name="downloads_track_count">
+        <item quantity="one">%1$d track</item>
+        <item quantity="other">%1$d tracks</item>
+    </plurals>
+    <string name="downloads_cleanup">Cleanup</string>
+    <string name="downloads_cleanup_title">Clean up offline files?</string>
+    <string name="downloads_cleanup_body">This deletes %1$s and leftover data, %2$s in all. Finished and waiting downloads stay.</string>
+    <string name="downloads_cleanup_nothing">Nothing to clean up: no failed downloads and no leftover data.</string>
+    <string name="downloads_cleanup_confirm">Clean up</string>
+    <string name="downloads_cancel">Cancel</string>
+    <plurals name="downloads_failed_count">
+        <item quantity="one">%1$d failed download</item>
+        <item quantity="other">%1$d failed downloads</item>
+    </plurals>
+    <string name="downloads_pause_all">Pause all</string>
+    <string name="downloads_resume_all">Resume all</string>
+    <string name="downloads_paused">Paused</string>
+    <string name="downloads_queue_empty_title">Nothing to download</string>
+    <string name="downloads_queue_empty_body">Downloads waiting or under way show here.</string>
+    <string name="downloads_rules_empty_title">No automatic downloads</string>
+    <string name="downloads_rules_empty_body">Favorites can download by themselves. Choose which in the settings.</string>
+    <string name="downloads_rules_change">Change rules</string>
+    <string name="downloads_rules_favorites">Automatic downloads of favorites</string>
+    <string name="downloads_rules_remove_unfavorited">Remove when unfavorited</string>
+    <string name="downloads_rules_on">On</string>
+    <string name="downloads_rules_off">Off</string>
+    <string name="downloads_rules_disabled">Disabled</string>
+    <string name="downloads_rules_tracks">Favorite tracks</string>
+    <string name="downloads_rules_tracks_albums">Favorite tracks and albums</string>
+    <string name="downloads_rules_tracks_albums_playlists">Favorite tracks, albums and playlists</string>
     <string name="downloads_back">Back</string>
     <string name="downloads_empty_title">No downloads yet</string>
     <string name="downloads_empty_body">Download albums, playlists or tracks from their menus to play them without a network.</string>
-    <string name="downloads_section_downloading">Downloading</string>
+
     <string name="downloads_section_albums">Albums</string>
     <string name="downloads_section_playlists">Playlists</string>
     <string name="downloads_section_songs">Songs</string>

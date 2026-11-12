@@ -24,6 +24,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.CONVERTED_DOWNLOAD
+import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.DownloadState
@@ -156,6 +157,82 @@ class DefaultDownloadRepositoryTest {
             val requests = startedIntents().map { it.request() }
             assertThat(requests.map { it.id }).containsExactly(failed.id.toString(), fresh.id.toString()).inOrder()
             assertThat(requests.map { it.customCacheKey }).containsExactly(failed.id.toString(), fresh.id.toString())
+        }
+
+    @Test
+    fun `cleanup deletes failed downloads and leftover data, never completed or waiting ones`() =
+        runTest {
+            val leftover = track("gone", "Album C", 1)
+            partial(done, converted = false, size = 300)
+            partial(failed, converted = false, size = 40)
+            partial(leftover, converted = false, size = 60)
+            val repository =
+                repository(
+                    Download.STATE_COMPLETED to done,
+                    Download.STATE_FAILED to failed,
+                    Download.STATE_QUEUED to waiting,
+                )
+            startedIntents()
+
+            assertThat(repository.cleanupPreview().failed).isEqualTo(1)
+            repository.cleanup()
+
+            val removed = startedIntents().map { it.getStringExtra(DownloadService.KEY_CONTENT_ID) }
+            assertThat(removed).containsExactly(failed.id.toString())
+            assertThat(cache.keys).containsExactly(done.id.toString(), failed.id.toString())
+        }
+
+    @Test
+    fun `a failed download asked again for before cleanup confirms is kept`() =
+        runTest {
+            val repository = repository(Download.STATE_FAILED to failed)
+            startedIntents()
+
+            repository.download(listOf(failed))
+            repository.cleanup()
+
+            val removed = startedIntents().mapNotNull { it.getStringExtra(DownloadService.KEY_CONTENT_ID) }
+            assertThat(removed).doesNotContain(failed.id.toString())
+        }
+
+    @Test
+    fun `another account's completed download is never leftover data`() =
+        runTest {
+            val office = done.copy(id = MediaId(ServerId("office"), "t9"))
+            partial(office, converted = false)
+            session.activeServerId.value = ServerId("server-1")
+            val repository = repository(Download.STATE_COMPLETED to office)
+
+            repository.cleanup()
+
+            assertThat(cache.keys).containsExactly(office.id.toString())
+        }
+
+    @Test
+    fun `with the card out cleanup finds and deletes nothing`() =
+        runTest {
+            partial(track("gone", "Album C", 1), converted = false)
+            storage.available.value = false
+            val repository = repository(Download.STATE_FAILED to failed)
+            startedIntents()
+
+            assertThat(repository.cleanupPreview()).isEqualTo(CleanupPreview(0, 0))
+            repository.cleanup()
+
+            assertThat(startedIntents()).isEmpty()
+            assertThat(cache.keys).hasSize(1)
+        }
+
+    @Test
+    fun `pause all is the user's pause on the storage`() =
+        runTest {
+            val repository = repository()
+
+            repository.pauseAll()
+            assertThat(repository.paused.first()).isTrue()
+            repository.resumeAll()
+
+            assertThat(storage.pausedByUser.value).isFalse()
         }
 
     /** Puts [size] bytes of [track]'s download in the cache, as the server's conversion or its original. */

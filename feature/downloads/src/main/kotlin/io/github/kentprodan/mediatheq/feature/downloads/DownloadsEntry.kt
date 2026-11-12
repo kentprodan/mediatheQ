@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistKey
+import io.github.kentprodan.mediatheq.core.navigation.StorageMediaSettingsKey
 
 /**
  * Registers Downloads; its albums and playlists open on the same stack. When it is not a navigation tab ([isTab],
@@ -19,6 +20,7 @@ fun EntryProviderScope<NavKey>.downloadsEntry(
         DownloadsRoute(
             onOpenAlbum = { navigator.navigateTo(AlbumKey(it)) },
             onOpenPlaylist = { navigator.navigateTo(PlaylistKey(it)) },
+            onOpenRules = { navigator.navigateTo(StorageMediaSettingsKey) },
             onBack = if (isTab()) null else ({ navigator.back() }),
         )
     }

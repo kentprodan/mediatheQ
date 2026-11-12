@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
@@ -129,5 +130,63 @@ class DownloadsGroupingTest {
             )
 
         assertThat(content.songs.map { it.track }).containsExactly(alone)
+    }
+
+    @Test
+    fun `the summary splits finished downloads into manual and automatic ones`() {
+        val favorite = DownloadOrigin.Favorite
+        val autoA = DownloadOrigin.Album(albumA.id, auto = true)
+        val content =
+            downloadsContent(
+                listOf(
+                    done(track("t1"), albumA, autoA, bytes = 10),
+                    done(track("t2"), autoA, bytes = 20),
+                    done(track("t3"), favorite, bytes = 30),
+                    done(track("t4"), bytes = 5),
+                    TrackDownload(track("t5"), DownloadState.Failed, bytes = 99, origins = setOf(albumA)),
+                ),
+                emptyMap(),
+                emptyMap(),
+                freeBytes = 0,
+            )
+
+        // A track kept by hand too counts as manual; one with no origin (from before #168) as well; unfinished ones not.
+        assertThat(content.totals.manual).isEqualTo(OfflineUsage(2, 15))
+        assertThat(content.totals.auto).isEqualTo(OfflineUsage(2, 50))
+        assertThat(content.totals.bytes).isEqualTo(65)
+    }
+
+    @Test
+    fun `the filter keeps what matches every word, ignoring case and diacritics`() {
+        val moșoi = Track(id("t1"), "Doină", listOf(Artist(id("ar"), "Moșoi")), 2.minutes, id("A"), "Album A")
+        val other = track("t2", "B")
+        val content =
+            downloadsContent(
+                listOf(done(moșoi, albumA, DownloadOrigin.Single), done(other, albumB, playlist)),
+                mapOf(
+                    albumA.id to Album(albumA.id, "Album A", emptyList()),
+                    albumB.id to Album(albumB.id, "Album B", emptyList()),
+                ),
+                mapOf(playlist.id to Playlist(playlist.id, "Mix")),
+                freeBytes = 0,
+            )
+
+        val filtered = filterDownloads(content, "MOSOI doina")
+
+        assertThat(filtered.albums.map { it.album.title }).containsExactly("Album A")
+        assertThat(filtered.playlists).isEmpty()
+        assertThat(filtered.songs.map { it.track }).containsExactly(moșoi)
+        assertThat(filterDownloads(content, "mix").playlists.map { it.playlist.name }).containsExactly("Mix")
+        assertThat(filterDownloads(content, "  ")).isEqualTo(content)
+    }
+
+    @Test
+    fun `the user's pause wins over waiting, never over a failure or a running download`() {
+        assertThat(queueStatus(DownloadState.WaitingForWifi, paused = true)).isEqualTo(QueueStatus.Paused)
+        assertThat(queueStatus(DownloadState.Queued, paused = true)).isEqualTo(QueueStatus.Paused)
+        assertThat(queueStatus(DownloadState.WaitingForWifi, paused = false)).isEqualTo(QueueStatus.WaitingForWifi)
+        assertThat(queueStatus(DownloadState.Queued, paused = false)).isEqualTo(QueueStatus.Queued)
+        assertThat(queueStatus(DownloadState.Failed, paused = true)).isEqualTo(QueueStatus.Failed)
+        assertThat(queueStatus(DownloadState.Downloading(0.5f), paused = true)).isEqualTo(QueueStatus.Downloading)
     }
 }

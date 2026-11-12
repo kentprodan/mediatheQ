@@ -11,8 +11,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 
 /** An entry of the Settings hub; each opens its own page. An entry is added when its page has content (#120). */
@@ -47,37 +45,31 @@ internal val hubGroups =
         R.string.settings_about to listOf(SettingsHubEntry.About),
     )
 
-/** The hub with the setting that decides whether "Manage offline files" shows; Sync manager opens as a sheet here. */
+/** The hub; Sync manager opens as a sheet here. */
 @Composable
 internal fun SettingsHubRoute(
     onOpen: (SettingsHubEntry) -> Unit,
     onBack: () -> Unit,
-    viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val content = state as? SettingsUiState.Content
     var syncManager by rememberSaveable { mutableStateOf(false) }
     SettingsHubScreen(
         onOpen = { if (it == SettingsHubEntry.SyncManager) syncManager = true else onOpen(it) },
         onBack = onBack,
-        showsManageOfflineFiles = content?.showsManageOfflineFiles == true,
     )
     if (syncManager) SyncManagerSheet(onDismiss = { syncManager = false })
 }
 
 /**
- * Settings: groups of categories (segmented rows with an icon); a row opens its page. Stateless.
- * [showsManageOfflineFiles]: Downloads is not in the navigation, so it is reached from here (#122).
+ * Settings: groups of categories (segmented rows with an icon); a row opens its page. Stateless. "Manage offline files"
+ * opens Downloads with a back button, also when Downloads is a navigation entry (#149).
  */
 @Composable
 fun SettingsHubScreen(
     onOpen: (SettingsHubEntry) -> Unit,
     onBack: () -> Unit,
-    showsManageOfflineFiles: Boolean = false,
 ) {
     SettingsScaffold(stringResource(R.string.settings_title), onBack) {
-        hubGroups.forEach { (title, all) ->
-            val entries = all.filter { it != SettingsHubEntry.ManageOfflineFiles || showsManageOfflineFiles }
+        hubGroups.forEach { (title, entries) ->
             item(key = title) {
                 Group(title) {
                     entries.forEach { entry ->

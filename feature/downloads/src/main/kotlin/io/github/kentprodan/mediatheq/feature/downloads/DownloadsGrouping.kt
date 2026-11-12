@@ -1,11 +1,13 @@
 package io.github.kentprodan.mediatheq.feature.downloads
 
+import io.github.kentprodan.mediatheq.core.common.foldForSearch
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.Track
 import kotlin.time.Duration
 
 /**
@@ -31,7 +33,10 @@ internal fun downloadsContent(
             .groupBy({ id(it.first) })
             .mapValues { (_, pairs) -> pairs.map { it.second }.distinct() to pairs.all { it.first.auto } }
     return DownloadsUiState.Content(
-        totals = DownloadTotals(done.sumOf { it.bytes }, done.duration(), freeBytes),
+        totals =
+            done.partition { it.manual }.let { (manual, auto) ->
+                DownloadTotals(done.sumOf { it.bytes }, done.duration(), freeBytes, manual.usage(), auto.usage())
+            },
         downloading = downloading,
         albums =
             byOrigin(DownloadOrigin.Album::class.java) { it.id }
@@ -65,6 +70,59 @@ internal fun downloadsContent(
             done
                 .filter { DownloadOrigin.Single in it.origins || DownloadOrigin.Favorite in it.origins }
                 .sortedBy { it.track.sortName.lowercase() },
+    )
+}
+
+/** What the queue shows for [state]; a pause by the user holds everything waiting (#149). */
+internal fun queueStatus(
+    state: DownloadState,
+    paused: Boolean,
+): QueueStatus =
+    when (state) {
+        is DownloadState.Downloading -> QueueStatus.Downloading
+        DownloadState.Failed -> QueueStatus.Failed
+        DownloadState.Queued, DownloadState.Completed -> if (paused) QueueStatus.Paused else QueueStatus.Queued
+        DownloadState.WaitingForWifi -> if (paused) QueueStatus.Paused else QueueStatus.WaitingForWifi
+    }
+
+/** Manual unless every origin is a favorite's automatic one (a download from before origins counts as manual). */
+private val TrackDownload.manual: Boolean get() = origins.isEmpty() || origins.any { !it.auto }
+
+private fun List<TrackDownload>.usage() = OfflineUsage(size, sumOf { it.bytes })
+
+/**
+ * [content] with only what matches every word of [query] (case and diacritics ignored): albums by title, artists or a
+ * track's title, playlists by name or a track's title, songs by title, artists or album. A blank query keeps all.
+ */
+internal fun filterDownloads(
+    content: DownloadsUiState.Content,
+    query: String,
+): DownloadsUiState.Content {
+    val words = foldForSearch(query).split(' ').filter { it.isNotEmpty() }
+    if (words.isEmpty()) return content
+
+    fun matches(names: List<String?>) =
+        words.all { word -> names.any { it != null && foldForSearch(it).contains(word) } }
+
+    fun Track.names() = listOf(title, albumTitle) + artists.map { it.name }
+    return content.copy(
+        albums =
+            content.albums.filter { album ->
+                matches(
+                    listOf(album.album.title) + album.album.albumArtists.map { it.name } +
+                        album.tracks.flatMap { it.names() },
+                )
+            },
+        playlists =
+            content.playlists.filter {
+                matches(
+                    listOf(it.playlist.name) +
+                        it.tracks.flatMap { t ->
+                            t.names()
+                        },
+                )
+            },
+        songs = content.songs.filter { matches(it.track.names()) },
     )
 }
 

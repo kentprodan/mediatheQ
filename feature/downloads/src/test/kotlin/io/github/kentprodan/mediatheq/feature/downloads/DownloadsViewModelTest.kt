@@ -2,7 +2,10 @@ package io.github.kentprodan.mediatheq.feature.downloads
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.AutoDownloads
+import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
+import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.DownloadState
@@ -11,12 +14,15 @@ import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -50,7 +56,10 @@ class DownloadsViewModelTest {
     private val playback = FakePlaybackConnection()
     private val storage = FakeDownloadStorageRepository().apply { locationName = "SD card" }
     private val trackTaps by lazy { TrackTaps(playback, FakeLibraryPreferencesRepository()) }
-    private val viewModel by lazy { DownloadsViewModel(repository, library, playback, trackTaps, storage) }
+    private val audioPreferences = FakeAudioPreferencesRepository()
+    private val viewModel by lazy {
+        DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences)
+    }
 
     private suspend fun content(): DownloadsUiState.Content {
         lateinit var content: DownloadsUiState.Content
@@ -66,7 +75,7 @@ class DownloadsViewModelTest {
 
             val content = content()
 
-            assertThat(content.totals).isEqualTo(DownloadTotals(150, 6.minutes, 1_000))
+            assertThat(content.totals).isEqualTo(DownloadTotals(150, 6.minutes, 1_000, manual = OfflineUsage(2, 150)))
             assertThat(content.downloading.map { it.track }).containsExactly(a2)
             assertThat(content.albums).containsExactly(DownloadedAlbum(albumA, listOf(a1), 100, 3.minutes))
             assertThat(content.songs.map { it.track }).containsExactly(song)
@@ -105,11 +114,103 @@ class DownloadsViewModelTest {
         }
 
     @Test
-    fun `no downloads is empty`() =
+    fun `no downloads leaves every tab empty, the rules still shown`() =
         runTest {
             repository.downloads.value = emptyList()
 
-            viewModel.uiState.test { assertThat(expectMostRecentItem()).isEqualTo(DownloadsUiState.Empty) }
+            val content = content()
+            assertThat(content.hasFiles).isFalse()
+            assertThat(content.downloading).isEmpty()
+            assertThat(content.rules).isEqualTo(AutoRules())
+        }
+
+    @Test
+    fun `the rules tab reflects the automatic downloads setting`() =
+        runTest {
+            audioPreferences.preferences.update {
+                it.copy(autoDownloads = AutoDownloads.TracksAndAlbums, removeUnfavorited = false)
+            }
+
+            assertThat(content().rules).isEqualTo(AutoRules(AutoDownloads.TracksAndAlbums, removeUnfavorited = false))
+        }
+
+    @Test
+    fun `the filter narrows the offline files, and the tab still counts as having files`() =
+        runTest {
+            viewModel.onAction(DownloadsAction.Filter("nothing like this"))
+
+            val content = content()
+            assertThat(content.filter).isEqualTo("nothing like this")
+            assertThat(content.albums).isEmpty()
+            assertThat(content.songs).isEmpty()
+            assertThat(content.hasFiles).isTrue()
+        }
+
+    @Test
+    fun `pause all and resume all reach the repository`() =
+        runTest {
+            viewModel.onAction(DownloadsAction.PauseAll)
+            assertThat(content().paused).isTrue()
+
+            viewModel.onAction(DownloadsAction.ResumeAll)
+            assertThat(content().paused).isFalse()
+        }
+
+    @Test
+    fun `cleanup asks first with what it would delete, then cleans up`() =
+        runTest {
+            repository.preview = CleanupPreview(failed = 2, bytes = 4_000)
+
+            viewModel.onAction(DownloadsAction.AskCleanup)
+            assertThat(content().cleanup).isEqualTo(CleanupPreview(2, 4_000))
+            viewModel.onAction(DownloadsAction.ConfirmCleanup)
+
+            assertThat(content().cleanup).isNull()
+            assertThat(repository.cleanups).isEqualTo(1)
+        }
+
+    @Test
+    fun `a preview arriving after Cancel does not open the dialog again`() =
+        runTest {
+            val slow = CompletableDeferred<Unit>()
+            val repository =
+                object : DownloadRepository by repository {
+                    override suspend fun cleanupPreview(): CleanupPreview {
+                        slow.await()
+                        return CleanupPreview(1, 1)
+                    }
+                }
+            val viewModel = DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences)
+
+            viewModel.onAction(DownloadsAction.AskCleanup)
+            viewModel.onAction(DownloadsAction.DismissCleanup)
+            slow.complete(Unit)
+
+            viewModel.uiState.test {
+                assertThat((expectMostRecentItem() as DownloadsUiState.Content).cleanup).isNull()
+            }
+        }
+
+    @Test
+    fun `dismissing cleanup deletes nothing`() =
+        runTest {
+            viewModel.onAction(DownloadsAction.AskCleanup)
+            viewModel.onAction(DownloadsAction.DismissCleanup)
+
+            assertThat(content().cleanup).isNull()
+            assertThat(repository.cleanups).isEqualTo(0)
+        }
+
+    @Test
+    fun `cancel and retry in the queue reach the repository`() =
+        runTest {
+            repository.setState(a2.id, DownloadState.Failed)
+
+            viewModel.onAction(DownloadsAction.Retry(a2))
+            assertThat(content().downloading.single().state).isEqualTo(DownloadState.Failed)
+            viewModel.onAction(DownloadsAction.Remove(a2))
+
+            assertThat(content().downloading).isEmpty()
         }
 
     @Test
