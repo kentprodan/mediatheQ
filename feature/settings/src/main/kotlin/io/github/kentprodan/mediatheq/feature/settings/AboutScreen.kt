@@ -41,6 +41,7 @@ internal fun AboutRoute(
     onOpenLicenses: () -> Unit,
     onOpenPrivacy: () -> Unit,
     onOpenShowcase: () -> Unit,
+    onExportLogs: () -> Unit,
     onBack: () -> Unit,
 ) {
     val clipboard = LocalClipboard.current
@@ -64,6 +65,7 @@ internal fun AboutRoute(
         onOpenSource = { runCatching { uriHandler.openUri(SOURCE_URL) } },
         onOpenPrivacy = onOpenPrivacy,
         onOpenShowcase = onOpenShowcase.takeIf { info.debug },
+        onExportLogs = onExportLogs,
         onBack = onBack,
     )
     if (changelogOpen) ChangelogSheet(changelog, onDismiss = { changelogOpen = false })
@@ -71,7 +73,8 @@ internal fun AboutRoute(
 
 /**
  * Settings -> About: the app's mark and name, then Version (a tap or a long press copies it with Android and the
- * device), Changelog, Open-source licenses, Source code, Privacy and, in debug builds, the theme showcase. Stateless.
+ * device), Changelog, Open-source licenses, Source code, Privacy, Export logs (#169) and, in debug builds, the theme
+ * showcase. Stateless.
  */
 @Composable
 fun AboutScreen(
@@ -82,6 +85,7 @@ fun AboutScreen(
     onOpenSource: () -> Unit,
     onOpenPrivacy: () -> Unit,
     onOpenShowcase: (() -> Unit)?,
+    onExportLogs: () -> Unit,
     onBack: () -> Unit,
 ) {
     SettingsScaffold(stringResource(R.string.settings_about), onBack) {
@@ -154,6 +158,15 @@ fun AboutScreen(
                         R.string.settings_privacy,
                         R.string.settings_privacy_summary,
                         onOpenPrivacy,
+                    )
+                }
+                item { shapes ->
+                    AboutRow(
+                        shapes,
+                        MqIcons.BugReport,
+                        R.string.settings_export_logs,
+                        R.string.settings_export_logs_summary,
+                        onExportLogs,
                     )
                 }
                 onOpenShowcase?.let { open ->

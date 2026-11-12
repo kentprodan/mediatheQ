@@ -14,13 +14,19 @@ private val info = AboutInfo("0.1.0", 1, "17", "Google Pixel 9")
 @PreviewTest
 @MqPreviews
 @Composable
-fun AboutScreenshot() = MediatheqTheme { AboutScreen(info, {}, {}, {}, {}, {}, onOpenShowcase = null) {} }
+fun AboutScreenshot() =
+    MediatheqTheme {
+        AboutScreen(info, {}, {}, {}, {}, {}, onOpenShowcase = null, onExportLogs = {}) {}
+    }
 
 /** About in a debug build: the theme showcase too. */
 @PreviewTest
 @MqPreviews
 @Composable
-fun AboutDebugScreenshot() = MediatheqTheme { AboutScreen(info, {}, {}, {}, {}, {}, onOpenShowcase = {}) {} }
+fun AboutDebugScreenshot() =
+    MediatheqTheme {
+        AboutScreen(info, {}, {}, {}, {}, {}, onOpenShowcase = {}, onExportLogs = {}) {}
+    }
 
 /** Privacy: what stays on the phone, what is sent where. */
 @PreviewTest
