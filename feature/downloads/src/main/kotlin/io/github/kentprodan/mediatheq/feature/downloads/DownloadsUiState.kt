@@ -31,6 +31,16 @@ data class DownloadTotals(
     val bytes: Long,
     val duration: Duration,
     val freeBytes: Long,
+    /** Downloaded by hand: a track with any manual origin counts here (#149). */
+    val manual: OfflineUsage = OfflineUsage(),
+    /** Kept only by the automatic downloads of favorites (#145). */
+    val auto: OfflineUsage = OfflineUsage(),
+)
+
+/** [tracks] finished downloads taking [bytes]. */
+data class OfflineUsage(
+    val tracks: Int = 0,
+    val bytes: Long = 0,
 )
 
 /** An album downloaded as a whole, with what of it is on the device. */

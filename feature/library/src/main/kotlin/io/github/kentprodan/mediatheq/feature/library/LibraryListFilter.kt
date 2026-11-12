@@ -1,8 +1,8 @@
 package io.github.kentprodan.mediatheq.feature.library
 
+import io.github.kentprodan.mediatheq.core.common.foldForSearch
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.ListSelection
-import java.text.Normalizer
 
 /**
  * What the list header narrows a Library list to (#123): favorites only, downloads only, and the text typed in
@@ -28,7 +28,7 @@ internal fun LibraryContent.filtered(
     if (!filter.isActive) return this
     val words =
         filter.search
-            ?.let(::fold)
+            ?.let(::foldForSearch)
             ?.split(' ')
             ?.filter { it.isNotEmpty() }
             .orEmpty()
@@ -41,7 +41,7 @@ internal fun LibraryContent.filtered(
     ): Boolean =
         (!filter.favoritesOnly || favorite) &&
             (!filter.downloadedOnly || !hasDownloadState || id in downloaded) &&
-            words.all { word -> names.any { fold(it).contains(word) } }
+            words.all { word -> names.any { foldForSearch(it).contains(word) } }
 
     return when (this) {
         is LibraryContent.Albums -> {
@@ -114,7 +114,3 @@ internal val LibraryContent.itemCount: Int
             is LibraryContent.RecordLabels -> labels.size
             else -> 0
         }
-
-private val MARKS = Regex("\\p{Mn}+")
-
-private fun fold(text: String): String = MARKS.replace(Normalizer.normalize(text.lowercase(), Normalizer.Form.NFD), "")
