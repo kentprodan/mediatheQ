@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.DEFAULT_DATABASE
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
@@ -102,10 +103,19 @@ class DefaultLibrarySyncRepositoryTest {
     private val userDataSink = FakeUserDataSink()
 
     private fun userData(scope: CoroutineScope) =
-        DefaultUserDataRepository(database.userDataDao(), userDataSink, accountStore, session, scope)
+        DefaultUserDataRepository(database.userDataDao(), userDataSink, accountStore, session, scope, AppLog.None)
 
     private fun TestScope.repository(scope: CoroutineScope = backgroundScope) =
-        DefaultLibrarySyncRepository(source, accountStore, database.syncDao(), session, clock, scope, userData(scope))
+        DefaultLibrarySyncRepository(
+            source,
+            accountStore,
+            database.syncDao(),
+            session,
+            clock,
+            scope,
+            userData(scope),
+            AppLog.None,
+        )
 
     private suspend fun count(table: String) =
         database
@@ -347,6 +357,7 @@ class DefaultLibrarySyncRepositoryTest {
                     clock,
                     backgroundScope,
                     userData(backgroundScope),
+                    AppLog.None,
                 )
             secondSource.albumArtists = source.albumArtists
             secondSource.albums = source.albums
@@ -423,6 +434,7 @@ class DefaultLibrarySyncRepositoryTest {
                     clock,
                     backgroundScope,
                     userData(backgroundScope),
+                    AppLog.None,
                 )
 
             assertThat(restarted.sync()).isEqualTo(MqResult.Success(Unit))
@@ -821,6 +833,7 @@ class DefaultLibrarySyncRepositoryTest {
                     io.github.kentprodan.mediatheq.core.testing
                         .FakeQueueRepository(),
                     dispatcher,
+                    AppLog.None,
                 )
             val repository =
                 DefaultLibrarySyncRepository(
@@ -831,6 +844,7 @@ class DefaultLibrarySyncRepositoryTest {
                     clock,
                     backgroundScope,
                     userData(backgroundScope),
+                    AppLog.None,
                 )
             source.failAt = 3
             source.failure = MqError.Unauthorized

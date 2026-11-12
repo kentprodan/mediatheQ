@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
@@ -37,6 +38,7 @@ class DefaultSessionRepositoryTest {
             { restarts += Unit },
             queue,
             Dispatchers.Unconfined,
+            AppLog.None,
         )
 
     private suspend fun loginAs(token: String) {

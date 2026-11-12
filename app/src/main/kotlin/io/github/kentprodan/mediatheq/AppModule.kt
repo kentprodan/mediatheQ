@@ -55,13 +55,14 @@ object AppModule {
     fun fileAppLog(
         @ApplicationContext context: Context,
         clock: Clock,
+        @IoDispatcher io: CoroutineDispatcher,
     ): FileAppLog {
         val debug = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
         return FileAppLog(
             File(context.filesDir, "logs"),
             clock,
             CoroutineScope(SupervisorJob()),
-            Dispatchers.IO,
+            io,
             sink = { level, tag, line -> if (debug) Log.println(if (level == 'I') Log.INFO else Log.WARN, tag, line) },
         )
     }

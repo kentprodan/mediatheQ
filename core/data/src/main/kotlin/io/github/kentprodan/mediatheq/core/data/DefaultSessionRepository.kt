@@ -44,7 +44,7 @@ class DefaultSessionRepository
         private val restarter: AppRestarter,
         private val queue: QueueRepository,
         @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-        private val log: AppLog = AppLog.None,
+        private val log: AppLog,
     ) : SessionRepository {
         // Why the app signed out on its own; in memory only, a restart shows the plain onboarding.
         private val logoutReason = MutableStateFlow<LogoutReason?>(null)

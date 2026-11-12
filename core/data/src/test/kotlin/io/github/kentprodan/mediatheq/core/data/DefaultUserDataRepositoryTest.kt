@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
@@ -43,7 +44,8 @@ class DefaultUserDataRepositoryTest {
     private val track = MediaId(server, "t1")
     private val album = MediaId(server, "al1")
 
-    private fun TestScope.repository() = DefaultUserDataRepository(dao, sink, accountStore, session, backgroundScope)
+    private fun TestScope.repository() =
+        DefaultUserDataRepository(dao, sink, accountStore, session, backgroundScope, AppLog.None)
 
     private suspend fun stored(id: MediaId) = dao.userData(id.serverId.value, id.itemId)
 

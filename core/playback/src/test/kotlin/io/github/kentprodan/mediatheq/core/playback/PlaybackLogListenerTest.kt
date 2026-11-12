@@ -45,7 +45,7 @@ class PlaybackLogListenerTest {
     fun release() = player.release()
 
     @Test
-    fun `a track, its stream, a pause and the end of the queue are logged`() {
+    fun `a track, its stream, a pause, the end of the queue and a stop are logged`() {
         player.addListener(listener)
         player.setMediaItems(listOf(item("t1", "Moșoi")))
         player.prepare()
@@ -56,6 +56,8 @@ class PlaybackLogListenerTest {
         advance(player).untilPendingCommandsAreFullyHandled()
         player.play()
         advance(player).untilState(Player.STATE_ENDED)
+        player.stop()
+        advance(player).untilState(Player.STATE_IDLE)
 
         assertThat(log.lines)
             .containsAtLeast(
@@ -63,6 +65,7 @@ class PlaybackLogListenerTest {
                 "I Playback: Playing \"Moșoi\" [t1] · DirectPlay · Original",
                 "I Playback: Paused",
                 "I Playback: Queue ended",
+                "I Playback: Stopped",
             ).inOrder()
     }
 

@@ -46,7 +46,7 @@ class DefaultUserDataRepository
         private val accountStore: AccountStore,
         private val sessionRepository: SessionRepository,
         @param:ApplicationScope private val scope: CoroutineScope,
-        private val log: AppLog = AppLog.None,
+        private val log: AppLog,
     ) : UserDataRepository {
         // writeLock: one server write at a time, so answers cannot arrive out of order. stateLock: overrides and Room.
         private val writeLock = Mutex()

@@ -21,7 +21,7 @@ class RedactTest {
         assertThat(redact(text)).doesNotContain("hunter2")
         assertThat(
             redact("MediaBrowser Client=\"mediatheQ\", Token=\"s3cret\""),
-        ).isEqualTo("MediaBrowser Client=\"mediatheQ\", Token=\"<redacted>\"")
+        ).isEqualTo("MediaBrowser Client=\"mediatheQ\", Token=<redacted>")
     }
 
     @Test
@@ -31,6 +31,31 @@ class RedactTest {
         assertThat(
             redact(snippet),
         ).isEqualTo("""Unexpected JSON token at offset 12: {"AccessToken":"<redacted>","ServerId":"abc"}""")
+    }
+
+    @Test
+    fun `quoted, spaced and escaped values go whole`() {
+        val texts =
+            listOf(
+                "password=\"hunter 2\" next",
+                "ApiKey: \"s3cret\"",
+                "Login failed: password=correct horse s3cret",
+                """{"Pw":"a\"s3cret"}""",
+                "StoredAccount(url=http://nas, accessToken=s3cret)",
+                "Token=s3cret",
+            )
+
+        texts.forEach { assertThat(redact(it)).doesNotContain("s3cret") }
+        texts.forEach { assertThat(redact(it)).doesNotContain("hunter") }
+        assertThat(redact("Login failed: password=correct horse s3cret")).doesNotContain("horse")
+    }
+
+    @Test
+    fun `the Quick Connect secret goes, from JSON and from text`() {
+        assertThat(
+            redact("""bad JSON {"Secret":"s3cret","Code":"123456"}"""),
+        ).isEqualTo("""bad JSON {"Secret":"<redacted>","Code":"123456"}""")
+        assertThat(redact("secret=s3cret")).doesNotContain("s3cret")
     }
 
     @Test

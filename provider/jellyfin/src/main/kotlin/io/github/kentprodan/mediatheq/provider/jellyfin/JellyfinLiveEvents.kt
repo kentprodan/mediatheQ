@@ -35,7 +35,7 @@ class JellyfinLiveEvents
     constructor(
         private val okHttpClient: OkHttpClient,
         private val json: Json,
-        private val log: AppLog = AppLog.None,
+        private val log: AppLog,
     ) : LiveEvents {
         override fun events(server: SignedInServer): Flow<LiveEvent> =
             callbackFlow {

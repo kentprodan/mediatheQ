@@ -32,7 +32,10 @@ internal class PlaybackLogListener(
     }
 
     override fun onPlaybackStateChanged(playbackState: Int) {
-        if (playbackState == Player.STATE_ENDED) log.info(TAG, "Queue ended")
+        when (playbackState) {
+            Player.STATE_ENDED -> log.info(TAG, "Queue ended")
+            Player.STATE_IDLE -> log.info(TAG, "Stopped")
+        }
     }
 
     override fun onPlayerError(error: PlaybackException) {

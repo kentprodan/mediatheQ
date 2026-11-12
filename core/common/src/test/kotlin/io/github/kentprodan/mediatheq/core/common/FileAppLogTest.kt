@@ -104,6 +104,7 @@ class FileAppLogTest {
 
             // The oldest went; the newest are kept.
             assertThat(file().readText()).contains("line 4999")
+            assertThat(file().readLines()).doesNotContain("2026-11-12 10:15:03.123 I Tag: line 0")
         }
 
     @Test

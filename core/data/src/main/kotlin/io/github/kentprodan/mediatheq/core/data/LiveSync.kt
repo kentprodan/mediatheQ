@@ -48,7 +48,7 @@ class LiveSync
         private val librarySync: DefaultLibrarySyncRepository,
         private val networkMonitor: NetworkMonitor,
         @param:ApplicationScope private val scope: CoroutineScope,
-        private val log: AppLog = AppLog.None,
+        private val log: AppLog,
     ) {
         private val foreground = MutableStateFlow(false)
         private val playing = MutableStateFlow(false)

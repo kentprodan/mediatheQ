@@ -68,7 +68,7 @@ class DefaultLibrarySyncRepository
         private val clock: Clock,
         @param:ApplicationScope private val scope: CoroutineScope,
         private val userData: DefaultUserDataRepository,
-        private val log: AppLog = AppLog.None,
+        private val log: AppLog,
     ) : LibrarySyncRepository {
         private val mutableStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle(null))
         override val status: StateFlow<SyncStatus> = mutableStatus.asStateFlow()

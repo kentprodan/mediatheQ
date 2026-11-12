@@ -173,9 +173,7 @@ class MainActivity : ComponentActivity() {
  */
 private fun MainActivity.exportLogs() {
     lifecycleScope.launch {
-        val dir = File(cacheDir, "logs")
-        dir.listFiles()?.forEach(File::delete)
-        val file = File(dir, "mediatheq-log-${LocalDate.now()}.txt")
+        val file = File(File(cacheDir, "logs"), "mediatheq-log-${LocalDate.now()}.txt")
         if (!log.export(file)) {
             Toast.makeText(this@exportLogs, R.string.export_logs_failed, Toast.LENGTH_SHORT).show()
             return@launch

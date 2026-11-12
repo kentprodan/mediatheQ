@@ -35,7 +35,7 @@ class JellyfinLiveEventsTest {
     val serverRule = MockWebServerRule()
     private val mockServer get() = serverRule.server
 
-    private val liveEvents = JellyfinLiveEvents(mediatheqOkHttpClient(), MediatheqJson)
+    private val liveEvents = JellyfinLiveEvents(mediatheqOkHttpClient(), MediatheqJson, AppLog.None)
     private val server
         get() =
             SignedInServer(

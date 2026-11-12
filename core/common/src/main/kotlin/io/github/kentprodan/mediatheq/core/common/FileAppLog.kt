@@ -64,19 +64,27 @@ class FileAppLog(
     ) {
         val line = line('E', tag, message, error)
         sink('E', tag, line)
-        // Not under the lock (it may be held by the dying writer): one line, appended whole.
+        // Not under the lock (the dying writer may hold it): one line, appended whole. A rotation at the same moment can
+        // put it or the writer's batch in the older file; rare, and both stay in the export.
         write(listOf(line))
     }
 
-    /** Joins the older and the current file into [target], once the lines queued so far are written. */
+    /**
+     * Joins the older and the current file into [target], once the lines queued so far are written. Anything else in
+     * [target]'s folder (an earlier export) goes first.
+     */
     suspend fun export(target: File): Boolean =
         withContext(dispatcher) {
-            // Lines still queued are written first.
-            val pending = generateSequence { queue.tryReceive().getOrNull() }.toList()
             fileLock.withLock {
+                // Lines still queued are written first. shortcut: a line the writer took but has not written yet comes
+                // after the export (milliseconds); a flush marker through the queue would close that gap if it matters.
+                val pending = generateSequence { queue.tryReceive().getOrNull() }.toList()
                 if (pending.isNotEmpty()) write(pending)
                 try {
-                    target.parentFile?.mkdirs()
+                    target.parentFile?.let { dir ->
+                        dir.listFiles()?.forEach(File::delete)
+                        dir.mkdirs()
+                    }
                     target.outputStream().use { out ->
                         listOf(older, current).filter(File::exists).forEach { file ->
                             file.inputStream().use { it.copyTo(out) }
@@ -125,6 +133,8 @@ class FileAppLog(
             // Dropped: the log must never break playback.
         } catch (_: SecurityException) {
             // Dropped, as above.
+        } catch (_: RuntimeException) {
+            // Anything else is dropped too: the writer must keep running, and never crash the app.
         }
     }
 

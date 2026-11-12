@@ -77,7 +77,7 @@ internal class DefaultDownloadRepository
         @ApplicationScope private val scope: CoroutineScope,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
-        private val log: AppLog = AppLog.None,
+        private val log: AppLog,
     ) : DownloadRepository {
         /** Every download by track: the stored index at start, then the manager's changes. */
         private val entries = MutableStateFlow<Map<MediaId, Download>>(emptyMap())
