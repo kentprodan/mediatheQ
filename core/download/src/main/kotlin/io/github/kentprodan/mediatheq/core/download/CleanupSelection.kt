@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.download
 
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.offline.Download
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -15,6 +16,7 @@ internal data class CleanupSelection(
  * the failed downloads of [active] (all servers' while signed out), and the keys no download of any server owns. Other
  * accounts' downloads are in the same index and cache (ADR 0036), so they are never orphans.
  */
+@UnstableApi
 internal fun cleanupSelection(
     index: Map<String, Int>,
     cacheKeys: Set<String>,
