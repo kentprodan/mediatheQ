@@ -3,6 +3,8 @@ package io.github.kentprodan.mediatheq.feature.home
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -34,6 +36,7 @@ class HomeScreenTest {
     private val actions = mutableListOf<HomeAction>()
     private val opened = mutableListOf<MediaId>()
     private val events = mutableListOf<String>()
+    private val openedSections = mutableListOf<HomeSection>()
 
     private val album = Album(MediaId(ServerId("s"), "al"), "Northern Lights", emptyList())
     private val track = Track(MediaId(ServerId("s"), "t"), "Morning Light", emptyList(), Duration.ZERO)
@@ -48,6 +51,7 @@ class HomeScreenTest {
                         onOpenAlbum = { opened += it },
                         onOpenSettings = { events += "settings" },
                         onOpenDownloads = { events += "downloads" },
+                        onOpenSection = { openedSections += it },
                     ),
                 )
             }
@@ -109,6 +113,31 @@ class HomeScreenTest {
 
         assertThat(actions).containsExactly(HomeAction.ShuffleAll, HomeAction.PlayTracks(listOf(track), 0)).inOrder()
         assertThat(opened).containsExactly(album.id)
+    }
+
+    @Test
+    fun `a section header opens its full list, with or without the more indicator, and the shortcuts have none`() {
+        val noMore =
+            HomeSectionContent(
+                HomeSection.FavoriteAlbums,
+                HomeSection.FavoriteAlbums.defaultSettings.copy(moreIndicator = false),
+                HomeItems.Albums(listOf(album)),
+            )
+        show(
+            HomeUiState.Content(
+                listOf(
+                    section(HomeSection.Shortcuts, HomeItems.Shortcuts(emptyList())),
+                    section(HomeSection.FavoriteTracks, HomeItems.Tracks(listOf(track))),
+                    noMore,
+                ),
+            ),
+        )
+
+        composeRule.onNode(hasText("Favorite tracks") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Favorite albums") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Shortcuts") and hasClickAction()).assertDoesNotExist()
+
+        assertThat(openedSections).containsExactly(HomeSection.FavoriteTracks, HomeSection.FavoriteAlbums)
     }
 
     @Test

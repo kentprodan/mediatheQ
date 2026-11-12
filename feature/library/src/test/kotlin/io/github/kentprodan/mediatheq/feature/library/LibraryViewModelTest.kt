@@ -4,6 +4,9 @@ import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
+import io.github.kentprodan.mediatheq.core.data.HomeItems
+import io.github.kentprodan.mediatheq.core.data.HomeLibrary
+import io.github.kentprodan.mediatheq.core.data.HomeShuffle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
@@ -13,15 +16,18 @@ import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.data.TrackAction
+import io.github.kentprodan.mediatheq.core.data.homeItems
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.navigation.HomeSectionListKey
 import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
@@ -34,8 +40,10 @@ import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import io.github.kentprodan.mediatheq.core.testing.TestClock
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -132,6 +140,7 @@ class LibraryViewModelTest {
         fixedFilter: LibraryFilter = LibraryFilter.Albums,
         yearPage: YearKey? = null,
         labelPage: RecordLabelKey? = null,
+        sectionPage: HomeSectionListKey? = null,
     ): LibraryViewModel {
         library.albums.value = albums
         library.albumArtists.value = listOf(bob, ada)
@@ -145,6 +154,7 @@ class LibraryViewModelTest {
                 fixedFilter,
                 yearPage,
                 labelPage,
+                sectionPage,
                 library,
                 sync,
                 preferences,
@@ -154,11 +164,81 @@ class LibraryViewModelTest {
                 userData,
                 downloads,
                 playlistRepository,
+                shuffle,
+                TestClock(day(100)),
                 mainDispatcherRule.testDispatcher,
             )
         if (collect) backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
+
+    private val shuffle = HomeShuffle(1)
+
+    private fun TestScope.section(section: HomeSection) =
+        viewModel(fixedFilter = section.filter, sectionPage = HomeSectionListKey(section))
+
+    @Test
+    fun `a section's full list holds every item past Home's limit, in the section's order, whatever the sort`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            preferences.setSort(LibraryFilter.Albums, LibrarySort.Name)
+            val many = (1..20).map { Album(id("n$it"), "N$it", listOf(ada), dateAdded = day(10 + it)) }
+            val viewModel = section(HomeSection.RecentlyAddedAlbums)
+            library.albums.value = albums + many
+
+            // Newest first; the album without a date is not "recently added".
+            assertThat(viewModel.ids())
+                .containsExactlyElementsIn(
+                    many.reversed().map { it.id.itemId } + listOf("a2", "a1"),
+                ).inOrder()
+            assertThat(
+                viewModel.uiState.value.sectionPage,
+            ).isEqualTo(HomeSectionListKey(HomeSection.RecentlyAddedAlbums))
+            assertThat(preferences.preferences.first().sortFor(LibraryFilter.Albums)).isEqualTo(LibrarySort.Name)
+        }
+
+    @Test
+    fun `a section's full list for artists, tracks and playlists`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val artists = section(HomeSection.FavoriteArtists)
+            library.albumArtists.value = listOf(bob, ada.copy(userData = UserData(isFavorite = true)))
+            assertThat(artists.uiState.value.filter).isEqualTo(LibraryFilter.Artists)
+            assertThat(artists.ids()).containsExactly("ar-ada")
+
+            val songs = section(HomeSection.FavoriteTracks)
+            library.tracks.value = tracks.map { it.copy(userData = UserData(isFavorite = it.title != "Mid")) }
+            assertThat(songs.uiState.value.filter).isEqualTo(LibraryFilter.Songs)
+            assertThat(songs.ids()).containsExactly("t1", "t2").inOrder()
+
+            val lists = section(HomeSection.FavoritePlaylists)
+            library.playlists.value = listOf(playlists[0].copy(userData = UserData(isFavorite = true)), playlists[1])
+            assertThat(lists.uiState.value.filter).isEqualTo(LibraryFilter.Playlists)
+            assertThat(lists.ids()).containsExactly("p1")
+        }
+
+    @Test
+    fun `a random section starts with Home's set, and pull to refresh draws a new one`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val many = albums + (1..30).map { Album(id("n$it"), "N$it", listOf(ada)) }
+            val viewModel = section(HomeSection.RandomAlbums)
+            library.albums.value = many
+            val home = homeItems(HomeSection.RandomAlbums, HomeLibrary(albums = many), 16, shuffle.seed.value, day(100))
+
+            assertThat(viewModel.ids()).hasSize(many.size)
+            assertThat(viewModel.ids().take(16)).isEqualTo((home as HomeItems.Albums).albums.map { it.id.itemId })
+
+            val seed = shuffle.seed.value
+            viewModel.onAction(LibraryAction.Refresh)
+            assertThat(shuffle.seed.value).isNotEqualTo(seed)
+        }
+
+    @Test
+    fun `offline, a section with nothing downloaded says so`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            library.offline.value = true
+            val viewModel = section(HomeSection.FavoriteAlbums)
+
+            assertThat(viewModel.uiState.value.content).isEqualTo(LibraryContent.NothingDownloaded)
+        }
 
     private fun LibraryViewModel.ids(): List<String> =
         when (val content = uiState.value.content) {
@@ -555,6 +635,7 @@ class LibraryViewModelTest {
                     LibraryFilter.Songs,
                     null,
                     null,
+                    null,
                     library,
                     sync,
                     preferences,
@@ -564,6 +645,8 @@ class LibraryViewModelTest {
                     userData,
                     downloads,
                     playlistRepository,
+                    shuffle,
+                    TestClock(day(100)),
                     sorting,
                 )
             backgroundScope.launch { viewModel.uiState.collect() }

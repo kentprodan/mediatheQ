@@ -5,6 +5,7 @@ import androidx.navigation3.runtime.NavKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
+import io.github.kentprodan.mediatheq.core.navigation.HomeSectionListKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeSectionSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistKey
@@ -23,6 +24,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
                 onOpenPlaylist = { navigator.navigateTo(PlaylistKey(it)) },
                 onOpenSettings = { navigator.navigateTo(SettingsKey) },
                 onOpenDownloads = onOpenDownloads,
+                onOpenSection = { navigator.navigateTo(HomeSectionListKey(it)) },
             ),
         )
     }

@@ -12,8 +12,10 @@ import io.github.kentprodan.mediatheq.core.data.YearAlbums
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Genre
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
+import io.github.kentprodan.mediatheq.core.navigation.HomeSectionListKey
 import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.ListSelection
@@ -311,3 +313,37 @@ fun LibraryRecordLabelPageScreenshot() =
             onBack = {},
         )
     }
+
+@Composable
+private fun SectionList(
+    section: HomeSection,
+    filter: LibraryFilter,
+    content: LibraryContent,
+) = MediatheqTheme {
+    LibraryScreen(
+        LibraryUiState(
+            filter,
+            sectionPage = HomeSectionListKey(section),
+            content = content,
+            itemCount = content.itemCount,
+        ),
+        onAction = {},
+        onOpenAlbum = {},
+        onOpenArtist = {},
+        onOpenPlaylist = {},
+        onBack = {},
+    )
+}
+
+/** A Home section's full list (#183): the section's title, Back, no sort. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeSectionAlbumsListScreenshot() =
+    SectionList(HomeSection.RecentlyAddedAlbums, LibraryFilter.Albums, LibraryContent.Albums(albums))
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeSectionTracksListScreenshot() =
+    SectionList(HomeSection.FavoriteTracks, LibraryFilter.Songs, LibraryContent.Songs(songs))

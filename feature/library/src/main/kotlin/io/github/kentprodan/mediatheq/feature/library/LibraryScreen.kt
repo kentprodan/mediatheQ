@@ -69,6 +69,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.navigation.HomeSectionListKey
 import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
@@ -104,10 +105,14 @@ internal fun LibraryRoute(
     yearPage: YearKey? = null,
     /** A record label's page (#131): the albums of that label. */
     labelPage: RecordLabelKey? = null,
+    /** A Home section's full list (#183). */
+    sectionPage: HomeSectionListKey? = null,
     viewModel: LibraryViewModel =
         hiltViewModel<LibraryViewModel, LibraryViewModel.Factory>(
-            key = yearPage?.let { "year-${it.year}" } ?: labelPage?.let { "label-${it.id}" } ?: filter.name,
-            creationCallback = { it.create(filter, yearPage, labelPage) },
+            key =
+                yearPage?.let { "year-${it.year}" } ?: labelPage?.let { "label-${it.id}" }
+                    ?: sectionPage?.let { "section-${it.section.name}" } ?: filter.name,
+            creationCallback = { it.create(filter, yearPage, labelPage, sectionPage) },
         ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()

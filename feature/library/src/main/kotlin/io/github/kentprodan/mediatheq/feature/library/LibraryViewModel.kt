@@ -9,6 +9,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
+import io.github.kentprodan.mediatheq.core.data.HomeItems
+import io.github.kentprodan.mediatheq.core.data.HomeShuffle
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
@@ -21,11 +23,15 @@ import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.albumYears
 import io.github.kentprodan.mediatheq.core.data.downloadAlbums
 import io.github.kentprodan.mediatheq.core.data.downloadPlaylists
+import io.github.kentprodan.mediatheq.core.data.homeItems
+import io.github.kentprodan.mediatheq.core.data.homeLibrary
 import io.github.kentprodan.mediatheq.core.data.tracksOfAlbums
 import io.github.kentprodan.mediatheq.core.data.tracksOfArtists
 import io.github.kentprodan.mediatheq.core.data.tracksOfPlaylists
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.navigation.HomeSectionListKey
 import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
@@ -50,6 +56,7 @@ import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel(assistedFactory = LibraryViewModel.Factory::class)
@@ -62,6 +69,8 @@ class LibraryViewModel
         @Assisted private val yearPage: YearKey?,
         /** A record label's page (#131): the albums of that label. */
         @Assisted private val labelPage: RecordLabelKey?,
+        /** A Home section's full list (#183): its items without Home's limit, in the section's order. */
+        @Assisted private val sectionPage: HomeSectionListKey?,
         private val libraryRepository: LibraryRepository,
         private val syncRepository: LibrarySyncRepository,
         private val preferencesRepository: LibraryPreferencesRepository,
@@ -71,6 +80,8 @@ class LibraryViewModel
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
         private val playlists: PlaylistRepository,
+        private val shuffle: HomeShuffle,
+        private val clock: Clock,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
         private val listFilter = MutableStateFlow(LibraryListFilter())
@@ -139,6 +150,7 @@ class LibraryViewModel
                     filter = fixedFilter,
                     yearPage = yearPage,
                     labelPage = labelPage,
+                    sectionPage = sectionPage,
                     albumColumns = preferences.albumColumns,
                     genresGrid = preferences.genresGrid,
                     sort = preferences.sortFor(fixedFilter),
@@ -159,7 +171,7 @@ class LibraryViewModel
             }.stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
-                LibraryUiState(filter = fixedFilter, yearPage = yearPage, labelPage = labelPage),
+                LibraryUiState(fixedFilter, yearPage = yearPage, labelPage = labelPage, sectionPage = sectionPage),
             )
 
         fun onAction(action: LibraryAction) {
@@ -256,6 +268,8 @@ class LibraryViewModel
                 }
 
                 LibraryAction.Refresh -> {
+                    // A random section's list draws a new set, as Home's pull to refresh does (owner, #183).
+                    if (sectionPage != null) shuffle.reshuffle()
                     launch { syncRepository.sync() }
                 }
 
@@ -350,6 +364,24 @@ class LibraryViewModel
 
         /** Items of [filter], as a function that sorts them into content. */
         private fun itemsOf(filter: LibraryFilter): Flow<Sorter> =
+            if (sectionPage != null) sectionItems(sectionPage.section) else listItems(filter)
+
+        /** A Home section's items in its own order: the sort is hidden and ignored (owner, #183). */
+        private fun sectionItems(section: HomeSection): Flow<Sorter> =
+            combine(libraryRepository.homeLibrary(), shuffle.seed) { library, seed ->
+                val content =
+                    when (val items = homeItems(section, library, Int.MAX_VALUE, seed, clock.now())) {
+                        is HomeItems.Albums -> LibraryContent.Albums(items.albums)
+                        is HomeItems.Artists -> LibraryContent.Artists(items.artists)
+                        is HomeItems.Tracks -> LibraryContent.Songs(items.tracks)
+                        is HomeItems.Playlists -> LibraryContent.Playlists(items.playlists)
+                        is HomeItems.Shortcuts -> LibraryContent.Empty
+                    }
+                val sorter: Sorter = { _ -> content }
+                sorter
+            }
+
+        private fun listItems(filter: LibraryFilter): Flow<Sorter> =
             when (filter) {
                 LibraryFilter.Albums -> {
                     val albums = labelPage?.let { libraryRepository.labelAlbums(it.id) } ?: libraryRepository.albums()
@@ -403,6 +435,7 @@ class LibraryViewModel
                 fixedFilter: LibraryFilter,
                 yearPage: YearKey?,
                 labelPage: RecordLabelKey?,
+                sectionPage: HomeSectionListKey?,
             ): LibraryViewModel
         }
     }

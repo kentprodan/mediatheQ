@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -48,6 +50,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.HomeDisplay
+import io.github.kentprodan.mediatheq.core.model.HomeKind
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -69,6 +73,8 @@ data class HomeNavigation(
     val onOpenPlaylist: (MediaId) -> Unit = {},
     val onOpenSettings: () -> Unit = {},
     val onOpenDownloads: () -> Unit = {},
+    /** A section's full list (#183); `null` (the settings preview) leaves headers untappable. */
+    val onOpenSection: ((HomeSection) -> Unit)? = null,
 )
 
 @Composable
@@ -210,7 +216,7 @@ internal fun LazyListScope.section(
     val key = content.section.name
     val settings = content.settings
     if (settings.showHeader) {
-        item(key = "$key-title") { SectionHeader(content) }
+        item(key = "$key-title") { SectionHeader(content, navigation.onOpenSection) }
     }
     val items = content.items
     if (items is HomeItems.Shortcuts) {
@@ -273,11 +279,22 @@ private fun SectionItems(
 }
 
 @Composable
-private fun SectionHeader(content: HomeSectionContent) {
+private fun SectionHeader(
+    content: HomeSectionContent,
+    onOpen: ((HomeSection) -> Unit)?,
+) {
+    // The whole header opens the full list, with or without the ">" (#182, #183); the mix buttons have none.
+    val open = onOpen?.takeIf { content.section.kind != HomeKind.Shortcuts }
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(
+            .then(
+                if (open != null) {
+                    Modifier.clickable(role = Role.Button) { open(content.section) }
+                } else {
+                    Modifier
+                },
+            ).padding(
                 start = MediatheqSpacing.l,
                 end = MediatheqSpacing.l,
                 top = MediatheqSpacing.l,
@@ -290,7 +307,6 @@ private fun SectionHeader(content: HomeSectionContent) {
             Modifier.weight(1f).semantics { heading() },
             style = MaterialTheme.typography.titleMedium,
         )
-        // The full list behind it comes with #183.
         if (content.settings.moreIndicator) {
             Icon(MqIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
