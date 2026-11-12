@@ -20,4 +20,5 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Tapping a Home section's title opens its full list, with the same tools as the Library lists.
 
 ### Fixed
+- Typing in search in list (Library) and in the Downloads filter no longer moves the cursor back.
 - Bit-perfect USB turned on while a track plays takes effect at once, not only from the next track.

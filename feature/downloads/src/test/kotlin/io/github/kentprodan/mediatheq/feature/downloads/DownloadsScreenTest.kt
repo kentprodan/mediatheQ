@@ -5,17 +5,23 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextInput
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.AutoDownloads
 import io.github.kentprodan.mediatheq.core.data.CleanupPreview
@@ -28,6 +34,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import kotlinx.coroutines.launch
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -252,5 +259,79 @@ class DownloadsScreenTest {
         composeRule.setContent { MediatheqTheme { DownloadsScreen(state, { actions += it }) } }
 
         composeRule.onNodeWithText("Playlist").assertExists()
+    }
+
+    @Test
+    fun `typing in the filter keeps every letter in order, while the list answers a frame late`() {
+        composeRule.setContent {
+            // The ViewModel's state comes back a frame after each change (#186).
+            var filter by remember { mutableStateOf("") }
+            val scope = rememberCoroutineScope()
+            MediatheqTheme {
+                DownloadsScreen(
+                    DownloadsUiState.Content(
+                        DownloadTotals(1_000_000, 20.minutes, 9_000_000),
+                        emptyList(),
+                        listOf(DownloadedAlbum(album, listOf(done), 500_000, 10.minutes)),
+                        emptyList(),
+                        emptyList(),
+                        filter = filter,
+                        hasFiles = true,
+                    ),
+                    { action ->
+                        actions += action
+                        if (action is DownloadsAction.Filter) {
+                            scope.launch {
+                                withFrameNanos {}
+                                filter = action.text
+                            }
+                        }
+                    },
+                )
+            }
+        }
+
+        val field = composeRule.onNode(hasSetTextAction())
+        listOf("a", "b", "c").forEach {
+            field.performTextInput(it)
+            composeRule.waitForIdle()
+        }
+
+        field.assertTextEquals("Filter offline files", "abc", includeEditableText = true)
+        assertThat(actions.last()).isEqualTo(DownloadsAction.Filter("abc"))
+    }
+
+    @Test
+    fun `filter text restored after process death is applied to the list again`() {
+        // The ViewModel's filter, which starts over empty after process death.
+        var filter by mutableStateOf("")
+        val restoration = StateRestorationTester(composeRule)
+        restoration.setContent {
+            MediatheqTheme {
+                DownloadsScreen(
+                    DownloadsUiState.Content(
+                        DownloadTotals(1_000_000, 20.minutes, 9_000_000),
+                        emptyList(),
+                        listOf(DownloadedAlbum(album, listOf(done), 500_000, 10.minutes)),
+                        emptyList(),
+                        emptyList(),
+                        filter = filter,
+                        hasFiles = true,
+                    ),
+                    { action ->
+                        actions += action
+                        if (action is DownloadsAction.Filter) filter = action.text
+                    },
+                )
+            }
+        }
+        composeRule.onNode(hasSetTextAction()).performTextInput("abc")
+        composeRule.waitForIdle()
+
+        filter = ""
+        actions.clear()
+        restoration.emulateSavedInstanceStateRestore()
+
+        assertThat(actions).containsExactly(DownloadsAction.Filter("abc"))
     }
 }

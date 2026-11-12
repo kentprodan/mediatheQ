@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
@@ -28,10 +30,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -61,6 +66,8 @@ import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.RemoveDownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.withIndex
 import kotlin.time.Duration
 
 @Composable
@@ -159,16 +166,25 @@ private fun FilesTab(
         state.unavailableOn?.let { name -> item(key = "unavailable") { UnavailableNotice(name) } }
         item(key = "summary") { Summary(state.totals, onCleanup = { onAction(DownloadsAction.AskCleanup) }) }
         item(key = "filter") {
+            // The field owns its text and cursor; the state answers a frame late and would move the cursor (#186).
+            // Every change goes out; the first value only when it differs, i.e. text restored after process death.
+            val field = rememberTextFieldState(state.filter)
+            val applied by rememberUpdatedState(state.filter)
+            LaunchedEffect(field) {
+                snapshotFlow { field.text.toString() }
+                    .withIndex()
+                    .filter { (index, text) -> index > 0 || text != applied }
+                    .collect { onAction(DownloadsAction.Filter(it.value)) }
+            }
             OutlinedTextField(
-                value = state.filter,
-                onValueChange = { onAction(DownloadsAction.Filter(it)) },
+                field,
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
                 label = { Text(stringResource(R.string.downloads_filter)) },
                 leadingIcon = { Icon(MqIcons.Search, contentDescription = null) },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
             )
         }
         if (state.filter.isNotBlank() && state.albums.isEmpty() && state.playlists.isEmpty() && state.songs.isEmpty()) {
