@@ -30,15 +30,17 @@ class AudioOutputStore
         val values: Flow<StoredOutputs> =
             dataStore.data
                 .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-                .map { prefs ->
-                    StoredOutputs(
-                        current = prefs[CURRENT],
-                        outputs =
-                            (listOf(PHONE) + prefs[OUTPUTS].orEmpty().sorted()).map {
-                                StoredOutput(it, prefs[stringPreferencesKey(it.key(NAME))], prefs.profile(it))
-                            },
-                    )
-                }
+                .map(::read)
+
+        /** What [prefs] hold; also run on a restored backup before it is written (#150). */
+        internal fun read(prefs: Preferences) =
+            StoredOutputs(
+                current = prefs[CURRENT],
+                outputs =
+                    (listOf(PHONE) + prefs[OUTPUTS].orEmpty().sorted()).map {
+                        StoredOutput(it, prefs[stringPreferencesKey(it.key(NAME))], prefs.profile(it))
+                    },
+            )
 
         /** Makes [id] the current output; remembers it first (named [name], a copy of the phone's profile) if new. */
         suspend fun use(

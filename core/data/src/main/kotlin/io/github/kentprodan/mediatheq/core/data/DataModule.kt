@@ -21,6 +21,9 @@ internal interface DataModule {
     fun accountRepository(repository: DefaultAccountRepository): AccountRepository
 
     @Binds
+    fun backupRepository(repository: DefaultBackupRepository): BackupRepository
+
+    @Binds
     fun appRestarter(restarter: DefaultAppRestarter): AppRestarter
 
     @Binds

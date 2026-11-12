@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
+import io.github.kentprodan.mediatheq.core.datastore.SavedAccount
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.datastore.StoredSyncRecord
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -111,6 +112,26 @@ class DefaultAccountRepositoryTest {
             assertThat(authSource.connections.single().accessToken).isEqualTo("token-2")
             assertThat(downloads.removedServers).isEmpty()
             assertThat(restarts).isEqualTo(0)
+        }
+
+    @Test
+    fun `a restored account lists as signed out and is removed without a server call`() =
+        runTest {
+            store.save(home)
+            store.saveSignedOut(
+                SavedAccount("mediatheq-2.db", "https://office.org", ServerId("server-2"), "Office", "user-9", "Bo"),
+            )
+
+            assertThat(repository.accounts.first().map { it.id to it.signedIn })
+                .containsExactly("mediatheq.db" to true, "mediatheq-2.db" to false)
+                .inOrder()
+
+            repository.remove("mediatheq-2.db", deleteDownloads = true)
+
+            assertThat(repository.accounts.first().map { it.id }).containsExactly("mediatheq.db")
+            assertThat(authSource.connections).isEmpty()
+            assertThat(downloads.removedServers).containsExactly(ServerId("server-2"))
+            assertThat(databases.files).doesNotContain("mediatheq-2.db")
         }
 
     @Test

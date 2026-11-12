@@ -14,6 +14,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.navigation.AboutSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AdvancedSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.BackupSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.InterfaceSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
@@ -60,6 +61,7 @@ class SettingsHubScreenTest {
             "Manage offline files",
             "Manage media providers",
             "Sync manager",
+            "Backup & restore",
         ).forEach(::open)
         // "About" is both a group title and its entry: the clickable row is the entry.
         open("About")
@@ -83,6 +85,7 @@ class SettingsHubScreenTest {
                 DownloadsKey,
                 ProvidersSettingsKey,
                 null,
+                BackupSettingsKey,
                 AboutSettingsKey,
             ).inOrder()
     }

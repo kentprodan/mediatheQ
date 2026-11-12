@@ -5,6 +5,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
+import io.github.kentprodan.mediatheq.core.datastore.SavedAccount
 import io.github.kentprodan.mediatheq.core.model.QuickConnectCode
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.ServerInfo
@@ -54,6 +55,31 @@ class DefaultSessionRepositoryTest {
             assertThat(accounts.map { it.id }).containsExactly("mediatheq.db", "mediatheq-1.db").inOrder()
             assertThat(repository.session.first()).isEqualTo(SessionState.LoggedIn("Home", "Ana"))
             assertThat(repository.activeServerId.first()).isEqualTo(ServerId("server-1"))
+            assertThat(restarts).isEmpty()
+        }
+
+    @Test
+    fun `signing in to a restored signed-out account gives it its token under its own id`() =
+        runTest {
+            loginAs("token-1")
+            accountStore.saveSignedOut(
+                SavedAccount(
+                    "mediatheq-restored.db",
+                    "https://office.org",
+                    ServerId("server-2"),
+                    "Office",
+                    "user-2",
+                    "Bo",
+                ),
+            )
+            authSource.login = MqResult.Success(AuthSession(ServerId("server-2"), "user-2", "Bo", "token-2"))
+
+            repository.login("https://office.org", "Office", "Bo", "pw")
+
+            val accounts = (accountStore.accounts.first() as MqResult.Success).value
+            assertThat(accounts.map { it.id to it.accessToken })
+                .containsExactly("mediatheq.db" to "token-1", "mediatheq-restored.db" to "token-2")
+                .inOrder()
             assertThat(restarts).isEmpty()
         }
 

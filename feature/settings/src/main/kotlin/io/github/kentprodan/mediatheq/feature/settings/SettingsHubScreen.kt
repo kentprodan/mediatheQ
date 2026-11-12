@@ -24,6 +24,7 @@ enum class SettingsHubEntry(
     ManageOfflineFiles(R.string.settings_manage_offline),
     Providers(R.string.settings_providers),
     SyncManager(R.string.settings_sync_manager),
+    Backup(R.string.settings_backup),
     About(R.string.settings_about),
 }
 
@@ -41,6 +42,7 @@ internal val hubGroups =
                 SettingsHubEntry.ManageOfflineFiles,
                 SettingsHubEntry.Providers,
                 SettingsHubEntry.SyncManager,
+                SettingsHubEntry.Backup,
             ),
         R.string.settings_about to listOf(SettingsHubEntry.About),
     )
@@ -99,5 +101,6 @@ private val SettingsHubEntry.icon: ImageVector
             SettingsHubEntry.ManageOfflineFiles -> MqIcons.Download
             SettingsHubEntry.Providers -> MqIcons.Devices
             SettingsHubEntry.SyncManager -> MqIcons.Sync
+            SettingsHubEntry.Backup -> MqIcons.Restore
             SettingsHubEntry.About -> MqIcons.Info
         }

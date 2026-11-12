@@ -21,6 +21,27 @@ fun ProvidersScreenshot() {
     MediatheqTheme { ProvidersScreen(ProvidersUiState.Content(listOf(home, office)), {}, {}, {}, {}) }
 }
 
+/** A restored account waiting for a sign-in (#150): Signed out, its menu only Sign in and remove. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun ProvidersSignedOutScreenshot() {
+    MediatheqTheme {
+        ProvidersScreen(ProvidersUiState.Content(listOf(home, office.copy(signedIn = false))), {}, {}, {}, {})
+    }
+}
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun ProviderMenuSignedOutScreenshot() {
+    MediatheqTheme {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+            Column { ProviderMenuItems(office.copy(signedIn = false), {}, {}, {}, {}, {}, {}) }
+        }
+    }
+}
+
 /** The menu of an inactive account, in place (popups render blank in screenshot tests). */
 @PreviewTest
 @MqPreviews

@@ -116,6 +116,10 @@ data object StorageSettingsKey : NavKey
 @Serializable
 data object ProvidersSettingsKey : NavKey
 
+/** Settings -> Backup & restore (#150). */
+@Serializable
+data object BackupSettingsKey : NavKey
+
 /** Settings -> About: version, licenses. */
 @Serializable
 data object AboutSettingsKey : NavKey
