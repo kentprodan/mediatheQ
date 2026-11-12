@@ -34,10 +34,10 @@ class SettingsHubScreenTest {
     private val opened = mutableListOf<SettingsHubEntry>()
     private var back = 0
 
-    private fun show(manageOfflineFiles: Boolean = false) =
+    private fun show() =
         composeRule.setContent {
             MediatheqTheme {
-                SettingsHubScreen(onOpen = { opened += it }, onBack = { back++ }, manageOfflineFiles)
+                SettingsHubScreen(onOpen = { opened += it }, onBack = { back++ })
             }
         }
 
@@ -50,7 +50,7 @@ class SettingsHubScreenTest {
 
     @Test
     fun `every entry opens its page, in the hub's order`() {
-        show(manageOfflineFiles = true)
+        show()
 
         listOf(
             "Interface",
@@ -65,13 +65,6 @@ class SettingsHubScreenTest {
         open("About")
 
         assertThat(opened).containsExactlyElementsIn(SettingsHubEntry.entries).inOrder()
-    }
-
-    @Test
-    fun `Manage offline files shows only when Downloads is not in the navigation`() {
-        show()
-
-        composeRule.onNode(row("Manage offline files")).assertDoesNotExist()
     }
 
     @Test

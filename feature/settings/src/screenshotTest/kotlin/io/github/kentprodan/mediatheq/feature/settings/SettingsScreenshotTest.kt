@@ -328,14 +328,6 @@ fun SettingsTypographyDialogScreenshot() {
     MediatheqTheme { ThemeChoiceDialogContent(ThemeDialog.Font, ThemePreferences(font = AppFont.Lato)) }
 }
 
-/** The hub with Downloads out of the navigation: "Manage offline files" shows (#122). */
-@PreviewTest
-@MqPreviews
-@Composable
-fun SettingsHubManageOfflineFilesScreenshot() {
-    MediatheqTheme { SettingsHubScreen(onOpen = {}, onBack = {}, showsManageOfflineFiles = true) }
-}
-
 /** Navigation and media start with some choices made: six entries, floating toolbar + FAB, 50 % transparency. */
 @PreviewTest
 @MqPreviews

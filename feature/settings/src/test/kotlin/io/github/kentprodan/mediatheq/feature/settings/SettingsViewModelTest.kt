@@ -271,19 +271,6 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `the hub offers Manage offline files only without the Downloads entry`() =
-        runTest {
-            signIn()
-            assertThat(content().showsManageOfflineFiles).isFalse()
-
-            library.setNavigation(NavigationPreferences(entries = listOf(MainNavEntry.Home, MainNavEntry.Search)))
-
-            viewModel.uiState.test {
-                assertThat((expectMostRecentItem() as SettingsUiState.Content).showsManageOfflineFiles).isTrue()
-            }
-        }
-
-    @Test
     fun `now playing choices and restoring them reach the preferences`() =
         runTest {
             signIn()

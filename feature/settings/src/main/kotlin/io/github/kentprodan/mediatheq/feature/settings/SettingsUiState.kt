@@ -53,10 +53,7 @@ sealed interface SettingsUiState {
         /** Where downloads can live (#146); empty without a removable volume. */
         val storageLocations: List<StorageLocation> = emptyList(),
         val storageMove: StorageMove = StorageMove.Idle,
-    ) : SettingsUiState {
-        /** Downloads left the navigation: the hub offers "Manage offline files" instead (#122). */
-        val showsManageOfflineFiles: Boolean get() = MainNavEntry.Downloads !in library.navigation.entries
-    }
+    ) : SettingsUiState
 }
 
 /**
