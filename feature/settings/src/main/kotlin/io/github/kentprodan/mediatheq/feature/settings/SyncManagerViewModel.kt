@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -40,6 +41,9 @@ class SyncManagerViewModel
         private val connections = MutableStateFlow<Map<String, Connection>>(emptyMap())
         private val checks = mutableMapOf<String, Job>()
 
+        /** A signed-out account (#150) has nothing to sync until its sign-in in Manage media providers. */
+        private val signedIn = accounts.accounts.map { list -> list.filter { it.signedIn } }
+
         /** No network, or offline mode on: the servers are not asked at all. */
         private val deviceOffline =
             combine(network.online, offlineFilter.forced) { online, forced ->
@@ -52,10 +56,10 @@ class SyncManagerViewModel
 
         /** Asks every server while the sheet shows (each time it opens) and again when the network comes back. */
         private val checkedWhileShown =
-            deviceOffline.onEach { offline -> if (offline == null) accounts.accounts.first().forEach(::check) }
+            deviceOffline.onEach { offline -> if (offline == null) signedIn.first().forEach(::check) }
 
         val uiState: StateFlow<SyncManagerUiState> =
-            combine(accounts.accounts, sync.status, checkedWhileShown, connections) { list, status, offline, checked ->
+            combine(signedIn, sync.status, checkedWhileShown, connections) { list, status, offline, checked ->
                 val cards =
                     list.map { account ->
                         SyncCard(

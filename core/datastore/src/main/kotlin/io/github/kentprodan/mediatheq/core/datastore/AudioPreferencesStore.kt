@@ -26,56 +26,58 @@ class AudioPreferencesStore
         val values: Flow<StoredAudioPreferences> =
             dataStore.data
                 .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-                .map { prefs ->
-                    StoredAudioPreferences(
-                        unmeteredQuality = prefs[UNMETERED_QUALITY],
-                        meteredQuality = prefs[METERED_QUALITY],
-                        streamingCacheGb = prefs[STREAMING_CACHE_GB],
-                        downloadsUnmeteredOnly = prefs[DOWNLOADS_UNMETERED_ONLY],
-                        downloadQuality = prefs[DOWNLOAD_QUALITY],
-                        maxParallelDownloads = prefs[MAX_PARALLEL_DOWNLOADS],
-                        autoDownloads = prefs[AUTO_DOWNLOADS],
-                        removeUnfavorited = prefs[REMOVE_UNFAVORITED],
-                        forceInstantTranscoding = prefs[FORCE_INSTANT_TRANSCODING],
-                        behavior =
-                            StoredPlaybackBehavior(
-                                preservePlayNextOrder = prefs[PB_PRESERVE_PLAY_NEXT],
-                                rewindFirst = prefs[PB_REWIND_FIRST],
-                                circular = prefs[PB_CIRCULAR],
-                                keepPausedOnSkip = prefs[PB_KEEP_PAUSED],
-                                stopRepeatOneOnSkip = prefs[PB_STOP_REPEAT_ONE],
-                                retainPlayerState = prefs[PB_RETAIN_STATE],
-                                weightedShuffle = prefs[PB_WEIGHTED_SHUFFLE],
-                                bluetoothLyrics = prefs[PB_BLUETOOTH_LYRICS],
-                            ),
-                        outside =
-                            StoredOutsideControls(
-                                focusShortAction = prefs[AF_SHORT_ACTION],
-                                focusNoResume = prefs[AF_NO_RESUME],
-                                headsetSingle = prefs[HB_SINGLE],
-                                headsetDouble = prefs[HB_DOUBLE],
-                                headsetTriple = prefs[HB_TRIPLE],
-                                headsetNext = prefs[HB_NEXT],
-                                headsetPrevious = prefs[HB_PREVIOUS],
-                                headsetSlow = prefs[HB_SLOW],
-                                notificationPrevious = prefs[NB_PREVIOUS],
-                                notificationNext = prefs[NB_NEXT],
-                                notificationAction1 = prefs[NB_ACTION_1],
-                                notificationAction2 = prefs[NB_ACTION_2],
-                                notificationAction3 = prefs[NB_ACTION_3],
-                            ),
-                        fadeInMs = prefs[TR_FADE_IN_MS],
-                        fadeOutMs = prefs[TR_FADE_OUT_MS],
-                        autoActions =
-                            StoredAutoActions(
-                                volumePause = prefs[AA_VOLUME_PAUSE],
-                                headphonePlay = prefs[AA_HEADPHONE_PLAY],
-                                bluetoothPlay = prefs[AA_BLUETOOTH_PLAY],
-                                pauseOnTaskRemoval = prefs[AA_PAUSE_TASK_REMOVAL],
-                                ignoreRemoteStop = prefs[AA_IGNORE_REMOTE_STOP],
-                            ),
-                    )
-                }
+                .map(::read)
+
+        /** What [prefs] hold; also run on a restored backup before it is written (#150). */
+        internal fun read(prefs: Preferences) =
+            StoredAudioPreferences(
+                unmeteredQuality = prefs[UNMETERED_QUALITY],
+                meteredQuality = prefs[METERED_QUALITY],
+                streamingCacheGb = prefs[STREAMING_CACHE_GB],
+                downloadsUnmeteredOnly = prefs[DOWNLOADS_UNMETERED_ONLY],
+                downloadQuality = prefs[DOWNLOAD_QUALITY],
+                maxParallelDownloads = prefs[MAX_PARALLEL_DOWNLOADS],
+                autoDownloads = prefs[AUTO_DOWNLOADS],
+                removeUnfavorited = prefs[REMOVE_UNFAVORITED],
+                forceInstantTranscoding = prefs[FORCE_INSTANT_TRANSCODING],
+                behavior =
+                    StoredPlaybackBehavior(
+                        preservePlayNextOrder = prefs[PB_PRESERVE_PLAY_NEXT],
+                        rewindFirst = prefs[PB_REWIND_FIRST],
+                        circular = prefs[PB_CIRCULAR],
+                        keepPausedOnSkip = prefs[PB_KEEP_PAUSED],
+                        stopRepeatOneOnSkip = prefs[PB_STOP_REPEAT_ONE],
+                        retainPlayerState = prefs[PB_RETAIN_STATE],
+                        weightedShuffle = prefs[PB_WEIGHTED_SHUFFLE],
+                        bluetoothLyrics = prefs[PB_BLUETOOTH_LYRICS],
+                    ),
+                outside =
+                    StoredOutsideControls(
+                        focusShortAction = prefs[AF_SHORT_ACTION],
+                        focusNoResume = prefs[AF_NO_RESUME],
+                        headsetSingle = prefs[HB_SINGLE],
+                        headsetDouble = prefs[HB_DOUBLE],
+                        headsetTriple = prefs[HB_TRIPLE],
+                        headsetNext = prefs[HB_NEXT],
+                        headsetPrevious = prefs[HB_PREVIOUS],
+                        headsetSlow = prefs[HB_SLOW],
+                        notificationPrevious = prefs[NB_PREVIOUS],
+                        notificationNext = prefs[NB_NEXT],
+                        notificationAction1 = prefs[NB_ACTION_1],
+                        notificationAction2 = prefs[NB_ACTION_2],
+                        notificationAction3 = prefs[NB_ACTION_3],
+                    ),
+                fadeInMs = prefs[TR_FADE_IN_MS],
+                fadeOutMs = prefs[TR_FADE_OUT_MS],
+                autoActions =
+                    StoredAutoActions(
+                        volumePause = prefs[AA_VOLUME_PAUSE],
+                        headphonePlay = prefs[AA_HEADPHONE_PLAY],
+                        bluetoothPlay = prefs[AA_BLUETOOTH_PLAY],
+                        pauseOnTaskRemoval = prefs[AA_PAUSE_TASK_REMOVAL],
+                        ignoreRemoteStop = prefs[AA_IGNORE_REMOTE_STOP],
+                    ),
+            )
 
         /** Stores the streaming quality [name] for [metered] networks, or for unmetered ones. */
         suspend fun setStreamingQuality(

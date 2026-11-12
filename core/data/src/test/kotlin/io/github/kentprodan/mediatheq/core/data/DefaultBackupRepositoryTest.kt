@@ -7,6 +7,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.getOrNull
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
+import io.github.kentprodan.mediatheq.core.datastore.AudioOutputStore
+import io.github.kentprodan.mediatheq.core.datastore.AudioPreferencesStore
+import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
 import io.github.kentprodan.mediatheq.core.datastore.SavedAccount
 import io.github.kentprodan.mediatheq.core.datastore.SettingsBackupStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
@@ -41,7 +44,13 @@ class DefaultBackupRepositoryTest {
     private val repository =
         DefaultBackupRepository(
             RuntimeEnvironment.getApplication(),
-            SettingsBackupStore(library, audio),
+            SettingsBackupStore(
+                library,
+                audio,
+                LibraryPreferencesStore(library),
+                AudioPreferencesStore(audio),
+                AudioOutputStore(audio),
+            ),
             accounts,
             databases,
             ClientInfo("mediatheQ", "Pixel 9", "1.2.3"),
@@ -132,6 +141,22 @@ class DefaultBackupRepositoryTest {
             assertThat(repository.read(uri("broken.json"))).isEqualTo(BackupCheck.Invalid)
             assertThat(repository.restore(uri("broken.json"))).isEqualTo(BackupRestore.Failed(BackupCheck.Invalid))
             assertThat(library.current[stringPreferencesKey("theme_mode")]).isEqualTo("Dark")
+        }
+
+    @Test
+    fun `a setting of a type this version reads differently restores nothing`() =
+        runTest(dispatcher) {
+            file(
+                "typed.json",
+                """{"format": 1, "created": "2026-01-01T00:00:00Z",
+                    "settings": {"library": {"theme_mode": {"type": "int", "value": 3}}},
+                    "accounts": [{"provider": "jellyfin", "serverId": "s2", "address": "https://office.org", "userId": "u9"}]}""",
+            )
+            library.edit { it[stringPreferencesKey("theme_mode")] = "Dark" }
+
+            assertThat(repository.restore(uri("typed.json"))).isEqualTo(BackupRestore.Failed(BackupCheck.Invalid))
+            assertThat(library.current[stringPreferencesKey("theme_mode")]).isEqualTo("Dark")
+            assertThat(accounts.saved.first()).isEmpty()
         }
 
     @Test

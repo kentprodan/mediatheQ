@@ -8,8 +8,10 @@ import io.github.kentprodan.mediatheq.core.database.AccountDatabases
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.SavedAccount
 import io.github.kentprodan.mediatheq.core.datastore.SettingsBackupStore
+import io.github.kentprodan.mediatheq.core.datastore.WrongTypeException
 import io.github.kentprodan.mediatheq.core.server.ClientInfo
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -67,17 +69,42 @@ internal class DefaultBackupRepository
             return loaded.backup?.let { BackupCheck.Valid(it.summary()) } ?: BackupCheck.Invalid
         }
 
-        override suspend fun restore(uri: String): BackupRestore {
-            val loaded = load(uri) ?: return BackupRestore.Failed(BackupCheck.Unreadable)
-            val backup = loaded.backup ?: return BackupRestore.Failed(BackupCheck.Invalid)
-            return try {
-                settings.replace(backup.settings)
-                val saved = accounts.saved.first()
-                backup.accounts
-                    .filter { it.provider == JELLYFIN }
-                    .filter { new -> saved.none { it.serverId == new.serverId && it.userId == new.userId } }
-                    .distinctBy { it.serverId to it.userId }
-                    .forEach {
+        // Not cancelled by leaving the page: a restore stopped between the two settings files would be half applied.
+        override suspend fun restore(uri: String): BackupRestore =
+            withContext(NonCancellable) {
+                val loaded = load(uri) ?: return@withContext BackupRestore.Failed(BackupCheck.Unreadable)
+                val backup = loaded.backup ?: return@withContext BackupRestore.Failed(BackupCheck.Invalid)
+                try {
+                    settings.replace(backup.settings)
+                } catch (_: WrongTypeException) {
+                    return@withContext BackupRestore.Failed(BackupCheck.Invalid)
+                } catch (_: IOException) {
+                    return@withContext BackupRestore.NotSaved
+                }
+                addSignedOut(backup.accounts)
+                // The settings are in: an account that could not be saved shows as one less to sign in to.
+                val toSignIn =
+                    try {
+                        accounts.saved.first().count { !it.signedIn }
+                    } catch (_: IOException) {
+                        0
+                    }
+                BackupRestore.Restored(toSignIn)
+            }
+
+        private suspend fun addSignedOut(restored: List<BackupAccount>) {
+            val saved =
+                try {
+                    accounts.saved.first()
+                } catch (_: IOException) {
+                    return
+                }
+            restored
+                .filter { it.provider == JELLYFIN }
+                .filter { new -> saved.none { it.serverId == new.serverId && it.userId == new.userId } }
+                .distinctBy { it.serverId to it.userId }
+                .forEach {
+                    try {
                         // A new database name, never the open one: the active account stays as it is.
                         accounts.saveSignedOut(
                             SavedAccount(
@@ -89,11 +116,10 @@ internal class DefaultBackupRepository
                                 it.userName,
                             ),
                         )
+                    } catch (_: IOException) {
+                        // Skipped; the next restore of this backup adds it.
                     }
-                BackupRestore.Restored(accounts.saved.first().count { !it.signedIn })
-            } catch (_: IOException) {
-                BackupRestore.NotSaved
-            }
+                }
         }
 
         /** The file's backup (`null` inside when it is not one), or `null` when it cannot be read. */

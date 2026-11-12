@@ -40,7 +40,8 @@ class SyncManagerViewModelTest {
     private val record = SyncRecord(clock.now - 5.minutes, null, 3120, 24.seconds)
     private val home = Account("mediatheq.db", "Home", "Ana", "http://nas:8096", active = true, lastSync = record)
     private val office = Account("mediatheq-2.db", "Office", "Bo", "https://office.org", active = false)
-    private val accounts = FakeAccountRepository(listOf(home, office))
+    private val restored = Account("mediatheq-3.db", "Cabin", "Cy", "http://cabin", active = false, signedIn = false)
+    private val accounts = FakeAccountRepository(listOf(home, office, restored))
     private val sync = FakeLibrarySyncRepository()
     private val session = FakeSessionRepository().apply { serverCheck = SUPPORTED }
     private val network = FakeNetworkMonitor()
@@ -63,7 +64,7 @@ class SyncManagerViewModelTest {
     }
 
     @Test
-    fun `idle shows each account's last sync, read back after a restart`() =
+    fun `idle shows each signed-in account's last sync, read back after a restart`() =
         runTest {
             val content = content()
 

@@ -34,17 +34,24 @@ class SettingsBackupStore
     constructor(
         @param:LibraryPrefs private val library: DataStore<Preferences>,
         @param:AudioPrefs private val audio: DataStore<Preferences>,
+        private val libraryStore: LibraryPreferencesStore,
+        private val audioStore: AudioPreferencesStore,
+        private val outputStore: AudioOutputStore,
     ) {
         /** Every setting now. Throws `IOException` when a file cannot be read. */
         suspend fun snapshot(): SettingsSnapshot = SettingsSnapshot(library.values(), audio.values())
 
         /**
          * Makes the settings exactly [snapshot]: anything not in it goes back to its default. Both files or neither: when
-         * the second write fails the first is written back. Throws `IOException` when a file cannot be written.
+         * the second write fails the first is written back. Throws `IOException` when a file cannot be written, and
+         * [WrongTypeException] (nothing written) when a value has a type this version reads differently.
          */
         suspend fun replace(snapshot: SettingsSnapshot) {
             val oldLibrary = library.data.first()
-            library.edit { it.replaceWith(snapshot.library) }
+            library.edit {
+                it.replaceWith(snapshot.library)
+                it.check { prefs -> libraryStore.read(prefs) }
+            }
             try {
                 audio.edit { prefs ->
                     prefs.replaceWith(snapshot.audio)
@@ -53,6 +60,10 @@ class SettingsBackupStore
                     if (current != null && current != AudioOutputStore.PHONE && current !in prefs[OUTPUTS].orEmpty()) {
                         prefs.remove(CURRENT_OUTPUT)
                     }
+                    prefs.check {
+                        audioStore.read(it)
+                        outputStore.read(it)
+                    }
                 }
             } catch (e: Exception) {
                 library.edit { prefs ->
@@ -60,6 +71,18 @@ class SettingsBackupStore
                     prefs += oldLibrary
                 }
                 throw e
+            }
+        }
+
+        /**
+         * Reads [prefs] as the stores do, inside the edit: a value of another type (a hand-edited file, a key whose type a
+         * newer version changed) would otherwise be written and crash every reader of it.
+         */
+        private fun MutablePreferences.check(read: (Preferences) -> Unit) {
+            try {
+                read(this)
+            } catch (e: ClassCastException) {
+                throw WrongTypeException(e)
             }
         }
 
@@ -125,3 +148,8 @@ class SettingsBackupStore
             private val OUTPUTS = stringSetPreferencesKey("outputs")
         }
     }
+
+/** A restored setting has a type this version of the app reads differently; nothing was written. */
+class WrongTypeException(
+    cause: ClassCastException,
+) : IllegalArgumentException(cause)

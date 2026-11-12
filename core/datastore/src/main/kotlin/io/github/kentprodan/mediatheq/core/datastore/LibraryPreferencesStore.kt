@@ -30,175 +30,177 @@ class LibraryPreferencesStore
         /** Stored values; empty preferences when the file cannot be read. */
         val values: Flow<StoredLibraryPreferences> =
             data
-                .map { prefs ->
-                    StoredLibraryPreferences(
-                        albumColumns = prefs[ALBUM_COLUMNS],
-                        genresGrid = prefs[GENRES_GRID],
-                        dynamicColor = prefs[DYNAMIC_COLOR],
-                        theme =
-                            StoredTheme(
-                                mode = prefs[THEME_MODE],
-                                colorSource = prefs[COLOR_SOURCE],
-                                customSeed = prefs[CUSTOM_SEED],
-                                nowPlayingColors = prefs[NOW_PLAYING_COLORS],
-                                ignoreSurfaces = prefs[IGNORE_SURFACES],
-                                instantColors = prefs[INSTANT_COLORS],
-                                font = prefs[FONT],
-                            ),
-                        ratingMode = prefs[RATING_MODE],
-                        navigation =
-                            StoredNavigation(
-                                entries = prefs[NAV_ENTRIES]?.split(LIST_SEPARATOR),
-                                portraitStyle = prefs[NAV_PORTRAIT_STYLE],
-                                landscapeStyle = prefs[NAV_LANDSCAPE_STYLE],
-                                transparencyPercent = prefs[NAV_TRANSPARENCY],
-                                slowStartMessages = prefs[SLOW_START_MESSAGES],
-                                trackAction = prefs[TRACK_ACTION],
-                                expandPlayer = prefs[EXPAND_PLAYER],
-                            ),
-                        mediaLists =
-                            StoredMediaLists(
-                                showItemCounts = prefs[ML_ITEM_COUNTS],
-                                topButtonStyle = prefs[ML_TOP_BUTTON_STYLE],
-                                hiddenTopButtons =
-                                    prefs[ML_HIDDEN_TOP_BUTTONS]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
-                                invertedSortArrows = prefs[ML_INVERTED_SORT_ARROWS],
-                                hideBackButton = prefs[ML_HIDE_BACK],
-                                trackInfo = prefs[ML_TRACK_INFO],
-                                secondTrackInfo = prefs[ML_SECOND_TRACK_INFO],
-                                centerGridText = prefs[ML_CENTER_GRID_TEXT],
-                                favoriteOverlay = prefs[ML_FAVORITE_OVERLAY],
-                                offlineOverlay = prefs[ML_OFFLINE_OVERLAY],
-                                swipeRight = prefs[ML_SWIPE_RIGHT],
-                                swipeLeft = prefs[ML_SWIPE_LEFT],
-                            ),
-                        nowPlaying =
-                            StoredNowPlaying(
-                                floatingMiniPlayer = prefs[NP_FLOATING],
-                                miniSwipeToSkip = prefs[NP_MINI_SWIPE],
-                                miniProgress = prefs[NP_MINI_PROGRESS],
-                                background = prefs[NP_BACKGROUND],
-                                progress = prefs[NP_PROGRESS],
-                                fallback = prefs[NP_FALLBACK],
-                                showRating = prefs[NP_SHOW_RATING],
-                                coverTap = prefs[NP_COVER_TAP],
-                                coverSwipe = prefs[NP_COVER_SWIPE],
-                                playButtonWhenPaused = prefs[NP_PLAY_BUTTON],
-                            ),
-                        home =
-                            StoredHome(
-                                order = prefs[HOME_ORDER]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
-                                hidden = prefs[HOME_HIDDEN]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
-                            ),
-                        libraryPage =
-                            StoredLibraryPage(
-                                shortcuts = prefs[LP_SHORTCUTS]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
-                                style = prefs[LP_STYLE],
-                                columns = prefs[LP_COLUMNS],
-                                landscapeColumns = prefs[LP_LANDSCAPE_COLUMNS],
-                                spacing = prefs[LP_SPACING],
-                            ),
-                        albumPage =
-                            StoredAlbumPage(
-                                headerBackground = prefs[AP_BACKGROUND],
-                                showQuality = prefs[AP_QUALITY],
-                                showRatingBar = prefs[AP_RATING],
-                                hiddenButtons =
-                                    prefs[AP_HIDDEN_BUTTONS]
-                                        ?.split(
-                                            LIST_SEPARATOR,
-                                        )?.filter { it.isNotEmpty() },
-                                sectionOrder =
-                                    prefs[AP_SECTIONS]
-                                        ?.split(
-                                            LIST_SEPARATOR,
-                                        )?.filter { it.isNotEmpty() },
-                                showMoreFromArtist = prefs[AP_MORE],
-                                moreAlbumsSort = prefs[AP_MORE_SORT],
-                                alwaysShowTrackArtists = prefs[AP_TRACK_ARTISTS],
-                                showTrackNumbers = prefs[AP_TRACK_NUMBERS],
-                                showTrackThumbnails = prefs[AP_TRACK_THUMBNAILS],
-                                multilineTrackTitles = prefs[AP_MULTILINE],
-                                showAbout = prefs[AP_ABOUT],
-                            ),
-                        artistPage =
-                            StoredArtistPage(
-                                headerBackground = prefs[ARP_BACKGROUND],
-                                hiddenButtons =
-                                    prefs[ARP_HIDDEN_BUTTONS]
-                                        ?.split(
-                                            LIST_SEPARATOR,
-                                        )?.filter { it.isNotEmpty() },
-                                playAction = prefs[ARP_PLAY],
-                                sectionOrder = prefs[ARP_SECTIONS]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
-                                albumsSort = prefs[ARP_SORT],
-                                albumColumns = prefs[ARP_COLUMNS],
-                                landscapeAlbumColumns = prefs[ARP_LANDSCAPE_COLUMNS],
-                                showAppearsOn = prefs[ARP_APPEARS_ON],
-                                showTopTracks = prefs[ARP_TOP_TRACKS],
-                                topTracksCount = prefs[ARP_TOP_TRACKS_COUNT],
-                                showAbout = prefs[ARP_ABOUT],
-                                dynamicColors = prefs[ARP_DYNAMIC_COLORS],
-                            ),
-                        genrePage =
-                            StoredGenrePage(
-                                headerBackground = prefs[GP_BACKGROUND],
-                                hiddenButtons =
-                                    prefs[GP_HIDDEN_BUTTONS]
-                                        ?.split(
-                                            LIST_SEPARATOR,
-                                        )?.filter { it.isNotEmpty() },
-                                sectionOrder =
-                                    prefs[GP_SECTIONS]
-                                        ?.split(
-                                            LIST_SEPARATOR,
-                                        )?.filter { it.isNotEmpty() },
-                                showAlbums = prefs[GP_ALBUMS],
-                                showArtists = prefs[GP_ARTISTS],
-                                showAlbumArtists = prefs[GP_ALBUM_ARTISTS],
-                                showTopTracks = prefs[GP_TOP_TRACKS],
-                                topTracksCount = prefs[GP_TOP_TRACKS_COUNT],
-                                dynamicColors = prefs[GP_DYNAMIC_COLORS],
-                            ),
-                        playlistPage =
-                            StoredPlaylistPage(
-                                headerBackground = prefs[PP_BACKGROUND],
-                                hiddenButtons =
-                                    prefs[PP_HIDDEN_BUTTONS]
-                                        ?.split(
-                                            LIST_SEPARATOR,
-                                        )?.filter { it.isNotEmpty() },
-                                dynamicColors = prefs[PP_DYNAMIC_COLORS],
-                            ),
-                        searchPage =
-                            StoredSearchPage(
-                                singleLineChips = prefs[SP_SINGLE_LINE_CHIPS],
-                                showFavorite = prefs[SP_SHOW_FAVORITE],
-                                trackAction = prefs[SP_TRACK_ACTION],
-                                sort = prefs[SP_SORT],
-                            ),
-                        advanced =
-                            StoredAdvanced(
-                                keepScreenOn = prefs[ADV_KEEP_SCREEN_ON],
-                                orientation = prefs[ADV_ORIENTATION],
-                                corners = prefs[ADV_CORNERS],
-                                showTrackNumber = prefs[ADV_TRACK_NUMBER],
-                                hideStatusBar = prefs[ADV_HIDE_STATUS_BAR],
-                            ),
-                        offlineMode = prefs[OFFLINE_MODE],
-                        autoOffline = prefs[AUTO_OFFLINE],
-                        imagePersistent = prefs[IMG_PERSISTENT],
-                        imageWifiOnly = prefs[IMG_WIFI_ONLY],
-                        imageHighQuality = prefs[IMG_HIGH_QUALITY],
-                        qualityDetail = prefs[QUALITY_DETAIL],
-                        sorts =
-                            prefs
-                                .asMap()
-                                .filterKeys { it.name.startsWith(SORT_PREFIX) }
-                                .map { (key, value) -> key.name.removePrefix(SORT_PREFIX) to value.toString() }
-                                .toMap(),
-                    )
-                }
+                .map(::read)
+
+        /** What [prefs] hold; also run on a restored backup before it is written (#150). */
+        internal fun read(prefs: Preferences) =
+            StoredLibraryPreferences(
+                albumColumns = prefs[ALBUM_COLUMNS],
+                genresGrid = prefs[GENRES_GRID],
+                dynamicColor = prefs[DYNAMIC_COLOR],
+                theme =
+                    StoredTheme(
+                        mode = prefs[THEME_MODE],
+                        colorSource = prefs[COLOR_SOURCE],
+                        customSeed = prefs[CUSTOM_SEED],
+                        nowPlayingColors = prefs[NOW_PLAYING_COLORS],
+                        ignoreSurfaces = prefs[IGNORE_SURFACES],
+                        instantColors = prefs[INSTANT_COLORS],
+                        font = prefs[FONT],
+                    ),
+                ratingMode = prefs[RATING_MODE],
+                navigation =
+                    StoredNavigation(
+                        entries = prefs[NAV_ENTRIES]?.split(LIST_SEPARATOR),
+                        portraitStyle = prefs[NAV_PORTRAIT_STYLE],
+                        landscapeStyle = prefs[NAV_LANDSCAPE_STYLE],
+                        transparencyPercent = prefs[NAV_TRANSPARENCY],
+                        slowStartMessages = prefs[SLOW_START_MESSAGES],
+                        trackAction = prefs[TRACK_ACTION],
+                        expandPlayer = prefs[EXPAND_PLAYER],
+                    ),
+                mediaLists =
+                    StoredMediaLists(
+                        showItemCounts = prefs[ML_ITEM_COUNTS],
+                        topButtonStyle = prefs[ML_TOP_BUTTON_STYLE],
+                        hiddenTopButtons =
+                            prefs[ML_HIDDEN_TOP_BUTTONS]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
+                        invertedSortArrows = prefs[ML_INVERTED_SORT_ARROWS],
+                        hideBackButton = prefs[ML_HIDE_BACK],
+                        trackInfo = prefs[ML_TRACK_INFO],
+                        secondTrackInfo = prefs[ML_SECOND_TRACK_INFO],
+                        centerGridText = prefs[ML_CENTER_GRID_TEXT],
+                        favoriteOverlay = prefs[ML_FAVORITE_OVERLAY],
+                        offlineOverlay = prefs[ML_OFFLINE_OVERLAY],
+                        swipeRight = prefs[ML_SWIPE_RIGHT],
+                        swipeLeft = prefs[ML_SWIPE_LEFT],
+                    ),
+                nowPlaying =
+                    StoredNowPlaying(
+                        floatingMiniPlayer = prefs[NP_FLOATING],
+                        miniSwipeToSkip = prefs[NP_MINI_SWIPE],
+                        miniProgress = prefs[NP_MINI_PROGRESS],
+                        background = prefs[NP_BACKGROUND],
+                        progress = prefs[NP_PROGRESS],
+                        fallback = prefs[NP_FALLBACK],
+                        showRating = prefs[NP_SHOW_RATING],
+                        coverTap = prefs[NP_COVER_TAP],
+                        coverSwipe = prefs[NP_COVER_SWIPE],
+                        playButtonWhenPaused = prefs[NP_PLAY_BUTTON],
+                    ),
+                home =
+                    StoredHome(
+                        order = prefs[HOME_ORDER]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
+                        hidden = prefs[HOME_HIDDEN]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
+                    ),
+                libraryPage =
+                    StoredLibraryPage(
+                        shortcuts = prefs[LP_SHORTCUTS]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
+                        style = prefs[LP_STYLE],
+                        columns = prefs[LP_COLUMNS],
+                        landscapeColumns = prefs[LP_LANDSCAPE_COLUMNS],
+                        spacing = prefs[LP_SPACING],
+                    ),
+                albumPage =
+                    StoredAlbumPage(
+                        headerBackground = prefs[AP_BACKGROUND],
+                        showQuality = prefs[AP_QUALITY],
+                        showRatingBar = prefs[AP_RATING],
+                        hiddenButtons =
+                            prefs[AP_HIDDEN_BUTTONS]
+                                ?.split(
+                                    LIST_SEPARATOR,
+                                )?.filter { it.isNotEmpty() },
+                        sectionOrder =
+                            prefs[AP_SECTIONS]
+                                ?.split(
+                                    LIST_SEPARATOR,
+                                )?.filter { it.isNotEmpty() },
+                        showMoreFromArtist = prefs[AP_MORE],
+                        moreAlbumsSort = prefs[AP_MORE_SORT],
+                        alwaysShowTrackArtists = prefs[AP_TRACK_ARTISTS],
+                        showTrackNumbers = prefs[AP_TRACK_NUMBERS],
+                        showTrackThumbnails = prefs[AP_TRACK_THUMBNAILS],
+                        multilineTrackTitles = prefs[AP_MULTILINE],
+                        showAbout = prefs[AP_ABOUT],
+                    ),
+                artistPage =
+                    StoredArtistPage(
+                        headerBackground = prefs[ARP_BACKGROUND],
+                        hiddenButtons =
+                            prefs[ARP_HIDDEN_BUTTONS]
+                                ?.split(
+                                    LIST_SEPARATOR,
+                                )?.filter { it.isNotEmpty() },
+                        playAction = prefs[ARP_PLAY],
+                        sectionOrder = prefs[ARP_SECTIONS]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
+                        albumsSort = prefs[ARP_SORT],
+                        albumColumns = prefs[ARP_COLUMNS],
+                        landscapeAlbumColumns = prefs[ARP_LANDSCAPE_COLUMNS],
+                        showAppearsOn = prefs[ARP_APPEARS_ON],
+                        showTopTracks = prefs[ARP_TOP_TRACKS],
+                        topTracksCount = prefs[ARP_TOP_TRACKS_COUNT],
+                        showAbout = prefs[ARP_ABOUT],
+                        dynamicColors = prefs[ARP_DYNAMIC_COLORS],
+                    ),
+                genrePage =
+                    StoredGenrePage(
+                        headerBackground = prefs[GP_BACKGROUND],
+                        hiddenButtons =
+                            prefs[GP_HIDDEN_BUTTONS]
+                                ?.split(
+                                    LIST_SEPARATOR,
+                                )?.filter { it.isNotEmpty() },
+                        sectionOrder =
+                            prefs[GP_SECTIONS]
+                                ?.split(
+                                    LIST_SEPARATOR,
+                                )?.filter { it.isNotEmpty() },
+                        showAlbums = prefs[GP_ALBUMS],
+                        showArtists = prefs[GP_ARTISTS],
+                        showAlbumArtists = prefs[GP_ALBUM_ARTISTS],
+                        showTopTracks = prefs[GP_TOP_TRACKS],
+                        topTracksCount = prefs[GP_TOP_TRACKS_COUNT],
+                        dynamicColors = prefs[GP_DYNAMIC_COLORS],
+                    ),
+                playlistPage =
+                    StoredPlaylistPage(
+                        headerBackground = prefs[PP_BACKGROUND],
+                        hiddenButtons =
+                            prefs[PP_HIDDEN_BUTTONS]
+                                ?.split(
+                                    LIST_SEPARATOR,
+                                )?.filter { it.isNotEmpty() },
+                        dynamicColors = prefs[PP_DYNAMIC_COLORS],
+                    ),
+                searchPage =
+                    StoredSearchPage(
+                        singleLineChips = prefs[SP_SINGLE_LINE_CHIPS],
+                        showFavorite = prefs[SP_SHOW_FAVORITE],
+                        trackAction = prefs[SP_TRACK_ACTION],
+                        sort = prefs[SP_SORT],
+                    ),
+                advanced =
+                    StoredAdvanced(
+                        keepScreenOn = prefs[ADV_KEEP_SCREEN_ON],
+                        orientation = prefs[ADV_ORIENTATION],
+                        corners = prefs[ADV_CORNERS],
+                        showTrackNumber = prefs[ADV_TRACK_NUMBER],
+                        hideStatusBar = prefs[ADV_HIDE_STATUS_BAR],
+                    ),
+                offlineMode = prefs[OFFLINE_MODE],
+                autoOffline = prefs[AUTO_OFFLINE],
+                imagePersistent = prefs[IMG_PERSISTENT],
+                imageWifiOnly = prefs[IMG_WIFI_ONLY],
+                imageHighQuality = prefs[IMG_HIGH_QUALITY],
+                qualityDetail = prefs[QUALITY_DETAIL],
+                sorts =
+                    prefs
+                        .asMap()
+                        .filterKeys { it.name.startsWith(SORT_PREFIX) }
+                        .map { (key, value) -> key.name.removePrefix(SORT_PREFIX) to value.toString() }
+                        .toMap(),
+            )
 
         suspend fun setAlbumColumns(columns: Int) {
             dataStore.edit { it[ALBUM_COLUMNS] = columns }
