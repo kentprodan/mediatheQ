@@ -16,12 +16,13 @@ class ChangelogResourceTest {
     }
 
     @Test
-    fun `every version has a name and sections with items, the newest first`() {
+    fun `every release has sections with items, the newest first`() {
         val versions = parseChangelog(bundled)
 
         assertThat(versions).isNotEmpty()
         versions.forEach { version ->
-            assertThat(version.sections).isNotEmpty()
+            // Right after a release, Unreleased is still empty.
+            if (!version.unreleased) assertThat(version.sections).isNotEmpty()
             version.sections.forEach { assertThat(it.items).isNotEmpty() }
         }
         val released = versions.mapNotNull { it.date }

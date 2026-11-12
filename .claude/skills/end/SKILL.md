@@ -12,6 +12,9 @@ Talk to the owner in Romanian; PR text in English. Questions via AskUserQuestion
 
 From the branch name `issue-<n>-...`. Read the issue again (`gh issue view <n>`). If not on an issue branch, stop.
 
+Changelog (#151): if the issue changes something a user can see, add one plain line per change under `## [Unreleased]` in `CHANGELOG.md` (`### Added`, `### Changed` or `### Fixed`; create the heading if missing) and commit it. Internal-only work (tests, refactors, docs, CI) adds nothing. The app shows this file in Settings -> About -> Changelog.
+A release renames `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD` (the new `versionName`) and adds an empty `## [Unreleased]` above it.
+
 ## 2. Run the checks
 
 Run every task that exists in the project (skip ones not set up yet and say so):
@@ -55,6 +58,7 @@ PR body (English):
 - **What**: 3-6 bullets
 - **Tests**: which were added
 - **Screenshots changed**: list or "none"
+- **Changelog**: the lines added to `CHANGELOG.md`, or "none (internal)"
 - **Decisions**: ADRs added/changed or "none"
 - **Manual tests**: the test issue (`#<m>`) or "none"
 
