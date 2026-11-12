@@ -23,6 +23,12 @@ interface DownloadStorageRepository {
 
     val move: StateFlow<StorageMove>
 
+    /** The user paused every download (Manage offline files, #149); until resumed or the next app start. */
+    val pausedByUser: StateFlow<Boolean>
+
+    /** Pauses or resumes every download; a missing card or a move keeps them paused either way. Main thread. */
+    fun setPausedByUser(paused: Boolean)
+
     /** Copies the downloads to [location]; [StorageMove.Done] means the copy is checked and the app must restart. */
     fun moveTo(location: StorageLocation)
 

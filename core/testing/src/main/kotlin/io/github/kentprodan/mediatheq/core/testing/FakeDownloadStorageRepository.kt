@@ -14,6 +14,11 @@ class FakeDownloadStorageRepository(
     override var locationName: String? = null
     override val move = MutableStateFlow<StorageMove>(StorageMove.Idle)
     val moves = mutableListOf<StorageLocation>()
+    override val pausedByUser = MutableStateFlow(false)
+
+    override fun setPausedByUser(paused: Boolean) {
+        pausedByUser.value = paused
+    }
 
     override fun moveTo(location: StorageLocation) {
         moves += location

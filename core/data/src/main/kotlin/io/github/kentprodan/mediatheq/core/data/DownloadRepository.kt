@@ -50,12 +50,36 @@ interface DownloadRepository {
         origin: DownloadOrigin,
     )
 
+    /** The user paused every download (#149); downloads resume at the next app start. */
+    val paused: Flow<Boolean>
+
+    /** Pauses every download (#149). Main thread. */
+    fun pauseAll()
+
+    /** Resumes the downloads the user paused (#149). Main thread. */
+    fun resumeAll()
+
+    /**
+     * What Cleanup would delete now (#149): failed downloads of the active server and data in the download cache that
+     * belongs to no download of any server. Never a completed or waiting download.
+     */
+    suspend fun cleanupPreview(): CleanupPreview
+
+    /** Deletes what [cleanupPreview] describes, chosen again now; a download that started meanwhile is kept. */
+    suspend fun cleanup()
+
     /**
      * True when [id] is fully on the device. Safe from any thread; right after app start it may read the disk, so call
      * it off the main thread (the player asks on its loader thread).
      */
     fun isDownloaded(id: MediaId): Boolean
 }
+
+/** What Cleanup would delete: [failed] downloads, and [bytes] with their partial copies and the leftover data. */
+data class CleanupPreview(
+    val failed: Int,
+    val bytes: Long,
+)
 
 /** One download: its track and where it is. */
 data class TrackDownload(

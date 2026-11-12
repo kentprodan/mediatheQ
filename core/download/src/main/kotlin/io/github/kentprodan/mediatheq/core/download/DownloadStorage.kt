@@ -72,11 +72,18 @@ internal class DownloadStorage
 
         private fun isMounted() = path == null || volumes.isMounted(root)
 
+        private val pausedByUserState = MutableStateFlow(false)
+        override val pausedByUser: StateFlow<Boolean> = pausedByUserState.asStateFlow()
+
+        override fun setPausedByUser(paused: Boolean) {
+            pausedByUserState.value = paused
+        }
+
         init {
             scope.launch { volumes.changes.collect { availableState.value = isMounted() } }
             // Dispatched, not immediate: the manager may be under construction right now (it needs this class).
             scope.launch(Dispatchers.Main) {
-                combine(available, move) { _, _ -> holdsDownloads() }
+                combine(available, move, pausedByUser) { _, _, _ -> holdsDownloads() }
                     .distinctUntilChanged()
                     .collect { hold ->
                         // A new manager starts paused, and the service resumes it when it starts (after the local
@@ -98,9 +105,9 @@ internal class DownloadStorage
 
         @Volatile private var serviceRunning = false
 
-        /** Downloads stay paused: the card is out, or a move is copying or done (the app restarts). */
+        /** Downloads stay paused: the user paused them, the card is out, or a move is copying or done (the app restarts). */
         private fun holdsDownloads() =
-            !available.value || move.value is StorageMove.Moving || move.value == StorageMove.Done
+            pausedByUser.value || !available.value || move.value is StorageMove.Moving || move.value == StorageMove.Done
 
         /** The download service started (it has just resumed the manager) or stopped; main thread. */
         fun onServiceRunning(running: Boolean) {

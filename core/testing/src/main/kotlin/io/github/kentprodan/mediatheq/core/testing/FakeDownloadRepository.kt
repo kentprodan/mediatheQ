@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.testing
 
+import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
@@ -18,6 +19,28 @@ class FakeDownloadRepository(
 ) : DownloadRepository {
     override val downloads = MutableStateFlow(initial)
     override val freeBytes = MutableStateFlow(0L)
+    override val paused = MutableStateFlow(false)
+
+    /** What [cleanupPreview] answers; [cleanup] counts its calls and drops the failed downloads. */
+    var preview = CleanupPreview(0, 0)
+    var cleanups = 0
+        private set
+
+    override fun pauseAll() {
+        paused.value = true
+    }
+
+    override fun resumeAll() {
+        paused.value = false
+    }
+
+    override suspend fun cleanupPreview() = preview
+
+    override suspend fun cleanup() {
+        cleanups++
+        downloads.update { current -> current.filterNot { it.state == DownloadState.Failed } }
+    }
+
     override val completedIds =
         downloads
             .map { list -> list.filter { it.state == DownloadState.Completed }.mapTo(HashSet()) { it.track.id } }
