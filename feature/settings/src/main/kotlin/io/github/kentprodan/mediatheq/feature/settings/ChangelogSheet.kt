@@ -83,7 +83,8 @@ private fun VersionBlock(
     onToggle: () -> Unit,
 ) {
     Column {
-        val state = stringResource(if (open) R.string.licenses_expanded else R.string.licenses_collapsed)
+        val state =
+            stringResource(if (open) R.string.settings_changelog_expanded else R.string.settings_changelog_collapsed)
         ListItem(
             onClick = onToggle,
             // On the sheet's own color.

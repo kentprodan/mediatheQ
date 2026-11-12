@@ -25,6 +25,8 @@ class ChangelogResourceTest {
             if (!version.unreleased) assertThat(version.sections).isNotEmpty()
             version.sections.forEach { assertThat(it.items).isNotEmpty() }
         }
+        // The sheet keys its rows by name: a version listed twice would crash it.
+        assertThat(versions.map { it.name }).containsNoDuplicates()
         val released = versions.mapNotNull { it.date }
         assertThat(released).isInStrictOrder(reverseOrder<String>())
     }

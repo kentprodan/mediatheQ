@@ -73,6 +73,29 @@ class ChangelogTest {
     }
 
     @Test
+    fun `every second-level heading starts a version, also a yanked or linked one`() {
+        val text =
+            """
+            ## [1.0.0](https://example.org) - 2026-02-01
+            ### Added
+            - a
+            ## [0.0.5] - 2014-02-25 [YANKED]
+            ### Fixed
+            - b
+            ## Something odd
+            ### Fixed
+            - c
+            """.trimIndent()
+
+        assertThat(parseChangelog(text).map { Triple(it.name, it.date, it.sections.single().items) })
+            .containsExactly(
+                Triple("1.0.0", "2026-02-01", listOf("a")),
+                Triple("0.0.5", "2014-02-25", listOf("b")),
+                Triple("Something odd", null, listOf("c")),
+            ).inOrder()
+    }
+
+    @Test
     fun `an empty file has no versions`() {
         assertThat(parseChangelog("")).isEmpty()
         assertThat(parseChangelog("# Changelog\n\nNothing yet.")).isEmpty()

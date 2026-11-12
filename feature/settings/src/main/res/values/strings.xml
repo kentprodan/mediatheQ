@@ -278,6 +278,9 @@
     <string name="settings_changelog">Changelog</string>
     <string name="settings_changelog_summary">What changed in each version</string>
     <string name="settings_changelog_unreleased">Unreleased</string>
+    <string name="settings_changelog_expanded">Changes shown</string>
+    <string name="settings_changelog_collapsed">Changes hidden</string>
+    <string name="settings_version_copied">Version copied</string>
     <string name="settings_changelog_empty">No changes listed yet.</string>
     <string name="settings_changelog_item">• %1$s</string>
     <string name="settings_source">Source code</string>
@@ -289,7 +292,7 @@
     <string name="settings_privacy_data">Your data</string>
     <string name="settings_privacy_data_text">Your library, settings, downloads and logs stay on this phone. The app talks only to the media servers you add: it plays from them and tells them what you play, your favorites and your ratings, like any app of that server.</string>
     <string name="settings_privacy_sign_in">Sign-in</string>
-    <string name="settings_privacy_sign_in_text">Access tokens are encrypted with a key kept in the Android Keystore. They never go into a backup: Android backup is off, and a mediatheQ backup holds your settings and server addresses only.</string>
+    <string name="settings_privacy_sign_in_text">Access tokens are encrypted with a key kept in the Android Keystore. They never go into a backup: Android backup is off, and a mediatheQ backup holds your settings and your accounts\' server addresses and user names, never a token or a password.</string>
     <string name="settings_privacy_connections">Connections</string>
     <string name="settings_privacy_connections_text">Unencrypted (HTTP) connections are allowed only to local addresses: this phone, your home network and Tailscale. Every other server must use HTTPS.</string>
     <string name="settings_privacy_other">Other services</string>

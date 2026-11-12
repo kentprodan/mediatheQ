@@ -1,6 +1,8 @@
 package io.github.kentprodan.mediatheq.feature.settings
 
 import android.content.ClipData
+import android.os.Build
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -43,12 +46,17 @@ internal fun AboutRoute(
     val clipboard = LocalClipboard.current
     val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val copied = stringResource(R.string.settings_version_copied)
     var changelogOpen by rememberSaveable { mutableStateOf(false) }
     AboutScreen(
         info,
-        // Android 13+ confirms the copy itself.
         onCopyVersion = {
             scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("mediatheQ", info.summary()))) }
+            // Android 13+ confirms the copy itself.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                Toast.makeText(context, copied, Toast.LENGTH_SHORT).show()
+            }
         },
         onOpenChangelog = { changelogOpen = true },
         onOpenLicenses = onOpenLicenses,
