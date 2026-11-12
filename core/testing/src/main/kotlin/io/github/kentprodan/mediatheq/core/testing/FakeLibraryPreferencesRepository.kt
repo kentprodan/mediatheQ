@@ -20,7 +20,9 @@ import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.validNavEntries
 import io.github.kentprodan.mediatheq.core.data.validTransparency
 import io.github.kentprodan.mediatheq.core.data.withRecentSearch
+import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
+import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /** In-memory [LibraryPreferencesRepository] with the same validation rules as the real one. */
@@ -151,7 +153,29 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
     }
 
     override suspend fun resetHomeRows() {
-        preferences.value = preferences.value.copy(home = HomePreferences())
+        preferences.value = preferences.value.copy(home = HomePreferences(settings = preferences.value.home.settings))
+    }
+
+    override suspend fun setHomeSectionSettings(
+        section: HomeSection,
+        settings: HomeSectionSettings,
+    ) = updateSections { it + (section to settings.clamped()) }
+
+    override suspend fun applyHomeSectionSettings(
+        kind: HomeKind,
+        settings: HomeSectionSettings,
+    ) = updateSections { current ->
+        current +
+            HomeSection.entries.filter { it.kind == kind }.associateWith { settings.clamped() }
+    }
+
+    override suspend fun restoreHomeSection(section: HomeSection) = updateSections { it - section }
+
+    private fun updateSections(
+        change: (Map<HomeSection, HomeSectionSettings>) -> Map<HomeSection, HomeSectionSettings>,
+    ) {
+        val home = preferences.value.home
+        preferences.value = preferences.value.copy(home = home.copy(settings = change(home.settings)))
     }
 
     override suspend fun restoreHomeDefaults() {

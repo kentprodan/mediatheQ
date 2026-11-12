@@ -6,7 +6,10 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore
+import io.github.kentprodan.mediatheq.core.model.HomeDisplay
+import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
+import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
 import kotlinx.coroutines.flow.first
@@ -978,5 +981,84 @@ class DefaultLibraryPreferencesRepositoryTest {
                 it[stringPreferencesKey("adv_corners")] = "Square"
             }
             assertThat(repository.preferences.first().advanced).isEqualTo(AdvancedPreferences())
+        }
+
+    @Test
+    fun `a section's settings are kept, read back and clamped, the other sections keep their defaults`() =
+        runTest {
+            val changed =
+                HomeSection.FavoriteAlbums.defaultSettings.copy(
+                    display = HomeDisplay.Grid,
+                    gridRows = 9,
+                    maxItems = 2,
+                    centerText = false,
+                    playButton = true,
+                    favoriteOverlay = true,
+                )
+
+            repository.setHomeSectionSettings(HomeSection.FavoriteAlbums, changed)
+
+            val home = repository.preferences.first().home
+            assertThat(home.settingsOf(HomeSection.FavoriteAlbums)).isEqualTo(changed.copy(gridRows = 3, maxItems = 5))
+            assertThat(home.settingsOf(HomeSection.RandomAlbums)).isEqualTo(HomeSection.RandomAlbums.defaultSettings)
+        }
+
+    @Test
+    fun `apply to all reaches every section of the kind only, restore one section resets it alone`() =
+        runTest {
+            val big = HomeSectionSettings(maxItems = 40, hideSubtitles = true)
+
+            repository.applyHomeSectionSettings(HomeKind.Albums, big)
+            repository.restoreHomeSection(HomeSection.RandomAlbums)
+
+            val home = repository.preferences.first().home
+            HomeSection.entries.filter { it.kind == HomeKind.Albums && it != HomeSection.RandomAlbums }.forEach {
+                assertThat(home.settingsOf(it)).isEqualTo(big)
+            }
+            assertThat(home.settingsOf(HomeSection.RandomAlbums)).isEqualTo(HomeSection.RandomAlbums.defaultSettings)
+            assertThat(home.settingsOf(HomeSection.RandomArtists)).isEqualTo(HomeSection.RandomArtists.defaultSettings)
+        }
+
+    @Test
+    fun `reset active rows keeps the sections' settings, restore defaults drops them back to Media lists`() =
+        runTest {
+            val section = HomeSection.FavoriteArtists
+            repository.setHomeSectionSettings(
+                section,
+                section.defaultSettings.copy(favoriteOverlay = false, maxItems = 30),
+            )
+
+            repository.resetHomeRows()
+            assertThat(
+                repository.preferences
+                    .first()
+                    .home
+                    .settingsOf(section)
+                    .maxItems,
+            ).isEqualTo(30)
+
+            repository.restoreHomeDefaults()
+            val restored =
+                repository.preferences
+                    .first()
+                    .home
+                    .settingsOf(section)
+            assertThat(restored).isEqualTo(section.defaultSettings)
+            assertThat(restored.favoriteOverlay).isNull()
+        }
+
+    @Test
+    fun `a broken or unknown stored value reads as the section's defaults, known pairs kept`() =
+        runTest {
+            dataStore.edit {
+                it[stringPreferencesKey("home_section_FavoriteAlbums")] =
+                    "max=abc;display=Spiral;future=1;header=false;rows"
+                it[stringPreferencesKey("home_section_NoSuchSection")] = "max=20"
+            }
+
+            val home = repository.preferences.first().home
+            assertThat(home.settingsOf(HomeSection.FavoriteAlbums))
+                .isEqualTo(HomeSection.FavoriteAlbums.defaultSettings.copy(showHeader = false))
+            assertThat(home.settings.keys).containsExactly(HomeSection.FavoriteAlbums)
         }
 }

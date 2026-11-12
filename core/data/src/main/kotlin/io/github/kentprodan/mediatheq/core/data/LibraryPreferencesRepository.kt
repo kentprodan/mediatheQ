@@ -1,6 +1,8 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
+import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
 import kotlinx.coroutines.flow.Flow
 
 /** Library and display preferences (grid, sorts, colors, ratings), kept across restarts. */
@@ -41,6 +43,21 @@ interface LibraryPreferencesRepository {
 
     /** Home page -> Reset active rows: order and visibility back to default (section settings, #182, kept). */
     suspend fun resetHomeRows()
+
+    /** Settings of one Home section (its gear, #182). */
+    suspend fun setHomeSectionSettings(
+        section: HomeSection,
+        settings: HomeSectionSettings,
+    )
+
+    /** [settings] for every section of [kind] at once (Apply to all, #182). */
+    suspend fun applyHomeSectionSettings(
+        kind: HomeKind,
+        settings: HomeSectionSettings,
+    )
+
+    /** One Home section back to its defaults (#182). */
+    suspend fun restoreHomeSection(section: HomeSection)
 
     /** Home page -> Restore defaults: everything on the page. */
     suspend fun restoreHomeDefaults()
