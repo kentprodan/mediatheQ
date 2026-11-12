@@ -161,13 +161,10 @@ class DefaultSessionRepository
         ): MqResult<Unit> {
             val session = (result as? MqResult.Success)?.value ?: return result as MqResult.Failure
             return try {
-                val saved =
-                    accountStore.accounts
-                        .first()
-                        .getOrNull()
-                        .orEmpty()
+                // Signed-out entries too (#150): signing in to a restored account keeps its id.
+                val saved = accountStore.saved.first()
                 val existing = saved.firstOrNull { it.serverId == session.serverId && it.userId == session.userId }
-                val noneActive = saved.none { it.id == databases.open }
+                val noneActive = saved.none { it.id == databases.open && it.signedIn }
                 val id = existing?.id ?: if (noneActive) databases.open else databases.newName()
                 accountStore.save(
                     StoredAccount(

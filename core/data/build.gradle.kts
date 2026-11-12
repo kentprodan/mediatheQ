@@ -14,5 +14,7 @@ dependencies {
     implementation(projects.core.server)
     implementation(projects.core.datastore)
     implementation(projects.core.database)
+    implementation(libs.kotlinx.serialization.json)
     testImplementation(projects.core.testing)
+    testImplementation(libs.robolectric)
 }

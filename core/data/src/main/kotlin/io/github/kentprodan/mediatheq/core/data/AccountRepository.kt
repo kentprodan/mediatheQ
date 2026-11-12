@@ -48,4 +48,6 @@ data class Account(
     val active: Boolean,
     /** The last sync, `null` before the first one (#148). */
     val lastSync: SyncRecord? = null,
+    /** False for an account restored from a backup or whose token was lost (#150): it needs a sign-in first. */
+    val signedIn: Boolean = true,
 )

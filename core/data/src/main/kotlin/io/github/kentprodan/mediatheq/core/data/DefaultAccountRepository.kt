@@ -35,13 +35,21 @@ internal class DefaultAccountRepository
         @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : AccountRepository {
         override val accounts: Flow<List<Account>> =
-            combine(store.accounts, store.syncRecords) { result, records ->
-                result.getOrNull().orEmpty().map {
+            combine(store.saved, store.syncRecords) { saved, records ->
+                saved.map {
                     val record =
                         records[it.id]?.let { r ->
                             SyncRecord(r.finishedAt, r.error, r.trackCount, r.duration)
                         }
-                    Account(it.id, it.serverName, it.userName, it.baseUrl, active = it.id == databases.open, record)
+                    Account(
+                        it.id,
+                        it.serverName,
+                        it.userName,
+                        it.baseUrl,
+                        active = it.id == databases.open,
+                        lastSync = record,
+                        signedIn = it.signedIn,
+                    )
                 }
             }
 
@@ -79,7 +87,7 @@ internal class DefaultAccountRepository
             deleteDownloads: Boolean,
         ) {
             val accounts = saved()
-            val account = accounts.firstOrNull { it.id == id } ?: return
+            val account = accounts.firstOrNull { it.id == id } ?: return removeSignedOut(id, deleteDownloads)
             if (deleteDownloads && accounts.none { it.id != id && it.serverId == account.serverId }) {
                 downloads.removeServer(account.serverId)
             }
@@ -97,6 +105,20 @@ internal class DefaultAccountRepository
                 signOut(account)
                 if (forget(id)) withContext(ioDispatcher) { databases.delete(id) }
             }
+        }
+
+        /** A signed-out account (#150): nothing to sign out of; it is forgotten with any database it had. */
+        private suspend fun removeSignedOut(
+            id: String,
+            deleteDownloads: Boolean,
+        ) {
+            val all = store.saved.first()
+            val account = all.firstOrNull { it.id == id && !it.signedIn } ?: return
+            if (id == databases.open) return
+            if (deleteDownloads && all.none { it.id != id && it.serverId == account.serverId }) {
+                downloads.removeServer(account.serverId)
+            }
+            if (forget(id)) withContext(ioDispatcher) { databases.delete(id) }
         }
 
         override suspend fun cleanUp() {
