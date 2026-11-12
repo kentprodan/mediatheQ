@@ -22,3 +22,4 @@ Home servers usually run plain HTTP on the LAN or over Tailscale. Android's netw
 - 100.64/10 is also carrier-grade NAT, so cleartext to a CGNAT address on a mobile network would be allowed. This is accepted because the user typed that address.
 - Media3 (playback, later issue) uses its own data source. It must use this OkHttp client, or repeat the same check.
 - After a phone migration the user logs in again.
+- Settings leave the device only through Settings -> Backup & restore (#150): a JSON file the user saves with the system file picker, holding every setting and the accounts' addresses and user names (output names such as headphones travel with the audio profiles), never a token, password or DeviceId. App backup stays off. A restored account is saved without a token and asks for a sign-in.

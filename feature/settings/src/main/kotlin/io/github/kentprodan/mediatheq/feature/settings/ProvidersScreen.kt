@@ -199,6 +199,13 @@ internal fun ProviderRow(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
+                } else if (!account.signedIn) {
+                    // Restored from a backup or its token lost (#150): Sign in from the menu.
+                    Text(
+                        stringResource(R.string.settings_providers_signed_out),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
             OverflowMenu(stringResource(R.string.settings_providers_menu, account.serverName)) { close -> menu(close) }
@@ -206,7 +213,10 @@ internal fun ProviderRow(
     }
 }
 
-/** The account menu: Make active (not on the active one), Edit address, Sign in again, Sync now (active), remove. */
+/**
+ * The account menu: Make active (not on the active one), Edit address, Sign in again, Sync now (active), remove; a
+ * signed-out account only Sign in and remove.
+ */
 @Composable
 internal fun ProviderMenuItems(
     account: Account,
@@ -229,6 +239,12 @@ internal fun ProviderMenuItems(
             close()
         },
     )
+    if (!account.signedIn) {
+        // Signed out (#150): nothing to switch to, edit or sync until it has a token.
+        item(R.string.settings_providers_sign_in, onSignInAgain)
+        item(R.string.settings_providers_remove, onRemove, MaterialTheme.colorScheme.error)
+        return
+    }
     if (!account.active) item(R.string.settings_providers_make_active, onMakeActive)
     item(R.string.settings_providers_edit_address, onEdit)
     item(R.string.settings_providers_sign_in_again, onSignInAgain)

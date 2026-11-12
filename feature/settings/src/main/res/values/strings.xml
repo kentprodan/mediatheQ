@@ -6,6 +6,31 @@
     <string name="settings_interface">Interface</string>
     <string name="settings_storage_page">Offline, cache, and download</string>
     <string name="settings_providers">Manage media providers</string>
+    <string name="settings_backup">Backup &amp; restore</string>
+    <string name="settings_backup_note">Backups contain your settings and server addresses, never passwords. After restoring, sign in to each server again.</string>
+    <string name="settings_backup_create">Create a backup</string>
+    <string name="settings_backup_create_summary">Save every setting to a file, e.g. on Drive</string>
+    <string name="settings_backup_pick">Pick a backup to restore</string>
+    <string name="settings_backup_pick_summary">Your settings are replaced by the ones in the backup</string>
+    <string name="settings_backup_restore_title">Restore this backup?</string>
+    <string name="settings_backup_restore">Restore</string>
+    <string name="settings_backup_made">Made on %1$s by mediatheQ %2$s</string>
+    <plurals name="settings_backup_settings">
+        <item quantity="one">%1$d setting</item>
+        <item quantity="other">%1$d settings</item>
+    </plurals>
+    <string name="settings_backup_account">%1$s · %2$s · %3$s</string>
+    <string name="settings_backup_replace">Your settings are replaced by these. Servers not added yet appear signed out.</string>
+    <string name="settings_backup_saved">Backup saved.</string>
+    <string name="settings_backup_not_written">The backup could not be saved there. Try another place.</string>
+    <string name="settings_backup_restored">Settings restored.</string>
+    <plurals name="settings_backup_restored_sign_in">
+        <item quantity="one">Settings restored. Sign in to %1$d server in Manage media providers.</item>
+        <item quantity="other">Settings restored. Sign in to %1$d servers in Manage media providers.</item>
+    </plurals>
+    <string name="settings_backup_unreadable">The file could not be opened.</string>
+    <string name="settings_backup_invalid">This file is not a mediatheQ backup. Nothing was changed.</string>
+    <string name="settings_backup_not_restored">The settings could not be saved. Nothing was changed.</string>
 
     <string name="settings_providers_add">Add media provider</string>
     <string name="settings_providers_active">Active</string>
@@ -14,6 +39,8 @@
     <string name="settings_providers_make_active">Make active</string>
     <string name="settings_providers_edit_address">Edit address</string>
     <string name="settings_providers_sign_in_again">Sign in again</string>
+    <string name="settings_providers_sign_in">Sign in</string>
+    <string name="settings_providers_signed_out">Signed out</string>
     <string name="settings_providers_sync_now">Sync now</string>
     <string name="settings_providers_remove">Sign out and remove</string>
     <string name="settings_providers_switch_title">Switch to %1$s?</string>

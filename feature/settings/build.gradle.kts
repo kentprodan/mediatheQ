@@ -11,6 +11,8 @@ android {
 
 dependencies {
     implementation(libs.kotlinx.serialization.json)
+    // The system file picker for backups (#150).
+    implementation(libs.androidx.activity.compose)
 }
 
 // The copied-assets list is checked against THIRD_PARTY.md: rerun the tests when it changes.

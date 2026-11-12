@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.navigation.AlbumPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AudioFocusSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AutoActionsSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.BackupSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DecodingSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.GenrePageSettingsKey
@@ -125,6 +126,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<StorageMediaSettingsKey> { SettingsPageRoute(SettingsPage.StorageMedia, openOutputs, back) }
     entry<StoragePlaybackSettingsKey> { SettingsPageRoute(SettingsPage.StoragePlayback, openOutputs, back) }
     entry<StorageImagesSettingsKey> { SettingsPageRoute(SettingsPage.StorageImages, openOutputs, back) }
+    entry<BackupSettingsKey> { BackupRoute(onBack = back) }
     entry<ProvidersSettingsKey> {
         ProvidersRoute(
             onAdd = { navigator.navigateTo(AddAccountKey) },
@@ -151,5 +153,6 @@ internal val SettingsHubEntry.key: NavKey?
             SettingsHubEntry.ManageOfflineFiles -> DownloadsKey
             SettingsHubEntry.Providers -> ProvidersSettingsKey
             SettingsHubEntry.SyncManager -> null
+            SettingsHubEntry.Backup -> BackupSettingsKey
             SettingsHubEntry.About -> AboutSettingsKey
         }

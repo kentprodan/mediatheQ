@@ -56,6 +56,20 @@ class ProvidersScreenTest {
     }
 
     @Test
+    fun `a signed-out account says so and offers only Sign in and remove`() {
+        show(ProvidersUiState.Content(listOf(home, office.copy(signedIn = false))))
+
+        composeRule.onNodeWithText("Signed out").assertExists()
+        composeRule.onNodeWithContentDescription("More options for Office").performClick()
+        composeRule.onNodeWithText("Make active").assertDoesNotExist()
+        composeRule.onNodeWithText("Edit address").assertDoesNotExist()
+        composeRule.onNodeWithText("Sign out and remove").assertExists()
+        composeRule.onNodeWithText("Sign in").performClick()
+
+        assertThat(events).containsExactly("again ${office.id}")
+    }
+
+    @Test
     fun `make active asks first, then switches`() {
         show()
 
