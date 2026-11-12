@@ -139,7 +139,7 @@ video ends or is stopped. No subtitles, no track choice, no PiP yet.
 - [ ] Phone: every existing music test passes without edits other than new parameters with defaults
 
 ## Required tests
-- [ ] Unit (`DeviceProfileBuilderTest`): `video(...)` per decoder set (h264 only; h264 + hevc; + av1), per quality (Original, 8 Mbps), the transcoding profile shape, conditions
+- [ ] Unit (`DeviceProfileBuilderTest`): `video(...)` per decoder set (h264 only; h264 + hevc; + av1), per quality (Original, 480p), the transcoding profile shape, conditions
 - [ ] Unit (`StreamResolverTest`): `resolveVideo` direct play / direct stream / HLS transcode rows; `canSeek` per row; cache keys never written for video (`FLAG_DONT_CACHE_IF_LENGTH_UNKNOWN` path unchanged)
 - [ ] Contract (`PlaybackApiTest`): the video `PlaybackInfo` request body (profile, indexes, start ticks) and the three fixtures' parse (`SupportsDirectStream` row included); `ApiKey` stripped from the transcoding URL
 - [ ] Playback (Robolectric, `media3-test-utils`): a video item replaces the playlist, the saved queue is untouched, and ending the item restores the queue paused at the saved position; `AudioPolicy.offload` off while a video plays

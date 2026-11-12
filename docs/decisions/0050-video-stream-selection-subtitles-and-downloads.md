@@ -23,7 +23,7 @@ page lists "HDR support" without naming Dolby Vision (checked 2026-11-12).
   `CodecProfile` conditions `VideoRangeType EqualsAny` the ranges the display and the decoder profiles support (SDR
   always; HDR10 / HLG / HDR10+ with Main10 decoders and the display types; `DOVI*` only with the decoder and
   `HDR_TYPE_DOLBY_VISION`), `Width <= 3840`, `VideoBitDepth <= 10`, `AudioChannels <= 8`; `MaxStreamingBitrate` from
-  the video quality per network kind (defaults Original on unmetered, 8 Mbps on metered).
+  the video quality per network kind (see below; defaults Original on unmetered, 480p on metered).
 - **Transcodes are HLS fMP4** (`Type=Video, Container=mp4, Protocol=hls, VideoCodec=hevc,h264, AudioCodec=aac,opus`,
   `MaxAudioChannels` 6, `BreakOnNonKeyFrames` true, `EnableSubtitlesInManifest` false), played by the existing
   `LazyStreamMediaSource` HLS child with the auth header and no cache; `StartTimeTicks` carries the resume point.
