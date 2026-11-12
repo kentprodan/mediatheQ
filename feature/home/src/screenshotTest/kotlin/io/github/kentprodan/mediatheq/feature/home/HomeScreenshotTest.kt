@@ -161,3 +161,55 @@ fun DecadePickerScreenshot() =
             DecadeList(listOf(1960, 1970, 1980, 1990, 2000, 2010, 2020), {})
         }
     }
+
+@Composable
+private fun SectionPage(
+    section: HomeSection,
+    items: HomeItems,
+    settings: HomeSectionSettings,
+) = MediatheqTheme {
+    HomeSectionSettingsScreen(
+        section,
+        HomeSectionSettingsUiState.Content(
+            HomeSectionContent(section, settings, items),
+            copyFrom = HomeSection.entries.filter { it.kind == section.kind && it != section },
+        ),
+        {},
+    ) {}
+}
+
+/** A section's settings page (#182): Row with a play button on covers and no subtitles, card options shown. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeSectionRowScreenshot() =
+    SectionPage(
+        HomeSection.FavoriteAlbums,
+        HomeItems.Albums(albums),
+        HomeSection.FavoriteAlbums.defaultSettings.copy(playButton = true, hideSubtitles = true, centerText = false),
+    )
+
+/** Grid with three rows: the Rows chips show. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeSectionGridScreenshot() =
+    SectionPage(
+        HomeSection.RecentlyAddedAlbums,
+        HomeItems.Albums(albums + albums.map { it.copy(id = it.id.copy(itemId = it.id.itemId + "b")) }),
+        HomeSection.RecentlyAddedAlbums.defaultSettings.copy(gridRows = 3),
+    )
+
+/** Carousel: the card options are gone. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeSectionCarouselScreenshot() =
+    SectionPage(HomeSection.RediscoverAlbums, HomeItems.Albums(albums), HomeSection.RediscoverAlbums.defaultSettings)
+
+/** A track section: List, its own few settings. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeSectionListScreenshot() =
+    SectionPage(HomeSection.FavoriteTracks, HomeItems.Tracks(tracks), HomeSection.FavoriteTracks.defaultSettings)

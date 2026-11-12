@@ -593,6 +593,7 @@
     <string name="settings_home_reset_rows_summary">Which sections show and their order go back to default.</string>
     <string name="settings_home_reset_rows_message">Show the default sections in their default order?</string>
     <string name="settings_home_show">Show %1$s</string>
+    <string name="settings_home_section_settings">Settings for %1$s</string>
     <string name="settings_home_shown">Shown</string>
     <string name="settings_home_hidden">Hidden</string>
     <string name="settings_sync_manager">Sync manager</string>

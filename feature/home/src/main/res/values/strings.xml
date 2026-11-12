@@ -18,4 +18,35 @@
     <string name="home_decade_mix">Decade mix</string>
     <!-- A decade in the Decade mix picker, e.g. "1990s". -->
     <string name="home_decade">%1$ds</string>
+    <string name="home_section_back">Back</string>
+    <string name="home_section_preview">Preview</string>
+    <string name="home_section_preview_empty">Nothing in this section yet.</string>
+    <string name="home_section_settings">Section</string>
+    <string name="home_section_display">Display mode</string>
+    <string name="home_display_row">Row</string>
+    <string name="home_display_grid">Grid</string>
+    <string name="home_display_carousel">Carousel</string>
+    <string name="home_display_list">List</string>
+    <string name="home_section_rows">Rows</string>
+    <string name="home_section_max">Max items</string>
+    <string name="home_section_header">Visible header</string>
+    <string name="home_section_more">Visible more indicator</string>
+    <string name="home_section_center">Center text</string>
+    <string name="home_section_subtitles">Hide subtitles</string>
+    <string name="home_section_play">Show play button</string>
+    <string name="home_section_favorite">Favorite status on covers</string>
+    <string name="home_section_offline">Offline status on covers</string>
+    <string name="home_section_hide_empty">Hide if empty</string>
+    <string name="home_section_same_as_lists">Same as Media lists</string>
+    <string name="home_section_on">On</string>
+    <string name="home_section_off">Off</string>
+    <string name="home_section_actions">Copy and restore</string>
+    <string name="home_section_copy_from">Copy from…</string>
+    <string name="home_section_apply_all">Apply to all sections of this kind</string>
+    <string name="home_section_apply_all_confirm">Give every section of this kind these settings?</string>
+    <string name="home_section_apply">Apply</string>
+    <string name="home_section_restore">Restore defaults</string>
+    <string name="home_section_restore_confirm">Put this section back to its default settings?</string>
+    <string name="home_section_restore_button">Restore</string>
+    <string name="home_section_cancel">Cancel</string>
 </resources>

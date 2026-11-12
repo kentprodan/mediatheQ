@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
@@ -44,6 +45,7 @@ internal fun LazyListScope.homePageGroups(
     rows: List<HomeSection>,
     reorder: MqReorderState,
     onAction: (SettingsAction) -> Unit,
+    onOpenSection: (HomeSection) -> Unit,
     onOpenDialog: (HomePageDialog) -> Unit,
 ) {
     itemsIndexed(rows, key = { _, section -> section }) { index, section ->
@@ -58,6 +60,7 @@ internal fun LazyListScope.homePageGroups(
             onToggle = { shown ->
                 onAction(SettingsAction.SetHomeHidden(if (shown) home.hidden - section else home.hidden + section))
             },
+            onOpenSettings = { onOpenSection(section) },
             modifier = Modifier.mqReorderItem(reorder, section),
             handle = Modifier.mqReorderHandle(reorder, section),
         )
@@ -87,6 +90,7 @@ private fun HomeSectionRow(
     count: Int,
     onMove: (to: Int) -> Unit,
     onToggle: (shown: Boolean) -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier,
     handle: Modifier,
 ) {
@@ -121,6 +125,17 @@ private fun HomeSectionRow(
                 Modifier.weight(1f).alpha(if (shown) 1f else HIDDEN_ALPHA),
                 style = MaterialTheme.typography.bodyLarge,
             )
+            // The gear (#182): the section's own settings.
+            IconButton(onClick = onOpenSettings) {
+                Icon(
+                    MqIcons.Settings,
+                    contentDescription =
+                        stringResource(
+                            R.string.settings_home_section_settings,
+                            stringResource(section.title),
+                        ),
+                )
+            }
             MqIconToggle(
                 checked = shown,
                 onClick = { onToggle(!shown) },

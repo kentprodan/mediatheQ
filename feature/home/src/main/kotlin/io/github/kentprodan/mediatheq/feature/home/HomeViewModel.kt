@@ -61,22 +61,7 @@ class HomeViewModel
                     status to (previous?.second == true || status.lastSyncedAt != null)
                 }.filterNotNull()
 
-        private val library: Flow<HomeLibrary> =
-            combine(
-                libraryRepository.albums(),
-                libraryRepository.albumArtists(),
-                libraryRepository.tracks(),
-                libraryRepository.allTracks(),
-                libraryRepository.playlists(),
-            ) { albums, artists, tracks, allTracks, playlists ->
-                HomeLibrary(
-                    albums,
-                    artists,
-                    tracks,
-                    allTracks,
-                    playlists,
-                )
-            }
+        private val library: Flow<HomeLibrary> = libraryRepository.homeLibrary()
 
         /** `null` while the library is empty (the empty and sync states decide what shows). */
         private val sections: Flow<List<HomeSectionContent>?> =
