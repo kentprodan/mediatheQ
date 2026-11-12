@@ -92,6 +92,12 @@ class LibraryPreferencesStore
                     StoredHome(
                         order = prefs[HOME_ORDER]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
                         hidden = prefs[HOME_HIDDEN]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
+                        sections =
+                            prefs
+                                .asMap()
+                                .filterKeys { it.name.startsWith(HOME_SECTION_PREFIX) }
+                                .map { (key, value) -> key.name.removePrefix(HOME_SECTION_PREFIX) to value.toString() }
+                                .toMap(),
                     ),
                 libraryPage =
                     StoredLibraryPage(
@@ -265,11 +271,34 @@ class LibraryPreferencesStore
             dataStore.edit { it[HOME_HIDDEN] = names.joinToString(LIST_SEPARATOR) }
         }
 
-        /** Stores Home's rows at once (#127); null removes a value (back to default). */
-        suspend fun setHome(home: StoredHome) {
+        /**
+         * Stores Home's rows at once (#127); null removes a value (back to default). The sections' own settings (#182)
+         * stay, unless [clearSections].
+         */
+        suspend fun setHome(
+            home: StoredHome,
+            clearSections: Boolean = false,
+        ) {
             dataStore.edit { prefs ->
                 prefs.put(HOME_ORDER, home.order?.joinToString(LIST_SEPARATOR))
                 prefs.put(HOME_HIDDEN, home.hidden?.joinToString(LIST_SEPARATOR))
+                if (clearSections) {
+                    prefs
+                        .asMap()
+                        .keys
+                        .filter { it.name.startsWith(HOME_SECTION_PREFIX) }
+                        .forEach { prefs.remove(it) }
+                }
+            }
+        }
+
+        /**
+         * Stores Home sections' own settings (#182), each section one value (its settings encoded by the caller), so a
+         * copy, an apply to all and a restore are one write; a null value removes it (the section's defaults).
+         */
+        suspend fun setHomeSections(sections: Map<String, String?>) {
+            dataStore.edit { prefs ->
+                sections.forEach { (name, value) -> prefs.put(stringPreferencesKey(HOME_SECTION_PREFIX + name), value) }
             }
         }
 
@@ -561,6 +590,7 @@ class LibraryPreferencesStore
             val NP_FLOATING = booleanPreferencesKey("np_floating_mini_player")
             val HOME_ORDER = stringPreferencesKey("home_order")
             val HOME_HIDDEN = stringPreferencesKey("home_hidden")
+            const val HOME_SECTION_PREFIX = "home_section_"
             val NP_MINI_SWIPE = booleanPreferencesKey("np_mini_swipe_to_skip")
             val NP_MINI_PROGRESS = stringPreferencesKey("np_mini_progress")
             val NP_BACKGROUND = stringPreferencesKey("np_background")
@@ -688,6 +718,8 @@ data class StoredLibraryPage(
 data class StoredHome(
     val order: List<String>? = null,
     val hidden: List<String>? = null,
+    /** Each section's own settings by section name (#182), as the repository encoded them. */
+    val sections: Map<String, String> = emptyMap(),
 )
 
 /** Now playing screens values as stored (#126); `null` = not set. */

@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.GenrePageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.HeadsetSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.HomePageSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.HomeSectionSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.InterfaceSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.LicensesKey
@@ -84,7 +85,14 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<NavigationSettingsKey> { SettingsPageRoute(SettingsPage.Navigation, openOutputs, back) }
     entry<MediaListsSettingsKey> { SettingsPageRoute(SettingsPage.MediaLists, openOutputs, back) }
     entry<NowPlayingSettingsKey> { SettingsPageRoute(SettingsPage.NowPlaying, openOutputs, back) }
-    entry<HomePageSettingsKey> { SettingsPageRoute(SettingsPage.Home, openOutputs, back) }
+    entry<HomePageSettingsKey> {
+        SettingsPageRoute(
+            SettingsPage.Home,
+            openOutputs,
+            back,
+            onOpenHomeSection = { navigator.navigateTo(HomeSectionSettingsKey(it)) },
+        )
+    }
     entry<LibraryPageSettingsKey> { SettingsPageRoute(SettingsPage.Library, openOutputs, back) }
     entry<AlbumPageSettingsKey> { SettingsPageRoute(SettingsPage.Album, openOutputs, back) }
     entry<ArtistPageSettingsKey> { SettingsPageRoute(SettingsPage.Artist, openOutputs, back) }

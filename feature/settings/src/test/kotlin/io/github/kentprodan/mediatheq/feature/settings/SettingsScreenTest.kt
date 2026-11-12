@@ -109,6 +109,7 @@ class SettingsScreenTest {
                     onOpenAutoActions = { events += "auto" },
                     onOpenTransitions = { events += "transitions" },
                     onOpenStoragePage = { opened += it },
+                    onOpenHomeSection = { events += "section ${it.name}" },
                 )
             }
         }
@@ -538,6 +539,15 @@ class SettingsScreenTest {
         composeRule.onNode(hasText("Show rating stars") and isToggleable()).assertIsOff().assertIsNotEnabled()
         composeRule.onNode(hasText("Ratings are off", substring = true)).assertExists()
         composeRule.onNode(hasText("Not used", substring = true)).assertExists()
+    }
+
+    @Test
+    fun `a section's gear opens its own settings`() {
+        show(SettingsPage.Home)
+
+        composeRule.onNodeWithContentDescription("Settings for Favorite albums").performClick()
+
+        assertThat(events).containsExactly("section FavoriteAlbums")
     }
 
     @Test

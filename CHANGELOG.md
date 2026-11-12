@@ -16,6 +16,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Settings for the theme, navigation, lists, pages, playback, headset and notification buttons, fades and automatic actions.
 - About page, this changelog, a privacy page and Contact support through GitHub.
 - A log of what the app does, kept on the phone, and Export logs in Settings -> About to share it for a bug report.
+- Settings for each Home section (the gear in Settings -> Home page): display, rows, how many items, header, centered text, subtitles, a play button on covers, status marks; copy, apply to all, restore.
 
 ### Fixed
 - Bit-perfect USB turned on while a track plays takes effect at once, not only from the next track.

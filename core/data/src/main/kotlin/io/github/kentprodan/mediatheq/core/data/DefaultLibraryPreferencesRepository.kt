@@ -13,7 +13,9 @@ import io.github.kentprodan.mediatheq.core.datastore.StoredNowPlaying
 import io.github.kentprodan.mediatheq.core.datastore.StoredPlaylistPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredSearchPage
 import io.github.kentprodan.mediatheq.core.datastore.StoredTheme
+import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
+import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -178,8 +180,25 @@ class DefaultLibraryPreferencesRepository
 
         override suspend fun resetHomeRows() = store.setHome(StoredHome())
 
-        // Until the section settings are stored (#182), the page holds only the rows.
-        override suspend fun restoreHomeDefaults() = store.setHome(StoredHome())
+        // The whole Home page: rows and each section's settings (#182).
+        override suspend fun restoreHomeDefaults() = store.setHome(StoredHome(), clearSections = true)
+
+        override suspend fun setHomeSectionSettings(
+            section: HomeSection,
+            settings: HomeSectionSettings,
+        ) = store.setHomeSections(mapOf(section.name to encodeHomeSection(settings.clamped(), section.defaultSettings)))
+
+        override suspend fun applyHomeSectionSettings(
+            kind: HomeKind,
+            settings: HomeSectionSettings,
+        ) = store.setHomeSections(
+            HomeSection.entries
+                .filter { it.kind == kind }
+                .associate { it.name to encodeHomeSection(settings.clamped(), it.defaultSettings) },
+        )
+
+        override suspend fun restoreHomeSection(section: HomeSection) =
+            store.setHomeSections(mapOf(section.name to null))
 
         /** Unknown names are dropped; sections the stored order lacks (new ones) follow it in their default order. */
         private fun home(stored: StoredHome): HomePreferences {
@@ -191,7 +210,12 @@ class DefaultLibraryPreferencesRepository
                     ?.let { known -> known + HomeSection.entries.filterNot { it in known } }
                     ?: defaults.order
             val hidden = stored.hidden?.mapNotNull { enumOrNull<HomeSection>(it) }?.toSet() ?: defaults.hidden
-            return HomePreferences(order, hidden)
+            val settings =
+                stored.sections
+                    .mapNotNull { (name, value) ->
+                        enumOrNull<HomeSection>(name)?.let { it to decodeHomeSection(value, it.defaultSettings) }
+                    }.toMap()
+            return HomePreferences(order, hidden, settings)
         }
 
         override suspend fun setLibraryPage(page: LibraryPagePreferences) {

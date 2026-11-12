@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,11 +25,16 @@ fun ArtistCard(
     artist: Artist,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A play button on the picture (#182); `null` for none. */
+    onPlay: (() -> Unit)? = null,
 ) {
     Column(
         modifier.clip(MaterialTheme.shapes.medium).clickable(onClick = onClick).padding(bottom = MediatheqSpacing.s),
     ) {
-        MqArtistAvatar(artist.artwork, blurHash = artist.artwork?.blurHash)
+        Box {
+            MqArtistAvatar(artist.artwork, blurHash = artist.artwork?.blurHash)
+            onPlay?.let { CoverPlay(artist.name, it) }
+        }
         Text(
             artist.name,
             Modifier.fillMaxWidth().padding(top = MediatheqSpacing.s),
@@ -46,12 +52,19 @@ fun PlaylistCard(
     playlist: Playlist,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The track count under the name; off in a Home section that hides subtitles (#182). */
+    showSubtitle: Boolean = true,
+    /** A play button on the cover (#182); `null` for none. */
+    onPlay: (() -> Unit)? = null,
 ) {
     val textAlign = if (LocalMediaListStyle.current.centerGridText) TextAlign.Center else TextAlign.Start
     Column(
         modifier.clip(MaterialTheme.shapes.medium).clickable(onClick = onClick).padding(bottom = MediatheqSpacing.s),
     ) {
-        MqCover(playlist.artwork, contentDescription = null, blurHash = playlist.artwork?.blurHash)
+        Box {
+            MqCover(playlist.artwork, contentDescription = null, blurHash = playlist.artwork?.blurHash)
+            onPlay?.let { CoverPlay(playlist.name, it) }
+        }
         Text(
             playlist.name,
             Modifier.fillMaxWidth().padding(top = MediatheqSpacing.s),
@@ -60,13 +73,15 @@ fun PlaylistCard(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(
-            pluralStringResource(R.plurals.core_ui_track_count, playlist.trackCount, playlist.trackCount),
-            Modifier.fillMaxWidth(),
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = textAlign,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-        )
+        if (showSubtitle) {
+            Text(
+                pluralStringResource(R.plurals.core_ui_track_count, playlist.trackCount, playlist.trackCount),
+                Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = textAlign,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
     }
 }

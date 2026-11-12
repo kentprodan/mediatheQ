@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 
 /** What the Home tab shows. */
@@ -51,6 +52,21 @@ sealed interface HomeAction {
     /** A Shortcuts button (#128): queues the whole mix and plays it. */
     data class PlayMix(
         val mix: Mix,
+    ) : HomeAction
+
+    /** A cover's play button (#182): the album's tracks in order. */
+    data class PlayAlbum(
+        val id: MediaId,
+    ) : HomeAction
+
+    /** A cover's play button (#182): the playlist in its order. */
+    data class PlayPlaylist(
+        val id: MediaId,
+    ) : HomeAction
+
+    /** A picture's play button (#182): the artist's albums in order. */
+    data class PlayArtist(
+        val id: MediaId,
     ) : HomeAction
 
     /** A track of a track section: plays the section's tracks from [index] (the default track action decides). */

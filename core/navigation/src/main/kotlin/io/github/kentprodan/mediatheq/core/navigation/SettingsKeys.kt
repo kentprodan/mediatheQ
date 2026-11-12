@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.navigation
 
 import androidx.navigation3.runtime.NavKey
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import kotlinx.serialization.Serializable
 
@@ -141,3 +142,9 @@ data class OutputKey(
 /** Settings -> About -> Open-source licenses (#70). */
 @Serializable
 data object LicensesKey : NavKey
+
+/** One Home section's own settings (#182), from its gear in Settings -> Home page; the page lives in :feature:home. */
+@Serializable
+data class HomeSectionSettingsKey(
+    val section: HomeSection,
+) : NavKey

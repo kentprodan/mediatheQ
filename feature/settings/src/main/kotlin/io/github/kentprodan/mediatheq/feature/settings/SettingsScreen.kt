@@ -103,6 +103,7 @@ internal fun SettingsPageRoute(
     onOpenAutoActions: () -> Unit = {},
     onOpenTransitions: () -> Unit = {},
     onOpenStoragePage: (SettingsPage) -> Unit = {},
+    onOpenHomeSection: (HomeSection) -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -132,6 +133,7 @@ internal fun SettingsPageRoute(
         onOpenAutoActions,
         onOpenTransitions,
         onOpenStoragePage,
+        onOpenHomeSection,
     )
 }
 
@@ -166,6 +168,7 @@ fun SettingsPageScreen(
     onOpenAutoActions: () -> Unit = {},
     onOpenTransitions: () -> Unit = {},
     onOpenStoragePage: (SettingsPage) -> Unit = {},
+    onOpenHomeSection: (HomeSection) -> Unit = {},
 ) {
     var storageDialog by rememberSaveable { mutableStateOf<StorageDialog?>(null) }
     // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
@@ -319,7 +322,7 @@ fun SettingsPageScreen(
             }
 
             SettingsPage.Home -> {
-                homePageGroups(content.library.home, homeRows, reorder, onAction) { homeDialog = it }
+                homePageGroups(content.library.home, homeRows, reorder, onAction, onOpenHomeSection) { homeDialog = it }
             }
 
             SettingsPage.Library -> {
