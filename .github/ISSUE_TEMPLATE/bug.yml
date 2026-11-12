@@ -26,7 +26,8 @@ body:
     id: device
     attributes:
       label: Device and app version
-      placeholder: Pixel 9, Android 17, app 0.1.0 (debug)
+      description: Filled in by the app (Settings -> Contact support).
+      placeholder: mediatheQ 0.1.0 (1), Android 17, Google Pixel 9
   - type: textarea
     id: logs
     attributes:

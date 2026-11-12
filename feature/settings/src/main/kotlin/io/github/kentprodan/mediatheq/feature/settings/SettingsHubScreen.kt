@@ -26,6 +26,8 @@ enum class SettingsHubEntry(
     SyncManager(R.string.settings_sync_manager),
     Backup(R.string.settings_backup),
     About(R.string.settings_about),
+    Changelog(R.string.settings_changelog),
+    ContactSupport(R.string.settings_contact),
 }
 
 internal val hubGroups =
@@ -44,22 +46,35 @@ internal val hubGroups =
                 SettingsHubEntry.SyncManager,
                 SettingsHubEntry.Backup,
             ),
-        R.string.settings_about to listOf(SettingsHubEntry.About),
+        R.string.settings_about to
+            listOf(SettingsHubEntry.About, SettingsHubEntry.Changelog, SettingsHubEntry.ContactSupport),
     )
 
-/** The hub; Sync manager opens as a sheet here. */
+/** The hub; Sync manager and Changelog open as sheets here, Contact support as a dialog. */
 @Composable
 internal fun SettingsHubRoute(
+    info: AboutInfo,
+    changelog: () -> String,
     onOpen: (SettingsHubEntry) -> Unit,
     onBack: () -> Unit,
 ) {
-    var syncManager by rememberSaveable { mutableStateOf(false) }
+    // The entry whose sheet or dialog shows over the hub.
+    var shown by rememberSaveable { mutableStateOf<SettingsHubEntry?>(null) }
     SettingsHubScreen(
-        onOpen = { if (it == SettingsHubEntry.SyncManager) syncManager = true else onOpen(it) },
+        onOpen = { if (it in overHub) shown = it else onOpen(it) },
         onBack = onBack,
     )
-    if (syncManager) SyncManagerSheet(onDismiss = { syncManager = false })
+    val dismiss = { shown = null }
+    when (shown) {
+        SettingsHubEntry.SyncManager -> SyncManagerSheet(onDismiss = dismiss)
+        SettingsHubEntry.Changelog -> ChangelogSheet(changelog, onDismiss = dismiss)
+        SettingsHubEntry.ContactSupport -> ContactSupportDialog(info, onDismiss = dismiss)
+        else -> Unit
+    }
 }
+
+/** The entries that open over the hub instead of a page of their own. */
+private val overHub = setOf(SettingsHubEntry.SyncManager, SettingsHubEntry.Changelog, SettingsHubEntry.ContactSupport)
 
 /**
  * Settings: groups of categories (segmented rows with an icon); a row opens its page. Stateless. "Manage offline files"
@@ -103,4 +118,6 @@ private val SettingsHubEntry.icon: ImageVector
             SettingsHubEntry.SyncManager -> MqIcons.Sync
             SettingsHubEntry.Backup -> MqIcons.Restore
             SettingsHubEntry.About -> MqIcons.Info
+            SettingsHubEntry.Changelog -> MqIcons.History
+            SettingsHubEntry.ContactSupport -> MqIcons.Feedback
         }

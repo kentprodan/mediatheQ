@@ -65,8 +65,19 @@ class SettingsHubScreenTest {
         ).forEach(::open)
         // "About" is both a group title and its entry: the clickable row is the entry.
         open("About")
+        open("Changelog")
+        open("Contact support")
 
         assertThat(opened).containsExactlyElementsIn(SettingsHubEntry.entries).inOrder()
+    }
+
+    @Test
+    fun `the About group holds About, Changelog and Contact support`() {
+        assertThat(hubGroups.last())
+            .isEqualTo(
+                R.string.settings_about to
+                    listOf(SettingsHubEntry.About, SettingsHubEntry.Changelog, SettingsHubEntry.ContactSupport),
+            )
     }
 
     @Test
@@ -87,6 +98,8 @@ class SettingsHubScreenTest {
                 null,
                 BackupSettingsKey,
                 AboutSettingsKey,
+                null,
+                null,
             ).inOrder()
     }
 

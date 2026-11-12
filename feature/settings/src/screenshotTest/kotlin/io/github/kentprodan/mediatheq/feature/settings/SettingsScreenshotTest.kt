@@ -269,14 +269,6 @@ fun SettingsMoveDownloadsScreenshot() {
     }
 }
 
-/** About: version, licenses, showcase. */
-@PreviewTest
-@MqPreviews
-@Composable
-fun SettingsAboutScreenshot() {
-    MediatheqTheme { AboutSettingsScreen("0.1.0", {}, {}, {}) }
-}
-
 @Composable
 private fun ThemePage(
     theme: ThemePreferences = ThemePreferences(),

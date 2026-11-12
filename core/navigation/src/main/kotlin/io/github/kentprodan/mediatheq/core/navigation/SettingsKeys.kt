@@ -120,9 +120,13 @@ data object ProvidersSettingsKey : NavKey
 @Serializable
 data object BackupSettingsKey : NavKey
 
-/** Settings -> About: version, licenses. */
+/** Settings -> About (#151): version, changelog, licenses, source code, privacy. */
 @Serializable
 data object AboutSettingsKey : NavKey
+
+/** Settings -> About -> Privacy (#151): what the app keeps, and what it sends where. */
+@Serializable
+data object PrivacyKey : NavKey
 
 /** Settings -> Playback -> Output settings (#140): every remembered output, the current one marked. */
 @Serializable

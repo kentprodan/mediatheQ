@@ -207,6 +207,18 @@ object MqIcons {
     val Info: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_info)
 
+    val History: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_history)
+
+    val Feedback: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_feedback)
+
+    val Code: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_code)
+
+    val PrivacyTip: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_privacy_tip)
+
     val Palette: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_palette)
 

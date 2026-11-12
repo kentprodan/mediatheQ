@@ -29,6 +29,7 @@ import io.github.kentprodan.mediatheq.core.navigation.OutputSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackBehaviorSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistPageSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.PrivacyKey
 import io.github.kentprodan.mediatheq.core.navigation.ProvidersSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.SearchPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.SettingsKey
@@ -41,20 +42,24 @@ import io.github.kentprodan.mediatheq.core.navigation.ThemeSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.TransitionsSettingsKey
 
 /**
- * Registers the Settings hub, its pages, the Audio page and the open-source licenses. [versionName] is the app's;
- * [onOpenShowcase] opens the theme showcase, which lives in the app; [licensesReport] and [licenseNotices] read the
- * build's licenses report and the libraries' NOTICE files (ADR 0022).
+ * Registers the Settings hub, its pages, the Audio page and the open-source licenses. [about] describes the app and the
+ * phone; [onOpenShowcase] opens the theme showcase, which lives in the app (debug builds); [changelog],
+ * [licensesReport] and [licenseNotices] read the bundled changelog (#151), the build's licenses report and the
+ * libraries' NOTICE files (ADR 0022).
  */
 fun EntryProviderScope<NavKey>.settingsEntry(
     navigator: Navigator,
-    versionName: String,
+    about: AboutInfo,
     onOpenShowcase: () -> Unit,
+    changelog: () -> String,
     licensesReport: () -> String,
     licenseNotices: () -> String,
 ) {
     val back: () -> Unit = { navigator.back() }
     val openOutputs: () -> Unit = { navigator.navigateTo(OutputSettingsKey) }
-    entry<SettingsKey> { SettingsHubRoute(onOpen = { entry -> entry.key?.let(navigator::navigateTo) }, onBack = back) }
+    entry<SettingsKey> {
+        SettingsHubRoute(about, changelog, onOpen = { entry -> entry.key?.let(navigator::navigateTo) }, onBack = back)
+    }
     entry<InterfaceSettingsKey> {
         SettingsPageRoute(
             SettingsPage.Interface,
@@ -135,14 +140,22 @@ fun EntryProviderScope<NavKey>.settingsEntry(
         )
     }
     entry<AboutSettingsKey> {
-        AboutSettingsScreen(versionName, onOpenShowcase, onOpenLicenses = { navigator.navigateTo(LicensesKey) }, back)
+        AboutRoute(
+            about,
+            changelog,
+            onOpenLicenses = { navigator.navigateTo(LicensesKey) },
+            onOpenPrivacy = { navigator.navigateTo(PrivacyKey) },
+            onOpenShowcase = onOpenShowcase,
+            onBack = back,
+        )
     }
     entry<OutputSettingsKey> { OutputListRoute(onOpen = { navigator.navigateTo(OutputKey(it)) }, onBack = back) }
     entry<OutputKey> { OutputRoute(it.id, onBack = back) }
     entry<LicensesKey> { LicensesRoute(licensesReport, licenseNotices, onBack = back) }
+    entry<PrivacyKey> { PrivacyScreen(onBack = back) }
 }
 
-/** The page a hub entry opens; `null` for Sync manager, a sheet over the hub. */
+/** The page a hub entry opens; `null` for Sync manager, Changelog and Contact support, which open over the hub. */
 internal val SettingsHubEntry.key: NavKey?
     get() =
         when (this) {
@@ -155,4 +168,6 @@ internal val SettingsHubEntry.key: NavKey?
             SettingsHubEntry.SyncManager -> null
             SettingsHubEntry.Backup -> BackupSettingsKey
             SettingsHubEntry.About -> AboutSettingsKey
+            SettingsHubEntry.Changelog -> null
+            SettingsHubEntry.ContactSupport -> null
         }
