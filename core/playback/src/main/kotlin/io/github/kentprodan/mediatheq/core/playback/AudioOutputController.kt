@@ -50,6 +50,11 @@ internal class AudioOutputController(
     private val log: (String) -> Unit = {},
     /** How the playing track's stream plays; asked on every refresh, like [atmosConverted]. */
     private val played: () -> PlayedStream = { PlayedStream() },
+    /**
+     * The preference was just set while an AudioTrack of ours is open (the setting turned on mid-track, or set again
+     * after the platform dropped it): that track stays on the normal mixer, so the player must open a new one (#165).
+     */
+    private val reopen: () -> Unit = {},
 ) {
     private var settings = AudioSettings()
     private var preferred: MixerCapability? = null
@@ -65,10 +70,14 @@ internal class AudioOutputController(
         private set
 
     fun setSettings(settings: AudioSettings) {
+        val turnedOn = settings.bitPerfectUsb && !this.settings.bitPerfectUsb
         if (settings.bitPerfectUsb != this.settings.bitPerfectUsb) suspended = false
         this.settings = settings
-        refresh("settings")
+        refresh("settings", reopenIfOpen = turnedOn)
     }
+
+    /** An AudioTrack of the player is still open (an old one may be releasing in the background). */
+    val trackOpen: Boolean get() = openTracks > 0
 
     /** An output device was added or removed. */
     fun onDeviceChanged() {
@@ -88,8 +97,15 @@ internal class AudioOutputController(
         return true
     }
 
-    /** Decides again: call on a track change, a playback state change and a device change; [reason] is logged. */
-    fun refresh(reason: String) {
+    /**
+     * Decides again: call on a track change, a playback state change and a device change; [reason] is logged. Only a
+     * caller that knows the open AudioTrack predates the preference passes [reopenIfOpen]: on a transition the old track
+     * is still draining and the next one opens after it, which already reaches the bit-perfect output.
+     */
+    fun refresh(
+        reason: String,
+        reopenIfOpen: Boolean = false,
+    ) {
         val capabilities = port.dacCapabilities()
         val route = if (capabilities != null) AudioRoute.UsbDac else AudioRoute.Other
         val format = if (!suspended && AudioPolicy.wantsBitPerfect(settings, route)) currentFormat() else null
@@ -115,6 +131,11 @@ internal class AudioOutputController(
                 output = port.currentOutput(),
             ),
         )
+        // After publishing: the offload change of this decision is applied first, then the track is reopened.
+        if (reopenIfOpen && newlySet && openTracks > 0) {
+            log("reopen: an AudioTrack predates the preference")
+            reopen()
+        }
     }
 
     /** The player opened an AudioTrack at [sampleRateHz]. */
@@ -136,7 +157,7 @@ internal class AudioOutputController(
     fun onPreferenceDropped() {
         if (preferred == null) return
         preferred = null
-        refresh("dropped")
+        refresh("dropped", reopenIfOpen = true)
     }
 
     fun release() {

@@ -176,6 +176,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
             }.asCoroutineDispatcher()
     private lateinit var usbAudio: AudioOutputPort
     private lateinit var audioOutput: AudioOutputController
+    private lateinit var outputApplier: OutputStateApplier
+    private lateinit var reopener: AudioTrackReopener
     private var audioSettingsJob: Job? = null
     private var outputsJob: Job? = null
     private val equalizer by lazy { EqualizerEffect(AudioPreferences.EQ_BANDS_HZ, appLog) }
@@ -269,7 +271,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 player,
                 recover = { error ->
                     // The output refused the AudioTrack while bit-perfect was preferred: play on normally instead.
-                    (error.isAudioOutputError() && audioOutput.onBitPerfectFailed()).also { if (it) player.prepare() }
+                    outputApplier.recover(error, audioOutput::onBitPerfectFailed)
                 },
             ) { session?.sendPlaybackError(packageName, it) },
         )
@@ -496,7 +498,6 @@ class MediatheqPlaybackService : MediaLibraryService() {
      */
     private fun startAudioOutput(player: ExoPlayer) {
         var settings = AudioSettings()
-        var offload: Boolean? = null
         var eqGains = OutputProfile().eqGainsDb
         lateinit var normalization: NormalizationListener
         lateinit var outputProfiles: OutputProfileFollower
@@ -513,8 +514,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             }
         player.addListener(focusController)
 
-        fun applyEqualizer() =
-            equalizer.apply(player.audioSessionId, audioOutput.state.mode == AudioMode.Processed, eqGains)
+        fun applyEqualizer() = outputApplier.applyEqualizer()
 
         fun currentId(): MediaId? =
             player.currentMediaItem?.let { runCatching { MediaId.parse(it.mediaId) }.getOrNull() }
@@ -535,6 +535,17 @@ class MediatheqPlaybackService : MediaLibraryService() {
             },
         )
         usbAudio = AudioOutputPort.create(getSystemService(AudioManager::class.java))
+        // Bit-perfect turned on mid-track: a new AudioTrack, opened once the old one is gone (#165).
+        reopener = AudioTrackReopener(player, handlerSchedule(Handler(Looper.getMainLooper())))
+        outputApplier =
+            OutputStateApplier(
+                player,
+                state = { audioOutput.state },
+                volume = { normalization.apply() },
+                equalizer = { sessionId, on -> equalizer.apply(sessionId, on, eqGains) },
+                extras = { session?.sessionExtras = it.toInfo().toBundle() },
+                device = { outputProfiles.onDevice(it) },
+            )
         audioOutput =
             AudioOutputController(
                 port = usbAudio,
@@ -551,14 +562,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         null
                     }
                 },
-                onChange = { state ->
-                    if (state.offload != offload) player.applyOffload(state.offload).also { offload = state.offload }
-                    normalization.apply()
-                    applyEqualizer()
-                    session?.sessionExtras = state.toInfo().toBundle()
-                    // Last: a new output's settings decide again, and that change comes back here on its own.
-                    outputProfiles.onDevice(state.output)
-                },
+                onChange = { outputApplier.apply(it) },
                 atmosConverted = {
                     AudioPolicy.atmosConverted(
                         isAtmos = player.currentMediaItem?.isDolbyAtmos() == true,
@@ -567,6 +571,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     )
                 },
                 log = { appLog.info(AUDIO_TAG, it) },
+                reopen = { reopener.reopen() },
                 played = {
                     val method = currentPlayMethod()
                     PlayedStream(
@@ -615,7 +620,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 schedule = handlerSchedule(Handler(Looper.getMainLooper())),
             ) { normalization.apply() }
         player.addListener(fader)
-        player.applyOffload(audioOutput.state.offload).also { offload = audioOutput.state.offload }
+        outputApplier.applyOffload(audioOutput.state.offload)
         player.addListener(
             object : Player.Listener {
                 override fun onEvents(
@@ -643,7 +648,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 override fun onAudioTrackReleased(
                     eventTime: AnalyticsListener.EventTime,
                     audioTrackConfig: AudioSink.AudioTrackConfig,
-                ) = audioOutput.onAudioTrackReleased()
+                ) {
+                    audioOutput.onAudioTrackReleased()
+                    if (!audioOutput.trackOpen) reopener.onTracksReleased()
+                }
             },
         )
         audioSettingsJob =
