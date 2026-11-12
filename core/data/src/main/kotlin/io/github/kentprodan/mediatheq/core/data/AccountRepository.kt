@@ -46,4 +46,6 @@ data class Account(
     val userName: String,
     val baseUrl: String,
     val active: Boolean,
+    /** The last sync, `null` before the first one (#148). */
+    val lastSync: SyncRecord? = null,
 )

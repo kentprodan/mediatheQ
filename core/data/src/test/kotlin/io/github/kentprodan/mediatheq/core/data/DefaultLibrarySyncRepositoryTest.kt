@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.DEFAULT_DATABASE
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
@@ -12,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.SyncStateEntity
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
+import io.github.kentprodan.mediatheq.core.datastore.StoredSyncRecord
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
@@ -48,12 +50,14 @@ import org.junit.After
 import org.junit.Test
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.seconds
 
 class DefaultLibrarySyncRepositoryTest {
     private val server = ServerId("s")
     private val dispatcher = StandardTestDispatcher()
     private val database = inMemoryDatabase(dispatcher)
-    private val accountStore = AccountStore(InMemoryPreferencesDataStore(), FakeTokenCipher())
+    private val preferences = InMemoryPreferencesDataStore()
+    private val accountStore = AccountStore(preferences, FakeTokenCipher())
     private val session = FakeSessionRepository()
     private val clock = TestClock()
     private val source = FakeLibrarySource()
@@ -224,6 +228,72 @@ class DefaultLibrarySyncRepositoryTest {
             val state = database.syncDao().state()
             assertThat(state?.checkpointStep).isEqualTo("Tracks")
             assertThat(state?.checkpointIndex).isEqualTo(500)
+        }
+
+    @Test
+    fun `a finished sync records its time, track count and duration`() =
+        runTest(dispatcher) {
+            fillSource()
+            signIn()
+            val repository = repository()
+            source.pauseAt = 3
+            val sync = async { repository.sync() }
+            source.paused.await()
+            clock.advanceBy(24.seconds)
+            source.resume.complete(Unit)
+            sync.await()
+
+            val record = StoredSyncRecord(clock.now, null, 1_200, 24.seconds)
+            assertThat(accountStore.syncRecords.first()).containsExactly(DEFAULT_DATABASE, record)
+        }
+
+    @Test
+    fun `a failed sync records its error`() =
+        runTest(dispatcher) {
+            fillSource()
+            signIn()
+            source.failAt = 4
+
+            repository().sync()
+
+            val record = StoredSyncRecord(clock.now, MqError.Network, 0, Duration.ZERO)
+            assertThat(accountStore.syncRecords.first()).containsExactly(DEFAULT_DATABASE, record)
+        }
+
+    @Test
+    fun `a record that cannot be written leaves the sync successful`() =
+        runTest(dispatcher) {
+            fillSource()
+            signIn()
+            preferences.failingWrites = true
+
+            assertThat(repository().sync()).isEqualTo(MqResult.Success(Unit))
+            assertThat(accountStore.syncRecords.first()).isEmpty()
+        }
+
+    @Test
+    fun `a sync cancelled by signing out leaves no record`() =
+        runTest(dispatcher) {
+            fillSource()
+            signIn()
+            val repository = repository()
+            source.pauseAt = 3
+            repository.start()
+            source.paused.await()
+
+            accountStore.clear()
+            repository.status.first { it == SyncStatus.Idle(null) }
+            source.resume.complete(Unit)
+            advanceUntilIdle()
+
+            // Read raw: a record written for a removed account would come back when the same id signs in again.
+            assertThat(
+                preferences.current
+                    .asMap()
+                    .keys
+                    .map { it.name }
+                    .filter { it.startsWith("sync_record") },
+            ).isEmpty()
         }
 
     @Test

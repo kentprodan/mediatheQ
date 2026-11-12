@@ -92,6 +92,27 @@ class AccountStore
             }
         }
 
+        /** The last sync of every saved account, by account id (#148); empty when the disk cannot be read. */
+        val syncRecords: Flow<Map<String, StoredSyncRecord>> =
+            dataStore.data
+                .map { prefs ->
+                    prefs
+                        .ids()
+                        .mapNotNull { id ->
+                            prefs[key(SYNC, id)]?.let(::decodeSyncRecord)?.let { id to it }
+                        }.toMap()
+                }.catch { if (it is IOException) emit(emptyMap()) else throw it }
+
+        /**
+         * Records how the active account's sync ended. Skipped when the account is no longer saved (signed out meanwhile),
+         * so a removed account's record never comes back. Throws `IOException` when the disk fails.
+         */
+        suspend fun saveSyncRecord(record: StoredSyncRecord) {
+            dataStore.edit { prefs ->
+                if (activeId in prefs.ids()) prefs[key(SYNC, activeId)] = record.encode()
+            }
+        }
+
         /** Forgets the account [id] and its token; the DeviceId stays. Throws `IOException` when the disk fails. */
         suspend fun remove(id: String) {
             dataStore.edit { prefs ->
@@ -159,7 +180,8 @@ class AccountStore
             private const val USER_ID = "user_id"
             private const val USER_NAME = "user_name"
             private const val TOKEN = "access_token_encrypted"
-            private val FIELDS = listOf(BASE_URL, SERVER_ID, SERVER_NAME, USER_ID, USER_NAME, TOKEN)
+            private const val SYNC = "sync_record"
+            private val FIELDS = listOf(BASE_URL, SERVER_ID, SERVER_NAME, USER_ID, USER_NAME, TOKEN, SYNC)
             private val IDS = stringPreferencesKey("account_ids")
             private val DEVICE_ID = stringPreferencesKey("device_id")
 

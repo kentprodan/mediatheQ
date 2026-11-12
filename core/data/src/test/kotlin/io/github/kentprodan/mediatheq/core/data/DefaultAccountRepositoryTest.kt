@@ -1,9 +1,11 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
+import io.github.kentprodan.mediatheq.core.datastore.StoredSyncRecord
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.ServerInfo
 import io.github.kentprodan.mediatheq.core.testing.FakeAccountDatabases
@@ -16,6 +18,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 class DefaultAccountRepositoryTest {
     private val dataStore = InMemoryPreferencesDataStore()
@@ -57,6 +61,19 @@ class DefaultAccountRepositoryTest {
                     Account("mediatheq.db", "Home", "Ana", "http://nas:8096", active = true),
                     Account("mediatheq-2.db", "Office", "Bo", "https://office.org", active = false),
                 ).inOrder()
+        }
+
+    @Test
+    fun `each account carries its own last sync`() =
+        runTest {
+            saveBoth()
+            val at = Instant.fromEpochSeconds(1_000)
+
+            store.saveSyncRecord(StoredSyncRecord(at, MqError.Network, 0, 3.seconds))
+
+            val accounts = repository.accounts.first()
+            assertThat(accounts[0].lastSync).isEqualTo(SyncRecord(at, MqError.Network, 0, 3.seconds))
+            assertThat(accounts[1].lastSync).isNull()
         }
 
     @Test

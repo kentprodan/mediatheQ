@@ -59,6 +59,7 @@ class SettingsHubScreenTest {
             "Advanced",
             "Manage offline files",
             "Manage media providers",
+            "Sync manager",
         ).forEach(::open)
         // "About" is both a group title and its entry: the clickable row is the entry.
         open("About")
@@ -88,6 +89,7 @@ class SettingsHubScreenTest {
                 AdvancedSettingsKey,
                 DownloadsKey,
                 ProvidersSettingsKey,
+                null,
                 AboutSettingsKey,
             ).inOrder()
     }

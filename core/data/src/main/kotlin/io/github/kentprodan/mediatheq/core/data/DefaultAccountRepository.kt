@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.server.ServerConnection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -34,9 +35,13 @@ internal class DefaultAccountRepository
         @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : AccountRepository {
         override val accounts: Flow<List<Account>> =
-            store.accounts.map { result ->
+            combine(store.accounts, store.syncRecords) { result, records ->
                 result.getOrNull().orEmpty().map {
-                    Account(it.id, it.serverName, it.userName, it.baseUrl, active = it.id == databases.open)
+                    val record =
+                        records[it.id]?.let { r ->
+                            SyncRecord(r.finishedAt, r.error, r.trackCount, r.duration)
+                        }
+                    Account(it.id, it.serverName, it.userName, it.baseUrl, active = it.id == databases.open, record)
                 }
             }
 

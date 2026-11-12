@@ -11,6 +11,19 @@
     <string name="core_ui_add_to_queue">Add to queue</string>
     <string name="core_ui_duration_minutes">%1$d min</string>
     <string name="core_ui_duration_hours">%1$d h %2$d min</string>
+    <string name="core_ui_just_now">Just now</string>
+    <plurals name="core_ui_minutes_ago">
+        <item quantity="one">%1$d minute ago</item>
+        <item quantity="other">%1$d minutes ago</item>
+    </plurals>
+    <plurals name="core_ui_hours_ago">
+        <item quantity="one">%1$d hour ago</item>
+        <item quantity="other">%1$d hours ago</item>
+    </plurals>
+    <plurals name="core_ui_days_ago">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
     <plurals name="core_ui_track_count">
         <item quantity="one">%1$d track</item>
         <item quantity="other">%1$d tracks</item>

@@ -6,6 +6,9 @@ import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -22,6 +25,7 @@ enum class SettingsHubEntry(
     Advanced(R.string.settings_advanced),
     ManageOfflineFiles(R.string.settings_manage_offline),
     Providers(R.string.settings_providers),
+    SyncManager(R.string.settings_sync_manager),
     About(R.string.settings_about),
 }
 
@@ -34,11 +38,16 @@ internal val hubGroups =
                 SettingsHubEntry.Storage,
                 SettingsHubEntry.Advanced,
             ),
-        R.string.settings_group_misc to listOf(SettingsHubEntry.ManageOfflineFiles, SettingsHubEntry.Providers),
+        R.string.settings_group_misc to
+            listOf(
+                SettingsHubEntry.ManageOfflineFiles,
+                SettingsHubEntry.Providers,
+                SettingsHubEntry.SyncManager,
+            ),
         R.string.settings_about to listOf(SettingsHubEntry.About),
     )
 
-/** The hub with the setting that decides whether "Manage offline files" shows. */
+/** The hub with the setting that decides whether "Manage offline files" shows; Sync manager opens as a sheet here. */
 @Composable
 internal fun SettingsHubRoute(
     onOpen: (SettingsHubEntry) -> Unit,
@@ -47,7 +56,13 @@ internal fun SettingsHubRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val content = state as? SettingsUiState.Content
-    SettingsHubScreen(onOpen, onBack, showsManageOfflineFiles = content?.showsManageOfflineFiles == true)
+    var syncManager by rememberSaveable { mutableStateOf(false) }
+    SettingsHubScreen(
+        onOpen = { if (it == SettingsHubEntry.SyncManager) syncManager = true else onOpen(it) },
+        onBack = onBack,
+        showsManageOfflineFiles = content?.showsManageOfflineFiles == true,
+    )
+    if (syncManager) SyncManagerSheet(onDismiss = { syncManager = false })
 }
 
 /**
@@ -91,5 +106,6 @@ private val SettingsHubEntry.icon: ImageVector
             SettingsHubEntry.Advanced -> MqIcons.Tune
             SettingsHubEntry.ManageOfflineFiles -> MqIcons.Download
             SettingsHubEntry.Providers -> MqIcons.Devices
+            SettingsHubEntry.SyncManager -> MqIcons.Sync
             SettingsHubEntry.About -> MqIcons.Info
         }
