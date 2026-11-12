@@ -13,8 +13,18 @@ class AudioOutputControllerTest {
     private val changes = mutableListOf<AudioOutputState>()
     private var atmosConverted = false
     private var played = PlayedStream()
+    private var reopens = 0
+    private var allReleased = 0
     private val controller =
-        AudioOutputController(port, { format }, changes::add, { atmosConverted }, played = { played })
+        AudioOutputController(
+            port,
+            { format },
+            changes::add,
+            { atmosConverted },
+            played = { played },
+            reopen = { reopens++ },
+            tracksReleased = { allReleased++ },
+        )
     private val bitPerfectOn = AudioSettings(bitPerfectUsb = true)
 
     @Test
@@ -150,42 +160,94 @@ class AudioOutputControllerTest {
     }
 
     @Test
+    fun `turning the setting on with an AudioTrack open asks once for a new one`() {
+        port.capabilities = listOf(MixerCapability(cd, bitPerfect = true))
+        controller.onAudioTrackOpened(44_100)
+
+        controller.setSettings(bitPerfectOn)
+        controller.refresh("state")
+        controller.setSettings(bitPerfectOn.copy(equalizerOn = true))
+
+        assertThat(reopens).isEqualTo(1)
+    }
+
+    @Test
+    fun `turning the setting on with no AudioTrack open asks for nothing, the next one opens bit-perfect`() {
+        port.capabilities = listOf(MixerCapability(cd, bitPerfect = true))
+
+        controller.setSettings(bitPerfectOn)
+
+        assertThat(reopens).isEqualTo(0)
+    }
+
+    @Test
+    fun `a transition to another rate with the old track still open asks for nothing`() {
+        port.capabilities = listOf(MixerCapability(cd, bitPerfect = true), MixerCapability(hiRes, bitPerfect = true))
+        controller.setSettings(bitPerfectOn)
+        controller.onAudioTrackOpened(44_100)
+
+        format = hiRes
+        controller.refresh("transition")
+
+        assertThat(port.preferred).isEqualTo(MixerCapability(hiRes, bitPerfect = true))
+        assertThat(reopens).isEqualTo(0)
+    }
+
+    @Test
+    fun `no matching attribute, a refused one or the setting turned off asks for nothing`() {
+        controller.onAudioTrackOpened(44_100)
+        port.capabilities = listOf(MixerCapability(hiRes, bitPerfect = true))
+        controller.setSettings(bitPerfectOn)
+        controller.setSettings(AudioSettings())
+
+        port.capabilities = listOf(MixerCapability(cd, bitPerfect = true))
+        port.accepts = false
+        controller.setSettings(bitPerfectOn)
+
+        assertThat(reopens).isEqualTo(0)
+    }
+
+    @Test
+    fun `a DAC plugged in mid-track with bit-perfect already on reopens the open track`() {
+        controller.setSettings(bitPerfectOn)
+        controller.onAudioTrackOpened(44_100)
+
+        port.capabilities = listOf(MixerCapability(cd, bitPerfect = true))
+        controller.onDeviceChanged()
+
+        assertThat(reopens).isEqualTo(1)
+    }
+
+    @Test
+    fun `the release of the last open AudioTrack is reported once`() {
+        controller.onAudioTrackOpened(44_100)
+        controller.onAudioTrackOpened(96_000)
+
+        controller.onAudioTrackReleased()
+        assertThat(allReleased).isEqualTo(0)
+        controller.onAudioTrackReleased()
+
+        assertThat(allReleased).isEqualTo(1)
+    }
+
+    @Test
+    fun `a preference set again after the platform dropped it reopens the open track`() {
+        port.capabilities = listOf(MixerCapability(cd, bitPerfect = true))
+        controller.setSettings(bitPerfectOn)
+        controller.onAudioTrackOpened(44_100)
+
+        controller.onPreferenceDropped()
+
+        assertThat(reopens).isEqualTo(1)
+    }
+
+    @Test
     fun `listeners hear only real changes`() {
         controller.refresh("test")
         controller.setSettings(AudioSettings(equalizerOn = true))
         controller.refresh("test")
 
         assertThat(changes).containsExactly(AudioOutputState(offload = false, mode = AudioMode.Processed))
-    }
-
-    private class FakeUsbAudioPort : AudioOutputPort {
-        var output = OutputDevice.Phone
-
-        override fun currentOutput() = output
-
-        var capabilities: List<MixerCapability>? = null
-        var accepts = true
-        var preferred: MixerCapability? = null
-        var setCalls = 0
-
-        override fun dacCapabilities() = capabilities
-
-        override fun setPreferred(capability: MixerCapability): Boolean {
-            setCalls++
-            if (accepts) preferred = capability
-            return accepts
-        }
-
-        override fun clearPreferred() {
-            preferred = null
-        }
-
-        override fun watch(
-            onChange: () -> Unit,
-            onPreferenceDropped: () -> Unit,
-        ) = Unit
-
-        override fun release() = Unit
     }
 
     @Test
