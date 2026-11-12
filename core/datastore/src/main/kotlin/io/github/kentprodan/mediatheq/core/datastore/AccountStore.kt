@@ -59,6 +59,33 @@ class AccountStore
                     }
                 }.catch { if (it is IOException) emit(MqResult.Failure(MqError.Storage)) else throw it }
 
+        /**
+         * Every saved account in the user's order, signed in or not (#150): a restored account has no token, and one whose
+         * token cannot be decrypted (the Keystore key lost) needs a sign-in too. Empty when the disk cannot be read.
+         */
+        val saved: Flow<List<SavedAccount>> =
+            dataStore.data
+                .map { prefs -> prefs.ids().map { prefs.saved(it) } }
+                .catch { if (it is IOException) emit(emptyList()) else throw it }
+
+        /**
+         * Saves [account] without a token, as a signed-out entry (a restored backup, #150). Never replaces a saved entry.
+         * Throws `IOException` when the disk fails.
+         */
+        suspend fun saveSignedOut(account: SavedAccount) {
+            require(',' !in account.id && account.id.isNotEmpty())
+            dataStore.edit { prefs ->
+                val ids = prefs.ids()
+                if (account.id in ids) return@edit
+                prefs[key(BASE_URL, account.id)] = account.baseUrl
+                prefs[key(SERVER_ID, account.id)] = account.serverId.value
+                prefs[key(SERVER_NAME, account.id)] = account.serverName
+                prefs[key(USER_ID, account.id)] = account.userId
+                prefs[key(USER_NAME, account.id)] = account.userName
+                prefs.setIds(ids + account.id)
+            }
+        }
+
         /** Every saved account's id, also those whose token cannot be read; `null` when the disk cannot be read. */
         suspend fun ids(): List<String>? =
             try {
@@ -150,6 +177,17 @@ class AccountStore
 
         private val fallbackDeviceId by lazy { UUID.randomUUID().toString() }
 
+        private fun Preferences.saved(id: String) =
+            SavedAccount(
+                id = id,
+                baseUrl = this[key(BASE_URL, id)].orEmpty(),
+                serverId = ServerId(this[key(SERVER_ID, id)].orEmpty().ifEmpty { UNKNOWN_SERVER }),
+                serverName = this[key(SERVER_NAME, id)].orEmpty(),
+                userId = this[key(USER_ID, id)].orEmpty(),
+                userName = this[key(USER_NAME, id)].orEmpty(),
+                signedIn = readOrNull(id) != null,
+            )
+
         private fun Preferences.readOrNull(id: String): StoredAccount? =
             try {
                 read(id)
@@ -183,6 +221,9 @@ class AccountStore
             private const val SYNC = "sync_record"
             private val FIELDS = listOf(BASE_URL, SERVER_ID, SERVER_NAME, USER_ID, USER_NAME, TOKEN, SYNC)
             private val IDS = stringPreferencesKey("account_ids")
+
+            /** A ServerId cannot be empty; a broken entry still lists, so it can be removed. */
+            private const val UNKNOWN_SERVER = "unknown"
             private val DEVICE_ID = stringPreferencesKey("device_id")
 
             private fun key(

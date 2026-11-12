@@ -213,4 +213,52 @@ class AccountStoreTest {
             assertThat(first).matches("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
             assertThat(store.deviceId()).isEqualTo(first)
         }
+
+    @Test
+    fun `a signed-out account is saved without a token and listed as such, never among the signed-in ones`() =
+        runTest {
+            val store = store()
+            store.save(account)
+            val restored =
+                SavedAccount("mediatheq-2.db", "https://office.org", ServerId("server-2"), "Office", "u9", "Bo")
+
+            store.saveSignedOut(restored)
+            store.saveSignedOut(restored.copy(serverName = "Again"))
+
+            assertThat(store.saved.first())
+                .containsExactly(
+                    SavedAccount(
+                        account.id,
+                        account.baseUrl,
+                        account.serverId,
+                        "Home",
+                        "user-1",
+                        "Ana",
+                        signedIn = true,
+                    ),
+                    restored,
+                ).inOrder()
+            assertThat(store.accounts.first()).isEqualTo(MqResult.Success(listOf(account)))
+            assertThat(
+                dataStore.current
+                    .asMap()
+                    .keys
+                    .map { it.name },
+            ).doesNotContain("access_token_encrypted@mediatheq-2.db")
+        }
+
+    @Test
+    fun `an account whose token cannot be decrypted lists as signed out`() =
+        runTest {
+            val store = store()
+            store.save(account)
+            cipher.failing = true
+
+            assertThat(
+                store.saved
+                    .first()
+                    .single()
+                    .signedIn,
+            ).isFalse()
+        }
 }
