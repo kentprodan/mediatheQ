@@ -9,10 +9,12 @@ import io.github.kentprodan.mediatheq.core.data.HomeLibrary
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
+import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.homeItems
 import io.github.kentprodan.mediatheq.core.data.mixTracks
+import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.CoroutineDispatcher
@@ -46,6 +48,7 @@ class HomeViewModel
         private val trackTaps: TrackTaps,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
+        private val playlists: PlaylistRepository,
         preferences: LibraryPreferencesRepository,
         private val shuffle: HomeShuffle,
         private val clock: Clock,
@@ -85,7 +88,7 @@ class HomeViewModel
                 if (library.albums.isEmpty() && library.tracks.isEmpty()) return@combine null
                 val now = clock.now()
                 home.shown.mapNotNull { section ->
-                    val settings = section.defaultSettings
+                    val settings = home.settingsOf(section)
                     val items = homeItems(section, library, settings.maxItems, seed, now)
                     HomeSectionContent(section, settings, items).takeUnless { items.isEmpty && settings.hideIfEmpty }
                 }
@@ -134,6 +137,22 @@ class HomeViewModel
                     launch { trackTaps.tap(action.tracks, action.index) }
                 }
 
+                // A cover's play button (#182): the collection in its own order, like its page's Play.
+                is HomeAction.PlayAlbum -> {
+                    launch { play(libraryRepository.albumTracks(action.id).first()) }
+                }
+
+                is HomeAction.PlayPlaylist -> {
+                    launch { play(playlists.items(action.id).first().map { it.track }) }
+                }
+
+                is HomeAction.PlayArtist -> {
+                    launch {
+                        val albums = libraryRepository.artistAlbums(action.id).first()
+                        play(albums.flatMap { libraryRepository.albumTracks(it.id).first() })
+                    }
+                }
+
                 is HomeAction.PlayNext -> {
                     playback.playNext(listOf(action.track))
                 }
@@ -164,5 +183,9 @@ class HomeViewModel
 
         private fun launch(block: suspend () -> Unit) {
             viewModelScope.launch { block() }
+        }
+
+        private fun play(tracks: List<Track>) {
+            if (tracks.isNotEmpty()) playback.play(tracks)
         }
     }

@@ -4,11 +4,13 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
+import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.data.mixTracks
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.HomeDisplay
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -20,12 +22,14 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesReposit
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import io.github.kentprodan.mediatheq.core.testing.TestClock
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -85,6 +89,8 @@ class HomeViewModelTest {
             track("single", favorite = true),
         )
 
+    private val playlists = FakePlaylistRepository()
+
     private fun newViewModel() =
         HomeViewModel(
             library,
@@ -93,6 +99,7 @@ class HomeViewModelTest {
             trackTaps,
             userData,
             downloads,
+            playlists,
             preferences,
             shuffle,
             TestClock(day(20)),
@@ -160,6 +167,52 @@ class HomeViewModelTest {
             assertThat(
                 shown,
             ).containsNoneOf(HomeSection.RediscoverAlbums, HomeSection.FavoritePlaylists, HomeSection.RandomArtists)
+        }
+
+    @Test
+    fun `a section's own settings reach Home at once, also an empty section kept`() =
+        test {
+            val viewModel = withLibrary()
+            val favorites = HomeSection.FavoriteAlbums
+            val settings = favorites.defaultSettings.copy(display = HomeDisplay.Grid, maxItems = 5, playButton = true)
+
+            preferences.setHomeSectionSettings(favorites, settings)
+            preferences.setHomeSectionSettings(
+                HomeSection.FavoritePlaylists,
+                HomeSection.FavoritePlaylists.defaultSettings.copy(hideIfEmpty = false),
+            )
+            runCurrent()
+
+            assertThat(
+                viewModel
+                    .content()
+                    .sections
+                    .first { it.section == favorites }
+                    .settings,
+            ).isEqualTo(settings)
+            assertThat(viewModel.sections()).contains(HomeSection.FavoritePlaylists)
+        }
+
+    @Test
+    fun `a cover's play button plays the album, the playlist, or the artist's albums in order`() =
+        test {
+            val viewModel = withLibrary()
+            val list = id("list")
+            playlists.items.value =
+                mapOf(list to listOf(PlaylistItem("e1", 0, tracks[4]), PlaylistItem("e2", 1, tracks[0])))
+            library.artistAlbums.value = mapOf(ada.id to listOf(beta, alpha))
+
+            viewModel.onAction(HomeAction.PlayAlbum(alpha.id))
+            viewModel.onAction(HomeAction.PlayPlaylist(list))
+            viewModel.onAction(HomeAction.PlayArtist(ada.id))
+            runCurrent()
+
+            assertThat(playback.plays)
+                .containsExactly(
+                    FakePlaybackConnection.PlayCall(listOf(tracks[0], tracks[1]), 0, shuffle = false),
+                    FakePlaybackConnection.PlayCall(listOf(tracks[4], tracks[0]), 0, shuffle = false),
+                    FakePlaybackConnection.PlayCall(listOf(tracks[2], tracks[0], tracks[1]), 0, shuffle = false),
+                ).inOrder()
         }
 
     @Test

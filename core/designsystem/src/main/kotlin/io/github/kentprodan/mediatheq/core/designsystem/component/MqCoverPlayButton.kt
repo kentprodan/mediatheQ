@@ -16,11 +16,16 @@ fun MqCoverPlayButton(
     onClick: () -> Unit,
     contentDescription: String,
     modifier: Modifier = Modifier,
+    /** The small size, for a card's cover in a row (#182); the large one is Now Playing's. */
+    small: Boolean = false,
 ) {
     FilledIconButton(
         onClick = onClick,
         shapes = IconButtonDefaults.shapes(),
-        modifier = modifier.size(IconButtonDefaults.largeContainerSize()),
+        modifier =
+            modifier.size(
+                if (small) IconButtonDefaults.smallContainerSize() else IconButtonDefaults.largeContainerSize(),
+            ),
     ) {
         Icon(
             MqIcons.PlayFilled,

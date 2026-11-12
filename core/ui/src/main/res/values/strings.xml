@@ -8,6 +8,7 @@
     <string name="core_ui_open_downloads">Open Downloads</string>
     <string name="core_ui_now_playing">Now playing</string>
     <string name="core_ui_play_next">Play next</string>
+    <string name="core_ui_play_item">Play %1$s</string>
     <string name="core_ui_add_to_queue">Add to queue</string>
     <string name="core_ui_duration_minutes">%1$d min</string>
     <string name="core_ui_duration_hours">%1$d h %2$d min</string>

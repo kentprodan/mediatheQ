@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -47,12 +48,14 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.HomeDisplay
+import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
 import io.github.kentprodan.mediatheq.core.ui.ArtistCard
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
+import io.github.kentprodan.mediatheq.core.ui.LocalMediaListStyle
 import io.github.kentprodan.mediatheq.core.ui.NothingDownloaded
 import io.github.kentprodan.mediatheq.core.ui.PlaylistCard
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
@@ -194,8 +197,11 @@ private fun HomeContent(
     }
 }
 
-/** One section: its header, then its items in the section's display. Keys are text (saveable). */
-private fun LazyListScope.section(
+/**
+ * One section: its header, then its items in the section's display and settings (#182). Keys are text (saveable).
+ * Also the preview of the section's settings page.
+ */
+internal fun LazyListScope.section(
     content: HomeSectionContent,
     flying: Set<MediaId>,
     onAction: (HomeAction) -> Unit,
@@ -214,11 +220,38 @@ private fun LazyListScope.section(
     // Tracks have no cards: a track section always lists its rows.
     if (items is HomeItems.Tracks) {
         itemsIndexed(items.tracks, key = { _, track -> "$key-${track.id}" }) { index, track ->
-            HomeTrackRow(track, onPlay = { onAction(HomeAction.PlayTracks(items.tracks, index)) }, onAction)
+            HomeTrackRow(
+                track,
+                onPlay = { onAction(HomeAction.PlayTracks(items.tracks, index)) },
+                onAction,
+                showArtists = !settings.hideSubtitles,
+            )
         }
         return
     }
     item(key = "$key-items") {
+        // The section's own text and overlay choices over Settings -> Media lists (#182).
+        val style = LocalMediaListStyle.current
+        CompositionLocalProvider(
+            LocalMediaListStyle provides
+                style.copy(
+                    centerGridText = settings.centerText ?: style.centerGridText,
+                    favoriteOverlay = settings.favoriteOverlay ?: style.favoriteOverlay,
+                    offlineOverlay = settings.offlineOverlay ?: style.offlineOverlay,
+                ),
+        ) { SectionItems(items, settings, flying, onAction, navigation) }
+    }
+}
+
+@Composable
+private fun SectionItems(
+    items: HomeItems,
+    settings: HomeSectionSettings,
+    flying: Set<MediaId>,
+    onAction: (HomeAction) -> Unit,
+    navigation: HomeNavigation,
+) {
+    run {
         when (settings.display) {
             HomeDisplay.Carousel -> {
                 MqCoverCarousel(
@@ -228,12 +261,12 @@ private fun LazyListScope.section(
             }
 
             HomeDisplay.Grid -> {
-                CardRow(items, flying, navigation, rows = settings.gridRows.coerceIn(1, MAX_GRID_ROWS))
+                CardRow(items, flying, navigation, settings, onAction, rows = settings.gridRows)
             }
 
             // A list of albums, artists or playlists is a row of cards (List is for tracks).
             HomeDisplay.Row, HomeDisplay.List -> {
-                CardRow(items, flying, navigation, rows = 1)
+                CardRow(items, flying, navigation, settings, onAction, rows = 1)
             }
         }
     }
@@ -270,8 +303,11 @@ private fun CardRow(
     items: HomeItems,
     flying: Set<MediaId>,
     navigation: HomeNavigation,
+    settings: HomeSectionSettings,
+    onAction: (HomeAction) -> Unit,
     rows: Int,
 ) {
+    val subtitles = !settings.hideSubtitles
     val cards: List<@Composable (Modifier) -> Unit> =
         when (items) {
             is HomeItems.Albums -> {
@@ -281,8 +317,9 @@ private fun CardRow(
                             album,
                             { navigation.onOpenAlbum(album.id) },
                             modifier,
-                            sharedCover =
-                                album.id in flying,
+                            sharedCover = album.id in flying,
+                            showSubtitle = subtitles,
+                            onPlay = { onAction(HomeAction.PlayAlbum(album.id)) }.takeIf { settings.playButton },
                         )
                     }
                 }
@@ -291,7 +328,12 @@ private fun CardRow(
             is HomeItems.Artists -> {
                 items.artists.map { artist ->
                     { modifier: Modifier ->
-                        ArtistCard(artist, { navigation.onOpenArtist(artist.id) }, modifier)
+                        ArtistCard(
+                            artist,
+                            { navigation.onOpenArtist(artist.id) },
+                            modifier,
+                            onPlay = { onAction(HomeAction.PlayArtist(artist.id)) }.takeIf { settings.playButton },
+                        )
                     }
                 }
             }
@@ -299,7 +341,13 @@ private fun CardRow(
             is HomeItems.Playlists -> {
                 items.playlists.map { playlist ->
                     { modifier: Modifier ->
-                        PlaylistCard(playlist, { navigation.onOpenPlaylist(playlist.id) }, modifier)
+                        PlaylistCard(
+                            playlist,
+                            { navigation.onOpenPlaylist(playlist.id) },
+                            modifier,
+                            showSubtitle = subtitles,
+                            onPlay = { onAction(HomeAction.PlayPlaylist(playlist.id)) }.takeIf { settings.playButton },
+                        )
                     }
                 }
             }
@@ -325,11 +373,13 @@ private fun HomeTrackRow(
     track: Track,
     onPlay: () -> Unit,
     onAction: (HomeAction) -> Unit,
+    showArtists: Boolean,
 ) {
     TrackRow(
         track,
         onClick = onPlay,
         showCover = true,
+        showArtists = showArtists,
         menuItems = { close ->
             QueueMenuItems(
                 onPlayNext = { onAction(HomeAction.PlayNext(track)) },
@@ -390,5 +440,3 @@ internal fun flyingCovers(rows: List<List<Album>>): List<Set<MediaId>> {
     val seen = mutableSetOf<MediaId>()
     return rows.map { row -> row.filter { seen.add(it.id) }.mapTo(HashSet()) { it.id } }
 }
-
-private const val MAX_GRID_ROWS = 3

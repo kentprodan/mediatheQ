@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.ui
 
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,11 +13,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqCoverPlayButton
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedCover
 import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
@@ -39,6 +42,10 @@ fun AlbumCard(
     onLongClick: (() -> Unit)? = null,
     /** In a multi-select list: whether this card is selected (a check on the cover). `null` outside selection. */
     selected: Boolean? = null,
+    /** The album artists under the title; off in a Home section that hides subtitles (#182). */
+    showSubtitle: Boolean = true,
+    /** A play button on the cover (#182); `null` for none. */
+    onPlay: (() -> Unit)? = null,
 ) {
     val style = LocalMediaListStyle.current
     val textAlign = if (style.centerGridText) TextAlign.Center else TextAlign.Start
@@ -59,6 +66,7 @@ fun AlbumCard(
                 blurHash = coverBlurHash,
             )
             CoverOverlays(album.userData.isFavorite, album.id in style.downloaded)
+            onPlay?.let { CoverPlay(album.title, it) }
             if (selected == true) {
                 Icon(
                     MqIcons.CheckCircleFilled,
@@ -76,14 +84,30 @@ fun AlbumCard(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(
-            album.albumArtists.joinToString { it.name },
-            Modifier.fillMaxWidth(),
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = textAlign,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (showSubtitle) {
+            Text(
+                album.albumArtists.joinToString { it.name },
+                Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = textAlign,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
+}
+
+/** The small play button on a card's cover (#182), named for TalkBack. */
+@Composable
+internal fun BoxScope.CoverPlay(
+    name: String,
+    onPlay: () -> Unit,
+) {
+    MqCoverPlayButton(
+        onPlay,
+        stringResource(R.string.core_ui_play_item, name),
+        Modifier.align(Alignment.BottomStart).padding(MediatheqSpacing.s),
+        small = true,
+    )
 }
