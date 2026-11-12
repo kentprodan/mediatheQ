@@ -14,8 +14,17 @@ class AudioOutputControllerTest {
     private var atmosConverted = false
     private var played = PlayedStream()
     private var reopens = 0
+    private var allReleased = 0
     private val controller =
-        AudioOutputController(port, { format }, changes::add, { atmosConverted }, played = { played }) { reopens++ }
+        AudioOutputController(
+            port,
+            { format },
+            changes::add,
+            { atmosConverted },
+            played = { played },
+            reopen = { reopens++ },
+            tracksReleased = { allReleased++ },
+        )
     private val bitPerfectOn = AudioSettings(bitPerfectUsb = true)
 
     @Test
@@ -196,6 +205,29 @@ class AudioOutputControllerTest {
         controller.setSettings(bitPerfectOn)
 
         assertThat(reopens).isEqualTo(0)
+    }
+
+    @Test
+    fun `a DAC plugged in mid-track with bit-perfect already on reopens the open track`() {
+        controller.setSettings(bitPerfectOn)
+        controller.onAudioTrackOpened(44_100)
+
+        port.capabilities = listOf(MixerCapability(cd, bitPerfect = true))
+        controller.onDeviceChanged()
+
+        assertThat(reopens).isEqualTo(1)
+    }
+
+    @Test
+    fun `the release of the last open AudioTrack is reported once`() {
+        controller.onAudioTrackOpened(44_100)
+        controller.onAudioTrackOpened(96_000)
+
+        controller.onAudioTrackReleased()
+        assertThat(allReleased).isEqualTo(0)
+        controller.onAudioTrackReleased()
+
+        assertThat(allReleased).isEqualTo(1)
     }
 
     @Test

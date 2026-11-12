@@ -572,6 +572,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 },
                 log = { appLog.info(AUDIO_TAG, it) },
                 reopen = { reopener.reopen() },
+                tracksReleased = { reopener.onTracksReleased() },
                 played = {
                     val method = currentPlayMethod()
                     PlayedStream(
@@ -648,10 +649,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 override fun onAudioTrackReleased(
                     eventTime: AnalyticsListener.EventTime,
                     audioTrackConfig: AudioSink.AudioTrackConfig,
-                ) {
-                    audioOutput.onAudioTrackReleased()
-                    if (!audioOutput.trackOpen) reopener.onTracksReleased()
-                }
+                ) = audioOutput.onAudioTrackReleased()
             },
         )
         audioSettingsJob =
@@ -717,6 +715,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
         autoActions.release()
         fader.release()
         bluetoothLyrics.release()
+        // A reopen in progress ends now, not on a timer after the player is gone.
+        reopener.release()
         audioOutput.release()
         usbAudio.release()
         equalizer.release()

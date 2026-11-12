@@ -55,6 +55,8 @@ internal class AudioOutputController(
      * after the platform dropped it): that track stays on the normal mixer, so the player must open a new one (#165).
      */
     private val reopen: () -> Unit = {},
+    /** The last AudioTrack of the player was released: a reopen waiting for it can go on. */
+    private val tracksReleased: () -> Unit = {},
 ) {
     private var settings = AudioSettings()
     private var preferred: MixerCapability? = null
@@ -76,13 +78,11 @@ internal class AudioOutputController(
         refresh("settings", reopenIfOpen = turnedOn)
     }
 
-    /** An AudioTrack of the player is still open (an old one may be releasing in the background). */
-    val trackOpen: Boolean get() = openTracks > 0
-
     /** An output device was added or removed. */
     fun onDeviceChanged() {
         suspended = false
-        refresh("device")
+        // A DAC plugged in mid-track with bit-perfect already on: the open track went to it through the mixer.
+        refresh("device", reopenIfOpen = true)
     }
 
     /**
@@ -132,7 +132,8 @@ internal class AudioOutputController(
             ),
         )
         // After publishing: the offload change of this decision is applied first, then the track is reopened.
-        if (reopenIfOpen && newlySet && openTracks > 0) {
+        // Still ours: the output's profile applied in publish may have changed the decision since.
+        if (reopenIfOpen && newlySet && openTracks > 0 && preferred == chosen) {
             log("reopen: an AudioTrack predates the preference")
             reopen()
         }
@@ -151,6 +152,7 @@ internal class AudioOutputController(
         // A confirmed track was opened with none before it, so it is the last one open.
         if (openTracks == 0) confirmed = false
         publish(state.copy(bitPerfectConfirmed = confirmed && state.mode == AudioMode.BitPerfect))
+        if (openTracks == 0) tracksReleased()
     }
 
     /** The platform dropped our preference (DAC re-enumerated, audio server restarted): set it again. */

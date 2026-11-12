@@ -74,7 +74,15 @@ class AudioOutputWiringTest {
                 }
             },
         )
-        controller = AudioOutputController(port, { cd }, applier::apply, { false }, reopen = reopener::reopen)
+        controller =
+            AudioOutputController(
+                port,
+                { cd },
+                applier::apply,
+                { false },
+                reopen = reopener::reopen,
+                tracksReleased = reopener::onTracksReleased,
+            )
         player.setMediaItems(
             listOf(
                 Track(MediaId(ServerId("s"), "t1"), "Track 1", emptyList(), 3.minutes, albumNormalizationGainDb = -6.0)
@@ -167,9 +175,8 @@ class AudioOutputWiringTest {
         assertThat(audioOff).isTrue()
         assertThat(player.playWhenReady).isTrue()
         assertThat(extras.last().bitPerfectConfirmed).isFalse()
-        // What the service's analytics listener does once the sink released the old track; then a new one opens.
+        // The sink released the old track (the service's analytics listener); then a new one opens.
         controller.onAudioTrackReleased()
-        if (!controller.trackOpen) reopener.onTracksReleased()
         assertThat(audioOff).isFalse()
         controller.onAudioTrackOpened(44_100)
 
