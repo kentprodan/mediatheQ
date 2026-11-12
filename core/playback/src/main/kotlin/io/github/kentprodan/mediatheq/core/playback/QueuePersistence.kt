@@ -1,7 +1,6 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import android.net.Uri
-import android.util.Log
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
@@ -11,6 +10,7 @@ import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.media3.session.MediaSession.MediaItemsWithStartPosition
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.data.QueueEntryId
 import io.github.kentprodan.mediatheq.core.data.QueuePlace
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
@@ -46,6 +46,7 @@ internal class QueuePersistence(
     private val isLoggedIn: suspend () -> Boolean = { true },
     private val debounce: Duration = 1.seconds,
     private val tick: Duration = 10.seconds,
+    private val log: AppLog = AppLog.None,
 ) {
     // Bumped on every queue change; the entries are rewritten until a write has caught up with it.
     private var queueVersion = 0
@@ -105,7 +106,7 @@ internal class QueuePersistence(
                         throw e
                     } catch (e: Exception) {
                         // Nothing to bring back; saving goes on.
-                        Log.w(TAG, "Could not restore the saved queue", e)
+                        log.warn(TAG, "Could not restore the saved queue", e)
                         null
                     }
                 // Nothing to bring back (none saved, signed out, every track gone, or unreadable): forget it, so the
@@ -144,7 +145,7 @@ internal class QueuePersistence(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.w(TAG, "Could not forget the saved queue", e)
+            log.warn(TAG, "Could not forget the saved queue", e)
         }
     }
 

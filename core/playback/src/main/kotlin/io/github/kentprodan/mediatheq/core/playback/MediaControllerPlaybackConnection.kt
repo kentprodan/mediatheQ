@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -15,6 +14,7 @@ import androidx.media3.session.SessionError
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -64,6 +64,7 @@ internal class MediaControllerPlaybackConnection
         @ApplicationContext private val context: Context,
         private val artworkUrls: ArtworkUrlResolver,
         @ApplicationScope private val scope: CoroutineScope,
+        private val log: AppLog,
     ) : PlaybackConnection {
         // Touched on the main thread only (Media3 session threading).
         private var controller: ListenableFuture<MediaController>? = null
@@ -196,7 +197,7 @@ internal class MediaControllerPlaybackConnection
                         throw e
                     } catch (e: Exception) {
                         // Rejected or the service died while connecting: try again on the next command.
-                        Log.w(TAG, "Could not connect to the playback service", e)
+                        log.warn(TAG, "Could not connect to the playback service", e)
                         controller = null
                         return@launch
                     }

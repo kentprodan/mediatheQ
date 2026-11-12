@@ -1,7 +1,7 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import android.media.audiofx.DynamicsProcessing
-import android.util.Log
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import kotlin.math.sqrt
 
 /** One DynamicsProcessing EQ band: it covers frequencies up to [cutoffHz] (bands are set by upper edge, not center). */
@@ -35,6 +35,7 @@ internal object EqualizerCurve {
  */
 internal class EqualizerEffect(
     private val centersHz: List<Int>,
+    private val log: AppLog = AppLog.None,
 ) {
     private var effect: DynamicsProcessing? = null
     private var sessionId: Int? = null
@@ -56,7 +57,7 @@ internal class EqualizerEffect(
             dp.enabled = true
         } catch (e: RuntimeException) {
             // E.g. a system effect with a higher priority took control; music plays on without the EQ.
-            Log.w(TAG, "Equalizer could not be applied", e)
+            log.warn(TAG, "Equalizer could not be applied", e)
             release()
         }
     }
@@ -93,7 +94,7 @@ internal class EqualizerEffect(
                 DynamicsProcessing(0, audioSessionId, config)
             } catch (e: RuntimeException) {
                 // Some devices have no DynamicsProcessing; music plays on without the EQ.
-                Log.w(TAG, "Equalizer unavailable", e)
+                log.warn(TAG, "Equalizer unavailable", e)
                 null
             }
         sessionId = audioSessionId

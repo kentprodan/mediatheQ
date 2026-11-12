@@ -4,7 +4,6 @@ import android.media.AudioFormat
 import android.media.MediaCodec
 import android.media.MediaCodecList
 import android.media.MediaFormat
-import android.util.Log
 import androidx.core.net.toUri
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
@@ -13,6 +12,7 @@ import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.source.UnrecognizedInputFormatException
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.inspector.MediaExtractorCompat
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import java.io.IOException
@@ -53,7 +53,9 @@ internal fun interface PcmDecoder {
  * run on the analyzer's background thread; cancellation is checked between buffers.
  */
 @UnstableApi
-internal class MediaCodecPcmDecoder : PcmDecoder {
+internal class MediaCodecPcmDecoder(
+    private val log: AppLog = AppLog.None,
+) : PcmDecoder {
     override suspend fun decode(file: LocalFile): Decoded {
         val source =
             CacheDataSource
@@ -89,14 +91,14 @@ internal class MediaCodecPcmDecoder : PcmDecoder {
             // No extractor for this container: like a missing decoder, never worth a retry.
             Decoded.Unsupported
         } catch (e: IOException) {
-            Log.w(TAG, "Cannot read ${file.key}", e)
+            log.warn(TAG, "Cannot read ${file.key}", e)
             Decoded.Failed
         } catch (e: IllegalStateException) {
             // MediaCodec.CodecException included: no free codec instance, or a decoder error.
-            Log.w(TAG, "Cannot decode ${file.key}", e)
+            log.warn(TAG, "Cannot decode ${file.key}", e)
             Decoded.Failed
         } catch (e: IllegalArgumentException) {
-            Log.w(TAG, "Cannot decode ${file.key}", e)
+            log.warn(TAG, "Cannot decode ${file.key}", e)
             Decoded.Failed
         } finally {
             codec?.release()

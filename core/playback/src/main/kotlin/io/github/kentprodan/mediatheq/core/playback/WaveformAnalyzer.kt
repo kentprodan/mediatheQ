@@ -1,11 +1,11 @@
 package io.github.kentprodan.mediatheq.core.playback
 
-import android.util.Log
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.ContentMetadata
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.data.WaveformRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import kotlinx.coroutines.CoroutineDispatcher
@@ -55,6 +55,7 @@ internal class WaveformAnalyzer(
     private val decoder: PcmDecoder,
     private val waveforms: WaveformRepository,
     private val completedDownloads: Flow<Set<MediaId>>,
+    private val log: AppLog = AppLog.None,
 ) {
     private val pending = ArrayDeque<MediaId>()
 
@@ -118,7 +119,7 @@ internal class WaveformAnalyzer(
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
-                        Log.w(TAG, "Waveform of $id failed", e)
+                        log.warn(TAG, "Waveform of $id failed", e)
                     }
                 }
             }
