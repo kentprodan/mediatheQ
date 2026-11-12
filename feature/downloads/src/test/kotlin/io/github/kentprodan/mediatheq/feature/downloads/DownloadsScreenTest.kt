@@ -14,6 +14,7 @@ import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -298,5 +299,39 @@ class DownloadsScreenTest {
 
         field.assertTextEquals("Filter offline files", "abc", includeEditableText = true)
         assertThat(actions.last()).isEqualTo(DownloadsAction.Filter("abc"))
+    }
+
+    @Test
+    fun `filter text restored after process death is applied to the list again`() {
+        // The ViewModel's filter, which starts over empty after process death.
+        var filter by mutableStateOf("")
+        val restoration = StateRestorationTester(composeRule)
+        restoration.setContent {
+            MediatheqTheme {
+                DownloadsScreen(
+                    DownloadsUiState.Content(
+                        DownloadTotals(1_000_000, 20.minutes, 9_000_000),
+                        emptyList(),
+                        listOf(DownloadedAlbum(album, listOf(done), 500_000, 10.minutes)),
+                        emptyList(),
+                        emptyList(),
+                        filter = filter,
+                        hasFiles = true,
+                    ),
+                    { action ->
+                        actions += action
+                        if (action is DownloadsAction.Filter) filter = action.text
+                    },
+                )
+            }
+        }
+        composeRule.onNode(hasSetTextAction()).performTextInput("abc")
+        composeRule.waitForIdle()
+
+        filter = ""
+        actions.clear()
+        restoration.emulateSavedInstanceStateRestore()
+
+        assertThat(actions).containsExactly(DownloadsAction.Filter("abc"))
     }
 }

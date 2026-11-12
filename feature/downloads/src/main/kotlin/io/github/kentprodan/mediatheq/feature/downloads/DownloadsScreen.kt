@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -65,7 +66,8 @@ import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.RemoveDownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
-import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.withIndex
 import kotlin.time.Duration
 
 @Composable
@@ -165,9 +167,14 @@ private fun FilesTab(
         item(key = "summary") { Summary(state.totals, onCleanup = { onAction(DownloadsAction.AskCleanup) }) }
         item(key = "filter") {
             // The field owns its text and cursor; the state answers a frame late and would move the cursor (#186).
+            // Every change goes out; the first value only when it differs, i.e. text restored after process death.
             val field = rememberTextFieldState(state.filter)
+            val applied by rememberUpdatedState(state.filter)
             LaunchedEffect(field) {
-                snapshotFlow { field.text.toString() }.drop(1).collect { onAction(DownloadsAction.Filter(it)) }
+                snapshotFlow { field.text.toString() }
+                    .withIndex()
+                    .filter { (index, text) -> index > 0 || text != applied }
+                    .collect { onAction(DownloadsAction.Filter(it.value)) }
             }
             OutlinedTextField(
                 field,

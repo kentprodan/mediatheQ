@@ -43,6 +43,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -89,7 +90,8 @@ import io.github.kentprodan.mediatheq.core.ui.SelectionToolbar
 import io.github.kentprodan.mediatheq.core.ui.SelectionToolbarSpace
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.trackSwipes
-import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.withIndex
 
 @Composable
 internal fun LibraryRoute(
@@ -500,8 +502,12 @@ private fun SearchInList(
     // The field owns its text and cursor; the list's state answers a frame late and would move the cursor (#186).
     // The ViewModel never pushes text back, only closes the search.
     val field = rememberTextFieldState(text)
+    val applied by rememberUpdatedState(text)
     LaunchedEffect(field) {
-        snapshotFlow { field.text.toString() }.drop(1).collect { onAction(LibraryAction.Search(it)) }
+        snapshotFlow { field.text.toString() }
+            .withIndex()
+            .filter { (index, text) -> index > 0 || text != applied }
+            .collect { onAction(LibraryAction.Search(it.value)) }
     }
     OutlinedTextField(
         field,
