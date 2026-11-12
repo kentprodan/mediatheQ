@@ -51,6 +51,10 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0044](0044-subsonic-server-identity.md) | Subsonic server identity: a generated `ServerId` kept with the account | Accepted |
 | [0045](0045-subsonic-streaming-and-reporting.md) | Subsonic streaming: `stream` with raw or Opus, progressive only, scrobble reporting | Accepted |
 | [0046](0046-subsonic-credentials-in-an-interceptor.md) | Subsonic credentials: password encrypted like a token, added by an interceptor, URLs stay clean | Accepted |
+| [0047](0047-video-in-the-session-player.md) | Video plays in the session's player; a video replaces the music queue and hands it back | Proposed |
+| [0048](0048-video-library-in-the-account-database.md) | Video library in the account database: `series`, `season`, `video`, `video_stream`, synced with the music | Proposed |
+| [0049](0049-video-player-ui-compose-surface-and-pip.md) | Video player UI: `media3-ui-compose` surface, own Expressive controls, `SubtitleView` for cues, a full-screen destination, platform PiP | Proposed |
+| [0050](0050-video-stream-selection-subtitles-and-downloads.md) | Video stream selection: device profile from real capabilities, HLS fMP4 transcodes, server-decided subtitle delivery, downloads as originals | Proposed |
 
 Template for new ADRs:
 
