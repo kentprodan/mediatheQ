@@ -2,6 +2,10 @@ package io.github.kentprodan.mediatheq.feature.downloads
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
@@ -13,6 +17,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.AutoDownloads
+import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
@@ -48,6 +54,10 @@ class DownloadsScreenTest {
         downloading: List<TrackDownload> = emptyList(),
         songs: List<TrackDownload> = emptyList(),
         autoAlbum: Boolean = false,
+        tab: DownloadsTab = DownloadsTab.Files,
+        paused: Boolean = false,
+        rules: AutoRules = AutoRules(),
+        cleanup: CleanupPreview? = null,
     ) {
         val state =
             DownloadsUiState.Content(
@@ -56,14 +66,22 @@ class DownloadsScreenTest {
                 listOf(DownloadedAlbum(album, listOf(done), 500_000, 10.minutes, auto = autoAlbum)),
                 listOf(DownloadedPlaylist(playlist, listOf(done), 500_000, 10.minutes)),
                 songs,
+                paused = paused,
+                rules = rules,
+                hasFiles = true,
+                cleanup = cleanup,
             )
         composeRule.setContent {
             MediatheqTheme {
+                var current by remember { mutableStateOf(tab) }
                 DownloadsScreen(
                     state,
                     { actions += it },
+                    tab = current,
+                    onTab = { current = it },
                     onOpenAlbum = { opened += "album ${it.itemId}" },
                     onOpenPlaylist = { opened += "playlist ${it.itemId}" },
+                    onOpenRules = { opened += "rules" },
                 )
             }
         }
@@ -118,7 +136,8 @@ class DownloadsScreenTest {
             songs = listOf(TrackDownload(done, DownloadState.Completed, origins = setOf(DownloadOrigin.Favorite))),
             autoAlbum = true,
         )
-        composeRule.onAllNodesWithText("Auto", substring = true).assertCountEquals(2)
+        composeRule.onAllNodesWithText("Auto ·", substring = true).assertCountEquals(1)
+        composeRule.onAllNodesWithText("Auto").assertCountEquals(1)
 
         composeRule.onNodeWithContentDescription("More options for For Lack of a Better Name").performClick()
         composeRule.onNodeWithText("Remove download").assertDoesNotExist()
@@ -138,7 +157,7 @@ class DownloadsScreenTest {
 
     @Test
     fun `a failed download says so and can be downloaded again`() {
-        show(downloading = listOf(TrackDownload(failed, DownloadState.Failed)))
+        show(downloading = listOf(TrackDownload(failed, DownloadState.Failed)), tab = DownloadsTab.Queue)
         composeRule.onNodeWithText("Download failed").assertExists()
 
         composeRule.onNodeWithContentDescription("More options for Ghosts").performClick()
@@ -148,11 +167,70 @@ class DownloadsScreenTest {
     }
 
     @Test
-    fun `waiting for Wi-Fi is shown in the downloading section`() {
+    fun `the tabs switch between offline files, the queue and the rules`() {
         show(downloading = listOf(TrackDownload(done, DownloadState.WaitingForWifi)))
+        composeRule.onNodeWithText("Waiting for Wi-Fi").assertDoesNotExist()
 
-        composeRule.onNode(isHeading() and hasText("Downloading")).assertExists()
+        composeRule.onNodeWithText("Queue").performClick()
         composeRule.onNodeWithText("Waiting for Wi-Fi").assertExists()
+
+        composeRule.onNodeWithText("Rules").performClick()
+        composeRule.onNodeWithText("No automatic downloads").assertExists()
+        composeRule.onNodeWithText("Change rules").performClick()
+        assertThat(opened).containsExactly("rules")
+    }
+
+    @Test
+    fun `a waiting download can be cancelled, and pause all holds the queue`() {
+        show(downloading = listOf(TrackDownload(done, DownloadState.WaitingForWifi)), tab = DownloadsTab.Queue)
+
+        composeRule.onNodeWithContentDescription("More options for Strobe").performClick()
+        composeRule.onNodeWithText("Remove download").performClick()
+        composeRule.onNodeWithText("Pause all").performClick()
+
+        assertThat(actions).containsExactly(DownloadsAction.Remove(done), DownloadsAction.PauseAll).inOrder()
+    }
+
+    @Test
+    fun `paused, the queue says so and offers resume`() {
+        show(
+            downloading = listOf(TrackDownload(done, DownloadState.WaitingForWifi)),
+            tab = DownloadsTab.Queue,
+            paused = true,
+        )
+
+        composeRule.onNodeWithText("Paused").assertExists()
+        composeRule.onNodeWithText("Resume all").performClick()
+
+        assertThat(actions).containsExactly(DownloadsAction.ResumeAll)
+    }
+
+    @Test
+    fun `cleanup asks first and says what goes`() {
+        show(cleanup = CleanupPreview(2, 0))
+
+        composeRule.onNodeWithText("Clean up offline files?").assertExists()
+        composeRule.onNodeWithText("2 failed downloads", substring = true).assertExists()
+        composeRule.onNodeWithText("Clean up").performClick()
+
+        assertThat(actions).containsExactly(DownloadsAction.ConfirmCleanup)
+    }
+
+    @Test
+    fun `the summary's Cleanup opens the confirmation`() {
+        show()
+
+        composeRule.onNodeWithText("Cleanup").performClick()
+
+        assertThat(actions).containsExactly(DownloadsAction.AskCleanup)
+    }
+
+    @Test
+    fun `the rules tab shows the automatic downloads setting`() {
+        show(tab = DownloadsTab.Rules, rules = AutoRules(AutoDownloads.TracksAndAlbums, removeUnfavorited = false))
+
+        composeRule.onNodeWithText("Favorite tracks and albums").assertExists()
+        composeRule.onNodeWithText("Off").assertExists()
     }
 
     @Test
@@ -169,6 +247,7 @@ class DownloadsScreenTest {
             DownloadsUiState.Content(
                 DownloadTotals(0, 0.minutes, 0),
                 playlists = listOf(DownloadedPlaylist(Playlist(id("gone"), ""), listOf(done), 1, 1.minutes)),
+                hasFiles = true,
             )
         composeRule.setContent { MediatheqTheme { DownloadsScreen(state, { actions += it }) } }
 

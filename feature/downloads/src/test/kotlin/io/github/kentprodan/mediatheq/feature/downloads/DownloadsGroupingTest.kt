@@ -179,4 +179,14 @@ class DownloadsGroupingTest {
         assertThat(filterDownloads(content, "mix").playlists.map { it.playlist.name }).containsExactly("Mix")
         assertThat(filterDownloads(content, "  ")).isEqualTo(content)
     }
+
+    @Test
+    fun `the user's pause wins over waiting, never over a failure or a running download`() {
+        assertThat(queueStatus(DownloadState.WaitingForWifi, paused = true)).isEqualTo(QueueStatus.Paused)
+        assertThat(queueStatus(DownloadState.Queued, paused = true)).isEqualTo(QueueStatus.Paused)
+        assertThat(queueStatus(DownloadState.WaitingForWifi, paused = false)).isEqualTo(QueueStatus.WaitingForWifi)
+        assertThat(queueStatus(DownloadState.Queued, paused = false)).isEqualTo(QueueStatus.Queued)
+        assertThat(queueStatus(DownloadState.Failed, paused = true)).isEqualTo(QueueStatus.Failed)
+        assertThat(queueStatus(DownloadState.Downloading(0.5f), paused = true)).isEqualTo(QueueStatus.Downloading)
+    }
 }

@@ -73,6 +73,18 @@ internal fun downloadsContent(
     )
 }
 
+/** What the queue shows for [state]; a pause by the user holds everything waiting (#149). */
+internal fun queueStatus(
+    state: DownloadState,
+    paused: Boolean,
+): QueueStatus =
+    when (state) {
+        is DownloadState.Downloading -> QueueStatus.Downloading
+        DownloadState.Failed -> QueueStatus.Failed
+        DownloadState.Queued, DownloadState.Completed -> if (paused) QueueStatus.Paused else QueueStatus.Queued
+        DownloadState.WaitingForWifi -> if (paused) QueueStatus.Paused else QueueStatus.WaitingForWifi
+    }
+
 /** Manual unless every origin is a favorite's automatic one (a download from before origins counts as manual). */
 private val TrackDownload.manual: Boolean get() = origins.isEmpty() || origins.any { !it.auto }
 
