@@ -34,4 +34,4 @@ fun supportIssueUrl(
     info: AboutInfo,
 ): String = "$SOURCE_URL/issues/new?template=${kind.template.encoded()}&device=${info.summary().encoded()}"
 
-private fun String.encoded() = URLEncoder.encode(this, Charsets.UTF_8)
+private fun String.encoded() = URLEncoder.encode(this, "UTF-8")
