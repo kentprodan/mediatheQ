@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import androidx.sqlite.SQLiteException
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
@@ -67,6 +68,7 @@ class DefaultLibrarySyncRepository
         private val clock: Clock,
         @param:ApplicationScope private val scope: CoroutineScope,
         private val userData: DefaultUserDataRepository,
+        private val log: AppLog = AppLog.None,
     ) : LibrarySyncRepository {
         private val mutableStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle(null))
         override val status: StateFlow<SyncStatus> = mutableStatus.asStateFlow()
@@ -157,6 +159,7 @@ class DefaultLibrarySyncRepository
                 (accountStore.account.first() as? MqResult.Success)?.value
                     ?: return MqResult.Failure(MqError.Unauthorized)
             val startedAt = clock.now()
+            log.info(TAG, "Started")
             val result =
                 try {
                     fetchAll(signedIn(account))
@@ -169,6 +172,19 @@ class DefaultLibrarySyncRepository
                     // following the account, and the next sign-out would leave the library behind (#51).
                     MqResult.Failure(MqError.Unknown(e))
                 }
+            when (result) {
+                is MqResult.Success -> {
+                    log.info(TAG, "Done: ${result.value} tracks in ${clock.now() - startedAt}")
+                }
+
+                is MqResult.Failure -> {
+                    log.warn(
+                        TAG,
+                        "Failed: ${result.error}",
+                        (result.error as? MqError.Unknown)?.cause,
+                    )
+                }
+            }
             // The record first: the card must not show the previous result once the sync shows as finished.
             record(result, startedAt)
             mutableStatus.value =
@@ -235,6 +251,7 @@ class DefaultLibrarySyncRepository
             var index = state.checkpointIndex
             // Running from the start, not from the first staged page: the first request can take seconds (#156).
             mutableStatus.value = SyncStatus.Running(step, index, 0)
+            log.info(TAG, "Step $step from $index")
             while (true) {
                 when (val next = fetchPage(server, state, step, index)) {
                     is MqResult.Failure -> {
@@ -243,6 +260,7 @@ class DefaultLibrarySyncRepository
 
                     is MqResult.Success -> {
                         val (nextStep, nextIndex) = next.value ?: break
+                        if (nextStep != step) log.info(TAG, "Step $nextStep")
                         step = nextStep
                         index = nextIndex
                     }
@@ -410,6 +428,8 @@ class DefaultLibrarySyncRepository
         private fun SyncStep.next(): Pair<SyncStep, Int> = SyncStep.entries[ordinal + 1] to 0
 
         private companion object {
+            const val TAG = "Sync"
+
             const val PAGE_SIZE = 500
             val SYNC_INTERVAL = 24.hours
             val RESUME_WINDOW = 1.hours

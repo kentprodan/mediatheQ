@@ -11,6 +11,7 @@ import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.scheduler.Requirements
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.CONVERTED_DOWNLOAD
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
@@ -76,6 +77,7 @@ internal class DefaultDownloadRepository
         @ApplicationScope private val scope: CoroutineScope,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
+        private val log: AppLog = AppLog.None,
     ) : DownloadRepository {
         /** Every download by track: the stored index at start, then the manager's changes. */
         private val entries = MutableStateFlow<Map<MediaId, Download>>(emptyMap())
@@ -114,6 +116,22 @@ internal class DefaultDownloadRepository
                         finalException: Exception?,
                     ) {
                         val id = download.trackId() ?: return
+                        when (download.state) {
+                            Download.STATE_QUEUED -> {
+                                log.info(LOG_TAG, "Queued [${id.itemId}]")
+                            }
+
+                            Download.STATE_COMPLETED -> {
+                                log.info(
+                                    LOG_TAG,
+                                    "Done [${id.itemId}], ${download.bytesDownloaded} bytes",
+                                )
+                            }
+
+                            Download.STATE_FAILED -> {
+                                log.warn(LOG_TAG, "Failed [${id.itemId}]", finalException)
+                            }
+                        }
                         if (download.state != Download.STATE_FAILED) restarting -= id
                         entries.update { it + (id to download) }
                     }
@@ -460,3 +478,5 @@ private fun Download.fallbackTrack(id: MediaId) =
 /** Bytes of [key] in this cache, whatever spans it has. */
 @UnstableApi
 private fun Cache.cachedBytes(key: String): Long = getCachedSpans(key).sumOf { it.length }
+
+private const val LOG_TAG = "Download"

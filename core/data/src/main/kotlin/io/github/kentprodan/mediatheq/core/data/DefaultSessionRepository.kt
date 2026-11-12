@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
@@ -43,6 +44,7 @@ class DefaultSessionRepository
         private val restarter: AppRestarter,
         private val queue: QueueRepository,
         @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+        private val log: AppLog = AppLog.None,
     ) : SessionRepository {
         // Why the app signed out on its own; in memory only, a restart shows the plain onboarding.
         private val logoutReason = MutableStateFlow<LogoutReason?>(null)
@@ -131,6 +133,7 @@ class DefaultSessionRepository
         override suspend fun onUnauthorized() = clearAccount(LogoutReason.SessionExpired)
 
         private suspend fun clearAccount(reason: LogoutReason?) {
+            log.info(TAG, if (reason == null) "Signed out" else "Signed out: $reason")
             try {
                 accountStore.clear()
             } catch (_: IOException) {
@@ -159,7 +162,14 @@ class DefaultSessionRepository
             serverName: String,
             result: MqResult<AuthSession>,
         ): MqResult<Unit> {
-            val session = (result as? MqResult.Success)?.value ?: return result as MqResult.Failure
+            val session =
+                (result as? MqResult.Success)?.value
+                    ?: return (result as MqResult.Failure).also {
+                        log.warn(
+                            TAG,
+                            "Sign-in to $serverName failed: ${it.error}",
+                        )
+                    }
             return try {
                 // Signed-out entries too (#150): signing in to a restored account keeps its id.
                 val saved = accountStore.saved.first()
@@ -178,6 +188,7 @@ class DefaultSessionRepository
                     ),
                 )
                 logoutReason.value = null
+                log.info(TAG, "Signed in to $serverName as ${session.userName}")
                 if (noneActive && id != databases.open && databases.select(id)) restarter.restart()
                 MqResult.Success(Unit)
             } catch (_: GeneralSecurityException) {
@@ -188,6 +199,7 @@ class DefaultSessionRepository
         }
 
         private companion object {
+            const val TAG = "Session"
             val LOGOUT_TIMEOUT = 5.seconds
         }
     }

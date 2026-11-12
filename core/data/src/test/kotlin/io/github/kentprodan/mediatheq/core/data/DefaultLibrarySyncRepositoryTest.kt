@@ -23,6 +23,7 @@ import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeAppLog
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
@@ -207,6 +208,35 @@ class DefaultLibrarySyncRepositoryTest {
             source.resume.complete(Unit)
             second.await()
             assertThat(library.albums().first().map { it.title }).contains("Satelit (Deluxe)")
+        }
+
+    @Test
+    fun `a sync writes its start, steps and result into the app's log`() =
+        runTest(dispatcher) {
+            fillSource()
+            signIn()
+            val log = FakeAppLog()
+            val repository =
+                DefaultLibrarySyncRepository(
+                    source,
+                    accountStore,
+                    database.syncDao(),
+                    session,
+                    clock,
+                    backgroundScope,
+                    userData(backgroundScope),
+                    log,
+                )
+
+            repository.sync()
+            source.calls.clear()
+            source.failAt = 1
+            repository.sync()
+
+            assertThat(log.lines.first()).isEqualTo("I Sync: Started")
+            assertThat(log.lines).contains("I Sync: Step Albums")
+            assertThat(log.lines.filter { it.startsWith("I Sync: Done: ") }).hasSize(1)
+            assertThat(log.lines.last()).isEqualTo("W Sync: Failed: Network")
         }
 
     @Test

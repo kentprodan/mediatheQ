@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.provider.jellyfin
 
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.server.LiveEvent
 import io.github.kentprodan.mediatheq.core.server.LiveEvents
@@ -34,6 +35,7 @@ class JellyfinLiveEvents
     constructor(
         private val okHttpClient: OkHttpClient,
         private val json: Json,
+        private val log: AppLog = AppLog.None,
     ) : LiveEvents {
         override fun events(server: SignedInServer): Flow<LiveEvent> =
             callbackFlow {
@@ -64,6 +66,7 @@ class JellyfinLiveEvents
                             webSocket: WebSocket,
                             response: Response,
                         ) {
+                            log.info(TAG, "Connected to ${server.connection.baseUrl}")
                             trySend(LiveEvent.Connected)
                         }
 
@@ -104,13 +107,20 @@ class JellyfinLiveEvents
                             webSocket: WebSocket,
                             code: Int,
                             reason: String,
-                        ) = closeWith(MqError.Network)
+                        ) {
+                            log.info(TAG, "Closed ($code)")
+                            closeWith(MqError.Network)
+                        }
 
                         override fun onFailure(
                             webSocket: WebSocket,
                             t: Throwable,
                             response: Response?,
-                        ) = closeWith(response?.code?.let(::httpError) ?: MqError.Network)
+                        ) {
+                            // The socket URL carries ApiKey: only the status and the cause go into the log.
+                            log.warn(TAG, "Failed${response?.code?.let { " (HTTP $it)" }.orEmpty()}", t)
+                            closeWith(response?.code?.let(::httpError) ?: MqError.Network)
+                        }
                     }
                 val socket = okHttpClient.newWebSocket(Request.Builder().url(url).build(), listener)
                 awaitClose {
@@ -122,6 +132,7 @@ class JellyfinLiveEvents
                 .buffer(Channel.UNLIMITED)
 
         private companion object {
+            const val TAG = "WebSocket"
             const val KEEP_ALIVE = """{"MessageType":"KeepAlive"}"""
             const val NORMAL_CLOSURE = 1000
         }

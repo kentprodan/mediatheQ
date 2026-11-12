@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
@@ -45,6 +46,7 @@ class DefaultUserDataRepository
         private val accountStore: AccountStore,
         private val sessionRepository: SessionRepository,
         @param:ApplicationScope private val scope: CoroutineScope,
+        private val log: AppLog = AppLog.None,
     ) : UserDataRepository {
         // writeLock: one server write at a time, so answers cannot arrive out of order. stateLock: overrides and Room.
         private val writeLock = Mutex()
@@ -224,17 +226,25 @@ class DefaultUserDataRepository
                         val id = MediaId(server.serverId, row.itemId)
                         val change = row.toChange()
                         val favorite = change.isFavorite?.let { sink.setFavorite(server, id, it) }
-                        if (favorite.isNetworkFailure()) break
+                        if (favorite.isNetworkFailure()) {
+                            log.info(TAG, "Queued offline: ${change.describe()} [${id.itemId}]")
+                            break
+                        }
                         val rating =
                             if (change.setsRating && (favorite as? MqResult.Failure)?.error != MqError.Unauthorized) {
                                 sink.setRating(server, id, change.rating)
                             } else {
                                 null
                             }
-                        if (rating.isNetworkFailure()) break
+                        if (rating.isNetworkFailure()) {
+                            log.info(TAG, "Queued offline: ${change.describe()} [${id.itemId}]")
+                            break
+                        }
                         val sent = change.only(favorite is MqResult.Success, rating is MqResult.Success)
                         val refused = change.only(favorite is MqResult.Failure, rating !is MqResult.Success)
                         val error = ((favorite as? MqResult.Failure) ?: (rating as? MqResult.Failure))?.error
+                        if (sent != Change()) log.info(TAG, "Sent: ${sent.describe()} [${id.itemId}]")
+                        if (refused != Change()) log.warn(TAG, "Refused: ${refused.describe()} [${id.itemId}]: $error")
                         val stillSignedIn =
                             withContext(NonCancellable) {
                                 // Checked under stateLock: signing out clears the account before the wipe takes it.
@@ -347,3 +357,12 @@ private data class Change(
     /** The change that puts back what [before] had. */
     fun undo(before: UserDataColumns) = Change(isFavorite?.let { before.isFavorite }, setsRating, before.rating)
 }
+
+/** "favorite on, rating 7.0" for the log. */
+private fun Change.describe(): String =
+    listOfNotNull(
+        isFavorite?.let { if (it) "favorite on" else "favorite off" },
+        if (setsRating) "rating ${rating ?: "cleared"}" else null,
+    ).joinToString(", ")
+
+private const val TAG = "UserData"

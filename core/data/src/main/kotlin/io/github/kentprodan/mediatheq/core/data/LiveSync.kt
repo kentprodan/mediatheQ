@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
@@ -47,6 +48,7 @@ class LiveSync
         private val librarySync: DefaultLibrarySyncRepository,
         private val networkMonitor: NetworkMonitor,
         @param:ApplicationScope private val scope: CoroutineScope,
+        private val log: AppLog = AppLog.None,
     ) {
         private val foreground = MutableStateFlow(false)
         private val playing = MutableStateFlow(false)
@@ -124,7 +126,9 @@ class LiveSync
                     withContext(NonCancellable) { sessionRepository.onUnauthorized() }
                     return
                 }
-                delay(retryDelay(failures++))
+                val wait = retryDelay(failures++)
+                log.info("WebSocket", "Reconnecting in $wait")
+                delay(wait)
             }
         }
 

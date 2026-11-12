@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.testing.FakeAppLog
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackSource
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
@@ -334,6 +335,22 @@ class DefaultUserDataRepositoryTest {
             assertThat(stored(album)?.isFavorite).isTrue()
             assertThat(repository.error.value).isNull()
             assertThat(waiting()).containsExactly("al1")
+        }
+
+    @Test
+    fun `a change is logged as queued offline, then as sent`() =
+        runTest(dispatcher) {
+            val log = FakeAppLog()
+            val repository = DefaultUserDataRepository(dao, sink, accountStore, session, backgroundScope, log)
+            sink.failure = MqError.Network
+            repository.setFavorite(album, true)
+            sink.failure = null
+
+            repository.flushPending()
+
+            assertThat(log.lines)
+                .containsExactly("I UserData: Queued offline: favorite on [al1]", "I UserData: Sent: favorite on [al1]")
+                .inOrder()
         }
 
     @Test
