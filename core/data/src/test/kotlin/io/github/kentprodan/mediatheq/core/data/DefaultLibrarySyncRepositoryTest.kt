@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.DEFAULT_DATABASE
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
@@ -23,6 +24,7 @@ import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeAppLog
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
@@ -101,10 +103,19 @@ class DefaultLibrarySyncRepositoryTest {
     private val userDataSink = FakeUserDataSink()
 
     private fun userData(scope: CoroutineScope) =
-        DefaultUserDataRepository(database.userDataDao(), userDataSink, accountStore, session, scope)
+        DefaultUserDataRepository(database.userDataDao(), userDataSink, accountStore, session, scope, AppLog.None)
 
     private fun TestScope.repository(scope: CoroutineScope = backgroundScope) =
-        DefaultLibrarySyncRepository(source, accountStore, database.syncDao(), session, clock, scope, userData(scope))
+        DefaultLibrarySyncRepository(
+            source,
+            accountStore,
+            database.syncDao(),
+            session,
+            clock,
+            scope,
+            userData(scope),
+            AppLog.None,
+        )
 
     private suspend fun count(table: String) =
         database
@@ -207,6 +218,35 @@ class DefaultLibrarySyncRepositoryTest {
             source.resume.complete(Unit)
             second.await()
             assertThat(library.albums().first().map { it.title }).contains("Satelit (Deluxe)")
+        }
+
+    @Test
+    fun `a sync writes its start, steps and result into the app's log`() =
+        runTest(dispatcher) {
+            fillSource()
+            signIn()
+            val log = FakeAppLog()
+            val repository =
+                DefaultLibrarySyncRepository(
+                    source,
+                    accountStore,
+                    database.syncDao(),
+                    session,
+                    clock,
+                    backgroundScope,
+                    userData(backgroundScope),
+                    log,
+                )
+
+            repository.sync()
+            source.calls.clear()
+            source.failAt = 1
+            repository.sync()
+
+            assertThat(log.lines.first()).isEqualTo("I Sync: Started")
+            assertThat(log.lines).contains("I Sync: Step Albums")
+            assertThat(log.lines.filter { it.startsWith("I Sync: Done: ") }).hasSize(1)
+            assertThat(log.lines.last()).isEqualTo("W Sync: Failed: Network")
         }
 
     @Test
@@ -317,6 +357,7 @@ class DefaultLibrarySyncRepositoryTest {
                     clock,
                     backgroundScope,
                     userData(backgroundScope),
+                    AppLog.None,
                 )
             secondSource.albumArtists = source.albumArtists
             secondSource.albums = source.albums
@@ -393,6 +434,7 @@ class DefaultLibrarySyncRepositoryTest {
                     clock,
                     backgroundScope,
                     userData(backgroundScope),
+                    AppLog.None,
                 )
 
             assertThat(restarted.sync()).isEqualTo(MqResult.Success(Unit))
@@ -791,6 +833,7 @@ class DefaultLibrarySyncRepositoryTest {
                     io.github.kentprodan.mediatheq.core.testing
                         .FakeQueueRepository(),
                     dispatcher,
+                    AppLog.None,
                 )
             val repository =
                 DefaultLibrarySyncRepository(
@@ -801,6 +844,7 @@ class DefaultLibrarySyncRepositoryTest {
                     clock,
                     backgroundScope,
                     userData(backgroundScope),
+                    AppLog.None,
                 )
             source.failAt = 3
             source.failure = MqError.Unauthorized

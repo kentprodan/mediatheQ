@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
@@ -33,6 +34,7 @@ class DefaultPlaybackRepositoryTest {
             accountStore,
             session,
             CoroutineScope(Job()),
+            AppLog.None,
         )
     private val repository = DefaultPlaybackRepository(source, accountStore, session, userData)
 

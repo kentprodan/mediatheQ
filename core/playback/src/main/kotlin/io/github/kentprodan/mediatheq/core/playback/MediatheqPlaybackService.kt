@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
-import android.util.Log
 import android.view.KeyEvent
 import androidx.core.content.IntentCompat
 import androidx.media3.common.AudioAttributes
@@ -37,6 +36,7 @@ import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
@@ -94,6 +94,8 @@ import kotlin.time.Duration.Companion.milliseconds
 @AndroidEntryPoint
 class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var okHttpClient: OkHttpClient
+
+    @Inject lateinit var appLog: AppLog
 
     @Inject lateinit var streamResolver: StreamResolver
 
@@ -176,7 +178,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private lateinit var audioOutput: AudioOutputController
     private var audioSettingsJob: Job? = null
     private var outputsJob: Job? = null
-    private val equalizer = EqualizerEffect(AudioPreferences.EQ_BANDS_HZ)
+    private val equalizer by lazy { EqualizerEffect(AudioPreferences.EQ_BANDS_HZ, appLog) }
 
     @Inject
     @IoDispatcher
@@ -292,6 +294,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 scope = applicationScope + Dispatchers.Main,
                 artworkUrl = { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) },
                 isLoggedIn = { sessionRepository.session.first() is SessionState.LoggedIn },
+                log = appLog,
             )
         persistJob = persistence.start()
         waveformAnalyzer =
@@ -299,9 +302,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 scope = applicationScope,
                 worker = waveformWorker,
                 files = LocalFiles(downloads.completedIds, downloadCache, streamingCache)::find,
-                decoder = MediaCodecPcmDecoder(),
+                decoder = MediaCodecPcmDecoder(appLog),
                 waveforms = waveforms,
                 completedDownloads = downloads.completedIds,
+                log = appLog,
             )
         waveformJob = waveformAnalyzer.start()
         player.addListener(waveformAnalyzer.playerListener)
@@ -316,6 +320,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 upstream = OkHttpDataSource.Factory(okHttpClient),
                 network = playerNetwork,
                 onCached = { waveformAnalyzer.offer(listOf(it)) },
+                log = appLog,
             )
         prefetchJob = prefetcher.start()
         // The notification keeps the real title while a lyrics line is the session title (#143, ADR 0034).
@@ -521,6 +526,14 @@ class MediatheqPlaybackService : MediaLibraryService() {
         }
 
         fun convertedDownload(): Boolean = currentId()?.let(streamResolver::isConvertedDownload) == true
+        // Into the app's log (#169): tracks, play / pause with how the stream comes, errors.
+        player.addListener(
+            PlaybackLogListener(player, appLog) {
+                listOfNotNull(currentPlayMethod()?.name, currentId()?.let(streamResolver::quality)?.name)
+                    .joinToString(" · ")
+                    .ifEmpty { null }
+            },
+        )
         usbAudio = AudioOutputPort.create(getSystemService(AudioManager::class.java))
         audioOutput =
             AudioOutputController(
@@ -553,7 +566,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         convertedDownload = convertedDownload(),
                     )
                 },
-                log = { Log.d(AUDIO_TAG, it) },
+                log = { appLog.info(AUDIO_TAG, it) },
                 played = {
                     val method = currentPlayMethod()
                     PlayedStream(

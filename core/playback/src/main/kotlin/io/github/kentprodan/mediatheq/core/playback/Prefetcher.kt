@@ -1,6 +1,5 @@
 package io.github.kentprodan.mediatheq.core.playback
 
-import android.util.Log
 import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -10,6 +9,7 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheWriter
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
@@ -44,6 +44,7 @@ internal class Prefetcher(
     private val network: NetworkMonitor,
     /** A track's original is now whole in the cache (the waveform can be computed, #124). Any thread. */
     private val onCached: (MediaId) -> Unit = {},
+    private val log: AppLog = AppLog.None,
 ) : Player.Listener {
     @Volatile private var job: Job? = null
     private var targets: List<MediaId> = emptyList()
@@ -142,7 +143,7 @@ internal class Prefetcher(
                 // Cancelled mid-transfer (pause, skip, the player taking over): nothing to report.
             } catch (e: IOException) {
                 // The player loads the track itself later; nothing is lost.
-                Log.w(TAG, "Prefetch of $itemId failed", e)
+                log.warn(TAG, "Prefetch of $itemId failed", e)
             } finally {
                 writer.cancel()
                 // A newer prefetch may already be writing; its entry stays.

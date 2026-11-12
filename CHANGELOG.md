@@ -15,3 +15,4 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Several server accounts, a sync manager, and backup and restore of your settings.
 - Settings for the theme, navigation, lists, pages, playback, headset and notification buttons, fades and automatic actions.
 - About page, this changelog, a privacy page and Contact support through GitHub.
+- A log of what the app does, kept on the phone, and Export logs in Settings -> About to share it for a bug report.

@@ -2,7 +2,9 @@ package io.github.kentprodan.mediatheq.provider.jellyfin
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.common.causeChain
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.network.MediatheqJson
 import io.github.kentprodan.mediatheq.core.network.mediatheqOkHttpClient
@@ -33,7 +35,7 @@ class JellyfinLiveEventsTest {
     val serverRule = MockWebServerRule()
     private val mockServer get() = serverRule.server
 
-    private val liveEvents = JellyfinLiveEvents(mediatheqOkHttpClient(), MediatheqJson)
+    private val liveEvents = JellyfinLiveEvents(mediatheqOkHttpClient(), MediatheqJson, AppLog.None)
     private val server
         get() =
             SignedInServer(
@@ -158,6 +160,39 @@ class JellyfinLiveEventsTest {
                 assertThat(awaitItem()).isEqualTo(LiveEvent.Closed(MqError.Unauthorized))
                 awaitComplete()
             }
+        }
+
+    @Test
+    fun `a failed handshake is logged with its status, never the socket URL and its ApiKey`() =
+        realTimeTest {
+            val lines = mutableListOf<String>()
+            val log =
+                object : AppLog {
+                    override fun info(
+                        tag: String,
+                        message: String,
+                    ) {
+                        lines += message
+                    }
+
+                    override fun warn(
+                        tag: String,
+                        message: String,
+                        error: Throwable?,
+                    ) {
+                        lines += listOfNotNull(message, error?.let(::causeChain)).joinToString(" | ")
+                    }
+                }
+            mockServer.enqueue(MockResponse(code = 401))
+
+            JellyfinLiveEvents(mediatheqOkHttpClient(), MediatheqJson, log).events(server).test {
+                awaitItem()
+                awaitComplete()
+            }
+
+            assertThat(lines.single()).startsWith("Failed (HTTP 401)")
+            assertThat(lines.single()).doesNotContain("token-1")
+            assertThat(lines.single()).doesNotContain("ApiKey")
         }
 
     @Test

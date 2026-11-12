@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
@@ -11,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.server.LiveEvent
+import io.github.kentprodan.mediatheq.core.testing.FakeAppLog
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
 import io.github.kentprodan.mediatheq.core.testing.FakeLiveEvents
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
@@ -55,6 +57,8 @@ class LiveSyncTest {
             override fun nextDouble() = 0.5
         }
 
+    private val log = FakeAppLog()
+
     private fun TestScope.liveSync(): LiveSync {
         userData =
             DefaultUserDataRepository(
@@ -63,6 +67,7 @@ class LiveSyncTest {
                 accountStore,
                 session,
                 backgroundScope,
+                AppLog.None,
             )
         val librarySync =
             DefaultLibrarySyncRepository(
@@ -73,8 +78,9 @@ class LiveSyncTest {
                 TestClock(),
                 backgroundScope,
                 userData,
+                AppLog.None,
             )
-        return LiveSync(events, accountStore, session, userData, librarySync, network, backgroundScope).apply {
+        return LiveSync(events, accountStore, session, userData, librarySync, network, backgroundScope, log).apply {
             random = noJitter
             setForeground(true)
             start()
@@ -169,6 +175,12 @@ class LiveSyncTest {
             }
 
             assertThat(waits).containsExactly(1_000L, 2_000L, 4_000L).inOrder()
+            assertThat(log.lines.filter { "Reconnecting" in it })
+                .containsExactly(
+                    "I WebSocket: Reconnecting in 1s",
+                    "I WebSocket: Reconnecting in 2s",
+                    "I WebSocket: Reconnecting in 4s",
+                ).inOrder()
         }
 
     @Test

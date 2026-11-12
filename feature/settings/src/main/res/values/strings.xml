@@ -283,6 +283,8 @@
     <string name="settings_version_copied">Version copied</string>
     <string name="settings_changelog_empty">No changes listed yet.</string>
     <string name="settings_changelog_item">• %1$s</string>
+    <string name="settings_export_logs">Export logs</string>
+    <string name="settings_export_logs_summary">Share the log file, for a bug report</string>
     <string name="settings_source">Source code</string>
     <string name="settings_source_summary">github.com/kentprodan/mediatheQ</string>
     <string name="settings_privacy">Privacy</string>

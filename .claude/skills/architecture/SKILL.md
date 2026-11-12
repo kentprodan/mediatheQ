@@ -184,7 +184,7 @@ AlbumEntry.kt          Navigation 3 entry registration for AlbumKey
 - Access tokens never in logs, crash output, screenshots, or test fixtures.
 - Tokens stored encrypted with an Android Keystore AES-GCM key (ADR 0013), not in plain DataStore. App backup is off.
 - Cleartext HTTP only to LAN/Tailscale IPs, enforced on every connection by `CleartextPolicyInterceptor` in `:core:network` (ADR 0013; network security config cannot express IP ranges); HTTPS otherwise. Every HTTP stack (OkHttp, Media3) must go through it.
-- No telemetry. Logs stay on device.
+- No telemetry. Logs stay on device: code logs through `AppLog` (`:core:common`, injected; never `android.util.Log`), which redacts tokens, `ApiKey`, passwords and query strings and writes a rotating file (`FileAppLog`, 2 x 1 MB in `files/logs`, logcat too in debug builds, #169). It leaves the phone only through Settings -> About -> Export logs. Never log a `Request`, a full URL with its query, or a header.
 
 ## 11. Conventions
 

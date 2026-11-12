@@ -54,6 +54,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     changelog: () -> String,
     licensesReport: () -> String,
     licenseNotices: () -> String,
+    onExportLogs: () -> Unit,
 ) {
     val back: () -> Unit = { navigator.back() }
     val openOutputs: () -> Unit = { navigator.navigateTo(OutputSettingsKey) }
@@ -146,6 +147,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             onOpenLicenses = { navigator.navigateTo(LicensesKey) },
             onOpenPrivacy = { navigator.navigateTo(PrivacyKey) },
             onOpenShowcase = onOpenShowcase,
+            onExportLogs = onExportLogs,
             onBack = back,
         )
     }

@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
@@ -14,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.testing.FakeAppLog
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackSource
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
@@ -42,7 +44,8 @@ class DefaultUserDataRepositoryTest {
     private val track = MediaId(server, "t1")
     private val album = MediaId(server, "al1")
 
-    private fun TestScope.repository() = DefaultUserDataRepository(dao, sink, accountStore, session, backgroundScope)
+    private fun TestScope.repository() =
+        DefaultUserDataRepository(dao, sink, accountStore, session, backgroundScope, AppLog.None)
 
     private suspend fun stored(id: MediaId) = dao.userData(id.serverId.value, id.itemId)
 
@@ -334,6 +337,22 @@ class DefaultUserDataRepositoryTest {
             assertThat(stored(album)?.isFavorite).isTrue()
             assertThat(repository.error.value).isNull()
             assertThat(waiting()).containsExactly("al1")
+        }
+
+    @Test
+    fun `a change is logged as queued offline, then as sent`() =
+        runTest(dispatcher) {
+            val log = FakeAppLog()
+            val repository = DefaultUserDataRepository(dao, sink, accountStore, session, backgroundScope, log)
+            sink.failure = MqError.Network
+            repository.setFavorite(album, true)
+            sink.failure = null
+
+            repository.flushPending()
+
+            assertThat(log.lines)
+                .containsExactly("I UserData: Queued offline: favorite on [al1]", "I UserData: Sent: favorite on [al1]")
+                .inOrder()
         }
 
     @Test

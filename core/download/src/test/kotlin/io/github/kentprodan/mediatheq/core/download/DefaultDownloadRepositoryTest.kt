@@ -31,6 +31,7 @@ import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeAppLog
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadOrigins
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadStorageRepository
@@ -65,6 +66,7 @@ class DefaultDownloadRepositoryTest {
     private val origins = FakeDownloadOrigins()
     private val storage = FakeDownloadStorageRepository()
     private lateinit var manager: DownloadManager
+    private val log = FakeAppLog()
 
     private val done = track("t1", "Album A", 2)
     private val failed = track("t2", "Album A", 1)
@@ -561,6 +563,17 @@ class DefaultDownloadRepositoryTest {
         }
 
     @Test
+    fun `a download the manager queues is written to the app's log`() =
+        runTest {
+            repository()
+
+            manager.addDownload(download(waiting, Download.STATE_QUEUED).request)
+            RobolectricUtil.runMainLooperUntil { log.lines.isNotEmpty() }
+
+            assertThat(log.lines).contains("I Download: Queued [t3]")
+        }
+
+    @Test
     fun `before the stored downloads are read, a completed download already counts as on the device`() =
         runTest {
             // The index read is queued but not run yet: the player started the process (e.g. offline, cold start).
@@ -594,6 +607,7 @@ class DefaultDownloadRepositoryTest {
             backgroundScope,
             dispatcher,
             dispatcher,
+            log,
         )
     }
 

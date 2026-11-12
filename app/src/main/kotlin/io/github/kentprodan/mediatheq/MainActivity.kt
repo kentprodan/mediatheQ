@@ -1,8 +1,10 @@
 package io.github.kentprodan.mediatheq
 
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,9 +17,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation3.runtime.entryProvider
 import dagger.hilt.android.AndroidEntryPoint
+import io.github.kentprodan.mediatheq.core.common.FileAppLog
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.download.resumeDownloads
@@ -44,9 +49,15 @@ import io.github.kentprodan.mediatheq.navigation.ThemeShowcaseKey
 import io.github.kentprodan.mediatheq.navigation.TopLevelTab
 import io.github.kentprodan.mediatheq.navigation.placeholders
 import io.github.kentprodan.mediatheq.navigation.rememberTabNavigator
+import kotlinx.coroutines.launch
+import java.io.File
+import java.time.LocalDate
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var log: FileAppLog
+
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -104,6 +115,7 @@ class MainActivity : ComponentActivity() {
                                             changelog = applicationContext::changelog,
                                             licensesReport = applicationContext::licensesReport,
                                             licenseNotices = applicationContext::licenseNotices,
+                                            onExportLogs = ::exportLogs,
                                         )
                                         libraryEntry(navigator, onOpenDownloads = openDownloads)
                                         albumEntry(navigator)
@@ -152,6 +164,28 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+}
+
+/**
+ * Settings -> About -> Export logs (#169): the log, joined into one text file in the cache (the previous export goes),
+ * offered through the share sheet. Nothing is sent without the user choosing where.
+ */
+private fun MainActivity.exportLogs() {
+    lifecycleScope.launch {
+        val file = File(File(cacheDir, "logs"), "mediatheq-log-${LocalDate.now()}.txt")
+        if (!log.export(file)) {
+            Toast.makeText(this@exportLogs, R.string.export_logs_failed, Toast.LENGTH_SHORT).show()
+            return@launch
+        }
+        val uri = FileProvider.getUriForFile(this@exportLogs, "$packageName.logs", file)
+        val send =
+            Intent(Intent.ACTION_SEND)
+                .setType("text/plain")
+                .putExtra(Intent.EXTRA_STREAM, uri)
+                .putExtra(Intent.EXTRA_SUBJECT, file.name)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        startActivity(Intent.createChooser(send, null))
     }
 }
 

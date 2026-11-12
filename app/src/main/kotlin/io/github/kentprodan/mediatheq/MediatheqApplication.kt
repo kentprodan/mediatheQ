@@ -12,6 +12,7 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.serviceLoaderEnabled
 import dagger.hilt.android.HiltAndroidApp
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
+import io.github.kentprodan.mediatheq.core.common.FileAppLog
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.AccountRepository
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
@@ -70,6 +71,9 @@ class MediatheqApplication :
     lateinit var accounts: AccountRepository
 
     @Inject
+    lateinit var log: FileAppLog
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -79,6 +83,13 @@ class MediatheqApplication :
 
     override fun onCreate() {
         super.onCreate()
+        // A crash goes into the app's log before the process ends (#169); nothing is sent anywhere.
+        val crash = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            runCatching { log.crash("Crash", "Uncaught on ${thread.name}", error) }
+            crash?.uncaughtException(thread, error)
+        }
+        log.info("App", "Started")
         // Syncs after login and when a day has passed; wipes the library on sign-out (issue #9).
         librarySync.start()
         // Live updates while the app is visible (or music plays, told by the playback service), issue #18.

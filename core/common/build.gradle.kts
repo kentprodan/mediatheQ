@@ -6,4 +6,5 @@ dependencies {
     // Qualifier annotations only; Hilt reads javax.inject qualifiers.
     api(libs.javax.inject)
     api(libs.kotlinx.coroutines.core)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

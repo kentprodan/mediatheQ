@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
@@ -11,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.ServerInfo
 import io.github.kentprodan.mediatheq.core.server.AuthSession
 import io.github.kentprodan.mediatheq.core.testing.FakeAccountDatabases
+import io.github.kentprodan.mediatheq.core.testing.FakeAppLog
 import io.github.kentprodan.mediatheq.core.testing.FakeAuthSource
 import io.github.kentprodan.mediatheq.core.testing.FakeQueueRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
@@ -36,6 +38,7 @@ class DefaultSessionRepositoryTest {
             { restarts += Unit },
             queue,
             Dispatchers.Unconfined,
+            AppLog.None,
         )
 
     private suspend fun loginAs(token: String) {
@@ -126,6 +129,31 @@ class DefaultSessionRepositoryTest {
 
             assertThat(repository.session.first()).isEqualTo(SessionState.LoggedIn("Home", "Ana"))
             assertThat((accountStore.account.first() as MqResult.Success).value?.accessToken).isEqualTo("token-1")
+        }
+
+    @Test
+    fun `sign-in and sign-out are logged with the server's name, never its token`() =
+        runTest {
+            val log = FakeAppLog()
+            val repository =
+                DefaultSessionRepository(
+                    authSource,
+                    accountStore,
+                    databases,
+                    { restarts += Unit },
+                    queue,
+                    Dispatchers.Unconfined,
+                    log,
+                )
+            authSource.login = MqResult.Success(FakeAuthSource.session("token-1"))
+
+            repository.login("http://192.168.1.10:8096", "Home", "Ana", "pw")
+            repository.logout()
+
+            assertThat(
+                log.lines,
+            ).containsExactly("I Session: Signed in to Home as Ana", "I Session: Signed out").inOrder()
+            assertThat(log.lines.joinToString()).doesNotContain("token-1")
         }
 
     @Test

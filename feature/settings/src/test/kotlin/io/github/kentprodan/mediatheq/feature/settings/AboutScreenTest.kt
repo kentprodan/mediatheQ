@@ -43,6 +43,7 @@ class AboutScreenTest {
                     onOpenSource = { events += "source" },
                     onOpenPrivacy = { events += "privacy" },
                     onOpenShowcase = { events += "showcase" }.takeIf { showcase },
+                    onExportLogs = { events += "logs" },
                     onBack = { events += "back" },
                 )
             }
@@ -66,12 +67,13 @@ class AboutScreenTest {
             "Open-source licenses",
             "Source code",
             "Privacy",
+            "Export logs",
             "Theme showcase",
         ).forEach(::open)
         composeRule.onNode(row("Version")).performTouchInput { longClick() }
 
         assertThat(events)
-            .containsExactly("copy", "changelog", "licenses", "source", "privacy", "showcase", "copy")
+            .containsExactly("copy", "changelog", "licenses", "source", "privacy", "logs", "showcase", "copy")
             .inOrder()
     }
 
@@ -92,7 +94,7 @@ class AboutScreenTest {
     fun `release builds have no theme showcase`() {
         show(showcase = false)
 
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(row("Privacy"))
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(row("Export logs"))
         composeRule.onNodeWithText("Theme showcase").assertDoesNotExist()
     }
 }
