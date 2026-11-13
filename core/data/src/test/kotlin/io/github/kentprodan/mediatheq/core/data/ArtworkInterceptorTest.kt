@@ -1,4 +1,4 @@
-package io.github.kentprodan.mediatheq
+package io.github.kentprodan.mediatheq.core.data
 
 import androidx.test.core.app.ApplicationProvider
 import coil3.intercept.Interceptor

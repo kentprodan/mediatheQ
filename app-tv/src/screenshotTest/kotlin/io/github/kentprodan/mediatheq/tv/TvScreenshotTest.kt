@@ -23,11 +23,6 @@ import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvPreviews
 
-@PreviewTest
-@MqTvPreviews
-@Composable
-fun TvPlaceholderScreenshot() = MediatheqTvTheme { PlaceholderScreen() }
-
 /**
  * The launcher banner (ADR 0038: xhdpi 320 x 180 px, the name in the image). `res/drawable-xhdpi/tv_banner.png` is a
  * copy of this reference image: change the banner here, record, and copy it there.

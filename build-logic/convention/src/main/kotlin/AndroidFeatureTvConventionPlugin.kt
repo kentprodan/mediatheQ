@@ -14,10 +14,9 @@ class AndroidFeatureTvConventionPlugin : Plugin<Project> {
             pluginManager.apply("mediatheq.android.hilt")
             pluginManager.apply("mediatheq.android.tv")
             dependencies {
-                listOf("model", "common", "navigation", "data", "playback", "designsystem-tv").forEach {
+                listOf("model", "common", "navigation", "data", "playback", "designsystem-tv", "ui-tv").forEach {
                     add("implementation", project(":core:$it"))
                 }
-                // :core:ui-tv joins this list in the issue that creates it (ADR 0037).
                 add("implementation", libs.findLibrary("androidx-lifecycle-runtime-compose").get())
                 add("implementation", libs.findLibrary("androidx-hilt-lifecycle-viewmodel-compose").get())
                 add("testImplementation", project(":core:testing"))

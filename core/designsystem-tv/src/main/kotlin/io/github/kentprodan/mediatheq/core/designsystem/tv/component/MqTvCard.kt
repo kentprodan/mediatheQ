@@ -24,9 +24,11 @@ fun MqTvCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    /** Long-press of select: the item's menu. */
+    onLongClick: (() -> Unit)? = null,
     image: @Composable () -> Unit,
 ) {
-    Card(onClick, modifier.width(CARD_WIDTH)) {
+    Card(onClick, modifier.width(CARD_WIDTH), onLongClick = onLongClick) {
         Column {
             Box(Modifier.fillMaxWidth().aspectRatio(1f)) { image() }
             Column(Modifier.padding(TEXT_PADDING)) {

@@ -1,4 +1,4 @@
-package io.github.kentprodan.mediatheq
+package io.github.kentprodan.mediatheq.core.data
 
 import coil3.intercept.Interceptor
 import coil3.request.CachePolicy

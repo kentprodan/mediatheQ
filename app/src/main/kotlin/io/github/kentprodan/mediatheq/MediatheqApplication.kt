@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.FileAppLog
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.AccountRepository
+import io.github.kentprodan.mediatheq.core.data.ArtworkInterceptor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.DefaultLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
