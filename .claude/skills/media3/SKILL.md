@@ -59,7 +59,7 @@ Input to `StreamResolver`: track, network type (Wi-Fi / Ethernet / cellular / me
 | Codec not supported on this device/route | let the server transcode | Opus (phone) / lossless-safe target per DeviceProfile |
 | Downloaded track | none, play local file | original (or the downloaded quality) |
 
-- Quality per network kind comes from Settings -> Playback -> Decoding and transcoding (#25, #138): `StreamingQuality` Original / 320 / 256 / 192 / 128 kbps, defaults Original on unmetered and 256 on metered. `DeviceProfileBuilder.build(decoders, quality)`: Original = no cap (formats the device cannot decode still convert to Opus 256), otherwise the cap and Opus at that bitrate. `StreamResolver` keeps one stream per track and quality, so a new setting applies at the next load. Downloads ask for the original whenever the device plays it, else one converted file (section 10). A fully cached original still plays at any quality, and prefetch only fetches originals.
+- Quality per network kind comes from Settings -> Playback -> Decoding and transcoding (#25, #138): `StreamingQuality` Original / 320 / 256 / 192 / 128 kbps, defaults Original on unmetered and 256 on metered. `DeviceProfileBuilder.build(decoders, passthrough, quality)`: Original = no cap (formats the device cannot decode still convert to Opus 256), otherwise the cap and Opus at that bitrate. `StreamResolver` keeps one stream per track, quality and passthrough set, so a new setting or another route applies at the next load. Downloads ask for the original whenever the device plays it, else one converted file (section 10). A fully cached original still plays at any quality, and prefetch only fetches originals.
 - Force instant transcoding (#138, off by default): when the network turns metered (Wi-Fi lost, `NetworkMonitor.meteredChanges`), `InstantTranscoder` replaces the playing entry with an equal item. Our `LazyStreamMediaSource` cannot update in place, so the entry gets a new source, which chooses its stream again at the metered quality. It keeps its place and the shuffle order. This happens only for a track streaming in another quality, never a download or a fully cached original (`wantsNewStream`). The new stream is a new play session, reported as such. Off: the new quality applies at the next load.
 
 - Converted streams are **HLS** with Opus in fMP4 segments (ADR 0019, supersedes the Ogg stream of ADR 0016), so they seek. `StreamMediaSourceFactory` gives every `mediatheq://` item a `LazyStreamMediaSource`: when the player prepares the item it resolves the stream (`chooseStreamSource`, off the playback thread) and prepares either an `HlsMediaSource` on the playlist (segmented stream; app OkHttp client with the auth header, no cache) or the progressive source on the `mediatheq://` URI (download, cached original, offline, lasting failure, file, progressive fallback). Network/server errors are retried in the choice (1, 2, 4 s); HLS requests read the auth header at each request. The timeline keeps the queue item. The file data source reuses the stream the item started with and refuses a playlist.
@@ -84,7 +84,7 @@ Rules:
    - Never silently downgrade on a route that could do Atmos: if passthrough was expected and failed, surface an error state with a reason.
 3. Route changes (plug HDMI, connect BT, USB DAC) re-run stream selection **for the next track**; the current track continues unless playback fails.
 4. The Now Playing "Dolby Atmos" badge shows only when the **actual** output is Atmos (passthrough active), read from the player's current audio format + route, not from metadata alone.
-5. **Phone (#24):** no passthrough routes yet (they come with TV 1). `DeviceProfileBuilder` declares `eac3` only with an `audio/eac3-joc` decoder and never `truehd`, so on the Pixel 9 the server converts Atmos to the usual stereo Opus 256 (also on Wi-Fi). The track carries its spatial format in the media item extras; `AudioPolicy.atmosConverted(isAtmos, playMethod, convertedDownload)` (unknown stream = no note; a converted download counts although it reports a direct play, #89) feeds `AudioOutputState.atmosConverted` -> `AudioOutputInfo` -> Now Playing's note "Dolby Atmos not available · Playing in stereo on this output". A "stereo version" of an album is a later feature; a download of such a track is the server's conversion (#68, section 10).
+5. **No passthrough route (phone #24, Bluetooth on the TV box):** `DeviceProfileBuilder` declares `eac3` only with an `audio/eac3-joc` decoder or JOC passthrough and `truehd` only with TrueHD passthrough, so on the Pixel 9 the server converts Atmos to the usual stereo Opus 256 (also on Wi-Fi). The track carries its spatial format in the media item extras; `AudioPolicy.atmosConverted(isAtmos, playMethod, convertedDownload)` (unknown stream = no note; a converted download counts although it reports a direct play, #89) feeds `AudioOutputState.atmosConverted` -> `AudioOutputInfo` -> Now Playing's note "Dolby Atmos not available · Playing in stereo on this output". A "stereo version" of an album is a later feature; a download of such a track is the server's conversion (#68, section 10).
 6. Atmos passthrough cannot be proven on JVM. Unit-test the decision; prove the output manually (`/test`: soundbar display shows Atmos).
 7. **TV over HDMI (#241, ADR 0039):** `Media3PassthroughCapabilities` (the only user of `AudioCapabilities` /
    `AudioCapabilitiesReceiver`, both unstable: check at each Media3 bump) gives the MIME types the routed device takes;
@@ -93,6 +93,21 @@ Rules:
    (`onAudioTrackInitialized`): `AudioOutputState.passthroughEncoding` -> `AudioOutputInfo.atmosPassthrough` (JOC or
    TrueHD only); the badge reads that, never metadata. A failed passthrough AudioTrack is prepared again once, then the
    error shows. Logs under `MqAudioOutput`: route, passthrough set, decision, the opened encoding.
+8. **Atmos stream selection (#242, ADR 0039 rule 4):** the controller publishes `AudioOutputState.requestPassthrough`
+   (the route's set while the output's switch is on, else empty); the service hands it to `StreamResolver.passthrough`
+   (`@Volatile`, written on the main thread) before applying the state. Each item's `MediaItem.atmosMime()` (its
+   passthrough MIME type when the file is Dolby Atmos) travels with the queue item to `chooseStreamSource` and the
+   prefetch, and the resolver remembers it for the file source, which passes only the id;
+   `atmosRequest(atmosMime, passthrough, quality)` asks for `Original` when that MIME type is in the set, whatever the
+   network quality, and the profile carries the set. A known stream is reused only for the same quality and set; a
+   complete cached original that is a bitstream (any `passthroughMime`, Atmos or plain TrueHD) this route neither
+   passes through nor decodes (`playsCachedOriginal`) streams again instead; instant transcoding compares with
+   `requestQuality`.
+   `AudioPolicy.atmosDecoded(isAtmos, playMethod, convertedDownload, passthroughConfirmed, decoderUsed)`
+   (`decoderUsed`: the opened AudioTrack is PCM and the mode is not `Passthrough`, since right after a transition the
+   encoding is still the previous track's) -> `AudioOutputInfo.atmosDecoded` -> "Dolby Atmos not available · Decoded on this output" on both
+   Now Playing screens; the quality label never says "Dolby Atmos" unless `atmosPassthrough`. Known limit: JOC on a
+   route that takes only plain E-AC-3 is converted to stereo with the note (not sent as the 5.1 core).
 
 ## 5. Audio offload (battery)
 

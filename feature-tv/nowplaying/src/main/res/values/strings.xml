@@ -18,5 +18,6 @@
     <string name="tv_np_buffering">Loading…</string>
     <string name="tv_np_queue">Up next</string>
     <string name="tv_np_remove">Remove from queue</string>
-    <string name="tv_np_atmos_converted">Plays as stereo on this output</string>
+    <string name="tv_np_atmos_converted">Dolby Atmos not available · Playing in stereo on this output</string>
+    <string name="tv_np_atmos_decoded">Dolby Atmos not available · Decoded on this output</string>
 </resources>

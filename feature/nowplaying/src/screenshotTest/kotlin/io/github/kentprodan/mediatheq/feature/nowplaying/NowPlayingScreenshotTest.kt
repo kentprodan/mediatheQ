@@ -145,6 +145,14 @@ fun NowPlayingAtmosConvertedScreenshot() {
     MediatheqTheme { Screen(playing.copy(atmosConverted = true)) }
 }
 
+/** A Dolby Atmos file this device decodes itself (no passthrough): the note says so (#242). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingAtmosDecodedScreenshot() {
+    MediatheqTheme { Screen(playing.copy(quality = null, atmosDecoded = true)) }
+}
+
 /** Bit-perfect to a USB DAC: the sample rate and the volume note. */
 @PreviewTest
 @MqPreviews

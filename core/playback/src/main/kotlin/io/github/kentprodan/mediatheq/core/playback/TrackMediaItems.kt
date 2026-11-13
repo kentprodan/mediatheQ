@@ -190,6 +190,9 @@ internal fun MediaItem.isDolbyAtmos(): Boolean =
 internal fun MediaItem.passthroughMime(): String? =
     passthroughMime(mediaMetadata.extras?.getString(EXTRA_CODEC), isDolbyAtmos())
 
+/** The MIME type this Dolby Atmos item's file passes through as ([passthroughMime]); `null` for any other file. */
+internal fun MediaItem.atmosMime(): String? = passthroughMime().takeIf { isDolbyAtmos() }
+
 /**
  * The PCM format this item reaches the sink in when direct played, from the file's metadata (for bit-perfect USB);
  * `null` when unknown. Callers skip transcodes, whose format differs.

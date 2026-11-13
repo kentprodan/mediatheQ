@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.nowplaying
 
 import android.provider.Settings
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -508,7 +509,10 @@ private fun SeekSection(
             state.quality?.let { QualityLabelButton(it, state.qualityDetail, onAction) }
         }
         state.bitPerfectSampleRateHz?.let { BitPerfectBadge(it) }
-        if (state.atmosConverted) AtmosConvertedNote()
+        when {
+            state.atmosConverted -> AtmosNote(R.string.nowplaying_atmos_stereo)
+            state.atmosDecoded -> AtmosNote(R.string.nowplaying_atmos_decoded)
+        }
     }
 }
 
@@ -629,9 +633,11 @@ private fun BitPerfectBadge(sampleRateHz: Int) {
     }
 }
 
-/** Why Atmos is not playing: the device and output cannot play it, so the server sent a stereo version. */
+/** Why Atmos is not playing: the server sent a stereo version, or this device decodes it ([reason]). */
 @Composable
-private fun AtmosConvertedNote() {
+private fun AtmosNote(
+    @StringRes reason: Int,
+) {
     val color = MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         Modifier.semantics(mergeDescendants = true) {},
@@ -645,7 +651,7 @@ private fun AtmosConvertedNote() {
             Text(stringResource(R.string.nowplaying_atmos_unavailable), style = MaterialTheme.typography.labelLarge)
         }
         Text(
-            stringResource(R.string.nowplaying_atmos_stereo),
+            stringResource(reason),
             style = MaterialTheme.typography.labelMedium,
             color = color,
             textAlign = TextAlign.Center,

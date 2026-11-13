@@ -24,6 +24,7 @@
     <string name="nowplaying_bit_perfect_badge">Bit-perfect · %1$s</string>
     <string name="nowplaying_atmos_unavailable">Dolby Atmos not available</string>
     <string name="nowplaying_atmos_stereo">Playing a stereo version</string>
+    <string name="nowplaying_atmos_decoded">Decoded on this output</string>
     <string name="nowplaying_bit_perfect_volume">Phone volume does not apply</string>
     <string name="nowplaying_more">More options</string>
     <string name="nowplaying_open_album">Open album</string>

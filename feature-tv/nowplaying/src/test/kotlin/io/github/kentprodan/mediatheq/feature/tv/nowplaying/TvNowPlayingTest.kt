@@ -23,6 +23,7 @@ import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
@@ -122,6 +123,43 @@ class TvNowPlayingTest {
             assertThat(state.isFavorite).isTrue()
             assertThat(state.quality?.kind).isEqualTo(QualityKind.HiResLossless)
             assertThat(state.queue).isEqualTo(queue)
+        }
+
+    @Test
+    fun `the Dolby Atmos badge shows only while passthrough is confirmed, the notes say why not`() =
+        test {
+            val atmos =
+                track.copy(
+                    audioFormat = AudioFormat("eac3", 48_000, channels = 6, spatialFormat = SpatialFormat.DolbyAtmos),
+                )
+            val viewModel = viewModel()
+            // After viewModel(), which queues the stereo track.
+            library.tracks.value = listOf(atmos)
+
+            fun state(output: AudioOutputInfo): TvNowPlayingUiState.Playing {
+                playback.state.value = playing().copy(output = output)
+                runCurrent()
+                return viewModel.uiState.value as TvNowPlayingUiState.Playing
+            }
+            val base = AudioOutputInfo(playedItemId = atmos.id.toString(), streamKnown = true)
+
+            val passing = state(base.copy(atmosPassthrough = true))
+            assertThat(passing.quality?.kind).isEqualTo(QualityKind.DolbyAtmos)
+            assertThat(passing.atmosDecoded || passing.atmosConverted).isFalse()
+
+            val decoded = state(base.copy(atmosDecoded = true))
+            assertThat(decoded.quality).isNull()
+            assertThat(decoded.atmosDecoded).isTrue()
+
+            val converted = state(base.copy(convertedKbps = 256, atmosConverted = true))
+            assertThat(converted.quality?.kind).isEqualTo(QualityKind.HighQuality)
+            assertThat(converted.atmosConverted).isTrue()
+
+            // The next, stereo track: no badge, no note.
+            library.tracks.value = listOf(track)
+            val stereo = state(AudioOutputInfo(playedItemId = track.id.toString(), streamKnown = true))
+            assertThat(stereo.quality?.kind).isEqualTo(QualityKind.HiResLossless)
+            assertThat(stereo.atmosDecoded || stereo.atmosConverted).isFalse()
         }
 
     @Test

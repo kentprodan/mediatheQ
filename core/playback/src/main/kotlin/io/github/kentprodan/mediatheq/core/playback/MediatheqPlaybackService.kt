@@ -219,8 +219,15 @@ class MediatheqPlaybackService : MediaLibraryService() {
                             ),
                         ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
                         okHttpClient,
-                        choose = {
-                            chooseStreamSource(it, streamResolver, downloads, streamingCache, playerNetwork::isOnline)
+                        choose = { id, item ->
+                            chooseStreamSource(
+                                id,
+                                streamResolver,
+                                downloads,
+                                streamingCache,
+                                playerNetwork::isOnline,
+                                item,
+                            )
                         },
                         headers = streamResolver::headers,
                         dispatcher = ioDispatcher,
@@ -240,7 +247,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     val local = downloads.isDownloaded(id) || streamingCache.isFullyCached(originalCacheKey(id))
                     wantsNewStream(
                         streamResolver.quality(id),
-                        audioPreferences.preferences.first().meteredQuality,
+                        // An Atmos track passing through stays the original on a metered network (ADR 0039).
+                        streamResolver.requestQuality(id, audioPreferences.preferences.first().meteredQuality),
                         local,
                     )
                 },
@@ -548,7 +556,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 state = { audioOutput.state },
                 volume = { normalization.apply() },
                 equalizer = { sessionId, on -> equalizer.apply(sessionId, on, eqGains) },
-                extras = { session?.sessionExtras = it.toInfo().toBundle() },
+                extras = { session?.sessionExtras = it.toInfo(currentPlayMethod(), convertedDownload()).toBundle() },
                 device = { outputProfiles.onDevice(it) },
             )
         audioOutput =
@@ -567,7 +575,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         null
                     }
                 },
-                onChange = { outputApplier.apply(it) },
+                onChange = {
+                    // Before applying: the next stream request already asks for what this route passes through.
+                    streamResolver.passthrough = it.requestPassthrough
+                    outputApplier.apply(it)
+                },
                 atmosConverted = {
                     AudioPolicy.atmosConverted(
                         isAtmos = player.currentMediaItem?.isDolbyAtmos() == true,
@@ -682,23 +694,34 @@ class MediatheqPlaybackService : MediaLibraryService() {
         outputProfiles.onDevice(audioOutput.state.output)
     }
 
-    private fun AudioOutputState.toInfo() =
-        AudioOutputInfo(
+    /** The output for screens; [playMethod] and [convertedDownload] say how the playing track's stream plays. */
+    private fun AudioOutputState.toInfo(
+        playMethod: PlayMethod? = null,
+        convertedDownload: Boolean = false,
+    ): AudioOutputInfo {
+        val isAtmos = session?.player?.currentMediaItem?.isDolbyAtmos() == true
+        val passthroughConfirmed = atmosPassthrough(passthroughEncoding, isAtmosFile = isAtmos)
+        return AudioOutputInfo(
             // Only once an AudioTrack really opened on the bit-perfect output (#65).
             bitPerfectSampleRateHz = bitPerfectFormat?.sampleRateHz?.takeIf { bitPerfectConfirmed },
             usbDacConnected = route == AudioRoute.UsbDac,
             bitPerfectNoMatch = bitPerfectNoMatch,
             bitPerfectSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             atmosConverted = atmosConverted,
-            atmosPassthrough =
-                atmosPassthrough(
-                    passthroughEncoding,
-                    isAtmosFile = session?.player?.currentMediaItem?.isDolbyAtmos() == true,
+            atmosPassthrough = passthroughConfirmed,
+            atmosDecoded =
+                AudioPolicy.atmosDecoded(
+                    isAtmos,
+                    playMethod,
+                    convertedDownload,
+                    passthroughConfirmed,
+                    decoderUsed = AudioPolicy.decoderUsed(passthroughEncoding, mode),
                 ),
             playedItemId = played.itemId,
             streamKnown = played.known,
             convertedKbps = played.convertedKbps,
         )
+    }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 

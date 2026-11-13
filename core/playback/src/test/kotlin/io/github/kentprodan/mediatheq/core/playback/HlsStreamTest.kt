@@ -75,13 +75,19 @@ class HlsStreamTest {
     /** Runs when the media playlist is served, e.g. to sign in again between the playlist and its segments. */
     private var onPlaylists: () -> Unit = {}
     private val opened = mutableListOf<MediaId>()
+
+    /** The queue items the factory chose a stream for: the item travels with the id. */
+    private val chosen = mutableListOf<String>()
     private val player: ExoPlayer =
         TestExoPlayerBuilder(context)
             .setMediaSourceFactory(
                 StreamMediaSourceFactory(
                     FakeMediaSourceFactory(),
                     client,
-                    choose = { choice() },
+                    choose = { _, item ->
+                        chosen += item.mediaId
+                        choice()
+                    },
                     headers = { auth },
                     dispatcher = Dispatchers.Unconfined,
                     onOpen = { opened += it },
@@ -119,6 +125,7 @@ class HlsStreamTest {
         requests.forEach { assertThat(it.header("Authorization")).isEqualTo("MediaBrowser Token=\"token-1\"") }
         assertThat(window().durationMs).isEqualTo(9_000)
         assertThat(opened).containsExactly(itemId)
+        assertThat(chosen).containsExactly(itemId.toString())
     }
 
     @Test

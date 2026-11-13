@@ -39,6 +39,8 @@ internal data class AudioOutputState(
     val passthrough: Set<String> = emptySet(),
     /** The encoding of the AudioTrack the sink opened last, while one is open (ADR 0039). */
     val passthroughEncoding: Int? = null,
+    /** What stream requests may ask to pass through: [passthrough] while the output's switch is on, else nothing. */
+    val requestPassthrough: Set<String> = emptySet(),
 )
 
 /**
@@ -159,6 +161,8 @@ internal class AudioOutputController(
                 output = output,
                 passthrough = passthrough,
                 passthroughEncoding = state.passthroughEncoding,
+                requestPassthrough =
+                    passthrough.takeIf { AudioPolicy.wantsPassthrough(settings, route, it) }.orEmpty(),
             ),
         )
         // After publishing: the offload change of this decision is applied first, then the track is reopened.

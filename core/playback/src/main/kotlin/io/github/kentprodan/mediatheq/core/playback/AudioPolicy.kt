@@ -130,6 +130,28 @@ internal object AudioPolicy {
     ): Boolean = isAtmos && playMethod != null && !playsOriginal(playMethod, convertedDownload)
 
     /**
+     * Whether a Dolby Atmos file plays as it is but is decoded on this device (#242, ADR 0039): the original reached
+     * the player ([playsOriginal]), the AudioTrack it opened carries PCM ([decoderUsed]) and no Atmos bitstream left the
+     * device ([passthroughConfirmed]). Now Playing then says "Decoded on this output". `false` while nothing opened yet.
+     */
+    fun atmosDecoded(
+        isAtmos: Boolean,
+        playMethod: PlayMethod?,
+        convertedDownload: Boolean,
+        passthroughConfirmed: Boolean,
+        decoderUsed: Boolean,
+    ): Boolean = isAtmos && playsOriginal(playMethod, convertedDownload) && decoderUsed && !passthroughConfirmed
+
+    /**
+     * Whether the AudioTrack the sink opened last ([openedEncoding]) decodes to PCM, for [atmosDecoded]. Not while
+     * [mode] expects a passthrough: right after a transition the encoding is still the previous track's (#242 review).
+     */
+    fun decoderUsed(
+        openedEncoding: Int?,
+        mode: AudioMode,
+    ): Boolean = openedEncoding != null && !isPassthroughEncoding(openedEncoding) && mode != AudioMode.Passthrough
+
+    /**
      * The bitrate of the server's conversion that plays (#125), `null` when the original file plays: a transcode at
      * the stream's quality cap ([qualityKbps], none for Original: then only an undecodable format converts, to Opus
      * 256), or a converted download at the bitrate it was made with ([convertedDownloadKbps], #144).

@@ -140,6 +140,34 @@ class JellyfinPlaybackSourceTest {
         }
 
     @Test
+    fun `R11 an Atmos track on a passthrough route is asked uncapped with eac3 and truehd and direct plays`() =
+        runTest {
+            // Recorded from 12.3.0 (2026-11-13) for an E-AC-3 JOC M4A with this profile (#242, ADR 0039).
+            enqueue("items_playbackinfo/passthrough_atmos.json")
+            val passthrough =
+                DeviceProfile(
+                    directPlayContainers = listOf("m4a", "mp4", "mka", "flac"),
+                    directPlayCodecs = listOf("flac", "aac", "ac3", "eac3", "truehd"),
+                    transcoding = TranscodingTarget("mp4", "opus", 256_000, 2, segmented = true),
+                    maxStreamingBitrate = null,
+                )
+
+            val stream = (source.stream(server(), itemId, passthrough) as MqResult.Success).value
+
+            val body = body()
+            val profile = body["DeviceProfile"]!!.jsonObject
+            assertThat(body["MaxStreamingBitrate"].toString()).isEqualTo("1000000000")
+            assertThat(profile["MaxStreamingBitrate"].toString()).isEqualTo("1000000000")
+            assertThat(profile["MusicStreamingTranscodingBitrate"].toString()).isEqualTo("256000")
+            assertThat(profile["DirectPlayProfiles"].toString()).contains("\"AudioCodec\":\"flac,aac,ac3,eac3,truehd\"")
+            assertThat(stream.playMethod).isEqualTo(PlayMethod.DirectPlay)
+            assertThat(stream.segmented).isFalse()
+            assertThat(stream.canSeek).isTrue()
+            assertThat(stream.url).contains("static=true")
+            assertThat(stream.sizeBytes).isEqualTo(25_612_783)
+        }
+
+    @Test
     fun `R10 R11 R12 metered network gets the 256 kbps Opus transcode, unseekable, token stripped`() =
         runTest {
             enqueue("items_playbackinfo/transcode.json")

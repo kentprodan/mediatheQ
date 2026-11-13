@@ -150,15 +150,21 @@ private fun Player(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                // The output line: the quality; #242 adds the Atmos output notes.
+                // The output line: the quality, and why an Atmos file is not Atmos on this output.
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     state.quality?.let { MqTvFormatBadge(it) }
-                    if (state.atmosConverted) {
+                    val atmosNote =
+                        when {
+                            state.atmosConverted -> R.string.tv_np_atmos_converted
+                            state.atmosDecoded -> R.string.tv_np_atmos_decoded
+                            else -> null
+                        }
+                    if (atmosNote != null) {
                         Text(
-                            stringResource(R.string.tv_np_atmos_converted),
+                            stringResource(atmosNote),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

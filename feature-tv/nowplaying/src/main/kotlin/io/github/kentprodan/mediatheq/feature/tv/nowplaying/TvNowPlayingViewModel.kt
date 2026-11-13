@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.tv.nowplaying
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.common.QualityKind
 import io.github.kentprodan.mediatheq.core.common.QualityLabel
 import io.github.kentprodan.mediatheq.core.common.qualityLabel
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
@@ -45,10 +46,15 @@ sealed interface TvNowPlayingUiState {
         val shuffle: Boolean = false,
         val repeatMode: RepeatMode = RepeatMode.Off,
         val isFavorite: Boolean = false,
-        /** What actually plays (the file or the server's conversion), once the stream is known (#125). */
+        /**
+         * What actually plays (the file or the server's conversion), once the stream is known (#125). Its "Dolby Atmos"
+         * kind shows only while Atmos really leaves the device (#242, ADR 0039).
+         */
         val quality: QualityLabel? = null,
-        /** An Atmos file this output plays as stereo; #242 adds the output notes. */
+        /** An Atmos file this output plays as the server's stereo conversion. */
         val atmosConverted: Boolean = false,
+        /** An Atmos file played as it is but decoded here: no Atmos reaches this output. */
+        val atmosDecoded: Boolean = false,
         /** The queue in play order, the playing entry marked by [currentEntryId]. */
         val queue: List<QueueItem> = emptyList(),
         val currentEntryId: String? = null,
@@ -225,8 +231,11 @@ private fun PlayerUiModel.toUiState(
         quality =
             output
                 .takeIf { it.playedItemId == item.id.toString() }
-                ?.let { qualityLabel(data?.audioFormat, it.streamKnown, it.convertedKbps) },
+                ?.let { qualityLabel(data?.audioFormat, it.streamKnown, it.convertedKbps) }
+                // The badge says Dolby Atmos only while the bitstream passes through, never from the metadata alone.
+                ?.takeUnless { it.kind == QualityKind.DolbyAtmos && !output.atmosPassthrough },
         atmosConverted = output.atmosConverted,
+        atmosDecoded = output.atmosDecoded,
         queue = queue,
         currentEntryId = currentEntryId,
     )
