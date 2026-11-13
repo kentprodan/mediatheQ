@@ -32,7 +32,7 @@ android {
     defaultConfig {
         applicationId = "io.github.kentprodan.mediatheq"
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = libs.versions.mediatheqVersionName.get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

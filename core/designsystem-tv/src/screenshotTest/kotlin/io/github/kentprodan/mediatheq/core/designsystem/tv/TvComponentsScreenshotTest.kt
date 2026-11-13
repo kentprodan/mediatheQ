@@ -19,7 +19,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 
 /**
- * Each `MqTv*` component enabled and disabled. Layoutlib renders no focus (tv-material draws it from the real focus
+ * The `MqTv*` components in their states (enabled, disabled, selected). Layoutlib renders no focus (tv-material draws it from the real focus
  * state), so the focused look is proven on Robolectric by the app's focus test and on the Streamer.
  */
 @Composable
@@ -42,9 +42,16 @@ fun TvButtonScreenshot() = States { enabled -> MqTvButton("Play", {}, enabled = 
 @MqTvPreviews
 @Composable
 fun TvCardScreenshot() =
-    States { _ ->
-        MqTvCard(PreviewFixtures.ALBUM, {}, subtitle = PreviewFixtures.ARTIST) {
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.secondaryContainer))
+    MediatheqTvTheme {
+        Surface(Modifier.fillMaxSize()) {
+            // tv-material cards have no disabled state: with and without a subtitle.
+            Row(Modifier.padding(48.dp), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                listOf(PreviewFixtures.ARTIST, null).forEach { subtitle ->
+                    MqTvCard(PreviewFixtures.ALBUM, {}, subtitle = subtitle) {
+                        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.secondaryContainer))
+                    }
+                }
+            }
         }
     }
 

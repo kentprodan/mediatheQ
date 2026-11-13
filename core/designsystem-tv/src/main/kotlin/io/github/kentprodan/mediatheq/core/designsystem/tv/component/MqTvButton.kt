@@ -1,6 +1,5 @@
 package io.github.kentprodan.mediatheq.core.designsystem.tv.component
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,9 +20,8 @@ fun MqTvButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     icon: ImageVector? = null,
-    interactionSource: MutableInteractionSource? = null,
 ) {
-    Button(onClick, modifier, enabled = enabled, interactionSource = interactionSource) {
+    Button(onClick, modifier, enabled = enabled) {
         icon?.let {
             Icon(it, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
             Spacer(Modifier.width(ICON_SPACING))

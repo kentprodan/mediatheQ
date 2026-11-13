@@ -48,7 +48,7 @@ internal fun Project.configureTvDependencyCheck() {
                     .map { root -> root.allComponents().map(::name) },
             )
         }
-    tasks.matching { it.name == "preBuild" }.configureEach { dependsOn(check) }
+    tasks.named { it == "preBuild" }.configureEach { dependsOn(check) }
 }
 
 private fun name(component: ResolvedComponentResult): String =

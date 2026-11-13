@@ -1,6 +1,5 @@
 package io.github.kentprodan.mediatheq.core.designsystem.tv.component
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -18,7 +17,6 @@ fun MqTvListItem(
     icon: ImageVector? = null,
     selected: Boolean = false,
     enabled: Boolean = true,
-    interactionSource: MutableInteractionSource? = null,
 ) {
     ListItem(
         selected = selected,
@@ -28,6 +26,5 @@ fun MqTvListItem(
         enabled = enabled,
         supportingContent = supporting?.let { { Text(it) } },
         leadingContent = icon?.let { { Icon(it, contentDescription = null) } },
-        interactionSource = interactionSource,
     )
 }

@@ -1,6 +1,5 @@
 package io.github.kentprodan.mediatheq.core.designsystem.tv.component
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -25,10 +24,9 @@ fun MqTvCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
-    interactionSource: MutableInteractionSource? = null,
     image: @Composable () -> Unit,
 ) {
-    Card(onClick, modifier.width(CARD_WIDTH), interactionSource = interactionSource) {
+    Card(onClick, modifier.width(CARD_WIDTH)) {
         Column {
             Box(Modifier.fillMaxWidth().aspectRatio(1f)) { image() }
             Column(Modifier.padding(TEXT_PADDING)) {

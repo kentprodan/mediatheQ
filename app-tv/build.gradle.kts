@@ -24,8 +24,7 @@ android {
     defaultConfig {
         applicationId = "io.github.kentprodan.mediatheq.tv"
         versionCode = 1
-        // The same version as the phone app (ADR 0038).
-        versionName = "0.1.0"
+        versionName = libs.versions.mediatheqVersionName.get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 }

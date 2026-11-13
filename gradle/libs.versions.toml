@@ -1,4 +1,6 @@
 [versions]
+# The apps' version, shared by the phone and the TV app (ADR 0038).
+mediatheqVersionName = "0.1.0"
 # SDK levels (ADR 0010)
 compileSdk = "37"
 targetSdk = "37"
