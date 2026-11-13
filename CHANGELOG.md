@@ -21,6 +21,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Any Library sort can be reversed: tap the arrow next to it, or the chosen sort again in its menu.
 - The app has its own icon (a Q made of a record and a play button), also for themed icons, and on the About page.
 - A first TV app for Google TV: it installs with its own banner and shows a placeholder screen driven by the remote.
+- Sign in on the TV: enter the server address, then approve a Quick Connect code from your phone, or use your user name and password.
 
 ### Fixed
 - Now Playing on a phone held sideways shows the controls without scrolling (smaller transport buttons, the album line in the menu).
