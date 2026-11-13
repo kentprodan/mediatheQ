@@ -14,10 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -30,8 +29,10 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.common.LicenseEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
+import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
+import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 
-/** The licenses list and one license's page share the parsed report: each entry builds its own (a few ms). */
+/** The licenses list and each license page read and parse the report themselves, off the main thread (a few ms). */
 @Composable
 fun TvLicensesRoute(
     report: () -> String,
@@ -61,7 +62,8 @@ fun TvLicensesScreen(
     onOpen: (String) -> Unit,
 ) {
     Surface(Modifier.fillMaxSize()) {
-        val first = remember { FocusRequester() }
+        // Back from a license focuses the entry that opened it (ADR 0041).
+        val focus = rememberFocusMemory()
         LazyColumn(
             Modifier.fillMaxHeight().wrapContentWidth(Alignment.Start).width(720.dp),
             contentPadding = PaddingValues(48.dp),
@@ -78,14 +80,20 @@ fun TvLicensesScreen(
                         MqTvListItem(
                             entry.name,
                             { onOpen(entry.id) },
-                            if (entry == state.entries.first()) Modifier.focusRequester(first) else Modifier,
+                            Modifier.focusMemory(focus, entry.id),
                             supporting = listOfNotNull(entry.detail, entry.licenseName).joinToString(" · "),
                         )
                     }
                 }
             }
         }
-        if (state is TvLicensesUiState.Content) LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+        if (state is TvLicensesUiState.Content) {
+            LaunchedEffect(Unit) {
+                // The entries are lazy items, laid out after this effect starts.
+                withFrameNanos {}
+                focus.restore(state.entries.firstOrNull()?.id)
+            }
+        }
     }
 }
 
@@ -97,7 +105,7 @@ fun TvLicensesScreen(
 fun TvLicenseScreen(entry: LicenseEntry?) {
     Surface(Modifier.fillMaxSize()) {
         if (entry == null) return@Surface
-        val first = remember { FocusRequester() }
+        val focus = rememberFocusMemory()
         val paragraphs =
             listOfNotNull(entry.url, entry.notice, entry.licenseText)
                 .flatMap { it.split(PARAGRAPH) }
@@ -121,7 +129,7 @@ fun TvLicenseScreen(entry: LicenseEntry?) {
                 // Focusable only to move through the text: select does nothing.
                 Surface(
                     onClick = {},
-                    modifier = (if (index == 0) Modifier.focusRequester(first) else Modifier).fillMaxWidth(),
+                    modifier = Modifier.focusMemory(focus, index.toString()).fillMaxWidth(),
                     scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
                     colors =
                         ClickableSurfaceDefaults.colors(
@@ -133,7 +141,11 @@ fun TvLicenseScreen(entry: LicenseEntry?) {
                 }
             }
         }
-        LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+        LaunchedEffect(Unit) {
+            // The paragraphs are lazy items, laid out after this effect starts.
+            withFrameNanos {}
+            focus.restore("0")
+        }
     }
 }
 

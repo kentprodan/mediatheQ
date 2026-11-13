@@ -13,10 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -34,6 +33,8 @@ import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
+import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
+import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 
 @Composable
 fun TvSettingsRoute(
@@ -47,7 +48,7 @@ fun TvSettingsRoute(
 
 /**
  * Settings on TV (#243): one list in sections (audio output, streaming, library, account, about); focus starts on its
- * first row. The quality choice and the sign-out confirmation are dialogs.
+ * first row, or on the row it had when coming back from the licenses. The quality choice and the sign-out confirmation are dialogs.
  */
 @Composable
 fun TvSettingsScreen(
@@ -58,7 +59,8 @@ fun TvSettingsScreen(
 ) {
     Surface(Modifier.fillMaxSize()) {
         if (state !is TvSettingsUiState.Content) return@Surface
-        val first = remember { FocusRequester() }
+        // Coming back from the licenses focuses the row that opened them (ADR 0041).
+        val focus = rememberFocusMemory()
         LazyColumn(
             Modifier.fillMaxHeight().wrapContentWidth(Alignment.Start).width(720.dp),
             contentPadding = PaddingValues(48.dp),
@@ -78,7 +80,7 @@ fun TvSettingsScreen(
                     MqTvListItem(
                         stringResource(R.string.tv_settings_passthrough),
                         { onAction(TvSettingsAction.TogglePassthrough) },
-                        Modifier.focusRequester(first),
+                        Modifier.focusMemory(focus, PASSTHROUGH),
                         supporting = stringResource(R.string.tv_settings_passthrough_detail, hdmi.name),
                         trailing = { Switch(checked = hdmi.atmosPassthrough, onCheckedChange = null) },
                     )
@@ -97,7 +99,7 @@ fun TvSettingsScreen(
                 MqTvListItem(
                     stringResource(R.string.tv_settings_quality),
                     { onAction(TvSettingsAction.ChooseQuality) },
-                    if (state.hdmi == null) Modifier.focusRequester(first) else Modifier,
+                    Modifier.focusMemory(focus, QUALITY),
                     supporting = qualityLabel(state.quality),
                 )
             }
@@ -106,6 +108,7 @@ fun TvSettingsScreen(
                 MqTvListItem(
                     stringResource(R.string.tv_settings_sync),
                     { onAction(TvSettingsAction.SyncNow) },
+                    Modifier.focusMemory(focus, "sync"),
                     supporting = syncLabel(state.sync),
                 )
             }
@@ -114,17 +117,39 @@ fun TvSettingsScreen(
                 MqTvListItem(
                     state.serverName.orEmpty(),
                     {},
+                    Modifier.focusMemory(focus, "account"),
                     supporting = state.userName,
                 )
             }
             item {
-                MqTvListItem(stringResource(R.string.tv_settings_sign_out), { onAction(TvSettingsAction.AskSignOut) })
+                MqTvListItem(
+                    stringResource(R.string.tv_settings_sign_out),
+                    { onAction(TvSettingsAction.AskSignOut) },
+                    Modifier.focusMemory(focus, "signOut"),
+                )
             }
             section(R.string.tv_settings_about)
-            item { MqTvListItem(stringResource(R.string.tv_settings_version), {}, supporting = versionName) }
-            item { MqTvListItem(stringResource(R.string.tv_settings_licenses), onOpenLicenses) }
+            item {
+                MqTvListItem(
+                    stringResource(R.string.tv_settings_version),
+                    {},
+                    Modifier.focusMemory(focus, "version"),
+                    supporting = versionName,
+                )
+            }
+            item {
+                MqTvListItem(
+                    stringResource(R.string.tv_settings_licenses),
+                    onOpenLicenses,
+                    Modifier.focusMemory(focus, "licenses"),
+                )
+            }
         }
-        LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+        LaunchedEffect(Unit) {
+            // The rows are lazy items, laid out after this effect starts.
+            withFrameNanos {}
+            focus.restore(if (state.hdmi != null) PASSTHROUGH else QUALITY)
+        }
         when (state.dialog) {
             TvSettingsDialog.Quality -> QualityDialog(state.quality, onAction)
             TvSettingsDialog.SignOut -> SignOutDialog(state, onAction)
@@ -217,3 +242,5 @@ private fun stepLabel(step: SyncStep): String =
     )
 
 private const val BITS_PER_KBIT = 1000
+private const val PASSTHROUGH = "passthrough"
+private const val QUALITY = "quality"

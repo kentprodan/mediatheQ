@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performSemanticsAction
@@ -197,6 +198,34 @@ class TvSettingsTest {
             ).isFalse()
             assertThat(viewModel.content().hdmi?.atmosPassthrough).isFalse()
         }
+
+    @Test
+    fun `focus starts on the passthrough row`() {
+        val content =
+            TvSettingsUiState.Content(
+                hdmi = TvHdmiOutput(tv, "LG TV", atmosPassthrough = true),
+                quality = StreamingQuality.Original,
+                sync = SyncStatus.Idle(null),
+                serverName = "Home server",
+                userName = "kent",
+            )
+        composeRule.setContent { MediatheqTvTheme { TvSettingsScreen(content, "1.0", {}, onOpenLicenses = {}) } }
+        composeRule.onNodeWithText("Dolby Atmos passthrough").assertIsFocused()
+    }
+
+    @Test
+    fun `before any HDMI output focus starts on the quality row`() {
+        val content =
+            TvSettingsUiState.Content(
+                hdmi = null,
+                quality = StreamingQuality.Original,
+                sync = SyncStatus.Idle(null),
+                serverName = "Home server",
+                userName = "kent",
+            )
+        composeRule.setContent { MediatheqTvTheme { TvSettingsScreen(content, "1.0", {}, onOpenLicenses = {}) } }
+        composeRule.onNodeWithText("Streaming quality").assertIsFocused()
+    }
 
     @Test
     fun `without an HDMI output the switch row does nothing`() =

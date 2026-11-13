@@ -39,7 +39,7 @@ val APP_ENTRY =
     )
 
 /** Code and assets copied into the repository; keep in step with `THIRD_PARTY.md` (a test checks it). */
-data class CopiedAsset(
+internal data class CopiedAsset(
     val id: String,
     val name: String,
     val detail: String,
@@ -49,7 +49,7 @@ data class CopiedAsset(
     val url: String,
 )
 
-val COPIED_ASSETS =
+internal val COPIED_ASSETS =
     listOf(
         CopiedAsset(
             "material-symbols",
