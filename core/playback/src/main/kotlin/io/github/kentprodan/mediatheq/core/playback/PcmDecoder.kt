@@ -7,6 +7,7 @@ import android.media.MediaFormat
 import androidx.core.net.toUri
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.source.UnrecognizedInputFormatException
@@ -58,13 +59,16 @@ internal class MediaCodecPcmDecoder(
     private val log: AppLog = AppLog.None,
 ) : PcmDecoder {
     override suspend fun decode(file: LocalFile): Decoded {
-        val source =
+        val cache =
             CacheDataSource
                 .Factory()
                 .setCache(file.cache)
                 .setCacheKeyFactory { file.key }
                 // Read only: no upstream (a hole throws), no writes.
                 .setCacheWriteDataSinkFactory(null)
+        // Every read counts, also the extractor's own (sniffing, seeking back) (#188).
+        val guard = InputGuard(file.sizeBytes)
+        val source = DataSource.Factory { GuardedDataSource(cache.createDataSource(), guard) }
         val extractor = MediaExtractorCompat(DefaultExtractorsFactory(), source)
         var codec: MediaCodec? = null
         return try {
@@ -87,7 +91,7 @@ internal class MediaCodecPcmDecoder(
                     configure(format, null, null, 0)
                     start()
                 }
-            drain(extractor, codec, InputGuard(file.sizeBytes))?.let { Decoded.Levels(it) } ?: Decoded.Unsupported
+            drain(extractor, codec)?.let { Decoded.Levels(it) } ?: Decoded.Unsupported
         } catch (e: CancellationException) {
             // A timeout or the service stopping (CancellationException is an IllegalStateException): not a failure.
             throw e
@@ -117,7 +121,6 @@ internal class MediaCodecPcmDecoder(
     private suspend fun drain(
         extractor: MediaExtractorCompat,
         codec: MediaCodec,
-        guard: InputGuard,
     ): List<Float>? {
         val info = MediaCodec.BufferInfo()
         val buckets = WaveformBuckets()
@@ -136,7 +139,6 @@ internal class MediaCodecPcmDecoder(
                         codec.queueInputBuffer(index, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                         inputDone = true
                     } else {
-                        guard.read(size)
                         codec.queueInputBuffer(index, 0, size, extractor.sampleTime, 0)
                         extractor.advance()
                     }
@@ -187,6 +189,19 @@ internal class InputGuard(
     private companion object {
         const val MAX_READS = 2
     }
+}
+
+/** Reads through [upstream], counting every byte against [guard]. */
+@UnstableApi
+internal class GuardedDataSource(
+    private val upstream: DataSource,
+    private val guard: InputGuard,
+) : DataSource by upstream {
+    override fun read(
+        buffer: ByteArray,
+        offset: Int,
+        length: Int,
+    ): Int = upstream.read(buffer, offset, length).also { if (it > 0) guard.read(it) }
 }
 
 internal class EndlessInputException(

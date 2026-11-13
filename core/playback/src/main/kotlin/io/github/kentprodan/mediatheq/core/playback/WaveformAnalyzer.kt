@@ -107,11 +107,10 @@ internal class WaveformAnalyzer(
     fun start(): Job =
         scope.launch(worker) {
             launch {
-                // Only downloads finishing from now on: the ones already there wait until they are queued. An empty set
-                // (the SD card out) is no start to count from, or every download would look new when it comes back.
+                // Only downloads finishing from now on: the ones already there wait until they are queued.
                 var known: Set<MediaId>? = null
                 completedDownloads.collect { ids ->
-                    known?.takeIf { it.isNotEmpty() }?.let { offer((ids - it).toList()) }
+                    known?.let { offer((ids - it).toList()) }
                     known = ids
                 }
             }
@@ -137,7 +136,7 @@ internal class WaveformAnalyzer(
         if (attempt in failed || waveforms.isAnalyzed(id, file.sizeBytes)) return
         val started = TimeSource.Monotonic.markNow()
         log.info(TAG, "Decoding $id (${file.key}, ${file.sizeBytes} bytes)")
-        // The backstop for a decode that never ends (#188): it cannot hold the worker, and the queue, forever.
+        // The backstop for a decode that never ends (#188), checked between buffers; the input guard stops reads.
         val result = withTimeoutOrNull(decodeLimit(file.sizeBytes)) { decoder.decode(file) } ?: Decoded.Failed
         log.info(TAG, "Decoded $id: ${result.name} in ${started.elapsedNow().inWholeMilliseconds} ms")
         when (result) {

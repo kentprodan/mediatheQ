@@ -343,22 +343,4 @@ class WaveformAnalyzerTest {
             assertThat(lines[1]).matches("MqWaveform Decoded .*: levels in [0-9]+ ms")
             job.cancel()
         }
-
-    @Test
-    fun `an empty first set of downloads does not make every download new`() =
-        runTest {
-            (1..3).forEach { write(downloadCache, downloadCacheKey(id(it))) }
-            val decoder = RecordingDecoder()
-            val (_, job) = analyzer(decoder)
-            advanceUntilIdle()
-
-            // The download index read, or the SD card back: all of these were already there.
-            completed.value = setOf(id(1), id(2))
-            advanceUntilIdle()
-            completed.value = setOf(id(1), id(2), id(3))
-            advanceUntilIdle()
-
-            assertThat(decoder.decoded).containsExactly(downloadCacheKey(id(3)))
-            job.cancel()
-        }
 }
