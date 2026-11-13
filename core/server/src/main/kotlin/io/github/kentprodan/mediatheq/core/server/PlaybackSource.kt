@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.model.DeviceProfile
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
+import io.github.kentprodan.mediatheq.core.model.StreamChoice
 
 /** Streams and play-state reporting (jellyfin skill, sections 5 and 6). */
 interface PlaybackSource {
@@ -13,6 +14,7 @@ interface PlaybackSource {
         server: SignedInServer,
         itemId: MediaId,
         profile: DeviceProfile,
+        choice: StreamChoice = StreamChoice(),
     ): MqResult<PlaybackStream>
 
     /** HTTP headers a stream request needs (authentication). Built fresh from [server]; never cache them. */
