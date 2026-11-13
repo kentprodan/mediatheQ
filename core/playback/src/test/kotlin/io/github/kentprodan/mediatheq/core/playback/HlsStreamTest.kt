@@ -81,7 +81,7 @@ class HlsStreamTest {
                 StreamMediaSourceFactory(
                     FakeMediaSourceFactory(),
                     client,
-                    choose = { choice() },
+                    choose = { _, _ -> choice() },
                     headers = { auth },
                     dispatcher = Dispatchers.Unconfined,
                     onOpen = { opened += it },

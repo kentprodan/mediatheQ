@@ -135,6 +135,19 @@ class PassthroughTest {
     }
 
     @Test
+    fun `stream requests ask to pass through only on HDMI with the output's switch on`() {
+        controller.setSettings(on)
+        assertThat(controller.state.requestPassthrough).isEqualTo(set)
+
+        controller.setSettings(off)
+        assertThat(controller.state.requestPassthrough).isEmpty()
+
+        port.output = OutputDevice.Phone
+        controller.setSettings(on)
+        assertThat(controller.state.requestPassthrough).isEmpty()
+    }
+
+    @Test
     fun `a capabilities change decides again`() {
         capabilities = emptySet()
         controller.setSettings(on)

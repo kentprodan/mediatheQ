@@ -47,7 +47,9 @@ internal class Prefetcher(
     private val log: AppLog = AppLog.None,
 ) : Player.Listener {
     @Volatile private var job: Job? = null
-    private var targets: List<MediaId> = emptyList()
+
+    /** The tracks to fetch, each with its Dolby Atmos MIME type (`MediaItem.atmosMime`). */
+    private var targets: List<Pair<MediaId, String?>> = emptyList()
 
     /** The track being written right now and the job writing it, so the player can take it over ([cancel]). */
     @Volatile private var writing: Pair<MediaId, Job>? = null
@@ -100,10 +102,9 @@ internal class Prefetcher(
         val active = player.playWhenReady && player.playbackState != Player.STATE_IDLE && network.isOnline()
         val next =
             if (active) {
-                player.upcomingTracks(if (network.isMetered()) METERED_COUNT else UNMETERED_COUNT) {
-                    it in
-                        taken
-                }
+                player
+                    .upcomingItems(if (network.isMetered()) METERED_COUNT else UNMETERED_COUNT) { it in taken }
+                    .map { (id, item) -> id to item.atmosMime() }
             } else {
                 emptyList()
             }
@@ -111,45 +112,47 @@ internal class Prefetcher(
         if (next == targets && job?.isActive == true) return
         job?.cancel()
         targets = next
-        if (next.isNotEmpty()) job = scope.launch { next.forEach { prefetch(it) } }
+        if (next.isNotEmpty()) job = scope.launch { next.forEach { (id, atmosMime) -> prefetch(id, atmosMime) } }
     }
 
-    private suspend fun prefetch(itemId: MediaId) =
-        withContext(ioDispatcher) {
-            val key = originalCacheKey(itemId)
-            // Checked first, so no play session is opened on the server for nothing.
-            if (downloads.isDownloaded(itemId) || cache.isFullyCached(key)) return@withContext
-            val stream = (resolver.prefetchStream(itemId) as? MqResult.Success)?.value ?: return@withContext
-            if (stream.playMethod != PlayMethod.DirectPlay) return@withContext
-            cache.dropIfChanged(key, stream.sizeBytes)
-            val spec =
-                DataSpec
-                    .Builder()
-                    .setUri(stream.url.toUri())
-                    .setKey(key)
-                    .setHttpRequestHeaders(resolver.headers())
-                    .setFlags(DataSpec.FLAG_DONT_CACHE_IF_LENGTH_UNKNOWN)
-                    .build()
-            val writer = CacheWriter(CacheDataSource(cache, upstream.createDataSource()), spec, null, null)
-            val mine = itemId to coroutineContext.job
-            writing = mine
-            try {
-                // The player may have opened it while the stream was being resolved.
-                if (itemId in taken) return@withContext
-                // CacheWriter blocks; cancelling the job interrupts it.
-                runInterruptible { writer.cache() }
-                onCached(itemId)
-            } catch (_: InterruptedIOException) {
-                // Cancelled mid-transfer (pause, skip, the player taking over): nothing to report.
-            } catch (e: IOException) {
-                // The player loads the track itself later; nothing is lost.
-                log.warn(TAG, "Prefetch of $itemId failed", e)
-            } finally {
-                writer.cancel()
-                // A newer prefetch may already be writing; its entry stays.
-                if (writing === mine) writing = null
-            }
+    private suspend fun prefetch(
+        itemId: MediaId,
+        atmosMime: String?,
+    ) = withContext(ioDispatcher) {
+        val key = originalCacheKey(itemId)
+        // Checked first, so no play session is opened on the server for nothing.
+        if (downloads.isDownloaded(itemId) || cache.isFullyCached(key)) return@withContext
+        val stream = (resolver.prefetchStream(itemId, atmosMime) as? MqResult.Success)?.value ?: return@withContext
+        if (stream.playMethod != PlayMethod.DirectPlay) return@withContext
+        cache.dropIfChanged(key, stream.sizeBytes)
+        val spec =
+            DataSpec
+                .Builder()
+                .setUri(stream.url.toUri())
+                .setKey(key)
+                .setHttpRequestHeaders(resolver.headers())
+                .setFlags(DataSpec.FLAG_DONT_CACHE_IF_LENGTH_UNKNOWN)
+                .build()
+        val writer = CacheWriter(CacheDataSource(cache, upstream.createDataSource()), spec, null, null)
+        val mine = itemId to coroutineContext.job
+        writing = mine
+        try {
+            // The player may have opened it while the stream was being resolved.
+            if (itemId in taken) return@withContext
+            // CacheWriter blocks; cancelling the job interrupts it.
+            runInterruptible { writer.cache() }
+            onCached(itemId)
+        } catch (_: InterruptedIOException) {
+            // Cancelled mid-transfer (pause, skip, the player taking over): nothing to report.
+        } catch (e: IOException) {
+            // The player loads the track itself later; nothing is lost.
+            log.warn(TAG, "Prefetch of $itemId failed", e)
+        } finally {
+            writer.cancel()
+            // A newer prefetch may already be writing; its entry stays.
+            if (writing === mine) writing = null
         }
+    }
 
     private companion object {
         const val TAG = "Prefetcher"

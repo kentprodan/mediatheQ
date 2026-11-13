@@ -62,7 +62,8 @@ internal fun streamDataSourceFactory(
         val original = originalCacheKey(itemId)
         // shortcut: a complete copy plays as it is, even if the file changed on the server since; a partial replay
         // (after eviction) notices the new size and starts over.
-        if (streamingCache.isFullyCached(original)) {
+        // Not an Atmos bitstream this route can no longer play (cached over HDMI): that streams again instead.
+        if (streamingCache.isFullyCached(original) && resolver.playsCachedOriginal(itemId)) {
             resolver.playLocal(itemId)
             return@Factory dataSpec.buildUpon().setKey(original).build()
         }

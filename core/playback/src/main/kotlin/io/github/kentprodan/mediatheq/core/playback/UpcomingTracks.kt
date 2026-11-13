@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import androidx.media3.common.C
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import io.github.kentprodan.mediatheq.core.model.MediaId
 
@@ -17,12 +18,18 @@ internal fun Player.currentTrackId(): MediaId? =
 internal fun Player.upcomingTracks(
     count: Int,
     skip: (MediaId) -> Boolean = { false },
-): List<MediaId> {
+): List<MediaId> = upcomingItems(count, skip).map { it.first }
+
+/** [upcomingTracks] with each track's queue item. Player thread only. */
+internal fun Player.upcomingItems(
+    count: Int,
+    skip: (MediaId) -> Boolean = { false },
+): List<Pair<MediaId, MediaItem>> {
     val timeline = currentTimeline
     if (timeline.isEmpty) return emptyList()
     val current = currentMediaItem?.mediaId
     val repeat = if (repeatMode == Player.REPEAT_MODE_ONE) Player.REPEAT_MODE_OFF else repeatMode
-    val result = mutableListOf<MediaId>()
+    val result = mutableListOf<Pair<MediaId, MediaItem>>()
     var index = currentMediaItemIndex
     repeat(timeline.windowCount) {
         if (result.size == count) return result
@@ -30,7 +37,7 @@ internal fun Player.upcomingTracks(
         if (index == C.INDEX_UNSET) return result
         val item = getMediaItemAt(index)
         val id = runCatching { MediaId.parse(item.mediaId) }.getOrNull()
-        if (id != null && item.mediaId != current && id !in result && !skip(id)) result += id
+        if (id != null && item.mediaId != current && result.none { it.first == id } && !skip(id)) result += id to item
     }
     return result
 }

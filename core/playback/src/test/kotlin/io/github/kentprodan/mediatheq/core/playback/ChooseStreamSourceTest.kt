@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.cache.ContentMetadataMutations
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -49,7 +50,8 @@ class ChooseStreamSourceTest {
     @After
     fun release() = cache.release()
 
-    private suspend fun choose() = chooseStreamSource(itemId, resolver, downloads, cache, network::isOnline)
+    private suspend fun choose(atmosMime: String? = null) =
+        chooseStreamSource(itemId, resolver, downloads, cache, network::isOnline, atmosMime)
 
     @Test
     fun `an HLS transcode plays as HLS, with the auth header and the stream url`() =
@@ -123,5 +125,26 @@ class ChooseStreamSourceTest {
 
             assertThat(choose()).isEqualTo(StreamSource.Progressive)
             assertThat(currentTime).isEqualTo(0)
+        }
+
+    @Test
+    fun `a cached TrueHD original this route can no longer play asks the server again`() =
+        runTest {
+            val key = originalCacheKey(itemId)
+            val hole = cache.startReadWrite(key, 0, 100)!!
+            cache.commitFile(cache.startFile(key, 0, 100).apply { writeBytes(ByteArray(100)) }, 100)
+            cache.releaseHoleSpan(hole)
+            cache.applyContentMetadataMutations(
+                key,
+                ContentMetadataMutations().also { ContentMetadataMutations.setContentLength(it, 100) },
+            )
+            resolver.passthrough = setOf("audio/true-hd")
+
+            choose(atmosMime = "audio/true-hd")
+            assertThat(repository.streamRequests).isEmpty()
+
+            resolver.passthrough = emptySet()
+            choose(atmosMime = "audio/true-hd")
+            assertThat(repository.streamRequests).hasSize(1)
         }
 }

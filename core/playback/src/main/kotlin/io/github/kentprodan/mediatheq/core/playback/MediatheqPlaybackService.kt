@@ -219,8 +219,15 @@ class MediatheqPlaybackService : MediaLibraryService() {
                             ),
                         ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
                         okHttpClient,
-                        choose = {
-                            chooseStreamSource(it, streamResolver, downloads, streamingCache, playerNetwork::isOnline)
+                        choose = { id, atmosMime ->
+                            chooseStreamSource(
+                                id,
+                                streamResolver,
+                                downloads,
+                                streamingCache,
+                                playerNetwork::isOnline,
+                                atmosMime,
+                            )
                         },
                         headers = streamResolver::headers,
                         dispatcher = ioDispatcher,
@@ -240,7 +247,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     val local = downloads.isDownloaded(id) || streamingCache.isFullyCached(originalCacheKey(id))
                     wantsNewStream(
                         streamResolver.quality(id),
-                        audioPreferences.preferences.first().meteredQuality,
+                        // An Atmos track passing through stays the original on a metered network (ADR 0039).
+                        streamResolver.requestQuality(id, audioPreferences.preferences.first().meteredQuality),
                         local,
                     )
                 },
@@ -567,7 +575,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         null
                     }
                 },
-                onChange = { outputApplier.apply(it) },
+                onChange = {
+                    // Before applying: the next stream request already asks for what this route passes through.
+                    streamResolver.passthrough = it.requestPassthrough
+                    outputApplier.apply(it)
+                },
                 atmosConverted = {
                     AudioPolicy.atmosConverted(
                         isAtmos = player.currentMediaItem?.isDolbyAtmos() == true,

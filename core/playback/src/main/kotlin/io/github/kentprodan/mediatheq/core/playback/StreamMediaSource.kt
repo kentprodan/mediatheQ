@@ -52,13 +52,15 @@ internal suspend fun chooseStreamSource(
     downloads: DownloadRepository,
     streamingCache: Cache,
     isOnline: () -> Boolean,
+    /** The item's Dolby Atmos MIME type (`MediaItem.atmosMime`), for [atmosRequest]; `null` for any other track. */
+    atmosMime: String? = null,
 ): StreamSource {
-    if (downloads.isDownloaded(itemId) || streamingCache.isFullyCached(originalCacheKey(itemId)) || !isOnline()) {
-        return StreamSource.Progressive
-    }
+    resolver.rememberAtmos(itemId, atmosMime)
+    val cached = streamingCache.isFullyCached(originalCacheKey(itemId)) && resolver.playsCachedOriginal(itemId)
+    if (downloads.isDownloaded(itemId) || cached || !isOnline()) return StreamSource.Progressive
     var attempt = 0
     while (true) {
-        when (val result = resolver.resolve(itemId)) {
+        when (val result = resolver.resolve(itemId, atmosMime = atmosMime)) {
             is MqResult.Success -> {
                 return if (result.value.segmented) StreamSource.Hls(result.value.url) else StreamSource.Progressive
             }
@@ -85,7 +87,8 @@ private const val CHOOSE_RETRY_DELAY_MILLIS = 1_000L
 internal class StreamMediaSourceFactory(
     private val progressive: MediaSource.Factory,
     private val okHttpClient: OkHttpClient,
-    private val choose: suspend (MediaId) -> StreamSource,
+    /** Chooses the stream of a track from its id and its Dolby Atmos MIME type (`MediaItem.atmosMime`). */
+    private val choose: suspend (MediaId, String?) -> StreamSource,
     /** The auth header, read at every request: a new login replaces the token (R9). */
     private val headers: suspend () -> Map<String, String>,
     private val dispatcher: CoroutineDispatcher,
@@ -94,7 +97,9 @@ internal class StreamMediaSourceFactory(
 ) : ForwardingMediaSourceFactory(progressive) {
     override fun createMediaSource(mediaItem: MediaItem): MediaSource {
         val itemId = mediaItem.localConfiguration?.uri?.trackId() ?: return super.createMediaSource(mediaItem)
-        return LazyStreamMediaSource(mediaItem, { choose(itemId) }, { childFor(itemId, mediaItem, it) }, dispatcher)
+        return LazyStreamMediaSource(mediaItem, {
+            choose(itemId, mediaItem.atmosMime())
+        }, { childFor(itemId, mediaItem, it) }, dispatcher)
     }
 
     private fun childFor(

@@ -272,4 +272,130 @@ class StreamResolverTest {
                     .second.maxStreamingBitrate,
             ).isNull()
         }
+
+    // Dolby Atmos over HDMI (#242, ADR 0039 rule 4).
+
+    @Test
+    fun `atmosRequest asks for the original only for an Atmos file the route passes through`() {
+        val cap = StreamingQuality.Kbps256
+        assertThat(atmosRequest(JOC, setOf(JOC, TRUEHD), cap)).isEqualTo(StreamingQuality.Original)
+        assertThat(atmosRequest(JOC, emptySet(), cap)).isEqualTo(cap)
+        assertThat(atmosRequest(null, setOf(JOC, TRUEHD), cap)).isEqualTo(cap)
+        assertThat(atmosRequest(TRUEHD, setOf(JOC), cap)).isEqualTo(cap)
+        assertThat(atmosRequest(JOC, setOf(JOC), StreamingQuality.Original)).isEqualTo(StreamingQuality.Original)
+    }
+
+    @Test
+    fun `an Atmos track the route passes through is asked for as the original despite the cap`() =
+        runTest {
+            network.metered = true
+            resolver.passthrough = setOf(JOC)
+
+            resolver.resolve(itemId, atmosMime = JOC)
+
+            val profile = repository.streamRequests.single().second
+            assertThat(profile.maxStreamingBitrate).isNull()
+            assertThat(profile.directPlayCodecs).contains("eac3")
+        }
+
+    @Test
+    fun `an Atmos track without passthrough follows the cap`() =
+        runTest {
+            network.metered = true
+
+            resolver.resolve(itemId, atmosMime = JOC)
+
+            val profile = repository.streamRequests.single().second
+            assertThat(profile.maxStreamingBitrate).isEqualTo(256_000)
+            assertThat(profile.directPlayCodecs).doesNotContain("eac3")
+        }
+
+    @Test
+    fun `a stereo track follows the cap also on a passthrough route`() =
+        runTest {
+            network.metered = true
+            resolver.passthrough = setOf(JOC, TRUEHD)
+
+            resolver.resolve(itemId)
+
+            assertThat(
+                repository.streamRequests
+                    .single()
+                    .second.maxStreamingBitrate,
+            ).isEqualTo(256_000)
+        }
+
+    @Test
+    fun `a TrueHD Atmos track on a route that passes only JOC follows the cap`() =
+        runTest {
+            network.metered = true
+            resolver.passthrough = setOf(JOC)
+
+            resolver.resolve(itemId, atmosMime = TRUEHD)
+
+            val profile = repository.streamRequests.single().second
+            assertThat(profile.maxStreamingBitrate).isEqualTo(256_000)
+            assertThat(profile.directPlayCodecs).doesNotContain("truehd")
+        }
+
+    @Test
+    fun `another route asks again at the next load, even at the same quality`() =
+        runTest {
+            resolver.passthrough = setOf(TRUEHD)
+            resolver.resolve(itemId, atmosMime = TRUEHD)
+
+            resolver.passthrough = emptySet()
+            resolver.resolve(itemId, atmosMime = TRUEHD)
+
+            assertThat(repository.streamRequests.map { "truehd" in it.second.directPlayCodecs })
+                .containsExactly(true, false)
+                .inOrder()
+        }
+
+    @Test
+    fun `a prefetched Atmos track under the cap asks for the original, and the player reuses it`() =
+        runTest {
+            network.metered = true
+            resolver.passthrough = setOf(JOC)
+
+            resolver.prefetchStream(itemId, atmosMime = JOC)
+            resolver.resolve(itemId, atmosMime = JOC)
+
+            assertThat(
+                repository.streamRequests
+                    .single()
+                    .second.maxStreamingBitrate,
+            ).isNull()
+            assertThat(resolver.quality(itemId)).isEqualTo(StreamingQuality.Original)
+        }
+
+    @Test
+    fun `a cached Atmos original plays only where the route passes it through or decodes it`() {
+        assertThat(resolver.playsCachedOriginal(itemId)).isTrue()
+
+        resolver.rememberAtmos(itemId, TRUEHD)
+        resolver.passthrough = setOf(TRUEHD)
+        assertThat(resolver.playsCachedOriginal(itemId)).isTrue()
+
+        resolver.passthrough = emptySet()
+        assertThat(resolver.playsCachedOriginal(itemId)).isFalse()
+
+        val decoding = StreamResolver(repository, { setOf(TRUEHD) }, network, audioPreferences)
+        decoding.rememberAtmos(itemId, TRUEHD)
+        assertThat(decoding.playsCachedOriginal(itemId)).isTrue()
+    }
+
+    @Test
+    fun `instant transcoding keeps the original for an Atmos track passing through`() {
+        resolver.rememberAtmos(itemId, JOC)
+        resolver.passthrough = setOf(JOC)
+
+        assertThat(resolver.requestQuality(itemId, StreamingQuality.Kbps256)).isEqualTo(StreamingQuality.Original)
+
+        resolver.passthrough = emptySet()
+        assertThat(resolver.requestQuality(itemId, StreamingQuality.Kbps256)).isEqualTo(StreamingQuality.Kbps256)
+    }
 }
+
+private const val JOC = "audio/eac3-joc"
+private const val TRUEHD = "audio/true-hd"
