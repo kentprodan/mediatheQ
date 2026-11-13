@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -48,6 +49,7 @@ import io.github.kentprodan.mediatheq.feature.tv.artist.tvArtistEntry
 import io.github.kentprodan.mediatheq.feature.tv.home.tvHomeEntry
 import io.github.kentprodan.mediatheq.feature.tv.library.tvLibraryEntries
 import io.github.kentprodan.mediatheq.feature.tv.nowplaying.tvNowPlayingEntry
+import io.github.kentprodan.mediatheq.feature.tv.settings.tvSettingsEntries
 import io.github.kentprodan.mediatheq.tv.R
 
 @Composable
@@ -58,6 +60,21 @@ internal fun TvShellRoute(
 ) {
     val player by viewModel.player.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(HomeKey)
+    val context = LocalContext.current
+    val versionName =
+        remember {
+            context.packageManager
+                .getPackageInfo(context.packageName, 0)
+                .versionName
+                .orEmpty()
+        }
+
+    // The build's licenses report and NOTICE files (ADR 0022), read when the licenses list opens.
+    fun raw(id: Int) =
+        context.resources
+            .openRawResource(id)
+            .bufferedReader()
+            .use { it.readText() }
     // The launcher's Now Playing card (#240).
     LaunchedEffect(openPlayer) {
         if (openPlayer) {
@@ -71,6 +88,9 @@ internal fun TvShellRoute(
         tvAlbumEntries()
         tvArtistEntry(navigator)
         tvNowPlayingEntry()
+        tvSettingsEntries(navigator, versionName, report = {
+            raw(R.raw.aboutlibraries)
+        }, notices = { raw(R.raw.license_notices) })
         tvPlaceholderEntries()
     }
 }

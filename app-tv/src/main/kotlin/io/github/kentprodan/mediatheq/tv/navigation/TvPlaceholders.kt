@@ -17,9 +17,9 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.tv.R
 
-/** The drawer's screens until their issues land (#244 Search, #243 Settings). */
+/** The drawer's screens until their issues land (#244 Search). */
 fun EntryProviderScope<NavKey>.tvPlaceholderEntries() {
-    TvDestination.entries.filter { it == TvDestination.Search || it == TvDestination.Settings }.forEach { destination ->
+    TvDestination.entries.filter { it == TvDestination.Search }.forEach { destination ->
         entry(destination.key) { TvPlaceholder(stringResource(destination.label)) }
     }
 }
