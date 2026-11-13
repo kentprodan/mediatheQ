@@ -7,6 +7,7 @@ import android.media.MediaFormat
 import androidx.core.net.toUri
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.source.UnrecognizedInputFormatException
@@ -19,6 +20,7 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import kotlin.coroutines.cancellation.CancellationException
 
 /** A track's whole file on the device: the cache holding it, its key there and its size (#124). */
 @UnstableApi
@@ -57,13 +59,16 @@ internal class MediaCodecPcmDecoder(
     private val log: AppLog = AppLog.None,
 ) : PcmDecoder {
     override suspend fun decode(file: LocalFile): Decoded {
-        val source =
+        val cache =
             CacheDataSource
                 .Factory()
                 .setCache(file.cache)
                 .setCacheKeyFactory { file.key }
                 // Read only: no upstream (a hole throws), no writes.
                 .setCacheWriteDataSinkFactory(null)
+        // Every read counts, also the extractor's own (sniffing, seeking back) (#188).
+        val guard = InputGuard(file.sizeBytes)
+        val source = DataSource.Factory { GuardedDataSource(cache.createDataSource(), guard) }
         val extractor = MediaExtractorCompat(DefaultExtractorsFactory(), source)
         var codec: MediaCodec? = null
         return try {
@@ -87,6 +92,12 @@ internal class MediaCodecPcmDecoder(
                     start()
                 }
             drain(extractor, codec)?.let { Decoded.Levels(it) } ?: Decoded.Unsupported
+        } catch (e: CancellationException) {
+            // A timeout or the service stopping (CancellationException is an IllegalStateException): not a failure.
+            throw e
+        } catch (e: EndlessInputException) {
+            log.warn(TAG, "Endless input in ${file.key}: ${e.message}")
+            Decoded.Failed
         } catch (_: UnrecognizedInputFormatException) {
             // No extractor for this container: like a missing decoder, never worth a retry.
             Decoded.Unsupported
@@ -159,6 +170,43 @@ internal class MediaCodecPcmDecoder(
         const val TIMEOUT_US = 10_000L
     }
 }
+
+/**
+ * Stops a decode whose extractor never reaches the end (#188): it read more than twice the file (a seek that keeps
+ * going back reads the same samples again), which a whole file never does.
+ */
+internal class InputGuard(
+    private val fileBytes: Long,
+) {
+    var bytesRead = 0L
+        private set
+
+    fun read(bytes: Int) {
+        bytesRead += bytes
+        if (bytesRead > fileBytes * MAX_READS) throw EndlessInputException("$bytesRead bytes read of $fileBytes")
+    }
+
+    private companion object {
+        const val MAX_READS = 2
+    }
+}
+
+/** Reads through [upstream], counting every byte against [guard]. */
+@UnstableApi
+internal class GuardedDataSource(
+    private val upstream: DataSource,
+    private val guard: InputGuard,
+) : DataSource by upstream {
+    override fun read(
+        buffer: ByteArray,
+        offset: Int,
+        length: Int,
+    ): Int = upstream.read(buffer, offset, length).also { if (it > 0) guard.read(it) }
+}
+
+internal class EndlessInputException(
+    message: String,
+) : IOException(message)
 
 /** Bytes per sample of the PCM [encoding]s a waveform reads; `null` for any other. */
 internal fun bytesPerSample(encoding: Int): Int? =

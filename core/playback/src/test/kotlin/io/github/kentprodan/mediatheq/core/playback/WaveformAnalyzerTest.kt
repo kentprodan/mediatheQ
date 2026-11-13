@@ -19,6 +19,7 @@ import androidx.media3.test.utils.FakeMediaSourceFactory
 import androidx.media3.test.utils.TestExoPlayerBuilder
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -26,6 +27,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeWaveformRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -273,6 +275,72 @@ class WaveformAnalyzerTest {
             advanceUntilIdle()
 
             assertThat(waveforms.stored.value.keys).containsExactly(id(2))
+            job.cancel()
+        }
+
+    @Test
+    fun `a decode that never ends is given up after the limit, and the next track is analyzed`() =
+        runTest {
+            write(streamingCache, originalCacheKey(id(1)))
+            write(streamingCache, originalCacheKey(id(2)))
+            val decoded = mutableListOf<String>()
+            val decoder =
+                PcmDecoder { file ->
+                    decoded += file.key
+                    if (file.key == originalCacheKey(id(1))) awaitCancellation()
+                    Decoded.Levels(listOf(1f))
+                }
+            val (analyzer, job) = analyzer(decoder)
+
+            analyzer.offer(listOf(id(1), id(2)))
+            advanceUntilIdle()
+            assertThat(waveforms.stored.value.keys).containsExactly(id(2))
+
+            // Given up for this session: queued again, it is not decoded again.
+            analyzer.offer(listOf(id(1)))
+            advanceUntilIdle()
+            assertThat(decoded).containsExactly(originalCacheKey(id(1)), originalCacheKey(id(2))).inOrder()
+            job.cancel()
+        }
+
+    @Test
+    fun `each decode logs its start and its result with the time it took`() =
+        runTest {
+            write(streamingCache, originalCacheKey(id(1)))
+            val lines = mutableListOf<String>()
+            val log =
+                object : AppLog {
+                    override fun info(
+                        tag: String,
+                        message: String,
+                    ) {
+                        lines += "$tag $message"
+                    }
+
+                    override fun warn(
+                        tag: String,
+                        message: String,
+                        error: Throwable?,
+                    ) = Unit
+                }
+            val analyzer =
+                WaveformAnalyzer(
+                    CoroutineScope(coroutineContext + Job()),
+                    StandardTestDispatcher(testScheduler),
+                    files::find,
+                    RecordingDecoder(),
+                    waveforms,
+                    completed,
+                    log,
+                )
+            val job = analyzer.start()
+
+            analyzer.offer(listOf(id(1)))
+            advanceUntilIdle()
+
+            assertThat(lines).hasSize(2)
+            assertThat(lines[0]).startsWith("MqWaveform Decoding ${id(1)}")
+            assertThat(lines[1]).matches("MqWaveform Decoded .*: levels in [0-9]+ ms")
             job.cancel()
         }
 }
