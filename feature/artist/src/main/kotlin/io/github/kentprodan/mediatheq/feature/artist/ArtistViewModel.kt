@@ -6,18 +6,18 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.kentprodan.mediatheq.core.data.ArtistPlayAction
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.albumOrder
 import io.github.kentprodan.mediatheq.core.data.downloadAlbums
+import io.github.kentprodan.mediatheq.core.data.playQueue
+import io.github.kentprodan.mediatheq.core.data.playedTracks
 import io.github.kentprodan.mediatheq.core.data.sortedFor
 import io.github.kentprodan.mediatheq.core.data.tracksOfAlbums
-import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
-import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
@@ -204,30 +204,4 @@ class ArtistViewModel
         interface Factory {
             fun create(artistId: MediaId): ArtistViewModel
         }
-    }
-
-/** Every played track, most played first; ties keep the discography order (the sort is stable). */
-internal fun playedTracks(tracks: List<Track>): List<Track> =
-    tracks.filter { it.userData.playCount > 0 }.sortedByDescending { it.userData.playCount }
-
-/** The own albums' tracks in [albums]' order (the page's sort), then the tracks the artist is credited on. */
-internal fun albumOrder(
-    tracks: List<Track>,
-    albums: List<Album>,
-): List<Track> {
-    val rank = albums.withIndex().associate { (index, album) -> album.id to index }
-    // Stable: tracks keep their order within an album, credits keep theirs at the end.
-    return tracks.sortedBy { track -> track.albumId?.let(rank::get) ?: Int.MAX_VALUE }
-}
-
-/** What Play starts (#133): the queue and whether it is shuffled. Top tracks fall back to the albums when none. */
-internal fun playQueue(
-    action: ArtistPlayAction,
-    tracks: List<Track>,
-    topTracks: List<Track>,
-): Pair<List<Track>, Boolean> =
-    when (action) {
-        ArtistPlayAction.Albums -> tracks to false
-        ArtistPlayAction.TopTracks -> topTracks.ifEmpty { tracks } to false
-        ArtistPlayAction.AllShuffled -> tracks to true
     }

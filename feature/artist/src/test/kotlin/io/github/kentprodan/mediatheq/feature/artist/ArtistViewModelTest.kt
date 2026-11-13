@@ -7,6 +7,8 @@ import io.github.kentprodan.mediatheq.core.data.ArtistPlayAction
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.MoreAlbumsSort
+import io.github.kentprodan.mediatheq.core.data.playQueue
+import io.github.kentprodan.mediatheq.core.data.playedTracks
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
