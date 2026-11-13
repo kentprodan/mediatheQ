@@ -125,6 +125,25 @@ class DefaultLibraryPreferencesRepositoryTest {
         }
 
     @Test
+    fun `reversing turns the stored sort around each time, also the default one`() =
+        runTest {
+            repository.setSort(LibraryFilter.Albums, LibrarySort.Year)
+            repository.reverseSort(LibraryFilter.Albums)
+            repository.reverseSort(LibraryFilter.Songs)
+
+            var preferences = repository.preferences.first()
+            assertThat(preferences.sortFor(LibraryFilter.Albums)).isEqualTo(LibrarySort.Year)
+            assertThat(preferences.isReversed(LibraryFilter.Albums)).isTrue()
+            assertThat(preferences.sortFor(LibraryFilter.Songs)).isEqualTo(LibrarySort.Name)
+            assertThat(preferences.isReversed(LibraryFilter.Songs)).isTrue()
+
+            repository.reverseSort(LibraryFilter.Albums)
+            preferences = repository.preferences.first()
+            assertThat(preferences.sortFor(LibraryFilter.Albums)).isEqualTo(LibrarySort.Year)
+            assertThat(preferences.isReversed(LibraryFilter.Albums)).isFalse()
+        }
+
+    @Test
     fun `values a tab does not offer are refused`() =
         runTest {
             repository.setAlbumColumns(7)

@@ -126,6 +126,9 @@ interface LibraryPreferencesRepository {
         reversed: Boolean = false,
     )
 
+    /** Turns [filter]'s stored sort around (#187), reading and writing it in one step. */
+    suspend fun reverseSort(filter: LibraryFilter)
+
     /** Recent searches, newest first, at most [MAX_RECENT_SEARCHES]. Kept across sign-out, like the rest. */
     val recentSearches: Flow<List<String>>
 

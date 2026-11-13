@@ -540,6 +540,13 @@ class DefaultLibraryPreferencesRepository
             if (sort in filter.sorts) store.setSort(filter.name, if (reversed) sort.name + REVERSED else sort.name)
         }
 
+        override suspend fun reverseSort(filter: LibraryFilter) =
+            store.updateSort(filter.name) { stored ->
+                val (sort, reversed) =
+                    stored?.let { librarySorts(mapOf(filter.name to it))[filter] } ?: (filter.sorts.first() to false)
+                if (reversed) sort.name else sort.name + REVERSED
+            }
+
         /** Tab -> (sort, reversed) from "Name" or "Name,reversed" (#187); unknown tabs, sorts and suffixes drop. */
         private fun librarySorts(stored: Map<String, String>): Map<LibraryFilter, Pair<LibrarySort, Boolean>> =
             stored

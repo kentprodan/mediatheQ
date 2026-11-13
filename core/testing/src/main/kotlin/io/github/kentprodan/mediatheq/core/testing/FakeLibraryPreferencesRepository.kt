@@ -217,6 +217,11 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
         preferences.value = preferences.value.copy(ratingMode = mode)
     }
 
+    override suspend fun reverseSort(filter: LibraryFilter) {
+        val current = preferences.value
+        setSort(filter, current.sortFor(filter), !current.isReversed(filter))
+    }
+
     override suspend fun setSort(
         filter: LibraryFilter,
         sort: LibrarySort,

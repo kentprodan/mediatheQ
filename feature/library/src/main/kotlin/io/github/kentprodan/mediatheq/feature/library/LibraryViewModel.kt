@@ -262,8 +262,7 @@ class LibraryViewModel
                 }
 
                 LibraryAction.ReverseSort -> {
-                    val state = uiState.value
-                    launch { preferencesRepository.setSort(fixedFilter, state.sort, !state.sortReversed) }
+                    launch { preferencesRepository.reverseSort(fixedFilter) }
                 }
 
                 is LibraryAction.SetAlbumColumns -> {

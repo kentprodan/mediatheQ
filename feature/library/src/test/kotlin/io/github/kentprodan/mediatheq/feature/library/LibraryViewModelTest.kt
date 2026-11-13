@@ -526,6 +526,17 @@ class LibraryViewModelTest {
         }
 
     @Test
+    fun `reversing before the list has loaded keeps the stored sort`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            preferences.setSort(LibraryFilter.Albums, LibrarySort.Year)
+
+            viewModel(collect = false).onAction(LibraryAction.ReverseSort)
+
+            assertThat(preferences.preferences.first().sortFor(LibraryFilter.Albums)).isEqualTo(LibrarySort.Year)
+            assertThat(preferences.preferences.first().isReversed(LibraryFilter.Albums)).isTrue()
+        }
+
+    @Test
     fun `each list remembers its own sort`() =
         runTest(mainDispatcherRule.testDispatcher) {
             viewModel().onAction(LibraryAction.SelectSort(LibrarySort.Year))
