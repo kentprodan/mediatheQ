@@ -135,6 +135,22 @@ class TvSearchTest {
         }
 
     @Test
+    fun `the Search key runs a failed search again`() =
+        test {
+            library.searchError = MqError.Storage
+            val viewModel = viewModel()
+            viewModel.onAction(TvSearchAction.QueryChanged("Moșoi"))
+            advanceTimeBy(100)
+
+            library.searchError = null
+            viewModel.onAction(TvSearchAction.Submit)
+            advanceTimeBy(100)
+
+            assertThat(library.searches).containsExactly("Moșoi", "Moșoi")
+            assertThat(viewModel.uiState.value).isInstanceOf(TvSearchUiState.Results::class.java)
+        }
+
+    @Test
     fun `a recent search fills the field, searches and moves to the top of the recents`() =
         test {
             preferences.recentSearches.value = listOf("boards", "Moșoi")

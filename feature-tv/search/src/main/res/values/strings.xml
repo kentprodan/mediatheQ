@@ -8,6 +8,6 @@
     <string name="tv_search_tracks">Songs</string>
     <string name="tv_search_playlists">Playlists</string>
     <string name="tv_search_no_results">Nothing in your library matches \"%1$s\".</string>
-    <string name="tv_search_error">The search did not work. Try again.</string>
+    <string name="tv_search_error">The search did not work. Press Search on the keyboard to try again.</string>
     <string name="tv_search_storage">The library on this TV could not be read. Try again, or sync it in Settings.</string>
 </resources>

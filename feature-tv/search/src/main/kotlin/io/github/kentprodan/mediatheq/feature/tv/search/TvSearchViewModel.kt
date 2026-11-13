@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -37,13 +38,14 @@ class TvSearchViewModel
     ) : ViewModel() {
         private val text = MutableStateFlow("")
 
+        /** Bumped by the Search key after a failed search, so the same query runs again. */
+        private val retries = MutableStateFlow(0)
+
         /** What the field shows. */
         val query: StateFlow<String> = text.asStateFlow()
 
         val uiState: StateFlow<TvSearchUiState> =
-            text
-                .map { it.trim() }
-                .distinctUntilChanged()
+            combine(text.map { it.trim() }.distinctUntilChanged(), retries) { query, _ -> query }
                 // Clearing the field shows the recent searches at once; typing waits for a short pause.
                 .debounce { if (it.isEmpty()) 0L else DEBOUNCE_MILLIS }
                 .flatMapLatest<String, TvSearchUiState> { query ->
@@ -60,7 +62,12 @@ class TvSearchViewModel
                     text.value = action.query
                 }
 
-                TvSearchAction.Submit, TvSearchAction.Opened -> {
+                TvSearchAction.Submit -> {
+                    if (uiState.value is TvSearchUiState.Error) retries.value++
+                    saveQuery()
+                }
+
+                TvSearchAction.Opened -> {
                     saveQuery()
                 }
 

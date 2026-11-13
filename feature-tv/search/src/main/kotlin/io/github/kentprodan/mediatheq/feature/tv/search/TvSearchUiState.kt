@@ -36,7 +36,7 @@ sealed interface TvSearchAction {
         val query: String,
     ) : TvSearchAction
 
-    /** The keyboard's Search key: the query becomes a recent search. */
+    /** The keyboard's Search key: the query becomes a recent search; after an error it runs again. */
     data object Submit : TvSearchAction
 
     /** A recent search was selected: it fills the field and searches. */
