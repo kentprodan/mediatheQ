@@ -67,3 +67,21 @@ fun TvLoginErrorScreenshot() =
             {},
         )
     }
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvQuickConnectStartingScreenshot() =
+    MediatheqTvTheme { TvQuickConnectScreen(TvQuickConnectUiState.Starting("Home"), {}, {}) }
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvQuickConnectErrorScreenshot() =
+    MediatheqTvTheme { TvQuickConnectScreen(TvQuickConnectUiState.Error("Home", unreachable = true), {}, {}) }
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvLoginSubmittingScreenshot() =
+    MediatheqTvTheme { TvLoginScreen(TvLoginUiState("Home", userName = "ana", password = "x", submitting = true), {}) }

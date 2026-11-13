@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
@@ -73,11 +74,11 @@ class TvOnboardingScreensTest {
     }
 
     @Test
-    fun `the password screen starts in the user name`() {
+    fun `the password screen starts in the user name, and the keyboard's Next moves to the password`() {
         composeRule.setContent { MediatheqTvTheme { TvLoginScreen(TvLoginUiState("Home"), {}) } }
 
-        composeRule
-            .onAllNodes(hasSetTextAction())[0]
-            .assertIsFocused()
+        val fields = composeRule.onAllNodes(hasSetTextAction())
+        fields[0].assertIsFocused().performImeAction()
+        fields[1].assertIsFocused()
     }
 }

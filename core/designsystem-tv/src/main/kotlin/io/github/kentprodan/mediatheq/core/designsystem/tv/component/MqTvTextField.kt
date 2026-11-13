@@ -28,7 +28,7 @@ import androidx.tv.material3.Text
 
 /**
  * A TV text field (ADR 0037: tv-material has none): [label] above, the value in a box that gets a thick primary border
- * with focus. Pressing the remote's center opens the system TV keyboard; its action key runs [onDone].
+ * with focus. The system TV keyboard types into it; its action key runs [onDone], then moves on or closes.
  */
 @Composable
 fun MqTvTextField(
@@ -58,7 +58,14 @@ fun MqTvTextField(
                     keyboardType = if (password) KeyboardType.Password else keyboardType,
                     imeAction = imeAction,
                 ),
-            keyboardActions = KeyboardActions(onAny = { onDone() }),
+            // [onDone] runs, then the action's own default: Next moves to the next field, Done and Go close the keyboard.
+            keyboardActions =
+                KeyboardActions(
+                    onAny = {
+                        onDone()
+                        defaultKeyboardAction(imeAction)
+                    },
+                ),
             decorationBox = { inner ->
                 Box(
                     Modifier

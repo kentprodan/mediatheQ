@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.LogoutReason
 import io.github.kentprodan.mediatheq.core.data.ServerCheck
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.model.QuickConnectCode
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.ServerInfo
 import io.github.kentprodan.mediatheq.core.navigation.OnboardingLoginKey
@@ -149,6 +150,22 @@ class TvOnboardingViewModelsTest {
         }
 
     @Test
+    fun `a new code while waiting stops the old poll, so the old code can no longer sign in`() =
+        quickConnectTest { viewModel ->
+            runCurrent()
+            repository.quickConnectCode = MqResult.Success(QuickConnectCode("654321", "other"))
+            viewModel.onAction(TvQuickConnectAction.Restart)
+            repository.quickConnectApprovals = listOf(MqResult.Success(true))
+            runCurrent()
+
+            assertThat(viewModel.uiState.value).isEqualTo(TvQuickConnectUiState.Waiting("Home", "654321"))
+            assertThat(repository.approvalChecks).isEqualTo(0)
+            nextPoll()
+            assertThat(repository.approvalChecks).isEqualTo(1)
+            assertThat(repository.session.value).isInstanceOf(SessionState.LoggedIn::class.java)
+        }
+
+    @Test
     fun `an unreachable server and a failed sign-in are errors`() =
         quickConnectTest { viewModel ->
             repository.quickConnectEnabled = MqResult.Failure(MqError.Network)
@@ -192,15 +209,19 @@ class TvOnboardingViewModelsTest {
         }
 
     @Test
-    fun `an unreachable server while signing in is its own error`() =
+    fun `each sign-in failure has its own error`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel = TvLoginViewModel(OnboardingLoginKey("http://nas:8096", "Home"), repository)
             viewModel.onAction(TvLoginAction.UserNameChanged("ana"))
-            repository.login = MqResult.Failure(MqError.Network)
-
-            viewModel.onAction(TvLoginAction.Submit)
-            runCurrent()
-
-            assertThat(viewModel.uiState.value.error).isEqualTo(TvLoginError.Unreachable)
+            listOf(
+                MqError.Network to TvLoginError.Unreachable,
+                MqError.Storage to TvLoginError.Storage,
+                MqError.Server(500) to TvLoginError.Other,
+            ).forEach { (error, expected) ->
+                repository.login = MqResult.Failure(error)
+                viewModel.onAction(TvLoginAction.Submit)
+                runCurrent()
+                assertThat(viewModel.uiState.value.error).isEqualTo(expected)
+            }
         }
 }
