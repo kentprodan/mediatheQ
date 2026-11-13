@@ -83,7 +83,7 @@ internal fun connectEvent(type: Int): AutoEvent? =
             when (outputKind(type)) {
                 OutputKind.Usb -> AutoEvent.HeadphonesConnected
                 OutputKind.Bluetooth -> AutoEvent.BluetoothConnected
-                OutputKind.Phone -> null
+                OutputKind.Phone, OutputKind.Hdmi -> null
             }
         }
     }

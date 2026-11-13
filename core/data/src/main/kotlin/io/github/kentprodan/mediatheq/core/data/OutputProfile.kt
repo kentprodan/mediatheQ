@@ -13,6 +13,11 @@ data class OutputProfile(
     val customGainsDb: List<Float> = List(AudioPreferences.EQ_BANDS_HZ.size) { 0f },
     /** Send audio unchanged to this USB DAC. Only shown for USB outputs; the phone's is what new DACs copy. */
     val bitPerfectUsb: Boolean = false,
+    /**
+     * Send Dolby Atmos (and other encodings the route takes) unchanged to an HDMI output (ADR 0039). Only HDMI outputs
+     * use it; the phone's Output settings do not show it.
+     */
+    val atmosPassthrough: Boolean = true,
 ) {
     /** The gains the equalizer applies, one per band of [AudioPreferences.EQ_BANDS_HZ]. */
     val eqGainsDb: List<Float> get() = eqPreset.gainsDb ?: customGainsDb

@@ -24,7 +24,8 @@ MediatheqPlaybackService : MediaLibraryService      the only owner of the player
   ├─ MediaLibrarySession + LibraryCallback           browse tree for Auto/Wear later, queue commands
   ├─ StreamResolver                                  MediaItem -> playable URI + headers (asks PlaybackSource)
   ├─ StreamMediaSourceFactory                        per item: HLS (converted) or the file data source (ADR 0019)
-  ├─ AudioOutputPort                                 output device (phone, BT, USB DAC; HDMI/eARC, Cast later) + USB mixer
+  ├─ AudioOutputPort                                 output device (phone, BT, USB DAC, HDMI/eARC; Cast later) + USB mixer
+  ├─ PassthroughCapabilities                         what the route passes through (Media3 AudioCapabilities, ADR 0039)
   ├─ AudioPolicy                                     decides offload / bit-perfect / EQ / normalization (pure Kotlin)
   ├─ ProgressReporter                                server reporting (jellyfin skill, section 6)
   └─ QueuePersistence                                saves/restores queue + position in Room
@@ -85,6 +86,13 @@ Rules:
 4. The Now Playing "Dolby Atmos" badge shows only when the **actual** output is Atmos (passthrough active), read from the player's current audio format + route, not from metadata alone.
 5. **Phone (#24):** no passthrough routes yet (they come with TV 1). `DeviceProfileBuilder` declares `eac3` only with an `audio/eac3-joc` decoder and never `truehd`, so on the Pixel 9 the server converts Atmos to the usual stereo Opus 256 (also on Wi-Fi). The track carries its spatial format in the media item extras; `AudioPolicy.atmosConverted(isAtmos, playMethod, convertedDownload)` (unknown stream = no note; a converted download counts although it reports a direct play, #89) feeds `AudioOutputState.atmosConverted` -> `AudioOutputInfo` -> Now Playing's note "Dolby Atmos not available · Playing in stereo on this output". A "stereo version" of an album is a later feature; a download of such a track is the server's conversion (#68, section 10).
 6. Atmos passthrough cannot be proven on JVM. Unit-test the decision; prove the output manually (`/test`: soundbar display shows Atmos).
+7. **TV over HDMI (#241, ADR 0039):** `Media3PassthroughCapabilities` (the only user of `AudioCapabilities` /
+   `AudioCapabilitiesReceiver`, both unstable: check at each Media3 bump) gives the MIME types the routed device takes;
+   a capabilities change re-runs `AudioOutputController`. `AudioRoute.Hdmi` + the output's `atmosPassthrough` + the
+   playing file's `passthroughMime()` in the set -> `AudioMode.Passthrough`. The truth is the AudioTrack the sink opened
+   (`onAudioTrackInitialized`): `AudioOutputState.passthroughEncoding` -> `AudioOutputInfo.atmosPassthrough` (JOC or
+   TrueHD only); the badge reads that, never metadata. A failed passthrough AudioTrack is prepared again once, then the
+   error shows. Logs under `MqAudioOutput`: route, passthrough set, decision, the opened encoding.
 
 ## 5. Audio offload (battery)
 
@@ -123,7 +131,7 @@ Rules:
 - **Normalization (default: Album):** ReplayGain album gain (fallback track gain) from server metadata (Jellyfin `NormalizationGain`, the album's via a Room relation on track rows), carried in the media item extras and applied with `player.volume` on each item transition (`NormalizationListener`; clamped, no boost above 0 dB unless the setting allows it with a limiter). Controllers cannot set the player volume (`COMMAND_SET_VOLUME` removed), it carries the gain. Off in bit-perfect and passthrough modes, and with Bypass processing.
 - **Fades (#142, `VolumeFader`):** fade in (play, resume, seek) and fade out (pause, stop), 0-1000 ms, linear, as a factor multiplied into `player.volume` next to the normalization gain and the focus duck, so they work with offload. Fade in: the factor drops to 0 when play is asked for or a seek lands and rises once `isPlaying`. Fade out: `QueuePlayer.pause()` / `stop()` / `setPlayWhenReady(false)` run after the ramp (`fadeOutThen`); a play cancels it, a second pause cuts at once, task removal and service destroy end it. Pauses on the ExoPlayer itself (audio focus, automatic actions) are immediate. No fades in bit-perfect (fixed volume).
 - **Crossfade:** not implemented (#219). It needs a second, short-lived player or PCM mixing (ADR with that issue), disables offload, and never applies on a bit-perfect output.
-- `AudioPolicy` (pure, exhaustively unit tested, including every conflict above; `AudioSettings` carries `bypass`): `decide(settings, route, bitPerfectFormat): AudioMode` (`Offload` | `Processed` | `BitPerfect`; F2 adds `Passthrough`), `atmosConverted(isAtmos, playMethod, convertedDownload)`, `playsOriginal(playMethod, convertedDownload)`, `offload(settings, route)` (per route, so it does not flip per track), `wantsBitPerfect(settings, route)`, `volume(gains, normalization, mode)` (1 in bit-perfect).
+- `AudioPolicy` (pure, exhaustively unit tested, including every conflict above; `AudioSettings` carries `bypass`): `decide(settings, route, bitPerfectFormat, passthrough, trackMime): AudioMode` (`Offload` | `Processed` | `BitPerfect` | `Passthrough`), `atmosConverted(isAtmos, playMethod, convertedDownload)`, `playsOriginal(playMethod, convertedDownload)`, `offload(settings, route, passthrough)` (per route, so it does not flip per track), `wantsBitPerfect(settings, route)`, `wantsPassthrough(settings, route, passthrough)`, `fixedVolume(mode)`, `volume(gains, normalization, mode)` (1 in bit-perfect and passthrough; fades skip both).
 - **EQ (#22):** five bands (centers 60/230/910/3600/14000 Hz, +-12 dB, presets Flat, Bass boost, Treble boost, Vocal, Custom) in each `OutputProfile` (#140). `DynamicsProcessing` pre-EQ bands are set by **upper edge**: `EqualizerCurve` puts the edges at the geometric midpoints between centers (last at 20 kHz) and lowers the input gain by the largest boost so nothing clips. `EqualizerEffect` is re-created when the audio session id changes and enabled only in `Processed`.
 
 ## 8. Gapless

@@ -375,6 +375,7 @@ private val OutputKind.icon: ImageVector
             OutputKind.Phone -> MqIcons.Smartphone
             OutputKind.Bluetooth -> MqIcons.Headphones
             OutputKind.Usb -> MqIcons.Usb
+            OutputKind.Hdmi -> MqIcons.Tv
         }
 
 private val EqPreset.label: Int

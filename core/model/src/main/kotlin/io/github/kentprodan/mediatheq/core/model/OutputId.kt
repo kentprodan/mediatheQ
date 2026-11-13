@@ -1,7 +1,7 @@
 package io.github.kentprodan.mediatheq.core.model
 
 /** The kind of an audio output (#140). Remote playback outputs come later. */
-enum class OutputKind { Phone, Bluetooth, Usb }
+enum class OutputKind { Phone, Bluetooth, Usb, Hdmi }
 
 /**
  * A remembered audio output (#140). [key] stays the same across reconnects and is never a raw Bluetooth address (a

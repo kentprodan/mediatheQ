@@ -21,3 +21,10 @@ Issue #140: one global equalizer, normalization and bit-perfect setting does not
 - Settings take effect per device without the user switching anything; a device not seen before plays like the phone.
 - Two identical USB DACs, or two Bluetooth devices with the same anonymized address tail and name, share a profile.
 - Below Android 14 every output is the phone (a `shortcut:` in `AudioOutputPort`).
+
+## Amendment (2026-11-13, #241)
+
+- A fourth kind, `hdmi:<hash>` (`OutputKind.Hdmi`, `TYPE_HDMI` / `TYPE_HDMI_ARC` / `TYPE_HDMI_EARC`): the hash of the
+  product name only, like USB (the TV or receiver, whatever port).
+- The profile gains **Dolby Atmos passthrough** (`atmosPassthrough`, default on, stored as `out.<id>.atmos_passthrough`).
+  Only HDMI outputs use it (ADR 0039); the phone's Output settings page does not show it.

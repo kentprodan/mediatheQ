@@ -43,4 +43,5 @@ internal fun OutputProfile.toAudioSettings() =
         equalizerOn = equalizerOn,
         bitPerfectUsb = bitPerfectUsb,
         bypass = bypass,
+        atmosPassthrough = atmosPassthrough,
     )

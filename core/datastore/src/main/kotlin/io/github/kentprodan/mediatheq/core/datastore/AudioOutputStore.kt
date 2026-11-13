@@ -94,6 +94,7 @@ class AudioOutputStore
             private const val EQ_PRESET = "eq_preset"
             private const val EQ_BANDS = "eq_bands"
             private const val BIT_PERFECT_USB = "bit_perfect"
+            private const val ATMOS_PASSTHROUGH = "atmos_passthrough"
 
             private fun String.key(field: String) = "out.$this.$field"
 
@@ -105,6 +106,7 @@ class AudioOutputStore
                     eqPreset = this[stringPreferencesKey(id.key(EQ_PRESET))],
                     eqBands = this[stringPreferencesKey(id.key(EQ_BANDS))],
                     bitPerfectUsb = this[booleanPreferencesKey(id.key(BIT_PERFECT_USB))],
+                    atmosPassthrough = this[booleanPreferencesKey(id.key(ATMOS_PASSTHROUGH))],
                 )
 
             private fun MutablePreferences.writeProfile(
@@ -117,6 +119,7 @@ class AudioOutputStore
                 put(stringPreferencesKey(id.key(EQ_PRESET)), profile.eqPreset)
                 put(stringPreferencesKey(id.key(EQ_BANDS)), profile.eqBands)
                 put(booleanPreferencesKey(id.key(BIT_PERFECT_USB)), profile.bitPerfectUsb)
+                put(booleanPreferencesKey(id.key(ATMOS_PASSTHROUGH)), profile.atmosPassthrough)
             }
 
             private fun <T> MutablePreferences.put(
@@ -187,4 +190,5 @@ data class StoredOutputProfile(
     /** Custom band gains in dB, comma separated. */
     val eqBands: String? = null,
     val bitPerfectUsb: Boolean? = null,
+    val atmosPassthrough: Boolean? = null,
 )

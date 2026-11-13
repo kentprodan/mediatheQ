@@ -18,8 +18,13 @@ class OutputIdTest {
 
     @Test
     fun `damaged or unknown values read as nothing`() {
-        listOf("", "phone:x", "bluetooth:", "hdmi:1", ":x", "usb:a:b", "bluetooth").forEach {
+        listOf("", "phone:x", "bluetooth:", "cast:1", ":x", "usb:a:b", "bluetooth").forEach {
             assertThat(OutputId.parseOrNull(it)).isNull()
         }
+    }
+
+    @Test
+    fun `an HDMI output reads back`() {
+        assertThat(OutputId.parseOrNull("hdmi:abc")).isEqualTo(OutputId(OutputKind.Hdmi, "abc"))
     }
 }

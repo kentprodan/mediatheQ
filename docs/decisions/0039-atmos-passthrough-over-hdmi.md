@@ -64,3 +64,16 @@ What the platform and Media3 offer (read 2026-11-11):
   values, and the Settings page explains that the switch cannot override the system.
 - Bluetooth outputs on the TV box pass nothing through: Atmos tracks then decode (JOC decoder) or convert, with the
   note shown, as on the phone.
+
+## Amendment (2026-11-13, #241)
+
+- The switch is our decision only: `DefaultAudioSink` passes through whatever `AudioCapabilities` allows, so with the
+  switch off an Atmos file can still leave as a bitstream while the mode says `Offload` / `Processed` (offload,
+  normalization and EQ then follow the mode; the badge follows the opened encoding). A real "off" would need a sink
+  built with default capabilities; not needed for TV 1.
+- E-AC-3 JOC on a route that takes only E-AC-3 passes through as E-AC-3 (Media3's fallback, the 5.1 core): the
+  policy treats it as passthrough too. A TrueHD track counts as Atmos only when the file is Atmos.
+- A phone on USB-C to an HDMI display is an HDMI output too (its own profile); "the phone's route is never HDMI"
+  holds for the normal setup only.
+- The retry after a failed passthrough AudioTrack follows what the last opened track was, not the current mode: a
+  route change is often decided before the write error arrives.

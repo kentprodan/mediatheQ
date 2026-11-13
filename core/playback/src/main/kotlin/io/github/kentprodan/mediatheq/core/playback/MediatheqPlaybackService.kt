@@ -175,6 +175,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 }, "MqWaveform")
             }.asCoroutineDispatcher()
     private lateinit var usbAudio: AudioOutputPort
+    private lateinit var passthroughCapabilities: Media3PassthroughCapabilities
     private lateinit var audioOutput: AudioOutputController
     private lateinit var outputApplier: OutputStateApplier
     private lateinit var reopener: AudioTrackReopener
@@ -270,8 +271,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
             SkipFailedTrackListener(
                 player,
                 recover = { error ->
-                    // The output refused the AudioTrack while bit-perfect was preferred: play on normally instead.
-                    outputApplier.recover(error, audioOutput::onBitPerfectFailed)
+                    // The output refused the AudioTrack: bit-perfect plays on normally, passthrough is tried once more.
+                    outputApplier.recover(
+                        error,
+                    ) { audioOutput.onBitPerfectFailed() || audioOutput.onPassthroughFailed() }
                 },
             ) { session?.sendPlaybackError(packageName, it) },
         )
@@ -507,7 +510,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 getSystemService(AudioManager::class.java),
                 player,
                 settings = { audio.audioFocus },
-                bitPerfect = { audioOutput.state.mode == AudioMode.BitPerfect },
+                bitPerfect = { AudioPolicy.fixedVolume(audioOutput.state.mode) },
             ) {
                 ducked = it
                 normalization.apply()
@@ -535,6 +538,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
             },
         )
         usbAudio = AudioOutputPort.create(getSystemService(AudioManager::class.java))
+        // What HDMI passes through (ADR 0039); a change (plug, the TV's surround setting) decides again.
+        passthroughCapabilities = Media3PassthroughCapabilities(this) { audioOutput.onCapabilitiesChanged() }
         // Bit-perfect turned on mid-track: a new AudioTrack, opened once the old one is gone (#165).
         reopener = AudioTrackReopener(player, handlerSchedule(Handler(Looper.getMainLooper())))
         outputApplier =
@@ -573,6 +578,16 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 log = { appLog.info(AUDIO_TAG, it) },
                 reopen = { reopener.reopen() },
                 tracksReleased = { reopener.onTracksReleased() },
+                passthroughCapabilities = passthroughCapabilities,
+                // Only the file itself can pass through: a transcode or a converted download is PCM or Opus.
+                currentMime = {
+                    val method = currentPlayMethod()
+                    if (method == null || AudioPolicy.playsOriginal(method, convertedDownload())) {
+                        player.currentMediaItem?.passthroughMime()
+                    } else {
+                        null
+                    }
+                },
                 played = {
                     val method = currentPlayMethod()
                     PlayedStream(
@@ -617,7 +632,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             VolumeFader(
                 player,
                 settings = { audio.transitions },
-                fixedVolume = { audioOutput.state.mode == AudioMode.BitPerfect },
+                fixedVolume = { AudioPolicy.fixedVolume(audioOutput.state.mode) },
                 schedule = handlerSchedule(Handler(Looper.getMainLooper())),
             ) { normalization.apply() }
         player.addListener(fader)
@@ -644,7 +659,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 override fun onAudioTrackInitialized(
                     eventTime: AnalyticsListener.EventTime,
                     audioTrackConfig: AudioSink.AudioTrackConfig,
-                ) = audioOutput.onAudioTrackOpened(audioTrackConfig.sampleRate)
+                ) = audioOutput.onAudioTrackOpened(audioTrackConfig.sampleRate, audioTrackConfig.encoding)
 
                 override fun onAudioTrackReleased(
                     eventTime: AnalyticsListener.EventTime,
@@ -675,6 +690,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
             bitPerfectNoMatch = bitPerfectNoMatch,
             bitPerfectSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             atmosConverted = atmosConverted,
+            atmosPassthrough =
+                atmosPassthrough(
+                    passthroughEncoding,
+                    isAtmosFile = session?.player?.currentMediaItem?.isDolbyAtmos() == true,
+                ),
             playedItemId = played.itemId,
             streamKnown = played.known,
             convertedKbps = played.convertedKbps,
@@ -719,6 +739,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         reopener.release()
         audioOutput.release()
         usbAudio.release()
+        passthroughCapabilities.release()
         equalizer.release()
         session?.run {
             persistence.saveNow()
