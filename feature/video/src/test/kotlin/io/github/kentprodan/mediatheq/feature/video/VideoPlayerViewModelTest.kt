@@ -8,7 +8,6 @@ import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
-import io.github.kentprodan.mediatheq.core.playback.PlaybackError
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
@@ -45,6 +44,7 @@ class VideoPlayerViewModelTest {
     private fun playing(
         isPlaying: Boolean = true,
         isBuffering: Boolean = false,
+        isFailed: Boolean = false,
     ) {
         playback.state.value =
             PlayerUiModel(
@@ -54,6 +54,7 @@ class VideoPlayerViewModelTest {
                 duration = 90.minutes,
                 isSeekable = true,
                 videoAspectRatio = 16 / 9f,
+                isFailed = isFailed,
             )
     }
 
@@ -148,26 +149,37 @@ class VideoPlayerViewModelTest {
             viewModel.onAction(VideoPlayerAction.SeekTo(10.minutes))
             viewModel.onAction(VideoPlayerAction.Leave)
 
-            assertThat(playback.commands).containsExactly("togglePlayPause", "seekTo 10m", "togglePlayPause").inOrder()
+            assertThat(playback.commands).containsExactly("togglePlayPause", "seekTo 10m", "pause").inOrder()
         }
 
     @Test
-    fun `leaving a paused video leaves it paused`() =
+    fun `leaving while the stream still loads pauses, so the video never starts without a screen`() =
         test {
             val viewModel = viewModel()
-            playing(isPlaying = false)
-            runCurrent()
 
             viewModel.onAction(VideoPlayerAction.Leave)
 
-            assertThat(playback.commands).isEmpty()
+            assertThat(playback.commands).containsExactly("pause")
+        }
+
+    @Test
+    fun `once the video is gone from the player (it ended and the music came back) the player is ended`() =
+        test {
+            val viewModel = viewModel()
+            playing()
+            runCurrent()
+
+            playback.state.value = PlayerUiModel()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value).isEqualTo(VideoPlayerUiState.Ended)
         }
 
     @Test
     fun `a video that cannot play, or is not in the library, is an error`() =
         test {
             val viewModel = viewModel()
-            playback.error.value = PlaybackError("Moșoi", PlaybackError.Reason.Failed, skipped = false)
+            playing(isPlaying = false, isFailed = true)
             runCurrent()
             assertThat(viewModel.uiState.value).isInstanceOf(VideoPlayerUiState.Error::class.java)
 

@@ -52,6 +52,9 @@ interface PlaybackConnection {
      */
     val videoPlayer: StateFlow<Player?>
 
+    /** Pauses, also before playing started (a video left while its stream loads). */
+    fun pause()
+
     /** Pauses, or plays (also restarting after the queue ended or failed). */
     fun togglePlayPause()
 

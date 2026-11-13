@@ -111,7 +111,12 @@ class JellyfinPlaybackSource internal constructor(
                         itemId = itemId,
                         url = serverUrl(baseUrl, withoutApiKey(transcodingUrl)),
                         // A remux (the streams copied into another container) is reported as what it is.
-                        playMethod = if (source.supportsDirectStream) PlayMethod.DirectStream else PlayMethod.Transcode,
+                        playMethod =
+                            if (profile.videoCodecs != null && source.supportsDirectStream) {
+                                PlayMethod.DirectStream
+                            } else {
+                                PlayMethod.Transcode
+                            },
                         mediaSourceId = sourceId,
                         playSessionId = playSessionId,
                         canSeek = segmented,

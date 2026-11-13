@@ -26,6 +26,8 @@ data class PlayerUiModel(
     val isBuffering: Boolean = false,
     /** Able to play at once (Media3 ready); see [slowStarts]. */
     val isReady: Boolean = false,
+    /** The player stopped on an error (Media3 `playerError`) and waits for a new item or a retry. */
+    val isFailed: Boolean = false,
     /** Width / height of the playing video's picture once known; `null` for music or before the first frame. */
     val videoAspectRatio: Float? = null,
 )

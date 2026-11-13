@@ -14,11 +14,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.onClick
@@ -55,24 +58,24 @@ internal fun VideoPlayerRoute(
     val position by viewModel.position.collectAsStateWithLifecycle()
     val player by viewModel.player.collectAsStateWithLifecycle()
     val playing = state as? VideoPlayerUiState.Playing
-    FullScreenVideo(wide = (playing?.aspectRatio ?: 0f) > 1f, keepOn = playing?.isPlaying == true)
+    FullScreenVideo(wide = (playing?.aspectRatio ?: 0f) > 1f)
     val leave = {
         viewModel.onAction(VideoPlayerAction.Leave)
         onBack()
     }
     BackHandler(onBack = leave)
+    // The video ended and the music came back (ADR 0047): back to the page that opened it.
+    LaunchedEffect(state) { if (state == VideoPlayerUiState.Ended) onBack() }
     VideoPlayerScreen(state, position, viewModel::onAction, leave) { MqVideoSurface(player, Modifier.fillMaxSize()) }
 }
 
-/** Landscape for a [wide] video, no system bars, the screen on while [keepOn]; the window as it was on leave. */
+/** Landscape for a [wide] video and no system bars; the window as it was on leave. */
 @Composable
-private fun FullScreenVideo(
-    wide: Boolean,
-    keepOn: Boolean,
-) {
+private fun FullScreenVideo(wide: Boolean) {
     val activity = LocalActivity.current ?: return
     val view = LocalView.current
-    val original = remember { activity.requestedOrientation }
+    // Saved: turning the phone recreates the activity, which then already is in landscape (not what to go back to).
+    val original = rememberSaveable { activity.requestedOrientation }
     DisposableEffect(wide) {
         if (wide) activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         onDispose { activity.requestedOrientation = original }
@@ -82,10 +85,6 @@ private fun FullScreenVideo(
         bars.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         bars.hide(WindowInsetsCompat.Type.systemBars())
         onDispose { bars.show(WindowInsetsCompat.Type.systemBars()) }
-    }
-    DisposableEffect(keepOn) {
-        view.keepScreenOn = keepOn
-        onDispose { view.keepScreenOn = false }
     }
 }
 
@@ -102,9 +101,12 @@ fun VideoPlayerScreen(
     surface: @Composable () -> Unit,
 ) {
     val toggleLabel = stringResource(R.string.video_player_toggle_controls)
+    val keepOn = (state as? VideoPlayerUiState.Playing)?.isPlaying == true
     Box(
         Modifier
             .fillMaxSize()
+            // Only while it plays, and without touching the window's own flag (Settings -> Keep screen on).
+            .then(if (keepOn) Modifier.keepScreenOn() else Modifier)
             .background(Color.Black)
             .clickable(remember { MutableInteractionSource() }, indication = null) {
                 onAction(VideoPlayerAction.ToggleControls)
@@ -113,7 +115,7 @@ fun VideoPlayerScreen(
     ) {
         surface()
         when (state) {
-            VideoPlayerUiState.Loading -> {
+            VideoPlayerUiState.Loading, VideoPlayerUiState.Ended -> {
                 MqLoadingIndicator()
             }
 

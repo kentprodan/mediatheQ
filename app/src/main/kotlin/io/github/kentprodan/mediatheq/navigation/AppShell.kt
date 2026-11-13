@@ -71,6 +71,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.LocalBottomBar
 import io.github.kentprodan.mediatheq.core.designsystem.motion.LocalNavAnimatedVisibilityScope
 import io.github.kentprodan.mediatheq.core.designsystem.motion.LocalSharedTransitionScope
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 
 /**
  * The app shell: the current tab's screens, the floating [miniPlayer] slot and the main navigation, styled as
@@ -90,7 +91,9 @@ fun AppShell(
     navigation: NavigationPreferences = NavigationPreferences(),
 ) {
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val showNavigation = navigator.tabs.size > 1
+    // The video player is full screen (ADR 0049): no navigation and no mini player over the picture.
+    val fullScreen = navigator.stack(navigator.currentTab).lastOrNull() is VideoPlayerKey
+    val showNavigation = navigator.tabs.size > 1 && !fullScreen
     val rail = showNavigation && landscape && navigation.landscapeStyle == LandscapeNavStyle.NavigationRail
     val containerAlpha = 1f - navigation.transparencyPercent / 100f
     Row(modifier) {
@@ -109,10 +112,14 @@ fun AppShell(
             bottomBar = {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     // Places and animates itself (it is hidden while nothing is queued).
-                    miniPlayer?.invoke(
-                        showNavigation && !rail && navigation.portraitStyle == PortraitNavStyle.BottomBar,
-                    )
+                    if (!fullScreen) {
+                        miniPlayer?.invoke(
+                            showNavigation && !rail && navigation.portraitStyle == PortraitNavStyle.BottomBar,
+                        )
+                    }
                     when {
+                        fullScreen -> {}
+
                         !showNavigation || rail -> {
                             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                         }

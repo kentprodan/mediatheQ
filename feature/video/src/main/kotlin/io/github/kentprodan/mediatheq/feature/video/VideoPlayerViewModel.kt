@@ -41,6 +41,9 @@ class VideoPlayerViewModel
         private var hideJob: Job? = null
         private val video = videos.video(key.id)
 
+        // Set once the player had this video: its going away afterwards means it ended, not that it is loading.
+        private var seen = false
+
         /** The surface's player (the connection's controller), `null` until connected. */
         val player = playback.videoPlayer
 
@@ -48,19 +51,20 @@ class VideoPlayerViewModel
         val position: StateFlow<Duration> = playback.position
 
         val uiState: StateFlow<VideoPlayerUiState> =
-            combine(video, playback.state, playback.error, controlsShown) { video, player, error, shown ->
+            combine(video, playback.state, controlsShown) { video, player, shown ->
                 val item = player.item?.takeIf { it.isVideo && it.id == key.id }
+                if (item != null) seen = true
                 when {
                     video == null -> {
                         VideoPlayerUiState.Error(MqError.NotFound)
                     }
 
-                    error != null && error.title == video.title -> {
-                        VideoPlayerUiState.Error(MqError.Client(0, "playback"))
+                    item == null -> {
+                        if (seen) VideoPlayerUiState.Ended else VideoPlayerUiState.Loading
                     }
 
-                    item == null -> {
-                        VideoPlayerUiState.Loading
+                    player.isFailed -> {
+                        VideoPlayerUiState.Error(MqError.Client(0, "playback"))
                     }
 
                     else -> {
@@ -110,7 +114,7 @@ class VideoPlayerViewModel
                 }
 
                 VideoPlayerAction.Leave -> {
-                    if (playback.state.value.isPlaying) playback.togglePlayPause()
+                    playback.pause()
                 }
             }
         }

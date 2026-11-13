@@ -31,6 +31,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.nio.file.Files
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 // Robolectric: the streaming cache index lives in Media3's SQLite database.
@@ -176,5 +177,27 @@ class ChooseStreamSourceTest {
                     .single()
                     .second.maxStreamingBitrate,
             ).isNull()
+        }
+
+    @Test
+    fun `a video file plays straight from its stream url, a video conversion as HLS`() =
+        runTest {
+            assertThat(chooseVideoSource(itemId, resolver, Duration.ZERO, network::isOnline))
+                .isEqualTo(StreamSource.Direct(resolver.current(itemId)!!.url))
+
+            repository.playMethod = PlayMethod.Transcode
+            repository.segmented = true
+            assertThat(chooseVideoSource(itemId, resolver, Duration.ZERO, network::isOnline))
+                .isEqualTo(StreamSource.Hls(resolver.current(itemId)!!.url))
+        }
+
+    @Test
+    fun `a video that cannot be had fails as a playback error, without the file source`() =
+        runTest {
+            repository.failure = MqResult.Failure(MqError.NotFound)
+
+            val failure = runCatching { chooseVideoSource(itemId, resolver, Duration.ZERO, network::isOnline) }
+
+            assertThat(failure.exceptionOrNull()).isInstanceOf(StreamUnavailableException::class.java)
         }
 }

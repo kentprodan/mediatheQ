@@ -902,7 +902,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
             mediaItems: MutableList<MediaItem>,
         ): ListenableFuture<MutableList<MediaItem>> {
             // The music place right before a video replaces it: the hand-back brings the queue back there (ADR 0047).
-            if (mediaItems.any { it.isVideo() }) persistence.saveNow()
+            // Not an empty player (Video mode, or the start-up restore still running): that would save nothing over it.
+            if (mediaItems.any { it.isVideo() } && mediaSession.player.mediaItemCount > 0) persistence.saveNow()
             // Only our tracks can play; anything else (e.g. a voice search without an id) is refused, not crashed on.
             val resolved =
                 mediaItems.map {

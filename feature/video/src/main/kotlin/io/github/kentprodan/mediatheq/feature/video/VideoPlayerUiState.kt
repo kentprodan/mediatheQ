@@ -21,6 +21,9 @@ sealed interface VideoPlayerUiState {
         val controlsShown: Boolean,
     ) : VideoPlayerUiState
 
+    /** The video is no longer the player's (it ended and the music came back, or something else was played). */
+    data object Ended : VideoPlayerUiState
+
     /** Not in the library ([MqError.NotFound]) or it could not play. */
     data class Error(
         val error: MqError,

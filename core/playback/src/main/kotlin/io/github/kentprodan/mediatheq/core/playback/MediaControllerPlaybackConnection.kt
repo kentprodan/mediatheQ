@@ -190,6 +190,10 @@ internal class MediaControllerPlaybackConnection
                 track.toMediaItem(artwork, playlistId = playlistId)
             }
 
+        override fun pause() {
+            command { it.pause() }
+        }
+
         override fun togglePlayPause() {
             command { Util.handlePlayPauseButtonAction(it) }
         }

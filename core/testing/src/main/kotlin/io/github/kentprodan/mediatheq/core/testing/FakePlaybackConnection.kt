@@ -64,6 +64,10 @@ class FakePlaybackConnection : PlaybackConnection {
         expandRequested.value = true
     }
 
+    override fun pause() {
+        commands += "pause"
+    }
+
     override fun togglePlayPause() {
         commands += "togglePlayPause"
     }
