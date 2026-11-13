@@ -142,6 +142,11 @@ class TvPlaylistViewModel
         trackTaps: TrackTaps,
         userData: UserDataRepository,
     ) : TvTrackListViewModel(playlistId, playlistId, playback, trackTaps, userData) {
+        init {
+            // Edits made elsewhere (the phone, the web) show up when the page opens, as on the phone.
+            viewModelScope.launch { playlists.refresh(playlistId) }
+        }
+
         override val page: Flow<TvTrackListUiState> =
             combine(
                 playlists.playlist(playlistId),

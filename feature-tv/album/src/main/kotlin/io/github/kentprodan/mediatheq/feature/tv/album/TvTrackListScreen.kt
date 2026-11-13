@@ -191,7 +191,7 @@ private fun Header(
                 MqTvButton(
                     stringResource(R.string.tv_album_play),
                     { onAction(TvTrackListAction.Play) },
-                    Modifier.focusRequester(play),
+                    if (canPlay) Modifier.focusRequester(play) else Modifier,
                     enabled = canPlay,
                     icon = MqTvIcons.Play,
                 )
@@ -211,6 +211,8 @@ private fun Header(
                 MqTvButton(
                     stringResource(if (header.isFavorite) R.string.tv_album_favorited else R.string.tv_album_favorite),
                     { onAction(TvTrackListAction.ToggleFavorite) },
+                    // Nothing to play (an empty playlist): the first focus goes here, a disabled button takes none.
+                    if (canPlay) Modifier else Modifier.focusRequester(play),
                     icon = if (header.isFavorite) MqTvIcons.FavoriteFilled else MqTvIcons.Favorite,
                 )
             }

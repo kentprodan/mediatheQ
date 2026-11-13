@@ -174,4 +174,35 @@ class TvTrackListViewModelTest {
                 .inOrder()
             assertThat(playback.plays.last().startPosition).isEqualTo(2.minutes)
         }
+
+    @Test
+    fun `a playlist page refreshes the playlist, starts loading, and runs every action on its entries`() =
+        test {
+            val playlist = Playlist(id("pl"), "Road trip")
+            val viewModel = TvPlaylistViewModel(playlist.id, playlists, resumes, playback, trackTaps, userData)
+            assertThat(viewModel.uiState.value).isEqualTo(TvTrackListUiState.Loading)
+            backgroundScope.launch { viewModel.uiState.collect() }
+            runCurrent()
+            assertThat(viewModel.uiState.value).isEqualTo(TvTrackListUiState.NotFound)
+            assertThat(playlists.refreshes).containsExactly(playlist.id)
+
+            playlists.playlists.value = listOf(playlist)
+            playlists.items.value =
+                mapOf(playlist.id to listOf(PlaylistItem("e1", 0, tracks[0]), PlaylistItem("e2", 1, tracks[1])))
+            runCurrent()
+            viewModel.onAction(TvTrackListAction.Play)
+            viewModel.onAction(TvTrackListAction.Shuffle)
+            viewModel.onAction(TvTrackListAction.PlayNext(tracks[0]))
+            viewModel.onAction(TvTrackListAction.AddToQueue(tracks[1]))
+            viewModel.onAction(TvTrackListAction.ToggleFavorite)
+            viewModel.onAction(TvTrackListAction.ToggleTrackFavorite(tracks[0]))
+            runCurrent()
+
+            assertThat(playback.plays.map { it.shuffle to it.playlistId })
+                .containsExactly(false to playlist.id, true to playlist.id)
+                .inOrder()
+            assertThat(playback.playedNext).containsExactly(listOf(tracks[0]))
+            assertThat(playback.addedToQueue).containsExactly(listOf(tracks[1]))
+            assertThat(userData.calls).containsExactly("favorite:pl:true", "favorite:d1t1:true").inOrder()
+        }
 }
