@@ -39,6 +39,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.feature.tv.album.tvAlbumEntries
+import io.github.kentprodan.mediatheq.feature.tv.artist.tvArtistEntry
 import io.github.kentprodan.mediatheq.feature.tv.home.tvHomeEntry
 import io.github.kentprodan.mediatheq.feature.tv.library.tvLibraryEntries
 import io.github.kentprodan.mediatheq.tv.R
@@ -51,6 +52,7 @@ internal fun TvShellRoute(viewModel: TvShellViewModel = hiltViewModel()) {
         tvHomeEntry(navigator)
         tvLibraryEntries(navigator)
         tvAlbumEntries()
+        tvArtistEntry(navigator)
         tvPlaceholderEntries()
     }
 }

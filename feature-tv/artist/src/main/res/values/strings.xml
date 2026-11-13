@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_artist_play_all">Play all</string>
+    <string name="tv_artist_shuffle_all">Shuffle all</string>
+    <string name="tv_artist_albums">Albums</string>
+    <string name="tv_artist_appears_on">Appears on</string>
+    <string name="tv_artist_top_tracks">Top tracks</string>
+    <string name="tv_artist_more">Select to read more</string>
+    <string name="tv_artist_less">Select to show less</string>
+    <string name="tv_artist_empty">No music by this artist in your library yet.</string>
+    <string name="tv_artist_not_found_title">Not on this server anymore</string>
+    <string name="tv_artist_not_found_body">This artist may have been removed. Go back and pick another.</string>
+</resources>

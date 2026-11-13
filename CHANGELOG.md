@@ -26,6 +26,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Home on the TV: the same sections as on the phone, as rows of covers; select opens an album, artist or playlist or plays a track or mix, and a long press (or the menu key) offers Play, Shuffle and Add to queue.
 - The Library on the TV: albums, artists, playlists and genres as grids of covers, sorted as you choose, with an A to Z strip to jump through long lists, and the albums of a genre on its own page.
 - Album and playlist pages on the TV: the cover, the quality (Hi-Res, Dolby Atmos), Play, Resume, Shuffle and Favorite, and the tracks by disc; a long press on a track offers Play next, Add to queue and Favorite.
+- The artist page on the TV: their picture over the backdrop, the biography (select to read it all), Play all and Shuffle all, their albums, the albums they appear on and their most played tracks.
 
 ### Fixed
 - Now Playing on a phone held sideways shows the controls without scrolling (smaller transport buttons, the album line in the menu).
