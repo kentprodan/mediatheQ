@@ -463,7 +463,7 @@ class LibraryViewModelTest {
         }
 
     @Test
-    fun `every filter and sort orders its items`() =
+    fun `every filter and sort orders its items, both ways`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val expected =
                 mapOf(
@@ -497,7 +497,43 @@ class LibraryViewModelTest {
                 viewModel.onAction(LibraryAction.SelectSort(sort))
                 assertThat(viewModel.uiState.value.sort).isEqualTo(sort)
                 assertWithMessage("$filter by $sort").that(viewModel.ids()).containsExactlyElementsIn(ids).inOrder()
+
+                viewModel.onAction(LibraryAction.ReverseSort)
+                assertThat(viewModel.uiState.value.sortReversed).isTrue()
+                assertWithMessage("$filter by $sort, reversed")
+                    .that(viewModel.ids())
+                    .containsExactlyElementsIn(ids.reversed())
+                    .inOrder()
+                viewModel.onAction(LibraryAction.ReverseSort)
             }
+        }
+
+    @Test
+    fun `reversing is per tab, shared by a year page, ignored by Home sections, a new sort starts natural`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel().onAction(LibraryAction.ReverseSort)
+
+            assertThat(viewModel().ids()).containsExactly("a1", "a2", "a3").inOrder()
+            assertThat(viewModel(fixedFilter = LibraryFilter.Songs).uiState.value.sortReversed).isFalse()
+            assertThat(viewModel(yearPage = YearKey(2001)).uiState.value.sortReversed).isTrue()
+            val section = viewModel(sectionPage = HomeSectionListKey(HomeSection.RecentlyAddedAlbums))
+            assertThat(section.ids()).containsExactly("a2", "a1").inOrder()
+
+            val albums = viewModel()
+            albums.onAction(LibraryAction.SelectSort(LibrarySort.Year))
+            assertThat(albums.uiState.value.sortReversed).isFalse()
+            assertThat(albums.ids()).containsExactly("a3", "a1", "a2").inOrder()
+        }
+
+    @Test
+    fun `reversing before the list has loaded keeps the stored sort`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            preferences.setSort(LibraryFilter.Albums, LibrarySort.Year)
+
+            viewModel(collect = false).onAction(LibraryAction.ReverseSort)
+
+            assertThat(preferences.preferences.first().sortFor(LibraryFilter.Albums)).isEqualTo(LibrarySort.Year)
+            assertThat(preferences.preferences.first().isReversed(LibraryFilter.Albums)).isTrue()
         }
 
     @Test

@@ -18,6 +18,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - A log of what the app does, kept on the phone, and Export logs in Settings -> About to share it for a bug report.
 - Settings for each Home section (the gear in Settings -> Home page): display, rows, how many items, header, centered text, subtitles, a play button on covers, status marks; copy, apply to all, restore.
 - Tapping a Home section's title opens its full list, with the same tools as the Library lists.
+- Any Library sort can be reversed: tap the arrow next to it, or the chosen sort again in its menu.
 
 ### Fixed
 - Typing in search in list (Library) and in the Downloads filter no longer moves the cursor back.

@@ -475,6 +475,15 @@ class LibraryPreferencesStore
             dataStore.edit { it[stringPreferencesKey(SORT_PREFIX + tab)] = name }
         }
 
+        /** Replaces the stored sort of [tab] with [change] of it, in one edit (#187: two quick taps both count). */
+        suspend fun updateSort(
+            tab: String,
+            change: (String?) -> String,
+        ) {
+            val key = stringPreferencesKey(SORT_PREFIX + tab)
+            dataStore.edit { it[key] = change(it[key]) }
+        }
+
         /** Recent searches in stored order; `:core:data` decides the order and the limit. */
         val recentSearches: Flow<List<String>> = data.map { it[RECENT_SEARCHES].toList() }
 

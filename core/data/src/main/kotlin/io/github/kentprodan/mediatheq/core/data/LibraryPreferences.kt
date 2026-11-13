@@ -30,6 +30,8 @@ data class LibraryPreferences(
     /** The Genres list as a grid of covers (the album columns), else rows (#130). */
     val genresGrid: Boolean = false,
     val sorts: Map<LibraryFilter, LibrarySort> = emptyMap(),
+    /** The tabs whose sort is turned around (#187). */
+    val reversedSorts: Set<LibraryFilter> = emptySet(),
     val ratingMode: RatingMode = RatingMode.WholeStars,
     /** Only downloads show and play, also with a network (#63); without one, offline mode is on anyway. */
     val offlineMode: Boolean = false,
@@ -54,6 +56,9 @@ data class LibraryPreferences(
     /** The sort of [filter]: the stored one when that tab offers it, else its default. */
     fun sortFor(filter: LibraryFilter): LibrarySort =
         sorts[filter]?.takeIf { it in filter.sorts } ?: filter.sorts.first()
+
+    /** [filter]'s sort runs against its natural direction (#187). */
+    fun isReversed(filter: LibraryFilter): Boolean = filter in reversedSorts
 
     companion object {
         const val DEFAULT_ALBUM_COLUMNS = 2

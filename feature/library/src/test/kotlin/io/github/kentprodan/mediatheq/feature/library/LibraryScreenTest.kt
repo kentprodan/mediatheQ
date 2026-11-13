@@ -8,11 +8,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -21,6 +28,7 @@ import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
+import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.data.YearAlbums
@@ -283,5 +291,39 @@ class LibraryScreenTest {
 
         field.assertTextEquals("abc", includeEditableText = true)
         assertThat(actions.last()).isEqualTo(LibraryAction.Search("abc"))
+    }
+
+    @Test
+    fun `the arrow and the chosen sort in the menu reverse the sort, and both say the direction`() {
+        val actions = mutableListOf<LibraryAction>()
+        composeRule.setContent {
+            MediatheqTheme {
+                LibraryScreen(
+                    LibraryUiState(content = LibraryContent.Albums(albums), sortReversed = true),
+                    onAction = { actions += it },
+                    {},
+                    {},
+                    {},
+                )
+            }
+        }
+
+        val arrow = composeRule.onNodeWithContentDescription("Reverse sort")
+        arrow.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Descending"))
+        composeRule
+            .onNode(hasText("Name") and hasClickAction())
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Descending"))
+        arrow.performClick()
+        composeRule.onNode(hasText("Name") and hasClickAction()).performClick()
+        composeRule.onAllNodesWithText("Name").onLast().performClick()
+        composeRule.onNode(hasText("Name") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("Year").performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                LibraryAction.ReverseSort,
+                LibraryAction.ReverseSort,
+                LibraryAction.SelectSort(LibrarySort.Year),
+            ).inOrder()
     }
 }

@@ -347,3 +347,10 @@ fun HomeSectionAlbumsListScreenshot() =
 @Composable
 fun HomeSectionTracksListScreenshot() =
     SectionList(HomeSection.FavoriteTracks, LibraryFilter.Songs, LibraryContent.Songs(songs))
+
+/** Albums by name, reversed (#187): Z to A, the arrow points down. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryAlbumsReversedSortScreenshot() =
+    Library(LibraryUiState(content = LibraryContent.Albums(albums.reversed()), sortReversed = true))

@@ -37,6 +37,8 @@ data class LibraryUiState(
     val genresGrid: Boolean = false,
     /** The current filter's sort. */
     val sort: LibrarySort = LibrarySort.Name,
+    /** [sort] runs against its natural direction (#187). */
+    val sortReversed: Boolean = false,
     val content: LibraryContent = LibraryContent.Loading,
     /** A sync is running (pull-to-refresh spinner). */
     val refreshing: Boolean = false,
@@ -111,6 +113,9 @@ sealed interface LibraryAction {
     data class SelectSort(
         val sort: LibrarySort,
     ) : LibraryAction
+
+    /** Turns the current sort around (#187). */
+    data object ReverseSort : LibraryAction
 
     data class SetAlbumColumns(
         val columns: Int,
