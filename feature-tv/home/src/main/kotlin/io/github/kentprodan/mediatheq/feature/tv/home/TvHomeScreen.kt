@@ -51,6 +51,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.FocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.Artist
@@ -371,20 +372,14 @@ private fun Message(
     modifier: Modifier,
     progress: String? = null,
     onSync: (() -> Unit)? = null,
-) {
-    val button = remember { FocusRequester() }
-    Column(
-        modifier.fillMaxSize().padding(EDGE),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(title, Modifier.semantics { heading() }, style = MaterialTheme.typography.headlineMedium)
-        Text(body, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        progress?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
-        onSync?.let { MqTvButton(stringResource(R.string.tv_home_sync_now), it, Modifier.focusRequester(button)) }
-    }
-    if (onSync != null) LaunchedEffect(Unit) { runCatching { button.requestFocus() } }
-}
+) = MqTvMessage(
+    title,
+    body,
+    modifier,
+    progress,
+    onSync?.let { stringResource(R.string.tv_home_sync_now) },
+    onSync ?: {},
+)
 
 private val EDGE = 48.dp
 

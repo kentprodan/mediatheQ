@@ -39,6 +39,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.feature.tv.home.tvHomeEntry
+import io.github.kentprodan.mediatheq.feature.tv.library.tvLibraryEntries
 import io.github.kentprodan.mediatheq.tv.R
 
 @Composable
@@ -47,6 +48,7 @@ internal fun TvShellRoute(viewModel: TvShellViewModel = hiltViewModel()) {
     val backStack = rememberNavBackStack(HomeKey)
     TvShell(backStack, player, onUnknown = viewModel::unknownDestination) { navigator ->
         tvHomeEntry(navigator)
+        tvLibraryEntries(navigator)
         tvPlaceholderEntries()
     }
 }

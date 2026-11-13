@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_library_albums">Albums</string>
+    <string name="tv_library_artists">Artists</string>
+    <string name="tv_library_playlists">Playlists</string>
+    <string name="tv_library_genres">Genres</string>
+    <string name="tv_library_sort">Sort: %1$s</string>
+    <string name="tv_library_sort_title">Sort by</string>
+    <string name="tv_library_sort_name">Name</string>
+    <string name="tv_library_sort_recently_added">Recently added</string>
+    <string name="tv_library_sort_year">Year</string>
+    <string name="tv_library_sort_artist">Artist</string>
+    <string name="tv_library_sort_album">Album</string>
+    <string name="tv_library_sort_album_count">Number of albums</string>
+    <string name="tv_library_sort_track_count">Number of tracks</string>
+    <string name="tv_library_loading_title">Getting your library</string>
+    <string name="tv_library_loading_body">The first sync can take a minute.</string>
+    <string name="tv_library_empty_title">Nothing here yet</string>
+    <string name="tv_library_empty_body">Your server has nothing for this list.</string>
+    <string name="tv_library_error_title">Couldn\'t load your library</string>
+    <string name="tv_library_error_body">Check that the server is on and reachable, then try again.</string>
+    <string name="tv_library_sync_now">Sync now</string>
+    <string name="tv_library_unknown_year">Unknown year</string>
+    <plurals name="tv_library_albums_count">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d albums</item>
+    </plurals>
+</resources>

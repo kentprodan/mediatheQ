@@ -1,8 +1,6 @@
-package io.github.kentprodan.mediatheq.feature.library
+package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.common.nameComparator
-import io.github.kentprodan.mediatheq.core.data.LibrarySort
-import io.github.kentprodan.mediatheq.core.data.YearAlbums
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
@@ -10,12 +8,12 @@ import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.Track
 
-// Sorting for the Library lists. Names compare like a person reads them: case and diacritics are ignored ("Moșoi" next
+// Sorting for the Library lists of both apps (moved from :feature:library for the TV, #237). Names compare like a person reads them: case and diacritics are ignored ("Moșoi" next
 // to "Mosoi"). The item id breaks ties so the order never jumps. Newest and latest year come first; unknown dates last.
 // A reversed sort (#187) turns the whole list around, unknown dates included.
 
 @JvmName("sortedAlbums")
-internal fun List<Album>.sortedFor(sort: LibrarySort): List<Album> {
+fun List<Album>.sortedFor(sort: LibrarySort): List<Album> {
     val names = nameComparator()
     val byName = compareBy(names) { album: Album -> album.sortName }.thenBy { it.id.itemId }
     return sortedWith(
@@ -46,7 +44,7 @@ internal fun List<Album>.sortedFor(sort: LibrarySort): List<Album> {
 }
 
 /** Artists offer only one sort. */
-internal fun List<Artist>.sortedByName(): List<Artist> =
+fun List<Artist>.sortedByName(): List<Artist> =
     sortedWith(
         compareBy(nameComparator()) { artist: Artist -> artist.sortName }.thenBy {
             it.id.itemId
@@ -54,7 +52,7 @@ internal fun List<Artist>.sortedByName(): List<Artist> =
     )
 
 @JvmName("sortedPlaylists")
-internal fun List<Playlist>.sortedFor(sort: LibrarySort): List<Playlist> {
+fun List<Playlist>.sortedFor(sort: LibrarySort): List<Playlist> {
     val byName = compareBy(nameComparator()) { playlist: Playlist -> playlist.sortName }.thenBy { it.id.itemId }
     return sortedWith(
         if (sort == LibrarySort.RecentlyAdded) compareByDescending<Playlist> { it.dateAdded }.then(byName) else byName,
@@ -62,7 +60,7 @@ internal fun List<Playlist>.sortedFor(sort: LibrarySort): List<Playlist> {
 }
 
 @JvmName("sortedTracks")
-internal fun List<Track>.sortedFor(sort: LibrarySort): List<Track> {
+fun List<Track>.sortedFor(sort: LibrarySort): List<Track> {
     val names = nameComparator()
     val byName = compareBy(names) { track: Track -> track.sortName }.thenBy { it.id.itemId }
     val inAlbumOrder = compareBy<Track>({ it.discNumber }, { it.trackNumber }).then(byName)
@@ -95,12 +93,12 @@ internal fun List<Track>.sortedFor(sort: LibrarySort): List<Track> {
 
 /** Years come newest first (from `albumYears`); by album count the year with most albums first, ties newest first. */
 @JvmName("sortedYears")
-internal fun List<YearAlbums>.sortedFor(sort: LibrarySort): List<YearAlbums> =
+fun List<YearAlbums>.sortedFor(sort: LibrarySort): List<YearAlbums> =
     if (sort == LibrarySort.AlbumCount) sortedByDescending { it.albums.size } else this
 
 /** Genres by name, or by album or track count (most first, ties by name). */
 @JvmName("sortedGenres")
-internal fun List<Genre>.sortedFor(sort: LibrarySort): List<Genre> {
+fun List<Genre>.sortedFor(sort: LibrarySort): List<Genre> {
     val byName = compareBy(nameComparator()) { genre: Genre -> genre.sortName }.thenBy { it.id.itemId }
     return sortedWith(
         when (sort) {
@@ -113,7 +111,7 @@ internal fun List<Genre>.sortedFor(sort: LibrarySort): List<Genre> {
 
 /** Record labels by name, or by album count (most first, ties by name). */
 @JvmName("sortedRecordLabels")
-internal fun List<RecordLabel>.sortedFor(sort: LibrarySort): List<RecordLabel> {
+fun List<RecordLabel>.sortedFor(sort: LibrarySort): List<RecordLabel> {
     val byName = compareBy(nameComparator()) { label: RecordLabel -> label.sortName }.thenBy { it.id.itemId }
     return sortedWith(
         if (sort ==
@@ -125,16 +123,3 @@ internal fun List<RecordLabel>.sortedFor(sort: LibrarySort): List<RecordLabel> {
         },
     )
 }
-
-/** The same items in the opposite order (#187); states without items stay as they are. */
-internal fun LibraryContent.reversed(): LibraryContent =
-    when (this) {
-        is LibraryContent.Albums -> LibraryContent.Albums(albums.asReversed())
-        is LibraryContent.Artists -> LibraryContent.Artists(artists.asReversed())
-        is LibraryContent.Playlists -> LibraryContent.Playlists(playlists.asReversed())
-        is LibraryContent.Songs -> LibraryContent.Songs(tracks.asReversed())
-        is LibraryContent.Genres -> LibraryContent.Genres(genres.asReversed())
-        is LibraryContent.RecordLabels -> LibraryContent.RecordLabels(labels.asReversed())
-        is LibraryContent.Years -> LibraryContent.Years(years.asReversed())
-        else -> this
-    }
