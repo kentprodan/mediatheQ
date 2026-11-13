@@ -69,6 +69,8 @@ internal class AudioOutputController(
     private val passthroughCapabilities: PassthroughCapabilities = PassthroughCapabilities { emptySet() },
     /** The playing file's passthrough MIME type ([passthroughMime]); `null` when it is not one or not the file. */
     private val currentMime: () -> String? = { null },
+    /** A video item is current (ADR 0047): no offload. */
+    private val playingVideo: () -> Boolean = { false },
 ) {
     private var settings = AudioSettings()
     private var preferred: MixerCapability? = null
@@ -151,7 +153,7 @@ internal class AudioOutputController(
         publish(
             AudioOutputState(
                 route = route,
-                offload = AudioPolicy.offload(settings, route, passthrough),
+                offload = AudioPolicy.offload(settings, route, passthrough, video = playingVideo()),
                 mode = mode,
                 bitPerfectFormat = chosen?.format,
                 bitPerfectNoMatch = format != null && chosen == null,

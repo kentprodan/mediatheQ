@@ -52,6 +52,8 @@ internal fun streamDataSourceFactory(
             .setUpstreamDataSourceFactory(streamed)
             .setCacheWriteDataSinkFactory(null)
     return ResolvingDataSource.Factory(cached) { dataSpec ->
+        // A video's stream is chosen by its own source; reaching this file source means none could be had.
+        dataSpec.uri.videoId()?.let { throw StreamUnavailableException(MqError.Client(0, "video stream unavailable")) }
         val itemId = dataSpec.uri.trackId() ?: return@Factory dataSpec
         onOpen(itemId)
         if (downloads.isDownloaded(itemId)) {

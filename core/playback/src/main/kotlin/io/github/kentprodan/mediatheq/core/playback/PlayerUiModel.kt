@@ -26,6 +26,8 @@ data class PlayerUiModel(
     val isBuffering: Boolean = false,
     /** Able to play at once (Media3 ready); see [slowStarts]. */
     val isReady: Boolean = false,
+    /** Width / height of the playing video's picture once known; `null` for music or before the first frame. */
+    val videoAspectRatio: Float? = null,
 )
 
 /** The audio output, for the bit-perfect indicator and the Audio sheet (media3 skill, sections 6 and 7). */
@@ -74,4 +76,6 @@ data class NowPlayingItem(
     val title: String,
     val artist: String,
     val artwork: Artwork? = null,
+    /** A movie or an episode (ADR 0047): the video player shows it, never Now Playing. */
+    val isVideo: Boolean = false,
 )

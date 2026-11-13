@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.playback
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.model.DeviceProfile
 import io.github.kentprodan.mediatheq.core.model.TranscodingTarget
+import io.github.kentprodan.mediatheq.core.model.VideoQuality
 
 /**
  * Builds the profile sent with every stream request (media3 skill, section 3), from real device facts:
@@ -69,6 +70,47 @@ object DeviceProfileBuilder {
             maxStreamingBitrate = bitrate,
         )
     }
+
+    /** Video containers Media3 reads (Jellyfin names, ADR 0050). */
+    val VIDEO_CONTAINERS = listOf("mp4", "m4v", "mkv", "webm", "ts")
+
+    /** What the server converts a video to: HLS fMP4, HEVC first, stereo or 5.1 AAC / Opus (ADR 0050). */
+    val VIDEO_TRANSCODING =
+        TranscodingTarget(
+            container = "mp4",
+            codec = "aac,opus",
+            bitrate = 192_000,
+            maxChannels = 6,
+            segmented = true,
+            videoCodec = "hevc,h264",
+        )
+
+    /**
+     * The profile for streaming a video (ADR 0050): the video codecs the device decodes, the music rule for the audio
+     * inside (E-AC-3 only with a JOC decoder, never TrueHD on a phone), and [quality]'s cap and height. HDR ranges come
+     * with #276, so everything plays as SDR or is tone-mapped by the server.
+     */
+    fun video(
+        audioMimeTypes: Set<String>,
+        videoMimeTypes: Set<String>,
+        quality: VideoQuality,
+    ): DeviceProfile =
+        DeviceProfile(
+            directPlayContainers = VIDEO_CONTAINERS,
+            directPlayCodecs = build(audioMimeTypes, emptySet(), StreamingQuality.Original).directPlayCodecs,
+            transcoding = VIDEO_TRANSCODING,
+            maxStreamingBitrate = quality.bitrate,
+            videoCodecs = VIDEO_CODECS.filter { (_, mime) -> mime in videoMimeTypes }.map { it.first },
+            maxHeight = quality.maxHeight,
+        )
+
+    private val VIDEO_CODECS =
+        listOf(
+            "h264" to "video/avc",
+            "hevc" to "video/hevc",
+            "av1" to "video/av01",
+            "vp9" to "video/x-vnd.on2.vp9",
+        )
 
     /**
      * Jellyfin codec name -> decoder MIME type needed; `null` = Media3 handles it without a platform decoder (PCM).

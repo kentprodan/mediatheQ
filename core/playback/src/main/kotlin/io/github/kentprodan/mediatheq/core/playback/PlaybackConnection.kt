@@ -1,8 +1,10 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import androidx.media3.common.Player
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.Duration
 
@@ -34,6 +36,21 @@ interface PlaybackConnection {
         /** The playlist [queue] is played from (#135): its entries record into that playlist's Resume. */
         playlistId: MediaId? = null,
     )
+
+    /**
+     * Plays [video] from [startPosition] in place of the queue (ADR 0047): the music queue saved before it comes back
+     * paused when the video ends (not in Video mode). Repeat and shuffle are turned off for it.
+     */
+    fun playVideo(
+        video: Video,
+        startPosition: Duration = Duration.ZERO,
+    )
+
+    /**
+     * The session's player as a controller, for the video surface only (`PlayerSurface`, ADR 0049); `null` while not
+     * connected. Screens never command it: commands go through this connection.
+     */
+    val videoPlayer: StateFlow<Player?>
 
     /** Pauses, or plays (also restarting after the queue ended or failed). */
     fun togglePlayPause()

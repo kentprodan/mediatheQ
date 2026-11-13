@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.data.QueueEntryId
 import io.github.kentprodan.mediatheq.core.data.QueuePlace
 import io.github.kentprodan.mediatheq.core.data.QueueRepository
+import io.github.kentprodan.mediatheq.core.data.SavedQueue
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import kotlinx.coroutines.CancellationException
@@ -91,6 +92,11 @@ internal class QueuePersistence(
                 events: Player.Events,
             ) {
                 if (events.containsAny(*SAVED_ON)) saveSoon()
+                val videoEnded =
+                    events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
+                        player.playbackState == Player.STATE_ENDED &&
+                        player.currentMediaItem?.isVideo() == true
+                if (videoEnded) handBack()
             }
         }
 
@@ -115,23 +121,7 @@ internal class QueuePersistence(
                 // Nothing to bring back (none saved, signed out, every track gone, or unreadable): forget it, so the
                 // next media button with the app closed does not start a service with nothing to play (#43).
                 if (saved == null && restores) forget()
-                if (saved != null && player.mediaItemCount == 0) {
-                    val items =
-                        saved.entries.map { entry ->
-                            entry.track
-                                .toMediaItem(
-                                    entry.track.artwork?.let { artworkUrl(it) },
-                                    entry.entryId,
-                                    entry.playlistId,
-                                ).withTrackUri()!!
-                        }
-                    // Not prepared: that would open streams (and server sessions) before anyone presses play.
-                    player.playWhenReady = false
-                    player.setMediaItems(items, saved.place.index, saved.place.position.inWholeMilliseconds)
-                    player.setShuffleOrder(DefaultShuffleOrder(saved.shuffleOrder.toIntArray(), Random.nextLong()))
-                    player.shuffleModeEnabled = saved.place.shuffle
-                    player.repeatMode = saved.place.repeatMode.toPlayerRepeatMode()
-                }
+                if (saved != null && player.mediaItemCount == 0) putBack(saved)
             } finally {
                 // Also when the restore failed: a resumption waiting for it then gets nothing.
                 restored.complete(Unit)
@@ -202,8 +192,50 @@ internal class QueuePersistence(
         return result
     }
 
+    /** The saved queue in the player, paused at its entry and position, with its shuffle order and repeat mode. */
+    private suspend fun putBack(saved: SavedQueue) {
+        val items =
+            saved.entries.map { entry ->
+                entry.track
+                    .toMediaItem(
+                        entry.track.artwork?.let { artworkUrl(it) },
+                        entry.entryId,
+                        entry.playlistId,
+                    ).withTrackUri()!!
+            }
+        // Not prepared: that would open streams (and server sessions) before anyone presses play.
+        player.playWhenReady = false
+        player.setMediaItems(items, saved.place.index, saved.place.position.inWholeMilliseconds)
+        player.setShuffleOrder(DefaultShuffleOrder(saved.shuffleOrder.toIntArray(), Random.nextLong()))
+        player.shuffleModeEnabled = saved.place.shuffle
+        player.repeatMode = saved.place.repeatMode.toPlayerRepeatMode()
+    }
+
+    /**
+     * A video ended (ADR 0047): the music queue saved before it comes back paused; not in Video mode, where it stays
+     * saved, and not when something else was queued meanwhile.
+     */
+    private fun handBack() =
+        scope.launch {
+            if (!restoresMusic() || !isLoggedIn()) return@launch
+            val saved =
+                try {
+                    repository.restore()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    log.warn(TAG, "Could not bring the music back after a video", e)
+                    null
+                } ?: return@launch
+            if (player.currentMediaItem?.isVideo() == true) putBack(saved)
+        }
+
+    /** A video is queued: nothing is saved, so the music queue saved before it stays as it was (ADR 0047). */
+    private fun hasVideo(): Boolean = (0 until player.mediaItemCount).any { player.getMediaItemAt(it).isVideo() }
+
     /** Saves now, e.g. when the service is destroyed (read here, written on [scope] after the player is gone). */
     fun saveNow() {
+        if (hasVideo()) return
         pending?.cancel()
         val snapshot = snapshot()
         scope.launch { snapshot.write() }
@@ -218,7 +250,9 @@ internal class QueuePersistence(
             }
     }
 
-    private suspend fun save() = snapshot().write()
+    private suspend fun save() {
+        if (!hasVideo()) snapshot().write()
+    }
 
     private fun snapshot(): Snapshot {
         val version = queueVersion

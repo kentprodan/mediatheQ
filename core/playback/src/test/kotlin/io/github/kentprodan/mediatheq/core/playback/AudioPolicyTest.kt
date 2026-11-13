@@ -274,4 +274,9 @@ class AudioPolicyTest {
         assertThat(AudioPolicy.decide(both, AudioRoute.UsbDac, bitPerfectFormat = true)).isEqualTo(AudioMode.BitPerfect)
         assertThat(AudioPolicy.offload(both, AudioRoute.UsbDac)).isFalse()
     }
+
+    @Test
+    fun `a playing video is never offloaded`() {
+        assertThat(AudioPolicy.offload(AudioSettings(), AudioRoute.Other, video = true)).isFalse()
+    }
 }

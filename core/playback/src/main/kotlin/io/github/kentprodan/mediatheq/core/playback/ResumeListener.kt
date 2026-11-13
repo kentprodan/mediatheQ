@@ -28,7 +28,7 @@ internal class ResumeListener(
 ) : Player.Listener {
     private var ticker: Job? = null
 
-    private fun MediaItem?.trackId(): MediaId? = this?.mediaId?.let { runCatching { MediaId.parse(it) }.getOrNull() }
+    private fun MediaItem?.trackId(): MediaId? = this?.queuedTrackId()
 
     private fun MediaItem?.record(positionMs: Long) {
         this?.trackId()?.let { record(it, playlistId(), positionMs.milliseconds) }

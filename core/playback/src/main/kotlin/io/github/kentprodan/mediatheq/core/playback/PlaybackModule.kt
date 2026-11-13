@@ -27,6 +27,9 @@ internal interface PlaybackModule {
 
     @Binds
     fun audioDecoders(decoders: MediaCodecAudioDecoders): AudioDecoders
+
+    @Binds
+    fun videoDecoders(decoders: MediaCodecVideoDecoders): VideoDecoders
 }
 
 @UnstableApi

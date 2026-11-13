@@ -33,7 +33,7 @@ internal class InstantTranscoder(
         wasMetered = metered
         if (before != false || !metered || !player.wantsToPlay() || !enabled()) return
         val item = player.currentMediaItem ?: return
-        val id = runCatching { MediaId.parse(item.mediaId) }.getOrNull() ?: return
+        val id = item.queuedTrackId() ?: return
         if (!needsNewStream(id) || player.currentMediaItem?.entryId() != item.entryId()) return
         restartCurrent()
     }

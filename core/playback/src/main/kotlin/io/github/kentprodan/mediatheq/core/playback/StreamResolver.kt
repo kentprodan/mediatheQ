@@ -9,11 +9,14 @@ import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
+import io.github.kentprodan.mediatheq.core.model.StreamChoice
+import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration
 
 /**
  * Turns a track into a playable stream when the player loads it (media3 skill, section 3), in the quality the user set
@@ -28,6 +31,7 @@ class StreamResolver
         private val decoders: AudioDecoders,
         private val networkMonitor: NetworkMonitor,
         private val audioPreferences: AudioPreferencesRepository,
+        private val videoDecoders: VideoDecoders = VideoDecoders { emptySet() },
     ) {
         private class Resolved(
             val stream: PlaybackStream,
@@ -38,6 +42,8 @@ class StreamResolver
             val local: Boolean = false,
             /** Played from a download that is the server's conversion at this bitrate, not the original file (#68). */
             val convertedKbps: Int? = null,
+            /** A video's stream (ADR 0047): no music quality applies to it. */
+            val video: Boolean = false,
         )
 
         private val decoderMimeTypes by lazy { decoders.mimeTypes() }
@@ -84,6 +90,24 @@ class StreamResolver
             val profile = DeviceProfileBuilder.build(decoderMimeTypes, passthrough, quality)
             val result = playbackRepository.stream(itemId, profile)
             if (result is MqResult.Success) streams[itemId] = Resolved(result.value, quality, passthrough)
+            return result
+        }
+
+        /**
+         * A new stream for the video [itemId] (ADR 0050), starting at [startPosition]: the original on an unmetered network,
+         * 480p on a metered one (Settings -> Video sets these with #276). Always asked anew: a video is opened once, and a
+         * new play session per opening is what the server expects. Kept for progress reports ([current]).
+         */
+        suspend fun resolveVideo(
+            itemId: MediaId,
+            startPosition: Duration = Duration.ZERO,
+        ): MqResult<PlaybackStream> {
+            val quality = if (networkMonitor.isMetered()) VideoQuality.P480 else VideoQuality.Original
+            val profile = DeviceProfileBuilder.video(decoderMimeTypes, videoDecoders.mimeTypes(), quality)
+            val result = playbackRepository.stream(itemId, profile, StreamChoice(startPosition))
+            if (result is MqResult.Success) {
+                streams[itemId] = Resolved(result.value, StreamingQuality.Original, video = true)
+            }
             return result
         }
 
@@ -205,7 +229,7 @@ class StreamResolver
         fun current(itemId: MediaId): PlaybackStream? = streams[itemId]?.stream
 
         /** The quality [itemId]'s known stream was asked for; `null` while none is known. */
-        fun quality(itemId: MediaId): StreamingQuality? = streams[itemId]?.quality
+        fun quality(itemId: MediaId): StreamingQuality? = streams[itemId]?.takeUnless { it.video }?.quality
 
         /** Request headers (authentication) for stream requests, from the current token. */
         suspend fun headers(): Map<String, String> = playbackRepository.streamHeaders()
