@@ -161,6 +161,7 @@ class PlayerUiModelTest {
                 bitPerfectSampleRateHz = 96_000,
                 usbDacConnected = true,
                 atmosConverted = true,
+                atmosDecoded = true,
                 playedItemId = "s:t1",
                 streamKnown = true,
                 convertedKbps = 128,

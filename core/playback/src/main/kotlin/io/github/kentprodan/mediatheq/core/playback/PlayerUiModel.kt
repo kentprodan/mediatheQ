@@ -44,6 +44,8 @@ data class AudioOutputInfo(
      * JOC or TrueHD. The only source for an Atmos badge, never the metadata.
      */
     val atmosPassthrough: Boolean = false,
+    /** The playing track is Dolby Atmos and plays as it is, but decoded on this device: no Atmos reaches the output. */
+    val atmosDecoded: Boolean = false,
     /** The queue item [streamKnown] and [convertedKbps] describe; they arrive apart from the item itself. */
     val playedItemId: String? = null,
     /** The playing track's stream is resolved, so [convertedKbps] is known (#125); until then no quality is shown. */

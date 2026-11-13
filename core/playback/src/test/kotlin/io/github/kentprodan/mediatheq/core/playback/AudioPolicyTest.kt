@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import org.junit.Test
@@ -166,6 +167,53 @@ class AudioPolicyTest {
         assertThat(AudioPolicy.playsOriginal(PlayMethod.Transcode, convertedDownload = false)).isFalse()
         assertThat(AudioPolicy.playsOriginal(PlayMethod.DirectStream, convertedDownload = false)).isFalse()
         assertThat(AudioPolicy.playsOriginal(playMethod = null, convertedDownload = false)).isFalse()
+    }
+
+    @Test
+    fun `atmosDecoded and atmosConverted truth table`() {
+        data class Row(
+            val isAtmos: Boolean,
+            val method: PlayMethod?,
+            val convertedDownload: Boolean,
+            val passthrough: Boolean,
+            val decoder: Boolean,
+            val decoded: Boolean,
+            val converted: Boolean,
+        )
+        val rows =
+            listOf(
+                // A JOC file decoded on a route without passthrough (Bluetooth on the Streamer).
+                Row(true, PlayMethod.DirectPlay, false, passthrough = false, decoder = true, decoded = true, false),
+                // Passed through over HDMI: the badge, no note.
+                Row(true, PlayMethod.DirectPlay, false, passthrough = true, decoder = false, decoded = false, false),
+                // The server's stereo conversion: the stereo note only.
+                Row(true, PlayMethod.Transcode, false, passthrough = false, decoder = true, decoded = false, true),
+                // A converted download reports a direct play: still the stereo note only.
+                Row(true, PlayMethod.DirectPlay, true, passthrough = false, decoder = true, decoded = false, true),
+                // Nothing opened yet, or the stream unknown: no note.
+                Row(true, PlayMethod.DirectPlay, false, passthrough = false, decoder = false, decoded = false, false),
+                Row(true, null, false, passthrough = false, decoder = true, decoded = false, false),
+                // JOC sent as plain E-AC-3 (the 5.1 core): a bitstream, not decoded here.
+                Row(true, PlayMethod.DirectPlay, false, passthrough = false, decoder = false, decoded = false, false),
+                // Not Atmos: never a note.
+                Row(false, PlayMethod.DirectPlay, false, passthrough = false, decoder = true, decoded = false, false),
+                Row(false, PlayMethod.Transcode, false, passthrough = false, decoder = true, decoded = false, false),
+            )
+        for (row in rows) {
+            assertWithMessage(row.toString())
+                .that(
+                    AudioPolicy.atmosDecoded(
+                        row.isAtmos,
+                        row.method,
+                        row.convertedDownload,
+                        row.passthrough,
+                        row.decoder,
+                    ),
+                ).isEqualTo(row.decoded)
+            assertWithMessage(row.toString())
+                .that(AudioPolicy.atmosConverted(row.isAtmos, row.method, row.convertedDownload))
+                .isEqualTo(row.converted)
+        }
     }
 
     @Test
