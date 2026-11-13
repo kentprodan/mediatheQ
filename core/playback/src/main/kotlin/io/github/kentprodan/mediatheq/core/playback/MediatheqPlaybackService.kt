@@ -552,6 +552,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     .ifEmpty { null }
             },
         )
+        player.addAnalyticsListener(VideoLogListener(appLog))
         usbAudio = AudioOutputPort.create(getSystemService(AudioManager::class.java))
         // What HDMI passes through (ADR 0039); a change (plug, the TV's surround setting) decides again.
         passthroughCapabilities = Media3PassthroughCapabilities(this) { audioOutput.onCapabilitiesChanged() }
