@@ -42,6 +42,7 @@ import io.github.kentprodan.mediatheq.core.common.DownloadCache
 import io.github.kentprodan.mediatheq.core.common.IoDispatcher
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
+import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.AudioOutputRepository
 import io.github.kentprodan.mediatheq.core.data.AudioPreferences
@@ -104,6 +105,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var sessionRepository: SessionRepository
 
     @Inject lateinit var queueRepository: QueueRepository
+
+    @Inject lateinit var appMode: AppModeRepository
 
     @Inject lateinit var artworkUrls: ArtworkUrlResolver
 
@@ -307,6 +310,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 scope = applicationScope + Dispatchers.Main,
                 artworkUrl = { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) },
                 isLoggedIn = { sessionRepository.session.first() is SessionState.LoggedIn },
+                restoresMusic = { appMode.mode.first().music },
                 log = appLog,
             )
         persistJob = persistence.start()

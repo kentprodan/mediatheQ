@@ -5,6 +5,8 @@ import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.data.LogoutReason
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.feature.onboarding.appmode.AppModeScreen
+import io.github.kentprodan.mediatheq.feature.onboarding.appmode.AppModeUiState
 import io.github.kentprodan.mediatheq.feature.onboarding.login.LoginError
 import io.github.kentprodan.mediatheq.feature.onboarding.login.LoginScreen
 import io.github.kentprodan.mediatheq.feature.onboarding.login.LoginUiState
@@ -88,3 +90,9 @@ fun QuickConnectErrorScreenshot() =
     MediatheqTheme {
         QuickConnectScreen(QuickConnectUiState.Error("Home", unreachable = true), onAction = {}, onCancel = {})
     }
+
+/** The app mode step (ADR 0051) after the first sign-in, Both preselected. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun AppModeStepScreenshot() = MediatheqTheme { AppModeScreen(AppModeUiState(), onAction = {}) }

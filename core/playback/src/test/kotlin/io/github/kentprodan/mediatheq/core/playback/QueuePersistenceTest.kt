@@ -129,6 +129,20 @@ class QueuePersistenceTest {
         }
 
     @Test
+    fun `in Video mode the saved music queue is neither brought back nor forgotten`() =
+        runTest {
+            repository.saved = saved(QueuePlace(1, 42.seconds, shuffle = false))
+
+            QueuePersistence(player, repository, backgroundScope, artworkUrl = { null }, restoresMusic = { false })
+                .start()
+            runCurrent()
+
+            assertThat(player.mediaItemCount).isEqualTo(0)
+            assertThat(repository.clears).isEqualTo(0)
+            assertThat(repository.hasSavedQueue).isTrue()
+        }
+
+    @Test
     fun `nothing left to bring back forgets the saved queue, so a media button starts nothing`() =
         runTest {
             start()

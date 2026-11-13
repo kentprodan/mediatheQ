@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
+import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
@@ -14,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlaybackError
@@ -42,6 +44,7 @@ class MainViewModel
         private val playback: PlaybackConnection,
         libraryRepository: LibraryRepository,
         downloads: DownloadRepository,
+        private val appModeRepository: AppModeRepository,
     ) : ViewModel() {
         /**
          * Theme, font, colors and corners (#137, read with the theme so the first frame never changes shape); `null`
@@ -76,6 +79,20 @@ class MainViewModel
 
         val session: StateFlow<SessionState?> =
             sessionRepository.session.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        /** The app mode (ADR 0051): the shell's tabs, and in Video mode no Now Playing overlay or mini player. */
+        val appMode: StateFlow<AppMode> =
+            appModeRepository.mode.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppMode.Music)
+
+        // Set once this process showed onboarding: an install upgraded while signed in is never asked (ADR 0051).
+        private var signedOutSeen = false
+
+        /** The app mode step: after a sign-in here, until a mode is stored, and only on a server with video. */
+        val asksAppMode: StateFlow<Boolean> =
+            combine(sessionRepository.session, appModeRepository.chosen) { session, chosen ->
+                if (session is SessionState.LoggedOut) signedOutSeen = true
+                appModeRepository.videoAvailable && signedOutSeen && !chosen && session is SessionState.LoggedIn
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
         /** A favorite or rating the server refused (it was undone), for one app-wide message. */
         val userDataError: StateFlow<MqError?> = userDataRepository.error
