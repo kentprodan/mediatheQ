@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,7 +60,8 @@ fun MqPosterCard(
             MqCover(coverModel, contentDescription = null, blurHash = artwork?.blurHash, aspectRatio = POSTER_RATIO)
             val corner = Modifier.align(Alignment.TopEnd).padding(MediatheqSpacing.s)
             if (badge != null) {
-                Badge(corner) { Text(badge.toString()) }
+                // The card's state says it in words; the bare number would be read twice.
+                Badge(corner.clearAndSetSemantics {}) { Text(badge.toString()) }
             } else if (watched) {
                 // On its own disc: a check in the theme color alone vanishes on a poster of similar colors.
                 Icon(

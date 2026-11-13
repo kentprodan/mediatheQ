@@ -94,7 +94,10 @@ internal fun BaseItemDto.toTrack(serverId: ServerId): Track? {
     )
 }
 
-/** A movie or an episode (#270); an episode without its series id is dropped (it could not be listed anywhere). */
+/**
+ * A movie or an episode (#270). An episode without its series id is kept (no series page lists it): dropping it would
+ * leave the step short of the server's total, and every sync would fetch the episodes twice.
+ */
 internal fun BaseItemDto.toVideo(
     serverId: ServerId,
     kind: VideoKind,
@@ -102,7 +105,6 @@ internal fun BaseItemDto.toVideo(
     val (id, name) = idAndName() ?: return null
     val episode = kind == VideoKind.Episode
     val series = seriesId?.takeIf { it.isNotEmpty() }?.let { MediaId(serverId, it) }
-    if (episode && series == null) return null
     val source = mediaSources.firstOrNull()
     val streams = source?.mediaStreams.orEmpty()
     return Video(

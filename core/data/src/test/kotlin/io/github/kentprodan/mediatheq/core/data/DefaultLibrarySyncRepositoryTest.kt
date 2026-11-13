@@ -940,6 +940,27 @@ class DefaultLibrarySyncRepositoryTest {
         }
 
     @Test
+    fun `a sync stopped at the first movie page resumes there, without the playlist entries again`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            capabilities = ServerCapabilities(video = true)
+            signIn()
+            val repository = repository()
+            source.failAt = 7 // movies@0, after the 6 music calls
+
+            assertThat(repository.sync()).isInstanceOf(MqResult.Failure::class.java)
+            source.calls.clear()
+            source.failAt = null
+            assertThat(repository.sync()).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(source.calls)
+                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500")
+                .inOrder()
+            assertThat(count("playlist_entry")).isEqualTo(3)
+        }
+
+    @Test
     fun `an episode lost between pages is fetched again from the start of its step`() =
         runTest(dispatcher) {
             fillSource(trackCount = 3)

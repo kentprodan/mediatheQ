@@ -121,6 +121,26 @@ class VideoQueriesTest {
         }
 
     @Test
+    fun `series newest year first, one without a year last, and newest added first`() =
+        runTest {
+            syncDao.stageSeries(
+                listOf(
+                    SeriesEntity("s", "a", "A", "a", year = 2001, dateAddedMillis = 5),
+                    SeriesEntity("s", "b", "B", "b", year = null, dateAddedMillis = 9),
+                    SeriesEntity("s", "c", "C", "c", year = 2020, dateAddedMillis = null),
+                ).map(::SeriesStaging),
+            )
+            syncDao.swap(2, "s", "u")
+
+            assertThat(dao.series(true, emptyList(), false, SORT_YEAR).first().map { it.id })
+                .containsExactly("c", "a", "b")
+                .inOrder()
+            assertThat(dao.series(true, emptyList(), false, SORT_ADDED).first().map { it.id })
+                .containsExactly("b", "a", "c")
+                .inOrder()
+        }
+
+    @Test
     fun `series by name and counts`() =
         runTest {
             assertThat(dao.series(true, emptyList(), false, SORT_NAME).first().map { it.id })

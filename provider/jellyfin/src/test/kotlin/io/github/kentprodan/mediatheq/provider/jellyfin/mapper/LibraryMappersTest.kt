@@ -112,8 +112,11 @@ class LibraryMappersTest {
     }
 
     @Test
-    fun `an episode or season without its series is dropped`() {
-        assertThat(BaseItemDto(id = "e1", name = "E").toVideo(server, VideoKind.Episode)).isNull()
+    fun `an episode without its series is kept without one, a season without it is dropped`() {
+        val episode = BaseItemDto(id = "e1", name = "E", indexNumber = 2).toVideo(server, VideoKind.Episode)
+
+        assertThat(episode?.seriesId).isNull()
+        assertThat(episode?.episodeNumber).isEqualTo(2)
         assertThat(BaseItemDto(id = "s1", name = "S").toSeason(server)).isNull()
     }
 
