@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.HomeShuffle
 import io.github.kentprodan.mediatheq.core.data.Mix
+import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.model.Album
@@ -14,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
@@ -58,19 +60,23 @@ class TvHomeViewModelTest {
 
     private val tracks = listOf(track("a1", alpha), track("a2", alpha), track("b1", beta))
 
+    private fun newViewModel() =
+        TvHomeViewModel(
+            library,
+            sync,
+            playback,
+            TrackTaps(playback, preferences),
+            playlists,
+            preferences,
+            HomeShuffle(1),
+            TestClock(day(20)),
+            mainDispatcherRule.testDispatcher,
+        )
+
     private fun TestScope.viewModel(status: SyncStatus = SyncStatus.Idle(day(10))): TvHomeViewModel {
         sync.status.value = status
         val viewModel =
-            TvHomeViewModel(
-                library,
-                sync,
-                playback,
-                playlists,
-                preferences,
-                HomeShuffle(1),
-                TestClock(day(20)),
-                mainDispatcherRule.testDispatcher,
-            )
+            newViewModel()
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -87,16 +93,7 @@ class TvHomeViewModelTest {
     fun `before anything is collected the screen is loading`() =
         test {
             val viewModel =
-                TvHomeViewModel(
-                    library,
-                    sync,
-                    playback,
-                    playlists,
-                    preferences,
-                    HomeShuffle(1),
-                    TestClock(day(20)),
-                    mainDispatcherRule.testDispatcher,
-                )
+                newViewModel()
             assertThat(viewModel.uiState.value).isEqualTo(TvHomeUiState.Loading)
         }
 
@@ -170,5 +167,31 @@ class TvHomeViewModelTest {
 
             assertThat(playback.plays.first().startIndex).isEqualTo(1)
             assertThat(playback.plays.last().queue).containsExactlyElementsIn(tracks)
+        }
+
+    @Test
+    fun `an artist plays its albums one after the other, a playlist its entries`() =
+        test {
+            val viewModel = withLibrary()
+            library.artistAlbums.value = mapOf(ada.id to listOf(alpha, beta))
+            playlists.items.value = mapOf(id("pl") to listOf(PlaylistItem("e1", 0, tracks[2])))
+
+            viewModel.onAction(TvHomeAction.Play(TvHomeTarget.Artist(ada.id)))
+            viewModel.onAction(TvHomeAction.AddToQueue(TvHomeTarget.Playlist(id("pl"))))
+            runCurrent()
+
+            assertThat(playback.plays.single().queue).containsExactlyElementsIn(tracks).inOrder()
+            assertThat(playback.addedToQueue).containsExactly(listOf(tracks[2]))
+        }
+
+    @Test
+    fun `the album mix plays every album whole`() =
+        test {
+            val viewModel = withLibrary()
+
+            viewModel.onAction(TvHomeAction.PlayMix(Mix.Albums))
+            runCurrent()
+
+            assertThat(playback.plays.single().queue).containsExactlyElementsIn(tracks)
         }
 }

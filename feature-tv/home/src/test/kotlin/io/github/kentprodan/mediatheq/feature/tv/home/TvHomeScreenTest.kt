@@ -3,12 +3,15 @@ package io.github.kentprodan.mediatheq.feature.tv.home
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performKeyPress
 import androidx.compose.ui.test.pressKey
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.HomeItems
@@ -34,7 +37,9 @@ class TvHomeScreenTest {
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
     private val ada = Artist(id("ar"), "Ada")
-    private val albums = (1..6).map { Album(id("al$it"), "Album $it", listOf(ada)) }
+
+    // More than fit on the screen, so the row can scroll the focused card to its line.
+    private val albums = (1..12).map { Album(id("al$it"), "Album $it", listOf(ada)) }
     private val favorites = (1..6).map { Album(id("fa$it"), "Favorite $it", listOf(ada)) }
     private val actions = mutableListOf<TvHomeAction>()
     private val opened = mutableListOf<MediaId>()
@@ -98,4 +103,47 @@ class TvHomeScreenTest {
         assertThat(actions).containsExactly(TvHomeAction.Play(TvHomeTarget.Album(id("al1"))))
         composeRule.onNodeWithText("Shuffle").assertDoesNotExist()
     }
+
+    @Test
+    fun `a long press opens the menu, and letting go of select does not press Play`() {
+        show()
+
+        composeRule.onRoot().performKeyInput {
+            keyDown(Key.DirectionCenter)
+            advanceEventTime(1_000)
+        }
+        listOf("Play", "Shuffle", "Add to queue").forEach { composeRule.onNodeWithText(it).assertExists() }
+        // On a TV the held key's repeats and its release go to the menu's window.
+        val play = composeRule.onNodeWithText("Play")
+        play.performKeyPress(center(NativeKeyEvent.ACTION_DOWN, repeat = 3))
+        play.performKeyPress(center(NativeKeyEvent.ACTION_UP))
+
+        assertThat(actions).isEmpty()
+        assertThat(opened).isEmpty()
+        composeRule.onNodeWithText("Shuffle").assertExists()
+    }
+
+    @Test
+    fun `moving along a row keeps the focused card 30 percent from the left`() {
+        show()
+
+        repeat(4) {
+            press(listOf(Key.DirectionRight))
+            composeRule.mainClock.advanceTimeBy(1_000)
+        }
+
+        val card = composeRule.onNodeWithText("Album 5").assertIsFocused().fetchSemanticsNode()
+        val width =
+            composeRule
+                .onRoot()
+                .fetchSemanticsNode()
+                .size.width
+        // The focus scale grows the card a little around its center: a tolerance of a few percent of the screen.
+        assertThat(card.boundsInRoot.left / width).isWithin(0.03f).of(0.3f)
+    }
+
+    private fun center(
+        action: Int,
+        repeat: Int = 0,
+    ) = KeyEvent(NativeKeyEvent(0L, 0L, action, NativeKeyEvent.KEYCODE_DPAD_CENTER, repeat))
 }

@@ -169,12 +169,25 @@ private fun Rows(
     LaunchedEffect(Unit) {
         // Lazy rows compose their cards when laid out, after this effect starts: wait for that frame.
         withFrameNanos {}
-        rows.firstOrNull()?.let { focus.restore(firstKey(it)) }
+        rows.firstNotNullOfOrNull(::firstKey)?.let(focus::restore)
     }
     menu?.let { shown -> CoverMenu(shown, onAction) { menu = null } }
 }
 
-private fun firstKey(row: TvHomeRow): String = "${row.section.name}/0"
+/** A card's key in the focus memory: by item, so a row that changes while a detail page is open still finds it. */
+private fun focusKey(
+    row: TvHomeRow,
+    item: Any,
+): String = "${row.section.name}/$item"
+
+private fun firstKey(row: TvHomeRow): String? =
+    when (val items = row.items) {
+        is HomeItems.Albums -> items.albums.firstOrNull()?.id
+        is HomeItems.Artists -> items.artists.firstOrNull()?.id
+        is HomeItems.Playlists -> items.playlists.firstOrNull()?.id
+        is HomeItems.Tracks -> items.tracks.firstOrNull()?.id
+        is HomeItems.Shortcuts -> Mix.Tracks
+    }?.let { focusKey(row, it) }
 
 /** The cards of one row, by what the section holds. */
 private class Cards(
@@ -184,12 +197,11 @@ private class Cards(
     val openMenu: (Menu) -> Unit,
 ) {
     fun LazyListScope.row(row: TvHomeRow) {
-        val section = row.section.name
         when (val items = row.items) {
             is HomeItems.Albums -> {
                 itemsIndexed(items.albums, key = { _, it -> it.id.toString() }) { index, album ->
                     Card(
-                        "$section/$index",
+                        focusKey(row, album.id),
                         album.title,
                         album.artwork,
                         names(album.albumArtists),
@@ -201,7 +213,7 @@ private class Cards(
             is HomeItems.Artists -> {
                 itemsIndexed(items.artists, key = { _, it -> it.id.toString() }) { index, artist ->
                     Card(
-                        "$section/$index",
+                        focusKey(row, artist.id),
                         artist.name,
                         artist.artwork,
                         null,
@@ -214,7 +226,7 @@ private class Cards(
             is HomeItems.Playlists -> {
                 itemsIndexed(items.playlists, key = { _, it -> it.id.toString() }) { index, playlist ->
                     Card(
-                        "$section/$index",
+                        focusKey(row, playlist.id),
                         playlist.name,
                         playlist.artwork,
                         null,
@@ -226,7 +238,7 @@ private class Cards(
             is HomeItems.Tracks -> {
                 itemsIndexed(items.tracks, key = { _, it -> it.id.toString() }) { index, track ->
                     Card(
-                        "$section/$index",
+                        focusKey(row, track.id),
                         track.title,
                         track.artwork,
                         names(track.artists),
@@ -253,7 +265,7 @@ private class Cards(
                                     MqTvIcons.Radio
                             }
                         }
-                    Card("$section/$index", title, null, null, null, icon) { onAction(TvHomeAction.PlayMix(mix)) }
+                    Card(focusKey(row, mix), title, null, null, null, icon) { onAction(TvHomeAction.PlayMix(mix)) }
                 }
             }
         }
@@ -298,9 +310,22 @@ private fun CoverMenu(
     onDismiss: () -> Unit,
 ) {
     val first = remember { FocusRequester() }
+    // A long-press opens this while select is still held: its repeats and its release would press Play. Select counts
+    // only after a fresh press in the menu.
+    var armed by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.large) {
-            Column(Modifier.width(360.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                Modifier
+                    .width(360.dp)
+                    .padding(16.dp)
+                    .onPreviewKeyEvent { event ->
+                        if (event.key !in SELECT_KEYS) return@onPreviewKeyEvent false
+                        if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) armed = true
+                        !armed
+                    },
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Text(
                     menu.title,
                     Modifier.padding(horizontal = 12.dp, vertical = 8.dp).semantics { heading() },
@@ -362,6 +387,8 @@ private fun Message(
 }
 
 private val EDGE = 48.dp
+
+private val SELECT_KEYS = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter)
 
 /** The focused card sits 30 % from the row's start; rows scroll under that fixed line (#236). */
 @OptIn(ExperimentalFoundationApi::class)

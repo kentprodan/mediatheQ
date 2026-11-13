@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.data.homeLibrary
 import io.github.kentprodan.mediatheq.core.data.mixTracks
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -41,6 +42,7 @@ class TvHomeViewModel
         private val library: LibraryRepository,
         private val sync: LibrarySyncRepository,
         private val playback: PlaybackConnection,
+        private val trackTaps: TrackTaps,
         private val playlists: PlaylistRepository,
         preferences: LibraryPreferencesRepository,
         private val shuffle: HomeShuffle,
@@ -95,7 +97,7 @@ class TvHomeViewModel
                     }
 
                     is TvHomeAction.PlayTracks -> {
-                        playback.play(action.tracks, action.index)
+                        trackTaps.tap(action.tracks, action.index)
                     }
 
                     is TvHomeAction.PlayMix -> {

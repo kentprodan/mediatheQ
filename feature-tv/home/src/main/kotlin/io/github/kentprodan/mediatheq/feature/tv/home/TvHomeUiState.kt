@@ -67,7 +67,7 @@ sealed interface TvHomeAction {
         val target: TvHomeTarget,
     ) : TvHomeAction
 
-    /** Select on a track of a row: the row's tracks from [index]. */
+    /** Select on a track of a row: the Default track action on the row's tracks (as on the phone). */
     data class PlayTracks(
         val tracks: List<Track>,
         val index: Int,

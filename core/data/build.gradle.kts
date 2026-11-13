@@ -16,7 +16,7 @@ dependencies {
     implementation(projects.core.database)
     implementation(libs.kotlinx.serialization.json)
     // ArtworkInterceptor: both apps' image loaders turn an Artwork into a server URL (ADR 0038).
-    api(libs.coil.core)
+    implementation(libs.coil.core)
     testImplementation(projects.core.testing)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.ext.junit)
