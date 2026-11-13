@@ -73,6 +73,41 @@ class AppShellTest {
     }
 
     @Test
+    fun `a page leaving after back takes no taps`() {
+        // #189: the popped page stays on top of the one below until its exit transition ends.
+        composeRule.setContent { Shell() }
+        openLibraryDetail()
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+        repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+        composeRule.onNodeWithText("Open next").performClick()
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Library 2").assertDoesNotExist()
+        composeRule.onNodeWithText("Open detail").assertExists()
+    }
+
+    @Test
+    fun `a page being opened takes taps before its transition ends`() {
+        composeRule.setContent { Shell() }
+        composeRule.onNodeWithText("Library").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onNodeWithText("Open detail").performClick()
+        composeRule.waitForIdle()
+        repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+        composeRule.onNodeWithText("Open next").performClick()
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Library 2").assertExists()
+    }
+
+    @Test
     fun `re-selecting the current tab returns to its root`() {
         composeRule.setContent { Shell() }
         openLibraryDetail()

@@ -40,3 +40,4 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - The waveform analysis no longer keeps the processor busy or stops making waveforms when one file never finishes decoding.
 - Typing in search in list (Library) and in the Downloads filter no longer moves the cursor back.
 - Bit-perfect USB turned on while a track plays takes effect at once, not only from the next track.
+- A tap right after going back no longer reaches the page you are leaving: the Settings gear on Home opens Settings at the first tap, instead of a track menu.

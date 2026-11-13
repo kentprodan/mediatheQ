@@ -1,10 +1,12 @@
 package io.github.kentprodan.mediatheq.navigation
 
 import android.content.res.Configuration
+import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -42,6 +44,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -145,10 +148,20 @@ private fun ShellContent(
     val animatedScopeDecorator =
         remember {
             NavEntryDecorator<NavKey>(onPop = {}) { entry ->
-                CompositionLocalProvider(
-                    LocalNavAnimatedVisibilityScope provides LocalNavAnimatedContentScope.current,
-                ) {
-                    entry.Content()
+                val scope = LocalNavAnimatedContentScope.current
+                CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides scope) {
+                    Box(propagateMinConstraints = true) {
+                        entry.Content()
+                        // A popped page stays on top of the one below until its exit ends: it must not take that
+                        // tap (#189). Dialog scenes share the main scene's scope, which stays Visible under them.
+                        if (scope.transition.targetState == EnterExitState.PostExit) {
+                            Box(
+                                Modifier.matchParentSize().pointerInput(
+                                    Unit,
+                                ) { awaitPointerEventScope { while (true) awaitPointerEvent() } },
+                            )
+                        }
+                    }
                 }
             }
         }
