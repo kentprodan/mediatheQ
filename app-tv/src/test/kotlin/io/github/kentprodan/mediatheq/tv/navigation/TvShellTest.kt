@@ -44,11 +44,19 @@ class TvShellTest {
 
     private val backStack = mutableStateListOf<NavKey>(HomeKey)
     private val album = AlbumKey(MediaId(ServerId("s"), "a"))
+    private val unknown = mutableListOf<NavKey>()
+
+    private data object NoScreenKey : NavKey
 
     private fun show(drawer: DrawerValue = DrawerValue.Closed) {
         composeRule.setContent {
             MediatheqTvTheme {
-                TvShell(backStack, PlayerUiModel(), onLeave = {}, initialDrawer = drawer) { navigator ->
+                TvShell(
+                    backStack,
+                    PlayerUiModel(),
+                    onUnknown = { unknown += it },
+                    initialDrawer = drawer,
+                ) { navigator ->
                     entry(HomeKey) {
                         // Two items; the second opens a detail page.
                         val focus = rememberFocusMemory()
@@ -84,7 +92,7 @@ class TvShellTest {
         composeRule.onNodeWithText("First album").assertExists()
         assertThat(backStack).containsExactly(HomeKey)
 
-        // On Home the activity's own Back runs: the app leaves.
+        // On Home the shell has nothing to pop: the activity's own Back runs and the app leaves.
         pressBack()
         assertThat(composeRule.activity.isFinishing).isTrue()
     }
@@ -100,5 +108,32 @@ class TvShellTest {
         composeRule.mainClock.advanceTimeBy(1_000)
 
         composeRule.onNodeWithText("Second album").assertIsFocused()
+    }
+
+    @Test
+    fun `focus entering the drawer lands on the selected entry, not the one focused last`() {
+        show()
+        composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
+
+        // Into the drawer, down to Library without selecting it, back to the content, into the drawer again.
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+        composeRule.onNodeWithText("Home").assertIsFocused()
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
+        composeRule.onNodeWithText("Library").assertIsFocused()
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+
+        composeRule.onNodeWithText("Home").assertIsFocused()
+    }
+
+    @Test
+    fun `a key without a TV screen shows a placeholder and is logged once`() {
+        show()
+        composeRule.runOnUiThread { backStack.add(NoScreenKey) }
+
+        composeRule.onNodeWithText("Coming in a next version of the TV app.").assertExists()
+        composeRule.runOnUiThread { backStack.add(album) }
+        composeRule.onNodeWithText("Album page").assertExists()
+        assertThat(unknown).containsExactly(NoScreenKey)
     }
 }

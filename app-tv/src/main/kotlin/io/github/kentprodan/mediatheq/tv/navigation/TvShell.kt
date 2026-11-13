@@ -1,18 +1,21 @@
 package io.github.kentprodan.mediatheq.tv.navigation
 
-import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusRestorer
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -41,25 +44,18 @@ import io.github.kentprodan.mediatheq.tv.R
 internal fun TvShellRoute(viewModel: TvShellViewModel = hiltViewModel()) {
     val player by viewModel.player.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(HomeKey)
-    val activity = LocalContext.current as? Activity
-    TvShell(
-        backStack,
-        player,
-        onLeave = { activity?.finish() },
-        onUnknown = viewModel::unknownDestination,
-    ) { navigator -> tvPlaceholderEntries(navigator) }
+    TvShell(backStack, player, onUnknown = viewModel::unknownDestination) { tvPlaceholderEntries() }
 }
 
 /**
  * The TV frame (ADR 0041): the drawer on the left (collapsed to icons until focused, the now-playing strip in its
  * footer), the top of the one back stack on the right. [entries] registers the screens; a key without a screen shows
- * a placeholder and is logged. Back pops, and leaves the app ([onLeave]) only on Home.
+ * a placeholder and is logged once. Back pops; on Home the shell does not handle it, so the activity's own Back leaves.
  */
 @Composable
 fun TvShell(
     backStack: MutableList<NavKey>,
     player: PlayerUiModel,
-    onLeave: () -> Unit,
     onUnknown: (NavKey) -> Unit = {},
     initialDrawer: DrawerValue = DrawerValue.Closed,
     entries: EntryProviderScope<NavKey>.(TvNavigator) -> Unit,
@@ -70,14 +66,17 @@ fun TvShell(
         // Each screen requests its own initial focus once, the item it had before when it comes back (FocusMemory).
         NavDisplay(
             backStack = backStack,
-            onBack = { if (!navigator.back()) onLeave() },
+            onBack = { navigator.back() },
             entryDecorators =
                 listOf(rememberSaveableStateHolderNavEntryDecorator(), rememberViewModelStoreNavEntryDecorator()),
             entryProvider =
                 entryProvider(
                     fallback = { key ->
-                        onUnknown(key)
-                        NavEntry(key) { TvPlaceholder(stringResource(R.string.app_name)) }
+                        NavEntry(key) {
+                            // The provider runs again on every stack change: log when the entry shows, not per call.
+                            LaunchedEffect(key) { onUnknown(key) }
+                            TvPlaceholder(stringResource(R.string.app_name))
+                        }
                     },
                 ) { entries(navigator) },
         )
@@ -109,24 +108,31 @@ private fun NavigationDrawerScope.Drawer(
     player: PlayerUiModel,
     onNavigate: (NavKey) -> Unit,
 ) {
-    // The drawer keeps the selected entry: focus coming back from the content lands on it (ADR 0041).
+    // Focus coming back from the content lands on the selected entry, not on the one focused last (ADR 0041).
+    val requesters = remember { TvDestination.entries.associateWith { FocusRequester() } }
     Column(
-        Modifier.fillMaxHeight().padding(12.dp).focusRestorer(),
+        Modifier
+            .fillMaxHeight()
+            .padding(12.dp)
+            .focusProperties { onEnter = { requesters.getValue(selected).requestFocus() } },
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         TvDestination.entries.forEach { destination ->
             NavigationDrawerItem(
                 selected = destination == selected,
                 onClick = { onNavigate(destination.key) },
+                modifier = Modifier.focusRequester(requesters.getValue(destination)),
                 leadingContent = { Icon(destination.icon, contentDescription = null) },
             ) { Text(stringResource(destination.label)) }
         }
         Spacer(Modifier.weight(1f))
         player.item?.let { item ->
+            val playState = stringResource(if (player.isPlaying) R.string.tv_playing else R.string.tv_paused)
             // The strip: what plays, its play state; selecting it opens Now playing.
             NavigationDrawerItem(
                 selected = false,
                 onClick = { onNavigate(TvDestination.NowPlaying.key) },
+                modifier = Modifier.semantics { stateDescription = playState },
                 leadingContent = {
                     Icon(if (player.isPlaying) MqTvIcons.Pause else MqTvIcons.Play, contentDescription = null)
                 },

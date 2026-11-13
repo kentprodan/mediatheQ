@@ -53,4 +53,15 @@ class TvNavigatorTest {
         assertThat(TvNavigator.back(stack)).isFalse()
         assertThat(stack).containsExactly(HomeKey)
     }
+
+    @Test
+    fun `a key no drawer entry knows pushes like a detail page`() {
+        val stack = stack(HomeKey, LibraryKey)
+
+        TvNavigator.navigate(stack, NoScreenKey)
+
+        assertThat(stack).containsExactly(HomeKey, LibraryKey, NoScreenKey).inOrder()
+    }
+
+    private data object NoScreenKey : NavKey
 }

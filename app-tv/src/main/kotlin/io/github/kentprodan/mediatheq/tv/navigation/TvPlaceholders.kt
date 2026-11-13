@@ -19,9 +19,7 @@ import io.github.kentprodan.mediatheq.tv.PlaceholderScreen
 import io.github.kentprodan.mediatheq.tv.R
 
 /** The drawer's screens until their issues land (#236 Home, #237 Library, #244 Search, #240 Now playing, #243). */
-fun EntryProviderScope<NavKey>.tvPlaceholderEntries(
-    @Suppress("UNUSED_PARAMETER") navigator: TvNavigator,
-) {
+fun EntryProviderScope<NavKey>.tvPlaceholderEntries() {
     TvDestination.entries.forEach { destination ->
         when (destination) {
             TvDestination.Home -> entry(destination.key) { PlaceholderScreen() }

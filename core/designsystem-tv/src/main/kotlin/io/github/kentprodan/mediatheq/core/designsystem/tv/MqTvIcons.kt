@@ -11,7 +11,6 @@ object MqTvIcons {
     val Search: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_search)
     val NowPlaying: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_queue_music)
     val Settings: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_settings)
-    val MusicNote: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_music_note)
     val Play: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_play_arrow_filled)
     val Pause: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_pause_filled)
 }

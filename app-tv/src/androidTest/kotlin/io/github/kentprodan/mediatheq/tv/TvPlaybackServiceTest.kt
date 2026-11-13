@@ -12,7 +12,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.TimeUnit
 
-/** On the Streamer: the playback service starts in the TV app and its controller connects (#235, device test). */
+/** On the Streamer: the playback service starts in the TV app, its controller connects and its session opens TvActivity (#235, device test). */
 @RunWith(AndroidJUnit4::class)
 class TvPlaybackServiceTest {
     @Test
@@ -27,8 +27,15 @@ class TvPlaybackServiceTest {
         val controller = MediaController.Builder(context, token).buildAsync().get(10, TimeUnit.SECONDS)
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            assertThat(controller.isConnected).isTrue()
-            controller.release()
+            try {
+                assertThat(controller.isConnected).isTrue()
+                // The launcher's Now Playing card opens the session activity: TvActivity on TV.
+                assertThat(controller.sessionActivity).isNotNull()
+                val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
+                assertThat(launch?.component?.className).isEqualTo(TvActivity::class.java.name)
+            } finally {
+                controller.release()
+            }
         }
     }
 }
