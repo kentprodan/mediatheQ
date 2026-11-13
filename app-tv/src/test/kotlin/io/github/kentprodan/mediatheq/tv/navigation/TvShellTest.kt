@@ -1,0 +1,104 @@
+package io.github.kentprodan.mediatheq.tv.navigation
+
+import android.app.Application
+import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.pressKey
+import androidx.navigation3.runtime.NavKey
+import androidx.tv.material3.DrawerValue
+import androidx.tv.material3.Text
+import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
+import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
+import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
+import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
+import io.github.kentprodan.mediatheq.core.navigation.HomeKey
+import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
+import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+// A 1080p TV; the shell with test screens, no Hilt graph.
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class, qualifiers = "w960dp-h540dp-land-television-xhdpi")
+class TvShellTest {
+    @get:Rule
+    val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    private val backStack = mutableStateListOf<NavKey>(HomeKey)
+    private val album = AlbumKey(MediaId(ServerId("s"), "a"))
+
+    private fun show(drawer: DrawerValue = DrawerValue.Closed) {
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvShell(backStack, PlayerUiModel(), onLeave = {}, initialDrawer = drawer) { navigator ->
+                    entry(HomeKey) {
+                        // Two items; the second opens a detail page.
+                        val focus = rememberFocusMemory()
+                        Column {
+                            MqTvButton("First album", {}, Modifier.focusMemory(focus, "first"))
+                            MqTvButton(
+                                "Second album",
+                                { navigator.navigateTo(album) },
+                                Modifier.focusMemory(focus, "second"),
+                            )
+                        }
+                        LaunchedEffect(Unit) { focus.restore("first") }
+                    }
+                    entry(LibraryKey) { Text("Library screen") }
+                    entry(album) { MqTvButton("Album page", {}) }
+                }
+            }
+        }
+    }
+
+    private fun pressBack() = composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+
+    @Test
+    fun `a drawer entry shows its screen, Back from it lands on Home, Back on Home leaves`() {
+        // The drawer as it is with focus in it: open, its entries named.
+        show(DrawerValue.Open)
+
+        composeRule.onNodeWithText("Library").performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
+        composeRule.onNodeWithText("Library screen").assertExists()
+
+        pressBack()
+        composeRule.onNodeWithText("First album").assertExists()
+        assertThat(backStack).containsExactly(HomeKey)
+
+        // On Home the activity's own Back runs: the app leaves.
+        pressBack()
+        assertThat(composeRule.activity.isFinishing).isTrue()
+    }
+
+    @Test
+    fun `coming back from a detail page, focus returns to the item that opened it`() {
+        show()
+        composeRule.onNodeWithText("Second album").performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
+        composeRule.onNodeWithText("Album page").assertExists()
+
+        pressBack()
+        composeRule.mainClock.advanceTimeBy(1_000)
+
+        composeRule.onNodeWithText("Second album").assertIsFocused()
+    }
+}

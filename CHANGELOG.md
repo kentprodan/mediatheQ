@@ -22,6 +22,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - The app has its own icon (a Q made of a record and a play button), also for themed icons, and on the About page.
 - A first TV app for Google TV: it installs with its own banner and shows a placeholder screen driven by the remote.
 - Sign in on the TV: enter the server address, then approve a Quick Connect code from your phone, or use your user name and password.
+- The TV app's frame: a side menu (Home, Library, Search, Now playing, Settings) that opens when you move into it, with what is playing at its foot.
 
 ### Fixed
 - Now Playing on a phone held sideways shows the controls without scrolling (smaller transport buttons, the album line in the menu).

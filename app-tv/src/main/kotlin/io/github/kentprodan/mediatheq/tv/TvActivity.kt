@@ -21,10 +21,10 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.OnboardingServerKey
 import io.github.kentprodan.mediatheq.feature.tv.onboarding.tvOnboardingEntries
+import io.github.kentprodan.mediatheq.tv.navigation.TvShellRoute
 
 /**
- * The TV app's one activity (ADR 0038): onboarding while signed out (ADR 0040), the placeholder Home once signed in
- * (#235 brings the shell). A 401 signs out in the repository (ADR 0036), and the onboarding starts again at the server.
+ * The TV app's one activity (ADR 0038): onboarding while signed out (ADR 0040), the shell once signed in (ADR 0041). A 401 signs out in the repository (ADR 0036), and the onboarding starts again at the server.
  * shortcut: no Android 17 local network permission gate (the Streamer runs Android 14); port the phone's
  * LocalNetworkGate when a TV runs Android 17.
  */
@@ -42,7 +42,7 @@ private fun TvApp(viewModel: TvMainViewModel = hiltViewModel()) {
     when (session) {
         null -> Unit
         is SessionState.LoggedOut -> TvOnboardingHost()
-        is SessionState.LoggedIn -> PlaceholderScreen()
+        is SessionState.LoggedIn -> TvShellRoute()
     }
 }
 
