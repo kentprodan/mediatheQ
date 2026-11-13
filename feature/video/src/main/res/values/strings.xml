@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="video_movies">Movies</string>
+    <string name="video_series">Series</string>
+    <string name="video_back">Back</string>
+    <string name="video_sort">Sort</string>
+    <string name="video_sort_name">Name</string>
+    <string name="video_sort_added">Date added</string>
+    <string name="video_sort_year">Year</string>
+    <string name="video_unwatched">Unwatched</string>
+    <string name="video_movies_empty_title">No movies yet</string>
+    <string name="video_series_empty_title">No series yet</string>
+    <string name="video_empty_body">They show here after a sync with a server that has video libraries. In offline mode only downloaded videos show.</string>
+    <string name="video_all_watched_title">All watched</string>
+    <string name="video_all_watched_body">Turn off Unwatched to see everything.</string>
+    <string name="video_error_title">Could not read the library</string>
+    <string name="video_error_body">Try again after the next sync.</string>
+    <string name="video_coming_title">Playing videos comes soon</string>
+    <string name="video_coming_body">This page and the player come in a later update.</string>
+</resources>

@@ -224,6 +224,7 @@ class DefaultLibraryPreferencesRepository
                             .distinct()
                             .ifEmpty { defaults.shortcuts }
                             .map { it.name },
+                    knownShortcuts = LibraryShortcut.entries.map { it.name },
                     style = page.style.name,
                     columns = page.columns.takeIf { it in LibraryPagePreferences.COLUMNS } ?: defaults.columns,
                     landscapeColumns =
@@ -464,15 +465,22 @@ class DefaultLibraryPreferencesRepository
         private fun completeOrder(order: List<AlbumSection>): List<AlbumSection> =
             order.distinct().let { known -> known + AlbumSection.entries.filterNot { it in known } }
 
-        /** Unknown or repeated tile names are dropped; none left (or none stored) means every tile. */
+        /**
+         * Unknown or repeated tile names are dropped; none left (or none stored) means every tile. A tile the app did not
+         * have when the list was saved is appended, so customized tiles still get new ones (Movies and Series, #270).
+         */
         private fun libraryPage(stored: StoredLibraryPage): LibraryPagePreferences {
             val defaults = LibraryPagePreferences()
+            val known =
+                stored.knownShortcuts?.mapNotNull { enumOrNull<LibraryShortcut>(it) }
+                    ?: (LibraryShortcut.entries - TILES_SINCE_270)
             return LibraryPagePreferences(
                 shortcuts =
                     stored.shortcuts
                         ?.mapNotNull { enumOrNull<LibraryShortcut>(it) }
                         ?.distinct()
                         ?.ifEmpty { null }
+                        ?.let { chosen -> chosen + LibraryShortcut.entries.filter { it !in chosen && it !in known } }
                         ?: defaults.shortcuts,
                 style = enumOrNull<LibraryHubStyle>(stored.style) ?: defaults.style,
                 columns = stored.columns?.takeIf { it in LibraryPagePreferences.COLUMNS } ?: defaults.columns,
@@ -578,3 +586,6 @@ class DefaultLibraryPreferencesRepository
             const val REVERSED = ",reversed"
         }
     }
+
+/** Tiles added after the stored lists began; a list saved before them never knew them (#270). */
+private val TILES_SINCE_270 = setOf(LibraryShortcut.Movies, LibraryShortcut.Series)

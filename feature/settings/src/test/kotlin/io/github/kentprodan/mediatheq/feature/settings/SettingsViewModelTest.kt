@@ -328,6 +328,8 @@ class SettingsViewModelTest {
                     LibraryShortcut.Genres,
                     LibraryShortcut.Playlists,
                     LibraryShortcut.RecordLabels,
+                    LibraryShortcut.Movies,
+                    LibraryShortcut.Series,
                 )
             viewModel.uiState.test {
                 viewModel.onAction(SettingsAction.OpenLibraryShortcuts)

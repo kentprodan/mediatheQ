@@ -195,6 +195,33 @@ class DefaultLibraryPreferencesRepositoryTest {
         }
 
     @Test
+    fun `tiles saved before the video tiles get Movies and Series appended, once`() =
+        runTest {
+            // A list saved by an older version: no record of the tiles the app had then.
+            dataStore.edit { it[stringPreferencesKey("lp_shortcuts")] = "Years,Albums" }
+
+            assertThat(
+                repository.preferences
+                    .first()
+                    .libraryPage.shortcuts,
+            ).containsExactly(
+                LibraryShortcut.Years,
+                LibraryShortcut.Albums,
+                LibraryShortcut.Movies,
+                LibraryShortcut.Series,
+            ).inOrder()
+
+            // Removing Movies now is kept: the saved list knows every tile.
+            repository.setLibraryPage(LibraryPagePreferences(listOf(LibraryShortcut.Years, LibraryShortcut.Series)))
+            assertThat(
+                repository.preferences
+                    .first()
+                    .libraryPage.shortcuts,
+            ).containsExactly(LibraryShortcut.Years, LibraryShortcut.Series)
+                .inOrder()
+        }
+
+    @Test
     fun `every library page choice is kept`() =
         runTest {
             val page =

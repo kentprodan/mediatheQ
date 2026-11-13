@@ -9,11 +9,34 @@ import io.github.kentprodan.mediatheq.core.data.LibraryHubStyle
 import io.github.kentprodan.mediatheq.core.data.LibraryPagePreferences
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 
+/** As the hub shows [page] with no videos synced: the video tiles hidden (#270). */
 @Composable
 private fun Hub(page: LibraryPagePreferences) =
     MediatheqTheme {
-        LibraryHubScreen(LibraryHubUiState.Content(page), {})
+        LibraryHubScreen(LibraryHubUiState.Content(page.copy(shortcuts = page.shortcuts - VIDEO)), {})
+    }
+
+private val VIDEO = setOf(LibraryShortcut.Movies, LibraryShortcut.Series)
+private val VIDEO_COUNTS = mapOf(LibraryShortcut.Movies to 189, LibraryShortcut.Series to 23)
+
+/** With movies and series synced (#270): their tiles at the end, with their counts. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryHubVideoScreenshot() =
+    MediatheqTheme { LibraryHubScreen(LibraryHubUiState.Content(LibraryPagePreferences(), VIDEO_COUNTS), {}) }
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryHubVideoListScreenshot() =
+    MediatheqTheme {
+        LibraryHubScreen(
+            LibraryHubUiState.Content(LibraryPagePreferences(style = LibraryHubStyle.List), VIDEO_COUNTS),
+            {},
+        )
     }
 
 /** The Library hub (#129) by default: every tile, a grid of 3 columns. */

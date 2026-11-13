@@ -80,7 +80,7 @@ fun LibraryHubScreen(
         contentWindowInsets = WindowInsets(0),
     ) { padding ->
         if (state is LibraryHubUiState.Content) {
-            Tiles(state.page, onAction, Modifier.padding(padding))
+            Tiles(state.page, state.counts, onAction, Modifier.padding(padding))
         }
     }
 }
@@ -88,6 +88,7 @@ fun LibraryHubScreen(
 @Composable
 private fun Tiles(
     page: LibraryPagePreferences,
+    counts: Map<LibraryShortcut, Int>,
     onAction: (LibraryHubAction) -> Unit,
     modifier: Modifier,
 ) {
@@ -106,13 +107,14 @@ private fun Tiles(
         val fit =
             ((maxWidth - MediatheqSpacing.l * 2 + gap) / (MediatheqSizes.libraryTileMinWidth * fontScale + gap))
                 .toInt()
-        TileGrid(page, grid, chosen.coerceAtMost(fit.coerceAtLeast(1)), gap, onAction)
+        TileGrid(page, counts, grid, chosen.coerceAtMost(fit.coerceAtLeast(1)), gap, onAction)
     }
 }
 
 @Composable
 private fun TileGrid(
     page: LibraryPagePreferences,
+    counts: Map<LibraryShortcut, Int>,
     grid: Boolean,
     columns: Int,
     gap: Dp,
@@ -126,7 +128,7 @@ private fun TileGrid(
         verticalArrangement = Arrangement.spacedBy(gap),
     ) {
         items(page.shortcuts, key = { it.name }) { shortcut ->
-            Tile(shortcut, grid) { onAction(LibraryHubAction.Open(shortcut)) }
+            Tile(shortcut, grid, counts[shortcut]) { onAction(LibraryHubAction.Open(shortcut)) }
         }
     }
 }
@@ -136,6 +138,7 @@ private fun TileGrid(
 private fun Tile(
     shortcut: LibraryShortcut,
     grid: Boolean,
+    count: Int?,
     onClick: () -> Unit,
 ) {
     Card(
@@ -153,6 +156,7 @@ private fun Tile(
                 Icon(shortcut.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 // The column cap keeps tiles wide enough that words never break; two lines for "Album artists".
                 Text(label, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center, maxLines = 2)
+                count?.let { Count(it) }
             }
         } else {
             Row(
@@ -161,10 +165,21 @@ private fun Tile(
             ) {
                 Icon(shortcut.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(MediatheqSpacing.l))
-                Text(label, style = MaterialTheme.typography.titleMedium)
+                Text(label, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                count?.let { Count(it) }
             }
         }
     }
+}
+
+/** How many items a tile lists (the video tiles, #270). */
+@Composable
+private fun Count(count: Int) {
+    Text(
+        count.toString(),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 private val LibraryHubSpacing.gap: Dp

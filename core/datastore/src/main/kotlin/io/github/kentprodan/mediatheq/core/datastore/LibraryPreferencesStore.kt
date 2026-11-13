@@ -106,6 +106,7 @@ class LibraryPreferencesStore
                         columns = prefs[LP_COLUMNS],
                         landscapeColumns = prefs[LP_LANDSCAPE_COLUMNS],
                         spacing = prefs[LP_SPACING],
+                        knownShortcuts = prefs[LP_KNOWN_SHORTCUTS]?.split(LIST_SEPARATOR)?.filter { it.isNotEmpty() },
                     ),
                 albumPage =
                     StoredAlbumPage(
@@ -312,6 +313,7 @@ class LibraryPreferencesStore
                 prefs.put(LP_COLUMNS, page.columns)
                 prefs.put(LP_LANDSCAPE_COLUMNS, page.landscapeColumns)
                 prefs.put(LP_SPACING, page.spacing)
+                prefs.put(LP_KNOWN_SHORTCUTS, page.knownShortcuts?.joinToString(LIST_SEPARATOR))
             }
         }
 
@@ -511,6 +513,7 @@ class LibraryPreferencesStore
         private companion object {
             val OLD_FILTER_STYLE = stringPreferencesKey("filter_style")
             val LP_SHORTCUTS = stringPreferencesKey("lp_shortcuts")
+            val LP_KNOWN_SHORTCUTS = stringPreferencesKey("lp_known_shortcuts")
             val LP_STYLE = stringPreferencesKey("lp_style")
             val LP_COLUMNS = intPreferencesKey("lp_columns")
             val LP_LANDSCAPE_COLUMNS = intPreferencesKey("lp_landscape_columns")
@@ -721,6 +724,8 @@ data class StoredLibraryPage(
     val columns: Int? = null,
     val landscapeColumns: Int? = null,
     val spacing: String? = null,
+    /** Every tile the app had when [shortcuts] was saved: a tile missing from both is new and gets appended. */
+    val knownShortcuts: List<String>? = null,
 )
 
 /** Home's rows as stored (#127): section names; `null` = not set (defaults). */

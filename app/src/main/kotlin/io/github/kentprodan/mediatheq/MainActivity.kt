@@ -43,6 +43,7 @@ import io.github.kentprodan.mediatheq.feature.playlist.playlistEntry
 import io.github.kentprodan.mediatheq.feature.search.searchEntry
 import io.github.kentprodan.mediatheq.feature.settings.AboutInfo
 import io.github.kentprodan.mediatheq.feature.settings.settingsEntry
+import io.github.kentprodan.mediatheq.feature.video.videoEntry
 import io.github.kentprodan.mediatheq.navigation.AppShell
 import io.github.kentprodan.mediatheq.navigation.OnboardingHost
 import io.github.kentprodan.mediatheq.navigation.ThemeShowcaseKey
@@ -123,6 +124,7 @@ class MainActivity : ComponentActivity() {
                                         genreEntry(navigator)
                                         playlistEntry(navigator)
                                         searchEntry(navigator)
+                                        videoEntry(navigator)
                                         // Opened from Settings on another tab (#149), it has a back button.
                                         downloadsEntry(navigator, isTab = {
                                             navigator.currentTab ==
