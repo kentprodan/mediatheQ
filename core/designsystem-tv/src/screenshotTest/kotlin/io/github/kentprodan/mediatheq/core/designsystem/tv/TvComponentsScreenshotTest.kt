@@ -17,6 +17,7 @@ import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvTextField
 
 /**
  * The `MqTv*` components in their states (enabled, disabled, selected). Layoutlib renders no focus (tv-material draws it from the real focus
@@ -65,6 +66,20 @@ fun TvListItemScreenshot() =
                 MqTvListItem(PreviewFixtures.TRACK, {}, supporting = PreviewFixtures.ARTIST)
                 MqTvListItem(PreviewFixtures.TRACK, {}, supporting = PreviewFixtures.ARTIST, selected = true)
                 MqTvListItem(PreviewFixtures.TRACK, {}, supporting = PreviewFixtures.ARTIST, enabled = false)
+            }
+        }
+    }
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvTextFieldScreenshot() =
+    MediatheqTvTheme {
+        Surface(Modifier.fillMaxSize()) {
+            Column(Modifier.padding(48.dp).width(480.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                MqTvTextField("192.168.1.10:8096", {}, "Server address")
+                MqTvTextField("secret", {}, "Password", password = true)
+                MqTvTextField("", {}, "User name")
             }
         }
     }

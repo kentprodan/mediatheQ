@@ -31,12 +31,28 @@ android {
 
 dependencies {
     implementation(projects.core.designsystemTv)
+    // The shared core (ADR 0038): one repository layer and provider for both apps.
+    implementation(projects.core.common)
+    implementation(projects.core.navigation)
+    implementation(projects.core.data)
+    implementation(projects.core.network)
+    implementation(projects.core.server)
+    implementation(projects.core.datastore)
+    implementation(projects.core.database)
+    implementation(projects.core.playback)
+    // The download cache the player and the sync need (ADR 0038); no Downloads screen on TV 1.
+    implementation(projects.core.download)
+    implementation(projects.provider.jellyfin)
+    implementation(projects.featureTv.onboarding)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.truth)
-    testImplementation(libs.junit)
-    testImplementation(libs.truth)
+    testImplementation(projects.core.testing)
     testImplementation(libs.androidx.test.ext.junit)
 }

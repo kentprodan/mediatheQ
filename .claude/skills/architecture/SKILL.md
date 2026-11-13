@@ -67,7 +67,9 @@ Any change to this table = ADR in `docs/decisions/`.
 :feature:settings
 ```
 
-Later phases add (do not create early): `:provider:subsonic`, `:provider:plex`, `:feature-tv:*` (plugin `mediatheq.android.feature.tv`, ready), `:core:ui-tv`, `:auto`, `:wear`.
+`:feature-tv:onboarding` server, Quick Connect first, password (ADR 0040); more `:feature-tv:*` come with TV 1.
+
+Later phases add (do not create early): `:provider:subsonic`, `:provider:plex`, `:core:ui-tv`, `:auto`, `:wear`.
 A module is created in the issue that first needs it, never "for later".
 
 ## 2. Dependency rules (enforced, not suggested)

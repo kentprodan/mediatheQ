@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_onboarding_welcome">Welcome to mediatheQ</string>
+    <string name="tv_onboarding_server_intro">Enter the address of your Jellyfin server.</string>
+    <string name="tv_onboarding_server_address">Server address</string>
+    <string name="tv_onboarding_connect">Connect</string>
+    <string name="tv_onboarding_checking">Checking…</string>
+    <string name="tv_onboarding_error_invalid">That is not a server address. Try e.g. 192.168.1.10:8096.</string>
+    <string name="tv_onboarding_error_cleartext">This address is not on your home network, so it needs https.</string>
+    <string name="tv_onboarding_error_unreachable">The server cannot be reached. Check the address and that the TV is on the same network.</string>
+    <string name="tv_onboarding_error_not_jellyfin">That address does not answer like a Jellyfin server.</string>
+    <string name="tv_onboarding_error_unsupported">This server runs Jellyfin %1$s. mediatheQ needs version 12 or newer.</string>
+    <string name="tv_onboarding_error_other">Something went wrong. Try again.</string>
+    <string name="tv_onboarding_signed_out">You were signed out. Sign in again.</string>
+    <string name="tv_onboarding_quick_connect_title">Sign in to %1$s</string>
+    <string name="tv_onboarding_quick_connect_intro">On your phone, open Jellyfin, go to Quick Connect and enter this code:</string>
+    <string name="tv_onboarding_quick_connect_waiting">Waiting for approval…</string>
+    <string name="tv_onboarding_quick_connect_starting">Getting a code…</string>
+    <string name="tv_onboarding_quick_connect_disabled">Quick Connect is turned off on this server. Sign in with your user name and password.</string>
+    <string name="tv_onboarding_quick_connect_expired">The code expired. Get a new one.</string>
+    <string name="tv_onboarding_quick_connect_unreachable">The server cannot be reached. Try again.</string>
+    <string name="tv_onboarding_quick_connect_failed">Signing in did not work. Try again.</string>
+    <string name="tv_onboarding_new_code">New code</string>
+    <string name="tv_onboarding_use_password">Use password instead</string>
+    <string name="tv_onboarding_user_name">User name</string>
+    <string name="tv_onboarding_password">Password</string>
+    <string name="tv_onboarding_sign_in">Sign in</string>
+    <string name="tv_onboarding_signing_in">Signing in…</string>
+    <string name="tv_onboarding_error_wrong_credentials">Wrong user name or password.</string>
+    <string name="tv_onboarding_error_storage">Could not save the sign-in on this TV.</string>
+</resources>
