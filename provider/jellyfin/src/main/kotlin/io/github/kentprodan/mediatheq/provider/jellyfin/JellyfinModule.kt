@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.provider.jellyfin
 
 import dagger.Binds
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.kentprodan.mediatheq.core.server.AuthSource
@@ -10,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.server.LiveEvents
 import io.github.kentprodan.mediatheq.core.server.LyricsSource
 import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.PlaylistEditor
+import io.github.kentprodan.mediatheq.core.server.ServerCapabilities
 import io.github.kentprodan.mediatheq.core.server.UserDataSink
 
 @Module
@@ -35,4 +37,9 @@ internal interface JellyfinModule {
 
     @Binds
     fun liveEvents(events: JellyfinLiveEvents): LiveEvents
+
+    companion object {
+        @Provides
+        fun capabilities(): ServerCapabilities = ServerCapabilities(video = true)
+    }
 }

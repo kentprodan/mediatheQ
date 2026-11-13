@@ -11,6 +11,11 @@ internal data class UserItemDataDto(
     @SerialName("PlayCount") val playCount: Int = 0,
     @SerialName("LastPlayedDate") val lastPlayedDate: String? = null,
     @SerialName("Played") val played: Boolean = false,
+    /** Where a video was left, in 100 ns ticks. */
+    @SerialName("PlaybackPositionTicks") val playbackPositionTicks: Long = 0,
+    @SerialName("PlayedPercentage") val playedPercentage: Double? = null,
+    /** A series' or season's unwatched episodes. */
+    @SerialName("UnplayedItemCount") val unplayedItemCount: Int? = null,
     /** Set in WebSocket `UserDataChanged` messages, which carry no item around it. */
     @SerialName("ItemId") val itemId: String? = null,
 )

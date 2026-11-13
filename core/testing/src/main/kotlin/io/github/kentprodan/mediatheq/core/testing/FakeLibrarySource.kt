@@ -9,7 +9,10 @@ import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
+import io.github.kentprodan.mediatheq.core.model.Season
+import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.server.LibraryPage
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
@@ -29,6 +32,10 @@ class FakeLibrarySource : LibrarySource {
     var tracks: List<Track> = emptyList()
     var playlists: List<Playlist> = emptyList()
     var entries: Map<MediaId, List<PlaylistEntry>> = emptyMap()
+    var movies: List<Video> = emptyList()
+    var series: List<Series> = emptyList()
+    var seasons: List<Season> = emptyList()
+    var episodes: List<Video> = emptyList()
 
     val calls = mutableListOf<String>()
     var failAt: Int? = null
@@ -72,6 +79,30 @@ class FakeLibrarySource : LibrarySource {
         startIndex: Int,
         limit: Int,
     ) = page("playlists", playlists, startIndex, limit)
+
+    override suspend fun movies(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ) = page("movies", movies, startIndex, limit)
+
+    override suspend fun series(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ) = page("series", series, startIndex, limit)
+
+    override suspend fun seasons(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ) = page("seasons", seasons, startIndex, limit)
+
+    override suspend fun episodes(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ) = page("episodes", episodes, startIndex, limit)
 
     /** Answers from [playlists]; a missing one is `NotFound`. Recorded as "playlist:<id>". */
     override suspend fun playlist(

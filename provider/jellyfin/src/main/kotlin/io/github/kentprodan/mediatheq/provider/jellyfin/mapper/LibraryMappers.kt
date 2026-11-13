@@ -7,13 +7,21 @@ import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
+import io.github.kentprodan.mediatheq.core.model.Season
+import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
+import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoFormat
+import io.github.kentprodan.mediatheq.core.model.VideoKind
+import io.github.kentprodan.mediatheq.core.model.VideoRange
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.BaseItemDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.MediaStreamDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.NameIdPairDto
@@ -83,6 +91,113 @@ internal fun BaseItemDto.toTrack(serverId: ServerId): Track? {
         artwork = artwork() ?: albumArtwork(),
         userData = userData.toDomain(),
         genres = genres(serverId),
+    )
+}
+
+/** A movie or an episode (#270); an episode without its series id is dropped (it could not be listed anywhere). */
+internal fun BaseItemDto.toVideo(
+    serverId: ServerId,
+    kind: VideoKind,
+): Video? {
+    val (id, name) = idAndName() ?: return null
+    val episode = kind == VideoKind.Episode
+    val series = seriesId?.takeIf { it.isNotEmpty() }?.let { MediaId(serverId, it) }
+    if (episode && series == null) return null
+    val source = mediaSources.firstOrNull()
+    val streams = source?.mediaStreams.orEmpty()
+    return Video(
+        id = MediaId(serverId, id),
+        kind = kind,
+        title = name,
+        sortName = sortName ?: name,
+        overview = overview?.trim()?.takeIf { it.isNotEmpty() },
+        year = productionYear,
+        premiereDate = instant(premiereDate),
+        dateAdded = instant(dateCreated),
+        duration = ticksToDuration(runTimeTicks),
+        seriesId = series.takeIf { episode },
+        seriesName = seriesName.takeIf { episode },
+        seasonId = seasonId?.takeIf { episode && it.isNotEmpty() }?.let { MediaId(serverId, it) },
+        seasonNumber = parentIndexNumber.takeIf { episode },
+        episodeNumber = indexNumber.takeIf { episode },
+        genres = genreNames(),
+        tagline = taglines.firstOrNull { it.isNotBlank() },
+        officialRating = officialRating?.takeIf { it.isNotBlank() },
+        format = streams.firstOrNull { it.type == "Video" }?.toVideoFormat(),
+        sizeBytes = source?.size,
+        artwork = artwork(),
+        backdrop = backdrop(),
+        userData = userData.toDomain(),
+        streams = streams.mapNotNull { it.toStreamInfo() },
+    )
+}
+
+internal fun BaseItemDto.toSeries(serverId: ServerId): Series? {
+    val (id, name) = idAndName() ?: return null
+    return Series(
+        id = MediaId(serverId, id),
+        title = name,
+        sortName = sortName ?: name,
+        overview = overview?.trim()?.takeIf { it.isNotEmpty() },
+        year = productionYear,
+        dateAdded = instant(dateCreated),
+        genres = genreNames(),
+        artwork = artwork(),
+        backdrop = backdrop(),
+        userData = userData.toDomain(),
+    )
+}
+
+/** A season without its own image shows the series poster; one without its series id is dropped. */
+internal fun BaseItemDto.toSeason(serverId: ServerId): Season? {
+    val (id, name) = idAndName() ?: return null
+    val series = seriesId?.takeIf { it.isNotEmpty() } ?: return null
+    return Season(
+        id = MediaId(serverId, id),
+        seriesId = MediaId(serverId, series),
+        title = name,
+        number = indexNumber,
+        artwork =
+            artwork() ?: seriesPrimaryImageTag?.let { Artwork(series, it, imageBlurHashes["Primary"]?.get(it)) },
+        userData = userData.toDomain(),
+    )
+}
+
+private fun BaseItemDto.genreNames(): List<String> =
+    genreItems.mapNotNull { pair -> pair.name?.takeIf { it.isNotBlank() } }.distinct()
+
+internal fun MediaStreamDto.toVideoFormat(): VideoFormat? {
+    val codec = codec?.lowercase()?.takeIf { it.isNotEmpty() } ?: return null
+    val range =
+        when {
+            videoRangeType?.startsWith("DOVI") == true -> VideoRange.DolbyVision
+            videoRangeType == "HDR10Plus" -> VideoRange.Hdr10Plus
+            videoRangeType == "HDR10" -> VideoRange.Hdr10
+            videoRangeType == "HLG" -> VideoRange.Hlg
+            else -> VideoRange.Sdr
+        }
+    return VideoFormat(codec, width, height, range, bitRate?.let { it / 1000 })
+}
+
+/** Audio and subtitle streams only; one without an index cannot be picked, so it is dropped. */
+internal fun MediaStreamDto.toStreamInfo(): MediaStreamInfo? {
+    val streamType =
+        when (type) {
+            "Audio" -> StreamType.Audio
+            "Subtitle" -> StreamType.Subtitle
+            else -> return null
+        }
+    return MediaStreamInfo(
+        index = index ?: return null,
+        type = streamType,
+        codec = codec?.lowercase(),
+        language = language?.takeIf { it.isNotBlank() && it != "und" },
+        title = title?.takeIf { it.isNotBlank() },
+        displayTitle = displayTitle?.takeIf { it.isNotBlank() },
+        channels = channels,
+        isDefault = isDefault,
+        isForced = isForced,
+        isExternal = isExternal,
     )
 }
 
@@ -177,7 +292,16 @@ internal fun UserItemDataDto?.toDomain(): UserData =
     if (this == null) {
         UserData()
     } else {
-        UserData(isFavorite, rating?.takeIf { it > 0 }, playCount, instant(lastPlayedDate), played)
+        UserData(
+            isFavorite,
+            rating?.takeIf { it > 0 },
+            playCount,
+            instant(lastPlayedDate),
+            played,
+            ticksToDuration(playbackPositionTicks),
+            playedPercentage,
+            unplayedItemCount,
+        )
     }
 
 private fun instant(value: String?): Instant? = value?.let { runCatching { Instant.parse(it) }.getOrNull() }
