@@ -8,6 +8,8 @@ import io.github.kentprodan.mediatheq.core.common.QualityLabel
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.tv.PreviewFixtures
+import io.github.kentprodan.mediatheq.core.model.LyricLine
+import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -81,6 +83,46 @@ fun TvNowPlayingAtmosStereoScreenshot() =
     Player(
         playing.copy(quality = QualityLabel(QualityKind.HighQuality, "Opus · 256 kb/s"), atmosConverted = true),
     )
+
+private val synced =
+    Lyrics(
+        listOf("I wake up to the sound", "of music in my head", "", "and I follow it down", "to the light on the floor")
+            .mapIndexed { i, text -> LyricLine(text, (i * 5).seconds) },
+    )
+
+/** Synced lyrics in the queue's place (#245): the sung line large and centered, the others dimmed. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvNowPlayingLyricsSyncedScreenshot() =
+    MediatheqTvTheme {
+        Surface {
+            TvNowPlayingScreen(playing, 11.seconds, {}, lyrics = TvLyricsUiState.Content(synced), lyricsOpen = true)
+        }
+    }
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvNowPlayingLyricsPlainScreenshot() =
+    MediatheqTvTheme {
+        Surface {
+            TvNowPlayingScreen(
+                playing,
+                11.seconds,
+                {},
+                lyrics = TvLyricsUiState.Content(Lyrics(synced.lines.map { LyricLine(it.text) })),
+                lyricsOpen = true,
+            )
+        }
+    }
+
+/** No lyrics: the Lyrics button is off and the hint under the controls says why. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvNowPlayingNoLyricsScreenshot() =
+    MediatheqTvTheme { Surface { TvNowPlayingScreen(playing, 11.seconds, {}, lyrics = TvLyricsUiState.None) } }
 
 @PreviewTest
 @MqTvPreviews
