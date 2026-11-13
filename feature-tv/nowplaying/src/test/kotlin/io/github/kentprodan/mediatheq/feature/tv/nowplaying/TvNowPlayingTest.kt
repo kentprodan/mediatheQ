@@ -2,9 +2,13 @@ package io.github.kentprodan.mediatheq.feature.tv.nowplaying
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -181,4 +185,63 @@ class TvNowPlayingTest {
             .containsExactly(TvNowPlayingAction.Seek(forward = true, repeat = 0), TvNowPlayingAction.SkipTo("e2"))
             .inOrder()
     }
+
+    @Test
+    fun `no seek while the duration is unknown, a held key seeks every few repeats from its last target`() =
+        test {
+            val viewModel = viewModel()
+            playback.state.value = playing().copy(duration = kotlin.time.Duration.ZERO)
+            runCurrent()
+            viewModel.onAction(TvNowPlayingAction.Seek(forward = true))
+            assertThat(playback.commands).isEmpty()
+
+            playback.state.value = playing()
+            playback.position.value = 1.minutes
+            runCurrent()
+            (0..5).forEach { viewModel.onAction(TvNowPlayingAction.Seek(forward = true, repeat = it)) }
+
+            // 1:00 + 10 s on the press, then + 30 s on the fifth repeat (the position has not caught up yet).
+            assertThat(playback.commands).containsExactly("seekTo 1m 10s", "seekTo 1m 40s").inOrder()
+        }
+
+    @Test
+    fun `when the track cannot be seeked, Right on the progress row moves focus on and seeks nothing`() {
+        val actions = mutableListOf<TvNowPlayingAction>()
+        val state =
+            TvNowPlayingUiState.Playing(
+                "Strobe",
+                "deadmau5",
+                duration = 10.minutes,
+                queue = queue,
+                currentEntryId = "e1",
+            )
+        composeRule.setContent { MediatheqTvTheme { TvNowPlayingScreen(state, 1.minutes, { actions += it }) } }
+        composeRule.mainClock.advanceTimeBy(1_000)
+
+        composeRule.onNodeWithContentDescription("Position").performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+
+        assertThat(actions).isEmpty()
+        composeRule.onNodeWithContentDescription("Position").assertIsNotFocused()
+    }
+
+    @Test
+    fun `the screen stays on while music plays, not when paused`() {
+        var state by mutableStateOf(TvNowPlayingUiState.Playing("Strobe", "deadmau5", isPlaying = true))
+        composeRule.setContent { MediatheqTvTheme { TvNowPlayingScreen(state, 1.minutes, {}) } }
+        val view =
+            composeRule.activity.window.decorView
+                .findViewById<android.view.View>(android.R.id.content)
+
+        composeRule.waitForIdle()
+        assertThat(keptOn(view)).isTrue()
+        state = state.copy(isPlaying = false)
+        composeRule.waitForIdle()
+        assertThat(keptOn(view)).isFalse()
+    }
+
+    // The flag is on the compose view inside the content frame.
+    private fun keptOn(view: android.view.View): Boolean =
+        view.keepScreenOn ||
+            (view is android.view.ViewGroup && (0 until view.childCount).any { keptOn(view.getChildAt(it)) })
 }

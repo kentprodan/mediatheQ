@@ -102,6 +102,7 @@ fun seekTarget(
 private val STEP = 10.seconds
 private val FAST_STEP = 30.seconds
 private const val FAST_AFTER_REPEATS = 3
+private const val SEEK_EVERY_REPEATS = 5
 
 /** The full-screen player on TV (#240): `PlaybackConnection`'s state and commands, favorite and quality from Room. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -130,6 +131,21 @@ class TvNowPlayingViewModel
 
         /** The playing position, sampled by the connection; collect it only where it is drawn. */
         val position: StateFlow<Duration> = playback.position
+
+        /** Where the held key's last seek went: repeats step on from it, the position lags a round trip behind. */
+        private var heldTarget: Duration? = null
+
+        private fun seek(
+            action: TvNowPlayingAction.Seek,
+            duration: Duration,
+        ) {
+            if (action.repeat == 0) heldTarget = null
+            // A held key repeats about every 50 ms: one seek per few repeats, not a stream of re-buffers.
+            if (action.repeat % SEEK_EVERY_REPEATS != 0) return
+            val target = seekTarget(heldTarget ?: position.value, duration, action.forward, action.repeat)
+            heldTarget = target
+            playback.seekTo(target)
+        }
 
         fun onAction(action: TvNowPlayingAction) {
             val state = uiState.value as? TvNowPlayingUiState.Playing ?: return
@@ -167,11 +183,9 @@ class TvNowPlayingViewModel
                     viewModelScope.launch { userData.setFavorite(id, !state.isFavorite) }
                 }
 
-                // A live transcode cannot be seeked (R12).
+                // A live transcode cannot be seeked (R12); an unknown duration would clamp every seek to the start.
                 is TvNowPlayingAction.Seek -> {
-                    if (state.isSeekable) {
-                        playback.seekTo(seekTarget(position.value, state.duration, action.forward, action.repeat))
-                    }
+                    if (state.isSeekable && state.duration.isPositive()) seek(action, state.duration)
                 }
 
                 is TvNowPlayingAction.SkipTo -> {

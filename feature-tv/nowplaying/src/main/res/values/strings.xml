@@ -15,7 +15,6 @@
     <string name="tv_np_off">Off</string>
     <string name="tv_np_favorite">Favorite</string>
     <string name="tv_np_progress">Position</string>
-    <string name="tv_np_seek_hint">Left and Right to seek</string>
     <string name="tv_np_buffering">Loading…</string>
     <string name="tv_np_queue">Up next</string>
     <string name="tv_np_remove">Remove from queue</string>

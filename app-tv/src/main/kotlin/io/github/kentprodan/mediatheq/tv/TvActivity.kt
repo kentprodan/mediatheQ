@@ -51,7 +51,9 @@ class TvActivity : ComponentActivity() {
         if (intent.wantsPlayer()) openPlayer.value = true
     }
 
-    private fun Intent.wantsPlayer() = getBooleanExtra(EXTRA_OPEN_PLAYER, false)
+    // Recents relaunches with the intent that first started the app: not a new request for the player.
+    private fun Intent.wantsPlayer() =
+        getBooleanExtra(EXTRA_OPEN_PLAYER, false) && flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0
 }
 
 @Composable

@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +58,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListIte
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
+import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
+import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
@@ -178,7 +181,6 @@ private fun Progress(
     onAction: (TvNowPlayingAction) -> Unit,
 ) {
     val label = stringResource(R.string.tv_np_progress)
-    val hint = stringResource(R.string.tv_np_seek_hint)
     val fraction = if (state.duration.isPositive()) (position / state.duration).toFloat().coerceIn(0f, 1f) else 0f
     Surface(
         onClick = {},
@@ -189,6 +191,8 @@ private fun Progress(
                     contentDescription = label
                     stateDescription = "${formatDuration(position)} / ${formatDuration(state.duration)}"
                 }.onPreviewKeyEvent { event ->
+                    // Not seekable (a live transcode): Left and Right move focus as anywhere else.
+                    if (!state.isSeekable) return@onPreviewKeyEvent false
                     val forward =
                         when (event.key) {
                             Key.DirectionRight -> true
@@ -322,6 +326,15 @@ private fun Queue(
     modifier: Modifier,
 ) {
     var menu by remember { mutableStateOf<QueueItem?>(null) }
+    val focus = rememberFocusMemory()
+    // A removed row had focus: the row now in its place takes it.
+    var removedAt by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(state.queue) {
+        val index = removedAt ?: return@LaunchedEffect
+        removedAt = null
+        withFrameNanos {}
+        state.queue.getOrNull(index.coerceAtMost(state.queue.lastIndex))?.let { focus.focus(it.entryId) }
+    }
     Column(
         modifier.fillMaxHeight().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
     ) {
@@ -342,6 +355,7 @@ private fun Queue(
                     { onAction(TvNowPlayingAction.SkipTo(item.entryId)) },
                     Modifier
                         .width(QUEUE_ROW)
+                        .focusMemory(focus, item.entryId)
                         .onPreviewKeyEvent { event ->
                             // The remote's menu key does what a long-press does; the playing entry has no menu.
                             val isMenu = event.key == Key.Menu && !current
