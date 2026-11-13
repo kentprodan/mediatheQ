@@ -22,6 +22,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.QualityKind
+import io.github.kentprodan.mediatheq.core.common.QualityLabel
 import io.github.kentprodan.mediatheq.core.data.CoverTap
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
@@ -30,8 +32,6 @@ import io.github.kentprodan.mediatheq.core.model.LyricLine
 import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
-import io.github.kentprodan.mediatheq.core.ui.QualityKind
-import io.github.kentprodan.mediatheq.core.ui.QualityLabel
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

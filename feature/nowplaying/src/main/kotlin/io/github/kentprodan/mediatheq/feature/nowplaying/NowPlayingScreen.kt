@@ -68,6 +68,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
+import io.github.kentprodan.mediatheq.core.common.QualityLabel
+import io.github.kentprodan.mediatheq.core.common.formatDuration
 import io.github.kentprodan.mediatheq.core.data.CoverTap
 import io.github.kentprodan.mediatheq.core.data.PlayerBackground
 import io.github.kentprodan.mediatheq.core.data.PlayerProgress
@@ -90,8 +92,6 @@ import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.ui.AddToPlaylistMenuItem
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
-import io.github.kentprodan.mediatheq.core.ui.QualityLabel
-import io.github.kentprodan.mediatheq.core.ui.formatDuration
 import io.github.kentprodan.mediatheq.core.ui.formatFrequency
 import io.github.kentprodan.mediatheq.core.ui.text
 import kotlin.time.Duration

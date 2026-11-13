@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.library
 
+import io.github.kentprodan.mediatheq.core.common.nameComparator
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.data.YearAlbums
 import io.github.kentprodan.mediatheq.core.model.Album
@@ -8,7 +9,6 @@ import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.Track
-import io.github.kentprodan.mediatheq.core.ui.nameComparator
 
 // Sorting for the Library lists. Names compare like a person reads them: case and diacritics are ignored ("Moșoi" next
 // to "Mosoi"). The item id breaks ties so the order never jumps. Newest and latest year come first; unknown dates last.

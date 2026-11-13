@@ -10,6 +10,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import com.android.tools.screenshot.PreviewTest
+import io.github.kentprodan.mediatheq.core.common.QualityKind
+import io.github.kentprodan.mediatheq.core.common.QualityLabel
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.data.PlayerBackground
 import io.github.kentprodan.mediatheq.core.data.PlayerProgress
@@ -32,8 +34,6 @@ import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
-import io.github.kentprodan.mediatheq.core.ui.QualityKind
-import io.github.kentprodan.mediatheq.core.ui.QualityLabel
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 

@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.ui
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
+import io.github.kentprodan.mediatheq.core.common.formatDuration
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 

@@ -1,4 +1,4 @@
-package io.github.kentprodan.mediatheq.core.ui
+package io.github.kentprodan.mediatheq.core.common
 
 import java.text.Collator
 import java.util.Locale

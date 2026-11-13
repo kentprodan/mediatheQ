@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
+import io.github.kentprodan.mediatheq.core.common.formatDuration
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqReorderState
 import io.github.kentprodan.mediatheq.core.designsystem.component.mqReorderHandle
 import io.github.kentprodan.mediatheq.core.designsystem.component.mqReorderItem
@@ -47,7 +48,6 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
 import io.github.kentprodan.mediatheq.core.ui.RowCover
-import io.github.kentprodan.mediatheq.core.ui.formatDuration
 
 /**
  * The queue in play order, opened from Now Playing: tap an entry to play it, swipe it away to remove it, drag its

@@ -4,6 +4,8 @@ import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.common.QualityKind
+import io.github.kentprodan.mediatheq.core.common.QualityLabel
 import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
 import io.github.kentprodan.mediatheq.core.data.CoverTap
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
@@ -32,8 +34,6 @@ import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeWaveformRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
-import io.github.kentprodan.mediatheq.core.ui.QualityKind
-import io.github.kentprodan.mediatheq.core.ui.QualityLabel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
