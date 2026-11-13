@@ -53,6 +53,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MqColorSource
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqSeedPresets
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeMode
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.ui.label
 
@@ -792,3 +793,36 @@ fun SettingsAdvancedOrientationDialogScreenshot() =
 @Composable
 fun SettingsAdvancedCornersDialogScreenshot() =
     MediatheqTheme { AdvancedDialogContent(AdvancedDialog.Corners, AdvancedPreferences()) }
+
+/** Settings -> Interface -> App mode (ADR 0051): Both chosen. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsAppModeScreenshot() {
+    MediatheqTheme { SettingsPageScreen(SettingsPage.AppMode, content.copy(appMode = AppMode.Both), {}, {}, {}) }
+}
+
+/** The Interface page in Video mode: no Now playing screens and no music page settings. */
+@PreviewTest
+@Preview(name = "Light", device = "spec:width=412dp,height=1600dp,dpi=420")
+@Composable
+fun SettingsInterfaceVideoModeScreenshot() {
+    MediatheqTheme { SettingsPageScreen(SettingsPage.Interface, content.copy(appMode = AppMode.Video), {}, {}, {}) }
+}
+
+/** Navigation in Video mode: music entries chosen in Music mode fall back to the mode's defaults. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsNavigationVideoModeScreenshot() {
+    val navigation = NavigationPreferences(entries = listOf(MainNavEntry.Home, MainNavEntry.Albums))
+    MediatheqTheme {
+        SettingsPageScreen(
+            SettingsPage.Navigation,
+            content.copy(library = content.library.copy(navigation = navigation), appMode = AppMode.Video),
+            {},
+            {},
+            {},
+        )
+    }
+}

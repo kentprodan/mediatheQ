@@ -16,6 +16,7 @@ import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.datastore.StoredSyncRecord
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -32,6 +33,7 @@ import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.server.ServerCapabilities
 import io.github.kentprodan.mediatheq.core.testing.FakeAppLog
+import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
@@ -58,6 +60,7 @@ import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Test
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
@@ -112,6 +115,9 @@ class DefaultLibrarySyncRepositoryTest {
     /** Off for the music tests, whose call lists stop at the playlist entries. */
     private var capabilities = ServerCapabilities(video = false)
 
+    /** Both: the capability alone decides whether video syncs, unless a test picks another mode. */
+    private val appMode = FakeAppModeRepository(AppMode.Both)
+
     private fun userData(scope: CoroutineScope) =
         DefaultUserDataRepository(database.userDataDao(), userDataSink, accountStore, session, scope, AppLog.None)
 
@@ -126,6 +132,7 @@ class DefaultLibrarySyncRepositoryTest {
             userData(scope),
             AppLog.None,
             capabilities,
+            appMode,
         )
 
     private suspend fun count(table: String) =
@@ -248,6 +255,7 @@ class DefaultLibrarySyncRepositoryTest {
                     userData(backgroundScope),
                     log,
                     capabilities,
+                    appMode,
                 )
 
             repository.sync()
@@ -371,6 +379,7 @@ class DefaultLibrarySyncRepositoryTest {
                     userData(backgroundScope),
                     AppLog.None,
                     capabilities,
+                    appMode,
                 )
             secondSource.albumArtists = source.albumArtists
             secondSource.albums = source.albums
@@ -449,6 +458,7 @@ class DefaultLibrarySyncRepositoryTest {
                     userData(backgroundScope),
                     AppLog.None,
                     capabilities,
+                    appMode,
                 )
 
             assertThat(restarted.sync()).isEqualTo(MqResult.Success(Unit))
@@ -860,6 +870,7 @@ class DefaultLibrarySyncRepositoryTest {
                     userData(backgroundScope),
                     AppLog.None,
                     capabilities,
+                    appMode,
                 )
             source.failAt = 3
             source.failure = MqError.Unauthorized
@@ -975,6 +986,171 @@ class DefaultLibrarySyncRepositoryTest {
                 .containsExactly("episodes@0", "episodes@500", "episodes@0", "episodes@500")
                 .inOrder()
             assertThat(count("video")).isEqualTo(601)
+        }
+
+    @Test
+    fun `Video mode fetches only the video steps and keeps the music library`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            capabilities = ServerCapabilities(video = true)
+            signIn()
+            val repository = repository()
+            repository.sync()
+            source.calls.clear()
+            appMode.stored.value = AppMode.Video
+
+            assertThat(repository.sync()).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(source.calls)
+                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500")
+                .inOrder()
+            assertThat(count("track")).isEqualTo(3)
+            assertThat(count("playlist_entry")).isEqualTo(3)
+            assertThat(count("search")).isGreaterThan(601)
+        }
+
+    @Test
+    fun `Music mode on a video server skips the video steps and keeps the videos`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            capabilities = ServerCapabilities(video = true)
+            signIn()
+            val repository = repository()
+            repository.sync()
+            source.calls.clear()
+            appMode.stored.value = AppMode.Music
+
+            assertThat(repository.sync()).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(source.calls.filter { it.startsWith("movies") || it.startsWith("episodes") }).isEmpty()
+            assertThat(count("video")).isEqualTo(601)
+        }
+
+    @Test
+    fun `a Video-mode checkpoint is not resumed in Both, so the music is fetched again and kept`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            capabilities = ServerCapabilities(video = true)
+            signIn()
+            val repository = repository()
+            appMode.stored.value = AppMode.Video
+            source.failAt = 4 // episodes@500
+
+            assertThat(repository.sync()).isInstanceOf(MqResult.Failure::class.java)
+            source.calls.clear()
+            source.failAt = null
+            appMode.stored.value = AppMode.Both
+            assertThat(repository.sync()).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(source.calls.first()).isEqualTo("albumArtists@0")
+            assertThat(count("track")).isEqualTo(3)
+            assertThat(count("video")).isEqualTo(601)
+        }
+
+    @Test
+    fun `turning on a kind never synced syncs it, a synced one does nothing`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            capabilities = ServerCapabilities(video = true)
+            signIn()
+            val repository = repository()
+            appMode.stored.value = AppMode.Music
+            repository.sync()
+            source.calls.clear()
+
+            repository.syncNewKinds(AppMode.Music)
+            assertThat(source.calls).isEmpty()
+
+            appMode.stored.value = AppMode.Both
+            repository.syncNewKinds(AppMode.Both)
+            assertThat(count("video")).isEqualTo(601)
+            source.calls.clear()
+
+            repository.syncNewKinds(AppMode.Both)
+            assertThat(source.calls).isEmpty()
+        }
+
+    @Test
+    fun `without video capability turning on video syncs nothing`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            signIn()
+            val repository = repository()
+            repository.sync()
+            source.calls.clear()
+
+            repository.syncNewKinds(AppMode.Both)
+
+            assertThat(source.calls).isEmpty()
+        }
+
+    @Test
+    fun `an install from before the app mode counts its music as synced`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            signIn()
+            val repository = repository()
+            repository.sync()
+            // Only row 0, as an install from before ADR 0051 left it.
+            val dao = database.syncDao()
+            val state = dao.state()!!
+            dao.clearState()
+            dao.saveState(state)
+            source.calls.clear()
+
+            repository.syncNewKinds(AppMode.Music)
+
+            assertThat(source.calls).isEmpty()
+        }
+
+    @Test
+    fun `a music sync running when Video is picked is stopped, and only the videos are fetched`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            capabilities = ServerCapabilities(video = true)
+            signIn()
+            val repository = repository()
+            appMode.stored.value = AppMode.Music
+            source.holdAt = 2 // albums@0
+            val first = async { repository.sync() }
+            source.held.await()
+
+            appMode.stored.value = AppMode.Video
+            repository.syncNewKinds(AppMode.Video)
+
+            assertThat(first.await()).isInstanceOf(MqResult.Failure::class.java)
+            assertThat(source.calls.drop(2))
+                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500")
+                .inOrder()
+            assertThat(count("track")).isEqualTo(0)
+            assertThat(count("video")).isEqualTo(601)
+        }
+
+    @Test
+    fun `music left out of the mode for days is due again when the mode brings it back`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            capabilities = ServerCapabilities(video = true)
+            signIn()
+            val repository = repository()
+            repository.sync()
+            appMode.stored.value = AppMode.Video
+            clock.advanceBy(2.days)
+            repository.sync()
+            assertThat(repository.isDue("s" to "user-1")).isFalse()
+            source.calls.clear()
+
+            appMode.stored.value = AppMode.Both
+
+            assertThat(repository.isDue("s" to "user-1")).isTrue()
+            repository.syncNewKinds(AppMode.Both)
+            assertThat(source.calls.first()).isEqualTo("albumArtists@0")
         }
 }
 

@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -51,6 +52,7 @@ enum class SettingsPage(
     @StringRes val title: Int,
 ) {
     Interface(R.string.settings_interface),
+    AppMode(R.string.settings_app_mode),
     Theme(R.string.settings_theme),
     Navigation(R.string.settings_navigation),
     MediaLists(R.string.settings_media_lists),
@@ -104,6 +106,7 @@ internal fun SettingsPageRoute(
     onOpenTransitions: () -> Unit = {},
     onOpenStoragePage: (SettingsPage) -> Unit = {},
     onOpenHomeSection: (HomeSection) -> Unit = {},
+    onOpenAppMode: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -134,6 +137,7 @@ internal fun SettingsPageRoute(
         onOpenTransitions,
         onOpenStoragePage,
         onOpenHomeSection,
+        onOpenAppMode,
     )
 }
 
@@ -169,6 +173,7 @@ fun SettingsPageScreen(
     onOpenTransitions: () -> Unit = {},
     onOpenStoragePage: (SettingsPage) -> Unit = {},
     onOpenHomeSection: (HomeSection) -> Unit = {},
+    onOpenAppMode: () -> Unit = {},
 ) {
     var storageDialog by rememberSaveable { mutableStateOf<StorageDialog?>(null) }
     // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
@@ -208,8 +213,12 @@ fun SettingsPageScreen(
         )
     SettingsScaffold(stringResource(page.title), onBack, listState) {
         val content = state as? SettingsUiState.Content ?: return@SettingsScaffold
+        val music = content.appMode.music
         when (page) {
             SettingsPage.Interface -> {
+                if (content.videoAvailable) {
+                    item(key = "app_mode") { AppModeGroup(content.appMode, onOpenAppMode) }
+                }
                 item(key = "appearance") {
                     AppearanceGroup(
                         content.library,
@@ -217,74 +226,56 @@ fun SettingsPageScreen(
                         onOpenTheme,
                         onOpenNavigation,
                         onOpenMediaLists,
-                        onOpenNowPlaying,
+                        onOpenNowPlaying.takeIf { music },
                     )
                 }
                 item(key = "pages") {
                     Group(R.string.settings_page_settings) {
-                        item { shapes ->
-                            SegmentedListItem(
-                                onClick = onOpenHomePage,
-                                shapes = shapes,
-                                colors = settingsColors(),
-                                supportingContent = { Text(stringResource(R.string.settings_home_page_summary)) },
-                                trailingContent = { Icon(MqIcons.Home, contentDescription = null) },
-                            ) { Text(stringResource(R.string.settings_home_page)) }
+                        pageRow(
+                            R.string.settings_home_page,
+                            R.string.settings_home_page_summary,
+                            { MqIcons.Home },
+                            onOpenHomePage,
+                        )
+                        pageRow(
+                            R.string.settings_library_page,
+                            R.string.settings_library_page_summary,
+                            { MqIcons.Library },
+                            onOpenLibraryPage,
+                        )
+                        // Music-only pages: hidden in Video mode (ADR 0051).
+                        if (music) {
+                            pageRow(
+                                R.string.settings_album_page,
+                                R.string.settings_album_page_summary,
+                                { MqIcons.MusicNote },
+                                onOpenAlbumPage,
+                            )
+                            pageRow(
+                                R.string.settings_artist_page,
+                                R.string.settings_artist_page_summary,
+                                { MqIcons.Person },
+                                onOpenArtistPage,
+                            )
+                            pageRow(
+                                R.string.settings_genre_page,
+                                R.string.settings_genre_page_summary,
+                                { MqIcons.Genres },
+                                onOpenGenrePage,
+                            )
+                            pageRow(
+                                R.string.settings_playlist_page,
+                                R.string.settings_playlist_page_summary,
+                                { MqIcons.QueueMusic },
+                                onOpenPlaylistPage,
+                            )
                         }
-                        item { shapes ->
-                            SegmentedListItem(
-                                onClick = onOpenLibraryPage,
-                                shapes = shapes,
-                                colors = settingsColors(),
-                                supportingContent = { Text(stringResource(R.string.settings_library_page_summary)) },
-                                trailingContent = { Icon(MqIcons.Library, contentDescription = null) },
-                            ) { Text(stringResource(R.string.settings_library_page)) }
-                        }
-                        item { shapes ->
-                            SegmentedListItem(
-                                onClick = onOpenAlbumPage,
-                                shapes = shapes,
-                                colors = settingsColors(),
-                                supportingContent = { Text(stringResource(R.string.settings_album_page_summary)) },
-                                trailingContent = { Icon(MqIcons.MusicNote, contentDescription = null) },
-                            ) { Text(stringResource(R.string.settings_album_page)) }
-                        }
-                        item { shapes ->
-                            SegmentedListItem(
-                                onClick = onOpenArtistPage,
-                                shapes = shapes,
-                                colors = settingsColors(),
-                                supportingContent = { Text(stringResource(R.string.settings_artist_page_summary)) },
-                                trailingContent = { Icon(MqIcons.Person, contentDescription = null) },
-                            ) { Text(stringResource(R.string.settings_artist_page)) }
-                        }
-                        item { shapes ->
-                            SegmentedListItem(
-                                onClick = onOpenGenrePage,
-                                shapes = shapes,
-                                colors = settingsColors(),
-                                supportingContent = { Text(stringResource(R.string.settings_genre_page_summary)) },
-                                trailingContent = { Icon(MqIcons.Genres, contentDescription = null) },
-                            ) { Text(stringResource(R.string.settings_genre_page)) }
-                        }
-                        item { shapes ->
-                            SegmentedListItem(
-                                onClick = onOpenPlaylistPage,
-                                shapes = shapes,
-                                colors = settingsColors(),
-                                supportingContent = { Text(stringResource(R.string.settings_playlist_page_summary)) },
-                                trailingContent = { Icon(MqIcons.QueueMusic, contentDescription = null) },
-                            ) { Text(stringResource(R.string.settings_playlist_page)) }
-                        }
-                        item { shapes ->
-                            SegmentedListItem(
-                                onClick = onOpenSearchPage,
-                                shapes = shapes,
-                                colors = settingsColors(),
-                                supportingContent = { Text(stringResource(R.string.settings_search_page_summary)) },
-                                trailingContent = { Icon(MqIcons.Search, contentDescription = null) },
-                            ) { Text(stringResource(R.string.settings_search_page)) }
-                        }
+                        pageRow(
+                            R.string.settings_search_page,
+                            R.string.settings_search_page_summary,
+                            { MqIcons.Search },
+                            onOpenSearchPage,
+                        )
                     }
                 }
                 item(key = "ratings") { RatingsGroup(content.library.ratingMode, onAction) }
@@ -303,12 +294,16 @@ fun SettingsPageScreen(
                 }
             }
 
+            SettingsPage.AppMode -> {
+                appModeGroups(content.appMode, onAction)
+            }
+
             SettingsPage.Theme -> {
                 themeGroups(content.library.theme, onAction) { dialog = it }
             }
 
             SettingsPage.Navigation -> {
-                navigationGroups(content.library.navigation, onAction) { navigationDialog = it }
+                navigationGroups(content.library.navigation, content.appMode, onAction) { navigationDialog = it }
             }
 
             SettingsPage.MediaLists -> {
@@ -364,12 +359,13 @@ fun SettingsPageScreen(
                         onOpenOutputs,
                         onOpenAutoActions,
                         onOpenTransitions,
+                        music,
                     ),
                 )
             }
 
             SettingsPage.PlaybackBehavior -> {
-                behaviorGroups(content.audio.behavior, onAction) { restoring = true }
+                behaviorGroups(content.audio.behavior, music, onAction) { restoring = true }
             }
 
             SettingsPage.Decoding -> {
@@ -570,7 +566,8 @@ internal fun AppearanceGroup(
     onOpenTheme: () -> Unit,
     onOpenNavigation: () -> Unit = {},
     onOpenMediaLists: () -> Unit = {},
-    onOpenNowPlaying: () -> Unit = {},
+    // `null` hides the row: Now playing screens are music only (ADR 0051).
+    onOpenNowPlaying: (() -> Unit)? = {},
 ) {
     Group(R.string.settings_appearance) {
         item { shapes ->
@@ -600,14 +597,16 @@ internal fun AppearanceGroup(
                 trailingContent = { Icon(MqIcons.QueueMusic, contentDescription = null) },
             ) { Text(stringResource(R.string.settings_media_lists)) }
         }
-        item { shapes ->
-            SegmentedListItem(
-                onClick = onOpenNowPlaying,
-                shapes = shapes,
-                colors = settingsColors(),
-                supportingContent = { Text(stringResource(R.string.settings_now_playing_summary)) },
-                trailingContent = { Icon(MqIcons.PlayArrow, contentDescription = null) },
-            ) { Text(stringResource(R.string.settings_now_playing_screens)) }
+        if (onOpenNowPlaying != null) {
+            item { shapes ->
+                SegmentedListItem(
+                    onClick = onOpenNowPlaying,
+                    shapes = shapes,
+                    colors = settingsColors(),
+                    supportingContent = { Text(stringResource(R.string.settings_now_playing_summary)) },
+                    trailingContent = { Icon(MqIcons.PlayArrow, contentDescription = null) },
+                ) { Text(stringResource(R.string.settings_now_playing_screens)) }
+            }
         }
         item { shapes ->
             ChoiceItem(
@@ -656,6 +655,22 @@ internal fun settingsColors() =
         selectedSupportingContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         selectedTrailingContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+
+/** A row of Settings -> Interface -> Page settings that opens its page. */
+internal fun GroupScope.pageRow(
+    @StringRes title: Int,
+    @StringRes summary: Int,
+    icon: @Composable () -> ImageVector,
+    onClick: () -> Unit,
+) = item { shapes ->
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = shapes,
+        colors = settingsColors(),
+        supportingContent = { Text(stringResource(summary)) },
+        trailingContent = { Icon(icon(), contentDescription = null) },
+    ) { Text(stringResource(title)) }
+}
 
 /** A titled group: its items share the segmented shapes (rounded ends, small gaps). */
 @Composable

@@ -632,4 +632,6 @@
     <string name="settings_sync_error_client">request refused (%1$d)</string>
     <string name="settings_sync_error_storage">phone storage error</string>
     <string name="settings_sync_error_unknown">unexpected error</string>
+    <string name="settings_app_mode">App mode</string>
+    <string name="settings_app_mode_group">What you use mediatheQ for</string>
 </resources>

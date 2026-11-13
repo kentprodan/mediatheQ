@@ -29,14 +29,16 @@ internal fun LazyListScope.playbackHubGroups(pages: PlaybackPages) {
                     pages.behavior,
                 )
             }
-            item { shapes ->
-                HubRow(
-                    shapes,
-                    R.string.settings_decoding,
-                    R.string.settings_decoding_summary,
-                    MqIcons.GraphicEq,
-                    pages.decoding,
-                )
+            if (pages.music) {
+                item { shapes ->
+                    HubRow(
+                        shapes,
+                        R.string.settings_decoding,
+                        R.string.settings_decoding_summary,
+                        MqIcons.GraphicEq,
+                        pages.decoding,
+                    )
+                }
             }
             item { shapes ->
                 HubRow(
@@ -74,14 +76,16 @@ internal fun LazyListScope.playbackHubGroups(pages: PlaybackPages) {
                     pages.notificationButtons,
                 )
             }
-            item { shapes ->
-                HubRow(
-                    shapes,
-                    R.string.settings_transitions,
-                    R.string.settings_transitions_summary,
-                    MqIcons.Sort,
-                    pages.transitions,
-                )
+            if (pages.music) {
+                item { shapes ->
+                    HubRow(
+                        shapes,
+                        R.string.settings_transitions,
+                        R.string.settings_transitions_summary,
+                        MqIcons.Sort,
+                        pages.transitions,
+                    )
+                }
             }
             item { shapes ->
                 HubRow(
@@ -106,6 +110,8 @@ internal class PlaybackPages(
     val outputs: () -> Unit,
     val autoActions: () -> Unit,
     val transitions: () -> Unit,
+    /** Decoding and transcoding and Transitions are music only (ADR 0051). */
+    val music: Boolean = true,
 )
 
 @androidx.compose.runtime.Composable
@@ -163,12 +169,14 @@ internal fun LazyListScope.decodingGroups(
 /** Settings -> Playback -> Playback (#138): how the queue and the transport buttons behave, and Bluetooth lyrics (#143). */
 internal fun LazyListScope.behaviorGroups(
     behavior: PlaybackBehavior,
+    music: Boolean,
     onAction: (SettingsAction) -> Unit,
     onRestore: () -> Unit,
 ) {
     item(key = "behavior") {
         Group(R.string.settings_pb_queue) {
-            BehaviorSwitch.entries.forEach { switch ->
+            // Bluetooth lyrics are music only (ADR 0051).
+            BehaviorSwitch.entries.filter { music || it != BehaviorSwitch.BluetoothLyrics }.forEach { switch ->
                 val (title, summary) = switch.texts
                 item { shapes ->
                     SwitchItem(shapes, stringResource(title), stringResource(summary), behavior.isOn(switch)) {

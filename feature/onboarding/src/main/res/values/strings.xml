@@ -32,4 +32,7 @@
     <string name="onboarding_quick_connect_expired">This code expired.</string>
     <string name="onboarding_quick_connect_new_code">Get a new code</string>
     <string name="onboarding_cancel">Cancel</string>
+    <string name="onboarding_app_mode_title">What do you use mediatheQ for?</string>
+    <string name="onboarding_app_mode_body">You can change it any time at the top of Home or in Settings.</string>
+    <string name="onboarding_app_mode_continue">Continue</string>
 </resources>

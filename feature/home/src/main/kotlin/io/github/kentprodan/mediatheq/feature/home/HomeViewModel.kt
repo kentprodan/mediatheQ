@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
+import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.HomeLibrary
 import io.github.kentprodan.mediatheq.core.data.HomeShuffle
@@ -16,6 +17,7 @@ import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.homeItems
 import io.github.kentprodan.mediatheq.core.data.homeLibrary
 import io.github.kentprodan.mediatheq.core.data.mixTracks
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
@@ -27,6 +29,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
@@ -53,6 +56,7 @@ class HomeViewModel
         private val playlists: PlaylistRepository,
         preferences: LibraryPreferencesRepository,
         private val shuffle: HomeShuffle,
+        private val appMode: AppModeRepository,
         private val clock: Clock,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
@@ -65,16 +69,22 @@ class HomeViewModel
 
         private val library: Flow<HomeLibrary> = libraryRepository.homeLibrary()
 
+        /** The mode toggle's value; `null` hides it (a server without video is always Music, ADR 0051). */
+        val modeToggle: StateFlow<AppMode?> =
+            (if (appMode.videoAvailable) appMode.mode else flowOf(null))
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
         /** `null` while the library is empty (the empty and sync states decide what shows). */
         private val sections: Flow<List<HomeSectionContent>?> =
             combine(
                 library,
                 preferences.preferences.map { it.home }.distinctUntilChanged(),
                 shuffle.seed,
-            ) { library, home, seed ->
+                appMode.mode,
+            ) { library, home, seed, mode ->
                 if (library.albums.isEmpty() && library.tracks.isEmpty()) return@combine null
                 val now = clock.now()
-                home.shown.mapNotNull { section ->
+                home.shown.filter { it.allowed(mode) }.mapNotNull { section ->
                     val settings = home.settingsOf(section)
                     val items = homeItems(section, library, settings.maxItems, seed, now)
                     HomeSectionContent(section, settings, items).takeUnless { items.isEmpty && settings.hideIfEmpty }
@@ -82,8 +92,15 @@ class HomeViewModel
             }.flowOn(defaultDispatcher)
 
         val uiState: StateFlow<HomeUiState> =
-            combine(sections, sync, libraryRepository.offline) { sections, (status, everSynced), offline ->
+            combine(
+                sections,
+                sync,
+                libraryRepository.offline,
+                appMode.mode,
+            ) { sections, (status, everSynced), offline, mode ->
                 when {
+                    !mode.music -> HomeUiState.VideoMode
+
                     sections != null -> HomeUiState.Content(sections, refreshing = status is SyncStatus.Running)
 
                     // Before the sync states: offline, a failed or unfinished sync is not what is missing.
@@ -158,6 +175,10 @@ class HomeViewModel
 
                 HomeAction.Sync -> {
                     launch { syncRepository.sync() }
+                }
+
+                is HomeAction.SetMode -> {
+                    launch { appMode.setMode(action.mode) }
                 }
 
                 HomeAction.Refresh -> {

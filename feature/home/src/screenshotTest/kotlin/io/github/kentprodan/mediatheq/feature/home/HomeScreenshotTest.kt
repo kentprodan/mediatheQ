@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeDisplay
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
@@ -213,3 +214,30 @@ fun HomeSectionCarouselScreenshot() =
 @Composable
 fun HomeSectionListScreenshot() =
     SectionPage(HomeSection.FavoriteTracks, HomeItems.Tracks(tracks), HomeSection.FavoriteTracks.defaultSettings)
+
+private val toggleSections =
+    listOf(
+        section(HomeSection.FavoriteAlbums, HomeItems.Albums(albums)),
+        section(HomeSection.FavoriteTracks, HomeItems.Tracks(tracks)),
+    )
+
+/** The mode toggle (ADR 0051) on Home in Music mode. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeModeMusicScreenshot() =
+    MediatheqTheme { HomeScreen(HomeUiState.Content(toggleSections), {}, HomeNavigation(), mode = AppMode.Music) }
+
+/** The mode toggle in Both mode. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeModeBothScreenshot() =
+    MediatheqTheme { HomeScreen(HomeUiState.Content(toggleSections), {}, HomeNavigation(), mode = AppMode.Both) }
+
+/** The mode toggle in Video mode: no music section; the video sections come with #275. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeModeVideoScreenshot() =
+    MediatheqTheme { HomeScreen(HomeUiState.VideoMode, {}, HomeNavigation(), mode = AppMode.Video) }

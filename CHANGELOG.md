@@ -35,6 +35,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Search on the TV: results in rows (albums, artists, songs, playlists) while you type, diacritics optional, and your recent searches.
 - Lyrics on the TV's Now Playing: the line being sung large in the queue's place, or the whole text for plain lyrics.
 - Movies and Series in the Library: after a sync they show as poster grids with how many there are, sorted by name, date added or year, with an Unwatched filter. Playing them comes in a later update.
+- App mode: choose Music, Video or Both after signing in, at the top of Home or in Settings -> Interface -> App mode. Video hides the music, Music stays as before, and the sync only fetches what the mode shows.
 
 ### Fixed
 - Now Playing on a phone held sideways shows the controls without scrolling (smaller transport buttons, the album line in the menu).

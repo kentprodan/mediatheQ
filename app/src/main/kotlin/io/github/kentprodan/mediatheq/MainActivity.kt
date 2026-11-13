@@ -24,6 +24,7 @@ import androidx.navigation3.runtime.entryProvider
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.common.FileAppLog
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.data.entriesFor
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.download.resumeDownloads
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
@@ -35,6 +36,7 @@ import io.github.kentprodan.mediatheq.feature.genre.genreEntry
 import io.github.kentprodan.mediatheq.feature.home.homeEntry
 import io.github.kentprodan.mediatheq.feature.library.libraryEntry
 import io.github.kentprodan.mediatheq.feature.nowplaying.NowPlayingHost
+import io.github.kentprodan.mediatheq.feature.onboarding.appmode.AppModeRoute
 import io.github.kentprodan.mediatheq.feature.onboarding.login.loginEntry
 import io.github.kentprodan.mediatheq.feature.onboarding.quickconnect.quickConnectEntry
 import io.github.kentprodan.mediatheq.feature.onboarding.server.serverEntry
@@ -91,8 +93,17 @@ class MainActivity : ComponentActivity() {
                         }
 
                         is SessionState.LoggedIn -> {
+                            val asksAppMode by viewModel.asksAppMode.collectAsStateWithLifecycle()
+                            if (asksAppMode) {
+                                AppModeRoute()
+                                return@LocalNetworkGate
+                            }
                             val navigation by viewModel.navigation.collectAsStateWithLifecycle()
-                            val navigator = rememberTabNavigator(navigation.entries.map(TopLevelTab::of))
+                            // Read in a few milliseconds; nothing is drawn meanwhile, rather than the other mode's shell.
+                            val appMode =
+                                viewModel.appMode.collectAsStateWithLifecycle().value ?: return@LocalNetworkGate
+                            val navigator =
+                                rememberTabNavigator(navigation.entriesFor(appMode).map(TopLevelTab::of))
                             val snackbar = remember { SnackbarHostState() }
                             UserDataErrorMessages(viewModel.userDataError, viewModel::dismissUserDataError, snackbar)
                             PlaybackErrorMessages(viewModel.playbackError, viewModel::dismissPlaybackError, snackbar)
@@ -146,6 +157,11 @@ class MainActivity : ComponentActivity() {
                                 }
                             val mediaListStyle by viewModel.mediaListStyle.collectAsStateWithLifecycle()
                             CompositionLocalProvider(LocalMediaListStyle provides mediaListStyle) {
+                                // Video mode (ADR 0051): no Now Playing overlay and no mini player until #272.
+                                if (!appMode.music) {
+                                    AppShell(navigator, entries, snackbarHostState = snackbar, navigation = navigation)
+                                    return@CompositionLocalProvider
+                                }
                                 NowPlayingHost(
                                     content = { miniPlayer ->
                                         AppShell(

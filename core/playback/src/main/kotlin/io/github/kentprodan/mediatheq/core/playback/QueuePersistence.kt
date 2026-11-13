@@ -44,6 +44,8 @@ internal class QueuePersistence(
     private val artworkUrl: suspend (Artwork) -> String?,
     /** Nothing comes back while signed out (also when the token could not be read). */
     private val isLoggedIn: suspend () -> Boolean = { true },
+    /** `false` in Video mode (ADR 0051): the saved music queue stays saved, not brought back. */
+    private val restoresMusic: suspend () -> Boolean = { true },
     private val debounce: Duration = 1.seconds,
     private val tick: Duration = 10.seconds,
     private val log: AppLog = AppLog.None,
@@ -99,9 +101,10 @@ internal class QueuePersistence(
             // rewritten once, so the saved positions match the entries left after a sync dropped some.
             player.addListener(listener)
             try {
+                val restores = restoresMusic()
                 val saved =
                     try {
-                        if (isLoggedIn()) repository.restore() else null
+                        if (restores && isLoggedIn()) repository.restore() else null
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
@@ -111,7 +114,7 @@ internal class QueuePersistence(
                     }
                 // Nothing to bring back (none saved, signed out, every track gone, or unreadable): forget it, so the
                 // next media button with the app closed does not start a service with nothing to play (#43).
-                if (saved == null) forget()
+                if (saved == null && restores) forget()
                 if (saved != null && player.mediaItemCount == 0) {
                     val items =
                         saved.entries.map { entry ->

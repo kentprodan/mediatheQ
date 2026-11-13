@@ -104,4 +104,10 @@
     <string name="core_ui_quality_lossless">Lossless</string>
     <string name="core_ui_quality_high">High quality</string>
     <string name="core_ui_quality_efficient">High efficiency</string>
+    <string name="core_ui_app_mode_music">Music</string>
+    <string name="core_ui_app_mode_video">Video</string>
+    <string name="core_ui_app_mode_both">Both</string>
+    <string name="core_ui_app_mode_music_description">Albums, artists, playlists and tracks. Nothing of the videos shows.</string>
+    <string name="core_ui_app_mode_video_description">Movies and series. Nothing of the music shows, and the music queue waits for your return.</string>
+    <string name="core_ui_app_mode_both_description">All the music, with movies and series next to it.</string>
 </resources>

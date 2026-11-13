@@ -52,6 +52,20 @@ class SettingsBackupStoreTest {
         }
 
     @Test
+    fun `the app mode goes into a backup and comes back from it`() =
+        runTest {
+            val libraryStore = LibraryPreferencesStore(library)
+            libraryStore.setAppMode("Video")
+            val snapshot = store.snapshot()
+            libraryStore.setAppMode("Music")
+
+            store.replace(snapshot)
+
+            assertThat(snapshot.library).containsEntry("app_mode", "Video")
+            assertThat(libraryStore.read(library.current).appMode).isEqualTo("Video")
+        }
+
+    @Test
     fun `a replace makes the settings exactly the snapshot and keeps history`() =
         runTest {
             library.edit {

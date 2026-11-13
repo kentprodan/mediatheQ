@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.downloads
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
@@ -31,6 +32,7 @@ class DownloadsViewModel
         private val trackTaps: TrackTaps,
         storage: DownloadStorageRepository,
         audioPreferences: AudioPreferencesRepository,
+        appMode: AppModeRepository,
     ) : ViewModel() {
         private val filter = MutableStateFlow("")
         private val cleanup = MutableStateFlow<CleanupPreview?>(null)
@@ -59,7 +61,19 @@ class DownloadsViewModel
 
         val uiState: StateFlow<DownloadsUiState> =
             combine(
-                grouped,
+                // Video mode lists no music download (ADR 0051): they are kept and counted in the totals.
+                combine(grouped, appMode.mode) { content, mode ->
+                    if (mode.music) {
+                        content
+                    } else {
+                        content.copy(
+                            downloading = emptyList(),
+                            albums = emptyList(),
+                            playlists = emptyList(),
+                            songs = emptyList(),
+                        )
+                    }
+                },
                 downloadRepository.paused,
                 rules,
                 filter,

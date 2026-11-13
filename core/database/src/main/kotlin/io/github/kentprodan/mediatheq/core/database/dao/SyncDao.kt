@@ -95,36 +95,50 @@ interface SyncDao {
         saveState(checkpoint)
     }
 
-    /** Replaces the live library with the staged one and records the finished sync and its owner. */
+    @Query("SELECT * FROM sync_state WHERE id = :id")
+    suspend fun kindState(id: Int): SyncStateEntity?
+
+    /**
+     * Replaces the live [music] and/or [video] library with the staged one (ADR 0051: a kind outside the app mode keeps
+     * its live rows) and records the finished sync, its owner and each swapped kind's sync time.
+     */
     @Transaction
     suspend fun swap(
         finishedAtMillis: Long,
         ownerServerId: String,
         ownerUserId: String,
+        music: Boolean = true,
+        video: Boolean = true,
     ) {
-        mergeSameNameArtists()
-        replaceArtists()
-        copyArtists()
-        replaceAlbums()
-        copyAlbums()
-        replaceAlbumArtists()
-        copyAlbumArtists()
-        replaceTracks()
-        copyTracks()
-        replaceTrackArtists()
-        copyTrackArtists()
-        replaceAlbumGenres()
-        copyAlbumGenres()
-        replaceAlbumLabels()
-        copyAlbumLabels()
-        replaceTrackGenres()
-        copyTrackGenres()
-        replacePlaylists()
-        copyPlaylists()
-        replacePlaylistEntries()
-        copyPlaylistEntries()
-        replaceVideoLibrary()
-        copyVideoLibrary()
+        if (music) {
+            mergeSameNameArtists()
+            replaceArtists()
+            copyArtists()
+            replaceAlbums()
+            copyAlbums()
+            replaceAlbumArtists()
+            copyAlbumArtists()
+            replaceTracks()
+            copyTracks()
+            replaceTrackArtists()
+            copyTrackArtists()
+            replaceAlbumGenres()
+            copyAlbumGenres()
+            replaceAlbumLabels()
+            copyAlbumLabels()
+            replaceTrackGenres()
+            copyTrackGenres()
+            replacePlaylists()
+            copyPlaylists()
+            replacePlaylistEntries()
+            copyPlaylistEntries()
+            saveState(SyncStateEntity(SyncStateEntity.MUSIC, finishedAtMillis))
+        }
+        if (video) {
+            replaceVideoLibrary()
+            copyVideoLibrary()
+            saveState(SyncStateEntity(SyncStateEntity.VIDEO, finishedAtMillis))
+        }
         clearSearch()
         indexSearch()
         clearStaging()

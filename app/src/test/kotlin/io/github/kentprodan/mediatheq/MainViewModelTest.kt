@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqCornerScale
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeMode
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -22,6 +23,7 @@ import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlaybackError
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.SLOW_START_THRESHOLD
+import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
@@ -31,6 +33,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -48,8 +51,9 @@ class MainViewModelTest {
     private val playback = FakePlaybackConnection()
     private val library = FakeLibraryRepository()
     private val downloads = FakeDownloadRepository()
+    private val appMode = FakeAppModeRepository(initial = null)
     private val viewModel by lazy {
-        MainViewModel(repository, userData, sync, libraryPreferences, playback, library, downloads)
+        MainViewModel(repository, userData, sync, libraryPreferences, playback, library, downloads, appMode)
     }
 
     @Test
@@ -153,4 +157,72 @@ class MainViewModelTest {
         }
 
     private val strobe = NowPlayingItem(MediaId(ServerId("s"), "t1"), "Strobe", "deadmau5")
+
+    @Test
+    fun `a sign-in here asks for the app mode until one is stored`() =
+        runTest {
+            viewModel.asksAppMode.test {
+                assertThat(awaitItem()).isFalse()
+                repository.session.value = SessionState.LoggedIn("Home", "Ana")
+                assertThat(awaitItem()).isTrue()
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.asksAppMode.test {
+                assertThat(awaitItem()).isTrue()
+
+                appMode.setMode(AppMode.Video)
+
+                assertThat(awaitItem()).isFalse()
+            }
+        }
+
+    @Test
+    fun `the step shows although nothing watched it during onboarding`() =
+        runTest {
+            viewModel.session.test { cancelAndIgnoreRemainingEvents() }
+            runCurrent()
+            repository.session.value = SessionState.LoggedIn("Home", "Ana")
+
+            viewModel.asksAppMode.test { assertThat(expectMostRecentItem()).isTrue() }
+        }
+
+    @Test
+    fun `picking Video pauses the music playing`() =
+        runTest {
+            appMode.stored.value = AppMode.Both
+            playback.state.value = playback.state.value.copy(isPlaying = true)
+            viewModel.appMode
+            runCurrent()
+            assertThat(playback.commands).doesNotContain("togglePlayPause")
+
+            appMode.setMode(AppMode.Video)
+            runCurrent()
+
+            assertThat(playback.commands).contains("togglePlayPause")
+        }
+
+    @Test
+    fun `an install already signed in at start is never asked`() =
+        runTest {
+            repository.session.value = SessionState.LoggedIn("Home", "Ana")
+
+            viewModel.asksAppMode.test {
+                assertThat(awaitItem()).isFalse()
+                expectNoEvents()
+            }
+        }
+
+    @Test
+    fun `a server without video never asks`() =
+        runTest {
+            val noVideo = FakeAppModeRepository(initial = null, videoAvailable = false)
+            val viewModel =
+                MainViewModel(repository, userData, sync, libraryPreferences, playback, library, downloads, noVideo)
+
+            viewModel.asksAppMode.test {
+                assertThat(awaitItem()).isFalse()
+                repository.session.value = SessionState.LoggedIn("Home", "Ana")
+                expectNoEvents()
+            }
+        }
 }

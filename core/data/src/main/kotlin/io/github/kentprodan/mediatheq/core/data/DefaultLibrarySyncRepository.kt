@@ -25,6 +25,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.datastore.StoredSyncRecord
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
@@ -77,6 +78,7 @@ class DefaultLibrarySyncRepository
         private val userData: DefaultUserDataRepository,
         private val log: AppLog,
         private val capabilities: ServerCapabilities,
+        private val appMode: AppModeRepository,
     ) : LibrarySyncRepository {
         private val mutableStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle(null))
         override val status: StateFlow<SyncStatus> = mutableStatus.asStateFlow()
@@ -84,6 +86,12 @@ class DefaultLibrarySyncRepository
         private val lock = Mutex()
         private val restartedSteps = mutableSetOf<SyncStep>()
         private var running: Deferred<MqResult<Unit>>? = null
+
+        /** The steps of the run in progress: the app mode's kinds (ADR 0051), read when it starts. */
+        private var runSteps: List<SyncStep> = SyncStep.entries
+
+        /** Music and video: whether the run in progress fetches them. */
+        @Volatile private var runKinds: Pair<Boolean, Boolean>? = null
 
         override suspend fun sync(): MqResult<Unit> {
             val job = join()
@@ -128,6 +136,49 @@ class DefaultLibrarySyncRepository
                         }
                     }
             }
+            scope.launch {
+                appMode.mode.collectLatest { mode ->
+                    try {
+                        syncNewKinds(mode)
+                    } catch (_: SQLiteException) {
+                        mutableStatus.value = SyncStatus.Failed(MqError.Storage, null)
+                    }
+                }
+            }
+        }
+
+        /**
+         * A kind [mode] turns on that was never synced on this account, or not for a day, is synced now (ADR 0051). A
+         * running sync of a kind [mode] drops (Music, then Video picked right after sign-in) is stopped; one that only
+         * misses a kind is waited for, since it may sync that kind meanwhile.
+         */
+        internal suspend fun syncNewKinds(mode: AppMode) {
+            val kinds = mode.kinds()
+            val job = lock.withLock { running?.takeIf { it.isActive } }
+            val current = runKinds
+            if (job != null && current != null &&
+                ((current.first && !kinds.first) || (current.second && !kinds.second))
+            ) {
+                job.cancelAndJoin()
+            } else {
+                job?.join()
+            }
+            if (accountStore.account.first() !is MqResult.Success) return
+            if (stale(kinds)) sync()
+        }
+
+        private fun AppMode.kinds() = music to (video && capabilities.video)
+
+        /** Whether one of [kinds] (music, video) was never swapped in, or longer ago than [SYNC_INTERVAL]. */
+        private suspend fun stale(kinds: Pair<Boolean, Boolean>): Boolean {
+            val old = { last: Long? ->
+                last == null || clock.now() - Instant.fromEpochMilliseconds(last) > SYNC_INTERVAL
+            }
+            val music = syncDao.kindState(SyncStateEntity.MUSIC)
+            // An install from before ADR 0051 has no music row: its last full sync synced the music.
+            val musicLast = if (music == null) syncDao.state()?.lastFullSyncAtMillis else music.lastFullSyncAtMillis
+            return (kinds.first && old(musicLast)) ||
+                (kinds.second && old(syncDao.kindState(SyncStateEntity.VIDEO)?.lastFullSyncAtMillis))
         }
 
         private suspend fun join(): Deferred<MqResult<Unit>> =
@@ -150,12 +201,15 @@ class DefaultLibrarySyncRepository
                 mutableStatus.value = SyncStatus.Idle(null)
             }
 
-        /** Due when never synced, when an interrupted sync can resume, or when the last one is over a day old. */
+        /**
+         * Due when never synced, when an interrupted sync can resume, or when a kind of the app mode was last synced over
+         * a day ago (a kind left out of the mode for months is not fresh because the other one is).
+         */
         internal suspend fun isDue(signedIn: Pair<String, String>): Boolean {
             val state = syncDao.state() ?: return true
-            val last = state.lastFullSyncAtMillis ?: return true
+            if (state.lastFullSyncAtMillis == null) return true
             if (state.checkpointStep != null && state.belongsTo(signedIn)) return true
-            return clock.now() - Instant.fromEpochMilliseconds(last) > SYNC_INTERVAL
+            return stale(appMode.mode.first().kinds())
         }
 
         private suspend fun lastSyncedAt(): Instant? =
@@ -237,10 +291,16 @@ class DefaultLibrarySyncRepository
             var state = syncDao.state() ?: SyncStateEntity()
             val now = clock.now().toEpochMilliseconds()
             restartedSteps.clear()
+            val (music, video) = appMode.mode.first().kinds()
+            runKinds = music to video
+            runSteps = SyncStep.entries.filter { if (it.ordinal < SyncStep.Movies.ordinal) music else video }
+            // A checkpoint of another mode is not resumed: the swap would replace a kind whose pages were never staged.
             val resumable =
-                SyncStep.entries.any { it.name == state.checkpointStep } &&
+                runSteps.any { it.name == state.checkpointStep } &&
                     state.belongsTo(account) &&
-                    now - (state.checkpointStartedAtMillis ?: 0) < RESUME_WINDOW.inWholeMilliseconds
+                    now - (state.checkpointStartedAtMillis ?: 0) < RESUME_WINDOW.inWholeMilliseconds &&
+                    inCheckpoint(SyncStateEntity.MUSIC, state) == music &&
+                    inCheckpoint(SyncStateEntity.VIDEO, state) == video
             if (!resumable) {
                 // Offsets drift when the library changes, so an old or foreign checkpoint is not worth resuming.
                 syncDao.discardStaging()
@@ -250,9 +310,11 @@ class DefaultLibrarySyncRepository
                         checkpointServerId = account.first,
                         checkpointUserId = account.second,
                         checkpointStartedAtMillis = now,
-                        checkpointStep = SyncStep.entries.first().name,
+                        checkpointStep = runSteps.first().name,
                     )
                 syncDao.saveState(state)
+                markCheckpoint(SyncStateEntity.MUSIC, music, now)
+                markCheckpoint(SyncStateEntity.VIDEO, video, now)
             }
             userData.onSyncStarted()
             var step = SyncStep.entries.first { it.name == state.checkpointStep }
@@ -275,7 +337,8 @@ class DefaultLibrarySyncRepository
                 }
             }
             val tracks = syncDao.stagedTrackCount()
-            syncDao.swap(clock.now().toEpochMilliseconds(), account.first, account.second)
+            // shortcut: a Video-mode run records 0 tracks in the Sync manager; count videos there when #272 needs it.
+            syncDao.swap(clock.now().toEpochMilliseconds(), account.first, account.second, music, video)
             // Pages fetched before a favorite or rating reached the server carry the old value.
             userData.reapplyOverrides()
             return MqResult.Success(tracks)
@@ -443,7 +506,7 @@ class DefaultLibrarySyncRepository
             val playlistId = playlistIds.getOrNull(playlistIndex)?.let { MediaId(server.serverId, it) }
             if (playlistId == null) {
                 val next = SyncStep.PlaylistEntries.next()
-                // Without video this is the last step: the checkpoint stays until the swap, so a failed swap resumes.
+                // As the last step, the checkpoint stays until the swap, so a failed swap resumes.
                 if (next != null) syncDao.stagePage(state.at(next)) {}
                 return MqResult.Success(next)
             }
@@ -480,11 +543,31 @@ class DefaultLibrarySyncRepository
         private fun SyncStateEntity.belongsTo(account: Pair<String, String>) =
             checkpointServerId == account.first && checkpointUserId == account.second
 
-        /** The step after this one, `null` after the last; the video steps only when the server has video. */
-        private fun SyncStep.next(): Pair<SyncStep, Int>? {
-            val following = SyncStep.entries.getOrNull(ordinal + 1) ?: return null
-            if (following.ordinal >= SyncStep.Movies.ordinal && !capabilities.video) return null
-            return following to 0
+        /** The step after this one in [runSteps], `null` after the last. */
+        private fun SyncStep.next(): Pair<SyncStep, Int>? =
+            runSteps.getOrNull(runSteps.indexOf(this) + 1)?.let {
+                it to
+                    0
+            }
+
+        /** Whether [state]'s pending sync includes the kind of row [id]. */
+        private suspend fun inCheckpoint(
+            id: Int,
+            state: SyncStateEntity,
+        ): Boolean =
+            syncDao.kindState(id)?.checkpointStartedAtMillis.let {
+                it != null &&
+                    it == state.checkpointStartedAtMillis
+            }
+
+        /** Marks the kind of row [id] as [included] in the sync started at [startedAt], keeping when it last synced. */
+        private suspend fun markCheckpoint(
+            id: Int,
+            included: Boolean,
+            startedAt: Long,
+        ) {
+            val row = syncDao.kindState(id) ?: SyncStateEntity(id)
+            syncDao.saveState(row.copy(checkpointStartedAtMillis = startedAt.takeIf { included }))
         }
 
         private companion object {

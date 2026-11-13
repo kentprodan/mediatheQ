@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.home
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -28,6 +29,9 @@ sealed interface HomeUiState {
 
     /** Synced, but the server has no music. */
     data object Empty : HomeUiState
+
+    /** Video mode (ADR 0051): no music section; the video sections come with #275. */
+    data object VideoMode : HomeUiState
 
     /** Offline mode, and nothing for Home is on the phone (#63). */
     data object NothingDownloaded : HomeUiState
@@ -97,4 +101,9 @@ sealed interface HomeAction {
 
     /** Pull to refresh: new random sections, and a sync when online. */
     data object Refresh : HomeAction
+
+    /** The mode toggle at the top (ADR 0051). */
+    data class SetMode(
+        val mode: AppMode,
+    ) : HomeAction
 }

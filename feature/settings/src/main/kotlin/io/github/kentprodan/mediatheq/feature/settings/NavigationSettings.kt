@@ -30,9 +30,11 @@ import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.PortraitNavStyle
 import io.github.kentprodan.mediatheq.core.data.TrackAction
+import io.github.kentprodan.mediatheq.core.data.entriesFor
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialog
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialogContent
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import kotlin.math.roundToInt
 
 /** The choice dialogs of Settings -> Navigation and media start (the entries dialog is ViewModel state). */
@@ -41,6 +43,7 @@ enum class NavigationDialog { PortraitStyle, LandscapeStyle, TrackAction, Restor
 /** Settings -> Interface -> Navigation and media start (#122): every change applies at once. */
 internal fun LazyListScope.navigationGroups(
     navigation: NavigationPreferences,
+    mode: AppMode,
     onAction: (SettingsAction) -> Unit,
     onOpenDialog: (NavigationDialog) -> Unit,
 ) {
@@ -48,7 +51,7 @@ internal fun LazyListScope.navigationGroups(
     item(key = "navigation") {
         Group(R.string.settings_navigation_group) {
             item { shapes ->
-                val labels = navigation.entries.map { stringResource(it.label) }
+                val labels = navigation.entriesFor(mode).map { stringResource(it.label) }
                 DialogItem(shapes, stringResource(R.string.settings_nav_entries), labels.joinToString(", ")) {
                     onAction(SettingsAction.OpenNavEntries)
                 }

@@ -49,4 +49,6 @@
     <string name="home_section_restore_confirm">Put this section back to its default settings?</string>
     <string name="home_section_restore_button">Restore</string>
     <string name="home_section_cancel">Cancel</string>
+    <string name="home_video_mode_title">Movies and series are in the Library</string>
+    <string name="home_video_mode_body">Continue watching and Next up come to Home in a later update.</string>
 </resources>
