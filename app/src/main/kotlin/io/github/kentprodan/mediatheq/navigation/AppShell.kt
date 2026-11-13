@@ -1,10 +1,12 @@
 package io.github.kentprodan.mediatheq.navigation
 
 import android.content.res.Configuration
+import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -42,11 +44,13 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -145,10 +149,24 @@ private fun ShellContent(
     val animatedScopeDecorator =
         remember {
             NavEntryDecorator<NavKey>(onPop = {}) { entry ->
-                CompositionLocalProvider(
-                    LocalNavAnimatedVisibilityScope provides LocalNavAnimatedContentScope.current,
-                ) {
-                    entry.Content()
+                val scope = LocalNavAnimatedContentScope.current
+                CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides scope) {
+                    // A popped page stays on top of the one below until its exit ends: it must take no tap, also
+                    // not from TalkBack (#189). Dialog scenes share the main scene's scope, which stays Visible.
+                    val leaving = scope.transition.targetState == EnterExitState.PostExit
+                    Box(
+                        if (leaving) Modifier.clearAndSetSemantics {} else Modifier,
+                        propagateMinConstraints = true,
+                    ) {
+                        entry.Content()
+                        if (leaving) {
+                            Box(
+                                Modifier.matchParentSize().pointerInput(
+                                    Unit,
+                                ) { awaitPointerEventScope { while (true) awaitPointerEvent() } },
+                            )
+                        }
+                    }
                 }
             }
         }
