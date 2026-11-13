@@ -41,6 +41,9 @@ sealed interface SearchUiState {
                     shown.playlists.map { it.id }
     }
 
+    /** Video mode (ADR 0051): no music is searched; movies and series come with #325. */
+    data object VideoMode : SearchUiState
+
     data class NoResults(
         val query: String,
         /** Offline mode: only downloads were searched (#63). */

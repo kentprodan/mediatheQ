@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
@@ -52,6 +53,7 @@ class SearchViewModel
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
         private val playlists: PlaylistRepository,
+        appMode: AppModeRepository,
     ) : ViewModel() {
         private val selection = MutableStateFlow(ListSelection<MediaId>())
         private val addToPlaylist = MutableStateFlow<List<MediaId>?>(null)
@@ -91,7 +93,8 @@ class SearchViewModel
                     } else {
                         state
                     }
-                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState.Loading)
+                }.combine(appMode.mode) { state, mode -> if (mode.music) state else SearchUiState.VideoMode }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState.Loading)
 
         fun onAction(action: SearchAction) {
             when (action) {

@@ -8,12 +8,14 @@ import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadStorageRepository
@@ -57,8 +59,9 @@ class DownloadsViewModelTest {
     private val storage = FakeDownloadStorageRepository().apply { locationName = "SD card" }
     private val trackTaps by lazy { TrackTaps(playback, FakeLibraryPreferencesRepository()) }
     private val audioPreferences = FakeAudioPreferencesRepository()
+    private val appMode = FakeAppModeRepository()
     private val viewModel by lazy {
-        DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences)
+        DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences, appMode)
     }
 
     private suspend fun content(): DownloadsUiState.Content {
@@ -180,7 +183,8 @@ class DownloadsViewModelTest {
                         return CleanupPreview(1, 1)
                     }
                 }
-            val viewModel = DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences)
+            val viewModel =
+                DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences, appMode)
 
             viewModel.onAction(DownloadsAction.AskCleanup)
             viewModel.onAction(DownloadsAction.DismissCleanup)
@@ -299,5 +303,19 @@ class DownloadsViewModelTest {
             val content = content()
             assertThat(content.songs.map { it.track }).containsExactly(song)
             assertThat(content.albums.single().tracks).containsExactly(a1)
+        }
+
+    @Test
+    fun `Video mode lists no music download but keeps them in the totals`() =
+        runTest {
+            appMode.stored.value = AppMode.Video
+
+            val content = content()
+
+            assertThat(content.albums).isEmpty()
+            assertThat(content.songs).isEmpty()
+            assertThat(content.downloading).isEmpty()
+            assertThat(content.hasFiles).isFalse()
+            assertThat(content.totals.manual).isEqualTo(OfflineUsage(2, 150))
         }
 }

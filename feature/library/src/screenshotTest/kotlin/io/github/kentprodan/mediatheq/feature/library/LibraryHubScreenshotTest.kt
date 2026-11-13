@@ -39,6 +39,21 @@ fun LibraryHubVideoListScreenshot() =
         )
     }
 
+/** Video mode (ADR 0051): only the Movies and Series tiles. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun LibraryHubVideoModeScreenshot() =
+    MediatheqTheme {
+        LibraryHubScreen(
+            LibraryHubUiState.Content(
+                LibraryPagePreferences(listOf(LibraryShortcut.Movies, LibraryShortcut.Series)),
+                VIDEO_COUNTS,
+            ),
+            {},
+        )
+    }
+
 /** The Library hub (#129) by default: every tile, a grid of 3 columns. */
 @PreviewTest
 @MqPreviews

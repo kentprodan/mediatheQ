@@ -175,6 +175,14 @@ private fun SearchContent(
                 }
             }
 
+            SearchUiState.VideoMode -> {
+                MqEmptyState(
+                    MqIcons.Movie,
+                    stringResource(R.string.search_video_mode_title),
+                    body = stringResource(R.string.search_video_mode_body),
+                )
+            }
+
             is SearchUiState.NoResults -> {
                 MqEmptyState(
                     MqIcons.Search,

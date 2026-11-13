@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.data.SearchSort
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchResults
@@ -18,6 +19,7 @@ import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
@@ -48,8 +50,9 @@ class SearchViewModelTest {
     // Lazy: viewModelScope must be created after the rule replaced the main dispatcher.
     private val downloads = FakeDownloadRepository()
     private val playlists = FakePlaylistRepository()
+    private val appMode = FakeAppModeRepository()
     private val viewModel by lazy {
-        SearchViewModel(library, preferences, playback, trackTaps, commands, userData, downloads, playlists)
+        SearchViewModel(library, preferences, playback, trackTaps, commands, userData, downloads, playlists, appMode)
     }
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
@@ -453,5 +456,17 @@ class SearchViewModelTest {
             assertThat(viewModel.results.filter).isEqualTo(SearchFilter.All)
             assertThat(viewModel.results.shown.albums).isEmpty()
             assertThat(viewModel.results.shown.tracks).hasSize(20)
+        }
+
+    @Test
+    fun `Video mode searches no music and shows its own state`() =
+        test {
+            appMode.stored.value = AppMode.Video
+            viewModel.uiState.test {
+                assertThat(awaitItem()).isEqualTo(SearchUiState.VideoMode)
+                viewModel.onAction(SearchAction.QueryChanged("mosoi"))
+                advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+                expectNoEvents()
+            }
         }
 }
