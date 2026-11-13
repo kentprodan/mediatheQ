@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -30,6 +32,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.tv.material3.DrawerValue
 import androidx.tv.material3.Icon
+import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.NavigationDrawer
 import androidx.tv.material3.NavigationDrawerItem
 import androidx.tv.material3.NavigationDrawerScope
@@ -37,22 +40,37 @@ import androidx.tv.material3.Text
 import androidx.tv.material3.rememberDrawerState
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
+import io.github.kentprodan.mediatheq.core.navigation.NowPlayingKey
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
 import io.github.kentprodan.mediatheq.feature.tv.album.tvAlbumEntries
 import io.github.kentprodan.mediatheq.feature.tv.artist.tvArtistEntry
 import io.github.kentprodan.mediatheq.feature.tv.home.tvHomeEntry
 import io.github.kentprodan.mediatheq.feature.tv.library.tvLibraryEntries
+import io.github.kentprodan.mediatheq.feature.tv.nowplaying.tvNowPlayingEntry
 import io.github.kentprodan.mediatheq.tv.R
 
 @Composable
-internal fun TvShellRoute(viewModel: TvShellViewModel = hiltViewModel()) {
+internal fun TvShellRoute(
+    openPlayer: Boolean = false,
+    onPlayerOpened: () -> Unit = {},
+    viewModel: TvShellViewModel = hiltViewModel(),
+) {
     val player by viewModel.player.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(HomeKey)
+    // The launcher's Now Playing card (#240).
+    LaunchedEffect(openPlayer) {
+        if (openPlayer) {
+            TvNavigator.navigate(backStack, NowPlayingKey)
+            onPlayerOpened()
+        }
+    }
     TvShell(backStack, player, onUnknown = viewModel::unknownDestination) { navigator ->
         tvHomeEntry(navigator)
         tvLibraryEntries(navigator)
         tvAlbumEntries()
         tvArtistEntry(navigator)
+        tvNowPlayingEntry()
         tvPlaceholderEntries()
     }
 }
@@ -138,12 +156,20 @@ private fun NavigationDrawerScope.Drawer(
         Spacer(Modifier.weight(1f))
         player.item?.let { item ->
             val playState = stringResource(if (player.isPlaying) R.string.tv_playing else R.string.tv_paused)
-            // The strip: what plays, its play state; selecting it opens Now playing.
+            // The strip: the cover (collapsed, the only part shown), what plays and its play state; selecting it opens
+            // Now playing.
             NavigationDrawerItem(
                 selected = false,
                 onClick = { onNavigate(TvDestination.NowPlaying.key) },
                 modifier = Modifier.semantics { stateDescription = playState },
                 leadingContent = {
+                    MqTvCover(
+                        item.artwork,
+                        MqTvIcons.MusicNote,
+                        Modifier.size(24.dp).clip(MaterialTheme.shapes.extraSmall),
+                    )
+                },
+                trailingContent = {
                     Icon(if (player.isPlaying) MqTvIcons.Pause else MqTvIcons.Play, contentDescription = null)
                 },
                 supportingContent = {

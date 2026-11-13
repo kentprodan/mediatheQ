@@ -17,6 +17,8 @@ fun MqTvListItem(
     icon: ImageVector? = null,
     selected: Boolean = false,
     enabled: Boolean = true,
+    /** Long-press of select: the item's menu. */
+    onLongClick: (() -> Unit)? = null,
 ) {
     ListItem(
         selected = selected,
@@ -24,6 +26,7 @@ fun MqTvListItem(
         headlineContent = { Text(headline) },
         modifier = modifier,
         enabled = enabled,
+        onLongClick = onLongClick,
         supportingContent = supporting?.let { { Text(it) } },
         leadingContent = icon?.let { { Icon(it, contentDescription = null) } },
     )
