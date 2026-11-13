@@ -22,11 +22,14 @@ class FocusMemory internal constructor(
 ) {
     internal val requesters = mutableMapOf<String, FocusRequester>()
 
-    /** Focuses the item focused last, else the one with [first] (if given); call once when the screen opens. */
-    fun restore(first: String? = null) {
-        val requester = requesters[last.value] ?: first?.let(requesters::get) ?: return
+    /**
+     * Focuses the item focused last, else the one with [first] (if given); call once when the screen opens. `false`
+     * when there was nothing to focus, so the screen can focus something else (Search's field, #244).
+     */
+    fun restore(first: String? = null): Boolean {
+        val requester = requesters[last.value] ?: first?.let(requesters::get) ?: return false
         // Not attached yet (the item is still being laid out) is not an error: focus stays where it is.
-        runCatching { requester.requestFocus() }
+        return runCatching { requester.requestFocus() }.getOrDefault(false)
     }
 
     /** Focuses the item with [key] if it is on screen (the A-Z strip's jump, #237). */

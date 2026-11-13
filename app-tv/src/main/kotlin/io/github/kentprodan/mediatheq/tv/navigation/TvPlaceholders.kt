@@ -10,19 +10,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.navigation3.runtime.EntryProviderScope
-import androidx.navigation3.runtime.NavKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.tv.R
-
-/** The drawer's screens until their issues land (#244 Search). */
-fun EntryProviderScope<NavKey>.tvPlaceholderEntries() {
-    TvDestination.entries.filter { it == TvDestination.Search }.forEach { destination ->
-        entry(destination.key) { TvPlaceholder(stringResource(destination.label)) }
-    }
-}
 
 /** A screen still to come: its name and a line saying so. Nothing to focus, so focus stays in the drawer. */
 @Composable
