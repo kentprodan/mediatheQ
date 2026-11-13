@@ -1,3 +1,5 @@
+import io.github.kentprodan.mediatheq.buildlogic.collectLicenseNotices
+
 plugins {
     alias(libs.plugins.mediatheq.android.application)
     alias(libs.plugins.mediatheq.android.hilt)
@@ -16,6 +18,11 @@ aboutLibraries {
         allowedLicenses.addAll("Apache-2.0", "BSD-3-Clause", "MIT", "GPL-3.0-or-later")
         additionalLicenses.add("GPL-3.0-or-later")
     }
+}
+
+// NOTICE files of the shipped libraries, for the licenses list (#243, ADR 0022), as on the phone.
+androidComponents {
+    onVariants { collectLicenseNotices(it) }
 }
 
 android {
@@ -50,6 +57,7 @@ dependencies {
     implementation(projects.featureTv.album)
     implementation(projects.featureTv.artist)
     implementation(projects.featureTv.nowplaying)
+    implementation(projects.featureTv.settings)
     // Covers through the app's OkHttp client (ADR 0013), like the phone.
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
@@ -65,4 +73,22 @@ dependencies {
     androidTestImplementation(libs.androidx.media3.session)
     testImplementation(projects.core.testing)
     testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.kotlinx.serialization.json)
+}
+
+// LicensesReportTest checks what the release build ships, also when the unit tests run on debug (#243).
+tasks.withType<Test>().configureEach {
+    val report = layout.buildDirectory.file("generated/aboutLibraries/release/res/raw/aboutlibraries.json")
+    val license = rootProject.file("LICENSE")
+    val notices = layout.buildDirectory.file("generated/res/collectReleaseLicenseNotices/raw/license_notices.json")
+    dependsOn("prepareLibraryDefinitionsRelease", "collectReleaseLicenseNotices")
+    inputs.file(report).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file(notices).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file(license).withPathSensitivity(PathSensitivity.RELATIVE)
+
+    // Relative to the module, the tests' working directory: absolute paths would tie the build cache to this machine.
+    fun relative(file: File) = file.relativeTo(projectDir).invariantSeparatorsPath
+    systemProperty("mediatheq.licensesReport", relative(report.get().asFile))
+    systemProperty("mediatheq.license", relative(license))
+    systemProperty("mediatheq.licenseNotices", relative(notices.get().asFile))
 }

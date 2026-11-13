@@ -7,7 +7,10 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
 
-/** A TV list row (ADR 0037): headline, optional supporting text and leading icon; [selected] marks the current one. */
+/**
+ * A TV list row (ADR 0037): headline, optional supporting text, leading icon and [trailing] content (a `Switch` that
+ * the row's select toggles, #243); [selected] marks the current one.
+ */
 @Composable
 fun MqTvListItem(
     headline: String,
@@ -19,6 +22,7 @@ fun MqTvListItem(
     enabled: Boolean = true,
     /** Long-press of select: the item's menu. */
     onLongClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     ListItem(
         selected = selected,
@@ -29,5 +33,6 @@ fun MqTvListItem(
         onLongClick = onLongClick,
         supportingContent = supporting?.let { { Text(it) } },
         leadingContent = icon?.let { { Icon(it, contentDescription = null) } },
+        trailingContent = trailing,
     )
 }
