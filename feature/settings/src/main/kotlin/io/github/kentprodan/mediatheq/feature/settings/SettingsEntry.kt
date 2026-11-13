@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.navigation.AboutSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AddAccountKey
 import io.github.kentprodan.mediatheq.core.navigation.AdvancedSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumPageSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.AppModeSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistPageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AudioFocusSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AutoActionsSettingsKey
@@ -79,8 +80,10 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             onOpenPlaylistPage = { navigator.navigateTo(PlaylistPageSettingsKey) },
             onOpenSearchPage = { navigator.navigateTo(SearchPageSettingsKey) },
             onOpenAdvanced = { navigator.navigateTo(AdvancedSettingsKey) },
+            onOpenAppMode = { navigator.navigateTo(AppModeSettingsKey) },
         )
     }
+    entry<AppModeSettingsKey> { SettingsPageRoute(SettingsPage.AppMode, openOutputs, back) }
     entry<ThemeSettingsKey> { SettingsPageRoute(SettingsPage.Theme, openOutputs, back) }
     entry<NavigationSettingsKey> { SettingsPageRoute(SettingsPage.Navigation, openOutputs, back) }
     entry<MediaListsSettingsKey> { SettingsPageRoute(SettingsPage.MediaLists, openOutputs, back) }

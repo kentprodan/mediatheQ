@@ -29,6 +29,7 @@ import io.github.kentprodan.mediatheq.core.data.StorageMove
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.TransitionsPreferences
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 
@@ -53,6 +54,10 @@ sealed interface SettingsUiState {
         /** Where downloads can live (#146); empty without a removable volume. */
         val storageLocations: List<StorageLocation> = emptyList(),
         val storageMove: StorageMove = StorageMove.Idle,
+        /** The app mode in effect (ADR 0051): Video hides the music-only pages. */
+        val appMode: AppMode = AppMode.Music,
+        /** The server can have video: the App mode page is offered. */
+        val videoAvailable: Boolean = true,
     ) : SettingsUiState
 }
 
@@ -103,8 +108,16 @@ data class OrganizeDraft<T>(
 /** The navigation entries being organized (#122): Home always checked; at most [NavigationPreferences.MAX_ENTRIES]. */
 typealias NavEntriesDraft = OrganizeDraft<MainNavEntry>
 
-fun navEntriesDraft(entries: List<MainNavEntry>): NavEntriesDraft =
-    OrganizeDraft.of(entries, MainNavEntry.entries, setOf(MainNavEntry.Home), NavigationPreferences.MAX_ENTRIES)
+fun navEntriesDraft(
+    entries: List<MainNavEntry>,
+    mode: AppMode = AppMode.Music,
+): NavEntriesDraft =
+    OrganizeDraft.of(
+        entries.filter { it.allowed(mode) },
+        MainNavEntry.entries.filter { it.allowed(mode) },
+        setOf(MainNavEntry.Home),
+        NavigationPreferences.MAX_ENTRIES,
+    )
 
 sealed interface SettingsAction {
     /** The quality on [metered] networks (mobile data), or on unmetered ones (Wi-Fi). */
@@ -164,6 +177,11 @@ sealed interface SettingsAction {
 
     /** Opens "Organize your navigation" with the stored entries. */
     data object OpenNavEntries : SettingsAction
+
+    /** Settings -> Interface -> App mode (ADR 0051). */
+    data class SetAppMode(
+        val mode: AppMode,
+    ) : SettingsAction
 
     data class ToggleNavEntry(
         val entry: MainNavEntry,

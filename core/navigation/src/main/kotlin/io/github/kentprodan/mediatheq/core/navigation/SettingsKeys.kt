@@ -13,6 +13,10 @@ data object SettingsKey : NavKey
 @Serializable
 data object InterfaceSettingsKey : NavKey
 
+/** Settings -> Interface -> App mode: Music, Video or Both (ADR 0051). */
+@Serializable
+data object AppModeSettingsKey : NavKey
+
 /** Settings -> Interface -> Theme, font and colors (#121). */
 @Serializable
 data object ThemeSettingsKey : NavKey

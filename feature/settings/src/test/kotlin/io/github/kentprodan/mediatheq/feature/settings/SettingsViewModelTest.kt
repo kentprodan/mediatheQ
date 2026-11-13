@@ -53,10 +53,12 @@ import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.data.TrackInfo
 import io.github.kentprodan.mediatheq.core.data.TransitionsPreferences
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
@@ -77,7 +79,9 @@ class SettingsViewModelTest {
     private val library = FakeLibraryPreferencesRepository()
     private val storage = FakeDownloadStorageRepository()
     private var restarts = 0
-    private val viewModel by lazy { SettingsViewModel(session, audio, library, storage) { restarts++ } }
+    private val appMode = FakeAppModeRepository()
+
+    private val viewModel by lazy { SettingsViewModel(session, audio, library, storage, appMode) { restarts++ } }
 
     private fun signIn() {
         session.session.value = SessionState.LoggedIn("Home", "Ana")
@@ -700,5 +704,38 @@ class SettingsViewModelTest {
             viewModel.onAction(SettingsAction.SetNotificationButtons(null))
             assertThat(content().audio.headset).isEqualTo(HeadsetPreferences())
             assertThat(content().audio.notificationButtons).isEqualTo(NotificationButtonsPreferences())
+        }
+
+    @Test
+    fun `the mode shows in the state and a choice is stored`() =
+        runTest {
+            signIn()
+            viewModel.uiState.test {
+                assertThat((awaitItem() as SettingsUiState.Content).appMode).isEqualTo(AppMode.Music)
+
+                viewModel.onAction(SettingsAction.SetAppMode(AppMode.Video))
+
+                assertThat((awaitItem() as SettingsUiState.Content).appMode).isEqualTo(AppMode.Video)
+                assertThat(appMode.stored.value).isEqualTo(AppMode.Video)
+            }
+        }
+
+    @Test
+    fun `in Video mode the navigation dialog offers only the entries the mode allows`() =
+        runTest {
+            signIn()
+            appMode.stored.value = AppMode.Video
+            viewModel.uiState.test {
+                awaitItem()
+                viewModel.onAction(SettingsAction.OpenNavEntries)
+
+                val draft = (awaitItem() as SettingsUiState.Content).entriesDraft!!
+                assertThat(draft.order).containsExactly(
+                    MainNavEntry.Home,
+                    MainNavEntry.Library,
+                    MainNavEntry.Search,
+                    MainNavEntry.Downloads,
+                )
+            }
         }
 }

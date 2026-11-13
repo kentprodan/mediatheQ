@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
+import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.AppRestarter
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
@@ -13,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.StorageMove
+import io.github.kentprodan.mediatheq.core.data.entriesFor
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,6 +35,7 @@ class SettingsViewModel
         private val audio: AudioPreferencesRepository,
         private val library: LibraryPreferencesRepository,
         private val storage: DownloadStorageRepository,
+        private val appMode: AppModeRepository,
         private val restarter: AppRestarter,
     ) : ViewModel() {
         private val entriesDraft = MutableStateFlow<NavEntriesDraft?>(null)
@@ -47,13 +50,13 @@ class SettingsViewModel
                 audio.preferences,
                 library.preferences,
                 combine(entriesDraft, shortcutsDraft, sectionsDraft, artistSectionsDraft, genreSectionsDraft, ::Drafts),
-                combine(storage.locations, storage.move, ::Pair),
+                combine(storage.locations, storage.move, appMode.mode, ::Triple),
             ) {
                 session,
                 audio,
                 library,
                 (draft, shortcuts, sections, artistSections, genreSections),
-                (locations, move),
+                (locations, move, mode),
                 ->
                 // Signed out: the app leaves for onboarding, nothing to show meanwhile.
                 (session as? SessionState.LoggedIn)?.let {
@@ -67,6 +70,8 @@ class SettingsViewModel
                         genreSections,
                         locations,
                         move,
+                        mode,
+                        appMode.videoAvailable,
                     )
                 } ?: SettingsUiState.Loading
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState.Loading)
@@ -139,7 +144,9 @@ class SettingsViewModel
                             navEntriesDraft(
                                 library.preferences
                                     .first()
-                                    .navigation.entries,
+                                    .navigation
+                                    .entriesFor(appMode.mode.first()),
+                                appMode.mode.first(),
                             )
                     }
 
@@ -407,6 +414,10 @@ class SettingsViewModel
 
                     is SettingsAction.SetAlbumColumns -> {
                         library.setAlbumColumns(action.columns)
+                    }
+
+                    is SettingsAction.SetAppMode -> {
+                        appMode.setMode(action.mode)
                     }
 
                     is SettingsAction.SetRatingMode -> {
