@@ -220,11 +220,15 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
     override suspend fun setSort(
         filter: LibraryFilter,
         sort: LibrarySort,
+        reversed: Boolean,
     ) {
-        if (sort in
-            filter.sorts
-        ) {
-            preferences.value = preferences.value.copy(sorts = preferences.value.sorts + (filter to sort))
+        if (sort in filter.sorts) {
+            val current = preferences.value
+            preferences.value =
+                current.copy(
+                    sorts = current.sorts + (filter to sort),
+                    reversedSorts = if (reversed) current.reversedSorts + filter else current.reversedSorts - filter,
+                )
         }
     }
 }

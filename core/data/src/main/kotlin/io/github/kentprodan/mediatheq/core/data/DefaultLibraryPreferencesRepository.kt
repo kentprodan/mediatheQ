@@ -28,17 +28,14 @@ class DefaultLibraryPreferencesRepository
     ) : LibraryPreferencesRepository {
         override val preferences: Flow<LibraryPreferences> =
             store.values.map { stored ->
+                val sorts = librarySorts(stored.sorts)
                 LibraryPreferences(
                     albumColumns =
                         stored.albumColumns?.takeIf { it in LibraryPreferences.ALBUM_COLUMNS }
                             ?: LibraryPreferences.DEFAULT_ALBUM_COLUMNS,
                     genresGrid = stored.genresGrid ?: false,
-                    sorts =
-                        stored.sorts
-                            .mapNotNull { (tab, sort) ->
-                                val filter = enumOrNull<LibraryFilter>(tab) ?: return@mapNotNull null
-                                enumOrNull<LibrarySort>(sort)?.takeIf { it in filter.sorts }?.let { filter to it }
-                            }.toMap(),
+                    sorts = sorts.mapValues { it.value.first },
+                    reversedSorts = sorts.filterValues { it.second }.keys,
                     ratingMode = enumOrNull<RatingMode>(stored.ratingMode) ?: RatingMode.WholeStars,
                     offlineMode = stored.offlineMode ?: false,
                     autoOffline = enumOrNull<AutoOffline>(stored.autoOffline) ?: AutoOffline.NoNetwork,
@@ -538,9 +535,21 @@ class DefaultLibraryPreferencesRepository
         override suspend fun setSort(
             filter: LibraryFilter,
             sort: LibrarySort,
+            reversed: Boolean,
         ) {
-            if (sort in filter.sorts) store.setSort(filter.name, sort.name)
+            if (sort in filter.sorts) store.setSort(filter.name, if (reversed) sort.name + REVERSED else sort.name)
         }
+
+        /** Tab -> (sort, reversed) from "Name" or "Name,reversed" (#187); unknown tabs, sorts and suffixes drop. */
+        private fun librarySorts(stored: Map<String, String>): Map<LibraryFilter, Pair<LibrarySort, Boolean>> =
+            stored
+                .mapNotNull { (tab, value) ->
+                    val filter = enumOrNull<LibraryFilter>(tab) ?: return@mapNotNull null
+                    val reversed = value.endsWith(REVERSED)
+                    enumOrNull<LibrarySort>(value.removeSuffix(REVERSED))
+                        ?.takeIf { it in filter.sorts }
+                        ?.let { filter to (it to reversed) }
+                }.toMap()
 
         override val recentSearches: Flow<List<String>> =
             store.recentSearches.map { it.take(MAX_RECENT_SEARCHES) }
@@ -557,5 +566,8 @@ class DefaultLibraryPreferencesRepository
 
         private companion object {
             const val OPAQUE = 0xFF000000.toInt()
+
+            /** Suffix of a stored sort run against its natural direction (#187). */
+            const val REVERSED = ",reversed"
         }
     }

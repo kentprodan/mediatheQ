@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.ui.nameComparator
 
 // Sorting for the Library lists. Names compare like a person reads them: case and diacritics are ignored ("Moșoi" next
 // to "Mosoi"). The item id breaks ties so the order never jumps. Newest and latest year come first; unknown dates last.
+// A reversed sort (#187) turns the whole list around, unknown dates included.
 
 @JvmName("sortedAlbums")
 internal fun List<Album>.sortedFor(sort: LibrarySort): List<Album> {
@@ -124,3 +125,16 @@ internal fun List<RecordLabel>.sortedFor(sort: LibrarySort): List<RecordLabel> {
         },
     )
 }
+
+/** The same items in the opposite order (#187); states without items stay as they are. */
+internal fun LibraryContent.reversed(): LibraryContent =
+    when (this) {
+        is LibraryContent.Albums -> LibraryContent.Albums(albums.asReversed())
+        is LibraryContent.Artists -> LibraryContent.Artists(artists.asReversed())
+        is LibraryContent.Playlists -> LibraryContent.Playlists(playlists.asReversed())
+        is LibraryContent.Songs -> LibraryContent.Songs(tracks.asReversed())
+        is LibraryContent.Genres -> LibraryContent.Genres(genres.asReversed())
+        is LibraryContent.RecordLabels -> LibraryContent.RecordLabels(labels.asReversed())
+        is LibraryContent.Years -> LibraryContent.Years(years.asReversed())
+        else -> this
+    }

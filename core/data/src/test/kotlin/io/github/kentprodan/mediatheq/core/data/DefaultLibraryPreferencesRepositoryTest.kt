@@ -107,6 +107,24 @@ class DefaultLibraryPreferencesRepositoryTest {
         }
 
     @Test
+    fun `a sort can be reversed per tab, kept, and a new sort starts in its natural direction`() =
+        runTest {
+            repository.setSort(LibraryFilter.Albums, LibrarySort.Year, reversed = true)
+            repository.setSort(LibraryFilter.Songs, LibrarySort.Album)
+
+            var preferences = repository.preferences.first()
+            assertThat(preferences.sortFor(LibraryFilter.Albums)).isEqualTo(LibrarySort.Year)
+            assertThat(preferences.isReversed(LibraryFilter.Albums)).isTrue()
+            assertThat(preferences.isReversed(LibraryFilter.Songs)).isFalse()
+            assertThat(dataStore.data.first()[stringPreferencesKey("sort_Albums")]).isEqualTo("Year,reversed")
+
+            repository.setSort(LibraryFilter.Albums, LibrarySort.Name)
+            preferences = repository.preferences.first()
+            assertThat(preferences.sortFor(LibraryFilter.Albums)).isEqualTo(LibrarySort.Name)
+            assertThat(preferences.isReversed(LibraryFilter.Albums)).isFalse()
+        }
+
+    @Test
     fun `values a tab does not offer are refused`() =
         runTest {
             repository.setAlbumColumns(7)
@@ -123,6 +141,8 @@ class DefaultLibraryPreferencesRepositoryTest {
                 it[intPreferencesKey("album_columns")] = 9
                 it[stringPreferencesKey("sort_Songs")] = "Year"
                 it[stringPreferencesKey("sort_Gone")] = "Name"
+                it[stringPreferencesKey("sort_Albums")] = "Name,garbage"
+                it[stringPreferencesKey("sort_Playlists")] = "Year,reversed"
             }
 
             assertThat(repository.preferences.first()).isEqualTo(LibraryPreferences())

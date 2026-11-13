@@ -138,94 +138,108 @@ private fun ToolRow(
     onAction: (LibraryAction) -> Unit,
     onSelect: (() -> Unit)?,
 ) {
+    // Sort at the start, tools and count at the end; scrolls rather than squeezing at large font sizes.
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // A Home section's list keeps the section's order (#183): no sort.
+        Box { if (state.sectionPage == null) SortButton(state, onAction) }
+        Row(verticalAlignment = Alignment.CenterVertically) { ItemTools(state, onAction, onSelect) }
+    }
+}
+
+@Composable
+private fun ItemTools(
+    state: LibraryUiState,
+    onAction: (LibraryAction) -> Unit,
+    onSelect: (() -> Unit)?,
+) {
     var filterMenu by rememberSaveable { mutableStateOf(false) }
     var viewMenu by rememberSaveable { mutableStateOf(false) }
     val listFilter = state.listFilter
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        // A Home section's list keeps the section's order (#183): no sort.
-        if (state.sectionPage == null) SortButton(state, onAction)
-        Box(Modifier.weight(1f))
-        // Years, genres and labels are no items of their own: nothing to filter, select or search (#129-#131).
-        val itemTools =
-            state.filter != LibraryFilter.Years && state.filter != LibraryFilter.Genres &&
-                state.filter != LibraryFilter.RecordLabels
-        if (itemTools) {
-            Box {
-                // Downloaded only stays set across lists but does nothing on Artists, where it cannot be unticked.
-                val filterOn =
-                    listFilter.favoritesOnly || (listFilter.downloadedOnly && state.filter != LibraryFilter.Artists)
-                val on = stringResource(R.string.library_filter_on)
-                IconButton(
-                    onClick = { filterMenu = true },
-                    colors =
-                        if (filterOn) {
-                            IconButtonDefaults.filledTonalIconButtonColors()
-                        } else {
-                            IconButtonDefaults
-                                .iconButtonColors()
-                        },
-                    modifier = Modifier.semantics { if (filterOn) stateDescription = on },
-                ) { Icon(MqIcons.FilterList, contentDescription = stringResource(R.string.library_filter)) }
-                DropdownMenu(expanded = filterMenu, onDismissRequest = { filterMenu = false }) {
-                    CheckMenuItem(stringResource(R.string.library_favorites_only), listFilter.favoritesOnly) {
-                        onAction(LibraryAction.SetFavoritesOnly(!listFilter.favoritesOnly))
-                    }
-                    // Artists have no download state of their own.
-                    if (state.filter != LibraryFilter.Artists) {
-                        CheckMenuItem(stringResource(R.string.library_downloaded_only), listFilter.downloadedOnly) {
-                            onAction(LibraryAction.SetDownloadedOnly(!listFilter.downloadedOnly))
-                        }
+    // Years, genres and labels are no items of their own: nothing to filter, select or search (#129-#131).
+    val itemTools =
+        state.filter != LibraryFilter.Years && state.filter != LibraryFilter.Genres &&
+            state.filter != LibraryFilter.RecordLabels
+    if (itemTools) {
+        Box {
+            // Downloaded only stays set across lists but does nothing on Artists, where it cannot be unticked.
+            val filterOn =
+                listFilter.favoritesOnly || (listFilter.downloadedOnly && state.filter != LibraryFilter.Artists)
+            val on = stringResource(R.string.library_filter_on)
+            IconButton(
+                onClick = { filterMenu = true },
+                colors =
+                    if (filterOn) {
+                        IconButtonDefaults.filledTonalIconButtonColors()
+                    } else {
+                        IconButtonDefaults
+                            .iconButtonColors()
+                    },
+                modifier = Modifier.semantics { if (filterOn) stateDescription = on },
+            ) { Icon(MqIcons.FilterList, contentDescription = stringResource(R.string.library_filter)) }
+            DropdownMenu(expanded = filterMenu, onDismissRequest = { filterMenu = false }) {
+                CheckMenuItem(stringResource(R.string.library_favorites_only), listFilter.favoritesOnly) {
+                    onAction(LibraryAction.SetFavoritesOnly(!listFilter.favoritesOnly))
+                }
+                // Artists have no download state of their own.
+                if (state.filter != LibraryFilter.Artists) {
+                    CheckMenuItem(stringResource(R.string.library_downloaded_only), listFilter.downloadedOnly) {
+                        onAction(LibraryAction.SetDownloadedOnly(!listFilter.downloadedOnly))
                     }
                 }
             }
         }
-        // Only the album grid (its columns) and the genres (grid or rows) have view options.
-        if (state.filter == LibraryFilter.Albums || state.filter == LibraryFilter.Genres) {
-            Box {
-                IconButton(onClick = { viewMenu = true }) {
-                    Icon(MqIcons.GridView, contentDescription = stringResource(R.string.library_view_options))
-                }
-                DropdownMenu(expanded = viewMenu, onDismissRequest = { viewMenu = false }) {
-                    if (state.filter == LibraryFilter.Genres) {
-                        val views = listOf(false to R.string.library_view_list, true to R.string.library_view_grid)
-                        views.forEach { (grid, label) ->
-                            CheckedMenuItem(stringResource(label), grid == state.genresGrid) {
-                                onAction(LibraryAction.SetGenresGrid(grid))
-                                viewMenu = false
-                            }
-                        }
-                        HorizontalDivider()
-                    }
-                    LibraryPreferences.ALBUM_COLUMNS.forEach { columns ->
-                        CheckedMenuItem(
-                            stringResource(R.string.library_columns, columns),
-                            columns == state.albumColumns,
-                        ) {
-                            onAction(LibraryAction.SetAlbumColumns(columns))
+    }
+    // Only the album grid (its columns) and the genres (grid or rows) have view options.
+    if (state.filter == LibraryFilter.Albums || state.filter == LibraryFilter.Genres) {
+        Box {
+            IconButton(onClick = { viewMenu = true }) {
+                Icon(MqIcons.GridView, contentDescription = stringResource(R.string.library_view_options))
+            }
+            DropdownMenu(expanded = viewMenu, onDismissRequest = { viewMenu = false }) {
+                if (state.filter == LibraryFilter.Genres) {
+                    val views = listOf(false to R.string.library_view_list, true to R.string.library_view_grid)
+                    views.forEach { (grid, label) ->
+                        CheckedMenuItem(stringResource(label), grid == state.genresGrid) {
+                            onAction(LibraryAction.SetGenresGrid(grid))
                             viewMenu = false
                         }
                     }
+                    HorizontalDivider()
+                }
+                LibraryPreferences.ALBUM_COLUMNS.forEach { columns ->
+                    CheckedMenuItem(
+                        stringResource(R.string.library_columns, columns),
+                        columns == state.albumColumns,
+                    ) {
+                        onAction(LibraryAction.SetAlbumColumns(columns))
+                        viewMenu = false
+                    }
                 }
             }
         }
-        if (onSelect != null && itemTools) {
-            IconButton(onClick = onSelect, enabled = state.itemCount > 0) {
-                Icon(MqIcons.Checklist, contentDescription = stringResource(R.string.library_select))
-            }
+    }
+    if (onSelect != null && itemTools) {
+        IconButton(onClick = onSelect, enabled = state.itemCount > 0) {
+            Icon(MqIcons.Checklist, contentDescription = stringResource(R.string.library_select))
         }
-        if (itemTools) {
-            IconButton(onClick = { onAction(LibraryAction.Search(if (listFilter.search == null) "" else null)) }) {
-                Icon(MqIcons.Search, contentDescription = stringResource(R.string.library_search_in_list))
-            }
+    }
+    if (itemTools) {
+        IconButton(onClick = { onAction(LibraryAction.Search(if (listFilter.search == null) "" else null)) }) {
+            Icon(MqIcons.Search, contentDescription = stringResource(R.string.library_search_in_list))
         }
-        if (state.header.showItemCounts && state.itemCount > 0) {
-            Text(
-                pluralStringResource(R.plurals.library_items, state.itemCount, state.itemCount),
-                Modifier.padding(start = MediatheqSpacing.xs),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+    }
+    if (state.header.showItemCounts && state.itemCount > 0) {
+        Text(
+            pluralStringResource(R.plurals.library_items, state.itemCount, state.itemCount),
+            Modifier.padding(start = MediatheqSpacing.xs),
+            maxLines = 1,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -275,23 +289,37 @@ private fun SortButton(
     onAction: (LibraryAction) -> Unit,
 ) {
     var sortMenu by rememberSaveable { mutableStateOf(false) }
-    Box {
-        val ascending = state.sort.ascending != state.header.invertedSortArrows
-        TextButton(onClick = { sortMenu = true }, enabled = state.filter.sorts.size > 1) {
-            Text(stringResource(state.sort.label), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Icon(
-                if (ascending) MqIcons.ArrowUpward else MqIcons.ArrowDownward,
-                contentDescription = null,
-                Modifier.padding(start = ButtonDefaults.IconSpacing).size(ButtonDefaults.IconSize),
-            )
-        }
-        DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
-            state.filter.sorts.forEach { sort ->
-                CheckedMenuItem(stringResource(sort.label), checked = sort == state.sort) {
-                    onAction(LibraryAction.SelectSort(sort))
-                    sortMenu = false
+    // The real direction (#187); Inverted sort arrows only changes how the arrow is drawn.
+    val ascending = state.sort.ascending != state.sortReversed
+    val direction =
+        stringResource(if (ascending) R.string.library_sort_ascending else R.string.library_sort_descending)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box {
+            TextButton(
+                onClick = { sortMenu = true },
+                Modifier.semantics { stateDescription = direction },
+                enabled = state.filter.sorts.size > 1,
+            ) {
+                Text(stringResource(state.sort.label), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
+                state.filter.sorts.forEach { sort ->
+                    // The sort already chosen turns around (owner, #187).
+                    CheckedMenuItem(stringResource(sort.label), checked = sort == state.sort) {
+                        onAction(if (sort == state.sort) LibraryAction.ReverseSort else LibraryAction.SelectSort(sort))
+                        sortMenu = false
+                    }
                 }
             }
+        }
+        IconButton(
+            onClick = { onAction(LibraryAction.ReverseSort) },
+            Modifier.semantics { stateDescription = direction },
+        ) {
+            Icon(
+                if (ascending != state.header.invertedSortArrows) MqIcons.ArrowUpward else MqIcons.ArrowDownward,
+                contentDescription = stringResource(R.string.library_reverse_sort),
+            )
         }
     }
 }

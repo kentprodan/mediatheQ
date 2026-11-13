@@ -91,14 +91,15 @@ class LibraryViewModel
         // The failed sync the user already saw as a snackbar; the same failure is not shown twice.
         private val shownFailure = MutableStateFlow<SyncStatus.Failed?>(null)
 
-        /** The list's items, sorted off the main thread. */
+        /** The list's items, sorted off the main thread; a Home section keeps its own order (#183). */
         private val items: Flow<LibraryContent> =
             itemsOf(fixedFilter)
-                .combine(preferencesRepository.preferences.map { it.sortFor(fixedFilter) }.distinctUntilChanged()) {
-                    items,
-                    sort,
-                    ->
-                    items(sort)
+                .combine(
+                    preferencesRepository.preferences
+                        .map { it.sortFor(fixedFilter) to it.isReversed(fixedFilter) }
+                        .distinctUntilChanged(),
+                ) { items, (sort, reversed) ->
+                    items(sort).let { if (reversed && sectionPage == null) it.reversed() else it }
                 }.flowOn(defaultDispatcher)
 
         /** [items] narrowed by the header's filter and search (#123), with the unfiltered items' presence. */
@@ -154,6 +155,7 @@ class LibraryViewModel
                     albumColumns = preferences.albumColumns,
                     genresGrid = preferences.genresGrid,
                     sort = preferences.sortFor(fixedFilter),
+                    sortReversed = preferences.isReversed(fixedFilter),
                     content = content,
                     refreshing = status is SyncStatus.Running,
                     // Offline mode shows downloads: a sync failing for lack of network is expected, not news.
@@ -257,6 +259,11 @@ class LibraryViewModel
 
                 is LibraryAction.SelectSort -> {
                     launch { preferencesRepository.setSort(fixedFilter, action.sort) }
+                }
+
+                LibraryAction.ReverseSort -> {
+                    val state = uiState.value
+                    launch { preferencesRepository.setSort(fixedFilter, state.sort, !state.sortReversed) }
                 }
 
                 is LibraryAction.SetAlbumColumns -> {
