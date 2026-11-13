@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.data.mixTracks
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.HomeDisplay
 import io.github.kentprodan.mediatheq.core.model.HomeSection
@@ -18,6 +19,7 @@ import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
@@ -30,6 +32,7 @@ import io.github.kentprodan.mediatheq.core.testing.TestClock
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -92,6 +95,8 @@ class HomeViewModelTest {
 
     private val playlists = FakePlaylistRepository()
 
+    private val appMode = FakeAppModeRepository()
+
     private fun newViewModel() =
         HomeViewModel(
             library,
@@ -103,6 +108,7 @@ class HomeViewModelTest {
             playlists,
             preferences,
             shuffle,
+            appMode,
             TestClock(day(20)),
             mainDispatcherRule.testDispatcher,
         )
@@ -407,5 +413,47 @@ class HomeViewModelTest {
             assertThat(playback.addedToQueue).containsExactly(listOf(song))
             assertThat(userData.calls).containsExactly("favorite:single:false")
             assertThat(downloads.downloads.value.map { it.track }).containsExactly(song)
+        }
+
+    @Test
+    fun `the toggle's Video turns Home into the video state, Both brings the music back`() =
+        test {
+            val viewModel = withLibrary()
+            backgroundScope.launch { viewModel.modeToggle.collect() }
+            assertThat(viewModel.modeToggle.value).isEqualTo(AppMode.Music)
+
+            viewModel.onAction(HomeAction.SetMode(AppMode.Video))
+            advanceUntilIdle()
+            assertThat(viewModel.uiState.value).isEqualTo(HomeUiState.VideoMode)
+            assertThat(viewModel.modeToggle.value).isEqualTo(AppMode.Video)
+
+            viewModel.onAction(HomeAction.SetMode(AppMode.Both))
+            advanceUntilIdle()
+            assertThat(viewModel.sections()).contains(HomeSection.FavoriteAlbums)
+        }
+
+    @Test
+    fun `without video capability there is no toggle`() =
+        test {
+            val noVideo = FakeAppModeRepository(AppMode.Both, videoAvailable = false)
+            val viewModel =
+                HomeViewModel(
+                    library,
+                    sync,
+                    playback,
+                    trackTaps,
+                    userData,
+                    downloads,
+                    playlists,
+                    preferences,
+                    shuffle,
+                    noVideo,
+                    TestClock(day(20)),
+                    mainDispatcherRule.testDispatcher,
+                )
+            backgroundScope.launch { viewModel.modeToggle.collect() }
+            advanceUntilIdle()
+
+            assertThat(viewModel.modeToggle.value).isNull()
         }
 }

@@ -44,11 +44,13 @@ import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCarouselItem
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCoverCarousel
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqTabButtons
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeDisplay
 import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
@@ -64,6 +66,7 @@ import io.github.kentprodan.mediatheq.core.ui.NothingDownloaded
 import io.github.kentprodan.mediatheq.core.ui.PlaylistCard
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
+import io.github.kentprodan.mediatheq.core.ui.label
 import io.github.kentprodan.mediatheq.core.ui.title
 
 /** Where Home opens things. */
@@ -83,7 +86,8 @@ internal fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreen(state, viewModel::onAction, navigation)
+    val mode by viewModel.modeToggle.collectAsStateWithLifecycle()
+    HomeScreen(state, viewModel::onAction, navigation, mode = mode)
 }
 
 /** Stateless Home tab: Shuffle all, then the chosen sections (#127) in their order and display. */
@@ -93,6 +97,8 @@ fun HomeScreen(
     onAction: (HomeAction) -> Unit,
     navigation: HomeNavigation,
     modifier: Modifier = Modifier,
+    /** The mode toggle at the top (ADR 0051); `null` hides it. */
+    mode: AppMode? = null,
 ) {
     Scaffold(
         modifier = modifier,
@@ -100,53 +106,84 @@ fun HomeScreen(
         // The app shell already pads for the navigation bar.
         contentWindowInsets = WindowInsets(0),
     ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize()) {
-            when (state) {
-                HomeUiState.Loading -> {
-                    // A local read of a few milliseconds: nothing to show meanwhile.
-                }
+        Column(Modifier.padding(padding).fillMaxSize()) {
+            if (mode != null) {
+                MqTabButtons(
+                    AppMode.entries.map { stringResource(it.label) },
+                    selected = mode.ordinal,
+                    onSelect = { onAction(HomeAction.SetMode(AppMode.entries[it])) },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MediatheqSpacing.l)
+                            .padding(bottom = MediatheqSpacing.s),
+                )
+            }
+            Box(Modifier.weight(1f).fillMaxSize()) { HomeBody(state, onAction, navigation) }
+        }
+    }
+}
 
-                HomeUiState.FirstSync -> {
-                    MqEmptyState(
-                        MqIcons.MusicNote,
-                        stringResource(R.string.home_first_sync_title),
-                        body = stringResource(R.string.home_first_sync_body),
-                    )
-                }
+@Composable
+private fun HomeBody(
+    state: HomeUiState,
+    onAction: (HomeAction) -> Unit,
+    navigation: HomeNavigation,
+) {
+    Box(Modifier.fillMaxSize()) {
+        when (state) {
+            HomeUiState.Loading -> {
+                // A local read of a few milliseconds: nothing to show meanwhile.
+            }
 
-                HomeUiState.Empty -> {
-                    MqEmptyState(
-                        MqIcons.MusicNote,
-                        stringResource(R.string.home_empty_title),
-                        body = stringResource(R.string.home_empty_body),
-                        actionLabel = stringResource(R.string.home_sync_now),
-                        onAction = { onAction(HomeAction.Sync) },
-                    )
-                }
+            HomeUiState.FirstSync -> {
+                MqEmptyState(
+                    MqIcons.MusicNote,
+                    stringResource(R.string.home_first_sync_title),
+                    body = stringResource(R.string.home_first_sync_body),
+                )
+            }
 
-                HomeUiState.NothingDownloaded -> {
-                    NothingDownloaded(navigation.onOpenDownloads)
-                }
+            HomeUiState.Empty -> {
+                MqEmptyState(
+                    MqIcons.MusicNote,
+                    stringResource(R.string.home_empty_title),
+                    body = stringResource(R.string.home_empty_body),
+                    actionLabel = stringResource(R.string.home_sync_now),
+                    onAction = { onAction(HomeAction.Sync) },
+                )
+            }
 
-                is HomeUiState.Error -> {
-                    val offline = state.error == MqError.Network
-                    MqEmptyState(
-                        if (offline) MqIcons.CloudOff else MqIcons.MusicNote,
-                        stringResource(if (offline) R.string.home_offline_title else R.string.home_error_title),
-                        body = stringResource(if (offline) R.string.home_offline_body else R.string.home_error_body),
-                        actionLabel = stringResource(R.string.home_retry),
-                        onAction = { onAction(HomeAction.Sync) },
-                    )
-                }
+            HomeUiState.VideoMode -> {
+                MqEmptyState(
+                    MqIcons.Movie,
+                    stringResource(R.string.home_video_mode_title),
+                    body = stringResource(R.string.home_video_mode_body),
+                )
+            }
 
-                is HomeUiState.Content -> {
-                    PullToRefreshBox(
-                        isRefreshing = state.refreshing,
-                        onRefresh = { onAction(HomeAction.Refresh) },
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        HomeContent(state, onAction, navigation)
-                    }
+            HomeUiState.NothingDownloaded -> {
+                NothingDownloaded(navigation.onOpenDownloads)
+            }
+
+            is HomeUiState.Error -> {
+                val offline = state.error == MqError.Network
+                MqEmptyState(
+                    if (offline) MqIcons.CloudOff else MqIcons.MusicNote,
+                    stringResource(if (offline) R.string.home_offline_title else R.string.home_error_title),
+                    body = stringResource(if (offline) R.string.home_offline_body else R.string.home_error_body),
+                    actionLabel = stringResource(R.string.home_retry),
+                    onAction = { onAction(HomeAction.Sync) },
+                )
+            }
+
+            is HomeUiState.Content -> {
+                PullToRefreshBox(
+                    isRefreshing = state.refreshing,
+                    onRefresh = { onAction(HomeAction.Refresh) },
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    HomeContent(state, onAction, navigation)
                 }
             }
         }

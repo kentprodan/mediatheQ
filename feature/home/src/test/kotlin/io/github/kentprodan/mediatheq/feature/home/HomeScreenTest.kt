@@ -2,7 +2,11 @@ package io.github.kentprodan.mediatheq.feature.home
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
@@ -16,6 +20,7 @@ import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -179,5 +184,42 @@ class HomeScreenTest {
         composeRule.onNodeWithText("Try again").performClick()
 
         assertThat(actions).containsExactly(HomeAction.Sync)
+    }
+
+    @Test
+    fun `tapping Video on the mode toggle removes the music sections`() {
+        var state: HomeUiState by mutableStateOf(HomeUiState.Content(sections))
+        var mode by mutableStateOf(AppMode.Both)
+        composeRule.setContent {
+            MediatheqTheme {
+                HomeScreen(
+                    state,
+                    { action ->
+                        actions += action
+                        // The ViewModel's answer to the toggle, as HomeViewModelTest proves it.
+                        if (action is HomeAction.SetMode && action.mode == AppMode.Video) {
+                            mode = AppMode.Video
+                            state = HomeUiState.VideoMode
+                        }
+                    },
+                    HomeNavigation(),
+                    mode = mode,
+                )
+            }
+        }
+        composeRule.onNodeWithText("Northern Lights").assertExists()
+
+        composeRule.onNodeWithText("Video").performClick()
+
+        assertThat(actions).containsExactly(HomeAction.SetMode(AppMode.Video))
+        composeRule.onNodeWithText("Northern Lights").assertDoesNotExist()
+        composeRule.onNodeWithText("Video").assertIsSelected()
+    }
+
+    @Test
+    fun `no mode means no toggle`() {
+        show(HomeUiState.Content(sections))
+
+        composeRule.onNodeWithText("Both").assertDoesNotExist()
     }
 }
