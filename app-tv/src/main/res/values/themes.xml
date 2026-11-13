@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window behind Compose and the launch animation's color (ADR 0038): Iris, dark. -->
+    <style name="Theme.MediatheqTv" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:colorPrimary">#FF5B45D6</item>
+        <item name="android:windowBackground">@color/tv_background</item>
+    </style>
+
+    <color name="tv_background">#FF141218</color>
+</resources>

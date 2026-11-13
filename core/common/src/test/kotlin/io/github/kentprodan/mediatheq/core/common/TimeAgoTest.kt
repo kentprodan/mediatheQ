@@ -1,4 +1,4 @@
-package io.github.kentprodan.mediatheq.core.ui
+package io.github.kentprodan.mediatheq.core.common
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test

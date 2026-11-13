@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.nowplaying
 
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.common.QualityLabel
 import io.github.kentprodan.mediatheq.core.data.NowPlayingPreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.model.Artist
@@ -8,7 +9,6 @@ import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
-import io.github.kentprodan.mediatheq.core.ui.QualityLabel
 import kotlin.time.Duration
 
 /** What the mini player and Now Playing show. */

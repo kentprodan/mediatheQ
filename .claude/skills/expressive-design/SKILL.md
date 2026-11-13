@@ -6,6 +6,7 @@ description: Material 3 Expressive design rules for mediatheQ. Use for ANY work 
 # mediatheQ - Expressive design
 
 Project rules for building mediatheQ's phone UI with Material 3 Expressive in Jetpack Compose.
+Phone only: the TV app uses tv-material and `:core:designsystem-tv` (ADR 0037), never this design system.
 Read fully before touching UI. When this file and generic Compose habits disagree, this file wins.
 When this file and the official API disagree, the API wins - then update this file in the same PR.
 

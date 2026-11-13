@@ -14,12 +14,12 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.QualityKind
+import io.github.kentprodan.mediatheq.core.common.QualityLabel
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
-import io.github.kentprodan.mediatheq.core.ui.QualityKind
-import io.github.kentprodan.mediatheq.core.ui.QualityLabel
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

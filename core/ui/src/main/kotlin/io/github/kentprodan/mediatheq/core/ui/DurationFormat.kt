@@ -3,14 +3,9 @@ package io.github.kentprodan.mediatheq.core.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import io.github.kentprodan.mediatheq.core.common.TimeAgoUnit
+import io.github.kentprodan.mediatheq.core.common.timeAgo
 import kotlin.time.Duration
-
-/** Formats a track or album length as `m:ss`, or `h:mm:ss` from one hour. Locale-independent digits. */
-fun formatDuration(duration: Duration): String =
-    duration.toComponents { hours, minutes, seconds, _ ->
-        val ss = seconds.toString().padStart(2, '0')
-        if (hours > 0) "$hours:${minutes.toString().padStart(2, '0')}:$ss" else "$minutes:$ss"
-    }
 
 /** A total length for headers: "45 min", or "1 h 12 min" from one hour. */
 @Composable
@@ -38,14 +33,3 @@ fun formatTimeAgo(elapsed: Duration): String {
         TimeAgoUnit.Days -> pluralStringResource(R.plurals.core_ui_days_ago, count, count)
     }
 }
-
-internal enum class TimeAgoUnit { JustNow, Minutes, Hours, Days }
-
-/** Under a minute (also a clock set back) is just now. */
-internal fun timeAgo(elapsed: Duration): Pair<TimeAgoUnit, Int> =
-    when {
-        elapsed.inWholeMinutes < 1 -> TimeAgoUnit.JustNow to 0
-        elapsed.inWholeHours < 1 -> TimeAgoUnit.Minutes to elapsed.inWholeMinutes.toInt()
-        elapsed.inWholeDays < 1 -> TimeAgoUnit.Hours to elapsed.inWholeHours.toInt()
-        else -> TimeAgoUnit.Days to elapsed.inWholeDays.toInt()
-    }

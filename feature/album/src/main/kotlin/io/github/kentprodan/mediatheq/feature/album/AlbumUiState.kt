@@ -1,5 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.album
 
+import io.github.kentprodan.mediatheq.core.common.QualityLabel
+import io.github.kentprodan.mediatheq.core.common.albumQuality
 import io.github.kentprodan.mediatheq.core.data.AlbumButton
 import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
@@ -11,9 +13,7 @@ import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.ui.AlbumTitle
 import io.github.kentprodan.mediatheq.core.ui.ListSelection
-import io.github.kentprodan.mediatheq.core.ui.QualityLabel
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
-import io.github.kentprodan.mediatheq.core.ui.albumQuality
 import io.github.kentprodan.mediatheq.core.ui.albumTitle
 import kotlin.time.Duration
 

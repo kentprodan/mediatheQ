@@ -1,9 +1,9 @@
 package io.github.kentprodan.mediatheq.feature.search
 
+import io.github.kentprodan.mediatheq.core.common.nameComparator
 import io.github.kentprodan.mediatheq.core.data.SearchSort
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchResults
-import io.github.kentprodan.mediatheq.core.ui.nameComparator
 
 /** The filter chips under the search field (#136); record labels show only under All. */
 enum class SearchFilter { All, Artists, Albums, Tracks, Playlists, Genres }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- mediatheQ app icon (#264; a copy for the TV app, which never uses :core:designsystem, ADR 0038), monochrome layer for themed icons: the foreground's shapes in one color. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M51,30a21,21 0,1 1,0 42a21,21 0,1 1,0 -42zM51,38.5a12.5,12.5 0,1 0,0 25a12.5,12.5 0,1 0,0 -25z" />
+    <path
+        android:pathData="M46,47.5L46,54.5M51,45L51,57M56,48.5L56,53.5"
+        android:strokeWidth="3"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M57,70L70,57L74,74Z"
+        android:strokeWidth="4"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineJoin="round" />
+</vector>

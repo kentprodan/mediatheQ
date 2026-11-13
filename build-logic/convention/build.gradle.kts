@@ -40,6 +40,14 @@ gradlePlugin {
             id = "mediatheq.android.test"
             implementationClass = "AndroidTestConventionPlugin"
         }
+        register("androidTv") {
+            id = "mediatheq.android.tv"
+            implementationClass = "AndroidTvConventionPlugin"
+        }
+        register("androidFeatureTv") {
+            id = "mediatheq.android.feature.tv"
+            implementationClass = "AndroidFeatureTvConventionPlugin"
+        }
         register("androidHilt") {
             id = "mediatheq.android.hilt"
             implementationClass = "AndroidHiltConventionPlugin"
