@@ -59,6 +59,7 @@ internal fun AudioOutputInfo.toBundle(): Bundle =
         putBoolean(EXTRA_BIT_PERFECT_NO_MATCH, bitPerfectNoMatch)
         putBoolean(EXTRA_BIT_PERFECT_SUPPORTED, bitPerfectSupported)
         putBoolean(EXTRA_ATMOS_CONVERTED, atmosConverted)
+        putBoolean(EXTRA_ATMOS_PASSTHROUGH, atmosPassthrough)
         playedItemId?.let { putString(EXTRA_PLAYED_ITEM, it) }
         putBoolean(EXTRA_STREAM_KNOWN, streamKnown)
         convertedKbps?.let { putInt(EXTRA_CONVERTED_KBPS, it) }
@@ -71,6 +72,7 @@ internal fun Bundle.toAudioOutputInfo(): AudioOutputInfo =
         bitPerfectNoMatch = getBoolean(EXTRA_BIT_PERFECT_NO_MATCH),
         bitPerfectSupported = getBoolean(EXTRA_BIT_PERFECT_SUPPORTED, true),
         atmosConverted = getBoolean(EXTRA_ATMOS_CONVERTED),
+        atmosPassthrough = getBoolean(EXTRA_ATMOS_PASSTHROUGH),
         playedItemId = getString(EXTRA_PLAYED_ITEM),
         streamKnown = getBoolean(EXTRA_STREAM_KNOWN),
         convertedKbps = if (containsKey(EXTRA_CONVERTED_KBPS)) getInt(EXTRA_CONVERTED_KBPS) else null,
@@ -98,6 +100,7 @@ private const val EXTRA_USB_DAC = "io.github.kentprodan.mediatheq.USB_DAC"
 private const val EXTRA_BIT_PERFECT_NO_MATCH = "io.github.kentprodan.mediatheq.BIT_PERFECT_NO_MATCH"
 private const val EXTRA_BIT_PERFECT_SUPPORTED = "io.github.kentprodan.mediatheq.BIT_PERFECT_SUPPORTED"
 private const val EXTRA_ATMOS_CONVERTED = "io.github.kentprodan.mediatheq.ATMOS_CONVERTED"
+private const val EXTRA_ATMOS_PASSTHROUGH = "io.github.kentprodan.mediatheq.ATMOS_PASSTHROUGH"
 private const val EXTRA_STREAM_KNOWN = "io.github.kentprodan.mediatheq.STREAM_KNOWN"
 private const val EXTRA_PLAYED_ITEM = "io.github.kentprodan.mediatheq.PLAYED_ITEM"
 private const val EXTRA_CONVERTED_KBPS = "io.github.kentprodan.mediatheq.CONVERTED_KBPS"

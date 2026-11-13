@@ -137,4 +137,19 @@ class DefaultAudioOutputRepositoryTest {
 
             assertThat(outputs()).isEqualTo(RememberedOutputs())
         }
+
+    @Test
+    fun `an HDMI output passes Atmos through by default and keeps the switch off once set`() =
+        runTest {
+            val tv = OutputId(OutputKind.Hdmi, "tv")
+            repository.use(tv, "LG TV")
+            assertThat(outputs().profileOf(tv).atmosPassthrough).isTrue()
+
+            repository.setProfile(tv, outputs().profileOf(tv).copy(atmosPassthrough = false))
+
+            // Read back through a new repository on the same store.
+            val again = DefaultAudioOutputRepository(AudioOutputStore(dataStore)).outputs.first()
+            assertThat(again.profileOf(tv).atmosPassthrough).isFalse()
+            assertThat(again.profileOf(OutputId.Phone).atmosPassthrough).isTrue()
+        }
 }

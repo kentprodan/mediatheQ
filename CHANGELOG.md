@@ -28,6 +28,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Album and playlist pages on the TV: the cover, the quality (Hi-Res, Dolby Atmos), Play, Resume, Shuffle and Favorite, and the tracks by disc; a long press on a track offers Play next, Add to queue and Favorite.
 - The artist page on the TV: their picture over the backdrop, the biography (select to read it all), Play all and Shuffle all, their albums, the albums they appear on and their most played tracks.
 - Now Playing on the TV: the cover, what plays and its quality, seeking with Left and Right, the controls and the queue beside it; the launcher's Now Playing card opens it, and the side menu shows the cover of what plays.
+- On the TV, Dolby Atmos music goes untouched over HDMI to a soundbar or receiver that takes it, with nothing in between that would change the sound.
 
 ### Fixed
 - Now Playing on a phone held sideways shows the controls without scrolling (smaller transport buttons, the album line in the menu).

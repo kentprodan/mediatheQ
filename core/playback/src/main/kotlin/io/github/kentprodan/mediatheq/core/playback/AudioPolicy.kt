@@ -1,10 +1,11 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import androidx.media3.common.MimeTypes
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import kotlin.math.pow
 
-/** How the player outputs audio (media3 skill, section 7). Atmos passthrough comes with the TV phase (F2). */
+/** How the player outputs audio (media3 skill, section 7). */
 internal enum class AudioMode {
     /** Decoded on the audio DSP to save battery; volume (normalization) still applies. */
     Offload,
@@ -14,10 +15,16 @@ internal enum class AudioMode {
 
     /** PCM sent unchanged to a USB DAC: no EQ, no normalization, no phone volume. */
     BitPerfect,
+
+    /**
+     * The encoded stream (E-AC-3 JOC, TrueHD) sent unchanged over HDMI for the receiver to decode (ADR 0039): no
+     * offload, no EQ, no normalization, volume 1, no fades.
+     */
+    Passthrough,
 }
 
-/** The current audio output, as far as the policy cares. HDMI comes with the TV phase (F2). */
-internal enum class AudioRoute { UsbDac, Other }
+/** The current audio output, as far as the policy cares. */
+internal enum class AudioRoute { UsbDac, Hdmi, Other }
 
 /** The user's audio settings, as the policy needs them. */
 internal data class AudioSettings(
@@ -26,6 +33,8 @@ internal data class AudioSettings(
     val bitPerfectUsb: Boolean = false,
     /** The output's Bypass processing (#140): no equalizer, no normalization; bit-perfect is unaffected. */
     val bypass: Boolean = false,
+    /** The output's Dolby Atmos passthrough (ADR 0039): only HDMI outputs use it. */
+    val atmosPassthrough: Boolean = true,
 )
 
 /** The one place that decides offload, bit-perfect, EQ and normalization (media3 skill, sections 5-7). Pure. */
@@ -38,9 +47,14 @@ internal object AudioPolicy {
         settings: AudioSettings,
         route: AudioRoute,
         bitPerfectFormat: Boolean,
+        /** What the route passes through ([PassthroughCapabilities]); empty off HDMI. */
+        passthrough: Set<String> = emptySet(),
+        /** The playing file's passthrough MIME type ([passthroughMime]); `null` when it is not one or not the file. */
+        trackMime: String? = null,
     ): AudioMode =
         when {
             wantsBitPerfect(settings, route) && bitPerfectFormat -> AudioMode.BitPerfect
+            wantsPassthrough(settings, route, passthrough) && trackMime in passthrough -> AudioMode.Passthrough
             equalizer(settings) -> AudioMode.Processed
             else -> AudioMode.Offload
         }
@@ -52,7 +66,9 @@ internal object AudioPolicy {
     fun offload(
         settings: AudioSettings,
         route: AudioRoute,
-    ): Boolean = !equalizer(settings) && !wantsBitPerfect(settings, route)
+        passthrough: Set<String> = emptySet(),
+    ): Boolean =
+        !equalizer(settings) && !wantsBitPerfect(settings, route) && !wantsPassthrough(settings, route, passthrough)
 
     /** Whether the equalizer is wanted: on, and the output does not bypass processing. */
     private fun equalizer(settings: AudioSettings) = settings.equalizerOn && !settings.bypass
@@ -66,6 +82,19 @@ internal object AudioPolicy {
         settings: AudioSettings,
         route: AudioRoute,
     ): Boolean = settings.bitPerfectUsb && route == AudioRoute.UsbDac
+
+    /**
+     * Whether this route may pass encoded audio through (ADR 0039): HDMI, the output's switch on, and something it
+     * can pass. Per route, like [offload]; which track actually does is [decide]'s.
+     */
+    fun wantsPassthrough(
+        settings: AudioSettings,
+        route: AudioRoute,
+        passthrough: Set<String>,
+    ): Boolean = settings.atmosPassthrough && route == AudioRoute.Hdmi && passthrough.isNotEmpty()
+
+    /** Modes where the player volume must stay 1: bit-perfect samples and passthrough bitstreams reach the device as is. */
+    fun fixedVolume(mode: AudioMode): Boolean = mode == AudioMode.BitPerfect || mode == AudioMode.Passthrough
 
     /**
      * Whether a Dolby Atmos track plays as the server's stereo conversion (no JOC decoder or passthrough, or the
@@ -109,14 +138,14 @@ internal object AudioPolicy {
     /**
      * Player volume for a track with these gains in [mode]: album gain with the track's as fallback (or the other way
      * round in [Normalization.Track]). Never above 1: a positive gain would need a limiter to avoid clipping. Always 1
-     * in bit-perfect mode, where the samples must reach the DAC unchanged.
+     * in bit-perfect and passthrough modes ([fixedVolume]), where the audio must reach the device unchanged.
      */
     fun volume(
         gains: ItemGains,
         normalization: Normalization,
         mode: AudioMode,
     ): Float {
-        if (mode == AudioMode.BitPerfect) return 1f
+        if (fixedVolume(mode)) return 1f
         val db =
             when (normalization) {
                 Normalization.Album -> gains.albumDb ?: gains.trackDb
@@ -129,3 +158,18 @@ internal object AudioPolicy {
     /** Converted downloads and conversions of undecodable formats are Opus at this bitrate (ADR 0024). */
     private const val CONVERTED_DOWNLOAD_KBPS = 256
 }
+
+/**
+ * The MIME type a file passes through as (ADR 0039), from its codec as the server names it: E-AC-3 with Dolby Atmos is
+ * JOC. `null` for anything that cannot pass through (PCM, FLAC, AAC, ...).
+ */
+internal fun passthroughMime(
+    codec: String?,
+    isAtmos: Boolean,
+): String? =
+    when (codec?.lowercase()) {
+        "eac3" -> if (isAtmos) MimeTypes.AUDIO_E_AC3_JOC else MimeTypes.AUDIO_E_AC3
+        "ac3" -> MimeTypes.AUDIO_AC3
+        "truehd" -> MimeTypes.AUDIO_TRUEHD
+        else -> null
+    }

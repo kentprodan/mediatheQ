@@ -13,15 +13,20 @@ internal data class OutputDevice(
 ) {
     /**
      * The same for the same device on every connect, never the raw address: Bluetooth by address and name (the address
-     * may come anonymized without BLUETOOTH_CONNECT, only its last bytes real); USB by product name only, since its
-     * address (`card=1;device=0`) changes with the port. Two identical DACs share one profile.
+     * may come anonymized without BLUETOOTH_CONNECT, only its last bytes real); USB and HDMI by product name only,
+     * since the address (`card=1;device=0`) changes with the port. Two identical DACs share one profile.
      */
     val id: OutputId
         get() =
             when (kind) {
                 OutputKind.Phone -> OutputId.Phone
+
                 OutputKind.Bluetooth -> OutputId(kind, hash("$address|$name"))
+
                 OutputKind.Usb -> OutputId(kind, hash(name))
+
+                // The TV's (or receiver's) name over HDMI; the port does not matter (ADR 0039).
+                OutputKind.Hdmi -> OutputId(kind, hash(name))
             }
 
     companion object {
@@ -52,6 +57,11 @@ internal fun outputKind(type: Int): OutputKind =
         AudioDeviceInfo.TYPE_USB_HEADSET,
         AudioDeviceInfo.TYPE_USB_ACCESSORY,
         -> OutputKind.Usb
+
+        AudioDeviceInfo.TYPE_HDMI,
+        AudioDeviceInfo.TYPE_HDMI_ARC,
+        AudioDeviceInfo.TYPE_HDMI_EARC,
+        -> OutputKind.Hdmi
 
         else -> OutputKind.Phone
     }

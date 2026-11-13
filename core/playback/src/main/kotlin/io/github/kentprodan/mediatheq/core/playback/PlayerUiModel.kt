@@ -39,6 +39,11 @@ data class AudioOutputInfo(
     val bitPerfectSupported: Boolean = true,
     /** The playing track is Dolby Atmos, but this device and output cannot play it: it plays as a stereo conversion. */
     val atmosConverted: Boolean = false,
+    /**
+     * Dolby Atmos leaves the device untouched over HDMI now (ADR 0039): the AudioTrack the sink opened carries E-AC-3
+     * JOC or TrueHD. The only source for an Atmos badge, never the metadata.
+     */
+    val atmosPassthrough: Boolean = false,
     /** The queue item [streamKnown] and [convertedKbps] describe; they arrive apart from the item itself. */
     val playedItemId: String? = null,
     /** The playing track's stream is resolved, so [convertedKbps] is known (#125); until then no quality is shown. */

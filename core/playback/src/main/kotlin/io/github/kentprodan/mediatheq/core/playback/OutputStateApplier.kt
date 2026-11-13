@@ -40,11 +40,12 @@ internal class OutputStateApplier(
     fun applyEqualizer() = equalizer(player.audioSessionId, state().mode == AudioMode.Processed)
 
     /**
-     * The output refused the AudioTrack while bit-perfect was preferred: [bitPerfectFailed] drops the preference and
-     * playback goes on normally (prepared again). `false` for any other error, which is not ours to handle.
+     * The output refused the AudioTrack: while bit-perfect was preferred, [outputFailed] drops the preference and
+     * playback goes on normally; a passthrough track is tried once more (ADR 0039). Either way it is prepared again.
+     * `false` for any other error, and for a passthrough track that failed twice: then the error shows.
      */
     fun recover(
         error: PlaybackException,
-        bitPerfectFailed: () -> Boolean,
-    ): Boolean = (error.isAudioOutputError() && bitPerfectFailed()).also { if (it) player.prepare() }
+        outputFailed: () -> Boolean,
+    ): Boolean = (error.isAudioOutputError() && outputFailed()).also { if (it) player.prepare() }
 }

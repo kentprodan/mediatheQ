@@ -77,6 +77,7 @@ class DefaultAudioOutputRepository
                 eqPreset = enumOrNull<EqPreset>(stored.eqPreset) ?: defaults.eqPreset,
                 customGainsDb = stored.eqBands?.toGains() ?: defaults.customGainsDb,
                 bitPerfectUsb = stored.bitPerfectUsb ?: defaults.bitPerfectUsb,
+                atmosPassthrough = stored.atmosPassthrough ?: defaults.atmosPassthrough,
             )
         }
 
@@ -88,5 +89,6 @@ class DefaultAudioOutputRepository
                 eqPreset = eqPreset.name,
                 eqBands = customGainsDb.joinToString(","),
                 bitPerfectUsb = bitPerfectUsb,
+                atmosPassthrough = atmosPassthrough,
             )
     }

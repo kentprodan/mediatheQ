@@ -1,5 +1,7 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import io.github.kentprodan.mediatheq.core.model.OutputKind
+
 /**
  * What reaches the output for the playing track (#125): [known] once its stream is resolved (a fresh transition or a
  * restored queue is not); [convertedKbps] the bitrate of the server's conversion, `null` for the original file.
@@ -33,6 +35,10 @@ internal data class AudioOutputState(
     val bitPerfectConfirmed: Boolean = false,
     /** The device media plays on (#140): its profile sets the settings. */
     val output: OutputDevice = OutputDevice.Phone,
+    /** What the route passes through now (ADR 0039); empty off HDMI. */
+    val passthrough: Set<String> = emptySet(),
+    /** The encoding of the AudioTrack the sink opened last, while one is open (ADR 0039). */
+    val passthroughEncoding: Int? = null,
 )
 
 /**
@@ -57,6 +63,10 @@ internal class AudioOutputController(
     private val reopen: () -> Unit = {},
     /** The last AudioTrack of the player was released: a reopen waiting for it can go on. */
     private val tracksReleased: () -> Unit = {},
+    /** What the route passes through (ADR 0039); asked on every refresh on HDMI. */
+    private val passthroughCapabilities: PassthroughCapabilities = PassthroughCapabilities { emptySet() },
+    /** The playing file's passthrough MIME type ([passthroughMime]); `null` when it is not one or not the file. */
+    private val currentMime: () -> String? = { null },
 ) {
     private var settings = AudioSettings()
     private var preferred: MixerCapability? = null
@@ -67,6 +77,9 @@ internal class AudioOutputController(
 
     /** Bit-perfect failed on this DAC ([onBitPerfectFailed]): normal playback until the device or the setting changes. */
     private var suspended = false
+
+    /** The item whose passthrough AudioTrack failed and was prepared again once ([onPassthroughFailed]). */
+    private var passthroughRetried: String? = null
 
     var state = AudioOutputState()
         private set
@@ -107,28 +120,42 @@ internal class AudioOutputController(
         reopenIfOpen: Boolean = false,
     ) {
         val capabilities = port.dacCapabilities()
-        val route = if (capabilities != null) AudioRoute.UsbDac else AudioRoute.Other
+        val output = port.currentOutput()
+        val route =
+            when {
+                capabilities != null -> AudioRoute.UsbDac
+                output.kind == OutputKind.Hdmi -> AudioRoute.Hdmi
+                else -> AudioRoute.Other
+            }
+        val passthrough = if (route == AudioRoute.Hdmi) passthroughCapabilities.mimeTypes() else emptySet()
+        val mime = currentMime()
         val format = if (!suspended && AudioPolicy.wantsBitPerfect(settings, route)) currentFormat() else null
         val wanted = format?.let { MixerAttributeSelector.select(capabilities.orEmpty(), it) }
         val chosen = wanted?.takeIf { it == preferred || port.setPreferred(it) }
         val cleared = chosen == null && preferred != null
         if (cleared) port.clearPreferred()
-        log("$reason: route=$route format=$format chosen=${chosen?.format} cleared=$cleared")
+        log(
+            "$reason: route=$route format=$format chosen=${chosen?.format} cleared=$cleared " +
+                "passthrough=$passthrough track=$mime",
+        )
         val newlySet = chosen != null && chosen != preferred
         preferred = chosen
         if (chosen == null || newlySet) confirmed = false
-        val mode = AudioPolicy.decide(settings, route, bitPerfectFormat = chosen != null)
+        val mode = AudioPolicy.decide(settings, route, bitPerfectFormat = chosen != null, passthrough, mime)
+        if (mode == AudioMode.Passthrough) log("decision: passthrough $mime")
         publish(
             AudioOutputState(
                 route = route,
-                offload = AudioPolicy.offload(settings, route),
+                offload = AudioPolicy.offload(settings, route, passthrough),
                 mode = mode,
                 bitPerfectFormat = chosen?.format,
                 bitPerfectNoMatch = format != null && chosen == null,
                 atmosConverted = atmosConverted(),
                 played = played(),
                 bitPerfectConfirmed = confirmed && mode == AudioMode.BitPerfect,
-                output = port.currentOutput(),
+                output = output,
+                passthrough = passthrough,
+                passthroughEncoding = state.passthroughEncoding,
             ),
         )
         // After publishing: the offload change of this decision is applied first, then the track is reopened.
@@ -139,20 +166,50 @@ internal class AudioOutputController(
         }
     }
 
-    /** The player opened an AudioTrack at [sampleRateHz]. */
-    fun onAudioTrackOpened(sampleRateHz: Int) {
+    /** The player opened an AudioTrack at [sampleRateHz] with [encoding] (ADR 0039: the truth about passthrough). */
+    fun onAudioTrackOpened(
+        sampleRateHz: Int,
+        encoding: Int? = null,
+    ) {
         confirmed = openTracks == 0 && preferred?.format?.sampleRateHz == sampleRateHz
         openTracks++
-        log("AudioTrack opened at $sampleRateHz Hz, bit-perfect=$confirmed")
-        publish(state.copy(bitPerfectConfirmed = confirmed && state.mode == AudioMode.BitPerfect))
+        log("AudioTrack opened at $sampleRateHz Hz, encoding=$encoding, bit-perfect=$confirmed")
+        publish(
+            state.copy(
+                bitPerfectConfirmed = confirmed && state.mode == AudioMode.BitPerfect,
+                passthroughEncoding = encoding,
+            ),
+        )
     }
 
     fun onAudioTrackReleased() {
         openTracks = (openTracks - 1).coerceAtLeast(0)
         // A confirmed track was opened with none before it, so it is the last one open.
         if (openTracks == 0) confirmed = false
-        publish(state.copy(bitPerfectConfirmed = confirmed && state.mode == AudioMode.BitPerfect))
+        // An old track is often released after the next one opened: the encoding goes with the last one only.
+        publish(
+            state.copy(
+                bitPerfectConfirmed = confirmed && state.mode == AudioMode.BitPerfect,
+                passthroughEncoding = state.passthroughEncoding.takeIf { openTracks > 0 },
+            ),
+        )
         if (openTracks == 0) tracksReleased()
+    }
+
+    /** The route's passthrough capabilities changed (HDMI plugged, the TV's surround setting): decide again. */
+    fun onCapabilitiesChanged() = refresh("capabilities")
+
+    /**
+     * The passthrough AudioTrack failed to open or write (the route changed under it): `true` the first time for this
+     * item, so the caller prepares it again (ADR 0039); `false` after that and outside passthrough, so the error shows.
+     */
+    fun onPassthroughFailed(): Boolean {
+        if (state.mode != AudioMode.Passthrough) return false
+        val item = state.played.itemId
+        if (item != null && item == passthroughRetried) return false
+        passthroughRetried = item
+        log("passthrough failed: preparing again once")
+        return true
     }
 
     /** The platform dropped our preference (DAC re-enumerated, audio server restarted): set it again. */

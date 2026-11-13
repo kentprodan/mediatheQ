@@ -151,6 +151,7 @@ private const val EXTRA_TRACK_GAIN = "io.github.kentprodan.mediatheq.TRACK_GAIN"
 private const val EXTRA_SAMPLE_RATE = "io.github.kentprodan.mediatheq.SAMPLE_RATE"
 private const val EXTRA_CHANNELS = "io.github.kentprodan.mediatheq.CHANNELS"
 private const val EXTRA_SPATIAL = "io.github.kentprodan.mediatheq.SPATIAL"
+private const val EXTRA_CODEC = "io.github.kentprodan.mediatheq.CODEC"
 private const val EXTRA_LAST_PLAYED = "io.github.kentprodan.mediatheq.LAST_PLAYED"
 private const val EXTRA_FAVORITE = "io.github.kentprodan.mediatheq.FAVORITE"
 private const val EXTRA_HALF_STARS = "io.github.kentprodan.mediatheq.HALF_STARS"
@@ -178,11 +179,16 @@ private fun Bundle.putOutputFormat(track: Track) {
     track.audioFormat?.sampleRateHz?.let { putInt(EXTRA_SAMPLE_RATE, it) }
     track.audioFormat?.channels?.let { putInt(EXTRA_CHANNELS, it) }
     track.audioFormat?.spatialFormat?.let { putString(EXTRA_SPATIAL, it.name) }
+    track.audioFormat?.codec?.let { putString(EXTRA_CODEC, it) }
 }
 
 /** Whether the file is Dolby Atmos (as the server reports it), so the service can tell when it plays converted. */
 internal fun MediaItem.isDolbyAtmos(): Boolean =
     mediaMetadata.extras?.getString(EXTRA_SPATIAL) == SpatialFormat.DolbyAtmos.name
+
+/** The MIME type this item's file passes through as over HDMI ([passthroughMime]); `null` for any other file. */
+internal fun MediaItem.passthroughMime(): String? =
+    passthroughMime(mediaMetadata.extras?.getString(EXTRA_CODEC), isDolbyAtmos())
 
 /**
  * The PCM format this item reaches the sink in when direct played, from the file's metadata (for bit-perfect USB);
