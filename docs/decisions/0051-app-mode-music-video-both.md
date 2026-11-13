@@ -39,6 +39,11 @@ server's libraries (cannot hide video on a mixed server); or one app-wide settin
 - `MainNavEntry.allowed(mode)`, `HomeSections`, `LibraryShortcut` and the Downloads grouping filter in pure
   functions; the Navigation settings page drops disallowed entries and resets to the mode's defaults.
 
+Amendment (#271, unattended run, 2026-11-13): the onboarding step preselects Both whenever the server can have video
+(`capabilities.video`): right after sign-in nothing is synced yet, and asking the server for its library views only
+to preselect a card was not worth a new request. A user with a music-only Jellyfin server picks Music once. The
+step shows only after a sign-in made in this process, so an install upgraded while signed in stays Music unasked.
+
 ## Consequences
 
 - Every screen that lists media gates on the mode through its `UiState`; a missed gate is a bug caught by the
