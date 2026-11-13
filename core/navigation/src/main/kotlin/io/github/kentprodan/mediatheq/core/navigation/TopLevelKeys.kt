@@ -15,6 +15,10 @@ data object LibraryKey : NavKey
 @Serializable
 data object SearchKey : NavKey
 
+/** The full player as a destination: the TV's Now playing entry (ADR 0041); the phone opens it as an overlay. */
+@Serializable
+data object NowPlayingKey : NavKey
+
 /** Root of the Downloads tab. */
 @Serializable
 data object DownloadsKey : NavKey

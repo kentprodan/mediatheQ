@@ -53,6 +53,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.androidx.media3.session)
     testImplementation(projects.core.testing)
     testImplementation(libs.androidx.test.ext.junit)
 }

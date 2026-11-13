@@ -9,10 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -21,11 +18,13 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
+import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
+import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 
 /** Until the real screens (#234 on): the name and three focusable cards, to prove the theme and D-pad focus (#233). */
 @Composable
 fun PlaceholderScreen(modifier: Modifier = Modifier) {
-    val first = remember { FocusRequester() }
+    val focus = rememberFocusMemory()
     Surface(modifier.fillMaxSize()) {
         Column(
             Modifier.padding(horizontal = 58.dp, vertical = 48.dp),
@@ -50,7 +49,7 @@ fun PlaceholderScreen(modifier: Modifier = Modifier) {
                     MqTvCard(
                         stringResource(title),
                         onClick = {},
-                        modifier = if (index == 0) Modifier.focusRequester(first) else Modifier,
+                        modifier = Modifier.focusMemory(focus, "card-$index"),
                     ) {
                         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primaryContainer))
                     }
@@ -58,6 +57,6 @@ fun PlaceholderScreen(modifier: Modifier = Modifier) {
             }
         }
     }
-    // A TV screen starts with focus on its first item (ADR 0037).
-    LaunchedEffect(Unit) { first.requestFocus() }
+    // A TV screen starts with focus on its first item, or on the one it had before (ADR 0037, 0041).
+    LaunchedEffect(Unit) { focus.restore("card-0") }
 }
