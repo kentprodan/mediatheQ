@@ -31,6 +31,7 @@ android {
 
 dependencies {
     implementation(projects.core.designsystemTv)
+    implementation(projects.core.uiTv)
     // The shared core (ADR 0038): one repository layer and provider for both apps.
     implementation(projects.core.common)
     implementation(projects.core.navigation)
@@ -48,6 +49,7 @@ dependencies {
     implementation(projects.featureTv.library)
     implementation(projects.featureTv.album)
     implementation(projects.featureTv.artist)
+    implementation(projects.featureTv.nowplaying)
     // Covers through the app's OkHttp client (ADR 0013), like the phone.
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)

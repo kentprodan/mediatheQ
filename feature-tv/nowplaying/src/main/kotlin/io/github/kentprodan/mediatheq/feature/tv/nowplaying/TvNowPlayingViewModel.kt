@@ -1,0 +1,219 @@
+package io.github.kentprodan.mediatheq.feature.tv.nowplaying
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.common.QualityLabel
+import io.github.kentprodan.mediatheq.core.common.qualityLabel
+import io.github.kentprodan.mediatheq.core.data.LibraryRepository
+import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.RepeatMode
+import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.playback.QueueItem
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+
+/** The full-screen player on TV (#240). */
+sealed interface TvNowPlayingUiState {
+    /** Nothing is queued. */
+    data object Idle : TvNowPlayingUiState
+
+    data class Playing(
+        val title: String,
+        val artist: String,
+        val album: String? = null,
+        val artwork: Artwork? = null,
+        val isPlaying: Boolean = false,
+        val isBuffering: Boolean = false,
+        val duration: Duration = Duration.ZERO,
+        val isSeekable: Boolean = false,
+        val hasNext: Boolean = false,
+        val hasPrevious: Boolean = false,
+        val shuffle: Boolean = false,
+        val repeatMode: RepeatMode = RepeatMode.Off,
+        val isFavorite: Boolean = false,
+        /** What actually plays (the file or the server's conversion), once the stream is known (#125). */
+        val quality: QualityLabel? = null,
+        /** An Atmos file this output plays as stereo; #242 adds the output notes. */
+        val atmosConverted: Boolean = false,
+        /** The queue in play order, the playing entry marked by [currentEntryId]. */
+        val queue: List<QueueItem> = emptyList(),
+        val currentEntryId: String? = null,
+    ) : TvNowPlayingUiState
+}
+
+sealed interface TvNowPlayingAction {
+    data object TogglePlayPause : TvNowPlayingAction
+
+    data object Next : TvNowPlayingAction
+
+    data object Previous : TvNowPlayingAction
+
+    data object ToggleShuffle : TvNowPlayingAction
+
+    /** Off -> all -> one -> off. */
+    data object CycleRepeat : TvNowPlayingAction
+
+    data object ToggleFavorite : TvNowPlayingAction
+
+    /** Left or Right on the progress row; [repeat] counts the held key's repeats ([seekTarget]). */
+    data class Seek(
+        val forward: Boolean,
+        val repeat: Int = 0,
+    ) : TvNowPlayingAction
+
+    data class SkipTo(
+        val entryId: String,
+    ) : TvNowPlayingAction
+
+    data class Remove(
+        val entryId: String,
+    ) : TvNowPlayingAction
+}
+
+/**
+ * Where a D-pad seek lands (#240): 10 s a press, 30 s a step while the key is held past its first repeats, kept
+ * inside the track.
+ */
+fun seekTarget(
+    position: Duration,
+    duration: Duration,
+    forward: Boolean,
+    repeat: Int,
+): Duration {
+    val step = if (repeat >= FAST_AFTER_REPEATS) FAST_STEP else STEP
+    val target = if (forward) position + step else position - step
+    return target.coerceIn(Duration.ZERO, duration)
+}
+
+private val STEP = 10.seconds
+private val FAST_STEP = 30.seconds
+private const val FAST_AFTER_REPEATS = 3
+
+/** The full-screen player on TV (#240): `PlaybackConnection`'s state and commands, favorite and quality from Room. */
+@OptIn(ExperimentalCoroutinesApi::class)
+@HiltViewModel
+class TvNowPlayingViewModel
+    @javax.inject.Inject
+    constructor(
+        private val playback: PlaybackConnection,
+        library: LibraryRepository,
+        private val userData: UserDataRepository,
+    ) : ViewModel() {
+        // Favorite, album and format come from Room, so a change made here or on the phone shows at once.
+        private val track =
+            playback.state
+                .map { it.item?.id }
+                .distinctUntilChanged()
+                .flatMapLatest { id -> id?.let { library.track(it) } ?: flowOf(null) }
+
+        val uiState: StateFlow<TvNowPlayingUiState> =
+            combine(playback.state, track, playback.queue) { state, track, queue -> state.toUiState(track, queue) }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(5_000),
+                    playback.state.value.toUiState(null, emptyList()),
+                )
+
+        /** The playing position, sampled by the connection; collect it only where it is drawn. */
+        val position: StateFlow<Duration> = playback.position
+
+        fun onAction(action: TvNowPlayingAction) {
+            val state = uiState.value as? TvNowPlayingUiState.Playing ?: return
+            when (action) {
+                TvNowPlayingAction.TogglePlayPause -> {
+                    playback.togglePlayPause()
+                }
+
+                TvNowPlayingAction.Next -> {
+                    playback.next()
+                }
+
+                TvNowPlayingAction.Previous -> {
+                    playback.previous()
+                }
+
+                TvNowPlayingAction.ToggleShuffle -> {
+                    playback.setShuffle(!state.shuffle)
+                }
+
+                TvNowPlayingAction.CycleRepeat -> {
+                    playback.setRepeatMode(
+                        when (state.repeatMode) {
+                            RepeatMode.Off -> RepeatMode.All
+                            RepeatMode.All -> RepeatMode.One
+                            RepeatMode.One -> RepeatMode.Off
+                        },
+                    )
+                }
+
+                TvNowPlayingAction.ToggleFavorite -> {
+                    val id =
+                        playback.state.value.item
+                            ?.id ?: return
+                    viewModelScope.launch { userData.setFavorite(id, !state.isFavorite) }
+                }
+
+                // A live transcode cannot be seeked (R12).
+                is TvNowPlayingAction.Seek -> {
+                    if (state.isSeekable) {
+                        playback.seekTo(seekTarget(position.value, state.duration, action.forward, action.repeat))
+                    }
+                }
+
+                is TvNowPlayingAction.SkipTo -> {
+                    playback.skipToQueueItem(action.entryId)
+                }
+
+                // The playing entry stays: removing it would stop the music from the queue panel.
+                is TvNowPlayingAction.Remove -> {
+                    if (action.entryId != state.currentEntryId) playback.removeQueueItem(action.entryId)
+                }
+            }
+        }
+    }
+
+private fun PlayerUiModel.toUiState(
+    track: Track?,
+    queue: List<QueueItem>,
+): TvNowPlayingUiState {
+    val item = item ?: return TvNowPlayingUiState.Idle
+    // Until the new track's row arrives, the previous track's data must not show.
+    val data = track?.takeIf { it.id == item.id }
+    return TvNowPlayingUiState.Playing(
+        title = item.title,
+        artist = item.artist,
+        album = data?.albumTitle,
+        artwork = item.artwork,
+        isPlaying = isPlaying,
+        isBuffering = isBuffering,
+        duration = duration,
+        isSeekable = isSeekable,
+        hasNext = hasNext,
+        hasPrevious = hasPrevious,
+        shuffle = shuffle,
+        repeatMode = repeatMode,
+        isFavorite = data?.userData?.isFavorite == true,
+        // The output extras arrive apart from the item: only this item's count.
+        quality =
+            output
+                .takeIf { it.playedItemId == item.id.toString() }
+                ?.let { qualityLabel(data?.audioFormat, it.streamKnown, it.convertedKbps) },
+        atmosConverted = output.atmosConverted,
+        queue = queue,
+        currentEntryId = currentEntryId,
+    )
+}

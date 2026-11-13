@@ -39,9 +39,15 @@ mini player steals focus on a 10-foot UI and has no place to be "dragged" open.
 - `focusRestorer()` alone does not bring focus back after a detail page: the screen below leaves the composition and
   its restorer forgets the child. `FocusMemory` (`:core:designsystem-tv`) keeps the focused item's key in the screen's
   saved state; the screen calls `restore(first)` once when it opens.
-- The strip shows the play state, the title and (with the drawer open) the artist; the cover comes with Now Playing
+- The strip shows the play state, the title and (with the drawer open) the artist; the cover came with Now Playing
   (#240). Image loading for the TV app came with Home (#236): the same `ArtworkInterceptor` (now in `:core:data`).
 - `NowPlayingKey` is new in `:core:navigation`; the phone keeps its overlay.
 - A key with no TV screen is pushed like any detail page and shows a placeholder; the shell logs it once when it
   shows (not the `Navigator`). The drawer sends focus entering it to the selected entry (`focusProperties.onEnter`).
 - Back on Home is not handled by the shell (Navigation 3 has nothing to pop), so the activity's default Back leaves.
+
+## Amendment (2026-11-13, #240)
+
+- The launcher's Now Playing card opens the full player, as #240 asks (this replaces "opens the app at its last
+  screen" above): the playback service's session activity carries `EXTRA_OPEN_PLAYER` (`:core:playback`), `TvActivity`
+  is single task and pushes `NowPlayingKey` on it; the phone ignores the extra.

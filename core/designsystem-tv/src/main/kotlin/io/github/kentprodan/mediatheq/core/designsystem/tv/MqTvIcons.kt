@@ -22,5 +22,9 @@ object MqTvIcons {
     val FavoriteFilled: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_favorite_filled)
     val Resume: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_resume)
     val PlayNext: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_queue_play_next)
+    val Repeat: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_repeat)
+    val RepeatOne: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_repeat_one)
+    val SkipNext: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_skip_next_filled)
+    val SkipPrevious: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_skip_previous_filled)
     val Playing: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_graphic_eq)
 }

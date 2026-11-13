@@ -733,8 +733,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
         super.onDestroy()
     }
 
+    /** The app, asked to show the player: the TV opens Now Playing (#240); the phone ignores the extra. */
     private fun sessionActivity(): PendingIntent? =
-        packageManager.getLaunchIntentForPackage(packageName)?.let {
+        packageManager.getLaunchIntentForPackage(packageName)?.putExtra(EXTRA_OPEN_PLAYER, true)?.let {
             PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         }
 

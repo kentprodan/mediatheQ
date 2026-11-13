@@ -25,7 +25,8 @@
         <!-- LAUNCHER too, so getLaunchIntentForPackage (the playback session activity) finds it (ADR 0038). -->
         <activity
             android:name=".TvActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />

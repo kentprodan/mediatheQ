@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_np_nothing_title">Nothing playing</string>
+    <string name="tv_np_nothing_body">Pick an album, a playlist or a mix to start.</string>
+    <string name="tv_np_play">Play</string>
+    <string name="tv_np_pause">Pause</string>
+    <string name="tv_np_previous">Previous</string>
+    <string name="tv_np_next">Next</string>
+    <string name="tv_np_shuffle">Shuffle</string>
+    <string name="tv_np_repeat">Repeat</string>
+    <string name="tv_np_repeat_off">Repeat off</string>
+    <string name="tv_np_repeat_all">Repeat all</string>
+    <string name="tv_np_repeat_one">Repeat one</string>
+    <string name="tv_np_on">On</string>
+    <string name="tv_np_off">Off</string>
+    <string name="tv_np_favorite">Favorite</string>
+    <string name="tv_np_progress">Position</string>
+    <string name="tv_np_seek_hint">Left and Right to seek</string>
+    <string name="tv_np_buffering">Loading…</string>
+    <string name="tv_np_queue">Up next</string>
+    <string name="tv_np_remove">Remove from queue</string>
+    <string name="tv_np_atmos_converted">Plays as stereo on this output</string>
+</resources>

@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.tv
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,8 +21,10 @@ import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.OnboardingServerKey
+import io.github.kentprodan.mediatheq.core.playback.EXTRA_OPEN_PLAYER
 import io.github.kentprodan.mediatheq.feature.tv.onboarding.tvOnboardingEntries
 import io.github.kentprodan.mediatheq.tv.navigation.TvShellRoute
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * The TV app's one activity (ADR 0038): onboarding while signed out (ADR 0040), the shell once signed in (ADR 0041). A 401 signs out in the repository (ADR 0036), and the onboarding starts again at the server.
@@ -30,19 +33,38 @@ import io.github.kentprodan.mediatheq.tv.navigation.TvShellRoute
  */
 @AndroidEntryPoint
 class TvActivity : ComponentActivity() {
+    // The launcher's Now Playing card (the session activity) asks for the player; single task, so a running app
+    // gets it in onNewIntent (#240).
+    private val openPlayer = MutableStateFlow(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MediatheqTvTheme { TvApp() } }
+        if (savedInstanceState == null) openPlayer.value = intent.wantsPlayer()
+        setContent {
+            val player by openPlayer.collectAsStateWithLifecycle()
+            MediatheqTvTheme { TvApp(player, onPlayerOpened = { openPlayer.value = false }) }
+        }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.wantsPlayer()) openPlayer.value = true
+    }
+
+    private fun Intent.wantsPlayer() = getBooleanExtra(EXTRA_OPEN_PLAYER, false)
 }
 
 @Composable
-private fun TvApp(viewModel: TvMainViewModel = hiltViewModel()) {
+private fun TvApp(
+    openPlayer: Boolean,
+    onPlayerOpened: () -> Unit,
+    viewModel: TvMainViewModel = hiltViewModel(),
+) {
     val session by viewModel.session.collectAsStateWithLifecycle()
     when (session) {
         null -> Unit
         is SessionState.LoggedOut -> TvOnboardingHost()
-        is SessionState.LoggedIn -> TvShellRoute()
+        is SessionState.LoggedIn -> TvShellRoute(openPlayer, onPlayerOpened)
     }
 }
 
