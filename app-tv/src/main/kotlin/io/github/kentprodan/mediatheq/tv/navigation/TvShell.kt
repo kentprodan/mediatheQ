@@ -49,6 +49,7 @@ import io.github.kentprodan.mediatheq.feature.tv.artist.tvArtistEntry
 import io.github.kentprodan.mediatheq.feature.tv.home.tvHomeEntry
 import io.github.kentprodan.mediatheq.feature.tv.library.tvLibraryEntries
 import io.github.kentprodan.mediatheq.feature.tv.nowplaying.tvNowPlayingEntry
+import io.github.kentprodan.mediatheq.feature.tv.search.tvSearchEntry
 import io.github.kentprodan.mediatheq.feature.tv.settings.tvSettingsEntries
 import io.github.kentprodan.mediatheq.tv.R
 
@@ -91,7 +92,7 @@ internal fun TvShellRoute(
         tvSettingsEntries(navigator, versionName, report = {
             raw(R.raw.aboutlibraries)
         }, notices = { raw(R.raw.license_notices) })
-        tvPlaceholderEntries()
+        tvSearchEntry(navigator)
     }
 }
 

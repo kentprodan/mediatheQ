@@ -71,7 +71,7 @@ Any change to this table = ADR in `docs/decisions/`.
 `:feature-tv:onboarding` server, Quick Connect first, password (ADR 0040); `:feature-tv:home` rows of the Home sections
 (#236); `:feature-tv:library` tabs of cover grids, genre and year pages (#237); `:feature-tv:album` album and
 playlist pages (#238); `:feature-tv:artist` the artist page (#239);
-`:feature-tv:nowplaying` the full-screen player and queue (#240); `:feature-tv:settings` Settings and the licenses (#243,
+`:feature-tv:nowplaying` the full-screen player and queue (#240); `:feature-tv:search` Search with result rows and recent searches (#244); `:feature-tv:settings` Settings and the licenses (#243,
 the licenses report parsed by `:core:common`'s `licenseEntries`, shared with the phone); more `:feature-tv:*` come with TV 1.
 
 Later phases add (do not create early): `:provider:subsonic`, `:provider:plex`, `:auto`, `:wear`.
