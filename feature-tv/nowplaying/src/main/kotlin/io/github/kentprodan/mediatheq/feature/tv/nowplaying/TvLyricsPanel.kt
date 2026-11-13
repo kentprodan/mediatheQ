@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.tv.nowplaying
 
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -7,10 +8,15 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.text.style.TextAlign
@@ -33,16 +39,18 @@ fun TvLyricsPanel(
     position: Duration,
     modifier: Modifier = Modifier,
 ) {
-    val current = lyrics.currentLineIndex(position)
+    // The ticking position only reaches the lines when the sung line changes.
+    val latest = rememberUpdatedState(position)
+    val current by remember(lyrics) { derivedStateOf { lyrics.currentLineIndex(latest.value) } }
     val typography = MaterialTheme.typography
     val colors = MaterialTheme.colorScheme
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = current.coerceAtLeast(0))
     if (lyrics.isSynced) {
-        LaunchedEffect(current) { if (current >= 0) listState.animateScrollToItem(current) }
+        LaunchedEffect(current) { if (current >= 0) listState.centerOn(current) }
     }
     BoxWithConstraints(modifier.fillMaxHeight()) {
-        // Synced: the line scrolled to the top of the list sits a little above the middle of the screen.
-        val top = if (lyrics.isSynced) maxHeight * CURRENT_LINE_AT else 40.dp
+        // Synced: half the panel above and below, so the first and last lines can be centered too.
+        val top = if (lyrics.isSynced) maxHeight / 2 else 40.dp
         LazyColumn(
             Modifier.fillMaxHeight().focusProperties { canFocus = !lyrics.isSynced },
             state = listState,
@@ -88,5 +96,10 @@ fun TvLyricsPanel(
 
 private const val MUSIC_BREAK = "♪"
 
-/** Where the sung line sits, as a fraction of the panel's height from the top. */
-private const val CURRENT_LINE_AT = 0.4f
+/** Scrolls so line [index] sits in the middle of the list (its own height included, also for a wrapped line). */
+private suspend fun LazyListState.centerOn(index: Int) {
+    if (layoutInfo.visibleItemsInfo.none { it.index == index }) scrollToItem(index)
+    val item = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return
+    val middle = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
+    animateScrollBy((item.offset + item.size / 2 - middle).toFloat())
+}

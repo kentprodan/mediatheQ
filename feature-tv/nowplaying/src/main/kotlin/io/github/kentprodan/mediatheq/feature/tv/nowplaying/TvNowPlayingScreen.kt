@@ -93,9 +93,17 @@ fun TvNowPlayingScreen(
 ) {
     var showLyrics by rememberSaveable { mutableStateOf(lyricsOpen) }
     val lyricsButton = remember { FocusRequester() }
-    val lyricsShown = showLyrics && lyrics is TvLyricsUiState.Content
+    // Open while the next track's lyrics load too, so a track change does not swap the queue in and out.
+    val lyricsShown = showLyrics && (lyrics is TvLyricsUiState.Content || lyrics == TvLyricsUiState.Loading)
     BackHandler(enabled = lyricsShown) {
         showLyrics = false
+        runCatching { lyricsButton.requestFocus() }
+    }
+    // A new track's lyrics replace the lines that may have had focus: it waits on the Lyrics button. A track without
+    // lyrics closes the panel (the button is then off: focus moves on along the controls by itself).
+    LaunchedEffect(lyrics) {
+        if (!showLyrics || lyrics is TvLyricsUiState.Content) return@LaunchedEffect
+        if (lyrics == TvLyricsUiState.None) showLyrics = false
         runCatching { lyricsButton.requestFocus() }
     }
     when (state) {
@@ -110,14 +118,26 @@ fun TvNowPlayingScreen(
         is TvNowPlayingUiState.Playing -> {
             KeepScreenOn(state.isPlaying)
             Row(modifier.fillMaxSize()) {
-                val lyricsControl = LyricsControl(lyrics, lyricsButton) { showLyrics = !showLyrics }
+                val lyricsControl =
+                    LyricsControl(lyrics, lyricsButton) {
+                        if (lyrics ==
+                            TvLyricsUiState.Error
+                        ) {
+                            onAction(TvNowPlayingAction.RetryLyrics)
+                        } else {
+                            showLyrics =
+                                !showLyrics
+                        }
+                    }
                 Player(state, position, onAction, Modifier.weight(PLAYER_WEIGHT), lyricsControl)
                 if (lyricsShown) {
-                    TvLyricsPanel(
-                        (lyrics as TvLyricsUiState.Content).lyrics,
-                        position,
-                        Modifier.weight(1 - PLAYER_WEIGHT),
-                    )
+                    val content = (lyrics as? TvLyricsUiState.Content)?.lyrics
+                    // Loading the next track's lyrics: the panel stays, empty.
+                    if (content != null) {
+                        TvLyricsPanel(content, position, Modifier.weight(1 - PLAYER_WEIGHT))
+                    } else {
+                        Spacer(Modifier.weight(1 - PLAYER_WEIGHT))
+                    }
                 } else {
                     Queue(state, onAction, Modifier.weight(1 - PLAYER_WEIGHT))
                 }
@@ -336,13 +356,16 @@ private fun Controls(
     }
 }
 
-/** The Lyrics button: on when the track has lyrics; [hint] says why not otherwise (nothing while they load). */
+/**
+ * The Lyrics button: opens the panel when the track has lyrics (or they are loading), asks again after an error, off
+ * when the track has none; [hint] says why under the controls.
+ */
 private class LyricsControl(
     lyrics: TvLyricsUiState,
     val focus: FocusRequester,
     val onToggle: () -> Unit,
 ) {
-    val available = lyrics is TvLyricsUiState.Content
+    val available = lyrics != TvLyricsUiState.None
     val hint: Int? =
         when (lyrics) {
             TvLyricsUiState.None -> R.string.tv_np_lyrics_none

@@ -97,7 +97,7 @@ private val synced =
 fun TvNowPlayingLyricsSyncedScreenshot() =
     MediatheqTvTheme {
         Surface {
-            TvNowPlayingScreen(playing, 11.seconds, {}, lyrics = TvLyricsUiState.Content(synced), lyricsOpen = true)
+            TvNowPlayingScreen(playing, 6.seconds, {}, lyrics = TvLyricsUiState.Content(synced), lyricsOpen = true)
         }
     }
 

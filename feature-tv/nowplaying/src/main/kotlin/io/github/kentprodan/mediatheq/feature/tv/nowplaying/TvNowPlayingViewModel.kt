@@ -18,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -76,12 +77,15 @@ sealed interface TvLyricsUiState {
     /** The track has no lyrics. */
     data object None : TvLyricsUiState
 
-    /** The server could not be asked; the next track asks again. */
+    /** The server could not be asked; the Lyrics button asks again ([TvNowPlayingAction.RetryLyrics]). */
     data object Error : TvLyricsUiState
 }
 
 sealed interface TvNowPlayingAction {
     data object TogglePlayPause : TvNowPlayingAction
+
+    /** The lyrics failed to load: ask again (#245). */
+    data object RetryLyrics : TvNowPlayingAction
 
     data object Next : TvNowPlayingAction
 
@@ -155,11 +159,12 @@ class TvNowPlayingViewModel
                     playback.state.value.toUiState(null, emptyList()),
                 )
 
-        /** The playing track's lyrics (#245), asked of the server when the track changes. */
+        /** Bumped by the Lyrics button after a failed load, so the same track asks again. */
+        private val lyricsRetries = MutableStateFlow(0)
+
+        /** The playing track's lyrics (#245), asked of the server when the track changes or after a retry. */
         val lyrics: StateFlow<TvLyricsUiState> =
-            playback.state
-                .map { it.item?.id }
-                .distinctUntilChanged()
+            combine(playback.state.map { it.item?.id }.distinctUntilChanged(), lyricsRetries) { id, _ -> id }
                 .flatMapLatest { id ->
                     if (id == null) {
                         flowOf<TvLyricsUiState>(TvLyricsUiState.None)
@@ -201,6 +206,10 @@ class TvNowPlayingViewModel
         }
 
         fun onAction(action: TvNowPlayingAction) {
+            if (action == TvNowPlayingAction.RetryLyrics) {
+                lyricsRetries.value++
+                return
+            }
             val state = uiState.value as? TvNowPlayingUiState.Playing ?: return
             when (action) {
                 TvNowPlayingAction.TogglePlayPause -> {

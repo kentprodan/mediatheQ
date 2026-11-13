@@ -199,23 +199,59 @@ class TvNowPlayingTest {
         }
 
     @Test
-    fun `the Lyrics button opens the panel, Back closes it and focus returns to the button`() {
-        val synced = Lyrics(listOf(LyricLine("first line", 0.seconds), LyricLine("second line", 5.seconds)))
+    fun `the Lyrics button opens the panel, Back from a line closes it and focus returns to the button`() {
+        val plain = Lyrics(listOf(LyricLine("first line"), LyricLine("second line")))
         val playing =
             TvNowPlayingUiState.Playing(title = "Strobe", artist = "deadmau5", isPlaying = true, duration = 10.minutes)
         composeRule.setContent {
-            MediatheqTvTheme { TvNowPlayingScreen(playing, 6.seconds, {}, lyrics = TvLyricsUiState.Content(synced)) }
+            MediatheqTvTheme { TvNowPlayingScreen(playing, 6.seconds, {}, lyrics = TvLyricsUiState.Content(plain)) }
         }
         composeRule.onNodeWithText("second line").assertDoesNotExist()
 
         composeRule.onNodeWithContentDescription("Lyrics").performSemanticsAction(SemanticsActions.OnClick)
-        composeRule.onNodeWithText("second line").assertExists()
+        composeRule.onNodeWithText("second line").requestFocus()
+        composeRule.onNodeWithText("second line").assertIsFocused()
 
-        composeRule.onNodeWithContentDescription("Lyrics").requestFocus()
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
         composeRule.onNodeWithText("second line").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("Lyrics").assertIsFocused()
     }
+
+    @Test
+    fun `the panel stays while the next track's lyrics load, and a track without lyrics closes it`() {
+        val plain = Lyrics(listOf(LyricLine("first line")))
+        val playing = TvNowPlayingUiState.Playing(title = "Strobe", artist = "deadmau5", duration = 10.minutes)
+        var lyrics by mutableStateOf<TvLyricsUiState>(TvLyricsUiState.Content(plain))
+        composeRule.setContent {
+            MediatheqTvTheme { TvNowPlayingScreen(playing, 0.seconds, {}, lyrics = lyrics, lyricsOpen = true) }
+        }
+        composeRule.onNodeWithText("first line").requestFocus()
+
+        lyrics = TvLyricsUiState.Loading
+        composeRule.onNodeWithText("Up next").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Lyrics").assertIsFocused()
+
+        lyrics = TvLyricsUiState.None
+        composeRule.onNodeWithText("Up next").assertExists()
+    }
+
+    @Test
+    fun `after an error the Lyrics button asks again`() =
+        test {
+            lyrics.failure = MqError.Network
+            val viewModel = viewModel()
+            backgroundScope.launch { viewModel.lyrics.collect() }
+            playback.state.value = playing()
+            runCurrent()
+            assertThat(viewModel.lyrics.value).isEqualTo(TvLyricsUiState.Error)
+
+            lyrics.failure = null
+            viewModel.onAction(TvNowPlayingAction.RetryLyrics)
+            runCurrent()
+
+            assertThat(lyrics.calls).containsExactly(track.id, track.id)
+            assertThat(viewModel.lyrics.value).isEqualTo(TvLyricsUiState.None)
+        }
 
     @Test
     fun `without lyrics the button is off and the hint says why`() {
