@@ -16,6 +16,7 @@ import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.sortedByName
 import io.github.kentprodan.mediatheq.core.data.sortedFor
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -39,7 +40,7 @@ class TvLibraryViewModel
     constructor(
         @Assisted private val filter: LibraryFilter,
         @Assisted private val genre: MediaId?,
-        @Assisted private val year: YearPage?,
+        @Assisted private val year: YearKey?,
         private val library: LibraryRepository,
         private val sync: LibrarySyncRepository,
         private val preferences: LibraryPreferencesRepository,
@@ -174,12 +175,7 @@ class TvLibraryViewModel
             fun create(
                 filter: LibraryFilter,
                 genre: MediaId?,
-                year: YearPage?,
+                year: YearKey?,
             ): TvLibraryViewModel
         }
     }
-
-/** A year's page: the albums of [year], `null` for albums without one. */
-data class YearPage(
-    val year: Int?,
-)

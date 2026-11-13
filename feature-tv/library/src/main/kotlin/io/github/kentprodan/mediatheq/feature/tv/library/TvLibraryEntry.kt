@@ -21,5 +21,5 @@ fun EntryProviderScope<NavKey>.tvLibraryEntries(navigator: Navigator) {
         )
     entry<LibraryKey> { TvLibraryRoute(navigation) }
     entry<GenreKey> { TvLibraryPageRoute(navigation, genre = it.id) }
-    entry<YearKey> { TvLibraryPageRoute(navigation, year = YearPage(it.year)) }
+    entry<YearKey> { TvLibraryPageRoute(navigation, year = it) }
 }

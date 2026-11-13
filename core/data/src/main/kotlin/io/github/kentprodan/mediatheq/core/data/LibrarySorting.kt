@@ -8,10 +8,11 @@ import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.Track
 
-// Sorting for the Library lists of both apps (moved from :feature:library for the TV, #237). Names compare like a person reads them: case and diacritics are ignored ("Moșoi" next
-// to "Mosoi"). The item id breaks ties so the order never jumps. Newest and latest year come first; unknown dates last.
+// Sorting for the Library lists of both apps (moved from :feature:library for the TV, #237). Names compare like a
+// person reads them: case and diacritics are ignored ("Moșoi" next to "Mosoi"). The item id breaks ties so the order never jumps. Newest and latest year come first; unknown dates last.
 // A reversed sort (#187) turns the whole list around, unknown dates included.
 
+/** Albums by name, date added, year or artist. */
 @JvmName("sortedAlbums")
 fun List<Album>.sortedFor(sort: LibrarySort): List<Album> {
     val names = nameComparator()
@@ -51,6 +52,7 @@ fun List<Artist>.sortedByName(): List<Artist> =
         },
     )
 
+/** Playlists by name or date added. */
 @JvmName("sortedPlaylists")
 fun List<Playlist>.sortedFor(sort: LibrarySort): List<Playlist> {
     val byName = compareBy(nameComparator()) { playlist: Playlist -> playlist.sortName }.thenBy { it.id.itemId }
@@ -59,6 +61,7 @@ fun List<Playlist>.sortedFor(sort: LibrarySort): List<Playlist> {
     )
 }
 
+/** Tracks by name, date added, artist or album (album order inside each). */
 @JvmName("sortedTracks")
 fun List<Track>.sortedFor(sort: LibrarySort): List<Track> {
     val names = nameComparator()

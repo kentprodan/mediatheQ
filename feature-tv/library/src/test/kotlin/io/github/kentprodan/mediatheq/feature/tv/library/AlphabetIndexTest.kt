@@ -14,6 +14,13 @@ class AlphabetIndexTest {
     }
 
     @Test
+    fun `letters that do not decompose are filed under their Latin letter`() {
+        val names = listOf("Æther", "Łódź", "Øresund", "ßtraße")
+
+        assertThat(alphabetIndex(names).map { it.letter }).containsExactly('A', 'L', 'O', 'S').inOrder()
+    }
+
+    @Test
     fun `an empty list has no letters`() {
         assertThat(alphabetIndex(emptyList())).isEmpty()
     }

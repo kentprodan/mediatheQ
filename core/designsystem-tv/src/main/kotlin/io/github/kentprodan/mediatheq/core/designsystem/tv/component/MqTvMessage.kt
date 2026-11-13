@@ -29,6 +29,8 @@ fun MqTvMessage(
     detail: String? = null,
     action: String? = null,
     onAction: () -> Unit = {},
+    /** The button takes focus when shown; `false` where focus is elsewhere on purpose (a tab row being walked). */
+    focusAction: Boolean = true,
 ) {
     val button = remember { FocusRequester() }
     Column(
@@ -41,5 +43,5 @@ fun MqTvMessage(
         detail?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
         action?.let { MqTvButton(it, onAction, Modifier.focusRequester(button)) }
     }
-    if (action != null) LaunchedEffect(Unit) { runCatching { button.requestFocus() } }
+    if (action != null && focusAction) LaunchedEffect(Unit) { runCatching { button.requestFocus() } }
 }

@@ -104,4 +104,48 @@ class TvLibraryScreenTest {
 
         composeRule.onNodeWithText("Zebra").assertIsFocused()
     }
+
+    @Test
+    fun `walking the tabs onto an empty one leaves focus on the tabs`() {
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvLibraryTabsScreen { tab, cameBack ->
+                    TvLibraryList(state(tab), {}, TvLibraryNavigation(), restoreFocus = cameBack)
+                }
+            }
+        }
+
+        focus("Artists")
+        press(Key.DirectionRight)
+        composeRule.mainClock.advanceTimeBy(1_000)
+
+        composeRule.onNodeWithText("Nothing here yet").assertExists()
+        composeRule.onNodeWithText("Playlists").assertIsFocused()
+    }
+
+    @Test
+    fun `Left from the strip returns to the card focused last`() {
+        composeRule.setContent {
+            MediatheqTvTheme { TvLibraryList(state(TvLibraryTab.Albums), {}, TvLibraryNavigation()) }
+        }
+
+        focus("Album 02")
+        focus("A")
+        press(Key.DirectionLeft)
+
+        composeRule.onNodeWithText("Album 02").assertIsFocused()
+    }
+
+    @Test
+    fun `a genre page opens with its first card focused`() {
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvLibraryList(state(TvLibraryTab.Albums), {
+                }, TvLibraryNavigation(), restoreFocus = true, title = "Techno", focusFirst = true)
+            }
+        }
+        composeRule.mainClock.advanceTimeBy(1_000)
+
+        composeRule.onNodeWithText("Album 01").assertIsFocused()
+    }
 }

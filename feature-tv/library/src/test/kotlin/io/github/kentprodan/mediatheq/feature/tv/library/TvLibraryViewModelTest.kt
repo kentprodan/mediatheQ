@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
@@ -45,7 +46,7 @@ class TvLibraryViewModelTest {
     private fun TestScope.viewModel(
         filter: LibraryFilter,
         genre: MediaId? = null,
-        year: YearPage? = null,
+        year: YearKey? = null,
     ): TvLibraryViewModel {
         val viewModel =
             TvLibraryViewModel(filter, genre, year, library, sync, preferences, mainDispatcherRule.testDispatcher)
@@ -96,9 +97,28 @@ class TvLibraryViewModelTest {
 
             assertThat(viewModel(LibraryFilter.Artists).titles()).containsExactly("Ada", "Röyksopp").inOrder()
             assertThat(viewModel(LibraryFilter.Playlists).titles()).containsExactly("Road trip")
-            val genres = viewModel(LibraryFilter.Genres).items().items
-            assertThat(genres.single().albumCount).isEqualTo(3)
-            assertThat(genres.single().kind).isEqualTo(TvLibraryItem.Kind.Genre)
+            val artists = viewModel(LibraryFilter.Artists)
+            assertThat(artists.items().letters).containsExactly(Letter('A', 0), Letter('R', 1)).inOrder()
+            val genres = viewModel(LibraryFilter.Genres)
+            assertThat(
+                genres
+                    .items()
+                    .items
+                    .single()
+                    .albumCount,
+            ).isEqualTo(3)
+            assertThat(
+                genres
+                    .items()
+                    .items
+                    .single()
+                    .kind,
+            ).isEqualTo(TvLibraryItem.Kind.Genre)
+
+            // By album count: no strip.
+            genres.onAction(TvLibraryAction.SetSort(LibrarySort.AlbumCount))
+            runCurrent()
+            assertThat(genres.items().letters).isEmpty()
         }
 
     @Test
@@ -115,8 +135,8 @@ class TvLibraryViewModelTest {
             assertThat(genre.titles()).containsExactly("Zed")
             assertThat(genre.genreName.value).isEqualTo("Techno")
 
-            assertThat(viewModel(LibraryFilter.Albums, year = YearPage(2001)).titles()).containsExactly("Alpha")
-            assertThat(viewModel(LibraryFilter.Albums, year = YearPage(null)).titles()).containsExactly("beta")
+            assertThat(viewModel(LibraryFilter.Albums, year = YearKey(2001)).titles()).containsExactly("Alpha")
+            assertThat(viewModel(LibraryFilter.Albums, year = YearKey(null)).titles()).containsExactly("beta")
         }
 
     @Test

@@ -37,6 +37,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -61,6 +62,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
 import kotlinx.coroutines.launch
 
@@ -145,7 +147,7 @@ fun TvLibraryTabs(
 fun TvLibraryPageRoute(
     navigation: TvLibraryNavigation,
     genre: MediaId? = null,
-    year: YearPage? = null,
+    year: YearKey? = null,
 ) {
     val viewModel =
         hiltViewModel<TvLibraryViewModel, TvLibraryViewModel.Factory>(key = "$genre/$year") {
@@ -159,7 +161,7 @@ fun TvLibraryPageRoute(
             year?.year != null -> year.year.toString()
             else -> stringResource(R.string.tv_library_unknown_year)
         }
-    TvLibraryList(state, viewModel::onAction, navigation, restoreFocus = true, title = title)
+    TvLibraryList(state, viewModel::onAction, navigation, restoreFocus = true, title = title, focusFirst = true)
 }
 
 /**
@@ -174,6 +176,8 @@ fun TvLibraryList(
     modifier: Modifier = Modifier,
     restoreFocus: Boolean = false,
     title: String? = null,
+    /** A page opened from a card: its first card takes focus (a tab leaves it on the tabs or the drawer). */
+    focusFirst: Boolean = false,
 ) {
     var sorting by remember { mutableStateOf(false) }
     Column(modifier.fillMaxSize()) {
@@ -206,6 +210,8 @@ fun TvLibraryList(
                     stringResource(R.string.tv_library_empty_body),
                     action = stringResource(R.string.tv_library_sync_now),
                     onAction = { onAction(TvLibraryAction.Sync) },
+                    // Not while the user walks along the tabs.
+                    focusAction = restoreFocus,
                 )
             }
 
@@ -215,11 +221,13 @@ fun TvLibraryList(
                     stringResource(R.string.tv_library_error_body),
                     action = stringResource(R.string.tv_library_sync_now),
                     onAction = { onAction(TvLibraryAction.Sync) },
+                    // Not while the user walks along the tabs.
+                    focusAction = restoreFocus,
                 )
             }
 
             is TvLibraryContent.Items -> {
-                Grid(content, navigation, restoreFocus)
+                Grid(content, navigation, restoreFocus, focusFirst, state.sort)
             }
         }
     }
@@ -233,9 +241,17 @@ private fun Grid(
     content: TvLibraryContent.Items,
     navigation: TvLibraryNavigation,
     restoreFocus: Boolean,
+    focusFirst: Boolean,
+    sort: LibrarySort,
 ) {
     val focus = rememberFocusMemory()
     val grid = rememberLazyGridState()
+    // A new sort starts at the top; the cards keep their keys, so the grid would stay on the old first card.
+    var shownSort by rememberSaveable { mutableStateOf(sort) }
+    LaunchedEffect(sort) {
+        if (sort != shownSort) grid.scrollToItem(0)
+        shownSort = sort
+    }
     val scope = rememberCoroutineScope()
     val first =
         content.items
@@ -276,7 +292,7 @@ private fun Grid(
         LaunchedEffect(Unit) {
             // The grid composes its cards when laid out, after this effect starts.
             withFrameNanos {}
-            focus.restore()
+            focus.restore(first.takeIf { focusFirst })
         }
     }
 }
@@ -313,7 +329,8 @@ private fun Strip(
     onJump: (Letter) -> Unit,
 ) {
     LazyColumn(
-        Modifier.width(56.dp).fillMaxHeight(),
+        // Back to the strip: the letter used last.
+        Modifier.width(56.dp).fillMaxHeight().focusRestorer(),
         contentPadding = PaddingValues(vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

@@ -14,6 +14,11 @@ fun alphabetIndex(names: List<String>): List<Letter> {
 
 private fun initial(name: String): Char {
     val first = name.trimStart().firstOrNull() ?: return '#'
-    val base = Normalizer.normalize(first.toString(), Normalizer.Form.NFD).first().uppercaseChar()
+    val upper = first.uppercaseChar()
+    val base = UNDECOMPOSED[upper] ?: Normalizer.normalize(upper.toString(), Normalizer.Form.NFD).first()
     return if (base in 'A'..'Z') base else '#'
 }
+
+/** Letters NFD leaves whole that the name sort still files under a Latin letter. */
+private val UNDECOMPOSED =
+    mapOf('Ø' to 'O', 'Œ' to 'O', 'Æ' to 'A', 'Ł' to 'L', 'Đ' to 'D', 'Ð' to 'D', 'Þ' to 'T', 'ß' to 'S')

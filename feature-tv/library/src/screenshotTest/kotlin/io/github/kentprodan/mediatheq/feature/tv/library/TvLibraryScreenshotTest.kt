@@ -132,3 +132,27 @@ fun TvLibraryGenrePageScreenshot() =
             )
         }
     }
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvLibraryLoadingScreenshot() = Tab(TvLibraryTab.Albums, TvLibraryUiState(LibraryFilter.Albums))
+
+/** A year's page: the year over its albums. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvLibraryYearPageScreenshot() =
+    MediatheqTvTheme {
+        Surface {
+            TvLibraryList(
+                TvLibraryUiState(
+                    LibraryFilter.Albums,
+                    content = items(TvLibraryItem.Kind.Album, albumNames.take(2), PreviewFixtures.ARTIST),
+                ),
+                {},
+                TvLibraryNavigation(),
+                title = "1997",
+            )
+        }
+    }

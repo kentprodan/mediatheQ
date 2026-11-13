@@ -24,7 +24,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -49,7 +48,6 @@ import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.designsystem.tv.FocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
-import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
