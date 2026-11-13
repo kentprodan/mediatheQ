@@ -58,7 +58,11 @@ class StreamResolver
             known?.takeUnless { it.local }?.let {
                 if (continuing || it.quality == quality) return MqResult.Success(it.stream)
             }
-            val result = playbackRepository.stream(itemId, DeviceProfileBuilder.build(decoderMimeTypes, quality))
+            val result =
+                playbackRepository.stream(
+                    itemId,
+                    DeviceProfileBuilder.build(decoderMimeTypes, emptySet(), quality),
+                )
             if (result is MqResult.Success) streams[itemId] = Resolved(result.value, quality)
             return result
         }
@@ -70,7 +74,11 @@ class StreamResolver
         suspend fun prefetchStream(itemId: MediaId): MqResult<PlaybackStream> {
             streams[itemId]?.takeUnless { it.local }?.let { return MqResult.Success(it.stream) }
             val quality = currentQuality()
-            val result = playbackRepository.stream(itemId, DeviceProfileBuilder.build(decoderMimeTypes, quality))
+            val result =
+                playbackRepository.stream(
+                    itemId,
+                    DeviceProfileBuilder.build(decoderMimeTypes, emptySet(), quality),
+                )
             if (result is MqResult.Success) {
                 val known = streams.putIfAbsent(itemId, Resolved(result.value, quality))
                 if (known != null && !known.local) return MqResult.Success(known.stream)
