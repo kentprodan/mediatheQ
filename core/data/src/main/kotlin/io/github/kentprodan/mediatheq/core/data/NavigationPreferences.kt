@@ -1,5 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import io.github.kentprodan.mediatheq.core.model.AppMode
+
 /** A destination the main navigation can show (#122). */
 enum class MainNavEntry {
     Home,
@@ -12,6 +14,14 @@ enum class MainNavEntry {
     Tracks,
     Search,
     Downloads,
+    ;
+
+    /** Shown in [mode] (ADR 0051): the music lists only with music; Home, Library, Search and Downloads always. */
+    fun allowed(mode: AppMode): Boolean =
+        when (this) {
+            Home, Library, Search, Downloads -> true
+            Albums, AlbumArtists, Genres, RecordLabels, Playlists, Tracks -> mode.music
+        }
 }
 
 /** How the main navigation looks in portrait. With a FAB, the last entry becomes the FAB. */
@@ -59,6 +69,13 @@ fun validNavEntries(entries: List<MainNavEntry>): List<MainNavEntry> {
     var others = 0
     return withHome.filter { it == MainNavEntry.Home || others++ < NavigationPreferences.MAX_ENTRIES - 1 }
 }
+
+/**
+ * The entries the navigation shows in [mode] (ADR 0051): the chosen ones, or the defaults when [mode] drops any of them
+ * (the choice stays stored, so switching back brings it back).
+ */
+fun NavigationPreferences.entriesFor(mode: AppMode): List<MainNavEntry> =
+    if (entries.all { it.allowed(mode) }) entries else NavigationPreferences.DEFAULT_ENTRIES
 
 /** [percent] clamped to 0-100 and rounded to the nearest step. */
 fun validTransparency(percent: Int): Int {

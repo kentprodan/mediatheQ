@@ -66,6 +66,9 @@ enum class HomeSection(
     FiveStarTracks(HomeKind.Tracks, false, TRACK_LIST),
     ;
 
+    /** Shown in [mode] (ADR 0051): every section so far is music; the video sections come with #275. */
+    fun allowed(mode: AppMode): Boolean = mode.music
+
     /** Random sections draw a new set at each app start and pull to refresh. */
     val isRandom: Boolean get() = this == RandomArtists || this == RandomAlbums || this == RandomTracks
 }

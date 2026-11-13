@@ -49,6 +49,7 @@ class LibraryPreferencesStore
                         font = prefs[FONT],
                     ),
                 ratingMode = prefs[RATING_MODE],
+                appMode = prefs[APP_MODE],
                 navigation =
                     StoredNavigation(
                         entries = prefs[NAV_ENTRIES]?.split(LIST_SEPARATOR),
@@ -425,6 +426,11 @@ class LibraryPreferencesStore
             if (value == null) remove(key) else set(key, value)
         }
 
+        /** App mode (ADR 0051), as its name. */
+        suspend fun setAppMode(name: String) {
+            dataStore.edit { it[APP_MODE] = name }
+        }
+
         suspend fun setRatingMode(name: String) {
             dataStore.edit { it[RATING_MODE] = name }
         }
@@ -567,6 +573,7 @@ class LibraryPreferencesStore
             val GENRES_GRID = booleanPreferencesKey("genres_grid")
             val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
             val RATING_MODE = stringPreferencesKey("rating_mode")
+            val APP_MODE = stringPreferencesKey("app_mode")
             val OFFLINE_MODE = booleanPreferencesKey("offline_mode")
             val AUTO_OFFLINE = stringPreferencesKey("auto_offline")
             val IMG_PERSISTENT = booleanPreferencesKey("img_persistent")
@@ -627,6 +634,8 @@ data class StoredLibraryPreferences(
     val sorts: Map<String, String> = emptyMap(),
     val dynamicColor: Boolean? = null,
     val ratingMode: String? = null,
+    /** `null` = never chosen (an install from before ADR 0051, or onboarding not done). */
+    val appMode: String? = null,
     val offlineMode: Boolean? = null,
     val autoOffline: String? = null,
     val imagePersistent: Boolean? = null,
