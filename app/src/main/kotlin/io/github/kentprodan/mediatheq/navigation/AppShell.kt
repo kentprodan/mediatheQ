@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -150,11 +151,15 @@ private fun ShellContent(
             NavEntryDecorator<NavKey>(onPop = {}) { entry ->
                 val scope = LocalNavAnimatedContentScope.current
                 CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides scope) {
-                    Box(propagateMinConstraints = true) {
+                    // A popped page stays on top of the one below until its exit ends: it must take no tap, also
+                    // not from TalkBack (#189). Dialog scenes share the main scene's scope, which stays Visible.
+                    val leaving = scope.transition.targetState == EnterExitState.PostExit
+                    Box(
+                        if (leaving) Modifier.clearAndSetSemantics {} else Modifier,
+                        propagateMinConstraints = true,
+                    ) {
                         entry.Content()
-                        // A popped page stays on top of the one below until its exit ends: it must not take that
-                        // tap (#189). Dialog scenes share the main scene's scope, which stays Visible under them.
-                        if (scope.transition.targetState == EnterExitState.PostExit) {
+                        if (leaving) {
                             Box(
                                 Modifier.matchParentSize().pointerInput(
                                     Unit,

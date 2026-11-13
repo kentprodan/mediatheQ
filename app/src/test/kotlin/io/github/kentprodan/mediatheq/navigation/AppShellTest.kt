@@ -82,11 +82,14 @@ class AppShellTest {
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
         composeRule.waitForIdle()
         repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
-        composeRule.onNodeWithText("Open next").performClick()
+        // The leaving page is out of the semantics tree; its "Open next" sits over this button.
+        composeRule.onNodeWithText("Open next").assertDoesNotExist()
+        composeRule.onNodeWithText("Open detail").performClick()
         composeRule.mainClock.autoAdvance = true
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("Library 2").assertDoesNotExist()
+        composeRule.onNodeWithText("Library 1").assertDoesNotExist()
         composeRule.onNodeWithText("Open detail").assertExists()
     }
 
