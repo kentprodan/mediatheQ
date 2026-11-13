@@ -34,6 +34,7 @@ import io.github.kentprodan.mediatheq.core.common.formatDuration
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqSeekBar
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -62,6 +63,44 @@ fun MqVideoControls(
 ) {
     val skipBack = stringResource(R.string.core_ui_video_back_10)
     val skipForward = stringResource(R.string.core_ui_video_forward_10)
+    // Dark whatever the app theme: the controls sit on a picture under a black scrim, and the seek bar's times need
+    // the dark scheme's light text to be read there.
+    MediatheqTheme(systemDark = true) {
+        VideoControlsContent(
+            title,
+            subtitle,
+            isPlaying,
+            isBuffering,
+            position,
+            duration,
+            isSeekable,
+            onPlayPause,
+            onSeek,
+            onBack,
+            skipBack,
+            skipForward,
+            modifier,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun VideoControlsContent(
+    title: String,
+    subtitle: String?,
+    isPlaying: Boolean,
+    isBuffering: Boolean,
+    position: Duration,
+    duration: Duration,
+    isSeekable: Boolean,
+    onPlayPause: () -> Unit,
+    onSeek: (Duration) -> Unit,
+    onBack: () -> Unit,
+    skipBack: String,
+    skipForward: String,
+    modifier: Modifier,
+) {
     Box(
         modifier
             .fillMaxSize()

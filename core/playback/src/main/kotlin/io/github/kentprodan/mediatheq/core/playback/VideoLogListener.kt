@@ -21,7 +21,10 @@ internal class VideoLogListener(
         format: Format,
         decoderReuseEvaluation: DecoderReuseEvaluation?,
     ) {
-        log.info(TAG, "Format ${format.containerMimeType} ${format.sampleMimeType} ${format.codecs} ${format.width}x${format.height}")
+        log.info(
+            TAG,
+            "Format ${format.containerMimeType} ${format.sampleMimeType} ${format.codecs} ${format.width}x${format.height}",
+        )
     }
 
     override fun onVideoDecoderInitialized(
