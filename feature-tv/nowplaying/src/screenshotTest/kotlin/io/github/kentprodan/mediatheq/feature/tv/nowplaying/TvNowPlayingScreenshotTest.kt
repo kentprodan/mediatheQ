@@ -61,12 +61,26 @@ fun TvNowPlayingPausedScreenshot() =
 @Composable
 fun TvNowPlayingBufferingScreenshot() = Player(playing.copy(isBuffering = true, quality = null))
 
-/** A Dolby Atmos file that this output plays as stereo (#242 adds the output notes). */
+/** Dolby Atmos passing through over HDMI: the badge (#242). */
 @PreviewTest
 @MqTvPreviews
 @Composable
-fun TvNowPlayingAtmosScreenshot() =
-    Player(playing.copy(quality = QualityLabel(QualityKind.DolbyAtmos, "E-AC-3 JOC"), atmosConverted = true))
+fun TvNowPlayingAtmosScreenshot() = Player(playing.copy(quality = QualityLabel(QualityKind.DolbyAtmos, "E-AC-3 JOC")))
+
+/** A Dolby Atmos file decoded on a route without passthrough: no badge, the note. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvNowPlayingAtmosDecodedScreenshot() = Player(playing.copy(quality = null, atmosDecoded = true))
+
+/** A Dolby Atmos file the server converts to stereo: the Opus label and the note. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvNowPlayingAtmosStereoScreenshot() =
+    Player(
+        playing.copy(quality = QualityLabel(QualityKind.HighQuality, "Opus · 256 kb/s"), atmosConverted = true),
+    )
 
 @PreviewTest
 @MqTvPreviews
