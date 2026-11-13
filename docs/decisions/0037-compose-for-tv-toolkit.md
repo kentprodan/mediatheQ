@@ -47,3 +47,13 @@ As of 2026-11-11 (https://developer.android.com/jetpack/androidx/releases/tv):
   `tv-design` skill exists.
 - tv-material has no search bar, slider or dialog: Compose `Dialog`, `BasicTextField` and a focusable progress row with
   D-pad seeking cover TV 1.
+
+## Amendment (2026-11-13, #233)
+
+- Screenshot tests cannot show focus: layoutlib renders one frame with no focus owner, and tv-material draws the focused
+  look from the real focus state, not from the interaction source. `MqTv*` screenshots cover enabled, disabled and
+  selected; focus is proven by Robolectric D-pad tests (`assertIsFocused`) and on the Streamer.
+- The "no phone UI on TV" rule is a build check: plugin `mediatheq.android.tv` registers `checkTvDependencies` on the
+  release runtime classpath (debug-only `ui-tooling` brings material3 for previews and does not count) and runs it
+  before every build of a TV module.
+- The font of ADR 0026 on TV is the system font (its default) until TV Settings offers a choice.

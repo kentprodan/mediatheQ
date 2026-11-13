@@ -33,11 +33,13 @@ Any change to this table = ADR in `docs/decisions/`.
 
 ```
 :app                     phone app: Application, MainActivity, Hilt graph, NavDisplay host, nav shell
+:app-tv                  TV app (ADR 0038): own applicationId, TvActivity (LEANBACK_LAUNCHER + LAUNCHER), banner
 :baselineprofile         (com.android.test) baseline profile generator + macrobenchmarks for :app (ADR 0023)
 :build-logic             (included build) convention plugins
 
 :core:model              pure Kotlin domain types. Depends on nothing.
-:core:common             pure Kotlin: MqResult, MqError, dispatcher qualifiers, Clock, small utils
+:core:common             pure Kotlin: MqResult, MqError, dispatcher qualifiers, Clock, small utils, helpers both UIs
+                         read (formatDuration, timeAgo, nameComparator, QualityLabel; ADR 0038)
 :core:navigation         NavKey types for every destination (tiny, no UI)
 :core:network            OkHttp client factory, interceptors, Json config, connectivity monitor
 :core:server             MediaServer provider INTERFACES + capabilities (no implementation)
@@ -48,6 +50,7 @@ Any change to this table = ADR in `docs/decisions/`.
 :core:playback           Media3 MediaLibraryService, player config, queue, session, PlaybackConnection
 :core:download           Media3 DownloadManager wrapper, download index -> repository
 :core:designsystem       MediatheqTheme + Mq* components (no domain types)
+:core:designsystem-tv    MediatheqTvTheme + MqTv* components, tv-material only (ADR 0037)
 :core:ui                 domain-aware shared composables (AlbumCard, TrackRow) = designsystem + model
 :core:testing            fakes, MainDispatcherRule, fixtures, test helpers
 
@@ -64,7 +67,7 @@ Any change to this table = ADR in `docs/decisions/`.
 :feature:settings
 ```
 
-Later phases add (do not create early): `:provider:subsonic`, `:provider:plex`, `:app-tv` + `:feature-tv:*`, `:auto`, `:wear`.
+Later phases add (do not create early): `:provider:subsonic`, `:provider:plex`, `:feature-tv:*` (plugin `mediatheq.android.feature.tv`, ready), `:core:ui-tv`, `:auto`, `:wear`.
 A module is created in the issue that first needs it, never "for later".
 
 ## 2. Dependency rules (enforced, not suggested)
@@ -77,7 +80,11 @@ A module is created in the issue that first needs it, never "for later".
 :core:playback  -> :core:model, :core:common, :core:data
 :core:download  -> :core:model, :core:common, :core:data
 :provider:*     -> :core:model, :core:common, :core:server, :core:network
-:core:ui        -> :core:model, :core:designsystem
+:core:ui        -> :core:model, :core:common, :core:designsystem
+:app-tv / :feature-tv:* / :core:designsystem-tv -> never :core:designsystem, :core:ui, :feature:*,
+                   androidx.compose.material3 (ADR 0038; `checkTvDependencies` fails the build, plugin mediatheq.android.tv)
+:feature:* / :app -> never a TV module
+:core:common    -> :core:model
 :core:server    -> :core:model, :core:common
 :core:navigation -> :core:model (keys carry typed ids, e.g. `AlbumKey(MediaId)`)
 :core:database / :core:datastore / :core:network -> :core:model, :core:common

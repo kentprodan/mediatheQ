@@ -104,6 +104,7 @@ Rule: push every test as low in the pyramid as it can go. Device tests only for 
 
 - Location: `<module>/src/screenshotTest/kotlin/...`, file name `<Thing>ScreenshotTest.kt`.
 - Each test is a preview function annotated `@PreviewTest` (`com.android.tools.screenshot.PreviewTest`) plus the shared `@MqPreviews` multipreview (light/dark, fontScale 1.0/2.0, Pixel 9 size - defined in `:core:designsystem/preview`).
+- TV screens and `MqTv*` components use `@MqTvPreviews` instead (`:core:designsystem-tv`, ADR 0037): a 1080p TV (960 x 540 dp), dark, font scale 1.0 and 1.3. Layoutlib renders no focus (tv-material draws it from the real focus state): prove focus with a Robolectric D-pad test (`performKeyInput { pressKey(Key.DirectionRight) }` + `assertIsFocused`).
 - Wrap content in `MediatheqTheme`. Use deterministic fixtures from `:core:designsystem/preview` (no network images: use a local placeholder bitmap / BlurHash fixture).
 - Required coverage:
   - every `Mq*` component: all its visual states (enabled/disabled, selected, loading, error)
@@ -127,6 +128,7 @@ Rule: push every test as low in the pyramid as it can go. Device tests only for 
 ## 9. Device tests (`src/androidTest`)
 
 - Only for: system integration (MediaSession/notification, audio focus, Android Auto browse tree via `MediaBrowser`), real decoder capability queries, and smoke test of app start.
+- TV (ADR 0038): `:app-tv/src/androidTest` runs on the Google TV Streamer over adb (Tailscale): `.\gradlew.bat :app-tv:connectedDebugAndroidTest` (app start, launch intent -> `TvActivity`). Ask the owner first, like the phone.
 - Run on the Pixel 9 via adb over Wi-Fi/Tailscale: `.\gradlew.bat :app:connectedDebugAndroidTest`.
 - Keep the suite small (< 5 min). Use the test orchestrator.
 - Device runs leave the apps installed (`android.injected.androidTest.leaveApksInstalledAfterRun=true`), so they never wipe the phone's own mediatheQ.
