@@ -7,6 +7,8 @@ import androidx.room3.PrimaryKey
 /**
  * The single sync bookkeeping row. The checkpoint fields describe a sync in progress whose pages sit in the staging
  * tables; they are `null` when no sync is pending. Lives in the database so it commits atomically with the swap.
+ * Rows [MUSIC] and [VIDEO] (ADR 0051) say per kind when it was last swapped in ([lastFullSyncAtMillis]) and, through
+ * [checkpointStartedAtMillis] equal to row 0's, that the pending sync includes that kind.
  */
 @Entity(tableName = "sync_state")
 data class SyncStateEntity(
@@ -22,4 +24,9 @@ data class SyncStateEntity(
     @ColumnInfo(name = "checkpoint_step") val checkpointStep: String? = null,
     /** Paging offset within [checkpointStep]; for playlist entries, the index of the next playlist. */
     @ColumnInfo(name = "checkpoint_index") val checkpointIndex: Int = 0,
-)
+) {
+    companion object {
+        const val MUSIC = 1
+        const val VIDEO = 2
+    }
+}

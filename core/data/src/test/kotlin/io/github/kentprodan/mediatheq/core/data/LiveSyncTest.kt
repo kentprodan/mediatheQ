@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.server.LiveEvent
 import io.github.kentprodan.mediatheq.core.server.ServerCapabilities
 import io.github.kentprodan.mediatheq.core.testing.FakeAppLog
+import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
 import io.github.kentprodan.mediatheq.core.testing.FakeLiveEvents
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
@@ -81,6 +82,7 @@ class LiveSyncTest {
                 userData,
                 AppLog.None,
                 ServerCapabilities(video = false),
+                FakeAppModeRepository(),
             )
         return LiveSync(events, accountStore, session, userData, librarySync, network, backgroundScope, log).apply {
             random = noJitter
