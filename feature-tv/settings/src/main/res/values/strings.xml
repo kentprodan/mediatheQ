@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_settings_title">Settings</string>
+    <string name="tv_settings_output">Audio output</string>
+    <string name="tv_settings_passthrough">Dolby Atmos passthrough</string>
+    <string name="tv_settings_passthrough_detail">%1$s · Sends Dolby Atmos unchanged to the soundbar or receiver, from the next track. The TV\'s Surround sound setting decides what the HDMI output takes.</string>
+    <string name="tv_settings_passthrough_unknown">Play something over HDMI once to set up this output.</string>
+    <string name="tv_settings_streaming">Streaming</string>
+    <string name="tv_settings_quality">Streaming quality</string>
+    <string name="tv_settings_quality_current">current</string>
+    <string name="tv_settings_original">Original</string>
+    <string name="tv_settings_kbps">%1$d kb/s</string>
+    <string name="tv_settings_library">Library</string>
+    <string name="tv_settings_sync">Sync now</string>
+    <string name="tv_settings_sync_idle">Fetch the library from the server again</string>
+    <string name="tv_settings_sync_running">Syncing %1$s · %2$d of %3$d</string>
+    <string name="tv_settings_sync_failed">The last sync failed. Select to try again.</string>
+    <string name="tv_settings_sync_unreachable">The server could not be reached. Select to try again.</string>
+    <string name="tv_settings_step_artists">artists</string>
+    <string name="tv_settings_step_albums">albums</string>
+    <string name="tv_settings_step_tracks">tracks</string>
+    <string name="tv_settings_step_playlists">playlists</string>
+    <string name="tv_settings_account">Account</string>
+    <string name="tv_settings_sign_out">Sign out</string>
+    <string name="tv_settings_sign_out_question">Sign out of %1$s?</string>
+    <string name="tv_settings_cancel">Cancel</string>
+    <string name="tv_settings_about">About</string>
+    <string name="tv_settings_version">Version</string>
+    <string name="tv_settings_licenses">Open-source licenses</string>
+    <string name="tv_licenses_title">Open-source licenses</string>
+    <string name="tv_licenses_loading">Reading the licenses…</string>
+</resources>
