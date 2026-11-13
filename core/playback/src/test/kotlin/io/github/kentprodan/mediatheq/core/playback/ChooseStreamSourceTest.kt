@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.cache.ContentMetadataMutations
@@ -9,10 +10,12 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
@@ -50,8 +53,8 @@ class ChooseStreamSourceTest {
     @After
     fun release() = cache.release()
 
-    private suspend fun choose(atmosMime: String? = null) =
-        chooseStreamSource(itemId, resolver, downloads, cache, network::isOnline, atmosMime)
+    private suspend fun choose(item: MediaItem? = null) =
+        chooseStreamSource(itemId, resolver, downloads, cache, network::isOnline, item)
 
     @Test
     fun `an HLS transcode plays as HLS, with the auth header and the stream url`() =
@@ -138,13 +141,40 @@ class ChooseStreamSourceTest {
                 key,
                 ContentMetadataMutations().also { ContentMetadataMutations.setContentLength(it, 100) },
             )
+            // A plain 7.1 TrueHD file: not Atmos, still a bitstream nothing here decodes.
+            val item =
+                Track(itemId, "7.1", emptyList(), 1.minutes, audioFormat = AudioFormat("truehd", channels = 8))
+                    .toMediaItem(null)
             resolver.passthrough = setOf("audio/true-hd")
 
-            choose(atmosMime = "audio/true-hd")
+            choose(item)
             assertThat(repository.streamRequests).isEmpty()
 
             resolver.passthrough = emptySet()
-            choose(atmosMime = "audio/true-hd")
+            choose(item)
             assertThat(repository.streamRequests).hasSize(1)
+        }
+
+    @Test
+    fun `an Atmos queue item brings its type to the stream request`() =
+        runTest {
+            val item =
+                Track(
+                    itemId,
+                    "Atmos",
+                    emptyList(),
+                    1.minutes,
+                    audioFormat = AudioFormat("eac3", channels = 6, spatialFormat = SpatialFormat.DolbyAtmos),
+                ).toMediaItem(null)
+            network.metered = true
+            resolver.passthrough = setOf("audio/eac3-joc")
+
+            choose(item)
+
+            assertThat(
+                repository.streamRequests
+                    .single()
+                    .second.maxStreamingBitrate,
+            ).isNull()
         }
 }

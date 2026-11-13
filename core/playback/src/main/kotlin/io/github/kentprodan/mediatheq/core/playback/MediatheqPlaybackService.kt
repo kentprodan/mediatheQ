@@ -219,14 +219,14 @@ class MediatheqPlaybackService : MediaLibraryService() {
                             ),
                         ).setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
                         okHttpClient,
-                        choose = { id, atmosMime ->
+                        choose = { id, item ->
                             chooseStreamSource(
                                 id,
                                 streamResolver,
                                 downloads,
                                 streamingCache,
                                 playerNetwork::isOnline,
-                                atmosMime,
+                                item,
                             )
                         },
                         headers = streamResolver::headers,
@@ -715,7 +715,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     playMethod,
                     convertedDownload,
                     passthroughConfirmed,
-                    decoderUsed = passthroughEncoding != null && !isPassthroughEncoding(passthroughEncoding),
+                    decoderUsed = AudioPolicy.decoderUsed(passthroughEncoding, mode),
                 ),
             playedItemId = played.itemId,
             streamKnown = played.known,

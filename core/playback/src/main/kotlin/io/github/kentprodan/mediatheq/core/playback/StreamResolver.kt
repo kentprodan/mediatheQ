@@ -46,6 +46,9 @@ class StreamResolver
         /** The Atmos MIME type of each track seen (`MediaItem.atmosMime`), for the data source, which has only ids. */
         private val atmosMimes = ConcurrentHashMap<MediaId, String>()
 
+        /** The passthrough MIME type of each file seen (`MediaItem.passthroughMime`), Atmos or not. */
+        private val fileMimes = ConcurrentHashMap<MediaId, String>()
+
         /**
          * What the route passes through, for stream requests (ADR 0039): set by the service at each output decision,
          * empty off HDMI or with the output's Dolby Atmos passthrough switch off.
@@ -66,11 +69,13 @@ class StreamResolver
             atmosMime: String? = null,
         ): MqResult<PlaybackStream> {
             rememberAtmos(itemId, atmosMime)
+            // The file source passes only the id: the type the item's source chose with still counts.
+            val atmos = atmosMimes[itemId]
             val known = streams[itemId]
             val fromDownload = continuing && known?.local == true
             val passthrough = passthrough
             val quality =
-                if (fromDownload) StreamingQuality.Original else atmosRequest(atmosMime, passthrough, currentQuality())
+                if (fromDownload) StreamingQuality.Original else atmosRequest(atmos, passthrough, currentQuality())
             known?.takeUnless { it.local }?.let {
                 if (continuing || (it.quality == quality && it.passthrough == passthrough)) {
                     return MqResult.Success(it.stream)
@@ -90,12 +95,20 @@ class StreamResolver
             if (atmosMime != null) atmosMimes[itemId] = atmosMime
         }
 
+        /** Keeps [itemId]'s file passthrough MIME type for [playsCachedOriginal]; `null` changes nothing. */
+        fun rememberFile(
+            itemId: MediaId,
+            fileMime: String?,
+        ) {
+            if (fileMime != null) fileMimes[itemId] = fileMime
+        }
+
         /**
-         * Whether a complete cached original of [itemId] plays on this route: not a Dolby Atmos bitstream this route
-         * neither passes through nor decodes (a TrueHD file cached over HDMI, now on Bluetooth).
+         * Whether a complete cached original of [itemId] plays on this route: not a bitstream (E-AC-3, TrueHD, Atmos or
+         * not) this route neither passes through nor decodes (a TrueHD file cached over HDMI, now on Bluetooth).
          */
         fun playsCachedOriginal(itemId: MediaId): Boolean {
-            val mime = atmosMimes[itemId] ?: return true
+            val mime = fileMimes[itemId] ?: return true
             return mime in passthrough || mime in decoderMimeTypes
         }
 
@@ -116,7 +129,7 @@ class StreamResolver
             rememberAtmos(itemId, atmosMime)
             streams[itemId]?.takeUnless { it.local }?.let { return MqResult.Success(it.stream) }
             val passthrough = passthrough
-            val quality = atmosRequest(atmosMime, passthrough, currentQuality())
+            val quality = atmosRequest(atmosMimes[itemId], passthrough, currentQuality())
             val profile = DeviceProfileBuilder.build(decoderMimeTypes, passthrough, quality)
             val result = playbackRepository.stream(itemId, profile)
             if (result is MqResult.Success) {

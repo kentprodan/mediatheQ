@@ -21,10 +21,12 @@ import androidx.media3.test.utils.robolectric.TestPlayerRunHelper
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
@@ -115,6 +117,33 @@ class PrefetcherTest {
         assertThat(cached()).containsExactly(2, 3)
         assertThat(requested()).containsExactly("t2", "t3").inOrder()
         assertThat(wholeInCache).containsExactly(id(2), id(3)).inOrder()
+    }
+
+    @Test
+    fun `an Atmos track the route passes through is prefetched as the original despite the metered cap`() {
+        network.metered = true
+        resolver.passthrough = setOf("audio/eac3-joc")
+        prefetcher()
+        val atmos =
+            Track(
+                id(2),
+                "Track 2",
+                emptyList(),
+                3.minutes,
+                audioFormat = AudioFormat("eac3", channels = 6, spatialFormat = SpatialFormat.DolbyAtmos),
+            ).toMediaItem(null).withTrackUri()!!
+
+        player.setMediaItems(items(1) + atmos)
+        player.prepare()
+        player.play()
+        TestPlayerRunHelper.run(player).untilPendingCommandsAreFullyHandled()
+        RobolectricUtil.runMainLooperUntil { repository.streamRequests.isNotEmpty() }
+
+        assertThat(
+            repository.streamRequests
+                .single()
+                .second.maxStreamingBitrate,
+        ).isNull()
     }
 
     @Test

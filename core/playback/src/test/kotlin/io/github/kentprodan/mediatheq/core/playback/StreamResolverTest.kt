@@ -370,10 +370,11 @@ class StreamResolverTest {
         }
 
     @Test
-    fun `a cached Atmos original plays only where the route passes it through or decodes it`() {
+    fun `a cached TrueHD original plays only where the route passes it through or decodes it`() {
         assertThat(resolver.playsCachedOriginal(itemId)).isTrue()
 
-        resolver.rememberAtmos(itemId, TRUEHD)
+        // Plain 7.1 TrueHD too: the profile declares truehd for any file while the route passes it through.
+        resolver.rememberFile(itemId, TRUEHD)
         resolver.passthrough = setOf(TRUEHD)
         assertThat(resolver.playsCachedOriginal(itemId)).isTrue()
 
@@ -381,9 +382,25 @@ class StreamResolverTest {
         assertThat(resolver.playsCachedOriginal(itemId)).isFalse()
 
         val decoding = StreamResolver(repository, { setOf(TRUEHD) }, network, audioPreferences)
-        decoding.rememberAtmos(itemId, TRUEHD)
+        decoding.rememberFile(itemId, TRUEHD)
         assertThat(decoding.playsCachedOriginal(itemId)).isTrue()
     }
+
+    @Test
+    fun `the file source asking without the Atmos type still gets the original on a passthrough route`() =
+        runTest {
+            network.metered = true
+            resolver.passthrough = setOf(JOC)
+            resolver.rememberAtmos(itemId, JOC)
+
+            resolver.resolve(itemId, continuing = true)
+
+            assertThat(
+                repository.streamRequests
+                    .single()
+                    .second.maxStreamingBitrate,
+            ).isNull()
+        }
 
     @Test
     fun `instant transcoding keeps the original for an Atmos track passing through`() {

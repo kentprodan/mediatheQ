@@ -96,13 +96,16 @@ Rules:
 8. **Atmos stream selection (#242, ADR 0039 rule 4):** the controller publishes `AudioOutputState.requestPassthrough`
    (the route's set while the output's switch is on, else empty); the service hands it to `StreamResolver.passthrough`
    (`@Volatile`, written on the main thread) before applying the state. Each item's `MediaItem.atmosMime()` (its
-   passthrough MIME type when the file is Dolby Atmos) travels with `chooseStreamSource` and the prefetch;
+   passthrough MIME type when the file is Dolby Atmos) travels with the queue item to `chooseStreamSource` and the
+   prefetch, and the resolver remembers it for the file source, which passes only the id;
    `atmosRequest(atmosMime, passthrough, quality)` asks for `Original` when that MIME type is in the set, whatever the
    network quality, and the profile carries the set. A known stream is reused only for the same quality and set; a
-   complete cached original that is an Atmos bitstream this route neither passes through nor decodes
-   (`playsCachedOriginal`) streams again instead; instant transcoding compares with `requestQuality`.
-   `AudioPolicy.atmosDecoded(isAtmos, playMethod, convertedDownload, passthroughConfirmed, decoderUsed)` (the opened
-   AudioTrack is PCM) -> `AudioOutputInfo.atmosDecoded` -> "Dolby Atmos not available · Decoded on this output" on both
+   complete cached original that is a bitstream (any `passthroughMime`, Atmos or plain TrueHD) this route neither
+   passes through nor decodes (`playsCachedOriginal`) streams again instead; instant transcoding compares with
+   `requestQuality`.
+   `AudioPolicy.atmosDecoded(isAtmos, playMethod, convertedDownload, passthroughConfirmed, decoderUsed)`
+   (`decoderUsed`: the opened AudioTrack is PCM and the mode is not `Passthrough`, since right after a transition the
+   encoding is still the previous track's) -> `AudioOutputInfo.atmosDecoded` -> "Dolby Atmos not available · Decoded on this output" on both
    Now Playing screens; the quality label never says "Dolby Atmos" unless `atmosPassthrough`. Known limit: JOC on a
    route that takes only plain E-AC-3 is converted to stereo with the note (not sent as the 5.1 core).
 

@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import androidx.media3.common.C
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import io.github.kentprodan.mediatheq.core.data.Normalization
@@ -167,6 +168,16 @@ class AudioPolicyTest {
         assertThat(AudioPolicy.playsOriginal(PlayMethod.Transcode, convertedDownload = false)).isFalse()
         assertThat(AudioPolicy.playsOriginal(PlayMethod.DirectStream, convertedDownload = false)).isFalse()
         assertThat(AudioPolicy.playsOriginal(playMethod = null, convertedDownload = false)).isFalse()
+    }
+
+    @Test
+    fun `a PCM AudioTrack is a decoder, a bitstream or a passthrough decision is not`() {
+        assertThat(AudioPolicy.decoderUsed(C.ENCODING_PCM_16BIT, AudioMode.Offload)).isTrue()
+        assertThat(AudioPolicy.decoderUsed(C.ENCODING_E_AC3_JOC, AudioMode.Passthrough)).isFalse()
+        assertThat(AudioPolicy.decoderUsed(C.ENCODING_E_AC3, AudioMode.Offload)).isFalse()
+        assertThat(AudioPolicy.decoderUsed(null, AudioMode.Offload)).isFalse()
+        // A FLAC's PCM track still open when the next, JOC track is decided to pass through.
+        assertThat(AudioPolicy.decoderUsed(C.ENCODING_PCM_16BIT, AudioMode.Passthrough)).isFalse()
     }
 
     @Test

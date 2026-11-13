@@ -52,10 +52,12 @@ internal suspend fun chooseStreamSource(
     downloads: DownloadRepository,
     streamingCache: Cache,
     isOnline: () -> Boolean,
-    /** The item's Dolby Atmos MIME type (`MediaItem.atmosMime`), for [atmosRequest]; `null` for any other track. */
-    atmosMime: String? = null,
+    /** The queue item: its Dolby Atmos type ([atmosRequest]) and its file's passthrough type (the cached copy). */
+    item: MediaItem? = null,
 ): StreamSource {
+    val atmosMime = item?.atmosMime()
     resolver.rememberAtmos(itemId, atmosMime)
+    resolver.rememberFile(itemId, item?.passthroughMime())
     val cached = streamingCache.isFullyCached(originalCacheKey(itemId)) && resolver.playsCachedOriginal(itemId)
     if (downloads.isDownloaded(itemId) || cached || !isOnline()) return StreamSource.Progressive
     var attempt = 0
@@ -87,8 +89,8 @@ private const val CHOOSE_RETRY_DELAY_MILLIS = 1_000L
 internal class StreamMediaSourceFactory(
     private val progressive: MediaSource.Factory,
     private val okHttpClient: OkHttpClient,
-    /** Chooses the stream of a track from its id and its Dolby Atmos MIME type (`MediaItem.atmosMime`). */
-    private val choose: suspend (MediaId, String?) -> StreamSource,
+    /** Chooses the stream of a track from its id and its queue item ([chooseStreamSource]). */
+    private val choose: suspend (MediaId, MediaItem) -> StreamSource,
     /** The auth header, read at every request: a new login replaces the token (R9). */
     private val headers: suspend () -> Map<String, String>,
     private val dispatcher: CoroutineDispatcher,
@@ -98,7 +100,7 @@ internal class StreamMediaSourceFactory(
     override fun createMediaSource(mediaItem: MediaItem): MediaSource {
         val itemId = mediaItem.localConfiguration?.uri?.trackId() ?: return super.createMediaSource(mediaItem)
         return LazyStreamMediaSource(mediaItem, {
-            choose(itemId, mediaItem.atmosMime())
+            choose(itemId, mediaItem)
         }, { childFor(itemId, mediaItem, it) }, dispatcher)
     }
 
