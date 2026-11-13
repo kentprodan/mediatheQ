@@ -31,6 +31,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - On the TV, Dolby Atmos music goes untouched over HDMI to a soundbar or receiver that takes it, with nothing in between that would change the sound.
 - On the TV, Dolby Atmos music plays in its original quality over HDMI even with a lower streaming quality set, and the Dolby Atmos badge shows only while Atmos really reaches the soundbar.
 - Now Playing says when a Dolby Atmos track is decoded on the device or plays in stereo on the current output.
+- Settings on the TV: Dolby Atmos passthrough for the HDMI output, streaming quality, Sync now with its progress, the account with Sign out, the version and the open-source licenses.
 
 ### Fixed
 - Now Playing on a phone held sideways shows the controls without scrolling (smaller transport buttons, the album line in the menu).
