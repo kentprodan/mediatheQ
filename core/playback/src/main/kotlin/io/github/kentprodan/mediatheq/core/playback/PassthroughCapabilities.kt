@@ -23,9 +23,17 @@ internal fun interface PassthroughCapabilities {
 internal fun passthroughMimes(supportsEncoding: (Int) -> Boolean): Set<String> =
     PASSTHROUGH_ENCODINGS.filterKeys(supportsEncoding).values.toSet()
 
-/** Whether the AudioTrack the sink opened carries Dolby Atmos untouched (ADR 0039): JOC or TrueHD, not PCM. */
-internal fun isAtmosEncoding(encoding: Int?): Boolean =
-    encoding == C.ENCODING_E_AC3_JOC || encoding == C.ENCODING_DOLBY_TRUEHD
+/**
+ * Whether the AudioTrack the sink opened carries Dolby Atmos untouched (ADR 0039): E-AC-3 JOC, or TrueHD for a file
+ * that is Atmos ([isAtmosFile]; plain 7.1 TrueHD is not).
+ */
+internal fun atmosPassthrough(
+    encoding: Int?,
+    isAtmosFile: Boolean,
+): Boolean = encoding == C.ENCODING_E_AC3_JOC || (encoding == C.ENCODING_DOLBY_TRUEHD && isAtmosFile)
+
+/** Whether an opened AudioTrack carries an encoded stream (passthrough), not PCM. */
+internal fun isPassthroughEncoding(encoding: Int?): Boolean = encoding in PASSTHROUGH_ENCODINGS
 
 /** The encodings the sink can pass through, as AudioTrack and Media3 name them. */
 private val PASSTHROUGH_ENCODINGS =
@@ -47,7 +55,9 @@ internal class Media3PassthroughCapabilities(
     onChange: () -> Unit,
 ) : PassthroughCapabilities {
     private val audioManager = context.getSystemService(AudioManager::class.java)
-    private var routed: AudioDeviceInfo? = currentDevice()
+    private var routed: Int? = currentDevice()?.id
+
+    // No routed device given: Media3 asks for the device media plays on itself (API 33+), at each broadcast.
     private val receiver =
         AudioCapabilitiesReceiver(
             context,
@@ -56,17 +66,17 @@ internal class Media3PassthroughCapabilities(
                 onChange()
             },
             MEDIA,
-            routed,
+            null,
         )
     private var current: AudioCapabilities = receiver.register()
 
     override fun mimeTypes(): Set<String> {
-        // The route can change without a capabilities broadcast (the output switcher): ask for the media device now.
-        val device = currentDevice()
-        if (device?.id != routed?.id) {
+        // The route can change without a capabilities broadcast (the output switcher): read them again, quietly (this
+        // runs inside a decision, which must not start another one).
+        val device = currentDevice()?.id
+        if (device != routed) {
             routed = device
-            receiver.setRoutedDevice(device)
-            current = AudioCapabilities.getCapabilities(context, MEDIA, device)
+            current = AudioCapabilities.getCapabilities(context, MEDIA, null, emptyList())
         }
         return passthroughMimes(current::supportsEncoding)
     }

@@ -53,10 +53,21 @@ internal object AudioPolicy {
         trackMime: String? = null,
     ): AudioMode =
         when {
-            wantsBitPerfect(settings, route) && bitPerfectFormat -> AudioMode.BitPerfect
-            wantsPassthrough(settings, route, passthrough) && trackMime in passthrough -> AudioMode.Passthrough
-            equalizer(settings) -> AudioMode.Processed
-            else -> AudioMode.Offload
+            wantsBitPerfect(settings, route) && bitPerfectFormat -> {
+                AudioMode.BitPerfect
+            }
+
+            wantsPassthrough(settings, route, passthrough) && passesThrough(trackMime, passthrough) -> {
+                AudioMode.Passthrough
+            }
+
+            equalizer(settings) -> {
+                AudioMode.Processed
+            }
+
+            else -> {
+                AudioMode.Offload
+            }
         }
 
     /**
@@ -93,7 +104,17 @@ internal object AudioPolicy {
         passthrough: Set<String>,
     ): Boolean = settings.atmosPassthrough && route == AudioRoute.Hdmi && passthrough.isNotEmpty()
 
-    /** Modes where the player volume must stay 1: bit-perfect samples and passthrough bitstreams reach the device as is. */
+    /**
+     * Whether the sink passes [trackMime] through on a route that takes [passthrough]: JOC also goes out as plain E-AC-3
+     * where only that is supported (Media3 falls back to it; the receiver then plays the 5.1 core).
+     */
+    private fun passesThrough(
+        trackMime: String?,
+        passthrough: Set<String>,
+    ): Boolean =
+        trackMime in passthrough || (trackMime == MimeTypes.AUDIO_E_AC3_JOC && MimeTypes.AUDIO_E_AC3 in passthrough)
+
+    /** Modes where the player volume stays 1: bit-perfect samples and passthrough bitstreams reach the device as is. */
     fun fixedVolume(mode: AudioMode): Boolean = mode == AudioMode.BitPerfect || mode == AudioMode.Passthrough
 
     /**

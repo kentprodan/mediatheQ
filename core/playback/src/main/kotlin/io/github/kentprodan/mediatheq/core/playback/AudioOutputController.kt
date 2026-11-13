@@ -81,6 +81,9 @@ internal class AudioOutputController(
     /** The item whose passthrough AudioTrack failed and was prepared again once ([onPassthroughFailed]). */
     private var passthroughRetried: String? = null
 
+    /** The encoding of the last AudioTrack opened, kept after its release: what a failing track was. */
+    private var lastEncoding: Int? = null
+
     var state = AudioOutputState()
         private set
 
@@ -173,6 +176,9 @@ internal class AudioOutputController(
     ) {
         confirmed = openTracks == 0 && preferred?.format?.sampleRateHz == sampleRateHz
         openTracks++
+        lastEncoding = encoding
+        // It opened: a later failure of this item may be retried again.
+        passthroughRetried = null
         log("AudioTrack opened at $sampleRateHz Hz, encoding=$encoding, bit-perfect=$confirmed")
         publish(
             state.copy(
@@ -201,10 +207,11 @@ internal class AudioOutputController(
 
     /**
      * The passthrough AudioTrack failed to open or write (the route changed under it): `true` the first time for this
-     * item, so the caller prepares it again (ADR 0039); `false` after that and outside passthrough, so the error shows.
+     * item, so the caller prepares it again (ADR 0039); `false` after that and for PCM, so the error shows. Asked by
+     * what the last track was, not the mode: a route change is often decided before the error arrives.
      */
     fun onPassthroughFailed(): Boolean {
-        if (state.mode != AudioMode.Passthrough) return false
+        if (state.mode != AudioMode.Passthrough && !isPassthroughEncoding(lastEncoding)) return false
         val item = state.played.itemId
         if (item != null && item == passthroughRetried) return false
         passthroughRetried = item

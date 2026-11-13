@@ -690,7 +690,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
             bitPerfectNoMatch = bitPerfectNoMatch,
             bitPerfectSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             atmosConverted = atmosConverted,
-            atmosPassthrough = isAtmosEncoding(passthroughEncoding),
+            atmosPassthrough =
+                atmosPassthrough(
+                    passthroughEncoding,
+                    isAtmosFile = session?.player?.currentMediaItem?.isDolbyAtmos() == true,
+                ),
             playedItemId = played.itemId,
             streamKnown = played.known,
             convertedKbps = played.convertedKbps,

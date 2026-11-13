@@ -77,10 +77,12 @@ class PassthroughTest {
             passthroughMimes { it in supported },
         ).containsExactly(MimeTypes.AUDIO_E_AC3_JOC, MimeTypes.AUDIO_E_AC3)
         assertThat(passthroughMimes { false }).isEmpty()
-        assertThat(isAtmosEncoding(C.ENCODING_E_AC3_JOC)).isTrue()
-        assertThat(isAtmosEncoding(C.ENCODING_DOLBY_TRUEHD)).isTrue()
-        assertThat(isAtmosEncoding(C.ENCODING_E_AC3)).isFalse()
-        assertThat(isAtmosEncoding(null)).isFalse()
+        assertThat(atmosPassthrough(C.ENCODING_E_AC3_JOC, isAtmosFile = true)).isTrue()
+        assertThat(atmosPassthrough(C.ENCODING_DOLBY_TRUEHD, isAtmosFile = true)).isTrue()
+        // Plain 7.1 TrueHD is not Atmos; E-AC-3 without JOC or PCM is not either.
+        assertThat(atmosPassthrough(C.ENCODING_DOLBY_TRUEHD, isAtmosFile = false)).isFalse()
+        assertThat(atmosPassthrough(C.ENCODING_E_AC3, isAtmosFile = true)).isFalse()
+        assertThat(atmosPassthrough(null, isAtmosFile = true)).isFalse()
     }
 
     @Test
@@ -172,5 +174,39 @@ class PassthroughTest {
         mime = null
         controller.refresh("transition")
         assertThat(controller.onPassthroughFailed()).isFalse()
+    }
+
+    @Test
+    fun `JOC passes through as E-AC-3 where only that is supported`() {
+        val eac3Only = setOf(MimeTypes.AUDIO_E_AC3)
+        assertThat(AudioPolicy.decide(on, AudioRoute.Hdmi, false, eac3Only, joc)).isEqualTo(AudioMode.Passthrough)
+        assertThat(AudioPolicy.decide(on, AudioRoute.Hdmi, false, eac3Only, MimeTypes.AUDIO_TRUEHD))
+            .isEqualTo(AudioMode.Offload)
+    }
+
+    @Test
+    fun `a passthrough track failing after the route already changed is still retried once`() {
+        controller.setSettings(on)
+        controller.onAudioTrackOpened(48_000, C.ENCODING_E_AC3_JOC)
+        // HDMI unplugged: decided before the write error arrives.
+        port.output = OutputDevice.Phone
+        controller.refresh("device")
+        assertThat(controller.state.mode).isEqualTo(AudioMode.Offload)
+
+        assertThat(controller.onPassthroughFailed()).isTrue()
+        assertThat(controller.onPassthroughFailed()).isFalse()
+    }
+
+    @Test
+    fun `a PCM track failing is not ours to retry, and a retried item that opens again gets a retry later`() {
+        controller.setSettings(on.copy(atmosPassthrough = false))
+        controller.onAudioTrackOpened(48_000, C.ENCODING_PCM_16BIT)
+        assertThat(controller.onPassthroughFailed()).isFalse()
+
+        controller.setSettings(on)
+        controller.onAudioTrackOpened(48_000, C.ENCODING_E_AC3_JOC)
+        assertThat(controller.onPassthroughFailed()).isTrue()
+        controller.onAudioTrackOpened(48_000, C.ENCODING_E_AC3_JOC)
+        assertThat(controller.onPassthroughFailed()).isTrue()
     }
 }
