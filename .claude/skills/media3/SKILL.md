@@ -161,6 +161,7 @@ Rules:
 - `WaveformAnalyzer` in the service: the current track and the next two (`upcomingTracks`), prefetched originals (`Prefetcher.onCached`) and downloads completing while it runs. No backlog. `LocalFiles` finds a whole file: a completed download (original or converted) or a complete `<id>:original` cache copy; never a converted stream.
 - `MediaCodecPcmDecoder`: `MediaExtractorCompat` (`media3-inspector`) on a read-only `CacheDataSource` (no upstream, no writes) + platform `MediaCodec` to float PCM; `WaveformBuckets` folds it into 200 RMS levels. One dedicated background thread, one file at a time; never the player's PCM, so offload is unaffected.
 - Stored in Room per file size (`WaveformRepository`); `null` levels = no decoder for the format (not retried); other failures store nothing. Decoding is proven on the phone only; tests use a fake decoder.
+- Bounded (#188): each decode runs under a timeout (2 min + 1 s per MB) and stops with Failed once it has read more than twice the file (`InputGuard`: an extractor seeking back forever); a `CancellationException` is rethrown, never taken for a decoder error. Each decode logs its start and its result with the time under `MqWaveform`. Downloads finishing count only from a non-empty set (an SD card coming back is not a backlog).
 
 ## 11. Queue, session and system integration
 

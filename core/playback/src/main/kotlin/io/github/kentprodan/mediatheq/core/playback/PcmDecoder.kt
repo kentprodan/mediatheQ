@@ -19,6 +19,7 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import kotlin.coroutines.cancellation.CancellationException
 
 /** A track's whole file on the device: the cache holding it, its key there and its size (#124). */
 @UnstableApi
@@ -86,7 +87,13 @@ internal class MediaCodecPcmDecoder(
                     configure(format, null, null, 0)
                     start()
                 }
-            drain(extractor, codec)?.let { Decoded.Levels(it) } ?: Decoded.Unsupported
+            drain(extractor, codec, InputGuard(file.sizeBytes))?.let { Decoded.Levels(it) } ?: Decoded.Unsupported
+        } catch (e: CancellationException) {
+            // A timeout or the service stopping (CancellationException is an IllegalStateException): not a failure.
+            throw e
+        } catch (e: EndlessInputException) {
+            log.warn(TAG, "Endless input in ${file.key}: ${e.message}")
+            Decoded.Failed
         } catch (_: UnrecognizedInputFormatException) {
             // No extractor for this container: like a missing decoder, never worth a retry.
             Decoded.Unsupported
@@ -110,6 +117,7 @@ internal class MediaCodecPcmDecoder(
     private suspend fun drain(
         extractor: MediaExtractorCompat,
         codec: MediaCodec,
+        guard: InputGuard,
     ): List<Float>? {
         val info = MediaCodec.BufferInfo()
         val buckets = WaveformBuckets()
@@ -128,6 +136,7 @@ internal class MediaCodecPcmDecoder(
                         codec.queueInputBuffer(index, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                         inputDone = true
                     } else {
+                        guard.read(size)
                         codec.queueInputBuffer(index, 0, size, extractor.sampleTime, 0)
                         extractor.advance()
                     }
@@ -159,6 +168,30 @@ internal class MediaCodecPcmDecoder(
         const val TIMEOUT_US = 10_000L
     }
 }
+
+/**
+ * Stops a decode whose extractor never reaches the end (#188): it read more than twice the file (a seek that keeps
+ * going back reads the same samples again), which a whole file never does.
+ */
+internal class InputGuard(
+    private val fileBytes: Long,
+) {
+    var bytesRead = 0L
+        private set
+
+    fun read(bytes: Int) {
+        bytesRead += bytes
+        if (bytesRead > fileBytes * MAX_READS) throw EndlessInputException("$bytesRead bytes read of $fileBytes")
+    }
+
+    private companion object {
+        const val MAX_READS = 2
+    }
+}
+
+internal class EndlessInputException(
+    message: String,
+) : IOException(message)
 
 /** Bytes per sample of the PCM [encoding]s a waveform reads; `null` for any other. */
 internal fun bytesPerSample(encoding: Int): Int? =

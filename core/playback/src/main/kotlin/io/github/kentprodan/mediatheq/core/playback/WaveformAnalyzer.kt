@@ -15,7 +15,12 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 /**
  * Where the whole file of a track is on the device (#124): a completed download (original or converted, its size as
@@ -102,10 +107,11 @@ internal class WaveformAnalyzer(
     fun start(): Job =
         scope.launch(worker) {
             launch {
-                // Only downloads finishing from now on: the ones already there wait until they are queued.
+                // Only downloads finishing from now on: the ones already there wait until they are queued. An empty set
+                // (the SD card out) is no start to count from, or every download would look new when it comes back.
                 var known: Set<MediaId>? = null
                 completedDownloads.collect { ids ->
-                    known?.let { offer((ids - it).toList()) }
+                    known?.takeIf { it.isNotEmpty() }?.let { offer((ids - it).toList()) }
                     known = ids
                 }
             }
@@ -129,7 +135,12 @@ internal class WaveformAnalyzer(
         val file = files(id) ?: return
         val attempt = file.key to file.sizeBytes
         if (attempt in failed || waveforms.isAnalyzed(id, file.sizeBytes)) return
-        when (val result = decoder.decode(file)) {
+        val started = TimeSource.Monotonic.markNow()
+        log.info(TAG, "Decoding $id (${file.key}, ${file.sizeBytes} bytes)")
+        // The backstop for a decode that never ends (#188): it cannot hold the worker, and the queue, forever.
+        val result = withTimeoutOrNull(decodeLimit(file.sizeBytes)) { decoder.decode(file) } ?: Decoded.Failed
+        log.info(TAG, "Decoded $id: ${result.name} in ${started.elapsedNow().inWholeMilliseconds} ms")
+        when (result) {
             is Decoded.Levels -> waveforms.save(id, file.sizeBytes, result.levels)
 
             Decoded.Unsupported -> waveforms.save(id, file.sizeBytes, null)
@@ -139,8 +150,22 @@ internal class WaveformAnalyzer(
         }
     }
 
+    private val Decoded.name: String
+        get() =
+            when (this) {
+                is Decoded.Levels -> "levels"
+                Decoded.Unsupported -> "unsupported"
+                Decoded.Failed -> "failed"
+            }
+
     private companion object {
         const val TAG = "MqWaveform"
         const val NEXT_COUNT = 2
+        val MIN_DECODE_LIMIT = 2.minutes
+
+        /** At least [MIN_DECODE_LIMIT], one more second per MB: a long mix on a slow phone still finishes. */
+        fun decodeLimit(sizeBytes: Long): Duration = MIN_DECODE_LIMIT + (sizeBytes / BYTES_PER_MB).seconds
+
+        const val BYTES_PER_MB = 1_000_000L
     }
 }

@@ -21,5 +21,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Any Library sort can be reversed: tap the arrow next to it, or the chosen sort again in its menu.
 
 ### Fixed
+- The waveform analysis no longer keeps the processor busy or stops making waveforms when one file never finishes decoding.
 - Typing in search in list (Library) and in the Downloads filter no longer moves the cursor back.
 - Bit-perfect USB turned on while a track plays takes effect at once, not only from the next track.
