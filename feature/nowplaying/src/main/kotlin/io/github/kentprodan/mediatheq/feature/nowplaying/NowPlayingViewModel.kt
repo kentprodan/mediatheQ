@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.common.QualityKind
 import io.github.kentprodan.mediatheq.core.common.qualityLabel
 import io.github.kentprodan.mediatheq.core.data.CoverTap
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
@@ -123,7 +124,9 @@ class NowPlayingViewModel
                         quality =
                             state.output
                                 .takeIf { it.playedItemId == state.item?.id?.toString() }
-                                ?.let { qualityLabel(track?.audioFormat, it.streamKnown, it.convertedKbps) },
+                                ?.let { qualityLabel(track?.audioFormat, it.streamKnown, it.convertedKbps) }
+                                // "Dolby Atmos" only while the bitstream really leaves the device (#242, ADR 0039).
+                                ?.takeUnless { it.kind == QualityKind.DolbyAtmos && !state.output.atmosPassthrough },
                         qualityDetail = qualityDetail,
                         lyricsShown = lyrics,
                         settings = settings,
@@ -317,5 +320,6 @@ private fun PlayerUiModel.toUiState(
         ratingMode = ratingMode,
         bitPerfectSampleRateHz = output.bitPerfectSampleRateHz,
         atmosConverted = output.atmosConverted,
+        atmosDecoded = output.atmosDecoded,
     )
 }
