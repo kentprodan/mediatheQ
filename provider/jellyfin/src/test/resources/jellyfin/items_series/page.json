@@ -1,0 +1,216 @@
+{
+  "Items": [
+    {
+      "Name": "Series 1",
+      "ServerId": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+      "Id": "e112b89c2a4897f8ada7c423b43160c1",
+      "DateCreated": "2026-11-12T00:14:51.6108268Z",
+      "SortName": "series 1",
+      "PremiereDate": "2011-09-19T00:00:00.0000000Z",
+      "OfficialRating": "TV-14",
+      "ChannelId": null,
+      "Overview": "The overview of Series 1.",
+      "Taglines": [],
+      "Genres": [
+        "Comedy"
+      ],
+      "CommunityRating": 7.187,
+      "RunTimeTicks": 15000000000,
+      "ProductionYear": 2011,
+      "IsFolder": true,
+      "Type": "Series",
+      "Studios": [
+        {
+          "Name": "CBS",
+          "Id": "0f59424070d17d52775061ff61a822b8"
+        },
+        {
+          "Name": "Michael Patrick King Productions",
+          "Id": "c4e3f96e9ba9cbe7ea73ada3de625b13"
+        }
+      ],
+      "GenreItems": [
+        {
+          "Name": "Comedy",
+          "Id": "08d31605d366d63a7a924f944b4417f1"
+        }
+      ],
+      "UserData": {
+        "PlayedPercentage": 0,
+        "UnplayedItemCount": 94,
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "e112b89c-2a48-97f8-ada7-c423b43160c1",
+        "ItemId": "e112b89c2a4897f8ada7c423b43160c1"
+      },
+      "Status": "Ended",
+      "AirDays": [],
+      "ImageTags": {
+        "Primary": "28c36a06b5feced31ffbe19c9902d8cb",
+        "Thumb": "6b5a9952b606c019d8d59bfe429b4ddc"
+      },
+      "BackdropImageTags": [
+        "f67bc2e143576d3d29e0d09053c7aa82"
+      ],
+      "ImageBlurHashes": {
+        "Backdrop": {
+          "f67bc2e143576d3d29e0d09053c7aa82": "WJELQbjZ0gnixpSh^%NHIpof%1RkIoae$%X8s;niM|t6s+M|Iqof"
+        },
+        "Primary": {
+          "28c36a06b5feced31ffbe19c9902d8cb": "dJFE$C~B4.D$%$-:Z~D%FfJ:IpWAtSofNHEMtRt6nPr="
+        },
+        "Thumb": {
+          "6b5a9952b606c019d8d59bfe429b4ddc": "WJCYN:^QnlIpEMI;xZRm$$$%s:oz0#NGkBofs:$$IpxVI;I=WBs9"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown",
+      "EndDate": "2017-04-17T00:00:00.0000000Z",
+      "OriginalLanguage": "en"
+    },
+    {
+      "Name": "Series 2",
+      "ServerId": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+      "Id": "bb6d990e1bd9ab584cba41b3c5d363ad",
+      "DateCreated": "2026-06-18T16:35:44.0753912Z",
+      "SortName": "series 2",
+      "PremiereDate": "2021-11-06T00:00:00.0000000Z",
+      "OfficialRating": "TV-14",
+      "ChannelId": null,
+      "Overview": "The overview of Series 2.",
+      "Taglines": [],
+      "Genres": [
+        "Animation",
+        "Action & Adventure",
+        "Sci-Fi & Fantasy"
+      ],
+      "CommunityRating": 8.752,
+      "RunTimeTicks": 0,
+      "ProductionYear": 2021,
+      "IsFolder": true,
+      "Type": "Series",
+      "Studios": [
+        {
+          "Name": "Netflix",
+          "Id": "411cb7d6c12c8bf0d3c1caed22120c6f"
+        }
+      ],
+      "GenreItems": [
+        {
+          "Name": "Animation",
+          "Id": "074229225b7254292f131f9f49f8dcd6"
+        },
+        {
+          "Name": "Action & Adventure",
+          "Id": "d3d3728a0f119813db4c7733da59771a"
+        },
+        {
+          "Name": "Sci-Fi & Fantasy",
+          "Id": "3d621c0b6dc1921bc93fa859f7512270"
+        }
+      ],
+      "UserData": {
+        "PlayedPercentage": 0,
+        "UnplayedItemCount": 18,
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "bb6d990e-1bd9-ab58-4cba-41b3c5d363ad",
+        "ItemId": "bb6d990e1bd9ab584cba41b3c5d363ad"
+      },
+      "Status": "Ended",
+      "AirDays": [],
+      "ImageTags": {
+        "Primary": "4595cb1aba69fc94d5ef25f276895786",
+        "Thumb": "a8e97579c4d7fca6cdeb12319b6e5fa0"
+      },
+      "BackdropImageTags": [
+        "2d3ec19c37cf504f04ed0451eb419a94"
+      ],
+      "ImageBlurHashes": {
+        "Backdrop": {
+          "2d3ec19c37cf504f04ed0451eb419a94": "W35}p#%|C6u4Yjyr^,nMMcVti_Vs0xt3?Ao|smR~9toc?Ho#IVRj"
+        },
+        "Primary": {
+          "4595cb1aba69fc94d5ef25f276895786": "d99Qy~%e4,J6D*Vtxbo#4=M}rq%2.7XhI-tPZ$rtxcIo"
+        },
+        "Thumb": {
+          "a8e97579c4d7fca6cdeb12319b6e5fa0": "W33+WKt700M{?a%2-=ofIURjxas:DkWC.6t6ICM|I;WXxYs.S4NG"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown",
+      "EndDate": "2024-11-23T00:00:00.0000000Z"
+    },
+    {
+      "Name": "Series 3",
+      "ServerId": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+      "Id": "f415e0811fa363385d3205f40cd12954",
+      "DateCreated": "2026-06-18T16:35:44.0757889Z",
+      "SortName": "series 3",
+      "PremiereDate": "2007-09-24T00:00:00.0000000Z",
+      "OfficialRating": "TV-14",
+      "ChannelId": null,
+      "Overview": "The overview of Series 3.",
+      "Taglines": [],
+      "Genres": [
+        "Comedy"
+      ],
+      "CommunityRating": 7.919,
+      "RunTimeTicks": 13200000000,
+      "ProductionYear": 2007,
+      "IsFolder": true,
+      "Type": "Series",
+      "Studios": [
+        {
+          "Name": "CBS",
+          "Id": "0f59424070d17d52775061ff61a822b8"
+        }
+      ],
+      "GenreItems": [
+        {
+          "Name": "Comedy",
+          "Id": "08d31605d366d63a7a924f944b4417f1"
+        }
+      ],
+      "UserData": {
+        "PlayedPercentage": 0,
+        "UnplayedItemCount": 280,
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "f415e081-1fa3-6338-5d32-05f40cd12954",
+        "ItemId": "f415e0811fa363385d3205f40cd12954"
+      },
+      "Status": "Ended",
+      "AirDays": [],
+      "ImageTags": {
+        "Thumb": "4b498ad0a9ee83e3d0a3b72b36c4e241",
+        "Primary": "fb52beafcea2273297e7621111c11707"
+      },
+      "BackdropImageTags": [
+        "6ebf57fb88c76a77c2a2c6434137f548"
+      ],
+      "ImageBlurHashes": {
+        "Backdrop": {
+          "6ebf57fb88c76a77c2a2c6434137f548": "WjGJdHxaGITKRktm?^o#MyWCsln%yDkCMxWCs,nOx^jYRkX9t7ju"
+        },
+        "Thumb": {
+          "4b498ad0a9ee83e3d0a3b72b36c4e241": "WLFqw%8{%1?HDj%N4}?IInS1xuRk0eOaoHRPXnRj^6OV$%n7NKxZ"
+        },
+        "Primary": {
+          "fb52beafcea2273297e7621111c11707": "dZHf0VkrlTyE.TX8JUt8F#jYR*n%D%oLs+WBT0X9n4Sh"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown",
+      "EndDate": "2019-05-16T00:00:00.0000000Z"
+    }
+  ],
+  "TotalRecordCount": 23,
+  "StartIndex": 0
+}

@@ -11,6 +11,8 @@ sealed interface LibraryHubUiState {
     /** The chosen tiles and how they look (Settings -> Library page). */
     data class Content(
         val page: LibraryPagePreferences,
+        /** How many movies and series there are (#270), shown on their tiles. */
+        val counts: Map<LibraryShortcut, Int> = emptyMap(),
     ) : LibraryHubUiState
 }
 

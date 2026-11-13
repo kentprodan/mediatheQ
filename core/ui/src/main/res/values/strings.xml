@@ -71,6 +71,13 @@
     <string name="core_ui_library_playlists">Playlists</string>
     <string name="core_ui_library_years">Years</string>
     <string name="core_ui_library_record_labels">Record labels</string>
+    <string name="core_ui_library_movies">Movies</string>
+    <string name="core_ui_library_series">Series</string>
+    <string name="core_ui_watched">Watched</string>
+    <plurals name="core_ui_unwatched_episodes">
+        <item quantity="one">%d unwatched episode</item>
+        <item quantity="other">%d unwatched episodes</item>
+    </plurals>
     <string name="core_ui_home_shortcuts">Shortcuts</string>
     <string name="core_ui_home_favorite_playlists">Favorite playlists</string>
     <string name="core_ui_home_favorite_albums">Favorite albums</string>

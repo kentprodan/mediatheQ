@@ -12,10 +12,14 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.SeasonStaging
+import io.github.kentprodan.mediatheq.core.database.entity.SeriesStaging
 import io.github.kentprodan.mediatheq.core.database.entity.SyncStateEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
 
 /**
  * Writes of a full sync: pages go to the staging tables together with the checkpoint, and [swap] replaces the live
@@ -66,6 +70,18 @@ interface SyncDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun stagePlaylistEntries(rows: List<PlaylistEntryStaging>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun stageVideos(rows: List<VideoStaging>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun stageVideoStreams(rows: List<VideoStreamStaging>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun stageSeries(rows: List<SeriesStaging>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun stageSeasons(rows: List<SeasonStaging>)
+
     @Query("SELECT id FROM playlist_staging ORDER BY sort_name, id")
     suspend fun stagedPlaylistIds(): List<String>
 
@@ -107,6 +123,8 @@ interface SyncDao {
         copyPlaylists()
         replacePlaylistEntries()
         copyPlaylistEntries()
+        replaceVideoLibrary()
+        copyVideoLibrary()
         clearSearch()
         indexSearch()
         clearStaging()
@@ -213,6 +231,7 @@ interface SyncDao {
         replaceAlbumLabels()
         replacePlaylists()
         replacePlaylistEntries()
+        replaceVideoLibrary()
         clearSearch()
         clearState()
         clearAlbumResume()
@@ -255,7 +274,81 @@ interface SyncDao {
         clearAlbumLabelStaging()
         clearPlaylistStaging()
         clearPlaylistEntryStaging()
+        clearVideoStaging()
+        clearVideoStreamStaging()
+        clearSeriesStaging()
+        clearSeasonStaging()
     }
+
+    @Transaction
+    suspend fun replaceVideoLibrary() {
+        replaceVideos()
+        replaceVideoStreams()
+        replaceSeries()
+        replaceSeasons()
+    }
+
+    @Transaction
+    suspend fun copyVideoLibrary() {
+        copyVideos()
+        copyVideoStreams()
+        copySeries()
+        copySeasons()
+    }
+
+    @Query("DELETE FROM video")
+    suspend fun replaceVideos()
+
+    @Query("INSERT INTO video SELECT * FROM video_staging")
+    suspend fun copyVideos()
+
+    @Query("DELETE FROM video_stream")
+    suspend fun replaceVideoStreams()
+
+    @Query("INSERT INTO video_stream SELECT * FROM video_stream_staging")
+    suspend fun copyVideoStreams()
+
+    @Query("DELETE FROM series")
+    suspend fun replaceSeries()
+
+    @Query("INSERT INTO series SELECT * FROM series_staging")
+    suspend fun copySeries()
+
+    @Query("DELETE FROM season")
+    suspend fun replaceSeasons()
+
+    @Query("INSERT INTO season SELECT * FROM season_staging")
+    suspend fun copySeasons()
+
+    @Query("DELETE FROM video_staging")
+    suspend fun clearVideoStaging()
+
+    @Query("DELETE FROM video_staging WHERE kind = :kind")
+    suspend fun clearVideoStaging(kind: String)
+
+    @Query("DELETE FROM video_stream_staging")
+    suspend fun clearVideoStreamStaging()
+
+    @Query(
+        "DELETE FROM video_stream_staging WHERE NOT EXISTS (SELECT 1 FROM video_staging v " +
+            "WHERE v.server_id = video_stream_staging.server_id AND v.id = video_stream_staging.video_id)",
+    )
+    suspend fun clearOrphanVideoStreamStaging()
+
+    @Query("DELETE FROM series_staging")
+    suspend fun clearSeriesStaging()
+
+    @Query("DELETE FROM season_staging")
+    suspend fun clearSeasonStaging()
+
+    @Query("SELECT COUNT(*) FROM video_staging WHERE kind = :kind")
+    suspend fun stagedVideoCount(kind: String): Int
+
+    @Query("SELECT COUNT(*) FROM series_staging")
+    suspend fun stagedSeriesCount(): Int
+
+    @Query("SELECT COUNT(*) FROM season_staging")
+    suspend fun stagedSeasonCount(): Int
 
     @Query("DELETE FROM artist")
     suspend fun replaceArtists()
@@ -344,6 +437,8 @@ interface SyncDao {
             UNION ALL SELECT server_id, genre_id, genre_name FROM track_genre
         ) GROUP BY server_id, genre_id
         UNION ALL SELECT 'label', server_id, label_id, MAX(label_name) FROM album_label GROUP BY server_id, label_id
+        UNION ALL SELECT CASE kind WHEN 'Movie' THEN 'movie' ELSE 'episode' END, server_id, id, title FROM video
+        UNION ALL SELECT 'series', server_id, id, title FROM series
         """,
     )
     suspend fun indexSearch()

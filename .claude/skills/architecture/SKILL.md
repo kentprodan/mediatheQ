@@ -66,6 +66,7 @@ Any change to this table = ADR in `docs/decisions/`.
 :feature:playlist
 :feature:nowplaying      full player, queue, lyrics
 :feature:settings
+:feature:video           Movies and Series poster grids (#270); the movie and series pages and the player follow
 ```
 
 `:feature-tv:onboarding` server, Quick Connect first, password (ADR 0040); `:feature-tv:home` rows of the Home sections
@@ -125,8 +126,9 @@ Each convention plugin declares the allowed dependencies for its module type. A 
 ### Repositories (offline-first)
 
 - UI reads from **Room** via `Flow`. The network only writes into Room. Library size (< 10k tracks) allows a full local copy.
-- Offline mode (#63, ADR 0021): `OfflineFilter` in `:core:data` (setting or no network) makes every `LibraryRepository` / `PlaylistRepository` list keep only completed downloads (`DownloadRepository.completedIds` passed to the DAO queries); `LibraryRepository.offline` tells screens. New list queries take the same `all` / `downloaded` parameters.
+- Offline mode (#63, ADR 0021): `OfflineFilter` in `:core:data` (setting or no network) makes every `LibraryRepository` / `PlaylistRepository` / `VideoRepository` list keep only completed downloads (`DownloadRepository.completedIds` passed to the DAO queries); `LibraryRepository.offline` tells screens. New list queries take the same `all` / `downloaded` parameters.
 - Accounts (#147, ADR 0036): several saved accounts, one active; each has its own Room database file (its id), opened once per process, so a switch restarts the app. `AccountStore.account` is the active account; code outside Room that is shared by every account (the Media3 download index, the downloaded covers folder) must keep to the active server's items. An account saved without a readable token (restored from a backup, #150, or its Keystore key lost) is listed by `AccountStore.saved` as signed out, never by `accounts`; signing in to it keeps its id.
+- Video (#270, ADR 0048): `series`, `season`, `video` (movies and episodes) and `video_stream` in the account database, synced after the music by the same pager and swap (steps `Movies`, `Series`, `Seasons`, `Episodes`), only with `ServerCapabilities.video`; `VideoRepository` reads them. Until #249 `ServerCapabilities` is one object bound by the Jellyfin module.
 - Sync = provider pages -> mapped -> upserted in a transaction. Live updates (WebSocket events): user data is written at once, library changes start a full sync (`LiveSync`, #18).
 - User actions (favorite, rating, playlist edit): optimistic write to Room, then server call; on failure revert and surface an error. Exception (#56): a favorite or rating that fails for lack of network (`MqError.Network`) is kept in Room (`pending_user_data`, per user, survives restarts) and sent when the server is reachable again; only a server answer reverts it. Sign-out drops waiting changes.
 - Repositories are interfaces in `:core:data` (`AlbumRepository`, ...) with one default implementation and one `Fake*` in `:core:testing`. The default implementation lives in `:core:data`, except when it needs a module `:core:data` cannot see: `DefaultDownloadRepository` lives in `:core:download` (Media3) and is bound there.

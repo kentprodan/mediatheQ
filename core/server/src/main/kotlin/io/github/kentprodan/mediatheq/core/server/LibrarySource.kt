@@ -7,7 +7,10 @@ import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
+import io.github.kentprodan.mediatheq.core.model.Season
+import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
 
 /**
  * Paged reads of a whole music library, in a stable order (by sort name) so offset paging works. Pages start at
@@ -37,6 +40,32 @@ interface LibrarySource {
         startIndex: Int,
         limit: Int,
     ): MqResult<LibraryPage<Playlist>>
+
+    /** Movies with their audio and subtitle streams (#270); asked only when [ServerCapabilities.video]. */
+    suspend fun movies(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<Video>>
+
+    suspend fun series(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<Series>>
+
+    suspend fun seasons(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<Season>>
+
+    /** Episodes of every series, with their streams. */
+    suspend fun episodes(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<Video>>
 
     /** One playlist with fresh counts and image; a missing playlist fails with `NotFound`. */
     suspend fun playlist(

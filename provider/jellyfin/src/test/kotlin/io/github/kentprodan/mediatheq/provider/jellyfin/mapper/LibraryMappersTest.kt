@@ -1,11 +1,15 @@
 package io.github.kentprodan.mediatheq.provider.jellyfin.mapper
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.model.VideoKind
+import io.github.kentprodan.mediatheq.core.model.VideoRange
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.BaseItemDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.MediaStreamDto
+import io.github.kentprodan.mediatheq.provider.jellyfin.dto.NameIdPairDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.UserItemDataDto
 import org.junit.Test
 import kotlin.time.Duration
@@ -83,5 +87,70 @@ class LibraryMappersTest {
         assertThat(BaseItemDto(id = "t1").toPlaylistEntry(server)).isNull()
         assertThat(BaseItemDto(id = "t1", playlistItemId = "e9").toPlaylistEntry(server)?.entryId).isEqualTo("e9")
         assertThat(BaseItemDto().toPlaylistEntry(server)).isNull()
+    }
+
+    @Test
+    fun `a video's resume position and watched share come from its user data`() {
+        val data = UserItemDataDto(played = false, playbackPositionTicks = 12_000_000_000, playedPercentage = 20.5)
+
+        val movie = BaseItemDto(id = "m1", name = "M", userData = data).toVideo(server, VideoKind.Movie)
+
+        assertThat(movie?.userData?.playbackPosition).isEqualTo(1_200_000.milliseconds)
+        assertThat(movie?.userData?.playedPercentage).isEqualTo(20.5)
+        assertThat(BaseItemDto(id = "m2", name = "M").toVideo(server, VideoKind.Movie)?.userData)
+            .isEqualTo(UserData())
+    }
+
+    @Test
+    fun `a movie without streams or series fields still maps`() {
+        val movie = BaseItemDto(id = "m1", name = "M", seriesId = "x", indexNumber = 3).toVideo(server, VideoKind.Movie)
+
+        assertThat(movie?.format).isNull()
+        assertThat(movie?.streams).isEmpty()
+        assertThat(movie?.seriesId).isNull()
+        assertThat(movie?.episodeNumber).isNull()
+    }
+
+    @Test
+    fun `an episode without its series is kept without one, a season without it is dropped`() {
+        val episode = BaseItemDto(id = "e1", name = "E", indexNumber = 2).toVideo(server, VideoKind.Episode)
+
+        assertThat(episode?.seriesId).isNull()
+        assertThat(episode?.episodeNumber).isEqualTo(2)
+        assertThat(BaseItemDto(id = "s1", name = "S").toSeason(server)).isNull()
+    }
+
+    @Test
+    fun `a season without its own image shows the series poster`() {
+        val season = BaseItemDto(id = "s1", name = "S", seriesId = "x", seriesPrimaryImageTag = "t").toSeason(server)
+
+        assertThat(season?.artwork).isEqualTo(Artwork("x", "t"))
+    }
+
+    @Test
+    fun `video ranges map, unknown is SDR`() {
+        fun range(value: String?) = MediaStreamDto(codec = "hevc", videoRangeType = value).toVideoFormat()?.range
+        assertThat(range("DOVIWithHLG")).isEqualTo(VideoRange.DolbyVision)
+        assertThat(range("HDR10Plus")).isEqualTo(VideoRange.Hdr10Plus)
+        assertThat(range("HDR10")).isEqualTo(VideoRange.Hdr10)
+        assertThat(range("HLG")).isEqualTo(VideoRange.Hlg)
+        assertThat(range("Unknown")).isEqualTo(VideoRange.Sdr)
+        assertThat(range(null)).isEqualTo(VideoRange.Sdr)
+    }
+
+    @Test
+    fun `only audio and subtitle streams with an index are kept, und is no language`() {
+        assertThat(MediaStreamDto(type = "Video", index = 0).toStreamInfo()).isNull()
+        assertThat(MediaStreamDto(type = "Audio").toStreamInfo()).isNull()
+        assertThat(MediaStreamDto(type = "Subtitle", index = 2, language = "und").toStreamInfo()?.language).isNull()
+    }
+
+    @Test
+    fun `series genres are names, each once`() {
+        val genres = listOf(NameIdPairDto("g1", "Drama"), NameIdPairDto("g2", "Drama"), NameIdPairDto("g3", " "))
+
+        val series = BaseItemDto(id = "s1", name = "S", genreItems = genres).toSeries(server)
+
+        assertThat(series?.genres).containsExactly("Drama")
     }
 }

@@ -78,3 +78,23 @@ data class YearKey(
 data class HomeSectionListKey(
     val section: HomeSection,
 ) : NavKey
+
+/** The Movies grid (#270), opened from the Library hub: it has a Back button. */
+@Serializable
+data object MoviesKey : NavKey
+
+/** The Series grid (#270), opened from the Library hub. */
+@Serializable
+data object SeriesListKey : NavKey
+
+/** A movie's page (#270: a placeholder until #273). */
+@Serializable
+data class MovieKey(
+    @Serializable(with = MediaIdSerializer::class) val id: MediaId,
+) : NavKey
+
+/** A series' page (#270: a placeholder until #273). */
+@Serializable
+data class SeriesKey(
+    @Serializable(with = MediaIdSerializer::class) val id: MediaId,
+) : NavKey

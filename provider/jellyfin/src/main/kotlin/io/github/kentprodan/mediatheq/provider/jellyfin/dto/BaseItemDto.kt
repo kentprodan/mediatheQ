@@ -37,4 +37,11 @@ internal data class BaseItemDto(
     @SerialName("PremiereDate") val premiereDate: String? = null,
     @SerialName("UserData") val userData: UserItemDataDto? = null,
     @SerialName("PlaylistItemId") val playlistItemId: String? = null,
+    // Video (#270).
+    @SerialName("SeriesId") val seriesId: String? = null,
+    @SerialName("SeriesName") val seriesName: String? = null,
+    @SerialName("SeriesPrimaryImageTag") val seriesPrimaryImageTag: String? = null,
+    @SerialName("SeasonId") val seasonId: String? = null,
+    @SerialName("Taglines") val taglines: List<String> = emptyList(),
+    @SerialName("OfficialRating") val officialRating: String? = null,
 )

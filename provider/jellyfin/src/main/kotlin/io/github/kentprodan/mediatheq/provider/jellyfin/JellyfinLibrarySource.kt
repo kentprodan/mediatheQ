@@ -10,7 +10,11 @@ import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
+import io.github.kentprodan.mediatheq.core.model.Season
+import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.server.ClientInfo
 import io.github.kentprodan.mediatheq.core.server.LibraryPage
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
@@ -21,7 +25,10 @@ import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toAlbum
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toArtist
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toPlaylist
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toPlaylistEntry
+import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toSeason
+import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toSeries
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toTrack
+import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toVideo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -88,6 +95,48 @@ class JellyfinLibrarySource internal constructor(
         limit: Int,
     ): MqResult<LibraryPage<Playlist>> =
         items(server, "Playlist", PLAYLIST_FIELDS, startIndex, limit) { it.toPlaylist(server.serverId) }
+
+    override suspend fun movies(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<Video>> =
+        video(server, "Movie", startIndex, limit) { it.toVideo(server.serverId, VideoKind.Movie) }
+
+    override suspend fun series(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<Series>> = video(server, "Series", startIndex, limit) { it.toSeries(server.serverId) }
+
+    override suspend fun seasons(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<Season>> = video(server, "Season", startIndex, limit) { it.toSeason(server.serverId) }
+
+    override suspend fun episodes(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<Video>> =
+        video(server, "Episode", startIndex, limit) { it.toVideo(server.serverId, VideoKind.Episode) }
+
+    /** One query shape for the four video kinds (ADR 0048); backdrops come only when asked for (R21). */
+    private suspend fun <T : Any> video(
+        server: SignedInServer,
+        type: String,
+        startIndex: Int,
+        limit: Int,
+        map: (BaseItemDto) -> T?,
+    ): MqResult<LibraryPage<T>> =
+        page(
+            server,
+            "Items",
+            pagedQuery(server, startIndex, limit, imageTypes = "Primary,Backdrop,Thumb") +
+                listOf("includeItemTypes" to type, "recursive" to "true", "fields" to VIDEO_FIELDS),
+            map,
+        )
 
     override suspend fun playlist(
         server: SignedInServer,
@@ -198,5 +247,6 @@ class JellyfinLibrarySource internal constructor(
 
     private companion object {
         const val PLAYLIST_FIELDS = "SortName,DateCreated,ChildCount"
+        const val VIDEO_FIELDS = "MediaSources,Overview,Genres,Studios,DateCreated,SortName,Taglines"
     }
 }

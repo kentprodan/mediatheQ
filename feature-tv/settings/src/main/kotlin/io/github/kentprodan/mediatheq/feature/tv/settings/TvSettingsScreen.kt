@@ -238,6 +238,9 @@ private fun stepLabel(step: SyncStep): String =
             SyncStep.Albums -> R.string.tv_settings_step_albums
             SyncStep.Tracks -> R.string.tv_settings_step_tracks
             SyncStep.Playlists, SyncStep.PlaylistEntries -> R.string.tv_settings_step_playlists
+            SyncStep.Movies -> R.string.tv_settings_step_movies
+            SyncStep.Series, SyncStep.Seasons -> R.string.tv_settings_step_series
+            SyncStep.Episodes -> R.string.tv_settings_step_episodes
         },
     )
 

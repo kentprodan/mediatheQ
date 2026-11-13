@@ -9,6 +9,10 @@ import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.StreamType
+import io.github.kentprodan.mediatheq.core.model.VideoFormat
+import io.github.kentprodan.mediatheq.core.model.VideoKind
+import io.github.kentprodan.mediatheq.core.model.VideoRange
 import io.github.kentprodan.mediatheq.core.network.MediatheqJson
 import io.github.kentprodan.mediatheq.core.network.mediatheqOkHttpClient
 import io.github.kentprodan.mediatheq.core.server.ClientInfo
@@ -387,5 +391,119 @@ class JellyfinLibrarySourceTest {
                     io.github.kentprodan.mediatheq.core.model.SpatialFormat.DolbyAtmos,
                 ),
             )
+        }
+
+    private fun videoQuery(type: String) =
+        paging +
+            mapOf(
+                "enableImageTypes" to "Primary,Backdrop,Thumb",
+                "includeItemTypes" to type,
+                "recursive" to "true",
+                "fields" to "MediaSources,Overview,Genres,Studios,DateCreated,SortName,Taglines",
+            )
+
+    @Test
+    fun `R7 movies query sends type and recursive and maps streams and format`() =
+        runTest {
+            enqueue("items_movie/page.json")
+
+            val page = (source.movies(server, 500, 500) as MqResult.Success).value
+
+            assertThat(mockServer.takeRequest().query()).isEqualTo(videoQuery("Movie"))
+            assertThat(page.totalCount).isEqualTo(189)
+            val movie = page.items[0]
+            assertThat(movie.id).isEqualTo(MediaId(serverId, "b9a025c466b155918b43a48a0319ce5c"))
+            assertThat(movie.kind).isEqualTo(VideoKind.Movie)
+            assertThat(movie.title).isEqualTo("Movie 1")
+            assertThat(movie.year).isEqualTo(2011)
+            assertThat(movie.duration).isEqualTo(6_003_009.milliseconds)
+            assertThat(movie.sizeBytes).isEqualTo(13_130_329_521)
+            assertThat(movie.tagline).isEqualTo("The tagline of Movie 1.")
+            assertThat(movie.officialRating).isEqualTo("R")
+            assertThat(movie.genres).containsExactly("Comedy", "Drama").inOrder()
+            assertThat(movie.dateAdded).isEqualTo(Instant.parse("2026-11-07T21:38:14.2409704Z"))
+            assertThat(movie.format).isEqualTo(VideoFormat("h264", 1920, 1080, VideoRange.Sdr, 14_477))
+            assertThat(movie.streams.map { Triple(it.index, it.type, it.language) })
+                .containsExactly(Triple(1, StreamType.Audio, "rus"), Triple(2, StreamType.Audio, "eng"))
+                .inOrder()
+            assertThat(movie.streams[0].isDefault).isTrue()
+            assertThat(movie.artwork?.tag).isEqualTo("8ca33aba0e9d30f57a103102ad0a4c6e")
+            assertThat(movie.backdrop?.tag).isEqualTo("aeb2c91ac1404b12dcc4e7662e9540ba")
+            assertThat(movie.seriesId).isNull()
+        }
+
+    @Test
+    fun `a Dolby Vision movie with an HDR10 base layer is Dolby Vision`() =
+        runTest {
+            enqueue("items_movie/hdr_dovi.json")
+
+            val movie = (source.movies(server, 0, 500) as MqResult.Success).value.items.single()
+
+            assertThat(movie.format).isEqualTo(VideoFormat("hevc", 3840, 1604, VideoRange.DolbyVision, 23_946))
+        }
+
+    @Test
+    fun `R7 series query and mapping with the unwatched count`() =
+        runTest {
+            enqueue("items_series/page.json")
+
+            val page = (source.series(server, 500, 500) as MqResult.Success).value
+
+            assertThat(mockServer.takeRequest().query()).isEqualTo(videoQuery("Series"))
+            assertThat(page.totalCount).isEqualTo(23)
+            val series = page.items[0]
+            assertThat(series.id).isEqualTo(MediaId(serverId, "e112b89c2a4897f8ada7c423b43160c1"))
+            assertThat(series.year).isEqualTo(2011)
+            assertThat(series.userData.unplayedCount).isEqualTo(94)
+            assertThat(series.userData.playedPercentage).isEqualTo(0.0)
+        }
+
+    @Test
+    fun `R7 seasons query and mapping`() =
+        runTest {
+            enqueue("items_season/page.json")
+
+            val page = (source.seasons(server, 500, 500) as MqResult.Success).value
+
+            assertThat(mockServer.takeRequest().query()).isEqualTo(videoQuery("Season"))
+            assertThat(page.totalCount).isEqualTo(87)
+            val season = page.items[0]
+            assertThat(season.id).isEqualTo(MediaId(serverId, "0686452ae87d985786b571742d290aa3"))
+            assertThat(season.seriesId).isEqualTo(MediaId(serverId, "bd5eb544025a3d8a2212c3788cc99f38"))
+            assertThat(season.number).isEqualTo(1)
+            assertThat(season.artwork?.tag).isEqualTo("7e4b49b6cdca9216d468d2097e2404f0")
+            assertThat(season.userData.unplayedCount).isEqualTo(24)
+        }
+
+    @Test
+    fun `R7 episodes query and mapping with their series and season`() =
+        runTest {
+            enqueue("items_episode/page.json")
+
+            val page = (source.episodes(server, 500, 500) as MqResult.Success).value
+
+            assertThat(mockServer.takeRequest().query()).isEqualTo(videoQuery("Episode"))
+            assertThat(page.totalCount).isEqualTo(1520)
+            val episode = page.items[0]
+            assertThat(episode.kind).isEqualTo(VideoKind.Episode)
+            assertThat(episode.id).isEqualTo(MediaId(serverId, "4c0c3b39be5963afb73afc7899977cb6"))
+            assertThat(episode.seriesId).isEqualTo(MediaId(serverId, "d58bc759a3e39f106cef2201fb12ad0b"))
+            assertThat(episode.seasonId).isEqualTo(MediaId(serverId, "ae50ab1619c379f23841ba2cb2b35c51"))
+            assertThat(episode.seriesName).isEqualTo("Series 4")
+            assertThat(episode.seasonNumber).isEqualTo(1)
+            assertThat(episode.episodeNumber).isEqualTo(1)
+        }
+
+    @Test
+    fun `an episode's subtitle file beside it is an external stream`() =
+        runTest {
+            enqueue("items_episode/with_external_subtitles.json")
+
+            val episode = (source.episodes(server, 0, 500) as MqResult.Success).value.items.single()
+
+            val subtitles = episode.streams.filter { it.type == StreamType.Subtitle }
+            assertThat(subtitles.map { Triple(it.index, it.language, it.isExternal) })
+                .containsExactly(Triple(0, null, true), Triple(3, "eng", false), Triple(4, "fra", false))
+                .inOrder()
         }
 }

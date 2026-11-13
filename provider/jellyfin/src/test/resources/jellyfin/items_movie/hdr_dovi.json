@@ -1,0 +1,295 @@
+{
+  "Items": [
+    {
+      "Name": "Movie 4",
+      "ServerId": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+      "Id": "83e9a97001e10de7feac1cf9070e6b78",
+      "DateCreated": "2026-11-07T22:01:32.6099318Z",
+      "HasSubtitles": true,
+      "Container": "mkv",
+      "SortName": "movie 4",
+      "PremiereDate": "2023-12-21T00:00:00.0000000Z",
+      "MediaSources": [
+        {
+          "Protocol": "File",
+          "Id": "83e9a97001e10de7feac1cf9070e6b78",
+          "Path": "/media/movie/movie-4.mkv",
+          "Type": "Default",
+          "Container": "mkv",
+          "Size": 19593069773,
+          "Name": "Movie 4",
+          "IsRemote": false,
+          "ETag": "4d2d1493cc50fd3207dc396b0965e63a",
+          "RunTimeTicks": 62128729999,
+          "ReadAtNativeFramerate": false,
+          "IgnoreDts": false,
+          "IgnoreIndex": false,
+          "GenPtsInput": false,
+          "SupportsTranscoding": true,
+          "SupportsDirectStream": true,
+          "SupportsDirectPlay": true,
+          "IsInfiniteStream": false,
+          "UseMostCompatibleTranscodingProfile": false,
+          "RequiresOpening": false,
+          "RequiresClosing": false,
+          "RequiresLooping": false,
+          "SupportsProbing": true,
+          "VideoType": "VideoFile",
+          "MediaStreams": [
+            {
+              "Codec": "hevc",
+              "Language": "eng",
+              "ColorSpace": "bt2020nc",
+              "ColorTransfer": "smpte2084",
+              "ColorPrimaries": "bt2020",
+              "DvVersionMajor": 1,
+              "DvVersionMinor": 0,
+              "DvProfile": 8,
+              "DvLevel": 6,
+              "RpuPresentFlag": 1,
+              "ElPresentFlag": 0,
+              "BlPresentFlag": 1,
+              "DvBlSignalCompatibilityId": 1,
+              "TimeBase": "1/1000",
+              "Title": "Track title",
+              "VideoRange": "HDR",
+              "VideoRangeType": "DOVIWithHDR10",
+              "VideoDoViTitle": "Dolby Vision Profile 8.1 (HDR10)",
+              "AudioSpatialFormat": "None",
+              "DisplayTitle": "1604p HEVC HDR",
+              "IsInterlaced": false,
+              "BitRate": 23946181,
+              "BitDepth": 10,
+              "RefFrames": 1,
+              "IsDefault": true,
+              "IsForced": false,
+              "IsHearingImpaired": false,
+              "IsOriginal": false,
+              "Height": 1604,
+              "Width": 3840,
+              "AverageFrameRate": 23.976025,
+              "RealFrameRate": 23.976025,
+              "ReferenceFrameRate": 23.976025,
+              "Profile": "Main 10",
+              "Type": "Video",
+              "AspectRatio": "2.40:1",
+              "Index": 0,
+              "IsExternal": false,
+              "IsTextSubtitleStream": false,
+              "SupportsExternalStream": false,
+              "PixelFormat": "yuv420p10le",
+              "Level": 150,
+              "IsAnamorphic": false
+            },
+            {
+              "Codec": "eac3",
+              "Language": "rus",
+              "TimeBase": "1/1000",
+              "Title": "Track title",
+              "VideoRange": "Unknown",
+              "VideoRangeType": "Unknown",
+              "AudioSpatialFormat": "None",
+              "LocalizedDefault": "Default",
+              "LocalizedExternal": "External",
+              "LocalizedLanguage": "Russian",
+              "LocalizedOriginal": "Original",
+              "DisplayTitle": "Track title - rus - EAC3",
+              "IsInterlaced": false,
+              "ChannelLayout": "5.1",
+              "BitRate": 640000,
+              "Channels": 6,
+              "SampleRate": 48000,
+              "IsDefault": true,
+              "IsForced": false,
+              "IsHearingImpaired": false,
+              "IsOriginal": false,
+              "Type": "Audio",
+              "Index": 1,
+              "IsExternal": false,
+              "IsTextSubtitleStream": false,
+              "SupportsExternalStream": false
+            },
+            {
+              "Codec": "eac3",
+              "Language": "eng",
+              "TimeBase": "1/1000",
+              "Title": "Track title",
+              "VideoRange": "Unknown",
+              "VideoRangeType": "Unknown",
+              "AudioSpatialFormat": "None",
+              "LocalizedDefault": "Default",
+              "LocalizedExternal": "External",
+              "LocalizedLanguage": "English",
+              "LocalizedOriginal": "Original",
+              "DisplayTitle": "Track title - eng - EAC3",
+              "IsInterlaced": false,
+              "ChannelLayout": "5.1",
+              "BitRate": 640000,
+              "Channels": 6,
+              "SampleRate": 48000,
+              "IsDefault": false,
+              "IsForced": false,
+              "IsHearingImpaired": false,
+              "IsOriginal": true,
+              "Type": "Audio",
+              "Index": 2,
+              "IsExternal": false,
+              "IsTextSubtitleStream": false,
+              "SupportsExternalStream": false
+            },
+            {
+              "Codec": "subrip",
+              "Language": "eng",
+              "TimeBase": "1/1000",
+              "Title": "Track title",
+              "VideoRange": "Unknown",
+              "VideoRangeType": "Unknown",
+              "AudioSpatialFormat": "None",
+              "LocalizedUndefined": "Undefined",
+              "LocalizedDefault": "Default",
+              "LocalizedForced": "Forced",
+              "LocalizedExternal": "External",
+              "LocalizedHearingImpaired": "Hearing Impaired",
+              "LocalizedLanguage": "English",
+              "DisplayTitle": "Track title - eng - SUBRIP",
+              "IsInterlaced": false,
+              "IsDefault": false,
+              "IsForced": false,
+              "IsHearingImpaired": false,
+              "IsOriginal": true,
+              "Type": "Subtitle",
+              "Index": 3,
+              "IsExternal": false,
+              "IsTextSubtitleStream": true,
+              "SupportsExternalStream": true
+            },
+            {
+              "Codec": "mjpeg",
+              "ColorSpace": "bt470bg",
+              "TimeBase": "1/90000",
+              "VideoRange": "Unknown",
+              "VideoRangeType": "Unknown",
+              "AudioSpatialFormat": "None",
+              "IsInterlaced": false,
+              "BitDepth": 8,
+              "RefFrames": 1,
+              "IsDefault": false,
+              "IsForced": false,
+              "IsHearingImpaired": false,
+              "IsOriginal": false,
+              "Height": 478,
+              "Width": 850,
+              "RealFrameRate": 90000,
+              "ReferenceFrameRate": 90000,
+              "Profile": "Progressive",
+              "Type": "EmbeddedImage",
+              "AspectRatio": "16:9",
+              "Index": 4,
+              "IsExternal": false,
+              "IsTextSubtitleStream": false,
+              "SupportsExternalStream": false,
+              "PixelFormat": "yuvj444p",
+              "Level": -99,
+              "IsAnamorphic": false
+            }
+          ],
+          "MediaAttachments": [
+            {
+              "Codec": "mjpeg",
+              "CodecTag": "[0][0][0][0]",
+              "Index": 4,
+              "FileName": "cover.jpg",
+              "MimeType": "image/jpeg"
+            }
+          ],
+          "Formats": [],
+          "Bitrate": 25228997,
+          "RequiredHttpHeaders": {},
+          "TranscodingSubProtocol": "http",
+          "DefaultAudioStreamIndex": 1,
+          "HasSegments": true
+        }
+      ],
+      "CriticRating": 53,
+      "OfficialRating": "R",
+      "ChannelId": null,
+      "Overview": "The overview of Movie 4.",
+      "Taglines": [
+        "The tagline of Movie 4."
+      ],
+      "Genres": [
+        "Romance",
+        "Comedy"
+      ],
+      "CommunityRating": 6.737,
+      "RunTimeTicks": 62128729999,
+      "ProductionYear": 2023,
+      "IsFolder": false,
+      "Type": "Movie",
+      "Studios": [
+        {
+          "Name": "Olive Bridge Entertainment",
+          "Id": "87157dbb3d3964a5ed0c9bf93f00d6e9"
+        },
+        {
+          "Name": "Roth-Kirschenbaum Films",
+          "Id": "2609a1d669ab284f22cf90db67b825c5"
+        },
+        {
+          "Name": "SK Global Entertainment",
+          "Id": "f54c16dc901f11feda94e3c69c0c7282"
+        },
+        {
+          "Name": "Columbia Pictures",
+          "Id": "3e8c9b438ab4664dc15b8cdbfce57134"
+        },
+        {
+          "Name": "TSG Entertainment",
+          "Id": "6886a20e885d6e1796232f1b0291b0a4"
+        }
+      ],
+      "GenreItems": [
+        {
+          "Name": "Romance",
+          "Id": "1ffc72e19987e5fa4047c6a6870646cf"
+        },
+        {
+          "Name": "Comedy",
+          "Id": "08d31605d366d63a7a924f944b4417f1"
+        }
+      ],
+      "UserData": {
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "83e9a970-01e1-0de7-feac-1cf9070e6b78",
+        "ItemId": "83e9a97001e10de7feac1cf9070e6b78"
+      },
+      "VideoType": "VideoFile",
+      "ImageTags": {
+        "Primary": "a64d1b35c66f2b11d90e9ded7396981c",
+        "Thumb": "32a692f808b5053d75475d3cb1932dd2"
+      },
+      "BackdropImageTags": [
+        "3a0adad60ea86e60b2de9451e225c167"
+      ],
+      "ImageBlurHashes": {
+        "Backdrop": {
+          "3a0adad60ea86e60b2de9451e225c167": "WaEf[@t7KQOYics;q?jFR5M{bwn%OqbHoLoLoLkCyEf*ozt7jFj?"
+        },
+        "Primary": {
+          "a64d1b35c66f2b11d90e9ded7396981c": "dhG]O0%MXTo~?wa#X9ofKRNGRjxaNdjEV@jZRjjYV?j["
+        },
+        "Thumb": {
+          "32a692f808b5053d75475d3cb1932dd2": "WfE|VGj1RnyCO@pHvcjvj[ngV?V?Iut2t4Ron~aeOuoxs,NMo#t7"
+        }
+      },
+      "LocationType": "FileSystem",
+      "MediaType": "Video",
+      "OriginalLanguage": "en"
+    }
+  ],
+  "TotalRecordCount": 1,
+  "StartIndex": 0
+}

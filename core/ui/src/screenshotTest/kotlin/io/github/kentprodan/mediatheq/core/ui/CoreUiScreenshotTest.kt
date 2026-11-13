@@ -266,3 +266,29 @@ fun MediaListOverlaysScreenshot() {
 }
 
 private val CardWidth = 112.dp
+
+/** Poster cards (#270): plain, watched, a series with unwatched episodes, and one still loading (no image). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun PosterCardsScreenshot() {
+    MediatheqTheme {
+        Surface {
+            val cover = rememberPreviewCover()
+            val card = Modifier.width(CardWidth)
+            Column(
+                Modifier.padding(MediatheqSpacing.l),
+                verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m)) {
+                    MqPosterCard("Arrival", "2016", null, {}, card, coverModel = cover)
+                    MqPosterCard("Blade Runner 2049", "2017", null, {}, card, watched = true, coverModel = cover)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m)) {
+                    MqPosterCard("Dark", "2017", null, {}, card, unplayedCount = 12, coverModel = cover)
+                    MqPosterCard("A very long title that does not fit", null, null, {}, card)
+                }
+            }
+        }
+    }
+}

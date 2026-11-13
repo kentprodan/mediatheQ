@@ -1,0 +1,168 @@
+{
+  "Items": [
+    {
+      "Name": "Season 1",
+      "ServerId": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+      "Id": "0686452ae87d985786b571742d290aa3",
+      "DateCreated": "2026-06-18T08:58:43.5603555Z",
+      "SortName": "season 1",
+      "PremiereDate": "1994-09-22T00:00:00.0000000Z",
+      "ChannelId": null,
+      "Taglines": [],
+      "Genres": [],
+      "ProductionYear": 1994,
+      "IndexNumber": 1,
+      "IsFolder": true,
+      "Type": "Season",
+      "Studios": [],
+      "GenreItems": [],
+      "ParentBackdropItemId": "bd5eb544025a3d8a2212c3788cc99f38",
+      "ParentBackdropImageTags": [
+        "a1017d8bec7f2a80cf3234a061cc249b"
+      ],
+      "UserData": {
+        "PlayedPercentage": 0,
+        "UnplayedItemCount": 24,
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "79168001",
+        "ItemId": "0686452ae87d985786b571742d290aa3"
+      },
+      "SeriesName": "Series 1",
+      "SeriesId": "bd5eb544025a3d8a2212c3788cc99f38",
+      "SeriesPrimaryImageTag": "1782c9dee1bd04ee9ca8679d55c5cecf",
+      "ImageTags": {
+        "Primary": "7e4b49b6cdca9216d468d2097e2404f0"
+      },
+      "BackdropImageTags": [],
+      "ImageBlurHashes": {
+        "Primary": {
+          "7e4b49b6cdca9216d468d2097e2404f0": "dEAdHMEpIp=wAO-Ss:El0LS5xZo#?INfWXxB?E$dRkIo",
+          "1782c9dee1bd04ee9ca8679d55c5cecf": "dKCFq@xa9u$%bvWUaKW=0LNGxtNJV@fktQs8tQxt$*ae"
+        },
+        "Thumb": {
+          "3588e0a2b310674cab2680c5f5244542": "WPCijqoe0LW;awWZNxR,%1xaMxRPNIt7%1RjIVf5?Hj[M{jsRjX9"
+        },
+        "Backdrop": {
+          "a1017d8bec7f2a80cf3234a061cc249b": "WaH_A7o#X9xvSi%Mx]RjkCofkCxtXTnhoJadoJs-~poeWAWBaebI"
+        }
+      },
+      "ParentThumbItemId": "bd5eb544025a3d8a2212c3788cc99f38",
+      "ParentThumbImageTag": "3588e0a2b310674cab2680c5f5244542",
+      "LocationType": "FileSystem",
+      "MediaType": "Unknown"
+    },
+    {
+      "Name": "Season 2",
+      "ServerId": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+      "Id": "0eadf67139b2994c2d80ef9264ded0f8",
+      "DateCreated": "2026-06-18T16:42:55.7824431Z",
+      "SortName": "season 2",
+      "PremiereDate": "2020-10-23T00:00:00.0000000Z",
+      "ChannelId": null,
+      "Taglines": [],
+      "Genres": [],
+      "ProductionYear": 2020,
+      "IndexNumber": 1,
+      "IsFolder": true,
+      "Type": "Season",
+      "Studios": [],
+      "GenreItems": [],
+      "ParentBackdropItemId": "e47305c5d40366acad575983394a3a2a",
+      "ParentBackdropImageTags": [
+        "adae7b0e20476f7427276d6a6a8ae22a"
+      ],
+      "UserData": {
+        "PlayedPercentage": 0,
+        "UnplayedItemCount": 7,
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "387115001",
+        "ItemId": "0eadf67139b2994c2d80ef9264ded0f8"
+      },
+      "SeriesName": "Series 2",
+      "SeriesId": "e47305c5d40366acad575983394a3a2a",
+      "SeriesPrimaryImageTag": "75b0506c05c6270e6470e291dadfe967",
+      "ImageTags": {
+        "Primary": "711e9afa970679e2a21278ba62ecf138"
+      },
+      "BackdropImageTags": [],
+      "ImageBlurHashes": {
+        "Primary": {
+          "711e9afa970679e2a21278ba62ecf138": "dDEU$0af9a^j}?Rk58s:E3bb9ajZ4:bH?GxEIpWX?GNG",
+          "75b0506c05c6270e6470e291dadfe967": "dDEU$0af9a^j}?Rk58s:E3bb9ajZ4:bH?GxEIpWX?GNG"
+        },
+        "Thumb": {
+          "239afa6f6d5770d0e7e89b09ecf34636": "WGByjbpJSh={I;-p~BN_S4-oNbof4nD%Rks:R*IU9ZRijFIVRjnh"
+        },
+        "Backdrop": {
+          "adae7b0e20476f7427276d6a6a8ae22a": "WNF;[#%1Or%LxtbX~o%2b]tQ%LNaJ-ofXRSg?GS4-nE2NbtQ-o-o"
+        }
+      },
+      "ParentThumbItemId": "e47305c5d40366acad575983394a3a2a",
+      "ParentThumbImageTag": "239afa6f6d5770d0e7e89b09ecf34636",
+      "LocationType": "Virtual",
+      "MediaType": "Unknown"
+    },
+    {
+      "Name": "Season 3",
+      "ServerId": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+      "Id": "1cd1240148ed71d9c20b424059dec622",
+      "DateCreated": "2026-07-30T22:24:50.6729773Z",
+      "SortName": "season 3",
+      "PremiereDate": "2024-10-17T00:00:00.0000000Z",
+      "ChannelId": null,
+      "Taglines": [],
+      "Genres": [],
+      "ProductionYear": 2024,
+      "IndexNumber": 1,
+      "IsFolder": true,
+      "Type": "Season",
+      "Studios": [],
+      "GenreItems": [],
+      "ParentBackdropItemId": "a7366150933f7c444a4ad487adb32cca",
+      "ParentBackdropImageTags": [
+        "3dfe449b5f295c7361229ff6d7c5c2ef"
+      ],
+      "UserData": {
+        "PlayedPercentage": 0,
+        "UnplayedItemCount": 22,
+        "PlaybackPositionTicks": 0,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "Played": false,
+        "Key": "448023001",
+        "ItemId": "1cd1240148ed71d9c20b424059dec622"
+      },
+      "SeriesName": "Series 3",
+      "SeriesId": "a7366150933f7c444a4ad487adb32cca",
+      "SeriesPrimaryImageTag": "1060f2c694ddc1d7bd1c5bdd824647f3",
+      "ImageTags": {
+        "Primary": "9738c4d0a2155d0fa41ad737c6657d4e"
+      },
+      "BackdropImageTags": [],
+      "ImageBlurHashes": {
+        "Primary": {
+          "9738c4d0a2155d0fa41ad737c6657d4e": "dbKvmU%LM{%0}-ozShjEkqxuWCax?v%LRkofIUkCbIWA",
+          "1060f2c694ddc1d7bd1c5bdd824647f3": "dpKS;7xuS1xD}=ofWqs-x[t6V[t6x[oyj[s:RjocV[az"
+        },
+        "Thumb": {
+          "a310e40fb4d5840b545a294b2d92162c": "WTI:j$1PX9xaSd$g^$IqWXxZR+R,M_IAIoNaofoLxVNGaeWVWBsm"
+        },
+        "Backdrop": {
+          "3dfe449b5f295c7361229ff6d7c5c2ef": "WfME[+NxI:xYM~xZ~9oeRkxZs.s-tQ%0njxZt4WB%1kCNHs.s.WV"
+        }
+      },
+      "ParentThumbItemId": "a7366150933f7c444a4ad487adb32cca",
+      "ParentThumbImageTag": "a310e40fb4d5840b545a294b2d92162c",
+      "LocationType": "Virtual",
+      "MediaType": "Unknown"
+    }
+  ],
+  "TotalRecordCount": 87,
+  "StartIndex": 0
+}

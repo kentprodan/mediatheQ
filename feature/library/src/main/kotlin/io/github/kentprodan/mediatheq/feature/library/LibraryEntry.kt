@@ -17,11 +17,13 @@ import io.github.kentprodan.mediatheq.core.navigation.GenresKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeSectionListKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryListKey
+import io.github.kentprodan.mediatheq.core.navigation.MoviesKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistsKey
 import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.RecordLabelsKey
+import io.github.kentprodan.mediatheq.core.navigation.SeriesListKey
 import io.github.kentprodan.mediatheq.core.navigation.TracksKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 
@@ -56,7 +58,20 @@ fun EntryProviderScope<NavKey>.libraryEntry(
         labelPage = labelPage,
         sectionPage = sectionPage,
     )
-    entry<LibraryKey> { LibraryHubRoute(onOpen = { navigator.navigateTo(LibraryListKey(it)) }) }
+    entry<LibraryKey> {
+        LibraryHubRoute(
+            onOpen = {
+                // The video tiles open the video grids (#270), every other tile a Library list.
+                navigator.navigateTo(
+                    when (it) {
+                        LibraryShortcut.Movies -> MoviesKey
+                        LibraryShortcut.Series -> SeriesListKey
+                        else -> LibraryListKey(it)
+                    },
+                )
+            },
+        )
+    }
     entry<LibraryListKey> { Library(it.shortcut.filter, inTab = true) }
     entry<YearKey> { Library(LibraryFilter.Albums, inTab = true, yearPage = it) }
     entry<RecordLabelKey> { Library(LibraryFilter.Albums, inTab = true, labelPage = it) }
@@ -84,10 +99,19 @@ internal val LibraryShortcut.filter: LibraryFilter
     get() =
         when (this) {
             LibraryShortcut.Albums -> LibraryFilter.Albums
+
             LibraryShortcut.AlbumArtists -> LibraryFilter.Artists
+
             LibraryShortcut.Genres -> LibraryFilter.Genres
+
             LibraryShortcut.Tracks -> LibraryFilter.Songs
+
             LibraryShortcut.Playlists -> LibraryFilter.Playlists
+
             LibraryShortcut.Years -> LibraryFilter.Years
+
             LibraryShortcut.RecordLabels -> LibraryFilter.RecordLabels
+
+            // Never asked: the hub opens the video grids for these (above).
+            LibraryShortcut.Movies, LibraryShortcut.Series -> LibraryFilter.Albums
         }
