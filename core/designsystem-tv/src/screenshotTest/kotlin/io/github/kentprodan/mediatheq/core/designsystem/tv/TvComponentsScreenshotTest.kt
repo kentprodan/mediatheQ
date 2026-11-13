@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
+import androidx.tv.material3.Switch
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
@@ -66,6 +67,27 @@ fun TvListItemScreenshot() =
                 MqTvListItem(PreviewFixtures.TRACK, {}, supporting = PreviewFixtures.ARTIST)
                 MqTvListItem(PreviewFixtures.TRACK, {}, supporting = PreviewFixtures.ARTIST, selected = true)
                 MqTvListItem(PreviewFixtures.TRACK, {}, supporting = PreviewFixtures.ARTIST, enabled = false)
+            }
+        }
+    }
+
+/** A row with a switch (#243): on, off, and disabled. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvListItemSwitchScreenshot() =
+    MediatheqTvTheme {
+        Surface(Modifier.fillMaxSize()) {
+            Column(Modifier.padding(48.dp).width(480.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(true to true, false to true, true to false).forEach { (on, enabled) ->
+                    MqTvListItem(
+                        "Dolby Atmos passthrough",
+                        {},
+                        supporting = "Sends Dolby Atmos unchanged to the soundbar",
+                        enabled = enabled,
+                        trailing = { Switch(checked = on, onCheckedChange = null, enabled = enabled) },
+                    )
+                }
             }
         }
     }
