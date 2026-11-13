@@ -27,4 +27,5 @@ object MqTvIcons {
     val SkipNext: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_skip_next_filled)
     val SkipPrevious: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_skip_previous_filled)
     val Playing: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_graphic_eq)
+    val Lyrics: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_lyrics)
 }

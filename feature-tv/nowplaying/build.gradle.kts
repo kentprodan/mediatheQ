@@ -7,3 +7,8 @@ plugins {
 android {
     namespace = "io.github.kentprodan.mediatheq.feature.tv.nowplaying"
 }
+
+dependencies {
+    // Back closes the lyrics panel (BackHandler: predictive back never sends the Back key to views).
+    implementation(libs.androidx.activity.compose)
+}

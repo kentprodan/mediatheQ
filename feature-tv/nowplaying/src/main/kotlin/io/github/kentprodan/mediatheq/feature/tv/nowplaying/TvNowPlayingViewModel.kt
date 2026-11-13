@@ -3,23 +3,28 @@ package io.github.kentprodan.mediatheq.feature.tv.nowplaying
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.common.QualityKind
 import io.github.kentprodan.mediatheq.core.common.QualityLabel
 import io.github.kentprodan.mediatheq.core.common.qualityLabel
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
+import io.github.kentprodan.mediatheq.core.data.LyricsRepository
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -61,8 +66,26 @@ sealed interface TvNowPlayingUiState {
     ) : TvNowPlayingUiState
 }
 
+/** The playing track's lyrics on TV (#245); synced or plain, see [Lyrics.isSynced]. */
+sealed interface TvLyricsUiState {
+    data object Loading : TvLyricsUiState
+
+    data class Content(
+        val lyrics: Lyrics,
+    ) : TvLyricsUiState
+
+    /** The track has no lyrics. */
+    data object None : TvLyricsUiState
+
+    /** The server could not be asked; the Lyrics button asks again ([TvNowPlayingAction.RetryLyrics]). */
+    data object Error : TvLyricsUiState
+}
+
 sealed interface TvNowPlayingAction {
     data object TogglePlayPause : TvNowPlayingAction
+
+    /** The lyrics failed to load: ask again (#245). */
+    data object RetryLyrics : TvNowPlayingAction
 
     data object Next : TvNowPlayingAction
 
@@ -119,6 +142,7 @@ class TvNowPlayingViewModel
         private val playback: PlaybackConnection,
         library: LibraryRepository,
         private val userData: UserDataRepository,
+        lyricsRepository: LyricsRepository,
     ) : ViewModel() {
         // Favorite, album and format come from Room, so a change made here or on the phone shows at once.
         private val track =
@@ -134,6 +158,34 @@ class TvNowPlayingViewModel
                     SharingStarted.WhileSubscribed(5_000),
                     playback.state.value.toUiState(null, emptyList()),
                 )
+
+        /** Bumped by the Lyrics button after a failed load, so the same track asks again. */
+        private val lyricsRetries = MutableStateFlow(0)
+
+        /** The playing track's lyrics (#245), asked of the server when the track changes or after a retry. */
+        val lyrics: StateFlow<TvLyricsUiState> =
+            combine(playback.state.map { it.item?.id }.distinctUntilChanged(), lyricsRetries) { id, _ -> id }
+                .flatMapLatest { id ->
+                    if (id == null) {
+                        flowOf<TvLyricsUiState>(TvLyricsUiState.None)
+                    } else {
+                        flow<TvLyricsUiState> {
+                            emit(TvLyricsUiState.Loading)
+                            emit(
+                                when (val result = lyricsRepository.lyrics(id)) {
+                                    is MqResult.Success -> {
+                                        result.value?.let(TvLyricsUiState::Content)
+                                            ?: TvLyricsUiState.None
+                                    }
+
+                                    is MqResult.Failure -> {
+                                        TvLyricsUiState.Error
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvLyricsUiState.Loading)
 
         /** The playing position, sampled by the connection; collect it only where it is drawn. */
         val position: StateFlow<Duration> = playback.position
@@ -154,6 +206,10 @@ class TvNowPlayingViewModel
         }
 
         fun onAction(action: TvNowPlayingAction) {
+            if (action == TvNowPlayingAction.RetryLyrics) {
+                lyricsRetries.value++
+                return
+            }
             val state = uiState.value as? TvNowPlayingUiState.Playing ?: return
             when (action) {
                 TvNowPlayingAction.TogglePlayPause -> {

@@ -20,4 +20,7 @@
     <string name="tv_np_remove">Remove from queue</string>
     <string name="tv_np_atmos_converted">Dolby Atmos not available · Playing in stereo on this output</string>
     <string name="tv_np_atmos_decoded">Dolby Atmos not available · Decoded on this output</string>
+    <string name="tv_np_lyrics">Lyrics</string>
+    <string name="tv_np_lyrics_none">No lyrics for this song</string>
+    <string name="tv_np_lyrics_error">Lyrics could not be loaded. Select Lyrics to try again.</string>
 </resources>

@@ -33,6 +33,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Now Playing says when a Dolby Atmos track is decoded on the device or plays in stereo on the current output.
 - Settings on the TV: Dolby Atmos passthrough for the HDMI output, streaming quality, Sync now with its progress, the account with Sign out, the version and the open-source licenses.
 - Search on the TV: results in rows (albums, artists, songs, playlists) while you type, diacritics optional, and your recent searches.
+- Lyrics on the TV's Now Playing: the line being sung large in the queue's place, or the whole text for plain lyrics.
 
 ### Fixed
 - Now Playing on a phone held sideways shows the controls without scrolling (smaller transport buttons, the album line in the menu).

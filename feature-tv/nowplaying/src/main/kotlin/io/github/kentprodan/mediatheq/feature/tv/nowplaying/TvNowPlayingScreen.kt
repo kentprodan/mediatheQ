@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.tv.nowplaying
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -70,12 +72,14 @@ import kotlin.time.Duration
 fun TvNowPlayingRoute(viewModel: TvNowPlayingViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val position by viewModel.position.collectAsStateWithLifecycle()
-    TvNowPlayingScreen(state, position, viewModel::onAction)
+    val lyrics by viewModel.lyrics.collectAsStateWithLifecycle()
+    TvNowPlayingScreen(state, position, viewModel::onAction, lyrics = lyrics)
 }
 
 /**
  * The full-screen player on TV (#240): the cover and what plays, the progress row (Left / Right seek), the controls,
- * and the queue on the right (select jumps, long-press removes). Focus starts on Play / Pause. The screen stays on
+ * and the queue on the right (select jumps, long-press removes), or the [lyrics] in its place (#245: the Lyrics
+ * button opens them, Back closes them and returns to the button). Focus starts on Play / Pause. The screen stays on
  * while music plays here. The remote's media keys reach the session directly (media3 skill, section 11).
  */
 @Composable
@@ -84,7 +88,24 @@ fun TvNowPlayingScreen(
     position: Duration,
     onAction: (TvNowPlayingAction) -> Unit,
     modifier: Modifier = Modifier,
+    lyrics: TvLyricsUiState = TvLyricsUiState.Loading,
+    lyricsOpen: Boolean = false,
 ) {
+    var showLyrics by rememberSaveable { mutableStateOf(lyricsOpen) }
+    val lyricsButton = remember { FocusRequester() }
+    // Open while the next track's lyrics load too, so a track change does not swap the queue in and out.
+    val lyricsShown = showLyrics && (lyrics is TvLyricsUiState.Content || lyrics == TvLyricsUiState.Loading)
+    BackHandler(enabled = lyricsShown) {
+        showLyrics = false
+        runCatching { lyricsButton.requestFocus() }
+    }
+    // A new track's lyrics replace the lines that may have had focus: it waits on the Lyrics button. A track without
+    // lyrics closes the panel (the button is then off: focus moves on along the controls by itself).
+    LaunchedEffect(lyrics) {
+        if (!showLyrics || lyrics is TvLyricsUiState.Content) return@LaunchedEffect
+        if (lyrics == TvLyricsUiState.None) showLyrics = false
+        runCatching { lyricsButton.requestFocus() }
+    }
     when (state) {
         TvNowPlayingUiState.Idle -> {
             MqTvMessage(
@@ -97,8 +118,29 @@ fun TvNowPlayingScreen(
         is TvNowPlayingUiState.Playing -> {
             KeepScreenOn(state.isPlaying)
             Row(modifier.fillMaxSize()) {
-                Player(state, position, onAction, Modifier.weight(PLAYER_WEIGHT))
-                Queue(state, onAction, Modifier.weight(1 - PLAYER_WEIGHT))
+                val lyricsControl =
+                    LyricsControl(lyrics, lyricsButton) {
+                        if (lyrics ==
+                            TvLyricsUiState.Error
+                        ) {
+                            onAction(TvNowPlayingAction.RetryLyrics)
+                        } else {
+                            showLyrics =
+                                !showLyrics
+                        }
+                    }
+                Player(state, position, onAction, Modifier.weight(PLAYER_WEIGHT), lyricsControl)
+                if (lyricsShown) {
+                    val content = (lyrics as? TvLyricsUiState.Content)?.lyrics
+                    // Loading the next track's lyrics: the panel stays, empty.
+                    if (content != null) {
+                        TvLyricsPanel(content, position, Modifier.weight(1 - PLAYER_WEIGHT))
+                    } else {
+                        Spacer(Modifier.weight(1 - PLAYER_WEIGHT))
+                    }
+                } else {
+                    Queue(state, onAction, Modifier.weight(1 - PLAYER_WEIGHT))
+                }
             }
         }
     }
@@ -119,6 +161,7 @@ private fun Player(
     position: Duration,
     onAction: (TvNowPlayingAction) -> Unit,
     modifier: Modifier,
+    lyrics: LyricsControl,
 ) {
     val playPause = remember { FocusRequester() }
     Column(
@@ -174,7 +217,16 @@ private fun Player(
         }
         Spacer(Modifier.weight(1f))
         Progress(state, position, onAction)
-        Controls(state, onAction, playPause)
+        Controls(state, onAction, playPause, lyrics)
+        // Why the Lyrics button is off: the track has none, or the server could not be asked.
+        lyrics.hint?.let {
+            Text(
+                stringResource(it),
+                Modifier.align(Alignment.CenterHorizontally),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
     LaunchedEffect(Unit) { runCatching { playPause.requestFocus() } }
 }
@@ -245,6 +297,7 @@ private fun Controls(
     state: TvNowPlayingUiState.Playing,
     onAction: (TvNowPlayingAction) -> Unit,
     playPause: FocusRequester,
+    lyrics: LyricsControl,
 ) {
     val on = stringResource(R.string.tv_np_on)
     val off = stringResource(R.string.tv_np_off)
@@ -293,7 +346,32 @@ private fun Controls(
             if (state.isFavorite) on else off,
             selected = state.isFavorite,
         ) { onAction(TvNowPlayingAction.ToggleFavorite) }
+        Control(
+            MqTvIcons.Lyrics,
+            stringResource(R.string.tv_np_lyrics),
+            modifier = Modifier.focusRequester(lyrics.focus),
+            enabled = lyrics.available,
+            onClick = lyrics.onToggle,
+        )
     }
+}
+
+/**
+ * The Lyrics button: opens the panel when the track has lyrics (or they are loading), asks again after an error, off
+ * when the track has none; [hint] says why under the controls.
+ */
+private class LyricsControl(
+    lyrics: TvLyricsUiState,
+    val focus: FocusRequester,
+    val onToggle: () -> Unit,
+) {
+    val available = lyrics != TvLyricsUiState.None
+    val hint: Int? =
+        when (lyrics) {
+            TvLyricsUiState.None -> R.string.tv_np_lyrics_none
+            TvLyricsUiState.Error -> R.string.tv_np_lyrics_error
+            else -> null
+        }
 }
 
 /** A round icon button; [stateText] is what TalkBack says of a toggle ("On"), and [selected] tints a toggle that is on. */

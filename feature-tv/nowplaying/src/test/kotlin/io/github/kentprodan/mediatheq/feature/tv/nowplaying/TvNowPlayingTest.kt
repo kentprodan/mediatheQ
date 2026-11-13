@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -16,10 +17,14 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.pressKey
+import androidx.compose.ui.test.requestFocus
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.QualityKind
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
+import io.github.kentprodan.mediatheq.core.model.LyricLine
+import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -31,6 +36,7 @@ import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLyricsRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
@@ -60,6 +66,7 @@ class TvNowPlayingTest {
     private val playback = FakePlaybackConnection()
     private val library = FakeLibraryRepository()
     private val userData = FakeUserDataRepository()
+    private val lyrics = FakeLyricsRepository()
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
@@ -93,7 +100,7 @@ class TvNowPlayingTest {
     private fun TestScope.viewModel(): TvNowPlayingViewModel {
         library.tracks.value = listOf(track)
         playback.queue.value = queue
-        val viewModel = TvNowPlayingViewModel(playback, library, userData)
+        val viewModel = TvNowPlayingViewModel(playback, library, userData, lyrics)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -161,6 +168,101 @@ class TvNowPlayingTest {
             assertThat(stereo.quality?.kind).isEqualTo(QualityKind.HiResLossless)
             assertThat(stereo.atmosDecoded || stereo.atmosConverted).isFalse()
         }
+
+    @Test
+    fun `the playing track's lyrics are asked once per track, none and errors included`() =
+        test {
+            val synced = Lyrics(listOf(LyricLine("one", 0.seconds), LyricLine("two", 5.seconds)))
+            lyrics.lyrics[track.id] = synced
+            val viewModel = viewModel()
+            backgroundScope.launch { viewModel.lyrics.collect() }
+            runCurrent()
+            assertThat(viewModel.lyrics.value).isEqualTo(TvLyricsUiState.None)
+
+            playback.state.value = playing()
+            runCurrent()
+            assertThat(viewModel.lyrics.value).isEqualTo(TvLyricsUiState.Content(synced))
+
+            playback.state.value = playing(isPlaying = false)
+            runCurrent()
+            assertThat(lyrics.calls).containsExactly(track.id)
+
+            lyrics.failure = MqError.Network
+            playback.state.value = playing().copy(item = NowPlayingItem(id("u"), "Ghosts", "deadmau5"))
+            runCurrent()
+            assertThat(viewModel.lyrics.value).isEqualTo(TvLyricsUiState.Error)
+
+            lyrics.failure = null
+            playback.state.value = playing().copy(item = NowPlayingItem(id("v"), "FML", "deadmau5"))
+            runCurrent()
+            assertThat(viewModel.lyrics.value).isEqualTo(TvLyricsUiState.None)
+        }
+
+    @Test
+    fun `the Lyrics button opens the panel, Back from a line closes it and focus returns to the button`() {
+        val plain = Lyrics(listOf(LyricLine("first line"), LyricLine("second line")))
+        val playing =
+            TvNowPlayingUiState.Playing(title = "Strobe", artist = "deadmau5", isPlaying = true, duration = 10.minutes)
+        composeRule.setContent {
+            MediatheqTvTheme { TvNowPlayingScreen(playing, 6.seconds, {}, lyrics = TvLyricsUiState.Content(plain)) }
+        }
+        composeRule.onNodeWithText("second line").assertDoesNotExist()
+
+        composeRule.onNodeWithContentDescription("Lyrics").performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.onNodeWithText("second line").requestFocus()
+        composeRule.onNodeWithText("second line").assertIsFocused()
+
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.onNodeWithText("second line").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Lyrics").assertIsFocused()
+    }
+
+    @Test
+    fun `the panel stays while the next track's lyrics load, and a track without lyrics closes it`() {
+        val plain = Lyrics(listOf(LyricLine("first line")))
+        val playing = TvNowPlayingUiState.Playing(title = "Strobe", artist = "deadmau5", duration = 10.minutes)
+        var lyrics by mutableStateOf<TvLyricsUiState>(TvLyricsUiState.Content(plain))
+        composeRule.setContent {
+            MediatheqTvTheme { TvNowPlayingScreen(playing, 0.seconds, {}, lyrics = lyrics, lyricsOpen = true) }
+        }
+        composeRule.onNodeWithText("first line").requestFocus()
+
+        lyrics = TvLyricsUiState.Loading
+        composeRule.onNodeWithText("Up next").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Lyrics").assertIsFocused()
+
+        lyrics = TvLyricsUiState.None
+        composeRule.onNodeWithText("Up next").assertExists()
+    }
+
+    @Test
+    fun `after an error the Lyrics button asks again`() =
+        test {
+            lyrics.failure = MqError.Network
+            val viewModel = viewModel()
+            backgroundScope.launch { viewModel.lyrics.collect() }
+            playback.state.value = playing()
+            runCurrent()
+            assertThat(viewModel.lyrics.value).isEqualTo(TvLyricsUiState.Error)
+
+            lyrics.failure = null
+            viewModel.onAction(TvNowPlayingAction.RetryLyrics)
+            runCurrent()
+
+            assertThat(lyrics.calls).containsExactly(track.id, track.id)
+            assertThat(viewModel.lyrics.value).isEqualTo(TvLyricsUiState.None)
+        }
+
+    @Test
+    fun `without lyrics the button is off and the hint says why`() {
+        val playing = TvNowPlayingUiState.Playing(title = "Strobe", artist = "deadmau5", duration = 10.minutes)
+        composeRule.setContent {
+            MediatheqTvTheme { TvNowPlayingScreen(playing, 0.seconds, {}, lyrics = TvLyricsUiState.None) }
+        }
+
+        composeRule.onNodeWithContentDescription("Lyrics").assertIsNotEnabled()
+        composeRule.onNodeWithText("No lyrics for this song").assertExists()
+    }
 
     @Test
     fun `each control sends its command`() =
