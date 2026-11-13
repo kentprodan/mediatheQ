@@ -33,6 +33,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -164,11 +165,40 @@ class MainViewModelTest {
                 assertThat(awaitItem()).isFalse()
                 repository.session.value = SessionState.LoggedIn("Home", "Ana")
                 assertThat(awaitItem()).isTrue()
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.asksAppMode.test {
+                assertThat(awaitItem()).isTrue()
 
                 appMode.setMode(AppMode.Video)
 
                 assertThat(awaitItem()).isFalse()
             }
+        }
+
+    @Test
+    fun `the step shows although nothing watched it during onboarding`() =
+        runTest {
+            viewModel.session.test { cancelAndIgnoreRemainingEvents() }
+            runCurrent()
+            repository.session.value = SessionState.LoggedIn("Home", "Ana")
+
+            viewModel.asksAppMode.test { assertThat(expectMostRecentItem()).isTrue() }
+        }
+
+    @Test
+    fun `picking Video pauses the music playing`() =
+        runTest {
+            appMode.stored.value = AppMode.Both
+            playback.state.value = playback.state.value.copy(isPlaying = true)
+            viewModel.appMode
+            runCurrent()
+            assertThat(playback.commands).doesNotContain("togglePlayPause")
+
+            appMode.setMode(AppMode.Video)
+            runCurrent()
+
+            assertThat(playback.commands).contains("togglePlayPause")
         }
 
     @Test

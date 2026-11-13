@@ -99,7 +99,9 @@ class MainActivity : ComponentActivity() {
                                 return@LocalNetworkGate
                             }
                             val navigation by viewModel.navigation.collectAsStateWithLifecycle()
-                            val appMode by viewModel.appMode.collectAsStateWithLifecycle()
+                            // Read in a few milliseconds; nothing is drawn meanwhile, rather than the other mode's shell.
+                            val appMode =
+                                viewModel.appMode.collectAsStateWithLifecycle().value ?: return@LocalNetworkGate
                             val navigator =
                                 rememberTabNavigator(navigation.entriesFor(appMode).map(TopLevelTab::of))
                             val snackbar = remember { SnackbarHostState() }

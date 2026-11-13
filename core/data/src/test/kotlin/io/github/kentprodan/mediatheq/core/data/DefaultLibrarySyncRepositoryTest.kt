@@ -60,6 +60,7 @@ import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Test
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
@@ -1104,6 +1105,52 @@ class DefaultLibrarySyncRepositoryTest {
             repository.syncNewKinds(AppMode.Music)
 
             assertThat(source.calls).isEmpty()
+        }
+
+    @Test
+    fun `a music sync running when Video is picked is stopped, and only the videos are fetched`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            capabilities = ServerCapabilities(video = true)
+            signIn()
+            val repository = repository()
+            appMode.stored.value = AppMode.Music
+            source.holdAt = 2 // albums@0
+            val first = async { repository.sync() }
+            source.held.await()
+
+            appMode.stored.value = AppMode.Video
+            repository.syncNewKinds(AppMode.Video)
+
+            assertThat(first.await()).isInstanceOf(MqResult.Failure::class.java)
+            assertThat(source.calls.drop(2))
+                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500")
+                .inOrder()
+            assertThat(count("track")).isEqualTo(0)
+            assertThat(count("video")).isEqualTo(601)
+        }
+
+    @Test
+    fun `music left out of the mode for days is due again when the mode brings it back`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            capabilities = ServerCapabilities(video = true)
+            signIn()
+            val repository = repository()
+            repository.sync()
+            appMode.stored.value = AppMode.Video
+            clock.advanceBy(2.days)
+            repository.sync()
+            assertThat(repository.isDue("s" to "user-1")).isFalse()
+            source.calls.clear()
+
+            appMode.stored.value = AppMode.Both
+
+            assertThat(repository.isDue("s" to "user-1")).isTrue()
+            repository.syncNewKinds(AppMode.Both)
+            assertThat(source.calls.first()).isEqualTo("albumArtists@0")
         }
 }
 

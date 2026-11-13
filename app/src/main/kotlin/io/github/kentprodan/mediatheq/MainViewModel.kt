@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -80,18 +81,20 @@ class MainViewModel
         val session: StateFlow<SessionState?> =
             sessionRepository.session.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-        /** The app mode (ADR 0051): the shell's tabs, and in Video mode no Now Playing overlay or mini player. */
-        val appMode: StateFlow<AppMode> =
-            appModeRepository.mode.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppMode.Music)
+        /**
+         * The app mode (ADR 0051): the shell's tabs, and in Video mode no Now Playing overlay or mini player; `null` while
+         * it is read, so the first frame never shows the other mode's shell.
+         */
+        val appMode: StateFlow<AppMode?> =
+            appModeRepository.mode.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-        // Set once this process showed onboarding: an install upgraded while signed in is never asked (ADR 0051).
-        private var signedOutSeen = false
+        // Set once this process was signed out (onboarding showed): an install upgraded while signed in is never asked.
+        private val signedOutSeen = MutableStateFlow(false)
 
         /** The app mode step: after a sign-in here, until a mode is stored, and only on a server with video. */
         val asksAppMode: StateFlow<Boolean> =
-            combine(sessionRepository.session, appModeRepository.chosen) { session, chosen ->
-                if (session is SessionState.LoggedOut) signedOutSeen = true
-                appModeRepository.videoAvailable && signedOutSeen && !chosen && session is SessionState.LoggedIn
+            combine(sessionRepository.session, appModeRepository.chosen, signedOutSeen) { session, chosen, seen ->
+                appModeRepository.videoAvailable && seen && !chosen && session is SessionState.LoggedIn
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
         /** A favorite or rating the server refused (it was undone), for one app-wide message. */
@@ -114,6 +117,17 @@ class MainViewModel
         }
 
         init {
+            // Always on, not only while the shell collects asksAppMode: onboarding is what is shown while signed out.
+            viewModelScope.launch {
+                sessionRepository.session.first { it is SessionState.LoggedOut }
+                signedOutSeen.value = true
+            }
+            // Video mode has no music controls on screen (ADR 0051): music playing when it is picked pauses.
+            viewModelScope.launch {
+                appModeRepository.mode.drop(1).collect { mode ->
+                    if (!mode.music && playback.state.value.isPlaying) playback.togglePlayPause()
+                }
+            }
             viewModelScope.launch {
                 playback.state.slowStarts().collect { item ->
                     if (libraryPreferences.preferences
