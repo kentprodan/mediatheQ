@@ -20,6 +20,8 @@ composeBom = "2026.09.00"
 material3 = "1.5.0-beta01"
 screenshot = "0.0.1-alpha16"
 activityCompose = "1.13.0"
+# Compose for TV (ADR 0037): tv-material only, lists from Compose Foundation.
+tvMaterial = "1.1.0"
 coreKtx = "1.19.1"
 junit = "4.13.2"
 truth = "1.4.5"
@@ -50,6 +52,7 @@ androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstall
 androidx-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-tv-material = { module = "androidx.tv:tv-material", version.ref = "tvMaterial" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
@@ -125,6 +128,8 @@ mediatheq-android-application = { id = "mediatheq.android.application" }
 mediatheq-android-library = { id = "mediatheq.android.library" }
 mediatheq-android-library-compose = { id = "mediatheq.android.library.compose" }
 mediatheq-android-feature = { id = "mediatheq.android.feature" }
+mediatheq-android-feature-tv = { id = "mediatheq.android.feature.tv" }
+mediatheq-android-tv = { id = "mediatheq.android.tv" }
 mediatheq-jvm-library = { id = "mediatheq.jvm.library" }
 mediatheq-android-hilt = { id = "mediatheq.android.hilt" }
 mediatheq-android-test = { id = "mediatheq.android.test" }
