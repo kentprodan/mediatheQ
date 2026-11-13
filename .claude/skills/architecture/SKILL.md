@@ -69,7 +69,7 @@ Any change to this table = ADR in `docs/decisions/`.
 ```
 
 `:feature-tv:onboarding` server, Quick Connect first, password (ADR 0040); `:feature-tv:home` rows of the Home sections
-(#236); more `:feature-tv:*` come with TV 1.
+(#236); `:feature-tv:library` tabs of cover grids, genre and year pages (#237); more `:feature-tv:*` come with TV 1.
 
 Later phases add (do not create early): `:provider:subsonic`, `:provider:plex`, `:auto`, `:wear`.
 A module is created in the issue that first needs it, never "for later".
