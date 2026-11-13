@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,8 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
@@ -35,20 +32,15 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Surface
-import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.designsystem.tv.FocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
-import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
@@ -307,60 +299,22 @@ private fun CoverMenu(
     menu: Menu,
     onAction: (TvHomeAction) -> Unit,
     onDismiss: () -> Unit,
-) {
-    val first = remember { FocusRequester() }
-    // A long-press opens this while select is still held: its repeats and its release would press Play. Select counts
-    // only after a fresh press in the menu.
-    var armed by remember { mutableStateOf(false) }
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = MaterialTheme.shapes.large) {
-            Column(
-                Modifier
-                    .width(360.dp)
-                    .padding(16.dp)
-                    .onPreviewKeyEvent { event ->
-                        if (event.key !in SELECT_KEYS) return@onPreviewKeyEvent false
-                        if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) armed = true
-                        !armed
-                    },
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    menu.title,
-                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp).semantics { heading() },
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                )
-                MqTvListItem(
-                    stringResource(R.string.tv_home_play),
-                    {
-                        onAction(TvHomeAction.Play(menu.target))
-                        onDismiss()
-                    },
-                    Modifier.focusRequester(first),
-                    icon = MqTvIcons.Play,
-                )
-                MqTvListItem(
-                    stringResource(R.string.tv_home_shuffle),
-                    {
-                        onAction(TvHomeAction.Play(menu.target, shuffle = true))
-                        onDismiss()
-                    },
-                    icon = MqTvIcons.Shuffle,
-                )
-                MqTvListItem(
-                    stringResource(R.string.tv_home_add_to_queue),
-                    {
-                        onAction(TvHomeAction.AddToQueue(menu.target))
-                        onDismiss()
-                    },
-                    icon = MqTvIcons.Add,
-                )
-            }
-        }
-    }
-    LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
-}
+) = MqTvMenu(
+    menu.title,
+    listOf(
+        MqTvMenuEntry(
+            stringResource(R.string.tv_home_play),
+            MqTvIcons.Play,
+        ) { onAction(TvHomeAction.Play(menu.target)) },
+        MqTvMenuEntry(stringResource(R.string.tv_home_shuffle), MqTvIcons.Shuffle) {
+            onAction(TvHomeAction.Play(menu.target, shuffle = true))
+        },
+        MqTvMenuEntry(stringResource(R.string.tv_home_add_to_queue), MqTvIcons.Add) {
+            onAction(TvHomeAction.AddToQueue(menu.target))
+        },
+    ),
+    onDismiss,
+)
 
 /** A state without rows: a title, a line, the sync progress or a Sync now button. */
 @Composable
@@ -380,8 +334,6 @@ private fun Message(
 )
 
 private val EDGE = 48.dp
-
-private val SELECT_KEYS = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter)
 
 /** The focused card sits 30 % from the row's start; rows scroll under that fixed line (#236). */
 @OptIn(ExperimentalFoundationApi::class)

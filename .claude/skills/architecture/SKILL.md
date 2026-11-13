@@ -52,7 +52,7 @@ Any change to this table = ADR in `docs/decisions/`.
 :core:designsystem       MediatheqTheme + Mq* components (no domain types)
 :core:designsystem-tv    MediatheqTvTheme + MqTv* components, tv-material only (ADR 0037)
 :core:ui                 domain-aware shared composables (AlbumCard, TrackRow) = designsystem + model
-:core:ui-tv              domain-aware TV composables (MqTvAlbumCard, MqTvRowHeader) = designsystem-tv + model (#236)
+:core:ui-tv              domain-aware TV composables (MqTvAlbumCard, MqTvRowHeader, MqTvTrackRow, MqTvFormatBadge) = designsystem-tv + model (#236)
 :core:testing            fakes, MainDispatcherRule, fixtures, test helpers
 
 :feature:onboarding      server address, login, Quick Connect
@@ -69,7 +69,8 @@ Any change to this table = ADR in `docs/decisions/`.
 ```
 
 `:feature-tv:onboarding` server, Quick Connect first, password (ADR 0040); `:feature-tv:home` rows of the Home sections
-(#236); `:feature-tv:library` tabs of cover grids, genre and year pages (#237); more `:feature-tv:*` come with TV 1.
+(#236); `:feature-tv:library` tabs of cover grids, genre and year pages (#237); `:feature-tv:album` album and
+playlist pages (#238); more `:feature-tv:*` come with TV 1.
 
 Later phases add (do not create early): `:provider:subsonic`, `:provider:plex`, `:auto`, `:wear`.
 A module is created in the issue that first needs it, never "for later".

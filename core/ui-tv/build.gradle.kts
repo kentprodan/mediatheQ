@@ -12,6 +12,8 @@ android {
 dependencies {
     api(projects.core.designsystemTv)
     api(projects.core.model)
+    // Quality labels and durations, shared with the phone (ADR 0038).
+    api(projects.core.common)
     // Covers: an Artwork is the request's data; the app's image loader turns it into a URL (ArtworkInterceptor).
     implementation(libs.coil.compose)
 }

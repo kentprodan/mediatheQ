@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_album_play">Play</string>
+    <string name="tv_album_shuffle">Shuffle</string>
+    <string name="tv_album_resume">Resume</string>
+    <string name="tv_album_favorite">Favorite</string>
+    <string name="tv_album_favorited">Favorited</string>
+    <string name="tv_album_play_next">Play next</string>
+    <string name="tv_album_add_to_queue">Add to queue</string>
+    <string name="tv_album_add_favorite">Add to favorites</string>
+    <string name="tv_album_remove_favorite">Remove from favorites</string>
+    <string name="tv_album_disc">Disc %1$d</string>
+    <string name="tv_album_no_tracks">No tracks here yet.</string>
+    <string name="tv_album_not_found_title">Not on this server anymore</string>
+    <string name="tv_album_not_found_body">It may have been removed. Go back and pick another.</string>
+    <plurals name="tv_album_tracks">
+        <item quantity="one">%1$d track</item>
+        <item quantity="other">%1$d tracks</item>
+    </plurals>
+</resources>

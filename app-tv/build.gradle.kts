@@ -46,6 +46,7 @@ dependencies {
     implementation(projects.featureTv.onboarding)
     implementation(projects.featureTv.home)
     implementation(projects.featureTv.library)
+    implementation(projects.featureTv.album)
     // Covers through the app's OkHttp client (ADR 0013), like the phone.
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
