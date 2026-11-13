@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_home_syncing_title">Syncing your library…</string>
+    <string name="tv_home_syncing_body">The first sync can take a minute. Your music shows here when it is done.</string>
+    <string name="tv_home_syncing_progress">%1$d of %2$d</string>
+    <string name="tv_home_empty_title">Nothing here yet</string>
+    <string name="tv_home_empty_body">Your server has no music yet.</string>
+    <string name="tv_home_error_title">Couldn\'t load your library</string>
+    <string name="tv_home_error_body">Check that the server is on and reachable, then try again.</string>
+    <string name="tv_home_sync_now">Sync now</string>
+    <string name="tv_home_track_mix">Track mix</string>
+    <string name="tv_home_album_mix">Album mix</string>
+    <string name="tv_home_decade_mix">%1$ds mix</string>
+    <string name="tv_home_play">Play</string>
+    <string name="tv_home_shuffle">Shuffle</string>
+    <string name="tv_home_add_to_queue">Add to queue</string>
+</resources>

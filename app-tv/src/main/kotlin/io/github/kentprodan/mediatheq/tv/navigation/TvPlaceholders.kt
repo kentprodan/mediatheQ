@@ -15,16 +15,12 @@ import androidx.navigation3.runtime.NavKey
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
-import io.github.kentprodan.mediatheq.tv.PlaceholderScreen
 import io.github.kentprodan.mediatheq.tv.R
 
-/** The drawer's screens until their issues land (#236 Home, #237 Library, #244 Search, #240 Now playing, #243). */
+/** The drawer's screens until their issues land (#237 Library, #244 Search, #240 Now playing, #243 Settings). */
 fun EntryProviderScope<NavKey>.tvPlaceholderEntries() {
-    TvDestination.entries.forEach { destination ->
-        when (destination) {
-            TvDestination.Home -> entry(destination.key) { PlaceholderScreen() }
-            else -> entry(destination.key) { TvPlaceholder(stringResource(destination.label)) }
-        }
+    TvDestination.entries.filter { it != TvDestination.Home }.forEach { destination ->
+        entry(destination.key) { TvPlaceholder(stringResource(destination.label)) }
     }
 }
 

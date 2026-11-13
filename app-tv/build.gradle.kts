@@ -44,6 +44,10 @@ dependencies {
     implementation(projects.core.download)
     implementation(projects.provider.jellyfin)
     implementation(projects.featureTv.onboarding)
+    implementation(projects.featureTv.home)
+    // Covers through the app's OkHttp client (ADR 0013), like the phone.
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation3.ui)

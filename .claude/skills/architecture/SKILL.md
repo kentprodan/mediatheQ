@@ -52,6 +52,7 @@ Any change to this table = ADR in `docs/decisions/`.
 :core:designsystem       MediatheqTheme + Mq* components (no domain types)
 :core:designsystem-tv    MediatheqTvTheme + MqTv* components, tv-material only (ADR 0037)
 :core:ui                 domain-aware shared composables (AlbumCard, TrackRow) = designsystem + model
+:core:ui-tv              domain-aware TV composables (MqTvAlbumCard, MqTvRowHeader) = designsystem-tv + model (#236)
 :core:testing            fakes, MainDispatcherRule, fixtures, test helpers
 
 :feature:onboarding      server address, login, Quick Connect
@@ -67,9 +68,10 @@ Any change to this table = ADR in `docs/decisions/`.
 :feature:settings
 ```
 
-`:feature-tv:onboarding` server, Quick Connect first, password (ADR 0040); more `:feature-tv:*` come with TV 1.
+`:feature-tv:onboarding` server, Quick Connect first, password (ADR 0040); `:feature-tv:home` rows of the Home sections
+(#236); more `:feature-tv:*` come with TV 1.
 
-Later phases add (do not create early): `:provider:subsonic`, `:provider:plex`, `:core:ui-tv`, `:auto`, `:wear`.
+Later phases add (do not create early): `:provider:subsonic`, `:provider:plex`, `:auto`, `:wear`.
 A module is created in the issue that first needs it, never "for later".
 
 ## 2. Dependency rules (enforced, not suggested)
@@ -83,7 +85,7 @@ A module is created in the issue that first needs it, never "for later".
 :core:download  -> :core:model, :core:common, :core:data
 :provider:*     -> :core:model, :core:common, :core:server, :core:network
 :core:ui        -> :core:model, :core:common, :core:designsystem
-:app-tv / :feature-tv:* / :core:designsystem-tv -> never :core:designsystem, :core:ui, :feature:*,
+:app-tv / :feature-tv:* / :core:designsystem-tv / :core:ui-tv -> never :core:designsystem, :core:ui, :feature:*,
                    androidx.compose.material3 (ADR 0038; `checkTvDependencies` fails the build, plugin mediatheq.android.tv)
 :feature:* / :app -> never a TV module
 :core:common    -> :core:model

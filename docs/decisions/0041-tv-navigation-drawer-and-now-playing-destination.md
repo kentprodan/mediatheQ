@@ -40,7 +40,7 @@ mini player steals focus on a 10-foot UI and has no place to be "dragged" open.
   its restorer forgets the child. `FocusMemory` (`:core:designsystem-tv`) keeps the focused item's key in the screen's
   saved state; the screen calls `restore(first)` once when it opens.
 - The strip shows the play state, the title and (with the drawer open) the artist; the cover comes with Now Playing
-  (#240), which sets up image loading for the TV app.
+  (#240). Image loading for the TV app came with Home (#236): the same `ArtworkInterceptor` (now in `:core:data`).
 - `NowPlayingKey` is new in `:core:navigation`; the phone keeps its overlay.
 - A key with no TV screen is pushed like any detail page and shows a placeholder; the shell logs it once when it
   shows (not the `Navigator`). The drawer sends focus entering it to the selected entry (`focusProperties.onEnter`).
