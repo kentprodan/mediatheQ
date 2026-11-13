@@ -50,10 +50,10 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.designsystem.tv.FocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
-import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
-import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
+import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
+import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
@@ -130,13 +130,19 @@ private fun Content(
             }
         }
         if (state.albums.isNotEmpty()) {
-            item(key = "albums") { AlbumRow(stringResource(R.string.tv_artist_albums), "albums", state.albums, focus, onOpenAlbum) }
+            item(
+                key = "albums",
+            ) { AlbumRow(stringResource(R.string.tv_artist_albums), "albums", state.albums, focus, onOpenAlbum) }
         }
         if (state.appearsOn.isNotEmpty()) {
-            item(key = "appears") { AlbumRow(stringResource(R.string.tv_artist_appears_on), "appears", state.appearsOn, focus, onOpenAlbum) }
+            item(key = "appears") {
+                AlbumRow(stringResource(R.string.tv_artist_appears_on), "appears", state.appearsOn, focus, onOpenAlbum)
+            }
         }
         if (state.topTracks.isNotEmpty()) {
-            item(key = "top") { MqTvRowHeader(stringResource(R.string.tv_artist_top_tracks), Modifier.padding(horizontal = EDGE)) }
+            item(
+                key = "top",
+            ) { MqTvRowHeader(stringResource(R.string.tv_artist_top_tracks), Modifier.padding(horizontal = EDGE)) }
             itemsIndexed(state.topTracks, key = { _, track -> "top ${track.id}" }) { index, track ->
                 MqTvTrackRow(
                     track,
@@ -177,7 +183,12 @@ private fun Header(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                artist.overview?.takeIf { it.isNotBlank() }?.let { Biography(it, Modifier.focusMemory(focus, BIOGRAPHY)) }
+                artist.overview?.takeIf { it.isNotBlank() }?.let {
+                    Biography(
+                        it,
+                        Modifier.focusMemory(focus, BIOGRAPHY),
+                    )
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     val canPlay = state.tracks.isNotEmpty()
                     MqTvButton(
@@ -216,14 +227,19 @@ private fun Biography(
                 .widthIn(max = 640.dp)
                 .semantics { stateDescription = hint }
                 .onPreviewKeyEvent { event ->
-                    val step =
+                    val down =
                         when (event.key) {
-                            Key.DirectionDown -> if (scroll.canScrollForward) SCROLL_STEP else return@onPreviewKeyEvent false
-                            Key.DirectionUp -> if (scroll.canScrollBackward) -SCROLL_STEP else return@onPreviewKeyEvent false
+                            Key.DirectionDown -> true
+                            Key.DirectionUp -> false
                             else -> return@onPreviewKeyEvent false
                         }
-                    if (expanded && event.type == KeyEventType.KeyDown) scope.launch { scroll.animateScrollBy(step) }
-                    expanded
+                    // At the text's end (or start) the key moves focus on.
+                    val canScroll = if (down) scroll.canScrollForward else scroll.canScrollBackward
+                    if (!expanded || !canScroll) return@onPreviewKeyEvent false
+                    if (event.type == KeyEventType.KeyDown) {
+                        scope.launch { scroll.animateScrollBy(if (down) SCROLL_STEP else -SCROLL_STEP) }
+                    }
+                    true
                 },
         colors = ClickableSurfaceDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
         shape = ClickableSurfaceDefaults.shape(MaterialTheme.shapes.small),
