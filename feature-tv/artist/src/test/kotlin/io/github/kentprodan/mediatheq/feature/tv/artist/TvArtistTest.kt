@@ -2,6 +2,10 @@ package io.github.kentprodan.mediatheq.feature.tv.artist
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -158,6 +162,58 @@ class TvArtistTest {
         bio.assert(state("Select to show less"))
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
         bio.assert(state("Select to read more"))
+    }
+
+    @Test
+    fun `an open biography scrolls with Down until its end, then focus moves on`() {
+        val state = TvArtistUiState.Content(ada, listOf(new), emptyList(), tracks, emptyList())
+        composeRule.setContent { MediatheqTvTheme { TvArtistScreen(state, {}, {}) } }
+        composeRule.mainClock.advanceTimeBy(1_000)
+        val bio = composeRule.onNodeWithText("Born in a small town.", substring = true)
+        bio.performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
+
+        // A long text: the first Down scrolls it, focus stays.
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
+        composeRule.mainClock.advanceTimeBy(1_000)
+        bio.assertIsFocused()
+
+        repeat(40) {
+            composeRule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
+            composeRule.mainClock.advanceTimeBy(500)
+        }
+        composeRule.onNodeWithText("Play all").assertIsFocused()
+    }
+
+    @Test
+    fun `an artist without tracks starts on the biography`() {
+        val state = TvArtistUiState.Content(ada, emptyList(), emptyList(), emptyList(), emptyList())
+        composeRule.setContent { MediatheqTvTheme { TvArtistScreen(state, {}, {}) } }
+        composeRule.mainClock.advanceTimeBy(1_000)
+
+        composeRule.onNodeWithText("Born in a small town.", substring = true).assertIsFocused()
+    }
+
+    @Test
+    fun `coming back from an album, focus is on its card again`() {
+        val state = TvArtistUiState.Content(ada, listOf(new, old), listOf(guest), tracks, emptyList())
+        var shown by mutableStateOf(true)
+        composeRule.setContent {
+            val holder = rememberSaveableStateHolder()
+            MediatheqTvTheme {
+                // The artist entry leaves the composition while the album page shows, keeping its saved state.
+                if (shown) holder.SaveableStateProvider("artist") { TvArtistScreen(state, {}, {}) }
+            }
+        }
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.onNodeWithText("Guest spot", substring = true).performSemanticsAction(SemanticsActions.RequestFocus)
+
+        shown = false
+        composeRule.mainClock.advanceTimeBy(1_000)
+        shown = true
+        composeRule.mainClock.advanceTimeBy(1_000)
+
+        composeRule.onNodeWithText("Guest spot", substring = true).assertIsFocused()
     }
 
     private fun state(text: String) = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, text)

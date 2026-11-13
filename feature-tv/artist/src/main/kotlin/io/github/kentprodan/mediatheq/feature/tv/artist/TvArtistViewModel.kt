@@ -95,9 +95,10 @@ class TvArtistViewModel
                 TvArtistUiState.Content(
                     artist,
                     sorted,
-                    appearsOn,
+                    // The page settings can hide these sections, as on the phone.
+                    if (page.showAppearsOn) appearsOn else emptyList(),
                     ordered,
-                    playedTracks(ordered).take(page.topTracksCount),
+                    if (page.showTopTracks) playedTracks(ordered).take(page.topTracksCount) else emptyList(),
                     page.playAction,
                     current,
                 )

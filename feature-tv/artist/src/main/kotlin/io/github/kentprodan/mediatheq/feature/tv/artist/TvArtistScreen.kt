@@ -23,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -31,8 +30,6 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -51,7 +48,10 @@ import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
+import io.github.kentprodan.mediatheq.core.designsystem.tv.FocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
+import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
+import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
 import io.github.kentprodan.mediatheq.core.model.Album
@@ -112,13 +112,14 @@ private fun Content(
     onOpenAlbum: (MediaId) -> Unit,
     modifier: Modifier,
 ) {
-    val playAll = remember { FocusRequester() }
+    // Back from an album: the card that opened it; the first time Play all (the biography when nothing plays).
+    val focus = rememberFocusMemory()
     LazyColumn(
         modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 48.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        item(key = "header") { Header(state, onAction, playAll) }
+        item(key = "header") { Header(state, onAction, focus) }
         if (state.isEmpty) {
             item(key = "empty") {
                 Text(
@@ -129,18 +130,18 @@ private fun Content(
             }
         }
         if (state.albums.isNotEmpty()) {
-            item(key = "albums") { AlbumRow(stringResource(R.string.tv_artist_albums), state.albums, onOpenAlbum) }
+            item(key = "albums") { AlbumRow(stringResource(R.string.tv_artist_albums), "albums", state.albums, focus, onOpenAlbum) }
         }
         if (state.appearsOn.isNotEmpty()) {
-            item(key = "appears") { AlbumRow(stringResource(R.string.tv_artist_appears_on), state.appearsOn, onOpenAlbum) }
+            item(key = "appears") { AlbumRow(stringResource(R.string.tv_artist_appears_on), "appears", state.appearsOn, focus, onOpenAlbum) }
         }
         if (state.topTracks.isNotEmpty()) {
             item(key = "top") { MqTvRowHeader(stringResource(R.string.tv_artist_top_tracks), Modifier.padding(horizontal = EDGE)) }
-            itemsIndexed(state.topTracks, key = { i, _ -> "top $i" }) { index, track ->
+            itemsIndexed(state.topTracks, key = { _, track -> "top ${track.id}" }) { index, track ->
                 MqTvTrackRow(
                     track,
                     onClick = { onAction(TvArtistAction.PlayTopTrack(index)) },
-                    Modifier.padding(horizontal = EDGE),
+                    Modifier.padding(horizontal = EDGE).focusMemory(focus, "top/${track.id}"),
                     number = index + 1,
                     isPlaying = track.id == state.currentTrackId,
                 )
@@ -150,7 +151,7 @@ private fun Content(
     LaunchedEffect(Unit) {
         // The header is a lazy item, laid out after this effect starts.
         withFrameNanos {}
-        runCatching { playAll.requestFocus() }
+        focus.restore(if (state.tracks.isNotEmpty()) PLAY_ALL else BIOGRAPHY)
     }
 }
 
@@ -158,7 +159,7 @@ private fun Content(
 private fun Header(
     state: TvArtistUiState.Content,
     onAction: (TvArtistAction) -> Unit,
-    playAll: FocusRequester,
+    focus: FocusMemory,
 ) {
     val artist = state.artist
     MqTvBackdrop(artist.backdrop, Modifier.fillMaxWidth()) {
@@ -176,13 +177,13 @@ private fun Header(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                artist.overview?.takeIf { it.isNotBlank() }?.let { Biography(it) }
+                artist.overview?.takeIf { it.isNotBlank() }?.let { Biography(it, Modifier.focusMemory(focus, BIOGRAPHY)) }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     val canPlay = state.tracks.isNotEmpty()
                     MqTvButton(
                         stringResource(R.string.tv_artist_play_all),
                         { onAction(TvArtistAction.PlayAll) },
-                        Modifier.focusRequester(playAll),
+                        Modifier.focusMemory(focus, PLAY_ALL),
                         enabled = canPlay,
                         icon = MqTvIcons.Play,
                     )
@@ -200,7 +201,10 @@ private fun Header(
 
 /** The biography: three lines until select opens it; open, Up and Down scroll it before focus moves on. */
 @Composable
-private fun Biography(text: String) {
+private fun Biography(
+    text: String,
+    modifier: Modifier,
+) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
@@ -208,7 +212,7 @@ private fun Biography(text: String) {
     Surface(
         onClick = { expanded = !expanded },
         modifier =
-            Modifier
+            modifier
                 .widthIn(max = 640.dp)
                 .semantics { stateDescription = hint }
                 .onPreviewKeyEvent { event ->
@@ -239,7 +243,9 @@ private fun Biography(text: String) {
 @Composable
 private fun AlbumRow(
     title: String,
+    row: String,
     albums: List<Album>,
+    focus: FocusMemory,
     onOpenAlbum: (MediaId) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -254,6 +260,7 @@ private fun AlbumRow(
                     album.title,
                     album.artwork,
                     { onOpenAlbum(album.id) },
+                    Modifier.focusMemory(focus, "$row/${album.id}"),
                     subtitle = album.year?.toString(),
                 )
             }
@@ -264,3 +271,5 @@ private fun AlbumRow(
 private val EDGE = 48.dp
 private val PICTURE = 180.dp
 private const val SCROLL_STEP = 120f
+private const val PLAY_ALL = "play all"
+private const val BIOGRAPHY = "biography"
