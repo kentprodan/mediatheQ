@@ -279,10 +279,21 @@ private val SyncStep.text: Int
     get() =
         when (this) {
             SyncStep.AlbumArtists -> R.string.settings_sync_step_album_artists
+
             SyncStep.Albums -> R.string.settings_sync_step_albums
+
             SyncStep.Tracks -> R.string.settings_sync_step_tracks
+
             SyncStep.Playlists -> R.string.settings_sync_step_playlists
+
             SyncStep.PlaylistEntries -> R.string.settings_sync_step_playlist_entries
+
+            SyncStep.Movies -> R.string.settings_sync_step_movies
+
+            // Seasons are quick and part of a series: one step for the user.
+            SyncStep.Series, SyncStep.Seasons -> R.string.settings_sync_step_series
+
+            SyncStep.Episodes -> R.string.settings_sync_step_episodes
         }
 
 /** The error in words; Server and Client take their HTTP code as the argument. */

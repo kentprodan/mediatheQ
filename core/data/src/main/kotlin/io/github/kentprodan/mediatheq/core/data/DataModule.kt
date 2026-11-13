@@ -36,6 +36,9 @@ internal interface DataModule {
     fun libraryRepository(repository: DefaultLibraryRepository): LibraryRepository
 
     @Binds
+    fun videoRepository(repository: DefaultVideoRepository): VideoRepository
+
+    @Binds
     fun playbackRepository(repository: DefaultPlaybackRepository): PlaybackRepository
 
     @Binds

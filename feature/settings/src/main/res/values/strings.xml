@@ -621,6 +621,9 @@
     <string name="settings_sync_step_tracks">Tracks</string>
     <string name="settings_sync_step_playlists">Playlists</string>
     <string name="settings_sync_step_playlist_entries">Playlist tracks</string>
+    <string name="settings_sync_step_movies">Movies</string>
+    <string name="settings_sync_step_series">Series</string>
+    <string name="settings_sync_step_episodes">Episodes</string>
     <string name="settings_sync_error_network">server unreachable</string>
     <string name="settings_sync_error_unauthorized">signed out, sign in again</string>
     <string name="settings_sync_error_forbidden">access denied</string>

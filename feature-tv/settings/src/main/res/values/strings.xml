@@ -20,6 +20,9 @@
     <string name="tv_settings_step_albums">albums</string>
     <string name="tv_settings_step_tracks">tracks</string>
     <string name="tv_settings_step_playlists">playlists</string>
+    <string name="tv_settings_step_movies">movies</string>
+    <string name="tv_settings_step_series">series</string>
+    <string name="tv_settings_step_episodes">episodes</string>
     <string name="tv_settings_account">Account</string>
     <string name="tv_settings_sign_out">Sign out</string>
     <string name="tv_settings_sign_out_question">Sign out of %1$s?</string>

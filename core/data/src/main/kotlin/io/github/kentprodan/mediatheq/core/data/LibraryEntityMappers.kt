@@ -197,9 +197,9 @@ internal fun ArtistEntity.toDomain() =
         overview = overview,
     )
 
-private fun Artwork?.toColumns() = ImageColumns(this?.itemId, this?.tag, this?.blurHash)
+internal fun Artwork?.toColumns() = ImageColumns(this?.itemId, this?.tag, this?.blurHash)
 
-private fun ImageColumns.toDomain(type: ImageType = ImageType.Primary): Artwork? {
+internal fun ImageColumns.toDomain(type: ImageType = ImageType.Primary): Artwork? {
     val owner = itemId ?: return null
     return Artwork(owner, tag ?: return null, blurHash, type)
 }

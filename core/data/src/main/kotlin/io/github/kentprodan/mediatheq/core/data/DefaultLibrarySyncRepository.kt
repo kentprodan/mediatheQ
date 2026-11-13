@@ -14,16 +14,23 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistStaging
+import io.github.kentprodan.mediatheq.core.database.entity.SeasonStaging
+import io.github.kentprodan.mediatheq.core.database.entity.SeriesStaging
 import io.github.kentprodan.mediatheq.core.database.entity.SyncStateEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.datastore.StoredSyncRecord
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.server.LibraryPage
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
+import io.github.kentprodan.mediatheq.core.server.ServerCapabilities
 import io.github.kentprodan.mediatheq.core.server.ServerConnection
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import kotlinx.coroutines.CancellationException
@@ -69,6 +76,7 @@ class DefaultLibrarySyncRepository
         @param:ApplicationScope private val scope: CoroutineScope,
         private val userData: DefaultUserDataRepository,
         private val log: AppLog,
+        private val capabilities: ServerCapabilities,
     ) : LibrarySyncRepository {
         private val mutableStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle(null))
         override val status: StateFlow<SyncStatus> = mutableStatus.asStateFlow()
@@ -317,7 +325,32 @@ class DefaultLibrarySyncRepository
                 SyncStep.PlaylistEntries -> {
                     fetchPlaylistEntries(server, state, index)
                 }
+
+                SyncStep.Movies -> {
+                    stagePage(state, step, index, librarySource.movies(server, index, PAGE_SIZE)) { stageVideos(it) }
+                }
+
+                SyncStep.Series -> {
+                    stagePage(state, step, index, librarySource.series(server, index, PAGE_SIZE)) { series ->
+                        stageSeries(series.map { SeriesStaging(it.toEntity()) })
+                    }
+                }
+
+                SyncStep.Seasons -> {
+                    stagePage(state, step, index, librarySource.seasons(server, index, PAGE_SIZE)) { seasons ->
+                        stageSeasons(seasons.map { SeasonStaging(it.toEntity()) })
+                    }
+                }
+
+                SyncStep.Episodes -> {
+                    stagePage(state, step, index, librarySource.episodes(server, index, PAGE_SIZE)) { stageVideos(it) }
+                }
             }
+
+        private suspend fun SyncDao.stageVideos(videos: List<Video>) {
+            stageVideos(videos.map { VideoStaging(it.toEntity()) })
+            stageVideoStreams(videos.flatMap { it.streamRows() }.map(::VideoStreamStaging))
+        }
 
         /** Stages a fetched [page] with the checkpoint of the position after it. */
         private suspend fun <T> stagePage(
@@ -334,8 +367,9 @@ class DefaultLibrarySyncRepository
                 }
             val nextIndex = index + PAGE_SIZE
             var next = if (nextIndex < value.totalCount && value.items.isNotEmpty()) step to nextIndex else step.next()
-            syncDao.stagePage(state.at(next)) { write(value.items) }
-            if (next.first != step && stagedCount(step) < value.totalCount && restartedSteps.add(step)) {
+            // The last step keeps its checkpoint until the swap, so a failed swap resumes instead of fetching it all.
+            syncDao.stagePage(state.at(next ?: (step to nextIndex))) { write(value.items) }
+            if (next?.first != step && stagedCount(step) < value.totalCount && restartedSteps.add(step)) {
                 // Offsets shifted (an item added or removed mid-sync) and one slipped between pages: fetch it again.
                 next = step to 0
                 syncDao.stagePage(state.at(next)) { clearStaging(step) }
@@ -351,6 +385,10 @@ class DefaultLibrarySyncRepository
                 SyncStep.Tracks -> syncDao.stagedTrackCount()
                 SyncStep.Playlists -> syncDao.stagedPlaylistCount()
                 SyncStep.PlaylistEntries -> Int.MAX_VALUE
+                SyncStep.Movies -> syncDao.stagedVideoCount(VideoKind.Movie.name)
+                SyncStep.Series -> syncDao.stagedSeriesCount()
+                SyncStep.Seasons -> syncDao.stagedSeasonCount()
+                SyncStep.Episodes -> syncDao.stagedVideoCount(VideoKind.Episode.name)
             }
 
         private suspend fun SyncDao.clearStaging(step: SyncStep) {
@@ -379,6 +417,19 @@ class DefaultLibrarySyncRepository
                 SyncStep.PlaylistEntries -> {
                     clearPlaylistEntryStaging()
                 }
+
+                SyncStep.Movies, SyncStep.Episodes -> {
+                    clearVideoStaging(if (step == SyncStep.Movies) VideoKind.Movie.name else VideoKind.Episode.name)
+                    clearOrphanVideoStreamStaging()
+                }
+
+                SyncStep.Series -> {
+                    clearSeriesStaging()
+                }
+
+                SyncStep.Seasons -> {
+                    clearSeasonStaging()
+                }
             }
         }
 
@@ -390,8 +441,12 @@ class DefaultLibrarySyncRepository
         ): MqResult<Pair<SyncStep, Int>?> {
             val playlistIds = syncDao.stagedPlaylistIds()
             val playlistId = playlistIds.getOrNull(playlistIndex)?.let { MediaId(server.serverId, it) }
-            // Done: the checkpoint stays until the swap, so a failed swap resumes instead of fetching everything again.
-            if (playlistId == null) return MqResult.Success(null)
+            if (playlistId == null) {
+                val next = SyncStep.PlaylistEntries.next()
+                // Without video this is the last step: the checkpoint stays until the swap, so a failed swap resumes.
+                if (next != null) syncDao.stagePage(state.at(next)) {}
+                return MqResult.Success(next)
+            }
             val entries = mutableListOf<PlaylistEntryStaging>()
             var start = 0
             do {
@@ -425,7 +480,12 @@ class DefaultLibrarySyncRepository
         private fun SyncStateEntity.belongsTo(account: Pair<String, String>) =
             checkpointServerId == account.first && checkpointUserId == account.second
 
-        private fun SyncStep.next(): Pair<SyncStep, Int> = SyncStep.entries[ordinal + 1] to 0
+        /** The step after this one, `null` after the last; the video steps only when the server has video. */
+        private fun SyncStep.next(): Pair<SyncStep, Int>? {
+            val following = SyncStep.entries.getOrNull(ordinal + 1) ?: return null
+            if (following.ordinal >= SyncStep.Movies.ordinal && !capabilities.video) return null
+            return following to 0
+        }
 
         private companion object {
             const val TAG = "Sync"

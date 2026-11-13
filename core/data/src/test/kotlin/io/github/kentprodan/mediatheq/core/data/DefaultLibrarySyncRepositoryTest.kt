@@ -19,11 +19,18 @@ import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
+import io.github.kentprodan.mediatheq.core.model.Season
+import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
+import io.github.kentprodan.mediatheq.core.server.ServerCapabilities
 import io.github.kentprodan.mediatheq.core.testing.FakeAppLog
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
@@ -102,6 +109,9 @@ class DefaultLibrarySyncRepositoryTest {
 
     private val userDataSink = FakeUserDataSink()
 
+    /** Off for the music tests, whose call lists stop at the playlist entries. */
+    private var capabilities = ServerCapabilities(video = false)
+
     private fun userData(scope: CoroutineScope) =
         DefaultUserDataRepository(database.userDataDao(), userDataSink, accountStore, session, scope, AppLog.None)
 
@@ -115,6 +125,7 @@ class DefaultLibrarySyncRepositoryTest {
             scope,
             userData(scope),
             AppLog.None,
+            capabilities,
         )
 
     private suspend fun count(table: String) =
@@ -236,6 +247,7 @@ class DefaultLibrarySyncRepositoryTest {
                     backgroundScope,
                     userData(backgroundScope),
                     log,
+                    capabilities,
                 )
 
             repository.sync()
@@ -358,6 +370,7 @@ class DefaultLibrarySyncRepositoryTest {
                     backgroundScope,
                     userData(backgroundScope),
                     AppLog.None,
+                    capabilities,
                 )
             secondSource.albumArtists = source.albumArtists
             secondSource.albums = source.albums
@@ -435,6 +448,7 @@ class DefaultLibrarySyncRepositoryTest {
                     backgroundScope,
                     userData(backgroundScope),
                     AppLog.None,
+                    capabilities,
                 )
 
             assertThat(restarted.sync()).isEqualTo(MqResult.Success(Unit))
@@ -845,6 +859,7 @@ class DefaultLibrarySyncRepositoryTest {
                     backgroundScope,
                     userData(backgroundScope),
                     AppLog.None,
+                    capabilities,
                 )
             source.failAt = 3
             source.failure = MqError.Unauthorized
@@ -855,6 +870,90 @@ class DefaultLibrarySyncRepositoryTest {
             repository.status.first { it == SyncStatus.Idle(null) }
             assertThat(count("track_staging")).isEqualTo(0)
             assertThat(count("sync_state")).isEqualTo(0)
+        }
+
+    private fun fillVideos() {
+        val audio = MediaStreamInfo(1, StreamType.Audio, "eac3", "eng")
+        source.movies = listOf(Video(id("m1"), VideoKind.Movie, "Moșoi", streams = listOf(audio)))
+        source.series = listOf(Series(id("sr1"), "Show"))
+        source.seasons = listOf(Season(id("se1"), id("sr1"), "Season 1", 1))
+        source.episodes =
+            List(600) {
+                Video(id("e$it"), VideoKind.Episode, "Episode $it", seriesId = id("sr1"), seasonId = id("se1"))
+            }
+    }
+
+    @Test
+    fun `with video the sync fetches movies, series, seasons and episodes after the music and swaps them in`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            capabilities = ServerCapabilities(video = true)
+            signIn()
+
+            assertThat(repository().sync()).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(source.calls.dropWhile { !it.startsWith("movies") })
+                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500")
+                .inOrder()
+            assertThat(count("video")).isEqualTo(601)
+            assertThat(count("series")).isEqualTo(1)
+            assertThat(count("season")).isEqualTo(1)
+            assertThat(database.rows("SELECT video_id, codec FROM video_stream")).containsExactly(listOf("m1", "eac3"))
+            assertThat(database.videoDao().searchIds("mosoi")).containsExactly("m1")
+            assertThat(count("track")).isEqualTo(3)
+        }
+
+    @Test
+    fun `without video the sync never asks for videos`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            signIn()
+
+            assertThat(repository().sync()).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(source.calls.filter { it.startsWith("movies") || it.startsWith("episodes") }).isEmpty()
+            assertThat(count("video")).isEqualTo(0)
+        }
+
+    @Test
+    fun `a sync stopped in the episodes resumes there, and a second sync changes nothing`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            capabilities = ServerCapabilities(video = true)
+            signIn()
+            val repository = repository()
+            source.failAt = 11 // episodes@500, after 6 music calls, movies, series, seasons and episodes@0
+
+            assertThat(repository.sync()).isInstanceOf(MqResult.Failure::class.java)
+            source.calls.clear()
+            source.failAt = null
+            assertThat(repository.sync()).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(source.calls).containsExactly("episodes@500")
+            assertThat(count("video")).isEqualTo(601)
+            val before = database.rows("SELECT id, title FROM video ORDER BY id")
+            assertThat(repository.sync()).isEqualTo(MqResult.Success(Unit))
+            assertThat(database.rows("SELECT id, title FROM video ORDER BY id")).isEqualTo(before)
+        }
+
+    @Test
+    fun `an episode lost between pages is fetched again from the start of its step`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            capabilities = ServerCapabilities(video = true)
+            source.shortListings = setOf("episodes")
+            signIn()
+
+            assertThat(repository().sync()).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(source.calls.filter { it.startsWith("episodes") })
+                .containsExactly("episodes@0", "episodes@500", "episodes@0", "episodes@500")
+                .inOrder()
+            assertThat(count("video")).isEqualTo(601)
         }
 }
 
@@ -867,6 +966,10 @@ private val STAGING_TABLES =
         "track_artist_staging",
         "playlist_staging",
         "playlist_entry_staging",
+        "video_staging",
+        "video_stream_staging",
+        "series_staging",
+        "season_staging",
     )
 
 /** Every library table a sign-out empties (issue #51). */
@@ -880,6 +983,10 @@ private val ALL_TABLES =
             "track_artist",
             "playlist",
             "playlist_entry",
+            "video",
+            "video_stream",
+            "series",
+            "season",
             "search",
             "sync_state",
         )
