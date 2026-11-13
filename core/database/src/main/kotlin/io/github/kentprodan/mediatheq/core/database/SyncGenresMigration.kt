@@ -49,3 +49,8 @@ class SyncAlbumPageMigration : ResyncMigration(STAGING_8)
 
 /** 9 -> 10 (#133): artists have no backdrop or biography yet. */
 class SyncArtistPageMigration : ResyncMigration(STAGING_8)
+
+private val STAGING_12 = STAGING_8 + listOf("series_staging", "season_staging", "video_staging", "video_stream_staging")
+
+/** 11 -> 12 (#270): the library has no videos yet. */
+class SyncVideoMigration : ResyncMigration(STAGING_12)

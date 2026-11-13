@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
 import io.github.kentprodan.mediatheq.core.database.dao.ResumeDao
 import io.github.kentprodan.mediatheq.core.database.dao.SyncDao
 import io.github.kentprodan.mediatheq.core.database.dao.UserDataDao
+import io.github.kentprodan.mediatheq.core.database.dao.VideoDao
 import io.github.kentprodan.mediatheq.core.database.dao.WaveformDao
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumArtistStaging
@@ -32,6 +33,10 @@ import io.github.kentprodan.mediatheq.core.database.entity.PlaylistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.QueueEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.QueueStateEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SearchEntity
+import io.github.kentprodan.mediatheq.core.database.entity.SeasonEntity
+import io.github.kentprodan.mediatheq.core.database.entity.SeasonStaging
+import io.github.kentprodan.mediatheq.core.database.entity.SeriesEntity
+import io.github.kentprodan.mediatheq.core.database.entity.SeriesStaging
 import io.github.kentprodan.mediatheq.core.database.entity.SyncStateEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
@@ -39,11 +44,15 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
+import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamEntity
+import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
 import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 11,
+    version = 12,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -74,6 +83,14 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AlbumLabelStaging::class,
         AlbumResumeEntity::class,
         PlaylistResumeEntity::class,
+        SeriesEntity::class,
+        SeasonEntity::class,
+        VideoEntity::class,
+        VideoStreamEntity::class,
+        SeriesStaging::class,
+        SeasonStaging::class,
+        VideoStaging::class,
+        VideoStreamStaging::class,
     ],
     autoMigrations = [
         // 2: the saved play queue (#14) and an index on track.album_id.
@@ -96,6 +113,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 9, to = 10, spec = SyncArtistPageMigration::class),
         // 11: where each playlist was left, and the playlist a queue entry was played from (#135); no resync.
         AutoMigration(from = 10, to = 11),
+        // 12: movies, series, seasons, episodes and their streams (#270, ADR 0048); the next start syncs them.
+        AutoMigration(from = 11, to = 12, spec = SyncVideoMigration::class),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {
@@ -114,4 +133,6 @@ abstract class MediatheqDatabase : RoomDatabase() {
     abstract fun waveformDao(): WaveformDao
 
     abstract fun resumeDao(): ResumeDao
+
+    abstract fun videoDao(): VideoDao
 }

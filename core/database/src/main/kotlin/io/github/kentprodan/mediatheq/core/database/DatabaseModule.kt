@@ -17,6 +17,7 @@ import io.github.kentprodan.mediatheq.core.database.dao.QueueDao
 import io.github.kentprodan.mediatheq.core.database.dao.ResumeDao
 import io.github.kentprodan.mediatheq.core.database.dao.SyncDao
 import io.github.kentprodan.mediatheq.core.database.dao.UserDataDao
+import io.github.kentprodan.mediatheq.core.database.dao.VideoDao
 import io.github.kentprodan.mediatheq.core.database.dao.WaveformDao
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Singleton
@@ -71,4 +72,7 @@ object DatabaseModule {
 
     @Provides
     fun resumeDao(database: MediatheqDatabase): ResumeDao = database.resumeDao()
+
+    @Provides
+    fun videoDao(database: MediatheqDatabase): VideoDao = database.videoDao()
 }
