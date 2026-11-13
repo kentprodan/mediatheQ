@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   mediatheQ app icon (#264), foreground layer: a Q drawn as a record ring with three level bars inside, its tail a
-  rounded play triangle. Everything stays inside the 66 dp safe zone of the 108 dp adaptive icon.
+  rounded play triangle. Everything, strokes included, stays inside the 66 dp safe zone (radius 33 around 54,54) of the 108 dp
+  adaptive icon: the tail's tip reaches 30.3.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -22,7 +23,7 @@
     <!-- The tail: a play triangle with rounded corners, pointing out to the bottom right. -->
     <path
         android:fillColor="#FFFF8BC1"
-        android:pathData="M58,72L72,58L77,77Z"
+        android:pathData="M57,70L70,57L74,74Z"
         android:strokeWidth="4"
         android:strokeColor="#FFFF8BC1"
         android:strokeLineJoin="round" />

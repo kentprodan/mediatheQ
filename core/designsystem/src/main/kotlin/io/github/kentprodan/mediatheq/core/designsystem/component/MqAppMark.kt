@@ -10,6 +10,7 @@ import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import io.github.kentprodan.mediatheq.core.designsystem.R
@@ -23,12 +24,17 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 @Composable
 fun MqAppMark(modifier: Modifier = Modifier) {
     Box(modifier.size(MediatheqSizes.appMark).clip(MaterialShapes.Sunny.toShape())) {
+        // A launcher shows the middle 72 of the icon's 108 dp: the same here, so the Q is as big as on the home screen.
+        val launcherView = Modifier.fillMaxSize().scale(ICON_SIZE / VISIBLE_SIZE)
         Image(
             painterResource(R.drawable.mq_app_icon_background),
             contentDescription = null,
-            Modifier.fillMaxSize(),
+            launcherView,
             contentScale = ContentScale.Crop,
         )
-        Image(painterResource(R.drawable.mq_app_icon_foreground), contentDescription = null, Modifier.fillMaxSize())
+        Image(painterResource(R.drawable.mq_app_icon_foreground), contentDescription = null, launcherView)
     }
 }
+
+private const val ICON_SIZE = 108f
+private const val VISIBLE_SIZE = 72f
