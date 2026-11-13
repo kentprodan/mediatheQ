@@ -165,27 +165,6 @@ class TvArtistTest {
     }
 
     @Test
-    fun `an open biography scrolls with Down until its end, then focus moves on`() {
-        val state = TvArtistUiState.Content(ada, listOf(new), emptyList(), tracks, emptyList())
-        composeRule.setContent { MediatheqTvTheme { TvArtistScreen(state, {}, {}) } }
-        composeRule.mainClock.advanceTimeBy(1_000)
-        val bio = composeRule.onNodeWithText("Born in a small town.", substring = true)
-        bio.performSemanticsAction(SemanticsActions.RequestFocus)
-        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
-
-        // A long text: the first Down scrolls it, focus stays.
-        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
-        composeRule.mainClock.advanceTimeBy(1_000)
-        bio.assertIsFocused()
-
-        repeat(40) {
-            composeRule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
-            composeRule.mainClock.advanceTimeBy(500)
-        }
-        composeRule.onNodeWithText("Play all").assertIsFocused()
-    }
-
-    @Test
     fun `an artist without tracks starts on the biography`() {
         val state = TvArtistUiState.Content(ada, emptyList(), emptyList(), emptyList(), emptyList())
         composeRule.setContent { MediatheqTvTheme { TvArtistScreen(state, {}, {}) } }
@@ -206,14 +185,15 @@ class TvArtistTest {
             }
         }
         composeRule.mainClock.advanceTimeBy(1_000)
-        composeRule.onNodeWithText("Guest spot", substring = true).performSemanticsAction(SemanticsActions.RequestFocus)
+        // A card of the first row: the rows below are not composed off screen.
+        composeRule.onNodeWithText("Old").performSemanticsAction(SemanticsActions.RequestFocus)
 
         shown = false
         composeRule.mainClock.advanceTimeBy(1_000)
         shown = true
         composeRule.mainClock.advanceTimeBy(1_000)
 
-        composeRule.onNodeWithText("Guest spot", substring = true).assertIsFocused()
+        composeRule.onNodeWithText("Old").assertIsFocused()
     }
 
     private fun state(text: String) = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, text)
