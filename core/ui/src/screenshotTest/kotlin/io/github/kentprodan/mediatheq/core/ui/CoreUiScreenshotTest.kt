@@ -1,6 +1,8 @@
 package io.github.kentprodan.mediatheq.core.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -13,6 +15,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
@@ -24,6 +28,7 @@ import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
+import kotlin.time.Duration.Companion.minutes
 
 /** Track rows: with number, long title and artists (ellipsized, over an hour), without number. */
 @PreviewTest
@@ -287,6 +292,33 @@ fun PosterCardsScreenshot() {
                 Row(horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m)) {
                     MqPosterCard("Dark", "2017", null, {}, card, unplayedCount = 12, coverModel = cover)
                     MqPosterCard("A very long title that does not fit", null, null, {}, card)
+                }
+            }
+        }
+    }
+}
+
+/** The video controls (ADR 0049) on a dark frame: playing, paused, and buffering before the stream can seek. */
+@PreviewTest
+@Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
+@Composable
+fun MqVideoControlsScreenshot() {
+    MediatheqTheme {
+        Column {
+            listOf(true to false, false to false, true to true).forEach { (isPlaying, isBuffering) ->
+                Box(Modifier.weight(1f).background(Color(0xFF1B2430))) {
+                    MqVideoControls(
+                        title = "Pilot",
+                        subtitle = "Show · S2 E4",
+                        isPlaying = isPlaying,
+                        isBuffering = isBuffering,
+                        position = 12.minutes,
+                        duration = 44.minutes,
+                        isSeekable = !isBuffering,
+                        onPlayPause = {},
+                        onSeek = {},
+                        onBack = {},
+                    )
                 }
             }
         }

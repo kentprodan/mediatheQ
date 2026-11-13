@@ -16,5 +16,11 @@
     <string name="video_error_title">Could not read the library</string>
     <string name="video_error_body">Try again after the next sync.</string>
     <string name="video_coming_title">Playing videos comes soon</string>
-    <string name="video_coming_body">This page and the player come in a later update.</string>
+    <string name="video_coming_body">The full page with its details comes in a later update.</string>
+    <string name="video_player_toggle_controls">Show or hide the controls</string>
+    <string name="video_player_error_title">This video cannot play</string>
+    <string name="video_player_error_body">The server could not send it. Check the connection and try again.</string>
+    <string name="video_player_not_found_body">It is no longer in the library.</string>
+    <string name="video_play">Play</string>
+    <string name="video_resume">Resume</string>
 </resources>

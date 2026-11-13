@@ -25,6 +25,7 @@ import io.github.kentprodan.mediatheq.core.navigation.MoviesKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
 import io.github.kentprodan.mediatheq.core.navigation.SeriesListKey
+import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 
 internal val MovieTexts =
     VideoGridTexts(
@@ -35,7 +36,10 @@ internal val MovieTexts =
 internal val SeriesTexts =
     VideoGridTexts(R.string.video_series, R.string.video_series_empty_title, R.string.video_empty_body) { MqIcons.Tv }
 
-/** Registers the Movies and Series grids (#270) and, until #273, placeholder pages for a movie and a series. */
+/**
+ * Registers the Movies and Series grids (#270), the video player (#272) and, until #273, placeholder pages for a movie
+ * (with Play) and a series.
+ */
 fun EntryProviderScope<NavKey>.videoEntry(navigator: Navigator) {
     entry<MoviesKey> {
         val viewModel: MoviesViewModel = hiltViewModel()
@@ -53,7 +57,14 @@ fun EntryProviderScope<NavKey>.videoEntry(navigator: Navigator) {
             navigator::back,
         )
     }
-    entry<MovieKey> { ComingSoon(navigator::back) }
+    entry<MovieKey> { key ->
+        MoviePlaceholderRoute(
+            key.id,
+            onPlay = { navigator.navigateTo(VideoPlayerKey(key.id, it.inWholeMilliseconds)) },
+            onBack = navigator::back,
+        )
+    }
+    entry<VideoPlayerKey> { key -> VideoPlayerRoute(key, navigator::back) }
     entry<SeriesKey> { ComingSoon(navigator::back) }
 }
 

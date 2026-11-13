@@ -6,3 +6,8 @@ plugins {
 android {
     namespace = "io.github.kentprodan.mediatheq.feature.video"
 }
+
+dependencies {
+    // The player's window: back, orientation and system bars (ADR 0049).
+    implementation(libs.androidx.activity.compose)
+}

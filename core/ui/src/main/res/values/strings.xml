@@ -110,4 +110,9 @@
     <string name="core_ui_app_mode_music_description">Albums, artists, playlists and tracks. Nothing of the videos shows.</string>
     <string name="core_ui_app_mode_video_description">Movies and series. Nothing of the music shows, and the music queue waits for your return.</string>
     <string name="core_ui_app_mode_both_description">All the music, with movies and series next to it.</string>
+    <string name="core_ui_video_close">Close the player</string>
+    <string name="core_ui_video_play">Play</string>
+    <string name="core_ui_video_pause">Pause</string>
+    <string name="core_ui_video_back_10">Back 10 seconds</string>
+    <string name="core_ui_video_forward_10">Forward 10 seconds</string>
 </resources>

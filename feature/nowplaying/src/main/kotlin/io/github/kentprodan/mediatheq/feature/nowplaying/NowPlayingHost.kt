@@ -61,6 +61,7 @@ import io.github.kentprodan.mediatheq.core.navigation.AddToPlaylistKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
 import io.github.kentprodan.mediatheq.core.navigation.OutputKey
+import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -79,6 +80,8 @@ fun NowPlayingHost(
     onNavigate: (NavKey) -> Unit = {},
     /** Advanced settings -> Keep screen on (#137): Always, or While Now Playing is open. */
     keepScreenOn: KeepScreenOn = KeepScreenOn.Off,
+    /** Video mode (ADR 0051): only a playing video shows, as the mini player; music never does. */
+    videoOnly: Boolean = false,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     NowPlayingLayout(
@@ -92,6 +95,7 @@ fun NowPlayingHost(
         autoExpand = viewModel.autoExpand.collectAsStateWithLifecycle().value,
         onNavigate = onNavigate,
         keepScreenOn = keepScreenOn,
+        videoOnly = videoOnly,
     )
 }
 
@@ -115,6 +119,8 @@ fun NowPlayingLayout(
     onNavigate: (NavKey) -> Unit = {},
     /** Advanced settings -> Keep screen on (#137): Always, or only while the full player is open. */
     keepScreenOn: KeepScreenOn = KeepScreenOn.Off,
+    /** Video mode (ADR 0051): only a playing video shows, as the mini player; music never does. */
+    videoOnly: Boolean = false,
 ) {
     var expanded by rememberSaveable { mutableStateOf(expandedInitially) }
     LaunchedEffect(autoExpand) {
@@ -129,9 +135,11 @@ fun NowPlayingLayout(
     var last by remember { mutableStateOf(state as? NowPlayingUiState.Playing) }
     LaunchedEffect(state) {
         if (state is NowPlayingUiState.Playing) last = state else expanded = false
+        // A video plays full screen on its own page (ADR 0049): the music player folds away.
+        if ((state as? NowPlayingUiState.Playing)?.isVideo == true) expanded = false
     }
     val shown = state as? NowPlayingUiState.Playing ?: last
-    val isPlaying = state is NowPlayingUiState.Playing
+    val isPlaying = state is NowPlayingUiState.Playing && (!videoOnly || state.isVideo)
     val cache = remember { CoverColorCache() }
     val artwork = shown?.artwork
     val coverScheme = rememberCoverColorScheme(artwork?.let { "${it.itemId}:${it.tag}" }, artwork, cache)
@@ -188,7 +196,14 @@ fun NowPlayingLayout(
                                             hasNext = playing.hasNext,
                                             onPlayPause = { onAction(NowPlayingAction.TogglePlayPause) },
                                             onNext = { onAction(NowPlayingAction.Next) },
-                                            onOpen = { expanded = true },
+                                            onOpen = {
+                                                val video = playing.trackId?.takeIf { playing.isVideo }
+                                                if (video != null) {
+                                                    onNavigate(VideoPlayerKey(video, attach = true))
+                                                } else {
+                                                    expanded = true
+                                                }
+                                            },
                                             modifier =
                                                 Modifier
                                                     .then(

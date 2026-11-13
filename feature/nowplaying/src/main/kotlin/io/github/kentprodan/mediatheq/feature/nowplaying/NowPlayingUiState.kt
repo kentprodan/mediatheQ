@@ -54,6 +54,8 @@ sealed interface NowPlayingUiState {
         val lyricsShown: Boolean = false,
         /** The playing track, for Add to playlist. */
         val trackId: MediaId? = null,
+        /** A movie or an episode (ADR 0049): the mini player opens the video player, never the full player. */
+        val isVideo: Boolean = false,
         /** Settings -> Now playing screens (#126): mini player and Now Playing looks and gestures. */
         val settings: NowPlayingPreferences = NowPlayingPreferences(),
         /** "3 / 12" near the title (Advanced settings, #137); `null` when off or not in the queue. */
