@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.kentprodan.mediatheq.core.common.licenseEntries
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

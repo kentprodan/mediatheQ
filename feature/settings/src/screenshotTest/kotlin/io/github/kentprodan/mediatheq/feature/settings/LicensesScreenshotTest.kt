@@ -2,6 +2,8 @@ package io.github.kentprodan.mediatheq.feature.settings
 
 import androidx.compose.runtime.Composable
 import com.android.tools.screenshot.PreviewTest
+import io.github.kentprodan.mediatheq.core.common.APP_ENTRY
+import io.github.kentprodan.mediatheq.core.common.LicenseEntry
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 

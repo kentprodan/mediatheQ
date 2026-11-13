@@ -10,6 +10,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.APP_ENTRY
+import io.github.kentprodan.mediatheq.core.common.LicenseEntry
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import org.junit.Rule
 import org.junit.Test

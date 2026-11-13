@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.settings
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.licenseEntries
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch

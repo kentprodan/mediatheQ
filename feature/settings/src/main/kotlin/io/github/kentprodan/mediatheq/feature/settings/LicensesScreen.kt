@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.kentprodan.mediatheq.core.common.LicenseEntry
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing

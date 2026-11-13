@@ -1,13 +1,28 @@
-package io.github.kentprodan.mediatheq.feature.settings
+package io.github.kentprodan.mediatheq.core.common
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+
+/** One entry of the open-source licenses (#70; shared by the phone and the TV, #243): the app, a copied asset or a library it ships. */
+data class LicenseEntry(
+    val id: String,
+    val name: String,
+    /** The version, or what the entry is ("Icons"); `null` when unknown. */
+    val detail: String?,
+    val licenseName: String,
+    /** The license's full text; `null` when there is none (a trademark). */
+    val licenseText: String?,
+    /** The project's page, or the source for the app itself. */
+    val url: String?,
+    /** The library's NOTICE file, shown with its license (Apache-2.0 section 4(d), #87); most have none. */
+    val notice: String? = null,
+)
 
 /** The app's license id in the build's report, which carries its full text (from LICENSE). */
 private const val APP_LICENSE = "GPL-3.0-or-later"
 
 /** The app itself, first in the list (ADR 0001); the full GPL text follows its notice in [licenseEntries]. */
-internal val APP_ENTRY =
+val APP_ENTRY =
     LicenseEntry(
         id = "mediatheq",
         name = "mediatheQ",
@@ -24,7 +39,7 @@ internal val APP_ENTRY =
     )
 
 /** Code and assets copied into the repository; keep in step with `THIRD_PARTY.md` (a test checks it). */
-internal data class CopiedAsset(
+data class CopiedAsset(
     val id: String,
     val name: String,
     val detail: String,
@@ -34,7 +49,7 @@ internal data class CopiedAsset(
     val url: String,
 )
 
-internal val COPIED_ASSETS =
+val COPIED_ASSETS =
     listOf(
         CopiedAsset(
             "material-symbols",
@@ -58,7 +73,7 @@ internal val COPIED_ASSETS =
  * The licenses list: the app, then the copied assets, then every library of the build's report (AboutLibraries JSON,
  * ADR 0022) by name, each with its NOTICE from [noticesJson] (`{"group:name": text}`, #87) when it has one.
  */
-internal fun licenseEntries(
+fun licenseEntries(
     reportJson: String,
     noticesJson: String,
 ): List<LicenseEntry> {
