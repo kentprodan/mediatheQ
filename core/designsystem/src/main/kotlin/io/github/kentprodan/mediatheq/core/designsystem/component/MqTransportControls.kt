@@ -45,6 +45,8 @@ fun MqTransportControls(
     modifier: Modifier = Modifier,
     leading: @Composable () -> Unit = {},
     trailing: @Composable () -> Unit = {},
+    /** One size down also when the width fits: a short window (a phone held sideways, #190). */
+    compact: Boolean = false,
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         leading()
@@ -53,7 +55,16 @@ fun MqTransportControls(
                 IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Uniform).width * 2 +
                     IconButtonDefaults.largeContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide).width +
                     MediatheqSpacing.s * 2
-            TransportGroup(isPlaying, hasPrevious, hasNext, onPrevious, onPlayPause, onNext, compact = maxWidth < full)
+            TransportGroup(
+                isPlaying,
+                hasPrevious,
+                hasNext,
+                onPrevious,
+                onPlayPause,
+                onNext,
+                compact =
+                    compact || maxWidth < full,
+            )
         }
         trailing()
     }

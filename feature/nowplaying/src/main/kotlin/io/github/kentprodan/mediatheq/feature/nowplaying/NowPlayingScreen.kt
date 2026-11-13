@@ -109,7 +109,8 @@ data class NowPlayingNavigation(
 /**
  * The full player (#125), on a gradient from the (cover) theme's primary container to its surface. Portrait: cover (or
  * lyrics in its place), title block, waveform with times and quality, rating, controls, bottom bar. Landscape (wider
- * than tall): the cover square on the left, the rest scrolling on the right. Swiping down or the close button returns
+ * than tall): the cover square on the left, the rest on the right, fitting a phone without scrolling (#190; it scrolls
+ * only at the largest sizes). Swiping down or the close button returns
  * to the mini player. [position] is read only by the seek bar and the lyrics, so position ticks recompose nothing else.
  */
 @Composable
@@ -158,8 +159,10 @@ fun NowPlayingScreen(
             val coverSquare: @Composable (Modifier) -> Unit = { square ->
                 CoverOrLyrics(state, lyrics, position, onAction, cover, coverModifier, square)
             }
-            // Read here: inside Row / Column the window size is out of scope.
-            val showRatingInLandscape = maxHeight >= MediatheqSizes.playerRatingMinHeight
+            // Read here: inside Row / Column the window size is out of scope. A phone held sideways (#190) keeps the
+            // title, the seek bar and the controls on screen: no stars, no album line (Go to album is in the menu),
+            // the transport one size down.
+            val tallLandscape = maxHeight >= MediatheqSizes.playerRatingMinHeight
             if (maxWidth > maxHeight) {
                 Row(
                     Modifier.fillMaxSize().padding(vertical = MediatheqSpacing.l),
@@ -169,11 +172,17 @@ fun NowPlayingScreen(
                     coverSquare(Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true))
                     Column(
                         Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.m, Alignment.CenterVertically),
+                        verticalArrangement =
+                            Arrangement.spacedBy(
+                                if (tallLandscape) MediatheqSpacing.m else MediatheqSpacing.s,
+                                Alignment.CenterVertically,
+                            ),
                     ) {
                         // Sideways a phone is short: the bottom bar's buttons share the close button's row.
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            CollapseButton(onCollapse, Modifier.weight(1f))
+                            CollapseButton(onCollapse, Modifier)
+                            // Short: the track number moves up here from above the title.
+                            Box(Modifier.weight(1f)) { if (!tallLandscape) TrackNumber(state) }
                             BottomBarButtons(state, onAction, navigation)
                         }
                         // A phone held sideways has no room for the stars; a tablet has.
@@ -182,7 +191,10 @@ fun NowPlayingScreen(
                             position,
                             onAction,
                             navigation,
-                            showRating = showRatingInLandscape,
+                            showRating = tallLandscape,
+                            showAlbum = tallLandscape,
+                            showTrackNumber = tallLandscape,
+                            compactControls = !tallLandscape,
                             bottomBar = false,
                         )
                     }
@@ -213,9 +225,12 @@ private fun ColumnScope.PlayerDetails(
     onAction: (NowPlayingAction) -> Unit,
     navigation: NowPlayingNavigation,
     showRating: Boolean,
+    showAlbum: Boolean = true,
+    showTrackNumber: Boolean = true,
+    compactControls: Boolean = false,
     bottomBar: Boolean = true,
 ) {
-    TitleBlock(state, onAction, navigation)
+    TitleBlock(state, onAction, navigation, showAlbum, showTrackNumber)
     SeekSection(state, position, onAction)
     if (showRating && state.showsRating) {
         MqStarRating(
@@ -225,12 +240,26 @@ private fun ColumnScope.PlayerDetails(
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
     }
-    Controls(state, onAction)
+    Controls(state, onAction, compactControls)
     if (bottomBar) {
         Row(
             Modifier.fillMaxWidth().padding(bottom = MediatheqSpacing.s),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) { BottomBarButtons(state, onAction, navigation) }
+    }
+}
+
+/** "3 / 12": the track's place in the queue, when shown (#125). */
+@Composable
+private fun TrackNumber(state: NowPlayingUiState.Playing) {
+    state.trackNumber?.let { (number, count) ->
+        val spoken = stringResource(R.string.nowplaying_track_number_spoken, number, count)
+        Text(
+            stringResource(R.string.nowplaying_track_number, number, count),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.semantics { contentDescription = spoken },
+        )
     }
 }
 
@@ -333,19 +362,13 @@ private fun TitleBlock(
     state: NowPlayingUiState.Playing,
     onAction: (NowPlayingAction) -> Unit,
     navigation: NowPlayingNavigation,
+    showAlbum: Boolean,
+    showTrackNumber: Boolean,
 ) {
     val colors = MaterialTheme.colorScheme
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            state.trackNumber?.let { (number, count) ->
-                val spoken = stringResource(R.string.nowplaying_track_number_spoken, number, count)
-                Text(
-                    stringResource(R.string.nowplaying_track_number, number, count),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = colors.onSurfaceVariant,
-                    modifier = Modifier.semantics { contentDescription = spoken },
-                )
-            }
+            if (showTrackNumber) TrackNumber(state)
             Text(
                 state.title,
                 style = MaterialTheme.typography.headlineSmallEmphasized,
@@ -358,7 +381,8 @@ private fun TitleBlock(
                 overflow = TextOverflow.Ellipsis,
             )
             ArtistsLine(state, navigation)
-            state.albumTitle?.let { album ->
+            // Without an album page to go to (not in the library yet) the line stays: the menu could not show it.
+            state.albumTitle?.takeIf { showAlbum || state.albumId == null }?.let { album ->
                 val albumId = state.albumId
                 val openAlbum = stringResource(R.string.nowplaying_open_album)
                 Text(
@@ -520,6 +544,7 @@ internal fun QualityLabelButton(
 private fun Controls(
     state: NowPlayingUiState.Playing,
     onAction: (NowPlayingAction) -> Unit,
+    compact: Boolean,
 ) {
     // The mode shown is the one cycled from, so quick taps step through every mode.
     val nextRepeat = state.repeatMode.next()
@@ -531,6 +556,7 @@ private fun Controls(
         onPlayPause = { onAction(NowPlayingAction.TogglePlayPause) },
         onNext = { onAction(NowPlayingAction.Next) },
         modifier = Modifier.fillMaxWidth(),
+        compact = compact,
         leading = {
             MqIconToggle(
                 checked = state.repeatMode != RepeatMode.Off,
