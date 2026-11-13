@@ -36,7 +36,7 @@ fun MqTvAlbumCard(
 
 /** The [artwork] filling its box, over a tinted [placeholder] icon that shows until (or instead of) the image. */
 @Composable
-private fun MqTvCover(
+fun MqTvCover(
     artwork: Artwork?,
     placeholder: ImageVector,
     modifier: Modifier = Modifier,
