@@ -77,3 +77,13 @@ What the platform and Media3 offer (read 2026-11-11):
   holds for the normal setup only.
 - The retry after a failed passthrough AudioTrack follows what the last opened track was, not the current mode: a
   route change is often decided before the write error arrives.
+
+## Amendment (2026-11-13, #242)
+
+- Stream requests use the route's passthrough set only while the output's switch is on: with the switch off, Atmos
+  tracks follow the quality setting like any other track (owner decision).
+- "No bitrate cap" is sent as the explicit large cap (1000000000) the app always sends, not an absent
+  `MaxStreamingBitrate`: Jellyfin replaces a missing value with its own lower default.
+- JOC on a route that takes only plain E-AC-3: the profile does not declare `eac3` (rule 3 asks for JOC), so the
+  server converts it to stereo with the note, although `AudioPolicy` would pass a direct-played JOC file through as
+  the 5.1 core. Kept: no such route in the owner's chain; revisit if one appears.
