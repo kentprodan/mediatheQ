@@ -396,4 +396,28 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `13 to 14 adds an empty track choice table and keeps the library`() =
+        runTest {
+            helper.createDatabase(13).apply {
+                execSQL(
+                    "INSERT INTO track (server_id, id, title, sort_name, duration_ms, is_favorite, play_count, " +
+                        "played) VALUES ('s', 't1', 'Moșoi', 'Mosoi', 1000, 0, 0, 0)",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(14)
+
+            connection.prepare("SELECT COUNT(*) FROM track").use {
+                it.step()
+                assertThat(it.getLong(0)).isEqualTo(1)
+            }
+            connection.prepare("SELECT COUNT(*) FROM video_track_choice").use {
+                it.step()
+                assertThat(it.getLong(0)).isEqualTo(0)
+            }
+            connection.close()
+        }
 }

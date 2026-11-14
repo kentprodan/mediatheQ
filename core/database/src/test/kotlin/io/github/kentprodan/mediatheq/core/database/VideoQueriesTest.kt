@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoTrackChoiceEntity
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -233,5 +234,21 @@ class VideoQueriesTest {
             assertThat(dao.seriesEpisodes("sr9", true, emptyList()).first().map { it.id })
                 .containsExactly("s1e2", "s2e1", "special", "loose")
                 .inOrder()
+        }
+
+    @Test
+    fun `a track choice is kept across a sync and forgotten on sign-out`() =
+        runTest {
+            dao.saveTrackChoice(VideoTrackChoiceEntity("s", "se1", subtitleLanguage = "rum"))
+            dao.saveTrackChoice(VideoTrackChoiceEntity("s", "e1", audioIndex = 2, subtitleOff = true))
+            syncDao.swap(5, "s", "u")
+
+            assertThat(dao.trackChoice("s", "se1").first()?.subtitleLanguage).isEqualTo("rum")
+            assertThat(dao.trackChoice("s", "e1").first()?.subtitleOff).isTrue()
+            dao.clearTrackChoice("s", "e1")
+            assertThat(dao.trackChoice("s", "e1").first()).isNull()
+
+            syncDao.clearAll()
+            assertThat(dao.trackChoice("s", "se1").first()).isNull()
         }
 }

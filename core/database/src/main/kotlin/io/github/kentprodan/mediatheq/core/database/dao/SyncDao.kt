@@ -229,7 +229,7 @@ interface SyncDao {
 
     /**
      * Forgets the whole library: live tables, staging, search index, sync state, the saved queue and unsent favorite or
-     * rating changes and the waveforms (sign-out).
+     * rating changes, the waveforms and the chosen video tracks (sign-out).
      */
     @Transaction
     suspend fun clearAll() {
@@ -250,6 +250,7 @@ interface SyncDao {
         clearState()
         clearAlbumResume()
         clearPlaylistResume()
+        clearTrackChoices()
         clearQueueEntries()
         clearQueueState()
         clearWaveforms()
@@ -260,6 +261,9 @@ interface SyncDao {
 
     @Query("DELETE FROM album_resume")
     suspend fun clearAlbumResume()
+
+    @Query("DELETE FROM video_track_choice")
+    suspend fun clearTrackChoices()
 
     @Query("DELETE FROM playlist_resume")
     suspend fun clearPlaylistResume()
