@@ -9,4 +9,7 @@
     <string name="tv_coming_soon">Coming in a next version of the TV app.</string>
     <string name="tv_playing">Playing</string>
     <string name="tv_paused">Paused</string>
+    <string name="tv_close_title">Close mediatheQ?</string>
+    <string name="tv_close">Close</string>
+    <string name="tv_close_cancel">Cancel</string>
 </resources>
