@@ -62,4 +62,7 @@
     <string name="video_skipped_preview">Skipped preview</string>
     <string name="video_skipped_commercial">Skipped ad</string>
     <string name="video_chapter_number">Chapter %1$d</string>
+    <string name="video_pip_play">Play</string>
+    <string name="video_pip_pause">Pause</string>
+    <string name="video_pip_next">Next episode</string>
 </resources>
