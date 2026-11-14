@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakeTrackChoiceRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.collect
@@ -32,11 +33,13 @@ class VideoPlayerViewModelTest {
     private val movie = Video(id, VideoKind.Movie, "Moșoi", year = 2019, duration = 90.minutes)
     private val videos = FakeVideoRepository().apply { movies.value = listOf(movie) }
     private val playback = FakePlaybackConnection()
+    private val choices = FakeTrackChoiceRepository()
+    private val picker = TrackPicker(videos, choices)
 
     private fun TestScope.viewModel(
         key: VideoPlayerKey = VideoPlayerKey(id, startPositionMs = 60_000),
     ): VideoPlayerViewModel =
-        VideoPlayerViewModel(key, videos, playback).also { vm ->
+        VideoPlayerViewModel(key, videos, playback, picker).also { vm ->
             backgroundScope.launch { vm.uiState.collect() }
             runCurrent()
         }
@@ -183,7 +186,7 @@ class VideoPlayerViewModelTest {
             runCurrent()
             assertThat(viewModel.uiState.value).isInstanceOf(VideoPlayerUiState.Error::class.java)
 
-            val gone = VideoPlayerViewModel(VideoPlayerKey(MediaId(ServerId("s"), "gone")), videos, playback)
+            val gone = VideoPlayerViewModel(VideoPlayerKey(MediaId(ServerId("s"), "gone")), videos, playback, picker)
             backgroundScope.launch { gone.uiState.collect() }
             runCurrent()
             assertThat(gone.uiState.value).isEqualTo(VideoPlayerUiState.Error(MqError.NotFound))

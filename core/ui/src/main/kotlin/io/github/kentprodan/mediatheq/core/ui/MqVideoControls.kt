@@ -60,6 +60,8 @@ fun MqVideoControls(
     onSeek: (Duration) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Opens the audio and subtitles sheet (#274); `null` hides the button. */
+    onTracks: (() -> Unit)? = null,
 ) {
     val skipBack = stringResource(R.string.core_ui_video_back_10)
     val skipForward = stringResource(R.string.core_ui_video_forward_10)
@@ -80,6 +82,7 @@ fun MqVideoControls(
             skipBack,
             skipForward,
             modifier,
+            onTracks,
         )
     }
 }
@@ -100,6 +103,7 @@ private fun VideoControlsContent(
     skipBack: String,
     skipForward: String,
     modifier: Modifier,
+    onTracks: (() -> Unit)?,
 ) {
     Box(
         modifier
@@ -121,6 +125,11 @@ private fun VideoControlsContent(
                     )
                     subtitle?.let {
                         Text(it, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.8f))
+                    }
+                }
+                onTracks?.let {
+                    IconButton(onClick = it) {
+                        Icon(MqIcons.Subtitles, stringResource(R.string.core_ui_tracks_open), tint = Color.White)
                     }
                 }
             }

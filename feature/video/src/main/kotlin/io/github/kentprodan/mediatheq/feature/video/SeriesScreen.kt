@@ -44,6 +44,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.MqEpisodeRow
+import io.github.kentprodan.mediatheq.core.ui.MqTracksSheet
 import kotlin.time.Duration
 
 @Composable
@@ -89,6 +90,15 @@ private fun SeriesContent(
     onAction: (SeriesAction) -> Unit,
     onPlay: (MediaId, Duration) -> Unit,
 ) {
+    state.tracksOf?.let { (_, tracks) ->
+        MqTracksSheet(
+            tracks.sheet(stringResource(R.string.video_tracks_off), stringResource(R.string.video_track)),
+            onAudio = { onAction(SeriesAction.ChooseAudio(it)) },
+            onSubtitle = { onAction(SeriesAction.ChooseSubtitle(it)) },
+            onWholeSeason = { onAction(SeriesAction.WholeSeason(it)) },
+            onDismiss = { onAction(SeriesAction.CloseTracks) },
+        )
+    }
     val series = state.series
     val play = { episode: Video -> onPlay(episode.id, episode.resumePosition()) }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.xl)) {
@@ -176,6 +186,7 @@ private fun SeriesContent(
                     episode,
                     onPlay = { play(episode) },
                     onPlayFromStart = { onPlay(episode.id, Duration.ZERO) },
+                    onTracks = { onAction(SeriesAction.OpenTracks(episode)) },
                 ) {
                     onAction(SeriesAction.ToggleWatched(episode))
                 }
@@ -190,6 +201,7 @@ private fun EpisodeWithMenu(
     episode: Video,
     onPlay: () -> Unit,
     onPlayFromStart: () -> Unit,
+    onTracks: () -> Unit,
     onToggleWatched: () -> Unit,
 ) {
     var menu by rememberSaveable { mutableStateOf(false) }
@@ -204,6 +216,13 @@ private fun EpisodeWithMenu(
                     onClick = {
                         menu = false
                         onPlayFromStart()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.video_tracks_open)) },
+                    onClick = {
+                        menu = false
+                        onTracks()
                     },
                 )
                 DropdownMenuItem(

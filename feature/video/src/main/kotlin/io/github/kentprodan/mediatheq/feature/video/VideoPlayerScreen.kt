@@ -16,8 +16,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,6 +38,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
+import io.github.kentprodan.mediatheq.core.ui.MqSubtitles
+import io.github.kentprodan.mediatheq.core.ui.MqTracksSheet
 import io.github.kentprodan.mediatheq.core.ui.MqVideoControls
 import io.github.kentprodan.mediatheq.core.ui.MqVideoSurface
 import kotlin.time.Duration
@@ -66,7 +70,12 @@ internal fun VideoPlayerRoute(
     BackHandler(onBack = leave)
     // The video ended and the music came back (ADR 0047): back to the page that opened it.
     LaunchedEffect(state) { if (state == VideoPlayerUiState.Ended) onBack() }
-    VideoPlayerScreen(state, position, viewModel::onAction, leave) { MqVideoSurface(player, Modifier.fillMaxSize()) }
+    VideoPlayerScreen(state, position, viewModel::onAction, leave) {
+        Box(Modifier.fillMaxSize()) {
+            MqVideoSurface(player, Modifier.fillMaxSize())
+            MqSubtitles(player, Modifier.fillMaxSize())
+        }
+    }
 }
 
 /** Landscape for a [wide] video and no system bars; the window as it was on leave. */
@@ -101,6 +110,7 @@ fun VideoPlayerScreen(
     surface: @Composable () -> Unit,
 ) {
     val toggleLabel = stringResource(R.string.video_player_toggle_controls)
+    var tracksOpen by rememberSaveable { mutableStateOf(false) }
     val keepOn = (state as? VideoPlayerUiState.Playing)?.isPlaying == true
     Box(
         Modifier
@@ -152,6 +162,17 @@ fun VideoPlayerScreen(
                         onPlayPause = { onAction(VideoPlayerAction.TogglePlayPause) },
                         onSeek = { onAction(VideoPlayerAction.SeekTo(it)) },
                         onBack = onBack,
+                        onTracks = state.tracks?.let { { tracksOpen = true } },
+                    )
+                }
+                val tracks = state.tracks
+                if (tracksOpen && tracks != null) {
+                    MqTracksSheet(
+                        tracks.sheet(stringResource(R.string.video_tracks_off), stringResource(R.string.video_track)),
+                        onAudio = { onAction(VideoPlayerAction.ChooseAudio(it)) },
+                        onSubtitle = { onAction(VideoPlayerAction.ChooseSubtitle(it)) },
+                        onWholeSeason = { onAction(VideoPlayerAction.WholeSeason(it)) },
+                        onDismiss = { tracksOpen = false },
                     )
                 }
             }
