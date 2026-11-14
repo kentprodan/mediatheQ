@@ -1,0 +1,53 @@
+{
+  "Items": [
+    {
+      "Id": "cc4b4fdb31a8af38cfcb812d79ad565c",
+      "Name": "Moșoi",
+      "Type": "Movie",
+      "RunTimeTicks": 54000000000,
+      "Chapters": [
+        {
+          "StartPositionTicks": 0,
+          "Name": "Opening",
+          "ImageDateModified": "2026-11-01T10:00:00.0000000Z",
+          "ImageTag": "a1b2"
+        },
+        {
+          "StartPositionTicks": 6000000000,
+          "Name": "The village",
+          "ImageDateModified": "2026-11-01T10:00:00.0000000Z",
+          "ImageTag": "c3d4"
+        },
+        {
+          "StartPositionTicks": 30000000000,
+          "Name": null,
+          "ImageDateModified": "0001-01-01T00:00:00.0000000Z"
+        }
+      ],
+      "Trickplay": {
+        "cc4b4fdb31a8af38cfcb812d79ad565c": {
+          "320": {
+            "Width": 320,
+            "Height": 180,
+            "TileWidth": 10,
+            "TileHeight": 10,
+            "ThumbnailCount": 540,
+            "Interval": 10000,
+            "Bandwidth": 12345
+          },
+          "640": {
+            "Width": 640,
+            "Height": 360,
+            "TileWidth": 10,
+            "TileHeight": 10,
+            "ThumbnailCount": 540,
+            "Interval": 10000,
+            "Bandwidth": 45678
+          }
+        }
+      }
+    }
+  ],
+  "TotalRecordCount": 1,
+  "StartIndex": 0
+}

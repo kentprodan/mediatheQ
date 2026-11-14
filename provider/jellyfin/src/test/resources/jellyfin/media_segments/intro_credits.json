@@ -1,0 +1,27 @@
+{
+  "Items": [
+    {
+      "Id": "8f1c2e5a-1111-4c3b-9a55-2d3f4e5a6b7c",
+      "ItemId": "cc4b4fdb-31a8-af38-cfcb-812d79ad565c",
+      "Type": "Intro",
+      "StartTicks": 450000000,
+      "EndTicks": 1350000000
+    },
+    {
+      "Id": "8f1c2e5a-2222-4c3b-9a55-2d3f4e5a6b7c",
+      "ItemId": "cc4b4fdb-31a8-af38-cfcb-812d79ad565c",
+      "Type": "Outro",
+      "StartTicks": 24600000000,
+      "EndTicks": 26400000000
+    },
+    {
+      "Id": "8f1c2e5a-3333-4c3b-9a55-2d3f4e5a6b7c",
+      "ItemId": "cc4b4fdb-31a8-af38-cfcb-812d79ad565c",
+      "Type": "Unknown",
+      "StartTicks": 0,
+      "EndTicks": 10
+    }
+  ],
+  "TotalRecordCount": 3,
+  "StartIndex": 0
+}

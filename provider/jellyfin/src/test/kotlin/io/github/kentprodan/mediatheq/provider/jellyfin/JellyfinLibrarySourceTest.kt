@@ -8,6 +8,8 @@ import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
+import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.VideoFormat
@@ -28,6 +30,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 /**
@@ -526,5 +529,60 @@ class JellyfinLibrarySourceTest {
             assertThat(movie.playbackPosition).isEqualTo(20.minutes)
             assertThat(movie.playedPercentage).isEqualTo(20.4)
             assertThat(resume.getValue(MediaId(serverId, "dd5c5fec42b9b049dfdc923e80be676d")).isFavorite).isTrue()
+        }
+
+    private fun enqueueFixture(path: String) =
+        mockServer.enqueue(MockResponse(body = javaClass.getResource("/jellyfin/$path")!!.readText()))
+
+    @Test
+    fun `R27 chapters and trickplay come with one item query, the tiles closest to 320 px`() =
+        runTest {
+            enqueueFixture("items/chapters_trickplay.json")
+            val id = MediaId(serverId, "cc4b4fdb31a8af38cfcb812d79ad565c")
+
+            val extras = (source.playerExtras(server, id) as MqResult.Success).value
+
+            val request = mockServer.takeRequest()
+            assertThat(request.url.encodedPath).isEqualTo("/Items")
+            assertThat(request.url.queryParameter("ids")).isEqualTo(id.itemId)
+            assertThat(request.url.queryParameter("fields")).isEqualTo("Chapters,Trickplay")
+            assertThat(extras.chapters.map { it.start }).containsExactly(0.minutes, 10.minutes, 50.minutes).inOrder()
+            assertThat(extras.chapters[1].name).isEqualTo("The village")
+            assertThat(extras.chapters[2].imageTag).isNull()
+            val tiles = extras.trickplay!!
+            assertThat(tiles.width).isEqualTo(320)
+            assertThat(tiles.tileWidth * tiles.tileHeight).isEqualTo(100)
+            assertThat(tiles.interval).isEqualTo(10.seconds)
+            val url = source.trickplayTileUrl("http://nas:8096", id, tiles, 3)
+            assertThat(url).isEqualTo(
+                "http://nas:8096/Videos/${id.itemId}/Trickplay/320/3.jpg?mediaSourceId=cc4b4fdb31a8af38cfcb812d79ad565c",
+            )
+            assertThat(url.lowercase()).doesNotContain("apikey")
+            assertThat(source.chapterImageUrl("http://nas:8096", id, extras.chapters[1], 400))
+                .isEqualTo("http://nas:8096/Items/${id.itemId}/Images/Chapter/1?tag=c3d4&maxWidth=400")
+            assertThat(source.chapterImageUrl("http://nas:8096", id, extras.chapters[2], 400)).isNull()
+        }
+
+    @Test
+    fun `R28 segments come from MediaSegments, the plugin's credits as Outro, unknown types dropped`() =
+        runTest {
+            enqueueFixture("media_segments/intro_credits.json")
+            enqueueFixture("media_segments/none.json")
+            val id = MediaId(serverId, "cc4b4fdb31a8af38cfcb812d79ad565c")
+
+            val segments = (source.segments(server, id) as MqResult.Success).value
+            val none = (source.segments(server, id) as MqResult.Success).value
+
+            val request = mockServer.takeRequest()
+            assertThat(request.url.encodedPath).isEqualTo("/MediaSegments/${id.itemId}")
+            assertThat(
+                request.url.queryParameter("includeSegmentTypes"),
+            ).isEqualTo("Intro,Recap,Preview,Commercial,Outro")
+            assertThat(segments)
+                .containsExactly(
+                    MediaSegment(SegmentType.Intro, 45.seconds, 135.seconds),
+                    MediaSegment(SegmentType.Outro, 41.minutes, 44.minutes),
+                ).inOrder()
+            assertThat(none).isEmpty()
         }
 }

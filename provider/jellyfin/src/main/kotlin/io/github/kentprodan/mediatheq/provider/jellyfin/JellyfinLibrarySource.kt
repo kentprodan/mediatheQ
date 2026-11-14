@@ -6,13 +6,18 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.Chapter
 import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
 import io.github.kentprodan.mediatheq.core.model.Season
+import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.TrickplayInfo
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
@@ -21,7 +26,9 @@ import io.github.kentprodan.mediatheq.core.server.LibraryPage
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.BaseItemDto
+import io.github.kentprodan.mediatheq.provider.jellyfin.dto.MediaSegmentsDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.QueryResultDto
+import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.ticksToDuration
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toAlbum
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toArtist
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toDomain
@@ -36,6 +43,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * [LibrarySource] for Jellyfin 12. Jellyfin 12.2 silently ignores unknown query values (R8), so every query shape here
@@ -145,6 +153,98 @@ class JellyfinLibrarySource internal constructor(
             result.items
                 .mapNotNull { item -> item.id?.let { MediaId(server.serverId, it) to item.userData.toDomain() } }
                 .toMap()
+        }
+
+    // R27 (#277): chapters and trickplay come with the item, one request; the tile width closest to 320 px.
+    override suspend fun playerExtras(
+        server: SignedInServer,
+        videoId: MediaId,
+    ): MqResult<PlayerExtras> =
+        http.get(
+            server.connection,
+            "Items",
+            QueryResultDto.serializer(),
+            listOf("userId" to server.userId, "ids" to videoId.itemId, "fields" to "Chapters,Trickplay"),
+        ) { result ->
+            val item = result.items.firstOrNull()
+            PlayerExtras(
+                chapters =
+                    item?.chapters.orEmpty().mapIndexed { index, chapter ->
+                        Chapter(index, ticksToDuration(chapter.startPositionTicks), chapter.name, chapter.imageTag)
+                    },
+                trickplay =
+                    item?.trickplay?.entries?.firstOrNull()?.let { (source, widths) ->
+                        widths.values
+                            .filter { it.width > 0 && it.tileWidth > 0 && it.tileHeight > 0 }
+                            .minByOrNull { kotlin.math.abs(it.width - TRICKPLAY_WIDTH) }
+                            ?.let {
+                                TrickplayInfo(
+                                    source,
+                                    it.width,
+                                    it.height,
+                                    it.tileWidth,
+                                    it.tileHeight,
+                                    it.thumbnailCount,
+                                    it.interval.milliseconds,
+                                )
+                            }
+                    },
+            )
+        }
+
+    // R28 (#277): Jellyfin's own media segments (Intro Skipper writes there; its credits are Outro), not plugin routes.
+    override suspend fun segments(
+        server: SignedInServer,
+        videoId: MediaId,
+    ): MqResult<List<MediaSegment>> =
+        http.get(
+            server.connection,
+            "MediaSegments/${videoId.itemId}",
+            MediaSegmentsDto.serializer(),
+            listOf("includeSegmentTypes" to "Intro,Recap,Preview,Commercial,Outro"),
+        ) { result ->
+            result.items.mapNotNull { segment ->
+                val type = SegmentType.entries.firstOrNull { it.name == segment.type } ?: return@mapNotNull null
+                MediaSegment(type, ticksToDuration(segment.startTicks), ticksToDuration(segment.endTicks))
+                    .takeIf { it.end > it.start }
+            }
+        }
+
+    override fun trickplayTileUrl(
+        baseUrl: String,
+        videoId: MediaId,
+        trickplay: TrickplayInfo,
+        index: Int,
+    ): String =
+        baseUrl
+            .toHttpUrl()
+            .newBuilder()
+            .addPathSegment("Videos")
+            .addPathSegment(videoId.itemId)
+            .addPathSegment("Trickplay")
+            .addPathSegment(trickplay.width.toString())
+            .addPathSegment("$index.jpg")
+            .addQueryParameter("mediaSourceId", trickplay.mediaSourceId)
+            .build()
+            .toString()
+
+    override fun chapterImageUrl(
+        baseUrl: String,
+        videoId: MediaId,
+        chapter: Chapter,
+        widthPx: Int,
+    ): String? =
+        chapter.imageTag?.let { tag ->
+            baseUrl
+                .toHttpUrl()
+                .newBuilder()
+                .addPathSegment("Items")
+                .addPathSegment(videoId.itemId)
+                .addPathSegments("Images/Chapter/${chapter.index}")
+                .addQueryParameter("tag", tag)
+                .addQueryParameter("maxWidth", widthPx.toString())
+                .build()
+                .toString()
         }
 
     /** One query shape for the four video kinds (ADR 0048); backdrops come only when asked for (R21). */
@@ -275,3 +375,6 @@ class JellyfinLibrarySource internal constructor(
         const val VIDEO_FIELDS = "MediaSources,Overview,Genres,Studios,DateCreated,SortName,Taglines"
     }
 }
+
+/** The trickplay width asked for (#277): about 100 KB a tile, enough for a preview bubble. */
+private const val TRICKPLAY_WIDTH = 320
