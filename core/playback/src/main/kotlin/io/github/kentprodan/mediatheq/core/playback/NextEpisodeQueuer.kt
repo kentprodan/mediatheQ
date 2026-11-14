@@ -18,7 +18,7 @@ internal class NextEpisodeQueuer(
     private val scope: CoroutineScope,
     private val videos: VideoRepository,
     private val toItem: suspend (Video) -> MediaItem,
-    /** Settings -> Video -> auto-play next episode (#276); on until then. */
+    /** Settings -> Video -> Auto-play next episode (#276). */
     private val enabled: suspend () -> Boolean = { true },
 ) : Player.Listener {
     override fun onMediaItemTransition(

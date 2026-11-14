@@ -1,14 +1,13 @@
 package io.github.kentprodan.mediatheq.feature.video
 
 import io.github.kentprodan.mediatheq.core.data.TrackChoiceRepository
+import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.resolveChoice
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.ResolvedTracks
 import io.github.kentprodan.mediatheq.core.model.StreamType
-import io.github.kentprodan.mediatheq.core.model.SubtitleMode
 import io.github.kentprodan.mediatheq.core.model.TrackChoice
-import io.github.kentprodan.mediatheq.core.model.TrackDefaults
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.TrackOption
 import io.github.kentprodan.mediatheq.core.ui.TracksSheetState
@@ -36,16 +35,18 @@ class TrackPicker
     constructor(
         private val videos: VideoRepository,
         private val choices: TrackChoiceRepository,
+        private val preferences: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
     ) {
         fun tracks(video: Video): Flow<VideoTracks> =
             combine(
                 videos.streams(video.id),
                 choices.choice(video.id),
                 video.seasonId?.let { choices.choice(it) } ?: flowOf(null),
-            ) { streams, own, season ->
+                preferences.preferences,
+            ) { streams, own, season, settings ->
                 VideoTracks(
                     streams,
-                    resolveChoice(streams, own, season, DEFAULTS),
+                    resolveChoice(streams, own, season, settings.trackDefaults(Locale.getDefault().language)),
                     wholeSeason = video.seasonId?.let { own == null && season != null },
                 )
             }
@@ -78,12 +79,6 @@ class TrackPicker
             } else {
                 choices.save(video.id, choice)
             }
-        }
-
-        private companion object {
-            // shortcut: Settings -> Video (#276) sets these; until then forced subtitles in the phone's language.
-            val DEFAULTS =
-                TrackDefaults(audioLanguage = Locale.getDefault().language, subtitleMode = SubtitleMode.ForcedOnly)
         }
     }
 

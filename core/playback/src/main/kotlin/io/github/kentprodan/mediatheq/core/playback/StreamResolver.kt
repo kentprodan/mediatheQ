@@ -6,11 +6,11 @@ import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.PlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
+import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
 import io.github.kentprodan.mediatheq.core.model.StreamChoice
-import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -33,6 +33,7 @@ class StreamResolver
         private val audioPreferences: AudioPreferencesRepository,
         private val videoDecoders: VideoDecoders = VideoDecoders { emptySet() },
         private val trackChooser: VideoTrackChooser = VideoTrackChooser.None,
+        private val videoPreferences: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
     ) {
         private class Resolved(
             val stream: PlaybackStream,
@@ -95,16 +96,22 @@ class StreamResolver
         }
 
         /**
-         * A new stream for the video [itemId] (ADR 0050), starting at [startPosition]: the original on an unmetered network,
-         * 480p on a metered one (Settings -> Video sets these with #276). Always asked anew: a video is opened once, and a
-         * new play session per opening is what the server expects. Kept for progress reports ([current]).
+         * A new stream for the video [itemId] (ADR 0050), starting at [startPosition], in Settings -> Video's quality for the
+         * network kind (#276; Original on Wi-Fi, 480p on mobile data by default). Always asked anew: a video is opened once,
+         * and a new play session per opening is what the server expects. Kept for progress reports ([current]).
          */
         suspend fun resolveVideo(
             itemId: MediaId,
             startPosition: Duration = Duration.ZERO,
         ): MqResult<PlaybackStream> {
-            val quality = if (networkMonitor.isMetered()) VideoQuality.P480 else VideoQuality.Original
-            val profile = DeviceProfileBuilder.video(decoderMimeTypes, videoDecoders.mimeTypes(), quality)
+            val settings = videoPreferences.preferences.first()
+            val profile =
+                DeviceProfileBuilder.video(
+                    decoderMimeTypes,
+                    videoDecoders.mimeTypes(),
+                    settings.quality(networkMonitor.isMetered()),
+                    burnInStyled = settings.burnInStyled,
+                )
             // The chosen tracks (#274): the server's conversion takes them, and the player selects them in a file.
             val tracks = trackChooser.tracks(itemId)
             val choice = StreamChoice(startPosition, tracks?.audioIndex, tracks?.subtitleIndex)

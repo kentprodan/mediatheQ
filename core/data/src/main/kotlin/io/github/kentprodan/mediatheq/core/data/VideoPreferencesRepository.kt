@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.model.TrackDefaults
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,6 +46,16 @@ interface VideoPreferencesRepository {
 
     /** Applies [change] to the current preferences and stores the result. */
     suspend fun update(change: (VideoPreferences) -> VideoPreferences)
+
+    companion object {
+        /** The defaults, never changed: for a class built without Hilt (tests, previews). */
+        val Defaults: VideoPreferencesRepository =
+            object : VideoPreferencesRepository {
+                override val preferences = flowOf(VideoPreferences())
+
+                override suspend fun update(change: (VideoPreferences) -> VideoPreferences) = Unit
+            }
+    }
 }
 
 /** In the audio preferences file, so Backup & restore carries it like the rest (#150). */

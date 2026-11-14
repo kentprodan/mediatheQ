@@ -59,6 +59,7 @@ import io.github.kentprodan.mediatheq.core.data.ResumeRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.WaveformRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -110,6 +111,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var appMode: AppModeRepository
 
     @Inject lateinit var videoRepository: VideoRepository
+
+    @Inject lateinit var videoPreferences: VideoPreferencesRepository
 
     @Inject lateinit var artworkUrls: ArtworkUrlResolver
 
@@ -560,9 +563,19 @@ class MediatheqPlaybackService : MediaLibraryService() {
         player.addListener(VideoTextSelector(player, streamResolver))
         // The next episode behind the playing one (#275).
         player.addListener(
-            NextEpisodeQueuer(player, applicationScope + Dispatchers.Main, videoRepository, toItem = { video ->
-                video.toMediaItem(video.artwork?.let { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) }).withTrackUri()!!
-            }),
+            NextEpisodeQueuer(
+                player,
+                applicationScope + Dispatchers.Main,
+                videoRepository,
+                toItem = { video ->
+                    video
+                        .toMediaItem(
+                            video.artwork?.let { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) },
+                        ).withTrackUri()!!
+                },
+                // Settings -> Video -> Auto-play next episode (#276).
+                enabled = { videoPreferences.preferences.first().autoPlayNext },
+            ),
         )
         usbAudio = AudioOutputPort.create(getSystemService(AudioManager::class.java))
         // What HDMI passes through (ADR 0039); a change (plug, the TV's surround setting) decides again.
