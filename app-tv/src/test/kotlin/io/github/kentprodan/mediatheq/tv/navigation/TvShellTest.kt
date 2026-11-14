@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsFocused
@@ -17,6 +18,8 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.pressKey
 import androidx.navigation3.runtime.NavKey
 import androidx.tv.material3.DrawerValue
+import androidx.tv.material3.LocalContentColor
+import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
@@ -135,5 +138,19 @@ class TvShellTest {
         composeRule.runOnUiThread { backStack.add(album) }
         composeRule.onNodeWithText("Album page").assertExists()
         assertThat(unknown).containsExactly(NoScreenKey)
+    }
+
+    @Test
+    fun `text on the plain background is light, not tv-material's black`() {
+        var color = Color.Unspecified
+        var onSurface = Color.Unspecified
+        composeRule.setContent {
+            MediatheqTvTheme {
+                color = LocalContentColor.current
+                onSurface = MaterialTheme.colorScheme.onSurface
+            }
+        }
+
+        assertThat(color).isEqualTo(onSurface)
     }
 }
