@@ -34,11 +34,12 @@ fun MqSeekBar(
     style: MqWaveformStyle = MqWaveformStyle.Sharp,
     fallback: MqProgressFallback = MqProgressFallback.Basic,
     remainingLabel: String? = null,
-    center: @Composable () -> Unit = {},
     /** Chapter marks as fractions (#277). */
     marks: List<Float> = emptyList(),
     /** The dragged fraction, `null` once let go (#277). */
     onScrub: (Float?) -> Unit = {},
+    // Last: callers pass it as a trailing lambda.
+    center: @Composable () -> Unit = {},
 ) {
     Column(modifier) {
         MqWaveformProgress(
