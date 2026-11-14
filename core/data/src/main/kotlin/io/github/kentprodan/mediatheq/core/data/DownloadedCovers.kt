@@ -49,12 +49,16 @@ class DownloadedCovers
         // Done after the first pass: a cover asked for at start (the restored queue) waits for it instead of missing it.
         private val firstPass = CompletableDeferred<Unit>()
 
+        // Never started (the TV app has no downloads): there is no pass to wait for.
+        @Volatile private var started = false
+
         /**
          * Follows the completed downloads (never a too-early empty set, so a cold start keeps the files) and the library
          * (a cover changed on the server), for the app's lifetime; call once from the Application. Not [DownloadRepository.downloads]:
          * that one ticks every second while downloads run.
          */
         fun start() {
+            started = true
             scope.launch(ioDispatcher) {
                 combine(downloads.completedIds, library.albums()) { ids, _ -> ids }
                     // A change while fetching restarts the pass, and that pass removes what is no longer needed.
@@ -64,7 +68,9 @@ class DownloadedCovers
 
         /** Waits (briefly) for the first pass, so covers asked for right after start are found. */
         suspend fun awaitFirstPass() {
-            withTimeoutOrNull(FIRST_PASS_TIMEOUT) { firstPass.await() }
+            if (!started) return
+            // Once timed out, later covers do not wait again: each track of a long queue waited 2 s on the TV (#341).
+            if (withTimeoutOrNull(FIRST_PASS_TIMEOUT) { firstPass.await() } == null) firstPass.complete(Unit)
         }
 
         /**
