@@ -20,6 +20,15 @@ interface UserDataRepository {
         isFavorite: Boolean,
     ): MqResult<Unit>
 
+    /**
+     * Marks a movie or an episode watched (its resume point goes, as on the server) or not watched (#273); optimistic
+     * like [setFavorite].
+     */
+    suspend fun setPlayed(
+        id: MediaId,
+        played: Boolean,
+    ): MqResult<Unit>
+
     /** Rates [id] with [halfStars], 1-10 (whole stars are even); `null` clears the rating. */
     suspend fun setRating(
         id: MediaId,

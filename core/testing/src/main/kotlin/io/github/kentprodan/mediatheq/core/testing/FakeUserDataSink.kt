@@ -32,6 +32,12 @@ class FakeUserDataSink : UserDataSink {
         rating: Double?,
     ) = call("rating:${itemId.itemId}:$rating", itemId, ratingFailure) { it.copy(rating = rating) }
 
+    override suspend fun setPlayed(
+        server: SignedInServer,
+        itemId: MediaId,
+        played: Boolean,
+    ) = call("played:${itemId.itemId}:$played", itemId) { it.copy(played = played) }
+
     private suspend fun call(
         name: String,
         itemId: MediaId,

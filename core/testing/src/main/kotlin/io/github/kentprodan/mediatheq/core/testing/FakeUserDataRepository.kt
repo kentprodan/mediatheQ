@@ -24,6 +24,11 @@ class FakeUserDataRepository : UserDataRepository {
         isFavorite: Boolean,
     ) = record("favorite:${id.itemId}:$isFavorite")
 
+    override suspend fun setPlayed(
+        id: MediaId,
+        played: Boolean,
+    ) = record("played:${id.itemId}:$played")
+
     override suspend fun setRating(
         id: MediaId,
         halfStars: Int?,

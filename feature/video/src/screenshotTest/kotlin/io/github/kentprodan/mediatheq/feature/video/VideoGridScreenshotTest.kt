@@ -63,8 +63,3 @@ fun SeriesAllWatchedScreenshot() = Grid(SeriesTexts, VideoGridUiState.Content(em
 @MqPreviews
 @Composable
 fun MoviesErrorScreenshot() = Grid(MovieTexts, VideoGridUiState.Error)
-
-@PreviewTest
-@MqPreviews
-@Composable
-fun VideoComingSoonScreenshot() = MediatheqTheme { ComingSoon {} }

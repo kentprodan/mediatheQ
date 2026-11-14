@@ -7,9 +7,15 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.PendingUserDataEntity
+import io.github.kentprodan.mediatheq.core.database.entity.SeasonEntity
+import io.github.kentprodan.mediatheq.core.database.entity.SeasonStaging
+import io.github.kentprodan.mediatheq.core.database.entity.SeriesEntity
+import io.github.kentprodan.mediatheq.core.database.entity.SeriesStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
+import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
+import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -164,5 +170,32 @@ class UserDataDaoTest {
                 userDataDao.setUserData("s", "t1", favorite)
                 assertThat(awaitItem()?.track?.userData?.isFavorite).isTrue()
             }
+        }
+
+    @Test
+    fun `movies, series and seasons have user data too, and a resume point reaches staging`() =
+        runTest {
+            syncDao.stageVideos(listOf(VideoStaging(VideoEntity("s", "m1", "Movie", "Moșoi", "mosoi"))))
+            syncDao.stageSeries(listOf(SeriesStaging(SeriesEntity("s", "sr1", "Show", "show"))))
+            syncDao.stageSeasons(listOf(SeasonStaging(SeasonEntity("s", "se1", "sr1", "Season 1", 1))))
+            syncDao.swap(1, "s", "user-1")
+            // A sync in flight has the movie staged again.
+            syncDao.stageVideos(listOf(VideoStaging(VideoEntity("s", "m1", "Movie", "Moșoi", "mosoi"))))
+
+            for (id in listOf("m1", "sr1", "se1")) {
+                userDataDao.setUserData("s", id, UserDataColumns(isFavorite = true, played = true))
+                assertThat(userDataDao.userData("s", id)).isEqualTo(UserDataColumns(isFavorite = true, played = true))
+            }
+            userDataDao.setVideoProgress("s", "m1", 600_000, 20.0)
+            syncDao.swap(2, "s", "user-1")
+
+            assertThat(
+                database
+                    .videoDao()
+                    .video("m1")
+                    .first()
+                    ?.videoUser
+                    ?.positionMillis,
+            ).isEqualTo(600_000)
         }
 }

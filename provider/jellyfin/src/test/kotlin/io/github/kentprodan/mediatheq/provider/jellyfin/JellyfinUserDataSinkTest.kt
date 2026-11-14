@@ -115,4 +115,28 @@ class JellyfinUserDataSinkTest {
             assertThat(sink.setRating(server, track, 4.0).errorOrNull()).isEqualTo(MqError.Server(500))
             assertThat(mockServer.requestCount).isEqualTo(1)
         }
+
+    @Test
+    fun `R24 watched is a POST to UserPlayedItems, not watched a DELETE`() =
+        runTest {
+            mockServer.enqueue(
+                MockResponse(body = javaClass.getResource("/jellyfin/user_played_items/ok.json")!!.readText()),
+            )
+            mockServer.enqueue(
+                MockResponse(body = javaClass.getResource("/jellyfin/user_played_items/ok.json")!!.readText()),
+            )
+
+            assertThat(sink.setPlayed(server, track, true)).isEqualTo(MqResult.Success(Unit))
+            assertThat(sink.setPlayed(server, track, false)).isEqualTo(MqResult.Success(Unit))
+
+            for ((request, method) in listOf(
+                mockServer.takeRequest() to "POST",
+                mockServer.takeRequest() to "DELETE",
+            )) {
+                assertThat(request.method).isEqualTo(method)
+                assertThat(request.url.encodedPath).isEqualTo("/UserPlayedItems/${track.itemId}")
+                assertThat(request.url.queryParameter("userId")).isEqualTo(userId)
+                assertThat(request.headers["Authorization"]).endsWith(", Token=\"token-1\"")
+            }
+        }
 }

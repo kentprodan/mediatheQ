@@ -9,6 +9,9 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
+import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
+import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoUserColumns
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -24,6 +27,7 @@ import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -31,6 +35,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 class DefaultUserDataRepositoryTest {
@@ -553,5 +558,103 @@ class DefaultUserDataRepositoryTest {
             assertThat(stopped.isCompleted).isTrue()
             sink.gate!!.complete(Unit)
             slowWrite.await()
+        }
+
+    private val episode = MediaId(server, "e1")
+
+    private suspend fun storeEpisode() {
+        val syncDao = database.syncDao()
+        syncDao.stageVideos(
+            listOf(
+                VideoStaging(
+                    VideoEntity(
+                        "s",
+                        "e1",
+                        "Episode",
+                        "Pilot",
+                        "pilot",
+                        seriesId = "sr1",
+                        videoUser = VideoUserColumns(positionMillis = 600_000, playedPercentage = 20.0),
+                    ),
+                ),
+            ),
+        )
+        syncDao.swap(2, "s", "user-1")
+    }
+
+    private suspend fun position(): Long =
+        database
+            .videoDao()
+            .video("e1")
+            .first()!!
+            .videoUser.positionMillis
+
+    @Test
+    fun `watched shows at once, clears the resume point and goes to the server`() =
+        runTest(dispatcher) {
+            storeEpisode()
+
+            assertThat(repository().setPlayed(episode, true)).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(stored(episode)?.played).isTrue()
+            assertThat(position()).isEqualTo(0)
+            assertThat(sink.calls).containsExactly("played:e1:true")
+        }
+
+    @Test
+    fun `a refused watched change is undone`() =
+        runTest(dispatcher) {
+            storeEpisode()
+            sink.failure = MqError.Server(500)
+
+            assertThat(repository().setPlayed(episode, true)).isEqualTo(MqResult.Failure(MqError.Server(500)))
+
+            assertThat(stored(episode)?.played).isFalse()
+        }
+
+    @Test
+    fun `offline the watched change waits and is sent when the server is back`() =
+        runTest(dispatcher) {
+            storeEpisode()
+            val repository = repository()
+            sink.failure = MqError.Network
+
+            repository.setPlayed(episode, true)
+            assertThat(stored(episode)?.played).isTrue()
+            sink.failure = null
+            sink.calls.clear()
+
+            repository.flushPending()
+
+            assertThat(sink.calls).containsExactly("played:e1:true")
+            assertThat(dao.pendingChanges("s", "user-1")).isEmpty()
+        }
+
+    @Test
+    fun `while a video plays its watched change is not sent again with each report`() =
+        runTest(dispatcher) {
+            storeEpisode()
+            val repository = repository()
+            repository.onPlaybackStarted(episode)
+            repository.setPlayed(episode, true)
+            repository.setFavorite(episode, true)
+            sink.calls.clear()
+
+            repository.onPlaybackReported(episode, stopped = false)
+            runCurrent()
+
+            assertThat(sink.calls).containsExactly("favorite:e1:true")
+        }
+
+    @Test
+    fun `a video's resume point from the server is written with its user data`() =
+        runTest(dispatcher) {
+            storeEpisode()
+
+            repository().applyFromServer(
+                mapOf(episode to UserData(playbackPosition = 15.minutes, playedPercentage = 30.0)),
+            )
+
+            assertThat(position()).isEqualTo(15.minutes.inWholeMilliseconds)
         }
 }

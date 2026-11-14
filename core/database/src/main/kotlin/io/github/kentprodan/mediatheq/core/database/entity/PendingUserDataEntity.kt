@@ -4,7 +4,7 @@ import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 
 /**
- * A favorite or rating change of one item that the server has not confirmed yet (#56). Later changes to the same item
+ * A favorite, rating or watched change of one item that the server has not confirmed yet (#56). Later changes to the same item
  * merge into the row, so only the last one is sent; [seq] orders the rows and grows with every change.
  */
 @Entity(tableName = "pending_user_data", primaryKeys = ["server_id", "user_id", "item_id"])
@@ -19,5 +19,8 @@ data class PendingUserDataEntity(
     /** What the item had before the first change, put back if the server refuses it. */
     @ColumnInfo(name = "before_favorite") val beforeFavorite: Boolean = false,
     @ColumnInfo(name = "before_rating") val beforeRating: Double? = null,
+    /** The watched flag to send (#273); `null` when it did not change. */
+    val played: Boolean? = null,
+    @ColumnInfo(name = "before_played", defaultValue = "0") val beforePlayed: Boolean = false,
     val seq: Long = 0,
 )

@@ -68,6 +68,11 @@ class DefaultUserDataRepository
             isFavorite: Boolean,
         ) = write(id, Change(isFavorite = isFavorite))
 
+        override suspend fun setPlayed(
+            id: MediaId,
+            played: Boolean,
+        ) = write(id, Change(played = played))
+
         override suspend fun setRating(
             id: MediaId,
             halfStars: Int?,
@@ -83,10 +88,17 @@ class DefaultUserDataRepository
                 storageSafe {
                     val userId = accountStore.signedInServer()?.userId
                     changes.forEach { (id, data) ->
-                        store(
-                            id,
-                            overrideOf(id, userId)?.applyTo(data.toColumns()) ?: data.toColumns(),
-                        )
+                        val override = overrideOf(id, userId)
+                        store(id, override?.applyTo(data.toColumns()) ?: data.toColumns())
+                        // A video's resume point (#273); a watched change still waiting keeps it cleared.
+                        if (override?.played != true) {
+                            userDataDao.setVideoProgress(
+                                id.serverId.value,
+                                id.itemId,
+                                data.playbackPosition.inWholeMilliseconds,
+                                data.playedPercentage,
+                            )
+                        }
                     }
                     MqResult.Success(Unit)
                 }
@@ -154,6 +166,7 @@ class DefaultUserDataRepository
             scope.launch {
                 val server = accountStore.signedInServer() ?: return@launch
                 writeLock.withLock {
+                    // Not the watched flag: sent again it would clear the resume point of what plays (#273).
                     change.isFavorite?.let { sink.setFavorite(server, itemId, it) }
                     if (change.setsRating) sink.setRating(server, itemId, change.rating)
                 }
@@ -199,11 +212,15 @@ class DefaultUserDataRepository
                     isFavorite = merged.isFavorite,
                     setsRating = merged.setsRating,
                     rating = merged.rating,
+                    played = merged.played,
                     // Each field keeps what it had before its first unsent change.
                     beforeFavorite = if (queued?.isFavorite != null) queued.beforeFavorite else stored.isFavorite,
                     beforeRating = if (queued?.setsRating == true) queued.beforeRating else stored.rating,
+                    beforePlayed = if (queued?.played != null) queued.beforePlayed else stored.played,
                 )
             userDataDao.setUserDataAndQueue(change.applyTo(stored), pending)
+            // shortcut: an undone watched change leaves the resume point cleared until the next sync or socket event.
+            if (change.played == true) userDataDao.setVideoProgress(id.serverId.value, id.itemId, 0, null)
             return MqResult.Success(Unit)
         }
 
@@ -240,9 +257,27 @@ class DefaultUserDataRepository
                             log.info(TAG, "Queued offline: ${change.describe()} [${id.itemId}]")
                             break
                         }
-                        val sent = change.only(favorite is MqResult.Success, rating is MqResult.Success)
-                        val refused = change.only(favorite is MqResult.Failure, rating !is MqResult.Success)
-                        val error = ((favorite as? MqResult.Failure) ?: (rating as? MqResult.Failure))?.error
+                        val unauthorized =
+                            listOf(favorite, rating).any { (it as? MqResult.Failure)?.error == MqError.Unauthorized }
+                        val played = change.played?.takeIf { !unauthorized }?.let { sink.setPlayed(server, id, it) }
+                        if (played.isNetworkFailure()) {
+                            log.info(TAG, "Queued offline: ${change.describe()} [${id.itemId}]")
+                            break
+                        }
+                        val sent =
+                            change.only(
+                                favorite is MqResult.Success,
+                                rating is MqResult.Success,
+                                played is MqResult.Success,
+                            )
+                        val refused =
+                            change.only(
+                                favorite is MqResult.Failure,
+                                rating !is MqResult.Success,
+                                played !is MqResult.Success,
+                            )
+                        val error =
+                            listOf(favorite, rating, played).firstNotNullOfOrNull { (it as? MqResult.Failure)?.error }
                         if (sent != Change()) log.info(TAG, "Sent: ${sent.describe()} [${id.itemId}]")
                         if (refused != Change()) log.warn(TAG, "Refused: ${refused.describe()} [${id.itemId}]: $error")
                         val stillSignedIn =
@@ -288,7 +323,12 @@ class DefaultUserDataRepository
             if (now.seq == row.seq) {
                 userDataDao.deletePending(row.serverId, row.userId, row.itemId, row.seq)
                 if (refused != Change()) {
-                    val before = UserDataColumns(isFavorite = row.beforeFavorite, rating = row.beforeRating)
+                    val before =
+                        UserDataColumns(
+                            isFavorite = row.beforeFavorite,
+                            rating = row.beforeRating,
+                            played = row.beforePlayed,
+                        )
                     userDataDao.userData(id.serverId.value, id.itemId)?.let { current ->
                         store(id, refused.undo(before).applyTo(current))
                     }
@@ -329,16 +369,24 @@ class DefaultUserDataRepository
 
 private fun MqResult<Unit>?.isNetworkFailure() = (this as? MqResult.Failure)?.error == MqError.Network
 
-private fun PendingUserDataEntity.toChange() = Change(isFavorite, setsRating, rating)
+private fun PendingUserDataEntity.toChange() = Change(isFavorite, setsRating, rating, played)
 
-/** What the user changed on an item: the favorite flag when [isFavorite] is set, the rating when [setsRating]. */
+/**
+ * What the user changed on an item: the favorite flag when [isFavorite] is set, the rating when [setsRating], the
+ * watched flag when [played] is set (#273).
+ */
 private data class Change(
     val isFavorite: Boolean? = null,
     val setsRating: Boolean = false,
     val rating: Double? = null,
+    val played: Boolean? = null,
 ) {
     fun applyTo(data: UserDataColumns) =
-        data.copy(isFavorite = isFavorite ?: data.isFavorite, rating = if (setsRating) rating else data.rating)
+        data.copy(
+            isFavorite = isFavorite ?: data.isFavorite,
+            rating = if (setsRating) rating else data.rating,
+            played = played ?: data.played,
+        )
 
     /** This change followed by [next]. */
     fun then(next: Change) =
@@ -346,23 +394,32 @@ private data class Change(
             next.isFavorite ?: isFavorite,
             setsRating || next.setsRating,
             if (next.setsRating) next.rating else rating,
+            next.played ?: played,
         )
 
-    /** The part of this change in the favorite (when [withFavorite]) and the rating (when [withRating]). */
+    /** The part of this change in the favorite, the rating and the watched flag, each when its flag says so. */
     fun only(
         withFavorite: Boolean,
         withRating: Boolean,
-    ) = Change(isFavorite.takeIf { withFavorite }, setsRating && withRating, rating.takeIf { withRating })
+        withPlayed: Boolean = false,
+    ) = Change(
+        isFavorite.takeIf { withFavorite },
+        setsRating && withRating,
+        rating.takeIf { withRating },
+        played.takeIf { withPlayed },
+    )
 
     /** The change that puts back what [before] had. */
-    fun undo(before: UserDataColumns) = Change(isFavorite?.let { before.isFavorite }, setsRating, before.rating)
+    fun undo(before: UserDataColumns) =
+        Change(isFavorite?.let { before.isFavorite }, setsRating, before.rating, played?.let { before.played })
 }
 
-/** "favorite on, rating 7.0" for the log. */
+/** "favorite on, rating 7.0, watched" for the log. */
 private fun Change.describe(): String =
     listOfNotNull(
         isFavorite?.let { if (it) "favorite on" else "favorite off" },
         if (setsRating) "rating ${rating ?: "cleared"}" else null,
+        played?.let { if (it) "watched" else "not watched" },
     ).joinToString(", ")
 
 private const val TAG = "UserData"

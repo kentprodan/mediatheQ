@@ -43,6 +43,9 @@ interface VideoRepository {
     fun episodes(seasonId: MediaId): Flow<List<Video>>
 
     fun streams(videoId: MediaId): Flow<List<MediaStreamInfo>>
+
+    /** The episode to watch next in [seriesId] ([nextUp]); `null` when every episode was watched. */
+    fun nextUp(seriesId: MediaId): Flow<Video?>
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -91,6 +94,10 @@ class DefaultVideoRepository
         override fun episodes(seasonId: MediaId): Flow<List<Video>> =
             offlineAware { all, downloaded -> dao.episodes(seasonId.itemId, all, downloaded) }
                 .map { rows -> rows.map { it.toDomain() } }
+
+        override fun nextUp(seriesId: MediaId): Flow<Video?> =
+            offlineAware { all, downloaded -> dao.seriesEpisodes(seriesId.itemId, all, downloaded) }
+                .map { rows -> nextUp(rows.map { it.toDomain() }) }
 
         override fun streams(videoId: MediaId): Flow<List<MediaStreamInfo>> =
             dao.streams(videoId.itemId).map { rows -> rows.mapNotNull { it.toDomain() } }

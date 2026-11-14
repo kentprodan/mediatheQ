@@ -15,12 +15,26 @@
     <string name="video_all_watched_body">Turn off Unwatched to see everything.</string>
     <string name="video_error_title">Could not read the library</string>
     <string name="video_error_body">Try again after the next sync.</string>
-    <string name="video_coming_title">Playing videos comes soon</string>
-    <string name="video_coming_body">The full page with its details comes in a later update.</string>
     <string name="video_player_toggle_controls">Show or hide the controls</string>
     <string name="video_player_error_title">This video cannot play</string>
     <string name="video_player_error_body">The server could not send it. Check the connection and try again.</string>
     <string name="video_player_not_found_body">It is no longer in the library.</string>
     <string name="video_play">Play</string>
     <string name="video_resume">Resume</string>
+    <string name="video_page_error_title">This page cannot be shown</string>
+    <string name="video_page_error_body">The library could not be read. Try again in a moment.</string>
+    <string name="video_resume_at">Resume · %1$s</string>
+    <string name="video_play_from_start">Play from start</string>
+    <string name="video_mark_watched">Watched</string>
+    <string name="video_watched">Watched</string>
+    <string name="video_not_watched">Not watched</string>
+    <string name="video_next_up">Next up</string>
+    <string name="video_series_empty_episodes">No episodes in this series yet.</string>
+    <string name="video_episode_menu">More for %1$s</string>
+    <string name="video_mark_unwatched">Mark not watched</string>
+    <string name="video_mark_as_watched">Mark watched</string>
+    <plurals name="video_external_subtitles">
+        <item quantity="one">%d subtitle file</item>
+        <item quantity="other">%d subtitle files</item>
+    </plurals>
 </resources>
