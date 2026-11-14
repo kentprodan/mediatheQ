@@ -9,16 +9,20 @@ import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
 import io.github.kentprodan.mediatheq.core.model.StreamChoice
+import io.github.kentprodan.mediatheq.core.model.SubtitleDelivery
+import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
 import io.github.kentprodan.mediatheq.core.server.ClientInfo
 import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.CodecProfileDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.DeviceProfileDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.DirectPlayProfileDto
+import io.github.kentprodan.mediatheq.provider.jellyfin.dto.MediaSourceDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.PlaybackInfoDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.PlaybackInfoResponseDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.PlaybackReportDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.ProfileConditionDto
+import io.github.kentprodan.mediatheq.provider.jellyfin.dto.SubtitleProfileDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.TranscodingProfileDto
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.json.Json
@@ -98,6 +102,7 @@ class JellyfinPlaybackSource internal constructor(
                         playSessionId = playSessionId,
                         canSeek = true,
                         sizeBytes = source.size,
+                        subtitles = source.subtitles(baseUrl),
                     ),
                 )
             }
@@ -121,6 +126,7 @@ class JellyfinPlaybackSource internal constructor(
                         playSessionId = playSessionId,
                         canSeek = segmented,
                         segmented = segmented,
+                        subtitles = source.subtitles(baseUrl),
                     ),
                 )
             }
@@ -214,8 +220,33 @@ private fun DeviceProfile.toVideoDto(videoCodecs: List<String>) =
                 CodecProfileDto("VideoAudio", listOf(condition("LessThanEqual", "AudioChannels", MAX_AUDIO_CHANNELS))),
             ),
         containerProfiles = emptyList(),
-        subtitleProfiles = emptyList(),
+        subtitleProfiles = subtitleProfiles.map { SubtitleProfileDto(it.format, it.method.name) },
     )
+
+/**
+ * The subtitle streams of a `PlaybackInfo` answer with how each comes (#274); `Drop` and unknown methods are left out.
+ * An external file's URL is made absolute and loses `ApiKey` (R25: the header carries the token, R1).
+ */
+private fun MediaSourceDto.subtitles(baseUrl: String): List<SubtitleDelivery> =
+    mediaStreams.filter { it.type == "Subtitle" }.mapNotNull { stream ->
+        val method = SubtitleMethod.entries.firstOrNull { it.name == stream.deliveryMethod } ?: return@mapNotNull null
+        SubtitleDelivery(
+            index = stream.index ?: return@mapNotNull null,
+            method = method,
+            url =
+                stream.deliveryUrl?.takeIf { method == SubtitleMethod.External }?.let {
+                    serverUrl(
+                        baseUrl,
+                        withoutApiKey(it),
+                    )
+                },
+            codec = stream.codec,
+            language = stream.language,
+            title = stream.displayTitle ?: stream.title,
+            isForced = stream.isForced,
+            isDefault = stream.isDefault,
+        )
+    }
 
 private fun condition(
     condition: String,

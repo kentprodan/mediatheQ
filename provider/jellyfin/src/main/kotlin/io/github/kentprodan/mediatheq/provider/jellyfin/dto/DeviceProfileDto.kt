@@ -14,7 +14,7 @@ internal data class DeviceProfileDto(
     @SerialName("TranscodingProfiles") val transcodingProfiles: List<TranscodingProfileDto>,
     @SerialName("CodecProfiles") val codecProfiles: List<CodecProfileDto>,
     @SerialName("ContainerProfiles") val containerProfiles: List<String>,
-    @SerialName("SubtitleProfiles") val subtitleProfiles: List<String>,
+    @SerialName("SubtitleProfiles") val subtitleProfiles: List<SubtitleProfileDto>,
 )
 
 @Serializable
@@ -37,6 +37,13 @@ internal data class TranscodingProfileDto(
     /** Video HLS: segments may start between key frames, so a seek starts where asked (ADR 0050). */
     @SerialName("BreakOnNonKeyFrames") val breakOnNonKeyFrames: Boolean? = null,
     @SerialName("MinSegments") val minSegments: Int? = null,
+)
+
+/** A subtitle [format] the device takes by [method] (`Embed`, `External`, `Hls`, `Encode`). */
+@Serializable
+internal data class SubtitleProfileDto(
+    @SerialName("Format") val format: String,
+    @SerialName("Method") val method: String,
 )
 
 /** Limits on a stream of [type] (`Video`, `VideoAudio`); a file outside them is converted. */

@@ -17,6 +17,8 @@ data class DeviceProfile(
     val videoCodecs: List<String>? = null,
     /** Taller videos are converted down (the video quality, ADR 0050); `null` = no limit. */
     val maxHeight: Int? = null,
+    /** How each subtitle format can reach the device (a video profile only, #274). */
+    val subtitleProfiles: List<SubtitleProfile> = emptyList(),
 )
 
 /** The format the server converts to when a file cannot be played as it is. */
