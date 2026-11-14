@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -72,16 +73,17 @@ class SeriesViewModel
         private val chosenSeason = MutableStateFlow<MediaId?>(null)
         private val nextUp = videos.nextUp(id)
 
-        /** The chosen tab, else Next up's season, else the first. */
+        // Next up's season when the page opened: decided once, so marking an episode watched never switches the tab.
+        private var openedOn: MediaId? = null
+
+        /** The chosen tab, else the season the page opened on (Next up's, else the first). */
         private val season =
             combine(videos.seasons(id), chosenSeason, nextUp) { seasons, chosen, next ->
-                seasons to
-                    (
-                        seasons.firstOrNull { it.id == chosen }
-                            ?: seasons.firstOrNull { it.id == next?.seasonId }
-                            ?: seasons.firstOrNull()
-                    )
-            }
+                if (openedOn == null && seasons.isNotEmpty()) {
+                    openedOn = (seasons.firstOrNull { it.id == next?.seasonId } ?: seasons.first()).id
+                }
+                seasons to (seasons.firstOrNull { it.id == chosen } ?: seasons.firstOrNull { it.id == openedOn })
+            }.distinctUntilChanged()
 
         val uiState: StateFlow<SeriesUiState> =
             combine(

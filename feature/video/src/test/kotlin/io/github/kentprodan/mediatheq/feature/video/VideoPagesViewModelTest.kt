@@ -196,4 +196,26 @@ class VideoPagesViewModelTest {
 
             assertThat(userData.calls).containsExactly("played:se1e3:false", "favorite:sr1:true").inOrder()
         }
+
+    @Test
+    fun `marking Next up watched never switches the season tab`() =
+        test {
+            videos.series.value = listOf(series)
+            videos.seriesSeasons.value = mapOf(series.id to listOf(season1, season2))
+            videos.seasonEpisodes.value =
+                mapOf(season1.id to listOf(episode(1, season1)), season2.id to listOf(episode(1, season2)))
+            val viewModel = seriesViewModel()
+            assertThat((viewModel.uiState.value as SeriesUiState.Content).season).isEqualTo(season1)
+
+            videos.seasonEpisodes.value =
+                mapOf(
+                    season1.id to listOf(episode(1, season1, played = true)),
+                    season2.id to listOf(episode(1, season2)),
+                )
+            runCurrent()
+
+            val content = viewModel.uiState.value as SeriesUiState.Content
+            assertThat(content.nextUp?.id).isEqualTo(id("se2e1"))
+            assertThat(content.season).isEqualTo(season1)
+        }
 }

@@ -62,13 +62,38 @@ interface UserDataDao {
      * A movie's or an episode's resume point (#273): from the server's user data (a socket event after a play), or
      * cleared when it is marked watched.
      */
+    @Transaction
+    suspend fun setVideoProgress(
+        serverId: String,
+        id: String,
+        positionMs: Long,
+        playedPercentage: Double?,
+    ) {
+        updateVideoProgress(serverId, id, positionMs, playedPercentage)
+        // A sync in flight swaps staging in later: it must not bring the old resume point back.
+        updateVideoStagingProgress(serverId, id, positionMs, playedPercentage)
+    }
+
     @Query(
         """
         UPDATE video SET position_ms = :positionMs, played_percentage = :playedPercentage
         WHERE server_id = :serverId AND id = :id
         """,
     )
-    suspend fun setVideoProgress(
+    suspend fun updateVideoProgress(
+        serverId: String,
+        id: String,
+        positionMs: Long,
+        playedPercentage: Double?,
+    )
+
+    @Query(
+        """
+        UPDATE video_staging SET position_ms = :positionMs, played_percentage = :playedPercentage
+        WHERE server_id = :serverId AND id = :id
+        """,
+    )
+    suspend fun updateVideoStagingProgress(
         serverId: String,
         id: String,
         positionMs: Long,

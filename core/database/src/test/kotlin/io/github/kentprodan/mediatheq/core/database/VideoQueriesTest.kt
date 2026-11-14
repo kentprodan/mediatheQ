@@ -205,4 +205,33 @@ class VideoQueriesTest {
             assertThat(dao.seriesCount(true, emptyList()).first()).isEqualTo(0)
             assertThat(dao.streams("m1").first()).isEmpty()
         }
+
+    @Test
+    fun `a series' specials (season 0) and episodes without numbers come last in watching order`() =
+        runTest {
+            fun row(
+                id: String,
+                season: Int?,
+                number: Int?,
+            ) = VideoStaging(
+                VideoEntity(
+                    "s",
+                    id,
+                    "Episode",
+                    id,
+                    id,
+                    seriesId = "sr9",
+                    seasonNumber = season,
+                    episodeNumber = number,
+                ),
+            )
+            syncDao.stageVideos(
+                listOf(row("special", 0, 1), row("s2e1", 2, 1), row("loose", null, null), row("s1e2", 1, 2)),
+            )
+            syncDao.swap(2, "s", "u")
+
+            assertThat(dao.seriesEpisodes("sr9", true, emptyList()).first().map { it.id })
+                .containsExactly("s1e2", "s2e1", "special", "loose")
+                .inOrder()
+        }
 }

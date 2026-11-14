@@ -135,8 +135,8 @@ private fun SeriesContent(
         }
         state.nextUp?.let { next ->
             item(key = "next") {
+                // Not clickable itself: the row inside is the one tap target (TalkBack stops once).
                 Card(
-                    onClick = { play(next) },
                     modifier = Modifier.fillMaxWidth().padding(MediatheqSpacing.l),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                 ) {

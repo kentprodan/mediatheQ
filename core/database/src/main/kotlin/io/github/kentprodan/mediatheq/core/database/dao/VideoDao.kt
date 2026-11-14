@@ -96,7 +96,7 @@ interface VideoDao {
     @Query(
         """
         SELECT * FROM video WHERE kind = 'Episode' AND series_id = :seriesId AND (:all OR id IN (:downloaded))
-        ORDER BY season_number IS NULL OR season_number = 0, season_number, episode_number IS NULL, episode_number,
+        ORDER BY season_number IS NULL, season_number = 0, season_number, episode_number IS NULL, episode_number,
         sort_name, id
         """,
     )
