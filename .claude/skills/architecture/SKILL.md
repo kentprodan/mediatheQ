@@ -66,7 +66,7 @@ Any change to this table = ADR in `docs/decisions/`.
 :feature:playlist
 :feature:nowplaying      full player, queue, lyrics
 :feature:settings
-:feature:video           Movies and Series poster grids (#270), the video player (#272); the movie and series pages follow
+:feature:video           Movies and Series poster grids (#270), the video player (#272), the movie and series pages (#273)
 ```
 
 `:feature-tv:onboarding` server, Quick Connect first, password (ADR 0040); `:feature-tv:home` rows of the Home sections
@@ -131,6 +131,7 @@ Each convention plugin declares the allowed dependencies for its module type. A 
 - Video (#270, ADR 0048): `series`, `season`, `video` (movies and episodes) and `video_stream` in the account database, synced after the music by the same pager and swap (steps `Movies`, `Series`, `Seasons`, `Episodes`), only with `ServerCapabilities.video`; `VideoRepository` reads them. Until #249 `ServerCapabilities` is one object bound by the Jellyfin module.
 - App mode (#271, ADR 0051): `AppModeRepository` (`app_mode` in the Library settings file, so it is in the backup; missing = Music, always Music without `ServerCapabilities.video`). The sync runs the music steps with `mode.music` and the video steps with `mode.video && capabilities.video`, and `SyncDao.swap(music, video)` replaces only those kinds; `sync_state` rows 1 (music) and 2 (video) record when each kind was last swapped in and, through `checkpoint_started_at` equal to row 0's, which kinds a pending checkpoint holds (a checkpoint of another mode is never resumed). A mode that turns on a kind never synced on the account syncs it (`syncNewKinds`).
 - Sync = provider pages -> mapped -> upserted in a transaction. Live updates (WebSocket events): user data is written at once, library changes start a full sync (`LiveSync`, #18).
+- Watched (#273) goes through the same optimistic writes as favorite and rating (`pending_user_data.played`, schema 13); `UserDataDao` covers the `video`, `series` and `season` tables too, and a socket's user data also writes a video's resume point (`setVideoProgress`). Next up is the pure `nextUp(episodes)` over `VideoDao.seriesEpisodes` (watching order, specials last).
 - User actions (favorite, rating, playlist edit): optimistic write to Room, then server call; on failure revert and surface an error. Exception (#56): a favorite or rating that fails for lack of network (`MqError.Network`) is kept in Room (`pending_user_data`, per user, survives restarts) and sent when the server is reachable again; only a server answer reverts it. Sign-out drops waiting changes.
 - Repositories are interfaces in `:core:data` (`AlbumRepository`, ...) with one default implementation and one `Fake*` in `:core:testing`. The default implementation lives in `:core:data`, except when it needs a module `:core:data` cannot see: `DefaultDownloadRepository` lives in `:core:download` (Media3) and is bound there.
 - Two modules that must share an object but may not depend on each other meet in the Hilt graph through a qualifier in `:core:common` (`@DownloadCache`, `@DownloadSource`), not through a new module edge.
