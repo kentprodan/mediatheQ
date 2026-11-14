@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.tv.library
 
+import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +39,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -107,18 +109,25 @@ fun TvLibraryTabsScreen(list: @Composable (tab: TvLibraryTab, cameBack: Boolean)
     // Coming back from a detail page the tab's last card takes focus; switching tabs leaves focus on the tabs.
     var cameBack by remember { mutableStateOf(true) }
     val tabs = rememberSaveableStateHolder()
+    val selectedTab = remember { FocusRequester() }
+    var inList by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
-        TvLibraryTabs(tab) {
+        TvLibraryTabs(tab, selectedTab) {
             tab = it
             cameBack = false
         }
-        tabs.SaveableStateProvider(tab.name) { list(tab, cameBack) }
+        Box(Modifier.onFocusChanged { inList = it.hasFocus }.focusGroup()) {
+            tabs.SaveableStateProvider(tab.name) { list(tab, cameBack) }
+        }
     }
+    // Deep in a list Up only scrolls: Back goes up to the tabs first, the next Back on to the shell (#348).
+    BackHandler(enabled = inList) { runCatching { selectedTab.requestFocus() } }
 }
 
 @Composable
 fun TvLibraryTabs(
     selected: TvLibraryTab,
+    selectedFocus: FocusRequester,
     onSelect: (TvLibraryTab) -> Unit,
 ) {
     TabRow(selected.ordinal, Modifier.padding(start = EDGE, top = 24.dp)) {
@@ -126,6 +135,7 @@ fun TvLibraryTabs(
             Tab(
                 selected = tab == selected,
                 onFocus = { if (tab != selected) onSelect(tab) },
+                modifier = if (tab == selected) Modifier.focusRequester(selectedFocus) else Modifier,
                 // The selected tab's pill is dark while the row has no focus: light text on it.
                 colors =
                     TabDefaults.pillIndicatorTabColors(

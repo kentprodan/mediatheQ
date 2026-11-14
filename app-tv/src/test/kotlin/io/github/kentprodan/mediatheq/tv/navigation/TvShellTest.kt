@@ -51,6 +51,7 @@ class TvShellTest {
     private val backStack = mutableStateListOf<NavKey>(HomeKey)
     private val album = AlbumKey(MediaId(ServerId("s"), "a"))
     private val unknown = mutableListOf<NavKey>()
+    private var closed = 0
 
     private data object NoScreenKey : NavKey
 
@@ -62,6 +63,7 @@ class TvShellTest {
                     PlayerUiModel(),
                     onUnknown = { unknown += it },
                     initialDrawer = drawer,
+                    onClose = { closed++ },
                 ) { navigator ->
                     entry(HomeKey) {
                         // Two items; the second opens a detail page.
@@ -86,7 +88,7 @@ class TvShellTest {
     private fun pressBack() = composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
 
     @Test
-    fun `a drawer entry shows its screen, Back from it lands on Home, Back on Home leaves`() {
+    fun `a drawer entry shows its screen, Back from it lands on Home, Back on Home asks to close`() {
         // The drawer as it is with focus in it: open, its entries named.
         show(DrawerValue.Open)
 
@@ -98,9 +100,28 @@ class TvShellTest {
         composeRule.onNodeWithText("First album").assertExists()
         assertThat(backStack).containsExactly(HomeKey)
 
-        // On Home the shell has nothing to pop: the activity's own Back runs and the app leaves.
+        // On Home Back asks first (#343); Close stops the music and leaves.
         pressBack()
-        assertThat(composeRule.activity.isFinishing).isTrue()
+        composeRule.onNodeWithText("Close mediatheQ?").assertExists()
+        composeRule.onNodeWithText("Close").assertIsFocused().performKeyInput { pressKey(Key.DirectionCenter) }
+        assertThat(closed).isEqualTo(1)
+        assertThat(backStack).containsExactly(HomeKey)
+    }
+
+    @Test
+    fun `Cancel or Back in the close question keeps the app on Home`() {
+        show()
+
+        pressBack()
+        // Close is focused; the key goes to the dialog's window.
+        composeRule.onNodeWithText("Close").performKeyInput {
+            pressKey(Key.DirectionDown)
+            pressKey(Key.DirectionCenter)
+        }
+        composeRule.onNodeWithText("Close mediatheQ?").assertDoesNotExist()
+
+        assertThat(closed).isEqualTo(0)
+        assertThat(composeRule.activity.isFinishing).isFalse()
     }
 
     @Test
