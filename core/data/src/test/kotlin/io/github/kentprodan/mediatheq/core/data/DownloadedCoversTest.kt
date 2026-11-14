@@ -236,4 +236,27 @@ class DownloadedCoversTest {
             assertThat(source.imageCalls).isEmpty()
             assertThat(folder.root.list()).asList().doesNotContain("stray.jpg.tmp")
         }
+
+    @Test
+    fun `a cover never waits when the covers were not started, and waits at most once otherwise`() =
+        runTest(dispatcher) {
+            val idle =
+                DownloadedCovers(downloads, library, source, accountStore, folder.root, dispatcher, backgroundScope)
+            val before = testScheduler.currentTime
+            idle.awaitFirstPass()
+            assertThat(testScheduler.currentTime).isEqualTo(before)
+
+            // Started, but the download set never comes: the first wait times out, the next ones return at once.
+            val unread =
+                object : DownloadRepository by downloads {
+                    override val completedIds = MutableSharedFlow<Set<MediaId>>()
+                }
+            val stuck =
+                DownloadedCovers(unread, library, source, accountStore, folder.root, dispatcher, backgroundScope)
+                    .also { it.start() }
+            stuck.awaitFirstPass()
+            val afterFirst = testScheduler.currentTime
+            repeat(200) { stuck.awaitFirstPass() }
+            assertThat(testScheduler.currentTime).isEqualTo(afterFirst)
+        }
 }
