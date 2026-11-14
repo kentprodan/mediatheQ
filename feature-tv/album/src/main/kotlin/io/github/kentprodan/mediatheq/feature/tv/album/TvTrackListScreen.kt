@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.tv.album
 
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,8 +21,11 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -186,12 +190,26 @@ private fun Header(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             header.quality?.let { MqTvFormatBadge(it) }
-            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Up from the tracks comes back to the button focused last, the first one the first time (#350).
+            val others = remember { List(3) { FocusRequester() } }
+            var last by remember { mutableStateOf(play) }
+
+            fun Modifier.remembered(requester: FocusRequester) =
+                focusRequester(requester).onFocusChanged { if (it.isFocused) last = requester }
+            Row(
+                Modifier
+                    .padding(top = 8.dp)
+                    .focusProperties {
+                        onEnter =
+                            { if (requestedFocusDirection == FocusDirection.Up) last.requestFocus() }
+                    }.focusGroup(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 val canPlay = state.tracks.isNotEmpty()
                 MqTvButton(
                     stringResource(R.string.tv_album_play),
                     { onAction(TvTrackListAction.Play) },
-                    if (canPlay) Modifier.focusRequester(play) else Modifier,
+                    if (canPlay) Modifier.remembered(play) else Modifier,
                     enabled = canPlay,
                     icon = MqTvIcons.Play,
                 )
@@ -199,12 +217,14 @@ private fun Header(
                     MqTvButton(
                         stringResource(R.string.tv_album_resume),
                         { onAction(TvTrackListAction.Resume) },
+                        Modifier.remembered(others[0]),
                         icon = MqTvIcons.Resume,
                     )
                 }
                 MqTvButton(
                     stringResource(R.string.tv_album_shuffle),
                     { onAction(TvTrackListAction.Shuffle) },
+                    if (canPlay) Modifier.remembered(others[1]) else Modifier,
                     enabled = canPlay,
                     icon = MqTvIcons.Shuffle,
                 )
@@ -212,7 +232,7 @@ private fun Header(
                     stringResource(if (header.isFavorite) R.string.tv_album_favorited else R.string.tv_album_favorite),
                     { onAction(TvTrackListAction.ToggleFavorite) },
                     // Nothing to play (an empty playlist): the first focus goes here, a disabled button takes none.
-                    if (canPlay) Modifier else Modifier.focusRequester(play),
+                    Modifier.remembered(if (canPlay) others[2] else play),
                     icon = if (header.isFavorite) MqTvIcons.FavoriteFilled else MqTvIcons.Favorite,
                 )
             }
