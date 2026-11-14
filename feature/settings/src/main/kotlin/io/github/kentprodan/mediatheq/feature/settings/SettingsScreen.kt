@@ -483,7 +483,7 @@ fun SettingsPageScreen(
                     }
 
                     SettingsPage.Video -> {
-                        SettingsAction.SetVideo(VideoPreferences())
+                        SettingsAction.SetVideo { VideoPreferences() }
                     }
 
                     SettingsPage.AudioFocus -> {

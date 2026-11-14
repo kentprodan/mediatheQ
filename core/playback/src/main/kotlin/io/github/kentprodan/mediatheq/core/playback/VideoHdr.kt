@@ -31,7 +31,7 @@ fun interface DisplayHdr {
 
 /**
  * The Jellyfin `VideoRangeType`s to declare (#276, ADR 0050): SDR always; HDR10 / HLG with a Main 10 decoder and the
- * display type; HDR10+ with the HDR10+ profile; `DOVI` only with a Dolby Vision decoder and display. A Dolby Vision file
+ * display type; HDR10+ with HDR10 (its base layer); `DOVI` only with a Dolby Vision decoder and display. A Dolby Vision file
  * with an HDR10 / HLG / SDR base layer (profile 8) still plays its base layer on the HEVC decoder, so `DOVIWith*` follows
  * that range. Never a DV-only file (profile 5) without DV: the server tone-maps it instead of a purple picture. Pure.
  */
@@ -41,7 +41,8 @@ fun videoRangeTypes(
 ): List<String> {
     val hdr10 = decoders.hevcMain10 && Display.HdrCapabilities.HDR_TYPE_HDR10 in display
     val hlg = decoders.hevcMain10 && Display.HdrCapabilities.HDR_TYPE_HLG in display
-    val hdr10Plus = decoders.hevcHdr10Plus && Display.HdrCapabilities.HDR_TYPE_HDR10_PLUS in display
+    // An HDR10+ file has an HDR10 base: it plays as HDR10 where the dynamic metadata is not taken (as Jellyfin web).
+    val hdr10Plus = hdr10
     val dv = decoders.dolbyVision && Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION in display
     return buildList {
         add("SDR")

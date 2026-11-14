@@ -752,11 +752,14 @@ class SettingsViewModelTest {
             signIn()
 
             viewModel.uiState.test {
-                viewModel.onAction(SettingsAction.SetVideo(changed))
-                assertThat((expectMostRecentItem() as SettingsUiState.Content).video).isEqualTo(changed)
-                assertThat(video.preferences.value).isEqualTo(changed)
+                viewModel.onAction(SettingsAction.SetVideo { changed })
+                // A second tap before the page shows the first: both stay.
+                viewModel.onAction(SettingsAction.SetVideo { it.copy(keepAudio = true) })
+                val both = changed.copy(keepAudio = true)
+                assertThat((expectMostRecentItem() as SettingsUiState.Content).video).isEqualTo(both)
+                assertThat(video.preferences.value).isEqualTo(both)
 
-                viewModel.onAction(SettingsAction.SetVideo(VideoPreferences()))
+                viewModel.onAction(SettingsAction.SetVideo { VideoPreferences() })
                 assertThat(video.preferences.value).isEqualTo(VideoPreferences())
                 cancelAndIgnoreRemainingEvents()
             }

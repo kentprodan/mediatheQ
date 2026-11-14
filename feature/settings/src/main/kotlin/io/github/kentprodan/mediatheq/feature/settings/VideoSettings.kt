@@ -17,7 +17,7 @@ internal fun LazyListScope.videoGroups(
     onAction: (SettingsAction) -> Unit,
     onRestore: () -> Unit,
 ) {
-    fun set(change: VideoPreferences.() -> VideoPreferences) = onAction(SettingsAction.SetVideo(video.change()))
+    fun set(change: VideoPreferences.() -> VideoPreferences) = onAction(SettingsAction.SetVideo { it.change() })
     item(key = "video_quality") {
         Group(R.string.settings_video_quality) {
             listOf(false to R.string.settings_quality_unmetered, true to R.string.settings_quality_metered)

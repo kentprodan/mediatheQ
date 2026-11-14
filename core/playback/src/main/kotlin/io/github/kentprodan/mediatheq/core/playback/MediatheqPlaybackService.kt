@@ -120,6 +120,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     // What the playing video plays as (#276), from the video listener.
     private var videoPlayback: VideoPlayback? = null
+    private var hdrLogged = false
 
     @Inject lateinit var artworkUrls: ArtworkUrlResolver
 
@@ -569,14 +570,17 @@ class MediatheqPlaybackService : MediaLibraryService() {
         player.addAnalyticsListener(
             VideoLogListener(appLog) {
                 videoPlayback = it
+                // The phone's HDR facts once, at the first video, for the media3 skill's table (#276).
+                if (it != null && !hdrLogged) {
+                    hdrLogged = true
+                    appLog.info("MqVideo", "HDR display ${displayHdr.types()} decoders ${videoHdr.decoders()}")
+                }
                 if (::audioOutput.isInitialized) {
                     session?.sessionExtras =
                         audioOutput.state.toInfo(currentPlayMethod(), convertedDownload()).toBundle()
                 }
             },
         )
-        // The phone's HDR facts once, for the media3 skill's table (#276).
-        appLog.info("MqVideo", "HDR display ${displayHdr.types()} decoders ${videoHdr.decoders()}")
         // A video's chosen subtitle on, or text off (#274).
         player.addListener(VideoTextSelector(player, streamResolver))
         // The next episode behind the playing one (#275).

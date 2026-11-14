@@ -18,15 +18,30 @@ internal class VideoLogListener(
     private val log: AppLog,
     private val onChange: (VideoPlayback?) -> Unit = {},
 ) : AnalyticsListener {
-    private var current: VideoPlayback? = null
+    // Per queue item: the next episode's format is read ahead, before the transition to it (#276 review).
+    private val byItem = mutableMapOf<Int, VideoPlayback>()
+
+    // A decoder kept for the next item is not initialized again: it carries over.
+    private var lastDecoder: String? = null
 
     override fun onMediaItemTransition(
         eventTime: AnalyticsListener.EventTime,
         mediaItem: androidx.media3.common.MediaItem?,
         reason: Int,
     ) {
-        current = null
-        onChange(null)
+        val now = eventTime.currentWindowIndex
+        byItem.keys.retainAll { it >= now }
+        onChange(byItem[now])
+    }
+
+    private fun update(
+        eventTime: AnalyticsListener.EventTime,
+        change: (VideoPlayback) -> VideoPlayback,
+    ) {
+        val item = eventTime.windowIndex
+        val updated = change(byItem[item] ?: VideoPlayback(decoder = lastDecoder))
+        byItem[item] = updated
+        if (item == eventTime.currentWindowIndex) onChange(updated)
     }
 
     override fun onVideoInputFormatChanged(
@@ -34,14 +49,14 @@ internal class VideoLogListener(
         format: Format,
         decoderReuseEvaluation: DecoderReuseEvaluation?,
     ) {
-        current =
-            (current ?: VideoPlayback()).copy(
+        update(eventTime) {
+            it.copy(
                 mimeType = format.sampleMimeType,
                 width = format.width,
                 height = format.height,
                 range = videoRangeOf(format.sampleMimeType, format.colorInfo?.colorTransfer ?: Format.NO_VALUE),
             )
-        onChange(current)
+        }
         log.info(
             TAG,
             "Format ${format.containerMimeType} ${format.sampleMimeType} ${format.codecs} ${format.width}x${format.height}",
@@ -55,8 +70,8 @@ internal class VideoLogListener(
         initializationDurationMs: Long,
     ) {
         log.info(TAG, "Decoder $decoderName")
-        current = (current ?: VideoPlayback()).copy(decoder = decoderName)
-        onChange(current)
+        lastDecoder = decoderName
+        update(eventTime) { it.copy(decoder = decoderName) }
     }
 
     override fun onVideoSizeChanged(

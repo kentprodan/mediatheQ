@@ -56,6 +56,14 @@ class DefaultVideoPreferencesRepositoryTest {
         }
 
     @Test
+    fun `the subtitle language falls back to the audio language, which falls back to the phone's`() {
+        assertThat(VideoPreferences(audioLanguage = "en").trackDefaults("ro"))
+            .isEqualTo(TrackDefaults("en", SubtitleMode.ForcedOnly, "en"))
+        assertThat(VideoPreferences(subtitleLanguage = "ro", subtitleMode = SubtitleMode.Language).trackDefaults("de"))
+            .isEqualTo(TrackDefaults("de", SubtitleMode.Language, "ro"))
+    }
+
+    @Test
     fun `unknown stored values fall back to the defaults`() =
         runTest {
             store.setVideo(StoredVideoPreferences(unmeteredQuality = "P8K", subtitleMode = "Sometimes"))

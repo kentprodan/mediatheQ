@@ -24,13 +24,13 @@ class VideoHdrTest {
     @Test
     fun `an HDR display with Main 10 takes HDR10, HLG and Dolby Vision on an HDR10 or HLG base layer`() {
         assertThat(videoRangeTypes(hdrDisplay, main10))
-            .containsExactly("SDR", "HDR10", "HLG", "DOVIWithHDR10", "DOVIWithHLG", "DOVIWithSDR")
+            .containsExactly("SDR", "HDR10", "HLG", "HDR10Plus", "DOVIWithHDR10", "DOVIWithHLG", "DOVIWithSDR")
     }
 
     @Test
-    fun `HDR10+ needs both the display type and the decoder profile`() {
-        assertThat(videoRangeTypes(hdrDisplay, pixel)).contains("HDR10Plus")
-        assertThat(videoRangeTypes(setOf(HDR_TYPE_HDR10), pixel)).doesNotContain("HDR10Plus")
+    fun `HDR10+ comes with HDR10, its base layer, whatever the HDR10+ profile`() {
+        assertThat(videoRangeTypes(setOf(HDR_TYPE_HDR10), main10)).contains("HDR10Plus")
+        assertThat(videoRangeTypes(setOf(HDR_TYPE_HLG), pixel)).doesNotContain("HDR10Plus")
     }
 
     @Test

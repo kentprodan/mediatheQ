@@ -123,9 +123,9 @@ fun navEntriesDraft(
     )
 
 sealed interface SettingsAction {
-    /** Settings -> Video (#276): the whole page at once; the defaults restore it. */
+    /** Settings -> Video (#276): a change applied to the stored settings, so quick taps never undo each other. */
     data class SetVideo(
-        val video: VideoPreferences,
+        val change: (VideoPreferences) -> VideoPreferences,
     ) : SettingsAction
 
     /** The quality on [metered] networks (mobile data), or on unmetered ones (Wi-Fi). */

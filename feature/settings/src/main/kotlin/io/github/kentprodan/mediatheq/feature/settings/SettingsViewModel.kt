@@ -87,7 +87,7 @@ class SettingsViewModel
             viewModelScope.launch {
                 when (action) {
                     is SettingsAction.SetVideo -> {
-                        video.update { action.video }
+                        video.update(action.change)
                     }
 
                     is SettingsAction.SetStreamingQuality -> {
