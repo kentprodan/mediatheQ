@@ -356,3 +356,34 @@ fun MqEpisodeRowScreenshot() {
         }
     }
 }
+
+/** The tracks sheet's content (#274): an episode's choice for its season, two audio streams, subtitles with Off. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun MqTracksContentScreenshot() {
+    MediatheqTheme {
+        Surface {
+            MqTracksContent(
+                TracksSheetState(
+                    audio =
+                        listOf(
+                            TrackOption(1, "English - Dolby Digital+ - 5.1 - Default", selected = true),
+                            TrackOption(2, "Română - AAC - Stereo", selected = false),
+                        ),
+                    subtitles =
+                        listOf(
+                            TrackOption(null, "Off", selected = false),
+                            TrackOption(3, "English - SUBRIP", selected = false),
+                            TrackOption(4, "Română - SUBRIP - External", selected = true),
+                            TrackOption(5, "Română - PGSSUB (burned in)", selected = false),
+                        ),
+                    wholeSeason = true,
+                ),
+                onAudio = {},
+                onSubtitle = {},
+                onWholeSeason = {},
+            )
+        }
+    }
+}

@@ -58,7 +58,10 @@ class FakeVideoRepository(
 
     override fun episodes(seasonId: MediaId): Flow<List<Video>> = seasonEpisodes.map { it[seasonId].orEmpty() }
 
-    override fun streams(videoId: MediaId): Flow<List<MediaStreamInfo>> = MutableStateFlow(emptyList())
+    /** Audio and subtitle streams by video id. */
+    val streams = MutableStateFlow<Map<MediaId, List<MediaStreamInfo>>>(emptyMap())
+
+    override fun streams(videoId: MediaId): Flow<List<MediaStreamInfo>> = streams.map { it[videoId].orEmpty() }
 
     /** Episodes by season id, for [episodes] and [nextUp]. */
     val seasonEpisodes = MutableStateFlow<Map<MediaId, List<Video>>>(emptyMap())

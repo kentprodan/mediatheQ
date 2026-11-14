@@ -6,9 +6,12 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.ResolvedTracks
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoFormat
@@ -119,3 +122,34 @@ fun SeriesEmptyScreenshot() =
 @MqPreviews
 @Composable
 fun SeriesLoadingScreenshot() = SeriesPage(SeriesUiState.Loading)
+
+/** The movie page's Audio and subtitles row with what will play (#274). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun MovieTracksRowScreenshot() =
+    Movie(
+        MovieUiState.Content(
+            sdrMovie,
+            format = "1080p · H.264 · 5.1",
+            externalSubtitles = 1,
+            resumeAt = null,
+            tracks =
+                VideoTracks(
+                    streams =
+                        listOf(
+                            MediaStreamInfo(
+                                1,
+                                StreamType.Audio,
+                                "eac3",
+                                "eng",
+                                displayTitle = "English - 5.1",
+                                isDefault = true,
+                            ),
+                            MediaStreamInfo(4, StreamType.Subtitle, "subrip", "rum", displayTitle = "Română - SUBRIP"),
+                        ),
+                    resolved = ResolvedTracks(audioIndex = 1, subtitleIndex = 4),
+                    wholeSeason = null,
+                ),
+        ),
+    )
