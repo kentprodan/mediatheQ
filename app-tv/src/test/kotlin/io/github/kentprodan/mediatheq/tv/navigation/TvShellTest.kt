@@ -3,6 +3,8 @@ package io.github.kentprodan.mediatheq.tv.navigation
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Modifier
@@ -16,6 +18,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.pressKey
+import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import androidx.tv.material3.DrawerValue
 import androidx.tv.material3.LocalContentColor
@@ -124,6 +127,28 @@ class TvShellTest {
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
         composeRule.onNodeWithText("Library").assertIsFocused()
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+
+        composeRule.onNodeWithText("Home").assertIsFocused()
+    }
+
+    @Test
+    fun `the first Left from content far down the screen lands on the selected entry too`() {
+        // #342: content level with a lower entry (Now playing, Settings) took the focus there on the first entry.
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvShell(backStack, PlayerUiModel(), onUnknown = {}) { _ ->
+                    entry(HomeKey) {
+                        Column {
+                            Spacer(Modifier.height(360.dp))
+                            MqTvButton("Low album", {})
+                        }
+                    }
+                }
+            }
+        }
+        composeRule.onNodeWithText("Low album").performSemanticsAction(SemanticsActions.RequestFocus)
+
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
 
         composeRule.onNodeWithText("Home").assertIsFocused()
