@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.tv.library
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsFocused
@@ -74,6 +75,31 @@ class TvLibraryScreenTest {
 
         composeRule.onNodeWithText("Album 03").assertIsFocused()
     }
+
+    @Test
+    fun `Back in a list goes up to the tabs, the next Back is left to the shell`() {
+        var shellBacks = 0
+        composeRule.setContent {
+            // The shell's own Back sits under the screen's.
+            BackHandler { shellBacks++ }
+            MediatheqTvTheme {
+                TvLibraryTabsScreen { tab, cameBack ->
+                    TvLibraryList(state(tab), {}, TvLibraryNavigation(), restoreFocus = cameBack)
+                }
+            }
+        }
+        focus("Album 03")
+        composeRule.waitForIdle()
+
+        pressBack()
+        assertThat(shellBacks).isEqualTo(0)
+        composeRule.onNodeWithText("Albums").assertIsFocused()
+
+        pressBack()
+        assertThat(shellBacks).isEqualTo(1)
+    }
+
+    private fun pressBack() = composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
 
     @Test
     fun `the sort menu applies the chosen sort`() {

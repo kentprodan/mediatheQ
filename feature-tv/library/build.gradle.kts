@@ -7,3 +7,8 @@ plugins {
 android {
     namespace = "io.github.kentprodan.mediatheq.feature.tv.library"
 }
+
+dependencies {
+    // Back from a list goes up to the tabs (#348; BackHandler, as in Search).
+    implementation(libs.androidx.activity.compose)
+}
