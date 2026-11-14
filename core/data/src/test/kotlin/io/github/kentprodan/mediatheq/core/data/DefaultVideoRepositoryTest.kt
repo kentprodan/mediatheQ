@@ -31,6 +31,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
+import io.github.kentprodan.mediatheq.core.testing.FakePlaybackSource
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataSink
@@ -64,6 +65,7 @@ class DefaultVideoRepositoryTest {
                 CoroutineScope(Dispatchers.Unconfined),
                 AppLog.None,
             ),
+            FakePlaybackSource(),
         )
     private val server = ServerId("s")
 

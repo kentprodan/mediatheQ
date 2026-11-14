@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
+import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.ServerCapabilities
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -91,6 +92,7 @@ class DefaultVideoRepository
         private val source: LibrarySource,
         private val accountStore: AccountStore,
         private val userData: DefaultUserDataRepository,
+        private val playbackSource: PlaybackSource,
     ) : VideoRepository {
         override val hasVideo = capabilities.video
 
@@ -161,9 +163,39 @@ class DefaultVideoRepository
         private val segmentCache = ConcurrentHashMap<MediaId, List<MediaSegment>>()
 
         override suspend fun playerExtras(videoId: MediaId): PlayerExtras =
-            extras[videoId] ?: fromServer { server -> source.playerExtras(server, videoId) }
-                ?.also { extras[videoId] = it }
+            extras[videoId] ?: fromServer { server ->
+                when (val result = source.playerExtras(server, videoId)) {
+                    is MqResult.Success -> MqResult.Success(result.value.withUrls(server, videoId))
+                    is MqResult.Failure -> result
+                }
+            }?.also { extras[videoId] = it }
                 ?: PlayerExtras()
+
+        // The pictures' and tiles' URLs (#277): chapter pictures are public, the tiles need the auth header.
+        private fun PlayerExtras.withUrls(
+            server: SignedInServer,
+            videoId: MediaId,
+        ) = copy(
+            chapters =
+                chapters.map {
+                    it.copy(imageUrl = source.chapterImageUrl(server.connection.baseUrl, videoId, it, CHAPTER_WIDTH))
+                },
+            trickplay =
+                trickplay?.let { tiles ->
+                    tiles.copy(
+                        tileUrls =
+                            (0 until tiles.tileCount).map {
+                                source.trickplayTileUrl(
+                                    server.connection.baseUrl,
+                                    videoId,
+                                    tiles,
+                                    it,
+                                )
+                            },
+                        headers = playbackSource.streamHeaders(server),
+                    )
+                },
+        )
 
         override suspend fun segments(videoId: MediaId): List<MediaSegment> =
             segmentCache[videoId] ?: fromServer { server -> source.segments(server, videoId) }
@@ -207,3 +239,6 @@ class DefaultVideoRepository
 
 /** As many as Home shows in a section at most. */
 private const val RESUME_LIMIT = 50
+
+/** A chapter picture's width in the chapters sheet (#277). */
+private const val CHAPTER_WIDTH = 400

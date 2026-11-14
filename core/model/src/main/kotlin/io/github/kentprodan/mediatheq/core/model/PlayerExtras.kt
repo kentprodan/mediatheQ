@@ -14,6 +14,8 @@ data class Chapter(
     val start: Duration,
     val name: String?,
     val imageTag: String? = null,
+    /** Its picture's URL, filled by the repository; `null` without one. */
+    val imageUrl: String? = null,
 )
 
 /**
@@ -28,6 +30,30 @@ data class TrickplayInfo(
     val tileHeight: Int,
     val thumbnailCount: Int,
     val interval: Duration,
+    /** One URL per tile image, filled by the repository; they need [headers] (the route is authenticated). */
+    val tileUrls: List<String> = emptyList(),
+    val headers: Map<String, String> = emptyMap(),
+) {
+    /** Which tile image holds the thumbnail at [position], and where in it (#277). Pure. */
+    fun cellAt(position: Duration): TrickplayCell {
+        val perTile = (tileWidth * tileHeight).coerceAtLeast(1)
+        val thumbnail =
+            (position.inWholeMilliseconds / interval.inWholeMilliseconds.coerceAtLeast(1))
+                .toInt()
+                .coerceIn(0, (thumbnailCount - 1).coerceAtLeast(0))
+        val cell = thumbnail % perTile
+        return TrickplayCell(thumbnail / perTile, cell % tileWidth, cell / tileWidth)
+    }
+
+    /** How many tile images there are. */
+    val tileCount: Int get() = (thumbnailCount + tileWidth * tileHeight - 1) / (tileWidth * tileHeight).coerceAtLeast(1)
+}
+
+/** A thumbnail's place: tile image [tile], column [column] and row [row] in it. */
+data class TrickplayCell(
+    val tile: Int,
+    val column: Int,
+    val row: Int,
 )
 
 /** The kinds of media segments the player acts on (#277); Intro Skipper's credits arrive as [Outro]. */
