@@ -14,7 +14,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
  */
 @Dao
 interface UserDataDao {
-    /** The stored user data of [id] (track, album or artist), `null` when it is not in the library. */
+    /** The stored user data of [id] (track, album, artist, movie, episode, series or season), `null` when unknown. */
     @Query(
         """
         SELECT is_favorite, rating, play_count, last_played_at, played FROM track WHERE server_id = :serverId AND id = :id
@@ -22,6 +22,12 @@ interface UserDataDao {
         SELECT is_favorite, rating, play_count, last_played_at, played FROM album WHERE server_id = :serverId AND id = :id
         UNION ALL
         SELECT is_favorite, rating, play_count, last_played_at, played FROM artist WHERE server_id = :serverId AND id = :id
+        UNION ALL
+        SELECT is_favorite, rating, play_count, last_played_at, played FROM video WHERE server_id = :serverId AND id = :id
+        UNION ALL
+        SELECT is_favorite, rating, play_count, last_played_at, played FROM series WHERE server_id = :serverId AND id = :id
+        UNION ALL
+        SELECT is_favorite, rating, play_count, last_played_at, played FROM season WHERE server_id = :serverId AND id = :id
         LIMIT 1
         """,
     )
@@ -44,7 +50,30 @@ interface UserDataDao {
         updateTrackStaging(serverId, id, favorite, rating, playCount, lastPlayed, played)
         updateAlbumStaging(serverId, id, favorite, rating, playCount, lastPlayed, played)
         updateArtistStaging(serverId, id, favorite, rating, playCount, lastPlayed, played)
+        updateVideo(serverId, id, favorite, rating, playCount, lastPlayed, played)
+        updateSeries(serverId, id, favorite, rating, playCount, lastPlayed, played)
+        updateSeason(serverId, id, favorite, rating, playCount, lastPlayed, played)
+        updateVideoStaging(serverId, id, favorite, rating, playCount, lastPlayed, played)
+        updateSeriesStaging(serverId, id, favorite, rating, playCount, lastPlayed, played)
+        updateSeasonStaging(serverId, id, favorite, rating, playCount, lastPlayed, played)
     }
+
+    /**
+     * A movie's or an episode's resume point (#273): from the server's user data (a socket event after a play), or
+     * cleared when it is marked watched.
+     */
+    @Query(
+        """
+        UPDATE video SET position_ms = :positionMs, played_percentage = :playedPercentage
+        WHERE server_id = :serverId AND id = :id
+        """,
+    )
+    suspend fun setVideoProgress(
+        serverId: String,
+        id: String,
+        positionMs: Long,
+        playedPercentage: Double?,
+    )
 
     /** Writes [data] on [id] and queues [pending] for the server in one transaction, so neither is lost alone. */
     @Transaction
@@ -94,6 +123,102 @@ interface UserDataDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPending(pending: PendingUserDataEntity)
+
+    @Query(
+        """
+        UPDATE video SET is_favorite = :favorite, rating = :rating, play_count = :playCount,
+        last_played_at = :lastPlayed, played = :played WHERE server_id = :serverId AND id = :id
+        """,
+    )
+    suspend fun updateVideo(
+        serverId: String,
+        id: String,
+        favorite: Boolean,
+        rating: Double?,
+        playCount: Int,
+        lastPlayed: Long?,
+        played: Boolean,
+    )
+
+    @Query(
+        """
+        UPDATE series SET is_favorite = :favorite, rating = :rating, play_count = :playCount,
+        last_played_at = :lastPlayed, played = :played WHERE server_id = :serverId AND id = :id
+        """,
+    )
+    suspend fun updateSeries(
+        serverId: String,
+        id: String,
+        favorite: Boolean,
+        rating: Double?,
+        playCount: Int,
+        lastPlayed: Long?,
+        played: Boolean,
+    )
+
+    @Query(
+        """
+        UPDATE season SET is_favorite = :favorite, rating = :rating, play_count = :playCount,
+        last_played_at = :lastPlayed, played = :played WHERE server_id = :serverId AND id = :id
+        """,
+    )
+    suspend fun updateSeason(
+        serverId: String,
+        id: String,
+        favorite: Boolean,
+        rating: Double?,
+        playCount: Int,
+        lastPlayed: Long?,
+        played: Boolean,
+    )
+
+    @Query(
+        """
+        UPDATE video_staging SET is_favorite = :favorite, rating = :rating, play_count = :playCount,
+        last_played_at = :lastPlayed, played = :played WHERE server_id = :serverId AND id = :id
+        """,
+    )
+    suspend fun updateVideoStaging(
+        serverId: String,
+        id: String,
+        favorite: Boolean,
+        rating: Double?,
+        playCount: Int,
+        lastPlayed: Long?,
+        played: Boolean,
+    )
+
+    @Query(
+        """
+        UPDATE series_staging SET is_favorite = :favorite, rating = :rating, play_count = :playCount,
+        last_played_at = :lastPlayed, played = :played WHERE server_id = :serverId AND id = :id
+        """,
+    )
+    suspend fun updateSeriesStaging(
+        serverId: String,
+        id: String,
+        favorite: Boolean,
+        rating: Double?,
+        playCount: Int,
+        lastPlayed: Long?,
+        played: Boolean,
+    )
+
+    @Query(
+        """
+        UPDATE season_staging SET is_favorite = :favorite, rating = :rating, play_count = :playCount,
+        last_played_at = :lastPlayed, played = :played WHERE server_id = :serverId AND id = :id
+        """,
+    )
+    suspend fun updateSeasonStaging(
+        serverId: String,
+        id: String,
+        favorite: Boolean,
+        rating: Double?,
+        playCount: Int,
+        lastPlayed: Long?,
+        played: Boolean,
+    )
 
     @Query(
         """

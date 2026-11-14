@@ -374,4 +374,26 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `12 to 13 adds the watched columns to waiting changes and keeps them`() =
+        runTest {
+            helper.createDatabase(12).apply {
+                execSQL(
+                    "INSERT INTO pending_user_data (server_id, user_id, item_id, is_favorite, sets_rating, " +
+                        "before_favorite, seq) VALUES ('s', 'u', 't1', 1, 0, 0, 1)",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(13)
+
+            connection.prepare("SELECT is_favorite, played, before_played FROM pending_user_data").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(1)
+                assertThat(it.isNull(1)).isTrue()
+                assertThat(it.getLong(2)).isEqualTo(0)
+            }
+            connection.close()
+        }
 }
