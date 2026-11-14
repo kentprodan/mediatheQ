@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.tv.navigation
 
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -163,7 +165,13 @@ private fun NavigationDrawerScope.Drawer(
         Modifier
             .fillMaxHeight()
             .padding(12.dp)
-            .focusProperties { onEnter = { requesters.getValue(selected).requestFocus() } },
+            // A focus group of its own: without it onEnter never ran, and the first Left went to the entry level
+            // with the content (often Now playing, #342).
+            .focusProperties {
+                // Only the D-pad's way in; a focus asked for in code (an entry itself) is left alone.
+                onEnter =
+                    { if (requestedFocusDirection == FocusDirection.Left) requesters.getValue(selected).requestFocus() }
+            }.focusGroup(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         TvDestination.entries.forEach { destination ->
