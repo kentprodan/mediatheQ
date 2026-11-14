@@ -37,6 +37,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
+import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
@@ -401,5 +402,49 @@ class NowPlayingLayoutTest {
             composeRule.activity.window.decorView
                 .keepsScreenOn(),
         ).isTrue()
+    }
+
+    @Test
+    fun `a playing video's mini player opens the video player, never the full player`() {
+        val movie = MediaId(ServerId("s"), "m1")
+        state = playing.copy(trackId = movie, isVideo = true)
+        val opened = mutableListOf<NavKey>()
+        composeRule.setContent {
+            MediatheqTheme {
+                NowPlayingLayout(
+                    state,
+                    MutableStateFlow(150.seconds),
+                    { actions += it },
+                    content = { mini -> mini(true) },
+                    onNavigate = { opened += it },
+                )
+            }
+        }
+
+        composeRule.onNode(miniPlayer).performClick()
+
+        assertThat(opened).containsExactly(VideoPlayerKey(movie, attach = true))
+        composeRule.onNodeWithContentDescription(closeButton).assertDoesNotExist()
+    }
+
+    @Test
+    fun `in Video mode music never shows a mini player, a video does`() {
+        composeRule.setContent {
+            MediatheqTheme {
+                NowPlayingLayout(
+                    state,
+                    MutableStateFlow(150.seconds),
+                    { actions += it },
+                    content = { mini -> mini(true) },
+                    videoOnly = true,
+                )
+            }
+        }
+        composeRule.onNode(miniPlayer).assertDoesNotExist()
+
+        state = playing.copy(trackId = MediaId(ServerId("s"), "m1"), isVideo = true)
+        composeRule.waitForIdle()
+
+        composeRule.onNode(miniPlayer).assertIsDisplayed()
     }
 }

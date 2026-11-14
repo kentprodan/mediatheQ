@@ -5,7 +5,7 @@ description: Media3 playback rules for mediatheQ - MediaLibraryService and sessi
 
 # mediatheQ - Media3 playback
 
-Scope now: **music** (milestones Mobile 1 phone, TV 1 TV; ADR 0025). Video rules are added with Mobile 3 / TV 2 Video (new section or new skill).
+Scope: **music** (Mobile 1, TV 1) and, since #272, **video** in the same player (section 12a; ADR 0047, 0049, 0050).
 Read together with `architecture` (section 7, playback boundary) and `jellyfin` (sections 5-6).
 
 ## 0. Version and sources of truth
@@ -208,6 +208,16 @@ Rules:
 - Bluetooth lyrics (#143, ADR 0034, `BluetoothLyrics.kt`): with the Playback page's switch on and synced lyrics, `QueuePlayer.setLyricsTitle` makes the session metadata's `title` the line sung now and `displayTitle` the real title (getter and the `onMediaMetadataChanged` value alike). Bluetooth reads the title, the system media card prefers the display title, the notification's content title is `displayTitle ?: title`, and the app's screens read the queue item's own metadata. While the switch is on the platform session has no queue (`notificationPlayerCommands(hideQueue)` drops `COMMAND_GET_TIMELINE`), because Bluetooth holds a title back for 2 s when it differs from the queue's active item. `BluetoothLyrics` loads the lyrics once per track, takes the line from the player's position whenever it fires, never changes the title twice within 500 ms, and gives `null` (the real title) on a track change, an empty line, no synced lyrics or a failed load.
 - Sleep timer: lives in the service, survives UI death.
 - Android Auto browse tree (`LibraryCallback.onGetChildren`) is designed now, implemented in Auto & Wear 1.
+
+## 12a. Video (#272, ADR 0047 / 0049 / 0050)
+
+- **One player.** `PlaybackConnection.playVideo(video, startPosition)` replaces the queue with one item made by `Video.toMediaItem` (extra `VIDEO` and the start position; repeat and shuffle turned off so it ends). The session gives it `mediatheq://video/<id>` (`withTrackUri` reads the extra, never a controller's URI). `queuedTrackId()` is `null` for it, so resume, Bluetooth lyrics, the favorite button, prefetch, upcoming tracks and the instant transcoder leave it alone; reporting and the output decision read `MediaId.parse(mediaId)` and include it.
+- **Stream:** `StreamMediaSourceFactory` gives a video a `LazyStreamMediaSource` whose choice is `chooseVideoSource` -> `StreamResolver.resolveVideo` (always a new play session; `DeviceProfileBuilder.video(audio, video decoders, VideoQuality)`: Original unmetered, 480p metered until #276; `StreamChoice` carries `StartTimeTicks`). A file plays as `StreamSource.Direct` through the app OkHttp client with the auth header and **never the streaming cache**; a remux or conversion is HLS like music. A lasting failure throws, and the `mediatheq://video` file source refuses, so it ends as a playback error. `quality(id)` is `null` for a video.
+- **The saved queue:** `QueuePersistence` saves nothing while a video is queued (`saveNow`, the tick, a pending debounce); the session saves the music place in `onAddMediaItems` right before a video replaces it; `STATE_ENDED` on a video item puts the saved queue back paused (`handBack`), except in Video mode (`restoresMusic`) or when something else was queued.
+- **Audio:** `AudioPolicy.offload(..., video = true)` is false; the rest of the output rules apply as for music.
+- **UI:** the controller is exposed as `PlaybackConnection.videoPlayer` for `MqVideoSurface` (`:core:ui`, `ContentFrame` with `SURFACE_TYPE_SURFACE_VIEW`, the only `@UnstableApi` Compose UI opt-in); `PlayerUiModel.videoAspectRatio` and `NowPlayingItem.isVideo` drive the screen and the mini player.
+- **Logs:** `VideoLogListener` writes the format, the decoder and the output size under `MqVideo`; the play method is in the `Playback` line.
+- Not yet: subtitles and track choice (#274), HDR / Dolby Vision and the Video settings (#276), PiP (#278), next episode (#275), downloads (#279). A device test that the first frame renders through the controller needs a server item: it is a manual test step until then.
 
 ## 12. Progress reporting and user data
 

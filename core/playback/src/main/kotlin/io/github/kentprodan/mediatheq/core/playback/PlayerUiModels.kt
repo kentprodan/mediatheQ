@@ -33,6 +33,11 @@ internal fun Player.toPlayerUiModel(output: AudioOutputInfo = AudioOutputInfo())
         output = output,
         isBuffering = playbackState == Player.STATE_BUFFERING,
         isReady = playbackState == Player.STATE_READY,
+        isFailed = playerError != null,
+        videoAspectRatio =
+            videoSize
+                .takeIf { item?.isVideo == true && it.width > 0 && it.height > 0 }
+                ?.let { it.width * it.pixelWidthHeightRatio / it.height },
     )
 }
 
@@ -136,5 +141,6 @@ private fun MediaItem.toNowPlayingItem(): NowPlayingItem? {
         title = mediaMetadata.title?.toString().orEmpty(),
         artist = mediaMetadata.artist?.toString().orEmpty(),
         artwork = mediaMetadata.extras?.toArtwork(),
+        isVideo = isVideo(),
     )
 }

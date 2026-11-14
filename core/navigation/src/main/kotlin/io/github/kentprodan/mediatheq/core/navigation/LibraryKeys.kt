@@ -98,3 +98,14 @@ data class MovieKey(
 data class SeriesKey(
     @Serializable(with = MediaIdSerializer::class) val id: MediaId,
 ) : NavKey
+
+/**
+ * The full-screen video player (ADR 0049), pushed on the current tab's stack: it plays [id] from [startPositionMs], or
+ * with [attach] shows it as it plays (opened again from the mini player).
+ */
+@Serializable
+data class VideoPlayerKey(
+    @Serializable(with = MediaIdSerializer::class) val id: MediaId,
+    val startPositionMs: Long = 0,
+    val attach: Boolean = false,
+) : NavKey

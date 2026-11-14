@@ -66,7 +66,7 @@ Any change to this table = ADR in `docs/decisions/`.
 :feature:playlist
 :feature:nowplaying      full player, queue, lyrics
 :feature:settings
-:feature:video           Movies and Series poster grids (#270); the movie and series pages and the player follow
+:feature:video           Movies and Series poster grids (#270), the video player (#272); the movie and series pages follow
 ```
 
 `:feature-tv:onboarding` server, Quick Connect first, password (ADR 0040); `:feature-tv:home` rows of the Home sections

@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.model.DeviceProfile
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
+import io.github.kentprodan.mediatheq.core.model.StreamChoice
 
 /**
  * Streams and play-state reports for the signed-in server. Signed out, every call fails with `Unauthorized`; a 401 from
@@ -14,6 +15,7 @@ interface PlaybackRepository {
     suspend fun stream(
         itemId: MediaId,
         profile: DeviceProfile,
+        choice: StreamChoice = StreamChoice(),
     ): MqResult<PlaybackStream>
 
     /** Headers for stream requests, built from the current token; empty when signed out. */

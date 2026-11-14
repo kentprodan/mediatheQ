@@ -1,8 +1,10 @@
 package io.github.kentprodan.mediatheq.core.testing
 
+import androidx.media3.common.Player
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlaybackError
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
@@ -39,6 +41,18 @@ class FakePlaybackConnection : PlaybackConnection {
     /** Every command other than [play], by name (e.g. `"seekTo 1m"`). */
     val commands = mutableListOf<String>()
 
+    /** Each [playVideo], as the video and its start. */
+    val videoCalls = mutableListOf<Pair<Video, Duration>>()
+
+    override fun playVideo(
+        video: Video,
+        startPosition: Duration,
+    ) {
+        videoCalls += video to startPosition
+    }
+
+    override val videoPlayer = MutableStateFlow<Player?>(null)
+
     override fun play(
         queue: List<Track>,
         startIndex: Int,
@@ -48,6 +62,10 @@ class FakePlaybackConnection : PlaybackConnection {
     ) {
         plays += PlayCall(queue, startIndex, shuffle, startPosition, playlistId)
         expandRequested.value = true
+    }
+
+    override fun pause() {
+        commands += "pause"
     }
 
     override fun togglePlayPause() {

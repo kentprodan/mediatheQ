@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.time.Duration.Companion.seconds
 
 // Robolectric: android.net.Uri in the track scheme helpers.
 @RunWith(RobolectricTestRunner::class)
@@ -412,6 +413,35 @@ class StreamResolverTest {
         resolver.passthrough = emptySet()
         assertThat(resolver.requestQuality(itemId, StreamingQuality.Kbps256)).isEqualTo(StreamingQuality.Kbps256)
     }
+
+    @Test
+    fun `a video asks for the video profile from its start, and its stream is known for reports`() =
+        runTest {
+            val video =
+                StreamResolver(repository, { setOf("audio/flac") }, network, audioPreferences) { setOf("video/avc") }
+
+            val stream = (video.resolveVideo(itemId, 90.seconds) as MqResult.Success).value
+
+            val profile = repository.streamRequests.single().second
+            assertThat(profile.videoCodecs).containsExactly("h264")
+            assertThat(profile.maxHeight).isNull()
+            assertThat(repository.streamChoices.single().startPosition).isEqualTo(90.seconds)
+            assertThat(video.current(itemId)).isEqualTo(stream)
+            // No music quality: the instant transcoder leaves a video alone.
+            assertThat(video.quality(itemId)).isNull()
+        }
+
+    @Test
+    fun `a video on a metered network asks for 480p`() =
+        runTest {
+            network.metered = true
+
+            resolver.resolveVideo(itemId)
+
+            val profile = repository.streamRequests.single().second
+            assertThat(profile.maxHeight).isEqualTo(480)
+            assertThat(profile.maxStreamingBitrate).isEqualTo(1_500_000)
+        }
 }
 
 private const val JOC = "audio/eac3-joc"

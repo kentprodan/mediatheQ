@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
+import io.github.kentprodan.mediatheq.core.model.StreamChoice
 import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 
@@ -23,6 +24,7 @@ class FakePlaybackSource : PlaybackSource {
         server: SignedInServer,
         itemId: MediaId,
         profile: DeviceProfile,
+        choice: StreamChoice,
     ): MqResult<PlaybackStream> {
         profiles += profile
         return failure ?: MqResult.Success(fakeStream(itemId))

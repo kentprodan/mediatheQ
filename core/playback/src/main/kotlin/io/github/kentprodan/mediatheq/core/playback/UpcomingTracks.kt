@@ -36,7 +36,7 @@ internal fun Player.upcomingItems(
         index = timeline.getNextWindowIndex(index, repeat, shuffleModeEnabled)
         if (index == C.INDEX_UNSET) return result
         val item = getMediaItemAt(index)
-        val id = runCatching { MediaId.parse(item.mediaId) }.getOrNull()
+        val id = item.queuedTrackId()
         if (id != null && item.mediaId != current && result.none { it.first == id } && !skip(id)) result += id to item
     }
     return result

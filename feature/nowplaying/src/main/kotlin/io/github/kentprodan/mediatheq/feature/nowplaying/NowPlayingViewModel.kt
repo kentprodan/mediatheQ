@@ -306,6 +306,7 @@ private fun PlayerUiModel.toUiState(
         title = item.title,
         artist = item.artist,
         trackId = item.id,
+        isVideo = item.isVideo,
         artwork = item.artwork,
         isPlaying = isPlaying,
         duration = duration,

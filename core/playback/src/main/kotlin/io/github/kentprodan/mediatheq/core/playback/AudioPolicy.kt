@@ -78,8 +78,13 @@ internal object AudioPolicy {
         settings: AudioSettings,
         route: AudioRoute,
         passthrough: Set<String> = emptySet(),
+        /** A video plays (ADR 0047): offloaded audio cannot be kept in sync with the picture. */
+        video: Boolean = false,
     ): Boolean =
-        !equalizer(settings) && !wantsBitPerfect(settings, route) && !wantsPassthrough(settings, route, passthrough)
+        !video &&
+            !equalizer(settings) &&
+            !wantsBitPerfect(settings, route) &&
+            !wantsPassthrough(settings, route, passthrough)
 
     /** Whether the equalizer is wanted: on, and the output does not bypass processing. */
     private fun equalizer(settings: AudioSettings) = settings.equalizerOn && !settings.bypass

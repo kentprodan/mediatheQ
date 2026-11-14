@@ -235,6 +235,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         headers = streamResolver::headers,
                         dispatcher = ioDispatcher,
                         onOpen = { prefetcher.cancel(it) },
+                        chooseVideo = { id, item ->
+                            chooseVideoSource(id, streamResolver, item.videoStart(), playerNetwork::isOnline)
+                        },
                     ),
                 ).build()
         startAudioOutput(player)
@@ -549,6 +552,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     .ifEmpty { null }
             },
         )
+        player.addAnalyticsListener(VideoLogListener(appLog))
         usbAudio = AudioOutputPort.create(getSystemService(AudioManager::class.java))
         // What HDMI passes through (ADR 0039); a change (plug, the TV's surround setting) decides again.
         passthroughCapabilities = Media3PassthroughCapabilities(this) { audioOutput.onCapabilitiesChanged() }
@@ -565,6 +569,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             )
         audioOutput =
             AudioOutputController(
+                playingVideo = { player.currentMediaItem?.isVideo() == true },
                 port = usbAudio,
                 currentFormat = {
                     val playing =
@@ -896,6 +901,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
             controller: MediaSession.ControllerInfo,
             mediaItems: MutableList<MediaItem>,
         ): ListenableFuture<MutableList<MediaItem>> {
+            // The music place right before a video replaces it: the hand-back brings the queue back there (ADR 0047).
+            // Not an empty player (Video mode, or the start-up restore still running): that would save nothing over it.
+            if (mediaItems.any { it.isVideo() } && mediaSession.player.mediaItemCount > 0) persistence.saveNow()
             // Only our tracks can play; anything else (e.g. a voice search without an id) is refused, not crashed on.
             val resolved =
                 mediaItems.map {

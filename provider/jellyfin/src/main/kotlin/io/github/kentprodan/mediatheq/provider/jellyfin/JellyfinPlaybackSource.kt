@@ -8,14 +8,17 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
+import io.github.kentprodan.mediatheq.core.model.StreamChoice
 import io.github.kentprodan.mediatheq.core.server.ClientInfo
 import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
+import io.github.kentprodan.mediatheq.provider.jellyfin.dto.CodecProfileDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.DeviceProfileDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.DirectPlayProfileDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.PlaybackInfoDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.PlaybackInfoResponseDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.PlaybackReportDto
+import io.github.kentprodan.mediatheq.provider.jellyfin.dto.ProfileConditionDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.TranscodingProfileDto
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.json.Json
@@ -40,6 +43,7 @@ class JellyfinPlaybackSource internal constructor(
         server: SignedInServer,
         itemId: MediaId,
         profile: DeviceProfile,
+        choice: StreamChoice,
     ): MqResult<PlaybackStream> {
         val body =
             PlaybackInfoDto(
@@ -47,6 +51,13 @@ class JellyfinPlaybackSource internal constructor(
                 profile.maxStreamingBitrate ?: UNLIMITED,
                 profile.toDto(),
                 autoOpenLiveStream = false,
+                // Jellyfin positions are 100 ns ticks; zero is left out like every default.
+                startTimeTicks =
+                    choice.startPosition.inWholeMilliseconds
+                        .takeIf { it > 0 }
+                        ?.times(TICKS_PER_MS),
+                audioStreamIndex = choice.audioStreamIndex,
+                subtitleStreamIndex = choice.subtitleStreamIndex,
             )
         val response =
             http.post(
@@ -74,7 +85,14 @@ class JellyfinPlaybackSource internal constructor(
                 MqResult.Success(
                     PlaybackStream(
                         itemId = itemId,
-                        url = directUrl(baseUrl, itemId.itemId, sourceId, playSessionId),
+                        url =
+                            directUrl(
+                                baseUrl,
+                                itemId.itemId,
+                                sourceId,
+                                playSessionId,
+                                kind = if (profile.videoCodecs != null) "Videos" else "Audio",
+                            ),
                         playMethod = PlayMethod.DirectPlay,
                         mediaSourceId = sourceId,
                         playSessionId = playSessionId,
@@ -92,7 +110,13 @@ class JellyfinPlaybackSource internal constructor(
                     PlaybackStream(
                         itemId = itemId,
                         url = serverUrl(baseUrl, withoutApiKey(transcodingUrl)),
-                        playMethod = PlayMethod.Transcode,
+                        // A remux (the streams copied into another container) is reported as what it is.
+                        playMethod =
+                            if (profile.videoCodecs != null && source.supportsDirectStream) {
+                                PlayMethod.DirectStream
+                            } else {
+                                PlayMethod.Transcode
+                            },
                         mediaSourceId = sourceId,
                         playSessionId = playSessionId,
                         canSeek = segmented,
@@ -140,10 +164,70 @@ class JellyfinPlaybackSource internal constructor(
     private companion object {
         /** "No cap" for Jellyfin, which treats a missing value as its own (lower) default. */
         const val UNLIMITED = 1_000_000_000
+        const val TICKS_PER_MS = 10_000L
     }
 }
 
-private fun DeviceProfile.toDto() =
+private fun DeviceProfile.toDto() = videoCodecs?.let(::toVideoDto) ?: toAudioDto()
+
+/** A video profile (ADR 0050): video direct play, HLS fMP4 conversions, and the limits of the phone's decoders. */
+private fun DeviceProfile.toVideoDto(videoCodecs: List<String>) =
+    DeviceProfileDto(
+        name = "mediatheQ",
+        maxStreamingBitrate = maxStreamingBitrate ?: 1_000_000_000,
+        musicStreamingTranscodingBitrate = transcoding.bitrate,
+        directPlayProfiles =
+            listOf(
+                DirectPlayProfileDto(
+                    "Video",
+                    directPlayContainers.joinToString(","),
+                    directPlayCodecs.joinToString(","),
+                    videoCodec = videoCodecs.joinToString(","),
+                ),
+            ),
+        transcodingProfiles =
+            listOf(
+                TranscodingProfileDto(
+                    type = "Video",
+                    container = transcoding.container,
+                    audioCodec = transcoding.codec,
+                    protocol = "hls",
+                    context = "Streaming",
+                    maxAudioChannels = transcoding.maxChannels.toString(),
+                    videoCodec = transcoding.videoCodec,
+                    breakOnNonKeyFrames = true,
+                    minSegments = 1,
+                ),
+            ),
+        codecProfiles =
+            listOf(
+                CodecProfileDto(
+                    "Video",
+                    listOfNotNull(
+                        condition("LessThanEqual", "Width", MAX_WIDTH),
+                        condition("LessThanEqual", "VideoBitDepth", MAX_BIT_DEPTH),
+                        // HDR ranges come with the display's capabilities (#276); SDR plays everywhere.
+                        condition("EqualsAny", "VideoRangeType", "SDR"),
+                        maxHeight?.let { condition("LessThanEqual", "Height", it.toString()) },
+                    ),
+                ),
+                CodecProfileDto("VideoAudio", listOf(condition("LessThanEqual", "AudioChannels", MAX_AUDIO_CHANNELS))),
+            ),
+        containerProfiles = emptyList(),
+        subtitleProfiles = emptyList(),
+    )
+
+private fun condition(
+    condition: String,
+    property: String,
+    value: String,
+) = ProfileConditionDto(condition, property, value, isRequired = false)
+
+private const val MAX_WIDTH = "3840"
+private const val MAX_BIT_DEPTH = "10"
+private const val MAX_AUDIO_CHANNELS = "8"
+
+private fun DeviceProfile.toAudioDto() =
     DeviceProfileDto(
         name = "mediatheQ",
         maxStreamingBitrate = maxStreamingBitrate ?: 1_000_000_000,
@@ -189,17 +273,18 @@ private fun PlaybackReport.toDto() =
         canSeek = stream.canSeek,
     )
 
-/** The original file, byte-range seekable. */
+/** The original file, byte-range seekable; [kind] `Audio` or `Videos`. */
 internal fun directUrl(
     baseUrl: String,
     itemId: String,
     mediaSourceId: String,
     playSessionId: String,
+    kind: String = "Audio",
 ): String =
     baseUrl
         .toHttpUrl()
         .newBuilder()
-        .addPathSegment("Audio")
+        .addPathSegment(kind)
         .addPathSegment(itemId)
         .addPathSegment("stream")
         .addQueryParameter("static", "true")

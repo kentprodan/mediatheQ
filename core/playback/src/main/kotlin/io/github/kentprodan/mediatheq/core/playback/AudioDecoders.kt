@@ -20,3 +20,21 @@ internal class MediaCodecAudioDecoders
                 .filter { it.startsWith("audio/") }
                 .toSet()
     }
+
+/** The video formats this device can decode, as MIME types (`video/avc`, ...). A snapshot, like [AudioDecoders]. */
+fun interface VideoDecoders {
+    fun mimeTypes(): Set<String>
+}
+
+/** [VideoDecoders] from the platform's codec list. */
+internal class MediaCodecVideoDecoders
+    @Inject
+    constructor() : VideoDecoders {
+        override fun mimeTypes(): Set<String> =
+            MediaCodecList(MediaCodecList.REGULAR_CODECS)
+                .codecInfos
+                .filterNot { it.isEncoder }
+                .flatMap { it.supportedTypes.asList() }
+                .filter { it.startsWith("video/") }
+                .toSet()
+    }

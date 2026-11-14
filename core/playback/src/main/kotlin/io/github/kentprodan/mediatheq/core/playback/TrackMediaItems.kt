@@ -74,7 +74,7 @@ internal fun Track.toMediaItem(
  */
 internal fun MediaItem.withTrackUri(): MediaItem? {
     val itemId = runCatching { MediaId.parse(mediaId) }.getOrNull() ?: return null
-    val builder = buildUpon().setUri(trackUri(itemId))
+    val builder = buildUpon().setUri(if (isVideo()) videoUri(itemId) else trackUri(itemId))
     if (entryId() == null) {
         val extras = Bundle(mediaMetadata.extras ?: Bundle()).apply { putString(EXTRA_ENTRY_ID, newEntryId()) }
         builder.setMediaMetadata(mediaMetadata.buildUpon().setExtras(extras).build())
@@ -128,7 +128,8 @@ internal fun MediaItem.markedPlayedNext(): MediaItem {
 internal fun MediaItem.isPlayedNext(): Boolean = mediaMetadata.extras?.getBoolean(EXTRA_PLAYED_NEXT, false) == true
 
 /** The track this queue item plays; `null` for an item that is not one of ours. */
-internal fun MediaItem.queuedTrackId(): MediaId? = runCatching { MediaId.parse(mediaId) }.getOrNull()
+internal fun MediaItem.queuedTrackId(): MediaId? =
+    if (isVideo()) null else runCatching { MediaId.parse(mediaId) }.getOrNull()
 
 /** The queue entry this item is (see [toMediaItem]). */
 internal fun MediaItem.entryId(): String? = mediaMetadata.extras?.getString(EXTRA_ENTRY_ID)
@@ -209,6 +210,10 @@ private fun Bundle.putQueueExtras(
     artwork: Artwork?,
 ) {
     putString(EXTRA_ENTRY_ID, entryId)
+    putArtwork(artwork)
+}
+
+internal fun Bundle.putArtwork(artwork: Artwork?) {
     if (artwork != null) {
         putString(EXTRA_ARTWORK_ID, artwork.itemId)
         putString(EXTRA_ARTWORK_TAG, artwork.tag)

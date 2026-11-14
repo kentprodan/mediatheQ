@@ -11,6 +11,7 @@ import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.CompositeMediaSource
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ForwardingMediaSourceFactory
 import androidx.media3.exoplayer.source.ForwardingTimeline
 import androidx.media3.exoplayer.source.MediaPeriod
@@ -28,6 +29,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
+import kotlin.time.Duration
 
 /** How a queue item plays: through [streamDataSourceFactory] (download, cache, file, fallback), or as HLS. */
 internal sealed interface StreamSource {
@@ -35,6 +37,11 @@ internal sealed interface StreamSource {
 
     /** A converted stream in segments (R15): [url] is its playlist (no token in any URL). */
     data class Hls(
+        val url: String,
+    ) : StreamSource
+
+    /** A video file played as it is (ADR 0047): straight from the server, never through the streaming cache. */
+    data class Direct(
         val url: String,
     ) : StreamSource
 }
@@ -77,6 +84,40 @@ internal suspend fun chooseStreamSource(
     }
 }
 
+/**
+ * Chooses how the video [itemId] plays (ADR 0050): its HLS playlist (a remux or a conversion) or the file itself, asked
+ * from where it starts ([startPosition]). Network trouble is retried like a track's; a lasting failure throws, and the
+ * item's progressive fallback then fails as a playback error.
+ */
+internal suspend fun chooseVideoSource(
+    itemId: MediaId,
+    resolver: StreamResolver,
+    startPosition: Duration,
+    isOnline: () -> Boolean,
+): StreamSource {
+    var attempt = 0
+    while (true) {
+        when (val result = resolver.resolveVideo(itemId, startPosition)) {
+            is MqResult.Success -> {
+                return if (result.value.segmented) {
+                    StreamSource.Hls(result.value.url)
+                } else {
+                    StreamSource.Direct(result.value.url)
+                }
+            }
+
+            is MqResult.Failure -> {
+                val retryable = result.error == MqError.Network || result.error is MqError.Server
+                if (!retryable || attempt == CHOOSE_RETRIES || !isOnline()) {
+                    throw StreamUnavailableException(result.error)
+                }
+                delay(CHOOSE_RETRY_DELAY_MILLIS shl attempt)
+                attempt++
+            }
+        }
+    }
+}
+
 private const val CHOOSE_RETRIES = 3
 private const val CHOOSE_RETRY_DELAY_MILLIS = 1_000L
 
@@ -96,8 +137,15 @@ internal class StreamMediaSourceFactory(
     private val dispatcher: CoroutineDispatcher,
     /** Called when the player starts loading an HLS track (the prefetcher then leaves it alone). */
     private val onOpen: (MediaId) -> Unit = {},
+    /** Chooses the stream of a video ([chooseVideoSource]). */
+    private val chooseVideo: suspend (MediaId, MediaItem) -> StreamSource = { _, _ -> StreamSource.Progressive },
 ) : ForwardingMediaSourceFactory(progressive) {
     override fun createMediaSource(mediaItem: MediaItem): MediaSource {
+        mediaItem.localConfiguration?.uri?.videoId()?.let { videoId ->
+            return LazyStreamMediaSource(mediaItem, {
+                chooseVideo(videoId, mediaItem)
+            }, { childFor(videoId, mediaItem, it) }, dispatcher)
+        }
         val itemId = mediaItem.localConfiguration?.uri?.trackId() ?: return super.createMediaSource(mediaItem)
         return LazyStreamMediaSource(mediaItem, {
             choose(itemId, mediaItem)
@@ -114,12 +162,15 @@ internal class StreamMediaSourceFactory(
                 progressive.createMediaSource(mediaItem)
             }
 
+            is StreamSource.Direct -> {
+                DefaultMediaSourceFactory(authenticated())
+                    .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
+                    .createMediaSource(mediaItem.buildUpon().setUri(source.url).build())
+            }
+
             is StreamSource.Hls -> {
                 onOpen(itemId)
-                val authenticated =
-                    ResolvingDataSource.Factory(OkHttpDataSource.Factory(okHttpClient)) {
-                        it.withAdditionalHeaders(runBlocking { headers() })
-                    }
+                val authenticated = authenticated()
                 HlsMediaSource
                     .Factory(authenticated)
                     .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
@@ -131,6 +182,12 @@ internal class StreamMediaSourceFactory(
                             .build(),
                     )
             }
+        }
+
+    /** The app client with the auth header read at every request (R9). */
+    private fun authenticated() =
+        ResolvingDataSource.Factory(OkHttpDataSource.Factory(okHttpClient)) {
+            it.withAdditionalHeaders(runBlocking { headers() })
         }
 }
 

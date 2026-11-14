@@ -19,6 +19,8 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.testing.FakeQueueRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.TestScope
@@ -369,5 +371,65 @@ class QueuePersistenceTest {
 
             assertThat(player.getMediaItemAt(0).playlistId()).isEqualTo(playlist)
             assertThat(repository.entries.map { it.playlistId }.distinct()).containsExactly(playlist)
+        }
+
+    private val movie =
+        Video(MediaId(ServerId("s"), "m1"), VideoKind.Movie, "Moșoi", duration = 2.minutes)
+
+    private fun videoItem(): MediaItem = movie.toMediaItem(null).withTrackUri()!!
+
+    @Test
+    fun `a video replacing the queue saves nothing, also when saved at once`() =
+        runTest {
+            repository.saved = saved(QueuePlace(1, 42.seconds, shuffle = false))
+            val persistence = start()
+            runCurrent()
+            val writes = repository.queueWrites
+            val place = repository.place
+
+            player.setMediaItem(videoItem())
+            wait(5.seconds)
+            persistence.saveNow()
+            runCurrent()
+
+            assertThat(repository.queueWrites).isEqualTo(writes)
+            assertThat(repository.place).isEqualTo(place)
+        }
+
+    @Test
+    fun `the end of a video brings the saved music queue back paused at its track and position`() =
+        runTest {
+            repository.saved = saved(QueuePlace(1, 42.seconds, shuffle = false))
+            start()
+            runCurrent()
+            player.setMediaItem(videoItem())
+            player.prepare()
+            player.play()
+
+            advance(player).untilState(Player.STATE_ENDED)
+            wait(1.seconds)
+
+            assertThat(titles()).containsExactly("Track 1", "Track 2", "Track 3").inOrder()
+            assertThat(player.currentMediaItemIndex).isEqualTo(1)
+            assertThat(player.currentPosition.milliseconds).isEqualTo(42.seconds)
+            assertThat(player.playWhenReady).isFalse()
+        }
+
+    @Test
+    fun `in Video mode the end of a video brings no music back`() =
+        runTest {
+            repository.saved = saved(QueuePlace(1, 42.seconds, shuffle = false))
+            QueuePersistence(player, repository, backgroundScope, artworkUrl = { null }, restoresMusic = { false })
+                .start()
+            runCurrent()
+            player.setMediaItem(videoItem())
+            player.prepare()
+            player.play()
+
+            advance(player).untilState(Player.STATE_ENDED)
+            wait(1.seconds)
+
+            assertThat(player.currentMediaItem?.isVideo()).isTrue()
+            assertThat(repository.hasSavedQueue).isTrue()
         }
 }

@@ -13,4 +13,7 @@ dependencies {
     api(projects.core.common)
     api(projects.core.designsystem)
     implementation(libs.androidx.activity.compose)
+    // The video surface and its presentation state (ADR 0049); @UnstableApi, opted in only in MqVideoSurface.
+    implementation(libs.androidx.media3.ui.compose)
+    implementation(libs.androidx.media3.common)
 }

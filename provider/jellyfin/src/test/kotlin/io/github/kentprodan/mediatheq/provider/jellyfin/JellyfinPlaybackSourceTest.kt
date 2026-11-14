@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.StreamChoice
 import io.github.kentprodan.mediatheq.core.model.TranscodingTarget
 import io.github.kentprodan.mediatheq.core.network.MediatheqJson
 import io.github.kentprodan.mediatheq.core.network.mediatheqOkHttpClient
@@ -281,5 +282,99 @@ class JellyfinPlaybackSourceTest {
                         """{"ItemId":"${itemId.itemId}","MediaSourceId":"src-1","PlaySessionId":"session-1","PositionTicks":120000000,"Failed":false}""",
                     ),
                 )
+        }
+
+    private val video =
+        DeviceProfile(
+            directPlayContainers = listOf("mp4", "mkv"),
+            directPlayCodecs = listOf("aac", "opus"),
+            transcoding =
+                TranscodingTarget("mp4", "aac,opus", 192_000, 6, segmented = true, videoCodec = "hevc,h264"),
+            maxStreamingBitrate = 1_500_000,
+            videoCodecs = listOf("h264", "hevc"),
+            maxHeight = 480,
+        )
+
+    @Test
+    fun `a video PlaybackInfo request carries the video profile, its HLS conversion and the decoder limits`() =
+        runTest {
+            enqueue("items_playbackinfo/video_transcode_hls.json")
+
+            source.stream(server(), itemId, video)
+
+            assertThat(body()["DeviceProfile"])
+                .isEqualTo(
+                    Json.parseToJsonElement(
+                        """
+                        {"Name":"mediatheQ","MaxStreamingBitrate":1500000,"MusicStreamingTranscodingBitrate":192000,
+                         "DirectPlayProfiles":[{"Type":"Video","Container":"mp4,mkv","AudioCodec":"aac,opus",
+                           "VideoCodec":"h264,hevc"}],
+                         "TranscodingProfiles":[{"Type":"Video","Container":"mp4","AudioCodec":"aac,opus","Protocol":"hls",
+                           "Context":"Streaming","MaxAudioChannels":"6","VideoCodec":"hevc,h264",
+                           "BreakOnNonKeyFrames":true,"MinSegments":1}],
+                         "CodecProfiles":[
+                           {"Type":"Video","Conditions":[
+                             {"Condition":"LessThanEqual","Property":"Width","Value":"3840","IsRequired":false},
+                             {"Condition":"LessThanEqual","Property":"VideoBitDepth","Value":"10","IsRequired":false},
+                             {"Condition":"EqualsAny","Property":"VideoRangeType","Value":"SDR","IsRequired":false},
+                             {"Condition":"LessThanEqual","Property":"Height","Value":"480","IsRequired":false}]},
+                           {"Type":"VideoAudio","Conditions":[
+                             {"Condition":"LessThanEqual","Property":"AudioChannels","Value":"8","IsRequired":false}]}],
+                         "ContainerProfiles":[],"SubtitleProfiles":[]}
+                        """.trimIndent(),
+                    ),
+                )
+        }
+
+    @Test
+    fun `a video direct play is the original file from the Videos route`() =
+        runTest {
+            enqueue("items_playbackinfo/video_direct_play.json")
+
+            val stream = (source.stream(server(), itemId, video.copy(maxHeight = null)) as MqResult.Success).value
+
+            assertThat(stream.playMethod).isEqualTo(PlayMethod.DirectPlay)
+            assertThat(stream.url).startsWith(mockServer.url("/Videos/${itemId.itemId}/stream").toString())
+            assertThat(stream.url).contains("static=true")
+            assertThat(stream.canSeek).isTrue()
+            assertThat(stream.segmented).isFalse()
+        }
+
+    @Test
+    fun `a video remux and a video conversion are HLS playlists without the token`() =
+        runTest {
+            enqueue("items_playbackinfo/video_direct_stream.json")
+            enqueue("items_playbackinfo/video_transcode_hls.json")
+
+            val remux = (source.stream(server(), itemId, video) as MqResult.Success).value
+            val converted = (source.stream(server(), itemId, video) as MqResult.Success).value
+
+            assertThat(remux.playMethod).isEqualTo(PlayMethod.DirectStream)
+            assertThat(converted.playMethod).isEqualTo(PlayMethod.Transcode)
+            for (stream in listOf(remux, converted)) {
+                assertThat(stream.segmented).isTrue()
+                assertThat(stream.canSeek).isTrue()
+                assertThat(stream.url).contains("/videos/cc4b4fdb-31a8-af38-cfcb-812d79ad565c/master.m3u8")
+                assertThat(stream.url.lowercase()).doesNotContain("apikey")
+            }
+            assertThat(converted.url).contains("MaxHeight=480")
+        }
+
+    @Test
+    fun `a video request carries the start position as ticks and the chosen stream indexes`() =
+        runTest {
+            enqueue("items_playbackinfo/video_transcode_hls.json")
+
+            source.stream(
+                server(),
+                itemId,
+                video,
+                StreamChoice(90.seconds, audioStreamIndex = 1, subtitleStreamIndex = 3),
+            )
+
+            val body = body()
+            assertThat(body["StartTimeTicks"].toString()).isEqualTo("900000000")
+            assertThat(body["AudioStreamIndex"].toString()).isEqualTo("1")
+            assertThat(body["SubtitleStreamIndex"].toString()).isEqualTo("3")
         }
 }

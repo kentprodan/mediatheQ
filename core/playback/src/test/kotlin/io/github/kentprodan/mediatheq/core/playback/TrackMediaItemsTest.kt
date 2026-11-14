@@ -7,10 +7,13 @@ import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 // Robolectric: the extras are an android.os.Bundle.
@@ -93,5 +96,21 @@ class TrackMediaItemsTest {
         assertThat(
             Track(MediaId(ServerId("s"), "w2"), "Plain", emptyList(), 3.minutes).toMediaItem(null).shuffleWeight(),
         ).isEqualTo(ShuffleWeight())
+    }
+
+    @Test
+    fun `a video item resolves through the video scheme and is no track to the music listeners`() {
+        val id = MediaId(ServerId("s"), "m1")
+        val item =
+            Video(id, VideoKind.Episode, "Pilot", seriesName = "Show", seasonNumber = 2, episodeNumber = 4)
+                .toMediaItem(null, startPosition = 90.seconds)
+                .withTrackUri()!!
+
+        assertThat(item.isVideo()).isTrue()
+        assertThat(item.localConfiguration?.uri?.videoId()).isEqualTo(id)
+        assertThat(item.localConfiguration?.uri?.trackId()).isNull()
+        assertThat(item.queuedTrackId()).isNull()
+        assertThat(item.videoStart()).isEqualTo(90.seconds)
+        assertThat(item.mediaMetadata.artist.toString()).isEqualTo("Show · S2 E4")
     }
 }

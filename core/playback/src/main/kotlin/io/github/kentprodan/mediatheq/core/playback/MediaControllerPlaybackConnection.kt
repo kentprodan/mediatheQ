@@ -20,6 +20,7 @@ import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -119,6 +120,32 @@ internal class MediaControllerPlaybackConnection
                 }
         }
 
+        override fun playVideo(
+            video: Video,
+            startPosition: Duration,
+        ) {
+            expandRequested.value = false
+            playJob?.cancel()
+            playJob =
+                command { controller ->
+                    val artwork = video.artwork?.let { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) }
+                    // A repeated or shuffled music queue must not loop the video: it would never end and hand back.
+                    controller.repeatMode = Player.REPEAT_MODE_OFF
+                    controller.shuffleModeEnabled = false
+                    controller.setMediaItem(
+                        video.toMediaItem(artwork, startPosition),
+                        startPosition.inWholeMilliseconds,
+                    )
+                    controller.prepare()
+                    controller.play()
+                }
+        }
+
+        override val videoPlayer: StateFlow<Player?> =
+            connected
+                .onStart { command {} }
+                .stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
         override val queue: StateFlow<List<QueueItem>> =
             connected
                 .flatMapLatest { c ->
@@ -162,6 +189,10 @@ internal class MediaControllerPlaybackConnection
                 val artwork = track.artwork?.let { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) }
                 track.toMediaItem(artwork, playlistId = playlistId)
             }
+
+        override fun pause() {
+            command { it.pause() }
+        }
 
         override fun togglePlayPause() {
             command { Util.handlePlayPauseButtonAction(it) }

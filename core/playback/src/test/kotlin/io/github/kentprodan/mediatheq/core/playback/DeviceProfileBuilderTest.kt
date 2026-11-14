@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality.Original
 import io.github.kentprodan.mediatheq.core.model.TranscodingTarget
+import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import org.junit.Test
 
 class DeviceProfileBuilderTest {
@@ -151,6 +152,52 @@ class DeviceProfileBuilderTest {
     fun `original quality still converts formats the device cannot decode, to Opus 256`() {
         assertThat(DeviceProfileBuilder.build(pixel, none, StreamingQuality.Original).transcoding)
             .isEqualTo(DeviceProfileBuilder.OPUS_256)
+    }
+
+    private val h264 = setOf("video/avc")
+    private val h264Hevc = h264 + "video/hevc"
+
+    @Test
+    fun `a video profile lists only the video codecs the device decodes`() {
+        assertThat(DeviceProfileBuilder.video(pixel, h264, VideoQuality.Original).videoCodecs).containsExactly("h264")
+        assertThat(DeviceProfileBuilder.video(pixel, h264Hevc, VideoQuality.Original).videoCodecs)
+            .containsExactly("h264", "hevc")
+            .inOrder()
+        assertThat(DeviceProfileBuilder.video(pixel, h264Hevc + "video/av01", VideoQuality.Original).videoCodecs)
+            .containsExactly("h264", "hevc", "av1")
+            .inOrder()
+    }
+
+    @Test
+    fun `a video profile plays video containers with the music audio rule inside`() {
+        val profile = DeviceProfileBuilder.video(pixel, h264, VideoQuality.Original)
+
+        assertThat(profile.directPlayContainers).containsExactly("mp4", "m4v", "mkv", "webm", "ts")
+        assertThat(profile.directPlayCodecs).containsAtLeast("aac", "opus", "ac3")
+        // A plain E-AC-3 decoder is not enough (JOC rule), and phones never get TrueHD.
+        assertThat(profile.directPlayCodecs).containsNoneOf("eac3", "truehd")
+    }
+
+    @Test
+    fun `original video quality has no cap, 480p caps the bitrate and the height`() {
+        val original = DeviceProfileBuilder.video(pixel, h264, VideoQuality.Original)
+        val p480 = DeviceProfileBuilder.video(pixel, h264, VideoQuality.P480)
+
+        assertThat(original.maxStreamingBitrate).isNull()
+        assertThat(original.maxHeight).isNull()
+        assertThat(p480.maxStreamingBitrate).isEqualTo(1_500_000)
+        assertThat(p480.maxHeight).isEqualTo(480)
+    }
+
+    @Test
+    fun `videos convert to HLS fMP4, HEVC first, AAC or Opus up to 5_1`() {
+        val transcoding = DeviceProfileBuilder.video(pixel, h264, VideoQuality.P480).transcoding
+
+        assertThat(transcoding.segmented).isTrue()
+        assertThat(transcoding.container).isEqualTo("mp4")
+        assertThat(transcoding.videoCodec).isEqualTo("hevc,h264")
+        assertThat(transcoding.codec).isEqualTo("aac,opus")
+        assertThat(transcoding.maxChannels).isEqualTo(6)
     }
 }
 

@@ -157,11 +157,6 @@ class MainActivity : ComponentActivity() {
                                 }
                             val mediaListStyle by viewModel.mediaListStyle.collectAsStateWithLifecycle()
                             CompositionLocalProvider(LocalMediaListStyle provides mediaListStyle) {
-                                // Video mode (ADR 0051): no Now Playing overlay and no mini player until #272.
-                                if (!appMode.music) {
-                                    AppShell(navigator, entries, snackbarHostState = snackbar, navigation = navigation)
-                                    return@CompositionLocalProvider
-                                }
                                 NowPlayingHost(
                                     content = { miniPlayer ->
                                         AppShell(
@@ -175,6 +170,8 @@ class MainActivity : ComponentActivity() {
                                     snackbarHost = { SnackbarHost(snackbar) },
                                     onNavigate = navigator::navigateTo,
                                     keepScreenOn = advanced.keepScreenOn,
+                                    // Video mode (ADR 0051): only a playing video shows, as the mini player.
+                                    videoOnly = !appMode.music,
                                 )
                             }
                         }

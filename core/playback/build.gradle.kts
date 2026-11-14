@@ -12,6 +12,8 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.data)
     // Media3 stays internal: screens only see PlaybackConnection (architecture skill, section 7).
+    // The session's player as a controller for the video surface (PlaybackConnection.videoPlayer, ADR 0049).
+    api(libs.androidx.media3.common)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.exoplayer.hls)

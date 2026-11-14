@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.model.DeviceProfile
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
+import io.github.kentprodan.mediatheq.core.model.StreamChoice
 import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import kotlinx.coroutines.NonCancellable
@@ -24,7 +25,8 @@ class DefaultPlaybackRepository
         override suspend fun stream(
             itemId: MediaId,
             profile: DeviceProfile,
-        ): MqResult<PlaybackStream> = withServer { playbackSource.stream(it, itemId, profile) }
+            choice: StreamChoice,
+        ): MqResult<PlaybackStream> = withServer { playbackSource.stream(it, itemId, profile, choice) }
 
         override suspend fun streamHeaders(): Map<String, String> =
             accountStore.signedInServer()?.let { playbackSource.streamHeaders(it) }.orEmpty()
