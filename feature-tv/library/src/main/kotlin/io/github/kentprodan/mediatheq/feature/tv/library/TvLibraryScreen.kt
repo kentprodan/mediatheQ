@@ -242,7 +242,11 @@ fun TvLibraryList(
         }
     }
     if (sorting) {
-        SortMenu(state, onDismiss = { sorting = false }) { onAction(TvLibraryAction.SetSort(it)) }
+        SortMenu(
+            state,
+            onDismiss = { sorting = false },
+            onReverse = { onAction(TvLibraryAction.ReverseSort) },
+        ) { onAction(TvLibraryAction.SetSort(it)) }
     }
 }
 
@@ -363,6 +367,7 @@ private fun Strip(
 private fun SortMenu(
     state: TvLibraryUiState,
     onDismiss: () -> Unit,
+    onReverse: () -> Unit,
     onSort: (LibrarySort) -> Unit,
 ) {
     val current = remember { FocusRequester() }
@@ -385,6 +390,15 @@ private fun SortMenu(
                         selected = sort == state.sort,
                     )
                 }
+                // The direction of the chosen sort (#349), as the phone's Reverse order (#187).
+                MqTvListItem(
+                    stringResource(R.string.tv_library_sort_reverse),
+                    {
+                        onReverse()
+                        onDismiss()
+                    },
+                    selected = state.reversed,
+                )
             }
         }
     }
