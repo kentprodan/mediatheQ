@@ -2,9 +2,11 @@ package io.github.kentprodan.mediatheq.feature.video
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.model.Chapter
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SkipMode
@@ -336,5 +338,17 @@ class VideoPlayerViewModelTest {
             assertThat(viewModel.skippedNotice.value).isEqualTo(SegmentType.Intro)
             advanceTimeBy(3.seconds)
             assertThat(viewModel.skippedNotice.value).isNull()
+        }
+
+    @Test
+    fun `the playing video's chapters and previews load with it`() =
+        test {
+            val extras = PlayerExtras(listOf(Chapter(0, 0.seconds, "Opening"), Chapter(1, 10.minutes, "The village")))
+            videos.extras[id] = extras
+            val viewModel = viewModel()
+            backgroundScope.launch { viewModel.extras.collect() }
+            runCurrent()
+
+            assertThat(viewModel.extras.value).isEqualTo(extras)
         }
 }

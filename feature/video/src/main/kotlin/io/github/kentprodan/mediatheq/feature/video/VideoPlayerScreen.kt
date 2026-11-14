@@ -56,6 +56,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndic
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.ui.MqSubtitles
@@ -83,6 +84,7 @@ internal fun VideoPlayerRoute(
     val player by viewModel.player.collectAsStateWithLifecycle()
     val nextIn by viewModel.nextIn.collectAsStateWithLifecycle()
     val skip by viewModel.skipButton.collectAsStateWithLifecycle()
+    val extras by viewModel.extras.collectAsStateWithLifecycle()
     val skipped by viewModel.skippedNotice.collectAsStateWithLifecycle()
     val playing = state as? VideoPlayerUiState.Playing
     FullScreenVideo(wide = (playing?.aspectRatio ?: 0f) > 1f)
@@ -101,6 +103,7 @@ internal fun VideoPlayerRoute(
         nextIn = nextIn,
         skip = skip?.type,
         skipped = skipped,
+        extras = extras,
     ) {
         Box(Modifier.fillMaxSize()) {
             MqVideoSurface(player, Modifier.fillMaxSize())
@@ -144,11 +147,14 @@ fun VideoPlayerScreen(
     skip: SegmentType? = null,
     /** A segment kind just skipped by itself (#277): a short note. */
     skipped: SegmentType? = null,
+    /** Chapters and seek previews (#277). */
+    extras: PlayerExtras = PlayerExtras(),
     surface: @Composable () -> Unit,
 ) {
     val toggleLabel = stringResource(R.string.video_player_toggle_controls)
     // The info line under the title (#276), toggled by tapping it.
     var infoShown by rememberSaveable { mutableStateOf(false) }
+    var chaptersOpen by rememberSaveable { mutableStateOf(false) }
     var tracksOpen by rememberSaveable { mutableStateOf(false) }
     val keepOn = (state as? VideoPlayerUiState.Playing)?.isPlaying == true
     Box(
@@ -204,6 +210,9 @@ fun VideoPlayerScreen(
                         onTracks = state.tracks?.let { { tracksOpen = true } },
                         notes = videoNotes(state.info, infoShown, state.dolbyVisionUnavailable),
                         onTitleClick = { infoShown = !infoShown },
+                        chapters = extras.chapters.map { it.start },
+                        onChapters = extras.chapters.takeIf { it.isNotEmpty() }?.let { { chaptersOpen = true } },
+                        preview = { at -> extras.trickplay?.let { TrickplayPreview(it, at) } },
                     )
                 }
                 // The countdown takes the corner when both would show.
@@ -250,6 +259,13 @@ fun VideoPlayerScreen(
                                 .align(Alignment.BottomEnd)
                                 .windowInsetsPadding(WindowInsets.safeDrawing)
                                 .padding(MediatheqSpacing.xl),
+                    )
+                }
+                if (chaptersOpen) {
+                    ChaptersSheet(
+                        extras.chapters,
+                        onChapter = { onAction(VideoPlayerAction.SeekTo(it.start)) },
+                        onDismiss = { chaptersOpen = false },
                     )
                 }
                 val tracks = state.tracks
