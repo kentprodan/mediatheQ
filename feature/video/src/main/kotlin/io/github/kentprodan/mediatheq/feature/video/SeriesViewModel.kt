@@ -166,7 +166,9 @@ class SeriesViewModel
                 }
 
                 is SeriesAction.ChooseSubtitle -> {
-                    choose { tracks, _ -> tracks.copy(subtitleIndex = action.index) }
+                    choose(
+                        subtitleOff = action.index == null,
+                    ) { tracks, _ -> tracks.copy(subtitleIndex = action.index) }
                 }
 
                 is SeriesAction.WholeSeason -> {
@@ -178,6 +180,7 @@ class SeriesViewModel
         /** Saves the open episode's tracks as [change] makes them, for it or (with [wholeSeason]) its season. */
         private fun choose(
             wholeSeason: Boolean? = null,
+            subtitleOff: Boolean = false,
             change: (ResolvedTracks, Video) -> ResolvedTracks,
         ) {
             val (episode, tracks) = (uiState.value as? SeriesUiState.Content)?.tracksOf ?: return
@@ -188,6 +191,7 @@ class SeriesViewModel
                     chosen.audioIndex,
                     chosen.subtitleIndex,
                     wholeSeason ?: (tracks.wholeSeason == true),
+                    subtitleOff,
                 )
             }
         }

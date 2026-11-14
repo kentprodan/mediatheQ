@@ -5,10 +5,12 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.DeviceProfile
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
 import io.github.kentprodan.mediatheq.core.model.StreamChoice
+import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.SubtitleDelivery
 import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
 import io.github.kentprodan.mediatheq.core.server.ClientInfo
@@ -103,6 +105,7 @@ class JellyfinPlaybackSource internal constructor(
                         canSeek = true,
                         sizeBytes = source.size,
                         subtitles = source.subtitles(baseUrl),
+                        audioStreams = source.audioStreams(),
                         audioStreamIndex = choice.audioStreamIndex,
                         subtitleStreamIndex = choice.subtitleStreamIndex,
                     ),
@@ -129,6 +132,7 @@ class JellyfinPlaybackSource internal constructor(
                         canSeek = segmented,
                         segmented = segmented,
                         subtitles = source.subtitles(baseUrl),
+                        audioStreams = source.audioStreams(),
                         audioStreamIndex = choice.audioStreamIndex,
                         subtitleStreamIndex = choice.subtitleStreamIndex,
                     ),
@@ -228,7 +232,8 @@ private fun DeviceProfile.toVideoDto(videoCodecs: List<String>) =
     )
 
 /**
- * The subtitle streams of a `PlaybackInfo` answer with how each comes (#274); `Drop` and unknown methods are left out.
+ * The subtitle streams of a `PlaybackInfo` answer with how each comes (#274), `Drop` included (the player still has
+ * them in the file); unknown methods are left out.
  * An external file's URL is made absolute and loses `ApiKey` (R25: the header carries the token, R1).
  */
 private fun MediaSourceDto.subtitles(baseUrl: String): List<SubtitleDelivery> =
@@ -250,6 +255,12 @@ private fun MediaSourceDto.subtitles(baseUrl: String): List<SubtitleDelivery> =
             isForced = stream.isForced,
             isDefault = stream.isDefault,
         )
+    }
+
+/** The audio streams in the file's order (#274), for the player's selection on a direct play. */
+private fun MediaSourceDto.audioStreams(): List<MediaStreamInfo> =
+    mediaStreams.filter { it.type == "Audio" }.mapNotNull { stream ->
+        MediaStreamInfo(stream.index ?: return@mapNotNull null, StreamType.Audio, stream.codec, stream.language)
     }
 
 private fun condition(

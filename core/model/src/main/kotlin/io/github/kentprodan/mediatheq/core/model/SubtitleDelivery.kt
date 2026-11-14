@@ -13,6 +13,9 @@ enum class SubtitleMethod {
 
     /** Burned into the picture by the conversion: nothing for the player to show. */
     Encode,
+
+    /** Left out of the stream; kept in the list so the file's embedded tracks still count in order. */
+    Drop,
 }
 
 /** A subtitle format and how the device takes it, for the stream request (ADR 0050). */

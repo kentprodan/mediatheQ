@@ -23,18 +23,32 @@ fun resolveChoice(
 
     val audioIndex =
         item?.audioIndex?.takeIf { index -> audio.any { it.index == index } }
-            ?: season?.audioLanguage?.let { language -> audio.byLanguage(language)?.index }
+            ?: season?.let { audio.sameStream(it.audioIndex, it.audioLanguage) }
             ?: defaults.audioLanguage?.let { language -> audio.byLanguage(language)?.index }
     val audioLanguage =
         audio.firstOrNull { it.index == audioIndex }?.language ?: audio.firstOrNull { it.isDefault }?.language
 
     val subtitleIndex =
         when {
-            item?.subtitleOff == true -> null
-            item?.subtitleIndex != null && subtitles.any { it.index == item.subtitleIndex } -> item.subtitleIndex
-            season?.subtitleOff == true -> null
-            season?.subtitleLanguage != null -> season.subtitleLanguage?.let { subtitles.byLanguage(it)?.index }
-            else -> defaults.subtitle(subtitles, audioLanguage)
+            item?.subtitleOff == true -> {
+                null
+            }
+
+            item?.subtitleIndex != null && subtitles.any { it.index == item.subtitleIndex } -> {
+                item.subtitleIndex
+            }
+
+            season?.subtitleOff == true -> {
+                null
+            }
+
+            season != null && (season.subtitleIndex != null || season.subtitleLanguage != null) -> {
+                subtitles.sameStream(season.subtitleIndex, season.subtitleLanguage)
+            }
+
+            else -> {
+                defaults.subtitle(subtitles, audioLanguage)
+            }
         }
     return ResolvedTracks(audioIndex, subtitleIndex)
 }
@@ -50,17 +64,32 @@ private fun TrackDefaults.subtitle(
         }
 
         SubtitleMode.ForcedOnly -> {
+            // Forced subtitles translate what the audio leaves untranslated: only those in the audio's language.
             val forced = subtitles.filter { it.isForced }
-            (
-                audioLanguage?.let { language -> forced.firstOrNull { sameLanguage(it.language, language) } }
-                    ?: forced.firstOrNull()
-            )?.index
+            if (audioLanguage == null) {
+                forced.firstOrNull()?.index
+            } else {
+                forced.firstOrNull { sameLanguage(it.language, audioLanguage) }?.index
+            }
         }
 
         SubtitleMode.Language -> {
             subtitleLanguage?.let { subtitles.byLanguage(it)?.index }
         }
     }
+
+/**
+ * A season's choice in another episode: the stream at the same [index] when it has the same language (episodes of a
+ * season usually share their layout, so a forced or SDH pick stays one), else one in [language].
+ */
+private fun List<MediaStreamInfo>.sameStream(
+    index: Int?,
+    language: String?,
+): Int? {
+    val atIndex = firstOrNull { it.index == index }
+    if (atIndex != null && (language == null || sameLanguage(atIndex.language, language))) return atIndex.index
+    return language?.let { byLanguage(it)?.index }
+}
 
 /** The stream in [language]: a full (not forced) one first, the default among them first. */
 private fun List<MediaStreamInfo>.byLanguage(language: String): MediaStreamInfo? =

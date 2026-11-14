@@ -81,4 +81,30 @@ class TrackChoicesTest {
         assertThat(sameLanguage("en", "fre")).isFalse()
         assertThat(sameLanguage(null, "eng")).isFalse()
     }
+
+    @Test
+    fun `a season's forced or SDH pick stays that stream where the episode has it at the same index`() {
+        val season = TrackChoice(subtitleIndex = 3, subtitleLanguage = "eng")
+
+        // Index 3 is the forced English one: by language alone the full one (4) would win.
+        assertThat(resolveChoice(streams, null, season, defaults).subtitleIndex).isEqualTo(3)
+    }
+
+    @Test
+    fun `an untagged subtitle chosen for the season is found again by its index`() {
+        val untagged = streams + MediaStreamInfo(6, StreamType.Subtitle, "subrip", null, isExternal = true)
+
+        assertThat(resolveChoice(untagged, null, TrackChoice(subtitleIndex = 6), defaults).subtitleIndex).isEqualTo(6)
+    }
+
+    @Test
+    fun `forced subtitles in another language than the audio stay off`() {
+        val frenchForced =
+            listOf(
+                MediaStreamInfo(1, StreamType.Audio, "eac3", "eng", isDefault = true),
+                MediaStreamInfo(2, StreamType.Subtitle, "subrip", "fre", isForced = true),
+            )
+
+        assertThat(resolveChoice(frenchForced, null, null, defaults).subtitleIndex).isNull()
+    }
 }

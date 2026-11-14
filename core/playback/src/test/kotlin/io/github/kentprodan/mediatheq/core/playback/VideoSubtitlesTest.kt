@@ -2,6 +2,8 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import androidx.media3.common.C
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.SubtitleDelivery
 import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
 import org.junit.Test
@@ -68,5 +70,31 @@ class VideoSubtitlesTest {
         assertThat(configuration.language).isEqualTo("rum")
         assertThat(configuration.selectionFlags).isEqualTo(C.SELECTION_FLAG_DEFAULT)
         assertThat(sideLoadedSubtitles(deliveries, chosen = null).single().selectionFlags).isEqualTo(0)
+    }
+
+    @Test
+    fun `burned-in and dropped subtitles still count among the file's embedded tracks`() {
+        val withBitmap =
+            listOf(
+                SubtitleDelivery(1, SubtitleMethod.Encode, codec = "dvdsub", language = "eng"),
+                SubtitleDelivery(2, SubtitleMethod.Embed, codec = "subrip", language = "eng"),
+                SubtitleDelivery(3, SubtitleMethod.Embed, codec = "subrip", language = "eng", title = "SDH"),
+            )
+        val fileGroups = listOf(TextGroup("2", "eng"), TextGroup("3", "eng"), TextGroup("4", "eng"))
+
+        assertThat(pickTextGroup(withBitmap, 3, fileGroups)).isEqualTo(2)
+    }
+
+    @Test
+    fun `a direct play's chosen audio is the group at its place, checked by language`() {
+        val audio =
+            listOf(
+                MediaStreamInfo(1, StreamType.Audio, "eac3", "eng"),
+                MediaStreamInfo(2, StreamType.Audio, "aac", "fre"),
+            )
+
+        assertThat(pickAudioGroup(audio, 2, listOf("eng", "fre"))).isEqualTo(1)
+        assertThat(pickAudioGroup(audio, 2, listOf("fre", "eng"))).isEqualTo(0)
+        assertThat(pickAudioGroup(audio, null, listOf("eng", "fre"))).isNull()
     }
 }

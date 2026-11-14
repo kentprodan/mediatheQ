@@ -70,7 +70,13 @@ class MovieViewModel
                     }
 
                     is MovieAction.ChooseSubtitle -> {
-                        picker.choose(movie, resolved?.audioIndex, action.index, wholeSeason = false)
+                        picker.choose(
+                            movie,
+                            resolved?.audioIndex,
+                            action.index,
+                            wholeSeason = false,
+                            action.index == null,
+                        )
                     }
                 }
             }

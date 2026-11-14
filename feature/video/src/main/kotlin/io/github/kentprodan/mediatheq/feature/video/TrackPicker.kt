@@ -59,6 +59,8 @@ class TrackPicker
             audioIndex: Int?,
             subtitleIndex: Int?,
             wholeSeason: Boolean,
+            /** The user picked Off (not merely no subtitle in force now). */
+            subtitleOff: Boolean = false,
         ) {
             val streams = videos.streams(video.id).first()
             val choice =
@@ -67,7 +69,7 @@ class TrackPicker
                     audioLanguage = streams.firstOrNull { it.index == audioIndex }?.language,
                     subtitleIndex = subtitleIndex,
                     subtitleLanguage = streams.firstOrNull { it.index == subtitleIndex }?.language,
-                    subtitleOff = subtitleIndex == null,
+                    subtitleOff = subtitleOff,
                 )
             val season = video.seasonId
             if (wholeSeason && season != null) {

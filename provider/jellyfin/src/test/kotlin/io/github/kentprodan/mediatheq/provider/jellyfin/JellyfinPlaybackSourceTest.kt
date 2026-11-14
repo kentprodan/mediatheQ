@@ -397,7 +397,7 @@ class JellyfinPlaybackSourceTest {
         }
 
     @Test
-    fun `a burned-in subtitle is marked Encode, an HLS one Hls, and a dropped one is left out`() =
+    fun `a burned-in subtitle is marked Encode, an HLS one Hls, and a dropped one kept as Drop`() =
         runTest {
             enqueue("items_playbackinfo/video_burn_in.json")
             enqueue("items_playbackinfo/video_hls_subtitles.json")
@@ -406,8 +406,8 @@ class JellyfinPlaybackSourceTest {
             val hls = (source.stream(server(), itemId, video) as MqResult.Success).value.subtitles
 
             assertThat(burnIn.single().method).isEqualTo(SubtitleMethod.Encode)
-            assertThat(hls.single().method).isEqualTo(SubtitleMethod.Hls)
-            assertThat(hls.single().isForced).isTrue()
+            assertThat(hls.map { it.method }).containsExactly(SubtitleMethod.Hls, SubtitleMethod.Drop).inOrder()
+            assertThat(hls.first().isForced).isTrue()
         }
 
     @Test

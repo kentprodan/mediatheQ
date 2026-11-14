@@ -131,7 +131,7 @@ class VideoPlayerViewModel
                 }
 
                 is VideoPlayerAction.ChooseSubtitle -> {
-                    choose { it.copy(subtitleIndex = action.index) }
+                    choose(subtitleOff = action.index == null) { it.copy(subtitleIndex = action.index) }
                 }
 
                 is VideoPlayerAction.WholeSeason -> {
@@ -143,6 +143,7 @@ class VideoPlayerViewModel
         /** Saves the tracks [change] makes (on the episode, or its season), then plays on with them where it is. */
         private fun choose(
             wholeSeason: Boolean? = null,
+            subtitleOff: Boolean = false,
             change: (ResolvedTracks) -> ResolvedTracks,
         ) {
             val playing = uiState.value as? VideoPlayerUiState.Playing ?: return
@@ -155,6 +156,7 @@ class VideoPlayerViewModel
                     tracks.audioIndex,
                     tracks.subtitleIndex,
                     wholeSeason ?: (current.wholeSeason == true),
+                    subtitleOff,
                 )
                 playback.reloadVideo()
             }

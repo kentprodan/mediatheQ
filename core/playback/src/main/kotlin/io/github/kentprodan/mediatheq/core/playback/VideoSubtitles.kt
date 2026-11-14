@@ -10,6 +10,7 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import io.github.kentprodan.mediatheq.core.data.sameLanguage
+import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.SubtitleDelivery
 import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
 
@@ -71,7 +72,8 @@ internal fun pickTextGroup(
         }
 
         SubtitleMethod.Embed -> {
-            val place = deliveries.filter { it.method == SubtitleMethod.Embed }.indexOf(delivery)
+            // Every subtitle inside the file counts (also burned-in and dropped ones): the player lists them all.
+            val place = deliveries.filter { it.method != SubtitleMethod.External }.indexOf(delivery)
             val atPlace = embeddedGroups.getOrNull(place)
             val language = atPlace?.let { groups[it].language }
             if (atPlace != null &&
@@ -87,10 +89,26 @@ internal fun pickTextGroup(
             byLanguage()
         }
 
-        SubtitleMethod.Encode -> {
+        SubtitleMethod.Encode, SubtitleMethod.Drop -> {
             null
         }
     }
+}
+
+/**
+ * Which of the player's audio [groups] (their languages, in the file's order) is the [chosen] audio stream of a direct
+ * play, by its place among the file's [audio] streams, checked against the language; `null` leaves the player's own.
+ */
+internal fun pickAudioGroup(
+    audio: List<MediaStreamInfo>,
+    chosen: Int?,
+    groups: List<String?>,
+): Int? {
+    val place = audio.indexOfFirst { it.index == chosen }.takeIf { it >= 0 } ?: return null
+    val language = audio[place].language
+    val atPlace = groups.getOrNull(place)
+    if (place < groups.size && (atPlace == null || language == null || sameLanguage(atPlace, language))) return place
+    return groups.indexOfFirst { sameLanguage(it, language) }.takeIf { it >= 0 }
 }
 
 /**
@@ -118,15 +136,30 @@ internal class VideoTextSelector(
                     )
                 },
             )
-        val builder = player.trackSelectionParameters.buildUpon().clearOverridesOfType(C.TRACK_TYPE_TEXT)
-        val parameters =
-            if (picked == null) {
-                builder.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-            } else {
-                builder
-                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
-                    .addOverride(TrackSelectionOverride(textGroups[picked].mediaTrackGroup, 0))
-            }.build()
+        val builder =
+            player.trackSelectionParameters
+                .buildUpon()
+                .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
+        if (picked == null) {
+            builder.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+        } else {
+            builder
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                .addOverride(TrackSelectionOverride(textGroups[picked].mediaTrackGroup, 0))
+        }
+        // A file played as it is has all its audio streams: the chosen one is selected here, not by the server.
+        val audioGroups = tracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
+        val audio =
+            pickAudioGroup(
+                stream.audioStreams,
+                stream.audioStreamIndex,
+                audioGroups.map { it.mediaTrackGroup.getFormat(0).language },
+            )
+        if (audio != null && audioGroups.size > 1) {
+            builder.addOverride(TrackSelectionOverride(audioGroups[audio].mediaTrackGroup, 0))
+        }
+        val parameters = builder.build()
         if (parameters != player.trackSelectionParameters) player.trackSelectionParameters = parameters
     }
 }

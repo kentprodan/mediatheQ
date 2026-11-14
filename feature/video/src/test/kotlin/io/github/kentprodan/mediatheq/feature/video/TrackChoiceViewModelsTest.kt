@@ -89,7 +89,8 @@ class TrackChoiceViewModelsTest {
             val saved = choices.choices.value[movie.id]
             assertThat(saved?.audioIndex).isEqualTo(2)
             assertThat(saved?.audioLanguage).isEqualTo("rum")
-            assertThat(saved?.subtitleOff).isTrue()
+            // Picking audio is no Off for subtitles: they keep following the defaults.
+            assertThat(saved?.subtitleOff).isFalse()
         }
 
     @Test
