@@ -300,17 +300,17 @@ private val BAR_GAP = 2.dp
 private val REFLECTION_GAP = 1.dp
 private const val REFLECTION_ALPHA = 0.35f
 
-/** Short ticks at [marks] across the bar (#277), under the thumb; the Slider's track is inset by its thumb's half. */
+/** Short ticks at [marks] across the bar (#277), over the track; the Slider's track is inset by its thumb's half. */
 @Composable
 private fun Modifier.chapterMarks(marks: List<Float>): Modifier {
-    val color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    val color = MaterialTheme.colorScheme.surface
     return drawWithContent {
+        drawContent()
         val inset = 10.dp.toPx()
         val width = size.width - 2 * inset
         marks.forEach { mark ->
             val x = inset + width * mark.coerceIn(0f, 1f)
             drawLine(color, Offset(x, center.y - 6.dp.toPx()), Offset(x, center.y + 6.dp.toPx()), 2.dp.toPx())
         }
-        drawContent()
     }
 }

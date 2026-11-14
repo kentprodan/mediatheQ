@@ -11,10 +11,13 @@ import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.model.Chapter
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.TrickplayInfo
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
@@ -22,6 +25,7 @@ import io.github.kentprodan.mediatheq.core.model.VideoRange
 import io.github.kentprodan.mediatheq.core.playback.VideoPlayback
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 private val playing =
     VideoPlayerUiState.Playing(
@@ -145,4 +149,43 @@ fun VideoPlayerSkippedScreenshot() =
             skipped = SegmentType.Intro,
             surface = darkFrame,
         )
+    }
+
+private val chapters =
+    listOf(
+        Chapter(0, 0.minutes, "Opening"),
+        Chapter(1, 12.minutes, "The village"),
+        Chapter(2, 40.minutes, "The storm"),
+        Chapter(3, 75.minutes, null),
+    )
+
+/** Chapter marks on the seek bar and the chapters button (#277). */
+@PreviewTest
+@Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
+@Composable
+fun VideoPlayerChaptersScreenshot() =
+    MediatheqTheme {
+        VideoPlayerScreen(
+            playing,
+            position = 20.minutes,
+            onAction = {},
+            onBack = {},
+            extras = PlayerExtras(chapters),
+            surface = darkFrame,
+        )
+    }
+
+/** The chapters sheet's list (#277): no pictures in the preview, a chapter without a name is numbered. */
+@PreviewTest
+@Preview(name = "Phone")
+@Composable
+fun VideoChaptersListScreenshot() = MediatheqTheme { ChaptersContent(chapters) {} }
+
+/** The seek preview bubble (#277): the thumbnail box and the time. */
+@PreviewTest
+@Preview(name = "Bubble")
+@Composable
+fun VideoTrickplayPreviewScreenshot() =
+    MediatheqTheme(systemDark = true) {
+        TrickplayPreview(TrickplayInfo("s", 320, 180, 10, 10, 540, 10.seconds), 23.minutes)
     }

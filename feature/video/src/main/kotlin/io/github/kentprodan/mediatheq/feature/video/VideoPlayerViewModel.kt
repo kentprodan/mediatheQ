@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.ResolvedTracks
 import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.Video
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
@@ -127,6 +129,12 @@ class VideoPlayerViewModel
                 }
             }.distinctUntilChanged()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        /** The playing video's chapters and seek previews (#277); none while loading, offline or without. */
+        val extras: StateFlow<PlayerExtras> =
+            videoId
+                .mapLatest { videos.playerExtras(it) }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayerExtras())
 
         /** The segment whose skip button shows now (#277), `null` for none. */
         val skipButton: StateFlow<MediaSegment?> get() = button

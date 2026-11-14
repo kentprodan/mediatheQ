@@ -61,4 +61,5 @@
     <string name="video_skipped_recap">Skipped recap</string>
     <string name="video_skipped_preview">Skipped preview</string>
     <string name="video_skipped_commercial">Skipped ad</string>
+    <string name="video_chapter_number">Chapter %1$d</string>
 </resources>
