@@ -327,6 +327,44 @@ class TvNowPlayingTest {
     }
 
     @Test
+    fun `Remove from queue leaves the focus on the row that takes the removed one's place`() {
+        val three = queue + QueueItem("e3", id("v"), "Raise Your Weapon", "deadmau5")
+        var state by mutableStateOf(
+            TvNowPlayingUiState.Playing(
+                "Strobe",
+                "deadmau5",
+                isPlaying = true,
+                duration = 10.minutes,
+                queue = three,
+                currentEntryId = "e1",
+            ),
+        )
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvNowPlayingScreen(state, 1.minutes, { action ->
+                    if (action is TvNowPlayingAction.Remove) {
+                        state = state.copy(queue = state.queue.filterNot { it.entryId == action.entryId })
+                    }
+                })
+            }
+        }
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.onNodeWithText("Ghosts").performSemanticsAction(SemanticsActions.RequestFocus)
+
+        // The remote's menu key, then Remove (#354: the focus went to the drawer).
+        composeRule.onRoot().performKeyInput { pressKey(Key.Menu) }
+        // The menu is its own window: the key goes to its focused entry.
+        composeRule
+            .onNodeWithText(
+                "Remove from queue",
+            ).assertIsFocused()
+            .performKeyInput { pressKey(Key.DirectionCenter) }
+        composeRule.mainClock.advanceTimeBy(1_000)
+
+        composeRule.onNodeWithText("Raise Your Weapon").assertIsFocused()
+    }
+
+    @Test
     fun `no seek while the duration is unknown, a held key seeks every few repeats from its last target`() =
         test {
             val viewModel = viewModel()

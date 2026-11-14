@@ -57,6 +57,25 @@ class TvTrackListScreenTest {
     }
 
     @Test
+    fun `Up from the tracks returns to the header button focused last`() {
+        show()
+
+        // From Play straight down and back up: Play, not the button above the first track (#350).
+        press(Key.DirectionDown)
+        composeRule.onNodeWithText("Song 1").assertIsFocused()
+        press(Key.DirectionUp)
+        composeRule.onNodeWithText("Play").assertIsFocused()
+
+        // From Favorite, down and back up: Favorite.
+        press(Key.DirectionRight)
+        press(Key.DirectionRight)
+        composeRule.onNodeWithText("Favorite").assertIsFocused()
+        press(Key.DirectionDown)
+        press(Key.DirectionUp)
+        composeRule.onNodeWithText("Favorite").assertIsFocused()
+    }
+
+    @Test
     fun `the menu key on a track opens Play next, Add to queue and Favorite`() {
         show()
         composeRule.onNodeWithText("Song 2").performSemanticsAction(SemanticsActions.RequestFocus)

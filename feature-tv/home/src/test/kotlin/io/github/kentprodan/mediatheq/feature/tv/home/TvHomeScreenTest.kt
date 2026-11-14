@@ -57,7 +57,7 @@ class TvHomeScreenTest {
                 TvHomeScreen(
                     state,
                     { actions += it },
-                    TvHomeNavigation(onOpenAlbum = { opened += it }),
+                    TvHomeNavigation(onOpenAlbum = { opened += it }, onOpenArtist = { opened += it }),
                 )
             }
         }
@@ -102,6 +102,20 @@ class TvHomeScreenTest {
         composeRule.onNodeWithText("Play").performKeyInput { pressKey(Key.DirectionCenter) }
         assertThat(actions).containsExactly(TvHomeAction.Play(TvHomeTarget.Album(id("al1"))))
         composeRule.onNodeWithText("Shuffle").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an album's menu has Go to artist, which opens its album artist`() {
+        show()
+
+        press(listOf(Key.Menu))
+        composeRule.onNodeWithText("Go to artist").assertExists()
+        composeRule.onNodeWithText("Play").performKeyInput {
+            repeat(3) { pressKey(Key.DirectionDown) }
+            pressKey(Key.DirectionCenter)
+        }
+
+        assertThat(opened).containsExactly(ada.id)
     }
 
     @Test

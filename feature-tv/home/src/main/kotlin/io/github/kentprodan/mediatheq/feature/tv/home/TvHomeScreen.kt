@@ -120,10 +120,11 @@ fun TvHomeScreen(
     }
 }
 
-/** A cover's menu: what it acts on and the name it shows. */
+/** A cover's menu: what it acts on, the name it shows and the artist its Go to artist opens (#346). */
 private data class Menu(
     val target: TvHomeTarget,
     val title: String,
+    val artistId: MediaId? = null,
 )
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -162,7 +163,7 @@ private fun Rows(
         withFrameNanos {}
         rows.firstNotNullOfOrNull(::firstKey)?.let(focus::restore)
     }
-    menu?.let { shown -> CoverMenu(shown, onAction) { menu = null } }
+    menu?.let { shown -> CoverMenu(shown, onAction, navigation.onOpenArtist) { menu = null } }
 }
 
 /** A card's key in the focus memory: by item, so a row that changes while a detail page is open still finds it. */
@@ -197,7 +198,7 @@ private class Cards(
                         album.title,
                         album.artwork,
                         names(album.albumArtists),
-                        Menu(TvHomeTarget.Album(album.id), album.title),
+                        Menu(TvHomeTarget.Album(album.id), album.title, album.albumArtists.firstOrNull()?.id),
                     ) { navigation.onOpenAlbum(album.id) }
                 }
             }
@@ -234,7 +235,7 @@ private class Cards(
                         track.title,
                         track.artwork,
                         names(track.artists),
-                        Menu(TvHomeTarget.Song(track), track.title),
+                        Menu(TvHomeTarget.Song(track), track.title, track.artists.firstOrNull()?.id),
                     ) { onAction(TvHomeAction.PlayTracks(items.tracks, index)) }
                 }
             }
@@ -302,10 +303,11 @@ private class Cards(
 private fun CoverMenu(
     menu: Menu,
     onAction: (TvHomeAction) -> Unit,
+    onOpenArtist: (MediaId) -> Unit,
     onDismiss: () -> Unit,
 ) = MqTvMenu(
     menu.title,
-    listOf(
+    listOfNotNull(
         MqTvMenuEntry(
             stringResource(R.string.tv_home_play),
             MqTvIcons.Play,
@@ -315,6 +317,9 @@ private fun CoverMenu(
         },
         MqTvMenuEntry(stringResource(R.string.tv_home_add_to_queue), MqTvIcons.Add) {
             onAction(TvHomeAction.AddToQueue(menu.target))
+        },
+        menu.artistId?.let { artist ->
+            MqTvMenuEntry(stringResource(R.string.tv_home_go_to_artist), MqTvIcons.Person) { onOpenArtist(artist) }
         },
     ),
     onDismiss,
