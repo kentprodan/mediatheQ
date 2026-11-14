@@ -141,6 +141,10 @@ internal class MediaControllerPlaybackConnection
                 }
         }
 
+        override fun cancelNext() {
+            command { if (it.hasNextMediaItem()) it.removeMediaItem(it.nextMediaItemIndex) }
+        }
+
         override fun reloadVideo() {
             command { controller ->
                 val item = controller.currentMediaItem?.takeIf { it.isVideo() } ?: return@command

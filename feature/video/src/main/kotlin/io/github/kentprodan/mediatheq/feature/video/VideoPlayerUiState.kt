@@ -55,6 +55,12 @@ sealed interface VideoPlayerAction {
         val index: Int?,
     ) : VideoPlayerAction
 
+    /** The countdown's Cancel: the next episode is taken off, the video stops at its end (#275). */
+    data object CancelNext : VideoPlayerAction
+
+    /** The countdown's Play now. */
+    data object PlayNextNow : VideoPlayerAction
+
     /** An episode's choice for its whole season, or for the episode alone. */
     data class WholeSeason(
         val on: Boolean,

@@ -9,9 +9,22 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -25,7 +38,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.core.view.WindowCompat
@@ -37,6 +53,8 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.ui.MqSubtitles
 import io.github.kentprodan.mediatheq.core.ui.MqTracksSheet
@@ -61,6 +79,7 @@ internal fun VideoPlayerRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val position by viewModel.position.collectAsStateWithLifecycle()
     val player by viewModel.player.collectAsStateWithLifecycle()
+    val nextIn by viewModel.nextIn.collectAsStateWithLifecycle()
     val playing = state as? VideoPlayerUiState.Playing
     FullScreenVideo(wide = (playing?.aspectRatio ?: 0f) > 1f)
     val leave = {
@@ -70,7 +89,7 @@ internal fun VideoPlayerRoute(
     BackHandler(onBack = leave)
     // The video ended and the music came back (ADR 0047): back to the page that opened it.
     LaunchedEffect(state) { if (state == VideoPlayerUiState.Ended) onBack() }
-    VideoPlayerScreen(state, position, viewModel::onAction, leave) {
+    VideoPlayerScreen(state, position, viewModel::onAction, leave, nextIn = nextIn) {
         Box(Modifier.fillMaxSize()) {
             MqVideoSurface(player, Modifier.fillMaxSize())
             MqSubtitles(player, Modifier.fillMaxSize())
@@ -107,6 +126,8 @@ fun VideoPlayerScreen(
     position: Duration,
     onAction: (VideoPlayerAction) -> Unit,
     onBack: () -> Unit,
+    /** Seconds until the next episode, during the countdown (#275); `null` hides the card. */
+    nextIn: Int? = null,
     surface: @Composable () -> Unit,
 ) {
     val toggleLabel = stringResource(R.string.video_player_toggle_controls)
@@ -165,6 +186,18 @@ fun VideoPlayerScreen(
                         onTracks = state.tracks?.let { { tracksOpen = true } },
                     )
                 }
+                nextIn?.let { seconds ->
+                    NextEpisodeCard(
+                        seconds,
+                        onCancel = { onAction(VideoPlayerAction.CancelNext) },
+                        onPlayNow = { onAction(VideoPlayerAction.PlayNextNow) },
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomEnd)
+                                .windowInsetsPadding(WindowInsets.safeDrawing)
+                                .padding(MediatheqSpacing.xl),
+                    )
+                }
                 val tracks = state.tracks
                 if (tracksOpen && tracks != null) {
                     MqTracksSheet(
@@ -174,6 +207,37 @@ fun VideoPlayerScreen(
                         onWholeSeason = { onAction(VideoPlayerAction.WholeSeason(it)) },
                         onDismiss = { tracksOpen = false },
                     )
+                }
+            }
+        }
+    }
+}
+
+/** "Next episode in 8 s" with Cancel and Play now, over the picture's corner (#275); dark whatever the theme. */
+@Composable
+internal fun NextEpisodeCard(
+    seconds: Int,
+    onCancel: () -> Unit,
+    onPlayNow: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    MediatheqTheme(systemDark = true) {
+        Card(
+            modifier,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        ) {
+            Column(
+                Modifier.padding(MediatheqSpacing.l),
+                verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
+            ) {
+                Text(
+                    pluralStringResource(R.plurals.video_next_episode_in, seconds, seconds),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s)) {
+                    TextButton(onClick = onCancel) { Text(stringResource(R.string.video_next_cancel)) }
+                    Button(onClick = onPlayNow) { Text(stringResource(R.string.video_next_play_now)) }
                 }
             }
         }
