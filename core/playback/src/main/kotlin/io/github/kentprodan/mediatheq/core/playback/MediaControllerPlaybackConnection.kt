@@ -16,12 +16,14 @@ import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.common.ApplicationScope
+import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.Video
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,6 +45,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import java.util.concurrent.ExecutionException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -66,6 +69,7 @@ internal class MediaControllerPlaybackConnection
         private val artworkUrls: ArtworkUrlResolver,
         @ApplicationScope private val scope: CoroutineScope,
         private val log: AppLog,
+        @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) : PlaybackConnection {
         // Touched on the main thread only (Media3 session threading).
         private var controller: ListenableFuture<MediaController>? = null
@@ -199,10 +203,13 @@ internal class MediaControllerPlaybackConnection
             command { it.skipToEntry(entryId) }
         }
 
+        // Off the main thread: a library mix is thousands of items, built there it froze the TV's screen (#345).
         private suspend fun List<Track>.toMediaItems(playlistId: MediaId? = null): List<MediaItem> =
-            map { track ->
-                val artwork = track.artwork?.let { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) }
-                track.toMediaItem(artwork, playlistId = playlistId)
+            withContext(defaultDispatcher) {
+                map { track ->
+                    val artwork = track.artwork?.let { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) }
+                    track.toMediaItem(artwork, playlistId = playlistId)
+                }
             }
 
         override fun pause() {
