@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.model.AppMode
+import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.model.allowed
@@ -43,9 +44,14 @@ class AppModeFiltersTest {
     }
 
     @Test
-    fun `Home sections are music only for now`() {
-        assertThat(HomeSection.entries.none { it.allowed(AppMode.Video) }).isTrue()
-        assertThat(HomeSection.entries.all { it.allowed(AppMode.Music) && it.allowed(AppMode.Both) }).isTrue()
+    fun `video sections only with video, music sections only with music, Both has all`() {
+        val video = HomeSection.entries.filter { it.kind == HomeKind.Videos }
+
+        assertThat(HomeSection.entries.filter { it.allowed(AppMode.Video) }).isEqualTo(video)
+        assertThat(
+            HomeSection.entries.filter { it.allowed(AppMode.Music) },
+        ).isEqualTo(HomeSection.entries - video.toSet())
+        assertThat(HomeSection.entries.all { it.allowed(AppMode.Both) }).isTrue()
     }
 
     @Test

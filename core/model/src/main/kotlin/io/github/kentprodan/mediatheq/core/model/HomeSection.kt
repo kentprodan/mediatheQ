@@ -1,7 +1,7 @@
 package io.github.kentprodan.mediatheq.core.model
 
 /** What a Home section lists. */
-enum class HomeKind { Albums, Artists, Tracks, Playlists, Shortcuts }
+enum class HomeKind { Albums, Artists, Tracks, Playlists, Shortcuts, Videos }
 
 /** How a Home section is laid out (#127; chosen per section in #182). */
 enum class HomeDisplay { Row, Grid, Carousel, List }
@@ -64,10 +64,18 @@ enum class HomeSection(
     RandomTracks(HomeKind.Tracks, false, TRACK_LIST),
     RediscoverTracks(HomeKind.Tracks, false, TRACK_LIST),
     FiveStarTracks(HomeKind.Tracks, false, TRACK_LIST),
+
+    /** Movies and episodes left halfway (#275). */
+    ContinueWatching(HomeKind.Videos, true, HomeSectionSettings()),
+
+    /** The next episode of each series in progress (#275). */
+    NextUp(HomeKind.Videos, true, HomeSectionSettings()),
+    RecentlyAddedMovies(HomeKind.Videos, false, HomeSectionSettings()),
+    RecentlyAddedEpisodes(HomeKind.Videos, false, HomeSectionSettings()),
     ;
 
-    /** Shown in [mode] (ADR 0051): every section so far is music; the video sections come with #275. */
-    fun allowed(mode: AppMode): Boolean = mode.music
+    /** Shown in [mode] (ADR 0051): video sections with video, the others with music. */
+    fun allowed(mode: AppMode): Boolean = if (kind == HomeKind.Videos) mode.video else mode.music
 
     /** Random sections draw a new set at each app start and pull to refresh. */
     val isRandom: Boolean get() = this == RandomArtists || this == RandomAlbums || this == RandomTracks

@@ -728,6 +728,8 @@ class DefaultLibraryPreferencesRepositoryTest {
                 HomeSection.RandomTracks,
                 HomeSection.RediscoverTracks,
                 HomeSection.FiveStarTracks,
+                HomeSection.RecentlyAddedMovies,
+                HomeSection.RecentlyAddedEpisodes,
             )
         }
 

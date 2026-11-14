@@ -383,7 +383,7 @@ class LibraryViewModel
                         is HomeItems.Artists -> LibraryContent.Artists(items.artists)
                         is HomeItems.Tracks -> LibraryContent.Songs(items.tracks)
                         is HomeItems.Playlists -> LibraryContent.Playlists(items.playlists)
-                        is HomeItems.Shortcuts -> LibraryContent.Empty
+                        is HomeItems.Shortcuts, is HomeItems.Videos -> LibraryContent.Empty
                     }
                 val sorter: Sorter = { _ -> content }
                 sorter

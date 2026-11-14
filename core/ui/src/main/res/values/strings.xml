@@ -119,4 +119,8 @@
     <string name="core_ui_tracks_subtitles">Subtitles</string>
     <string name="core_ui_tracks_whole_season">Apply to the whole season</string>
     <string name="core_ui_tracks_open">Audio and subtitles</string>
+    <string name="core_ui_home_continue_watching">Continue watching</string>
+    <string name="core_ui_home_next_up">Next up</string>
+    <string name="core_ui_home_recently_added_movies">Recently added movies</string>
+    <string name="core_ui_home_recently_added_episodes">Recently added episodes</string>
 </resources>

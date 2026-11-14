@@ -89,9 +89,13 @@ internal val HomeSection.filter: LibraryFilter
     get() =
         when (kind) {
             HomeKind.Artists -> LibraryFilter.Artists
+
             HomeKind.Tracks -> LibraryFilter.Songs
+
             HomeKind.Playlists -> LibraryFilter.Playlists
-            HomeKind.Albums, HomeKind.Shortcuts -> LibraryFilter.Albums
+
+            // Shortcuts and the video sections (#275) open no list; Albums is never reached for them.
+            HomeKind.Albums, HomeKind.Shortcuts, HomeKind.Videos -> LibraryFilter.Albums
         }
 
 /** The list a hub tile opens. */

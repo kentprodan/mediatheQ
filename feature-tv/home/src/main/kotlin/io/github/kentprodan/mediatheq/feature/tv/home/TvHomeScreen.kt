@@ -178,6 +178,7 @@ private fun firstKey(row: TvHomeRow): String? =
         is HomeItems.Playlists -> items.playlists.firstOrNull()?.id
         is HomeItems.Tracks -> items.tracks.firstOrNull()?.id
         is HomeItems.Shortcuts -> Mix.Tracks
+        is HomeItems.Videos -> null
     }?.let { focusKey(row, it) }
 
 /** The cards of one row, by what the section holds. */
@@ -259,6 +260,9 @@ private class Cards(
                     Card(focusKey(row, mix), title, null, null, null, icon) { onAction(TvHomeAction.PlayMix(mix)) }
                 }
             }
+
+            // Never in a TV row (TvHomeViewModel leaves the video sections out).
+            is HomeItems.Videos -> {}
         }
     }
 

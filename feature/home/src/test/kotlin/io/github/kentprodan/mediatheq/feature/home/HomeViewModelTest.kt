@@ -18,6 +18,8 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
@@ -27,6 +29,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import io.github.kentprodan.mediatheq.core.testing.TestClock
 import kotlinx.coroutines.flow.collect
@@ -39,6 +42,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 class HomeViewModelTest {
@@ -96,6 +100,7 @@ class HomeViewModelTest {
     private val playlists = FakePlaylistRepository()
 
     private val appMode = FakeAppModeRepository()
+    private val videos = FakeVideoRepository()
 
     private fun newViewModel() =
         HomeViewModel(
@@ -109,6 +114,7 @@ class HomeViewModelTest {
             preferences,
             shuffle,
             appMode,
+            videos,
             TestClock(day(20)),
             mainDispatcherRule.testDispatcher,
         )
@@ -448,6 +454,7 @@ class HomeViewModelTest {
                     preferences,
                     shuffle,
                     noVideo,
+                    videos,
                     TestClock(day(20)),
                     mainDispatcherRule.testDispatcher,
                 )
@@ -455,5 +462,48 @@ class HomeViewModelTest {
             advanceUntilIdle()
 
             assertThat(viewModel.modeToggle.value).isNull()
+        }
+
+    @Test
+    fun `in Both the video sections show with their items, Continue watching first, and refresh once`() =
+        test {
+            appMode.stored.value = AppMode.Both
+            val movie =
+                Video(
+                    MediaId(ServerId("s"), "m1"),
+                    VideoKind.Movie,
+                    "Moșoi",
+                    userData = UserData(playbackPosition = 1.minutes),
+                )
+            videos.watching.value = listOf(movie)
+            val viewModel = withLibrary()
+            runCurrent()
+
+            val watching = viewModel.content().sections.first { it.section == HomeSection.ContinueWatching }
+            assertThat((watching.items as HomeItems.Videos).videos).containsExactly(movie)
+            assertThat(videos.resumeRefreshes).isEqualTo(1)
+        }
+
+    @Test
+    fun `in Video mode Home lists only video sections and no Shuffle all`() =
+        test {
+            appMode.stored.value = AppMode.Video
+            videos.upNext.value = listOf(Video(MediaId(ServerId("s"), "e1"), VideoKind.Episode, "Pilot"))
+            val viewModel = withLibrary()
+            runCurrent()
+
+            assertThat(viewModel.sections()).containsExactly(HomeSection.NextUp)
+            assertThat(viewModel.content().showShuffle).isFalse()
+        }
+
+    @Test
+    fun `in Music mode no video section shows and nothing is refreshed`() =
+        test {
+            videos.watching.value = listOf(Video(MediaId(ServerId("s"), "m1"), VideoKind.Movie, "Moșoi"))
+            val viewModel = withLibrary()
+            runCurrent()
+
+            assertThat(viewModel.sections()).doesNotContain(HomeSection.ContinueWatching)
+            assertThat(videos.resumeRefreshes).isEqualTo(0)
         }
 }

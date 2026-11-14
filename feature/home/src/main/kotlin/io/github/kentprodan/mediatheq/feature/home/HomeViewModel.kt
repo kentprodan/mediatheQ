@@ -8,20 +8,24 @@ import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.HomeLibrary
 import io.github.kentprodan.mediatheq.core.data.HomeShuffle
+import io.github.kentprodan.mediatheq.core.data.HomeVideos
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.homeItems
 import io.github.kentprodan.mediatheq.core.data.homeLibrary
 import io.github.kentprodan.mediatheq.core.data.mixTracks
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +33,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -43,6 +48,7 @@ import kotlin.time.Clock
  * The Home tab. Sections (#127) are computed from the local library (Room), so Home needs no network and shows the
  * cached library when the server cannot be reached.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel
     @Inject
@@ -57,6 +63,7 @@ class HomeViewModel
         preferences: LibraryPreferencesRepository,
         private val shuffle: HomeShuffle,
         private val appMode: AppModeRepository,
+        private val videos: VideoRepository,
         private val clock: Clock,
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
@@ -67,7 +74,24 @@ class HomeViewModel
                     status to (previous?.second == true || status.lastSyncedAt != null)
                 }.filterNotNull()
 
-        private val library: Flow<HomeLibrary> = libraryRepository.homeLibrary()
+        /** The video sections' items (#275), read only while the app mode has video. */
+        private val homeVideos: Flow<HomeVideos> =
+            appMode.mode.map { it.video }.distinctUntilChanged().flatMapLatest { video ->
+                if (!video) {
+                    flowOf(HomeVideos())
+                } else {
+                    combine(
+                        videos.continueWatching(VIDEO_SECTION_LIMIT),
+                        videos.nextUpEpisodes(VIDEO_SECTION_LIMIT),
+                        videos.recentlyAdded(VideoKind.Movie, VIDEO_SECTION_LIMIT),
+                        videos.recentlyAdded(VideoKind.Episode, VIDEO_SECTION_LIMIT),
+                        ::HomeVideos,
+                    )
+                }
+            }
+
+        private val library: Flow<HomeLibrary> =
+            combine(libraryRepository.homeLibrary(), homeVideos) { library, videos -> library.copy(videos = videos) }
 
         /** The mode toggle's value; `null` hides it (a server without video is always Music, ADR 0051). */
         val modeToggle: StateFlow<AppMode?> =
@@ -82,7 +106,8 @@ class HomeViewModel
                 shuffle.seed,
                 appMode.mode,
             ) { library, home, seed, mode ->
-                if (library.albums.isEmpty() && library.tracks.isEmpty()) return@combine null
+                // An empty music library leaves Home to its empty states; Video mode has no music to wait for.
+                if (mode.music && library.albums.isEmpty() && library.tracks.isEmpty()) return@combine null
                 val now = clock.now()
                 home.shown.filter { it.allowed(mode) }.mapNotNull { section ->
                     val settings = home.settingsOf(section)
@@ -99,20 +124,42 @@ class HomeViewModel
                 appMode.mode,
             ) { sections, (status, everSynced), offline, mode ->
                 when {
-                    !mode.music -> HomeUiState.VideoMode
+                    // Video mode with nothing to continue, next up or newly added.
+                    !mode.music && sections.isNullOrEmpty() -> {
+                        HomeUiState.VideoMode
+                    }
 
-                    sections != null -> HomeUiState.Content(sections, refreshing = status is SyncStatus.Running)
+                    sections != null -> {
+                        HomeUiState.Content(
+                            sections,
+                            refreshing = status is SyncStatus.Running,
+                            showShuffle = mode.music,
+                        )
+                    }
 
                     // Before the sync states: offline, a failed or unfinished sync is not what is missing.
-                    offline -> HomeUiState.NothingDownloaded
+                    offline -> {
+                        HomeUiState.NothingDownloaded
+                    }
 
-                    everSynced -> HomeUiState.Empty
+                    everSynced -> {
+                        HomeUiState.Empty
+                    }
 
-                    status is SyncStatus.Failed -> HomeUiState.Error(status.error)
+                    status is SyncStatus.Failed -> {
+                        HomeUiState.Error(status.error)
+                    }
 
-                    else -> HomeUiState.FirstSync
+                    else -> {
+                        HomeUiState.FirstSync
+                    }
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState.Loading)
+
+        init {
+            // Continue watching as the server has it now, not as of the last sync (#275); best effort.
+            viewModelScope.launch { if (appMode.mode.first().video) videos.refreshResume() }
+        }
 
         fun onAction(action: HomeAction) {
             when (action) {
@@ -197,3 +244,6 @@ class HomeViewModel
             if (tracks.isNotEmpty()) playback.play(tracks)
         }
     }
+
+/** At most this many items per video section (#275); the section's own max cuts further. */
+private const val VIDEO_SECTION_LIMIT = 50

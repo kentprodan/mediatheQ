@@ -25,12 +25,14 @@ sealed interface HomeUiState {
         val sections: List<HomeSectionContent> = emptyList(),
         /** Pull to refresh: a sync runs. */
         val refreshing: Boolean = false,
+        /** Shuffle all is music: hidden in Video mode (#275). */
+        val showShuffle: Boolean = true,
     ) : HomeUiState
 
     /** Synced, but the server has no music. */
     data object Empty : HomeUiState
 
-    /** Video mode (ADR 0051): no music section; the video sections come with #275. */
+    /** Video mode (ADR 0051) with nothing to continue, next up or newly added. */
     data object VideoMode : HomeUiState
 
     /** Offline mode, and nothing for Home is on the phone (#63). */

@@ -7,9 +7,12 @@ import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeSectionListKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeSectionSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.MovieKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistKey
+import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
 import io.github.kentprodan.mediatheq.core.navigation.SettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 
 /** Registers the Home tab root; [onOpenDownloads] switches to the Downloads tab. */
 fun EntryProviderScope<NavKey>.homeEntry(
@@ -25,6 +28,9 @@ fun EntryProviderScope<NavKey>.homeEntry(
                 onOpenSettings = { navigator.navigateTo(SettingsKey) },
                 onOpenDownloads = onOpenDownloads,
                 onOpenSection = { navigator.navigateTo(HomeSectionListKey(it)) },
+                onPlayVideo = { id, start -> navigator.navigateTo(VideoPlayerKey(id, start.inWholeMilliseconds)) },
+                onOpenMovie = { navigator.navigateTo(MovieKey(it)) },
+                onOpenSeries = { navigator.navigateTo(SeriesKey(it)) },
             ),
         )
     }
