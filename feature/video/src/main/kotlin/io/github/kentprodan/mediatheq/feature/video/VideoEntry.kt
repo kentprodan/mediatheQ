@@ -36,10 +36,7 @@ internal val MovieTexts =
 internal val SeriesTexts =
     VideoGridTexts(R.string.video_series, R.string.video_series_empty_title, R.string.video_empty_body) { MqIcons.Tv }
 
-/**
- * Registers the Movies and Series grids (#270), the video player (#272) and, until #273, placeholder pages for a movie
- * (with Play) and a series.
- */
+/** Registers the Movies and Series grids (#270), the movie and series pages (#273) and the video player (#272). */
 fun EntryProviderScope<NavKey>.videoEntry(navigator: Navigator) {
     entry<MoviesKey> {
         val viewModel: MoviesViewModel = hiltViewModel()
@@ -58,39 +55,18 @@ fun EntryProviderScope<NavKey>.videoEntry(navigator: Navigator) {
         )
     }
     entry<MovieKey> { key ->
-        MoviePlaceholderRoute(
+        MovieRoute(
             key.id,
             onPlay = { navigator.navigateTo(VideoPlayerKey(key.id, it.inWholeMilliseconds)) },
             onBack = navigator::back,
         )
     }
-    entry<VideoPlayerKey> { key -> VideoPlayerRoute(key, navigator::back) }
-    entry<SeriesKey> { ComingSoon(navigator::back) }
-}
-
-/** The page of a movie or series before #273: it says that playing comes later. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun ComingSoon(onBack: () -> Unit) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.video_back))
-                    }
-                },
-            )
-        },
-        contentWindowInsets = WindowInsets(0),
-    ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize()) {
-            MqEmptyState(
-                MqIcons.Movie,
-                stringResource(R.string.video_coming_title),
-                body = stringResource(R.string.video_coming_body),
-            )
-        }
+    entry<SeriesKey> { key ->
+        SeriesRoute(
+            key.id,
+            onPlay = { episode, start -> navigator.navigateTo(VideoPlayerKey(episode, start.inWholeMilliseconds)) },
+            onBack = navigator::back,
+        )
     }
+    entry<VideoPlayerKey> { key -> VideoPlayerRoute(key, navigator::back) }
 }

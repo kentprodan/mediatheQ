@@ -73,22 +73,3 @@ fun VideoPlayerLoadingScreenshot() = Player(VideoPlayerUiState.Loading)
 @MqPreviews
 @Composable
 fun VideoPlayerErrorScreenshot() = Player(VideoPlayerUiState.Error(MqError.Network))
-
-/** A movie's page before #273: Play, and Resume at its resume point. */
-@PreviewTest
-@MqPreviews
-@Composable
-fun MoviePlaceholderScreenshot() =
-    MediatheqTheme {
-        MoviePlaceholder(
-            Video(
-                MediaId(ServerId("s"), "m1"),
-                VideoKind.Movie,
-                "Moșoi: Tribul Mic",
-                year = 2019,
-                userData = UserData(playbackPosition = 41.minutes),
-            ),
-            onPlay = { _: Duration -> },
-            onBack = {},
-        )
-    }
