@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
@@ -38,6 +39,14 @@ sealed interface HomeItems {
         override val isEmpty: Boolean get() = playlists.isEmpty()
     }
 
+    /** Movies and episodes (#275): [wide] 16:9 stills with progress, else posters. */
+    data class Videos(
+        val videos: List<Video>,
+        val wide: Boolean,
+    ) : HomeItems {
+        override val isEmpty: Boolean get() = videos.isEmpty()
+    }
+
     /** The mix buttons (#128): Track mix and Album mix, and Decade mix when the library has [decades]. */
     data class Shortcuts(
         val decades: List<Int>,
@@ -57,6 +66,8 @@ data class HomeLibrary(
     val tracks: List<Track> = emptyList(),
     val allTracks: List<Track> = tracks,
     val playlists: List<Playlist> = emptyList(),
+    /** The video sections' items (#275), read only when the app mode has video. */
+    val videos: HomeVideos = HomeVideos(),
 ) {
     /** Per album, from all its tracks. */
     internal val albumStats: Map<MediaId, AlbumStats> by lazy {
@@ -66,6 +77,14 @@ data class HomeLibrary(
             .mapValues { (_, tracks) -> AlbumStats(tracks) }
     }
 }
+
+/** What Home's video sections list (#275), from Room. */
+data class HomeVideos(
+    val continueWatching: List<Video> = emptyList(),
+    val nextUp: List<Video> = emptyList(),
+    val recentMovies: List<Video> = emptyList(),
+    val recentEpisodes: List<Video> = emptyList(),
+)
 
 /** An album's play history, from all its tracks. */
 internal class AlbumStats(
@@ -253,6 +272,22 @@ fun homeItems(
                         track.userData.playCount >= REDISCOVER_MIN_PLAYS && played != null && played < cutoff
                     }.sortedByDescending { it.userData.playCount },
             )
+        }
+
+        HomeSection.ContinueWatching -> {
+            HomeItems.Videos(library.videos.continueWatching.take(limit), wide = true)
+        }
+
+        HomeSection.NextUp -> {
+            HomeItems.Videos(library.videos.nextUp.take(limit), wide = true)
+        }
+
+        HomeSection.RecentlyAddedMovies -> {
+            HomeItems.Videos(library.videos.recentMovies.take(limit), wide = false)
+        }
+
+        HomeSection.RecentlyAddedEpisodes -> {
+            HomeItems.Videos(library.videos.recentEpisodes.take(limit), wide = true)
         }
 
         HomeSection.FiveStarTracks -> {

@@ -197,16 +197,31 @@ class DefaultLibraryPreferencesRepository
         override suspend fun restoreHomeSection(section: HomeSection) =
             store.setHomeSections(mapOf(section.name to null))
 
-        /** Unknown names are dropped; sections the stored order lacks (new ones) follow it in their default order. */
+        /**
+         * Unknown names are dropped. Sections the stored order lacks are new: they follow it in their default order,
+         * except the video sections (#275), which go right after the mix buttons; a new section off by default is hidden.
+         */
         private fun home(stored: StoredHome): HomePreferences {
             val defaults = HomePreferences()
+            val known = stored.order?.mapNotNull { enumOrNull<HomeSection>(it) }?.distinct()
+            val new = known?.let { HomeSection.entries.filterNot { it in known } }.orEmpty()
             val order =
-                stored.order
+                known?.let {
+                    val at = known.indexOf(HomeSection.Shortcuts) + 1
+                    if (at == 0) {
+                        // No mix buttons in the stored order: everything new follows it in the default order.
+                        known + new
+                    } else {
+                        val (videos, others) = new.partition { it.kind == HomeKind.Videos }
+                        known.take(at) + videos + known.drop(at) + others
+                    }
+                } ?: defaults.order
+            val hidden =
+                stored.hidden
                     ?.mapNotNull { enumOrNull<HomeSection>(it) }
-                    ?.distinct()
-                    ?.let { known -> known + HomeSection.entries.filterNot { it in known } }
-                    ?: defaults.order
-            val hidden = stored.hidden?.mapNotNull { enumOrNull<HomeSection>(it) }?.toSet() ?: defaults.hidden
+                    ?.toSet()
+                    ?.plus(new.filterNot { it.shownByDefault })
+                    ?: defaults.hidden
             val settings =
                 stored.sections
                     .mapNotNull { (name, value) ->

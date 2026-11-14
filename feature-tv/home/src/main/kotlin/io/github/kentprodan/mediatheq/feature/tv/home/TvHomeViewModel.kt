@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.homeItems
 import io.github.kentprodan.mediatheq.core.data.homeLibrary
 import io.github.kentprodan.mediatheq.core.data.mixTracks
+import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
@@ -58,7 +59,8 @@ class TvHomeViewModel
             ) { library, home, seed ->
                 if (library.albums.isEmpty() && library.tracks.isEmpty()) return@combine null
                 val now = clock.now()
-                home.shown.mapNotNull { section ->
+                // The TV has no video yet (TV 2): its video sections stay off.
+                home.shown.filter { it.kind != HomeKind.Videos }.mapNotNull { section ->
                     val settings = home.settingsOf(section)
                     val items = homeItems(section, library, settings.maxItems, seed, now)
                     TvHomeRow(section, items).takeUnless { items.isEmpty && settings.hideIfEmpty }

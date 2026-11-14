@@ -20,11 +20,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.math.ceil
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -39,13 +41,16 @@ class VideoPlayerViewModel
     @AssistedInject
     constructor(
         @Assisted private val key: VideoPlayerKey,
-        videos: VideoRepository,
+        private val videos: VideoRepository,
         private val playback: PlaybackConnection,
         private val picker: TrackPicker,
     ) : ViewModel() {
         private val controlsShown = MutableStateFlow(true)
         private var hideJob: Job? = null
-        private val video = videos.video(key.id)
+
+        // The key's video until the player has one, then the one it has: the next episode plays on this screen (#275).
+        private val videoId = MutableStateFlow(key.id)
+        private val video = videoId.flatMapLatest { videos.video(it) }
 
         // Set once the player had this video: its going away afterwards means it ended, not that it is loading.
         private var seen = false
@@ -60,7 +65,7 @@ class VideoPlayerViewModel
 
         val uiState: StateFlow<VideoPlayerUiState> =
             combine(video, playback.state, controlsShown, tracks) { video, player, shown, tracks ->
-                val item = player.item?.takeIf { it.isVideo && it.id == key.id }
+                val item = player.item?.takeIf { it.isVideo && it.id == video?.id }
                 if (item != null) seen = true
                 when {
                     video == null -> {
@@ -68,7 +73,14 @@ class VideoPlayerViewModel
                     }
 
                     item == null -> {
-                        if (seen) VideoPlayerUiState.Ended else VideoPlayerUiState.Loading
+                        // Another video arriving (the next episode, read from Room a moment later) is loading.
+                        if (seen &&
+                            player.item?.isVideo != true
+                        ) {
+                            VideoPlayerUiState.Ended
+                        } else {
+                            VideoPlayerUiState.Loading
+                        }
                     }
 
                     player.isFailed -> {
@@ -92,10 +104,33 @@ class VideoPlayerViewModel
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), VideoPlayerUiState.Loading)
 
+        /**
+         * Seconds until the next episode starts, in the last [NEXT_COUNTDOWN] of a video with one queued after it (#275);
+         * `null` otherwise. Cancel stops at the credits, Play now jumps.
+         */
+        val nextIn: StateFlow<Int?> =
+            combine(playback.state, playback.position) { player, position ->
+                val left = player.duration - position
+                val ending = player.item?.isVideo == true && player.hasNext && player.duration > Duration.ZERO
+                left.takeIf { ending && it <= NEXT_COUNTDOWN && it >= Duration.ZERO }?.let {
+                    ceil(it.inWholeMilliseconds / 1000.0).toInt()
+                }
+            }.distinctUntilChanged()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
         init {
             if (!key.attach) {
                 viewModelScope.launch {
-                    video.first()?.let { playback.playVideo(it, key.startPositionMs.milliseconds) }
+                    videos.video(key.id).first()?.let { playback.playVideo(it, key.startPositionMs.milliseconds) }
+                }
+            }
+            viewModelScope.launch {
+                // Only once this screen's own video played: another video still playing before it is not ours.
+                var started = false
+                playback.state.collect { player ->
+                    val id = player.item?.takeIf { it.isVideo }?.id ?: return@collect
+                    if (id == key.id) started = true
+                    if (started) videoId.value = id
                 }
             }
             scheduleHide()
@@ -124,6 +159,14 @@ class VideoPlayerViewModel
 
                 VideoPlayerAction.Leave -> {
                     playback.pause()
+                }
+
+                VideoPlayerAction.CancelNext -> {
+                    playback.cancelNext()
+                }
+
+                VideoPlayerAction.PlayNextNow -> {
+                    playback.next()
                 }
 
                 is VideoPlayerAction.ChooseAudio -> {
@@ -184,6 +227,9 @@ class VideoPlayerViewModel
         companion object {
             /** The controls hide this long after the last touch while the video plays. */
             val CONTROLS_TIMEOUT = 3.seconds
+
+            /** The next episode's countdown shows this long before the end (#275). */
+            val NEXT_COUNTDOWN = 10.seconds
         }
     }
 

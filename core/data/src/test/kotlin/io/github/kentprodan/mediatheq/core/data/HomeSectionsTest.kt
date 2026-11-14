@@ -9,6 +9,8 @@ import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import org.junit.Test
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
@@ -75,6 +77,7 @@ class HomeSectionsTest {
             is HomeItems.Tracks -> tracks.map { it.title }
             is HomeItems.Playlists -> playlists.map { it.name }
             is HomeItems.Shortcuts -> decades.map { it.toString() }
+            is HomeItems.Videos -> videos.map { it.title }
         }
 
     @Test
@@ -251,5 +254,18 @@ class HomeSectionsTest {
             assertThat(items(section, library, seed = 3).names()).isEqualTo(first)
             assertThat(items(section, library, seed = 4).names()).isNotEqualTo(first)
         }
+    }
+
+    @Test
+    fun `the video sections list what Room gives them, at most the section's limit`() {
+        val videos =
+            List(3) { Video(MediaId(ServerId("s"), "v$it"), VideoKind.Episode, "Episode $it") }
+        val library = HomeLibrary(videos = HomeVideos(continueWatching = videos, nextUp = videos.take(1)))
+
+        assertThat(
+            items(HomeSection.ContinueWatching, library, limit = 2).names(),
+        ).containsExactly("Episode 0", "Episode 1")
+        assertThat(items(HomeSection.NextUp, library).names()).containsExactly("Episode 0")
+        assertThat((items(HomeSection.RecentlyAddedMovies, library) as HomeItems.Videos).wide).isFalse()
     }
 }

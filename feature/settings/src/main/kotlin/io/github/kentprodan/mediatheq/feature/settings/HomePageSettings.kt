@@ -55,7 +55,9 @@ internal fun LazyListScope.homePageGroups(
             index = index,
             count = rows.size,
             onMove = { to ->
-                onAction(SettingsAction.SetHomeOrder(rows.toMutableList().apply { add(to, removeAt(index)) }))
+                // The other mode's sections keep their place after the rows shown (#275).
+                val moved = rows.toMutableList().apply { add(to, removeAt(index)) }
+                onAction(SettingsAction.SetHomeOrder(moved + home.order.filterNot { it in rows }))
             },
             onToggle = { shown ->
                 onAction(SettingsAction.SetHomeHidden(if (shown) home.hidden - section else home.hidden + section))

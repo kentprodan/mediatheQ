@@ -46,6 +46,9 @@ interface PlaybackConnection {
         startPosition: Duration = Duration.ZERO,
     )
 
+    /** Takes the item after the playing one off the queue (the next episode, #275), so it stops at its end. */
+    fun cancelNext()
+
     /**
      * Opens the playing video again where it is (#274): a new stream with the tracks chosen since (the server converts
      * with them, the player selects them); nothing when no video plays.

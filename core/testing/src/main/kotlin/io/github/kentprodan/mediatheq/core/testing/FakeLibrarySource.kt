@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.server.LibraryPage
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
@@ -167,5 +168,16 @@ class FakeLibrarySource : LibrarySource {
         if (calls.size == failAt) return MqResult.Failure(failure)
         val total = if (name in shortListings) all.size + 1 else all.size
         return MqResult.Success(LibraryPage(all.drop(startIndex).take(limit), total))
+    }
+
+    /** What [resumeVideos] answers. */
+    var resumeAnswer: MqResult<Map<MediaId, UserData>> = MqResult.Success(emptyMap())
+
+    override suspend fun resumeVideos(
+        server: SignedInServer,
+        limit: Int,
+    ): MqResult<Map<MediaId, UserData>> {
+        calls += "resume@$limit"
+        return resumeAnswer
     }
 }

@@ -1,0 +1,41 @@
+{
+  "Items": [
+    {
+      "Name": "Mo\u0219oi",
+      "Id": "cc4b4fdb31a8af38cfcb812d79ad565c",
+      "Type": "Movie",
+      "MediaType": "Video",
+      "UserData": {
+        "PlaybackPositionTicks": 12000000000,
+        "PlayedPercentage": 20.4,
+        "PlayCount": 0,
+        "IsFavorite": false,
+        "LastPlayedDate": "2026-11-13T20:10:00.0000000Z",
+        "Played": false,
+        "Key": "cc4b4fdb31a8af38cfcb812d79ad565c",
+        "ItemId": "cc4b4fdb31a8af38cfcb812d79ad565c"
+      }
+    },
+    {
+      "Name": "Pilot",
+      "Id": "dd5c5fec42b9b049dfdc923e80be676d",
+      "Type": "Episode",
+      "MediaType": "Video",
+      "SeriesName": "Show",
+      "ParentIndexNumber": 1,
+      "IndexNumber": 1,
+      "UserData": {
+        "PlaybackPositionTicks": 6000000000,
+        "PlayedPercentage": 45.0,
+        "PlayCount": 0,
+        "IsFavorite": true,
+        "LastPlayedDate": "2026-11-12T21:00:00.0000000Z",
+        "Played": false,
+        "Key": "dd5c5fec42b9b049dfdc923e80be676d",
+        "ItemId": "dd5c5fec42b9b049dfdc923e80be676d"
+      }
+    }
+  ],
+  "TotalRecordCount": 2,
+  "StartIndex": 0
+}

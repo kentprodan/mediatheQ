@@ -45,6 +45,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.component.rememberMqReorderState
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 
 /** The Settings pages with settings of their own (#120); they share [SettingsViewModel] until a page needs its own. */
@@ -196,18 +197,25 @@ fun SettingsPageScreen(
     var actionDialog by rememberSaveable { mutableStateOf<NotificationActionDialog?>(null) }
     val listState = rememberLazyListState()
     // The Home page's rows as shown: a drag moves them here and saves the order once, on drop.
-    val homeOrder =
+    val fullHomeOrder =
         (state as? SettingsUiState.Content)
             ?.library
             ?.home
             ?.order
             .orEmpty()
+    // Only the sections of the app mode (ADR 0051): the others keep their place after them when the order is saved.
+    val mode = (state as? SettingsUiState.Content)?.appMode ?: AppMode.Music
+    val homeOrder = fullHomeOrder.filter { it.allowed(mode) }
     var homeRows by remember(homeOrder) { mutableStateOf(homeOrder) }
     val reorder =
         rememberMqReorderState(
             listState,
             onMove = { from, to -> homeRows = homeRows.toMutableList().apply { add(to, removeAt(from)) } },
-            onDrop = { _, _ -> if (homeRows != homeOrder) onAction(SettingsAction.SetHomeOrder(homeRows)) },
+            onDrop = { _, _ ->
+                if (homeRows != homeOrder) {
+                    onAction(SettingsAction.SetHomeOrder(homeRows + fullHomeOrder.filterNot { it.allowed(mode) }))
+                }
+            },
             // The sections come first; the groups after them are no drop targets.
             canDropOn = { it is HomeSection },
         )

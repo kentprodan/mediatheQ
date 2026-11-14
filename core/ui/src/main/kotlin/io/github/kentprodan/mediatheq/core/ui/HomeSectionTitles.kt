@@ -29,4 +29,8 @@ val HomeSection.title: Int
             HomeSection.RandomTracks -> R.string.core_ui_home_random_tracks
             HomeSection.RediscoverTracks -> R.string.core_ui_home_rediscover_tracks
             HomeSection.FiveStarTracks -> R.string.core_ui_home_five_star_tracks
+            HomeSection.ContinueWatching -> R.string.core_ui_home_continue_watching
+            HomeSection.NextUp -> R.string.core_ui_home_next_up
+            HomeSection.RecentlyAddedMovies -> R.string.core_ui_home_recently_added_movies
+            HomeSection.RecentlyAddedEpisodes -> R.string.core_ui_home_recently_added_episodes
         }

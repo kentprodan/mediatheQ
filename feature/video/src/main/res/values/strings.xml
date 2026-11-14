@@ -40,4 +40,10 @@
     <string name="video_tracks_off">Off</string>
     <string name="video_track">Track %1$d</string>
     <string name="video_tracks_open">Audio and subtitles</string>
+    <string name="video_next_cancel">Cancel</string>
+    <string name="video_next_play_now">Play now</string>
+    <plurals name="video_next_episode_in">
+        <item quantity="one">Next episode in %d second</item>
+        <item quantity="other">Next episode in %d seconds</item>
+    </plurals>
 </resources>

@@ -35,6 +35,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Search on the TV: results in rows (albums, artists, songs, playlists) while you type, diacritics optional, and your recent searches.
 - Lyrics on the TV's Now Playing: the line being sung large in the queue's place, or the whole text for plain lyrics.
 - Movies and Series in the Library: after a sync they show as poster grids with how many there are, sorted by name, date added or year, with an Unwatched filter. Playing them comes in a later update.
+- Continue watching and Next up on Home, plus recently added movies and episodes; an episode goes on to the next one after a 10-second countdown you can cancel.
 - Audio and subtitles for movies and episodes: pick them in the player, on the movie page or from an episode's menu; the choice is remembered for that video or for its whole season, and subtitles follow your system caption style.
 - Movie and series pages: the backdrop, poster, facts and format (4K, HDR, 5.1), Resume where you left off, Favorite and Watched; a series shows Next up and its seasons as tabs with each episode's progress.
 - Watch movies: Play or Resume on a movie opens it full screen with play and pause, the seek bar and 10-second jumps; Back pauses it and the mini player brings it back. The music queue comes back paused when the movie ends.

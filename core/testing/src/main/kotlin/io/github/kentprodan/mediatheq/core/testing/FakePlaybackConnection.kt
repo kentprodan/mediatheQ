@@ -53,6 +53,10 @@ class FakePlaybackConnection : PlaybackConnection {
 
     override val videoPlayer = MutableStateFlow<Player?>(null)
 
+    override fun cancelNext() {
+        commands += "cancelNext"
+    }
+
     override fun reloadVideo() {
         commands += "reloadVideo"
     }

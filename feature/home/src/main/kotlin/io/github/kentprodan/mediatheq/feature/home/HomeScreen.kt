@@ -68,6 +68,7 @@ import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.label
 import io.github.kentprodan.mediatheq.core.ui.title
+import kotlin.time.Duration
 
 /** Where Home opens things. */
 data class HomeNavigation(
@@ -78,6 +79,10 @@ data class HomeNavigation(
     val onOpenDownloads: () -> Unit = {},
     /** A section's full list (#183); `null` (the settings preview) leaves headers untappable. */
     val onOpenSection: ((HomeSection) -> Unit)? = null,
+    /** Plays a movie or an episode from where it was left (#275). */
+    val onPlayVideo: (MediaId, Duration) -> Unit = { _, _ -> },
+    val onOpenMovie: (MediaId) -> Unit = {},
+    val onOpenSeries: (MediaId) -> Unit = {},
 )
 
 @Composable
@@ -224,14 +229,16 @@ private fun HomeContent(
             )
         }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()) {
-        item(key = "shuffle") {
-            FilledTonalButton(
-                onClick = { onAction(HomeAction.ShuffleAll) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l),
-            ) {
-                Icon(MqIcons.Shuffle, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                Text(stringResource(R.string.home_shuffle_all))
+        if (content.showShuffle) {
+            item(key = "shuffle") {
+                FilledTonalButton(
+                    onClick = { onAction(HomeAction.ShuffleAll) },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l),
+                ) {
+                    Icon(MqIcons.Shuffle, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                    Text(stringResource(R.string.home_shuffle_all))
+                }
             }
         }
         content.sections.forEachIndexed { index, section ->
@@ -258,6 +265,10 @@ internal fun LazyListScope.section(
     val items = content.items
     if (items is HomeItems.Shortcuts) {
         item(key = "$key-items") { MixShortcuts(items, onAction) }
+        return
+    }
+    if (items is HomeItems.Videos) {
+        item(key = "$key-items") { VideoRow(content.section, items, navigation) }
         return
     }
     // Tracks have no cards: a track section always lists its rows.
@@ -321,7 +332,8 @@ private fun SectionHeader(
     onOpen: ((HomeSection) -> Unit)?,
 ) {
     // The whole header opens the full list, with or without the ">" (#182, #183); the mix buttons have none.
-    val open = onOpen?.takeIf { content.section.kind != HomeKind.Shortcuts }
+    // The video sections have no full list yet: their header opens nothing.
+    val open = onOpen?.takeIf { content.section.kind != HomeKind.Shortcuts && content.section.kind != HomeKind.Videos }
     Row(
         Modifier
             .fillMaxWidth()
@@ -405,7 +417,7 @@ private fun CardRow(
                 }
             }
 
-            is HomeItems.Tracks, is HomeItems.Shortcuts -> {
+            is HomeItems.Tracks, is HomeItems.Shortcuts, is HomeItems.Videos -> {
                 emptyList()
             }
         }
@@ -469,7 +481,7 @@ private fun carouselItems(items: HomeItems): List<MqCarouselItem> =
             items.playlists.map { MqCarouselItem(it.id, it.artwork, it.name, null, it.artwork?.blurHash) }
         }
 
-        is HomeItems.Tracks, is HomeItems.Shortcuts -> {
+        is HomeItems.Tracks, is HomeItems.Shortcuts, is HomeItems.Videos -> {
             emptyList()
         }
     }
@@ -482,7 +494,7 @@ private fun open(
     is HomeItems.Albums -> navigation.onOpenAlbum(id)
     is HomeItems.Artists -> navigation.onOpenArtist(id)
     is HomeItems.Playlists -> navigation.onOpenPlaylist(id)
-    is HomeItems.Tracks, is HomeItems.Shortcuts -> Unit
+    is HomeItems.Tracks, is HomeItems.Shortcuts, is HomeItems.Videos -> Unit
 }
 
 /**

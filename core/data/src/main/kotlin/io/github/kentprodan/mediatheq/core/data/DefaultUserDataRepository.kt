@@ -104,6 +104,12 @@ class DefaultUserDataRepository
                 }
             }
 
+        /** A video is no longer halfway on the server (#275): its resume point goes here too. */
+        internal suspend fun clearVideoProgress(id: MediaId) =
+            stateLock.withLock {
+                storageSafe { MqResult.Success(userDataDao.setVideoProgress(id.serverId.value, id.itemId, 0, null)) }
+            }
+
         /** A sync starts fetching: what it reads from now on already has the changes confirmed before. */
         internal suspend fun onSyncStarted() = stateLock.withLock { sinceSyncStart.clear() }
 

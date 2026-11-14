@@ -73,3 +73,19 @@ fun VideoPlayerLoadingScreenshot() = Player(VideoPlayerUiState.Loading)
 @MqPreviews
 @Composable
 fun VideoPlayerErrorScreenshot() = Player(VideoPlayerUiState.Error(MqError.Network))
+
+/** The last seconds of an episode with the next one queued (#275): the countdown card over the picture. */
+@PreviewTest
+@Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
+@Composable
+fun VideoPlayerNextEpisodeScreenshot() =
+    MediatheqTheme {
+        VideoPlayerScreen(
+            playing.copy(controlsShown = false),
+            position = 97.minutes,
+            onAction = {},
+            onBack = {},
+            nextIn = 8,
+            surface = darkFrame,
+        )
+    }

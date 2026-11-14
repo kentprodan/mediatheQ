@@ -14,7 +14,13 @@ import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeDisplay
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
+import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
+import kotlin.time.Duration.Companion.minutes
 
 @Composable
 private fun Home(state: HomeUiState) =
@@ -241,3 +247,49 @@ fun HomeModeBothScreenshot() =
 @Composable
 fun HomeModeVideoScreenshot() =
     MediatheqTheme { HomeScreen(HomeUiState.VideoMode, {}, HomeNavigation(), mode = AppMode.Video) }
+
+private fun video(
+    n: Int,
+    kind: VideoKind = VideoKind.Episode,
+    position: kotlin.time.Duration = kotlin.time.Duration.ZERO,
+) = Video(
+    MediaId(ServerId("s"), "v$n"),
+    kind,
+    if (kind == VideoKind.Movie) "Moșoi: Tribul Mic" else "Episode title $n",
+    year = 2019,
+    duration = 44.minutes,
+    seriesName = "Show".takeIf { kind == VideoKind.Episode },
+    seasonNumber = 2,
+    episodeNumber = n,
+    userData = UserData(playbackPosition = position),
+)
+
+/** Video mode's Home (#275): Continue watching with progress lines, Next up, new movies as posters; no Shuffle all. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun HomeVideoSectionsScreenshot() =
+    MediatheqTheme {
+        HomeScreen(
+            HomeUiState.Content(
+                listOf(
+                    section(
+                        HomeSection.ContinueWatching,
+                        HomeItems.Videos(
+                            listOf(video(1, VideoKind.Movie, 30.minutes), video(4, position = 10.minutes)),
+                            true,
+                        ),
+                    ),
+                    section(HomeSection.NextUp, HomeItems.Videos(listOf(video(5), video(2)), true)),
+                    section(
+                        HomeSection.RecentlyAddedMovies,
+                        HomeItems.Videos(listOf(video(1, VideoKind.Movie), video(3, VideoKind.Movie)), false),
+                    ),
+                ),
+                showShuffle = false,
+            ),
+            {},
+            HomeNavigation(),
+            mode = AppMode.Video,
+        )
+    }

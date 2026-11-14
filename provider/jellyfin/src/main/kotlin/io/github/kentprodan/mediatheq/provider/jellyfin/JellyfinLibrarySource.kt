@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.server.ClientInfo
@@ -23,6 +24,7 @@ import io.github.kentprodan.mediatheq.provider.jellyfin.dto.BaseItemDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.QueryResultDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toAlbum
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toArtist
+import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toDomain
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toPlaylist
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toPlaylistEntry
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toSeason
@@ -121,6 +123,29 @@ class JellyfinLibrarySource internal constructor(
         limit: Int,
     ): MqResult<LibraryPage<Video>> =
         video(server, "Episode", startIndex, limit) { it.toVideo(server.serverId, VideoKind.Episode) }
+
+    /** R26: `GET /UserItems/Resume` with the video types; only the user data is read (the rows come from the sync). */
+    override suspend fun resumeVideos(
+        server: SignedInServer,
+        limit: Int,
+    ): MqResult<Map<MediaId, UserData>> =
+        http.get(
+            server.connection,
+            "UserItems/Resume",
+            QueryResultDto.serializer(),
+            listOf(
+                "userId" to server.userId,
+                "mediaTypes" to "Video",
+                "includeItemTypes" to "Movie,Episode",
+                "limit" to limit.toString(),
+                "enableUserData" to "true",
+                "enableImages" to "false",
+            ),
+        ) { result ->
+            result.items
+                .mapNotNull { item -> item.id?.let { MediaId(server.serverId, it) to item.userData.toDomain() } }
+                .toMap()
+        }
 
     /** One query shape for the four video kinds (ADR 0048); backdrops come only when asked for (R21). */
     private suspend fun <T : Any> video(

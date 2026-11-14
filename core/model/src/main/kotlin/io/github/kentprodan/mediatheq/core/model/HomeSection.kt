@@ -1,7 +1,7 @@
 package io.github.kentprodan.mediatheq.core.model
 
 /** What a Home section lists. */
-enum class HomeKind { Albums, Artists, Tracks, Playlists, Shortcuts }
+enum class HomeKind { Albums, Artists, Tracks, Playlists, Shortcuts, Videos }
 
 /** How a Home section is laid out (#127; chosen per section in #182). */
 enum class HomeDisplay { Row, Grid, Carousel, List }
@@ -44,6 +44,14 @@ enum class HomeSection(
 ) {
     /** Buttons that start a mix (#128); its own settings come with the section gear (#182). */
     Shortcuts(HomeKind.Shortcuts, true, HomeSectionSettings(moreIndicator = false)),
+
+    /** Movies and episodes left halfway (#275). */
+    ContinueWatching(HomeKind.Videos, true, VIDEO_ROW),
+
+    /** The next episode of each series in progress (#275). */
+    NextUp(HomeKind.Videos, true, VIDEO_ROW),
+    RecentlyAddedMovies(HomeKind.Videos, false, VIDEO_ROW),
+    RecentlyAddedEpisodes(HomeKind.Videos, false, VIDEO_ROW),
     FavoritePlaylists(HomeKind.Playlists, true, HomeSectionSettings()),
     FavoriteAlbums(HomeKind.Albums, true, HomeSectionSettings()),
     FavoriteTracks(HomeKind.Tracks, true, TRACK_LIST),
@@ -64,13 +72,17 @@ enum class HomeSection(
     RandomTracks(HomeKind.Tracks, false, TRACK_LIST),
     RediscoverTracks(HomeKind.Tracks, false, TRACK_LIST),
     FiveStarTracks(HomeKind.Tracks, false, TRACK_LIST),
+
     ;
 
-    /** Shown in [mode] (ADR 0051): every section so far is music; the video sections come with #275. */
-    fun allowed(mode: AppMode): Boolean = mode.music
+    /** Shown in [mode] (ADR 0051): video sections with video, the others with music. */
+    fun allowed(mode: AppMode): Boolean = if (kind == HomeKind.Videos) mode.video else mode.music
 
     /** Random sections draw a new set at each app start and pull to refresh. */
     val isRandom: Boolean get() = this == RandomArtists || this == RandomAlbums || this == RandomTracks
 }
 
 private val TRACK_LIST: HomeSectionSettings get() = HomeSectionSettings(display = HomeDisplay.List)
+
+/** A video section has no full list yet (#275): no more indicator on its header. */
+private val VIDEO_ROW: HomeSectionSettings get() = HomeSectionSettings(moreIndicator = false)
