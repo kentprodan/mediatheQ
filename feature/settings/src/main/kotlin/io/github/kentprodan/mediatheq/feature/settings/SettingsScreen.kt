@@ -41,6 +41,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
+import io.github.kentprodan.mediatheq.core.data.VideoPreferences
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.component.rememberMqReorderState
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
@@ -69,6 +70,7 @@ enum class SettingsPage(
     Playback(R.string.settings_playback),
     PlaybackBehavior(R.string.settings_pb_behavior),
     Decoding(R.string.settings_decoding),
+    Video(R.string.settings_video),
     AudioFocus(R.string.settings_audio_focus),
     Headset(R.string.settings_headset),
     NotificationButtons(R.string.settings_notification_buttons),
@@ -108,6 +110,7 @@ internal fun SettingsPageRoute(
     onOpenStoragePage: (SettingsPage) -> Unit = {},
     onOpenHomeSection: (HomeSection) -> Unit = {},
     onOpenAppMode: () -> Unit = {},
+    onOpenVideo: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -139,6 +142,7 @@ internal fun SettingsPageRoute(
         onOpenStoragePage,
         onOpenHomeSection,
         onOpenAppMode,
+        onOpenVideo,
     )
 }
 
@@ -175,6 +179,7 @@ fun SettingsPageScreen(
     onOpenStoragePage: (SettingsPage) -> Unit = {},
     onOpenHomeSection: (HomeSection) -> Unit = {},
     onOpenAppMode: () -> Unit = {},
+    onOpenVideo: () -> Unit = {},
 ) {
     var storageDialog by rememberSaveable { mutableStateOf<StorageDialog?>(null) }
     // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
@@ -368,8 +373,14 @@ fun SettingsPageScreen(
                         onOpenAutoActions,
                         onOpenTransitions,
                         music,
+                        video = onOpenVideo,
+                        showVideo = content.appMode.video,
                     ),
                 )
+            }
+
+            SettingsPage.Video -> {
+                videoGroups(content.video, onAction) { restoring = true }
             }
 
             SettingsPage.PlaybackBehavior -> {
@@ -469,6 +480,10 @@ fun SettingsPageScreen(
                 when (page) {
                     SettingsPage.Decoding -> {
                         SettingsAction.RestoreDecodingDefaults
+                    }
+
+                    SettingsPage.Video -> {
+                        SettingsAction.SetVideo(VideoPreferences())
                     }
 
                     SettingsPage.AudioFocus -> {

@@ -53,9 +53,12 @@ import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.data.TrackInfo
 import io.github.kentprodan.mediatheq.core.data.TransitionsPreferences
+import io.github.kentprodan.mediatheq.core.data.VideoPreferences
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
+import io.github.kentprodan.mediatheq.core.model.SubtitleMode
+import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
@@ -64,6 +67,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeDownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeVideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -81,7 +85,8 @@ class SettingsViewModelTest {
     private var restarts = 0
     private val appMode = FakeAppModeRepository()
 
-    private val viewModel by lazy { SettingsViewModel(session, audio, library, storage, appMode) { restarts++ } }
+    private val video = FakeVideoPreferencesRepository()
+    private val viewModel by lazy { SettingsViewModel(session, audio, library, storage, appMode, video) { restarts++ } }
 
     private fun signIn() {
         session.session.value = SessionState.LoggedIn("Home", "Ana")
@@ -736,6 +741,24 @@ class SettingsViewModelTest {
                     MainNavEntry.Search,
                     MainNavEntry.Downloads,
                 )
+            }
+        }
+
+    @Test
+    fun `the Video page shows the stored settings and stores a change, Restore defaults brings the defaults back`() =
+        runTest {
+            val changed = VideoPreferences(meteredQuality = VideoQuality.P720, subtitleMode = SubtitleMode.Off)
+
+            signIn()
+
+            viewModel.uiState.test {
+                viewModel.onAction(SettingsAction.SetVideo(changed))
+                assertThat((expectMostRecentItem() as SettingsUiState.Content).video).isEqualTo(changed)
+                assertThat(video.preferences.value).isEqualTo(changed)
+
+                viewModel.onAction(SettingsAction.SetVideo(VideoPreferences()))
+                assertThat(video.preferences.value).isEqualTo(VideoPreferences())
+                cancelAndIgnoreRemainingEvents()
             }
         }
 }
