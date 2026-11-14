@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,6 +63,10 @@ fun MqVideoControls(
     modifier: Modifier = Modifier,
     /** Opens the audio and subtitles sheet (#274); `null` hides the button. */
     onTracks: (() -> Unit)? = null,
+    /** Lines under the subtitle (#276): what plays, "Converted by the server", Dolby Vision not available. */
+    notes: List<String> = emptyList(),
+    /** Tapping the title (#276): shows or hides the info line; `null` = not tappable. */
+    onTitleClick: (() -> Unit)? = null,
 ) {
     val skipBack = stringResource(R.string.core_ui_video_back_10)
     val skipForward = stringResource(R.string.core_ui_video_forward_10)
@@ -83,6 +88,8 @@ fun MqVideoControls(
             skipForward,
             modifier,
             onTracks,
+            notes,
+            onTitleClick,
         )
     }
 }
@@ -104,6 +111,8 @@ private fun VideoControlsContent(
     skipForward: String,
     modifier: Modifier,
     onTracks: (() -> Unit)?,
+    notes: List<String>,
+    onTitleClick: (() -> Unit)?,
 ) {
     Box(
         modifier
@@ -115,7 +124,7 @@ private fun VideoControlsContent(
                 IconButton(onClick = onBack) {
                     Icon(MqIcons.ArrowBack, stringResource(R.string.core_ui_video_close), tint = Color.White)
                 }
-                Column(Modifier.weight(1f)) {
+                Column(Modifier.weight(1f).then(onTitleClick?.let { Modifier.clickable(onClick = it) } ?: Modifier)) {
                     Text(
                         title,
                         style = MaterialTheme.typography.titleLarge,
@@ -125,6 +134,9 @@ private fun VideoControlsContent(
                     )
                     subtitle?.let {
                         Text(it, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.8f))
+                    }
+                    notes.forEach {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.8f))
                     }
                 }
                 onTracks?.let {

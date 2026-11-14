@@ -12,10 +12,13 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
+import io.github.kentprodan.mediatheq.core.model.VideoRange
+import io.github.kentprodan.mediatheq.core.playback.VideoPlayback
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
@@ -86,6 +89,32 @@ fun VideoPlayerNextEpisodeScreenshot() =
             onAction = {},
             onBack = {},
             nextIn = 8,
+            surface = darkFrame,
+        )
+    }
+
+/** A Dolby Vision 5 file the server converts (#276): "Converted by the server" and "Dolby Vision not available". */
+@PreviewTest
+@Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
+@Composable
+fun VideoPlayerNotesScreenshot() =
+    MediatheqTheme {
+        VideoPlayerScreen(
+            playing.copy(
+                info =
+                    VideoPlayback(
+                        "video/hevc",
+                        1920,
+                        1080,
+                        VideoRange.Sdr,
+                        PlayMethod.Transcode,
+                        "c2.exynos.hevc.decoder",
+                    ),
+                dolbyVisionUnavailable = true,
+            ),
+            position = 12.minutes,
+            onAction = {},
+            onBack = {},
             surface = darkFrame,
         )
     }
