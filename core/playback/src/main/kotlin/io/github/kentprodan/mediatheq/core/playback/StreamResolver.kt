@@ -34,7 +34,11 @@ class StreamResolver
         private val videoDecoders: VideoDecoders = VideoDecoders { emptySet() },
         private val trackChooser: VideoTrackChooser = VideoTrackChooser.None,
         private val videoPreferences: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
+        private val videoHdr: VideoHdrCapabilities = VideoHdrCapabilities { VideoHdrDecoders() },
+        private val displayHdr: DisplayHdr = DisplayHdr { emptySet() },
     ) {
+        private val hdrDecoders by lazy { videoHdr.decoders() }
+
         private class Resolved(
             val stream: PlaybackStream,
             val quality: StreamingQuality,
@@ -111,6 +115,7 @@ class StreamResolver
                     videoDecoders.mimeTypes(),
                     settings.quality(networkMonitor.isMetered()),
                     burnInStyled = settings.burnInStyled,
+                    videoRangeTypes = videoRangeTypes(displayHdr.types(), hdrDecoders),
                 )
             // The chosen tracks (#274): the server's conversion takes them, and the player selects them in a file.
             val tracks = trackChooser.tracks(itemId)
