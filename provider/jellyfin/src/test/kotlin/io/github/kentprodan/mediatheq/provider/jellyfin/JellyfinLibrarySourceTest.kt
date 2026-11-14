@@ -27,6 +27,7 @@ import mockwebserver3.junit4.MockWebServerRule
 import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
@@ -505,5 +506,25 @@ class JellyfinLibrarySourceTest {
             assertThat(subtitles.map { Triple(it.index, it.language, it.isExternal) })
                 .containsExactly(Triple(0, null, true), Triple(3, "eng", false), Triple(4, "fra", false))
                 .inOrder()
+        }
+
+    @Test
+    fun `R26 Continue watching asks UserItems Resume for videos and reads their positions`() =
+        runTest {
+            mockServer.enqueue(
+                MockResponse(body = javaClass.getResource("/jellyfin/user_items_resume/page.json")!!.readText()),
+            )
+
+            val resume = (source.resumeVideos(server, 20) as MqResult.Success).value
+
+            val request = mockServer.takeRequest()
+            assertThat(request.url.encodedPath).isEqualTo("/UserItems/Resume")
+            assertThat(request.url.queryParameter("mediaTypes")).isEqualTo("Video")
+            assertThat(request.url.queryParameter("includeItemTypes")).isEqualTo("Movie,Episode")
+            assertThat(request.url.queryParameter("limit")).isEqualTo("20")
+            val movie = resume.getValue(MediaId(serverId, "cc4b4fdb31a8af38cfcb812d79ad565c"))
+            assertThat(movie.playbackPosition).isEqualTo(20.minutes)
+            assertThat(movie.playedPercentage).isEqualTo(20.4)
+            assertThat(resume.getValue(MediaId(serverId, "dd5c5fec42b9b049dfdc923e80be676d")).isFavorite).isTrue()
         }
 }

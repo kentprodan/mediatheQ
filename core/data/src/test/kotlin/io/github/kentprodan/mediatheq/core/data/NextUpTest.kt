@@ -52,4 +52,47 @@ class NextUpTest {
         assertThat(halfway.resumePosition()).isEqualTo(12.minutes)
         assertThat(episode(2, played = true, position = 12.minutes).resumePosition()).isEqualTo(Duration.ZERO)
     }
+
+    private fun inSeries(
+        series: String,
+        season: Int,
+        n: Int,
+        played: Boolean = false,
+        lastPlayedDay: Long? = null,
+    ) = Video(
+        MediaId(ServerId("s"), "$series-s${season}e$n"),
+        VideoKind.Episode,
+        "$series $season.$n",
+        seriesId = MediaId(ServerId("s"), series),
+        seasonNumber = season,
+        episodeNumber = n,
+        userData =
+            UserData(
+                played = played,
+                lastPlayedAt = lastPlayedDay?.let { kotlin.time.Instant.fromEpochSeconds(it * 86_400) },
+            ),
+    )
+
+    @Test
+    fun `Home's Next up is one episode per started series, the series played last first`() {
+        val episodes =
+            listOf(
+                inSeries("a", 1, 1, played = true, lastPlayedDay = 1),
+                inSeries("a", 1, 2),
+                inSeries("b", 1, 1, played = true, lastPlayedDay = 5),
+                inSeries("b", 1, 2),
+                inSeries("c", 1, 1),
+            )
+
+        assertThat(nextUpPerSeries(episodes).map { it.id.itemId }).containsExactly("b-s1e2", "a-s1e2").inOrder()
+    }
+
+    @Test
+    fun `the next episode is the next one, then the next season, never a special, none after the last`() {
+        val episodes = listOf(inSeries("a", 1, 1), inSeries("a", 1, 2), inSeries("a", 0, 1), inSeries("a", 2, 1))
+
+        assertThat(nextEpisode(episodes, episodes[0])?.id?.itemId).isEqualTo("a-s1e2")
+        assertThat(nextEpisode(episodes, episodes[1])?.id?.itemId).isEqualTo("a-s2e1")
+        assertThat(nextEpisode(episodes, episodes[3])).isNull()
+    }
 }

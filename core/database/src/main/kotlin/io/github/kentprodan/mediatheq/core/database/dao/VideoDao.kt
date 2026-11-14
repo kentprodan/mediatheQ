@@ -109,6 +109,46 @@ interface VideoDao {
         downloaded: List<String>,
     ): Flow<List<VideoEntity>>
 
+    /** Movies and episodes left halfway, the last played first (Continue watching, #275). */
+    @Query(
+        """
+        SELECT * FROM video WHERE position_ms > 0 AND NOT played AND (:all OR id IN (:downloaded))
+        ORDER BY last_played_at IS NULL, last_played_at DESC, id LIMIT :limit
+        """,
+    )
+    fun continueWatching(
+        limit: Int,
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<VideoEntity>>
+
+    /** Every episode by series, each series in watching order (Next up on Home, #275). */
+    @Query(
+        """
+        SELECT * FROM video WHERE kind = 'Episode' AND series_id IS NOT NULL AND (:all OR id IN (:downloaded))
+        ORDER BY series_id, season_number IS NULL, season_number = 0, season_number, episode_number IS NULL,
+        episode_number, sort_name, id
+        """,
+    )
+    fun allEpisodes(
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<VideoEntity>>
+
+    /** The newest added movies or episodes ([kind] `Movie` or `Episode`, #275). */
+    @Query(
+        """
+        SELECT * FROM video WHERE kind = :kind AND date_added IS NOT NULL AND (:all OR id IN (:downloaded))
+        ORDER BY date_added DESC, id LIMIT :limit
+        """,
+    )
+    fun recentlyAdded(
+        kind: String,
+        limit: Int,
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<VideoEntity>>
+
     @Query("SELECT * FROM video WHERE id = :id")
     fun video(id: String): Flow<VideoEntity?>
 

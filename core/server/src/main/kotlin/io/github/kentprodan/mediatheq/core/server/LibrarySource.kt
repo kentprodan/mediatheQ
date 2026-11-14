@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
 
 /**
@@ -66,6 +67,15 @@ interface LibrarySource {
         startIndex: Int,
         limit: Int,
     ): MqResult<LibraryPage<Video>>
+
+    /**
+     * The user data of the movies and episodes left halfway, most recent first, at most [limit] (#275): Continue watching
+     * is fresh when Home opens without a full sync.
+     */
+    suspend fun resumeVideos(
+        server: SignedInServer,
+        limit: Int,
+    ): MqResult<Map<MediaId, UserData>>
 
     /** One playlist with fresh counts and image; a missing playlist fails with `NotFound`. */
     suspend fun playlist(
