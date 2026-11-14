@@ -459,6 +459,8 @@ private fun Queue(
             item.title,
             listOf(
                 MqTvMenuEntry(stringResource(R.string.tv_np_remove), null) {
+                    // Never set before (#354): the menu closed onto a gone row and the focus fell to the drawer.
+                    removedAt = state.queue.indexOfFirst { it.entryId == item.entryId }.takeIf { it >= 0 }
                     onAction(TvNowPlayingAction.Remove(item.entryId))
                 },
             ),
