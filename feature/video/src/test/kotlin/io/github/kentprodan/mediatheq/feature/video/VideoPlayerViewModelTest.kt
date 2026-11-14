@@ -3,8 +3,11 @@ package io.github.kentprodan.mediatheq.feature.video
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
+import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.SkipMode
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoFormat
 import io.github.kentprodan.mediatheq.core.model.VideoKind
@@ -16,6 +19,7 @@ import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.VideoPlayback
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeTrackChoiceRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeVideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.collect
@@ -38,13 +42,14 @@ class VideoPlayerViewModelTest {
     private val movie = Video(id, VideoKind.Movie, "Moșoi", year = 2019, duration = 90.minutes)
     private val videos = FakeVideoRepository().apply { movies.value = listOf(movie) }
     private val playback = FakePlaybackConnection()
+    private val settings = FakeVideoPreferencesRepository()
     private val choices = FakeTrackChoiceRepository()
     private val picker = TrackPicker(videos, choices)
 
     private fun TestScope.viewModel(
         key: VideoPlayerKey = VideoPlayerKey(id, startPositionMs = 60_000),
     ): VideoPlayerViewModel =
-        VideoPlayerViewModel(key, videos, playback, picker).also { vm ->
+        VideoPlayerViewModel(key, videos, playback, picker, settings).also { vm ->
             backgroundScope.launch { vm.uiState.collect() }
             runCurrent()
         }
@@ -287,5 +292,49 @@ class VideoPlayerViewModelTest {
             playback.state.value = playback.state.value.copy(output = AudioOutputInfo(video = asDv))
             runCurrent()
             assertThat(viewModel.content().dolbyVisionUnavailable).isFalse()
+        }
+
+    @Test
+    fun `Skip intro shows in the intro and skipping lands at its end, an automatic skip happens once with a note`() =
+        test {
+            val intro = MediaSegment(SegmentType.Intro, 30.seconds, 2.minutes)
+            videos.segments[id] = listOf(intro)
+            val viewModel = viewModel()
+            playing()
+            runCurrent()
+
+            playback.position.value = 40.seconds
+            runCurrent()
+            assertThat(viewModel.skipButton.value).isEqualTo(intro)
+            viewModel.onAction(VideoPlayerAction.SkipSegment)
+            runCurrent()
+            assertThat(playback.commands).contains("seekTo 2m")
+            assertThat(viewModel.skipButton.value).isNull()
+
+            // Back into it: nothing again.
+            playback.position.value = 35.seconds
+            runCurrent()
+            assertThat(viewModel.skipButton.value).isNull()
+        }
+
+    @Test
+    fun `with Skip automatically the intro is skipped once and a note says so`() =
+        test {
+            settings.update { it.copy(skipIntro = SkipMode.Auto) }
+            val intro = MediaSegment(SegmentType.Intro, 30.seconds, 2.minutes)
+            videos.segments[id] = listOf(intro)
+            val viewModel = viewModel()
+            playing()
+            backgroundScope.launch { viewModel.skippedNotice.collect() }
+
+            playback.position.value = 31.seconds
+            runCurrent()
+            playback.position.value = 32.seconds
+            runCurrent()
+
+            assertThat(playback.commands.count { it == "seekTo 2m" }).isEqualTo(1)
+            assertThat(viewModel.skippedNotice.value).isEqualTo(SegmentType.Intro)
+            advanceTimeBy(3.seconds)
+            assertThat(viewModel.skippedNotice.value).isNull()
         }
 }

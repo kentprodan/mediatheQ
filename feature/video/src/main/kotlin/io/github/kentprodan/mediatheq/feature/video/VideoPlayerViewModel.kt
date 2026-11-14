@@ -7,8 +7,11 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.ResolvedTracks
+import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.model.VideoRange
@@ -20,6 +23,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -45,6 +49,7 @@ class VideoPlayerViewModel
         private val videos: VideoRepository,
         private val playback: PlaybackConnection,
         private val picker: TrackPicker,
+        private val videoPreferences: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
     ) : ViewModel() {
         private val controlsShown = MutableStateFlow(true)
         private var hideJob: Job? = null
@@ -123,7 +128,62 @@ class VideoPlayerViewModel
             }.distinctUntilChanged()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+        /** The segment whose skip button shows now (#277), `null` for none. */
+        val skipButton: StateFlow<MediaSegment?> get() = button
+
+        private val button = MutableStateFlow<MediaSegment?>(null)
+
+        /** A segment just skipped by itself (#277): a short note says so, then it clears. */
+        val skippedNotice: StateFlow<SegmentType?> get() = notice
+
+        private val notice = MutableStateFlow<SegmentType?>(null)
+
+        // Per video: what was skipped, and where each button first showed.
+        private val skipped = mutableSetOf<MediaSegment>()
+        private val buttonShownAt = mutableMapOf<MediaSegment, Duration>()
+
         init {
+            viewModelScope.launch {
+                videoId.collectLatest { id ->
+                    skipped.clear()
+                    buttonShownAt.clear()
+                    button.value = null
+                    val segments = videos.segments(id)
+                    if (segments.isEmpty()) return@collectLatest
+                    combine(
+                        playback.position,
+                        playback.state,
+                        videoPreferences.preferences,
+                        controlsShown,
+                    ) { at, player, settings, shown ->
+                        if (player.item?.id != id) {
+                            SegmentAction.None
+                        } else {
+                            segmentAction(at, segments, settings, skipped, buttonShownAt, shown || !player.isPlaying)
+                        }
+                    }.collect { action ->
+                        when (action) {
+                            SegmentAction.None -> {
+                                button.value = null
+                            }
+
+                            is SegmentAction.Button -> {
+                                buttonShownAt.putIfAbsent(action.segment, playback.position.value)
+                                button.value = action.segment
+                            }
+
+                            is SegmentAction.Skip -> {
+                                skip(action.segment)
+                                notice.value = action.segment.type
+                                launch {
+                                    delay(NOTICE_TIME)
+                                    notice.value = null
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             if (!key.attach) {
                 viewModelScope.launch {
                     videos.video(key.id).first()?.let { playback.playVideo(it, key.startPositionMs.milliseconds) }
@@ -139,6 +199,23 @@ class VideoPlayerViewModel
                 }
             }
             scheduleHide()
+        }
+
+        /**
+         * Skips [segment] once: to its end, and for credits with the next episode queued and auto-play on, to where the
+         * countdown runs (#277).
+         */
+        private fun skip(segment: MediaSegment) {
+            skipped += segment
+            button.value = null
+            val player = playback.state.value
+            viewModelScope.launch {
+                val autoPlay = videoPreferences.preferences.first().autoPlayNext
+                val countdown = player.duration - NEXT_COUNTDOWN
+                val toCountdown =
+                    segment.type == SegmentType.Outro && player.hasNext && autoPlay && countdown > segment.end
+                playback.seekTo(if (toCountdown) countdown else segment.end)
+            }
         }
 
         fun onAction(action: VideoPlayerAction) {
@@ -164,6 +241,10 @@ class VideoPlayerViewModel
 
                 VideoPlayerAction.Leave -> {
                     playback.pause()
+                }
+
+                VideoPlayerAction.SkipSegment -> {
+                    skipButton.value?.let(::skip)
                 }
 
                 VideoPlayerAction.CancelNext -> {
@@ -235,6 +316,9 @@ class VideoPlayerViewModel
 
             /** The next episode's countdown shows this long before the end (#275). */
             val NEXT_COUNTDOWN = 10.seconds
+
+            /** "Skipped intro" stays this long (#277). */
+            val NOTICE_TIME = 2.seconds
         }
     }
 
