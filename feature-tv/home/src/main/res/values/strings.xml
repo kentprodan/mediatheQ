@@ -14,4 +14,5 @@
     <string name="tv_home_play">Play</string>
     <string name="tv_home_shuffle">Shuffle</string>
     <string name="tv_home_add_to_queue">Add to queue</string>
+    <string name="tv_home_go_to_artist">Go to artist</string>
 </resources>
