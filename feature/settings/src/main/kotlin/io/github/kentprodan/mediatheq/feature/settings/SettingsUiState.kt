@@ -29,6 +29,7 @@ import io.github.kentprodan.mediatheq.core.data.StorageMove
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.TransitionsPreferences
+import io.github.kentprodan.mediatheq.core.data.VideoPreferences
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
@@ -58,6 +59,8 @@ sealed interface SettingsUiState {
         val appMode: AppMode = AppMode.Music,
         /** The server can have video: the App mode page is offered. */
         val videoAvailable: Boolean = true,
+        /** Settings -> Playback -> Video (#276). */
+        val video: VideoPreferences = VideoPreferences(),
     ) : SettingsUiState
 }
 
@@ -120,6 +123,11 @@ fun navEntriesDraft(
     )
 
 sealed interface SettingsAction {
+    /** Settings -> Video (#276): a change applied to the stored settings, so quick taps never undo each other. */
+    data class SetVideo(
+        val change: (VideoPreferences) -> VideoPreferences,
+    ) : SettingsAction
+
     /** The quality on [metered] networks (mobile data), or on unmetered ones (Wi-Fi). */
     data class SetStreamingQuality(
         val metered: Boolean,

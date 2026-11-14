@@ -69,6 +69,18 @@ class AudioPreferencesStore
                     ),
                 fadeInMs = prefs[TR_FADE_IN_MS],
                 fadeOutMs = prefs[TR_FADE_OUT_MS],
+                video =
+                    StoredVideoPreferences(
+                        unmeteredQuality = prefs[VIDEO_UNMETERED_QUALITY],
+                        meteredQuality = prefs[VIDEO_METERED_QUALITY],
+                        audioLanguage = prefs[VIDEO_AUDIO_LANGUAGE],
+                        subtitleMode = prefs[VIDEO_SUBTITLE_MODE],
+                        subtitleLanguage = prefs[VIDEO_SUBTITLE_LANGUAGE],
+                        burnInStyled = prefs[VIDEO_BURN_IN_STYLED],
+                        autoPlayNext = prefs[VIDEO_AUTO_PLAY_NEXT],
+                        pictureInPicture = prefs[VIDEO_PICTURE_IN_PICTURE],
+                        keepAudio = prefs[VIDEO_KEEP_AUDIO],
+                    ),
                 autoActions =
                     StoredAutoActions(
                         volumePause = prefs[AA_VOLUME_PAUSE],
@@ -220,6 +232,24 @@ class AudioPreferencesStore
             }
         }
 
+        /**
+         * Settings -> Video (#276): every value at once, in this file so Backup carries it (#150); null removes one (the
+         * default).
+         */
+        suspend fun setVideo(video: StoredVideoPreferences) {
+            dataStore.edit {
+                it.put(VIDEO_UNMETERED_QUALITY, video.unmeteredQuality)
+                it.put(VIDEO_METERED_QUALITY, video.meteredQuality)
+                it.put(VIDEO_AUDIO_LANGUAGE, video.audioLanguage)
+                it.put(VIDEO_SUBTITLE_MODE, video.subtitleMode)
+                it.put(VIDEO_SUBTITLE_LANGUAGE, video.subtitleLanguage)
+                it.put(VIDEO_BURN_IN_STYLED, video.burnInStyled)
+                it.put(VIDEO_AUTO_PLAY_NEXT, video.autoPlayNext)
+                it.put(VIDEO_PICTURE_IN_PICTURE, video.pictureInPicture)
+                it.put(VIDEO_KEEP_AUDIO, video.keepAudio)
+            }
+        }
+
         private fun <T> MutablePreferences.put(
             key: Preferences.Key<T>,
             value: T?,
@@ -265,6 +295,15 @@ class AudioPreferencesStore
             val AA_BLUETOOTH_PLAY = booleanPreferencesKey("aa_bluetooth_play")
             val AA_PAUSE_TASK_REMOVAL = booleanPreferencesKey("aa_pause_task_removal")
             val AA_IGNORE_REMOTE_STOP = booleanPreferencesKey("aa_ignore_remote_stop")
+            val VIDEO_UNMETERED_QUALITY = stringPreferencesKey("video_unmetered_quality")
+            val VIDEO_METERED_QUALITY = stringPreferencesKey("video_metered_quality")
+            val VIDEO_AUDIO_LANGUAGE = stringPreferencesKey("video_audio_language")
+            val VIDEO_SUBTITLE_MODE = stringPreferencesKey("video_subtitle_mode")
+            val VIDEO_SUBTITLE_LANGUAGE = stringPreferencesKey("video_subtitle_language")
+            val VIDEO_BURN_IN_STYLED = booleanPreferencesKey("video_burn_in_styled")
+            val VIDEO_AUTO_PLAY_NEXT = booleanPreferencesKey("video_auto_play_next")
+            val VIDEO_PICTURE_IN_PICTURE = booleanPreferencesKey("video_picture_in_picture")
+            val VIDEO_KEEP_AUDIO = booleanPreferencesKey("video_keep_audio")
         }
     }
 
@@ -284,6 +323,20 @@ data class StoredAudioPreferences(
     val autoActions: StoredAutoActions = StoredAutoActions(),
     val fadeInMs: Int? = null,
     val fadeOutMs: Int? = null,
+    val video: StoredVideoPreferences = StoredVideoPreferences(),
+)
+
+/** Settings -> Video as stored (#276); `null` = not set. */
+data class StoredVideoPreferences(
+    val unmeteredQuality: String? = null,
+    val meteredQuality: String? = null,
+    val audioLanguage: String? = null,
+    val subtitleMode: String? = null,
+    val subtitleLanguage: String? = null,
+    val burnInStyled: Boolean? = null,
+    val autoPlayNext: Boolean? = null,
+    val pictureInPicture: Boolean? = null,
+    val keepAudio: Boolean? = null,
 )
 
 /** Automatic actions as stored (#141); `null` = not set. */

@@ -59,6 +59,7 @@ import io.github.kentprodan.mediatheq.core.data.ResumeRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.WaveformRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -110,6 +111,16 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var appMode: AppModeRepository
 
     @Inject lateinit var videoRepository: VideoRepository
+
+    @Inject lateinit var videoPreferences: VideoPreferencesRepository
+
+    @Inject lateinit var displayHdr: DisplayHdr
+
+    @Inject lateinit var videoHdr: VideoHdrCapabilities
+
+    // What the playing video plays as (#276), from the video listener.
+    private var videoPlayback: VideoPlayback? = null
+    private var hdrLogged = false
 
     @Inject lateinit var artworkUrls: ArtworkUrlResolver
 
@@ -555,14 +566,38 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     .ifEmpty { null }
             },
         )
-        player.addAnalyticsListener(VideoLogListener(appLog))
+        // What the video plays as, for the player's info line (#276): sent with the output state.
+        player.addAnalyticsListener(
+            VideoLogListener(appLog) {
+                videoPlayback = it
+                // The phone's HDR facts once, at the first video, for the media3 skill's table (#276).
+                if (it != null && !hdrLogged) {
+                    hdrLogged = true
+                    appLog.info("MqVideo", "HDR display ${displayHdr.types()} decoders ${videoHdr.decoders()}")
+                }
+                if (::audioOutput.isInitialized) {
+                    session?.sessionExtras =
+                        audioOutput.state.toInfo(currentPlayMethod(), convertedDownload()).toBundle()
+                }
+            },
+        )
         // A video's chosen subtitle on, or text off (#274).
         player.addListener(VideoTextSelector(player, streamResolver))
         // The next episode behind the playing one (#275).
         player.addListener(
-            NextEpisodeQueuer(player, applicationScope + Dispatchers.Main, videoRepository, toItem = { video ->
-                video.toMediaItem(video.artwork?.let { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) }).withTrackUri()!!
-            }),
+            NextEpisodeQueuer(
+                player,
+                applicationScope + Dispatchers.Main,
+                videoRepository,
+                toItem = { video ->
+                    video
+                        .toMediaItem(
+                            video.artwork?.let { artworkUrls.url(it, NOTIFICATION_ART_WIDTH) },
+                        ).withTrackUri()!!
+                },
+                // Settings -> Video -> Auto-play next episode (#276).
+                enabled = { videoPreferences.preferences.first().autoPlayNext },
+            ),
         )
         usbAudio = AudioOutputPort.create(getSystemService(AudioManager::class.java))
         // What HDMI passes through (ADR 0039); a change (plug, the TV's surround setting) decides again.
@@ -740,6 +775,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             playedItemId = played.itemId,
             streamKnown = played.known,
             convertedKbps = played.convertedKbps,
+            video = videoPlayback?.copy(playMethod = playMethod),
         )
     }
 

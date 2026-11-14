@@ -66,5 +66,8 @@ internal interface DataModule {
     fun audioPreferencesRepository(repository: DefaultAudioPreferencesRepository): AudioPreferencesRepository
 
     @Binds
+    fun videoPreferencesRepository(repository: DefaultVideoPreferencesRepository): VideoPreferencesRepository
+
+    @Binds
     fun audioOutputRepository(repository: DefaultAudioOutputRepository): AudioOutputRepository
 }
