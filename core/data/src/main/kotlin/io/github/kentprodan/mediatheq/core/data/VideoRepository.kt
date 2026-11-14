@@ -4,18 +4,22 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.dao.VideoDao
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
 import io.github.kentprodan.mediatheq.core.server.ServerCapabilities
+import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 /** How the Movies and Series grids sort: by name, newest added first, or newest year first. */
@@ -69,6 +73,12 @@ interface VideoRepository {
 
     /** Brings the resume points of what is halfway from the server into the rows when Home opens (R26). */
     suspend fun refreshResume()
+
+    /** [videoId]'s chapters and seek previews (#277), kept for the session; offline or failed: none. */
+    suspend fun playerExtras(videoId: MediaId): PlayerExtras
+
+    /** [videoId]'s skippable segments (#277), kept for the session; offline, not analyzed or failed: none. */
+    suspend fun segments(videoId: MediaId): List<MediaSegment>
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -145,6 +155,26 @@ class DefaultVideoRepository
             val series = current.seriesId ?: return null
             val episodes = dao.seriesEpisodes(series.itemId, all = true, downloaded = emptyList()).first()
             return nextEpisode(episodes.map { it.toDomain() }, current)
+        }
+
+        private val extras = ConcurrentHashMap<MediaId, PlayerExtras>()
+        private val segmentCache = ConcurrentHashMap<MediaId, List<MediaSegment>>()
+
+        override suspend fun playerExtras(videoId: MediaId): PlayerExtras =
+            extras[videoId] ?: fromServer { server -> source.playerExtras(server, videoId) }
+                ?.also { extras[videoId] = it }
+                ?: PlayerExtras()
+
+        override suspend fun segments(videoId: MediaId): List<MediaSegment> =
+            segmentCache[videoId] ?: fromServer { server -> source.segments(server, videoId) }
+                ?.also { segmentCache[videoId] = it }
+                .orEmpty()
+
+        /** Asked only online; a failure is not kept, so the next opening asks again. */
+        private suspend fun <T> fromServer(ask: suspend (SignedInServer) -> MqResult<T>): T? {
+            if (filter.active.first()) return null
+            val server = accountStore.signedInServer() ?: return null
+            return (ask(server) as? MqResult.Success)?.value
         }
 
         override suspend fun refreshResume() {

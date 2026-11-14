@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.AppLog
+import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.entity.SeasonEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SeasonStaging
@@ -11,8 +12,12 @@ import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoUserColumns
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
+import io.github.kentprodan.mediatheq.core.model.Chapter
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
+import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.StreamType
@@ -171,6 +176,28 @@ class DefaultVideoRepositoryTest {
             val watching = repository.continueWatching(20).first()
             assertThat(watching.map { it.id }).containsExactly(movie.id)
             assertThat(watching.single().userData.playbackPosition).isEqualTo(20.minutes)
+        }
+
+    @Test
+    fun `extras and segments are asked once per session, a failure is asked again, offline asks nothing`() =
+        runTest {
+            accountStore.save(StoredAccount("http://nas:8096", server, "Home", "user-1", "Ana", accessToken = "token"))
+            val intro = MediaSegment(SegmentType.Intro, 0.minutes, 1.minutes)
+            source.extrasAnswer = MqResult.Failure(MqError.Network)
+            assertThat(repository.playerExtras(movie.id)).isEqualTo(PlayerExtras())
+            source.extrasAnswer = MqResult.Success(PlayerExtras(listOf(Chapter(0, 0.minutes, "One"))))
+            source.segmentsAnswer = MqResult.Success(listOf(intro))
+
+            repeat(2) {
+                assertThat(repository.playerExtras(movie.id).chapters).hasSize(1)
+                assertThat(repository.segments(movie.id)).containsExactly(intro)
+            }
+
+            assertThat(source.calls.filter { it.startsWith("extras") }).hasSize(2)
+            assertThat(source.calls.filter { it.startsWith("segments") }).hasSize(1)
+            preferences.setOfflineMode(true)
+            assertThat(repository.segments(id("other"))).isEmpty()
+            assertThat(source.calls.filter { it == "segments other" }).isEmpty()
         }
 
     @Test
