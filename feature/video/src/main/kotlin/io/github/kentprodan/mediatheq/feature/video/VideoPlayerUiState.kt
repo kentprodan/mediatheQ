@@ -19,6 +19,8 @@ sealed interface VideoPlayerUiState {
         /** Width / height once the first frame is known: wide videos turn the screen to landscape. */
         val aspectRatio: Float?,
         val controlsShown: Boolean,
+        /** Its audio and subtitle streams and what plays (#274); `null` while read. */
+        val tracks: VideoTracks? = null,
     ) : VideoPlayerUiState
 
     /** The video is no longer the player's (it ended and the music came back, or something else was played). */
@@ -42,4 +44,19 @@ sealed interface VideoPlayerAction {
 
     /** Back (ADR 0047): the video pauses and the page under the player shows again. */
     data object Leave : VideoPlayerAction
+
+    /** The sheet's audio row (#274): saved for this video, then it plays on with it. */
+    data class ChooseAudio(
+        val index: Int,
+    ) : VideoPlayerAction
+
+    /** The sheet's subtitle row; `null` = Off. */
+    data class ChooseSubtitle(
+        val index: Int?,
+    ) : VideoPlayerAction
+
+    /** An episode's choice for its whole season, or for the episode alone. */
+    data class WholeSeason(
+        val on: Boolean,
+    ) : VideoPlayerAction
 }

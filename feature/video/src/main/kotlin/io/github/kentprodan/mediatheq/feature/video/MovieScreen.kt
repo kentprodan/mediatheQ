@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.video
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,8 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -26,6 +29,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,6 +53,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.ui.MqTracksSheet
 import kotlin.time.Duration
 
 @Composable
@@ -213,6 +220,14 @@ private fun MovieContent(
                 WatchedToggle(movie.userData.played) { onAction(MovieAction.ToggleWatched) }
             }
         }
+        state.tracks?.let { tracks ->
+            item(key = "tracks") {
+                TracksRow(
+                    tracks,
+                    onAudio = { onAction(MovieAction.ChooseAudio(it)) },
+                ) { onAction(MovieAction.ChooseSubtitle(it)) }
+            }
+        }
         item(key = "text") {
             Column(
                 Modifier.padding(MediatheqSpacing.l),
@@ -229,6 +244,37 @@ private fun MovieContent(
                 }
             }
         }
+    }
+}
+
+/**
+ * "Audio and subtitles" with what will play ("English · Romanian"), opening the tracks sheet (#274); a pick is saved
+ * for this video.
+ */
+@Composable
+internal fun TracksRow(
+    tracks: VideoTracks,
+    onAudio: (Int) -> Unit,
+    onSubtitle: (Int?) -> Unit,
+) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    val sheet = tracks.sheet(stringResource(R.string.video_tracks_off), stringResource(R.string.video_track))
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.video_tracks_open)) },
+        supportingContent = {
+            Text(
+                listOfNotNull(
+                    sheet.audio.firstOrNull { it.selected }?.label,
+                    sheet.subtitles.firstOrNull { it.selected }?.label,
+                ).joinToString(" · "),
+            )
+        },
+        leadingContent = { Icon(MqIcons.Subtitles, contentDescription = null) },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier.clickable { open = true },
+    )
+    if (open) {
+        MqTracksSheet(sheet, onAudio, onSubtitle, onWholeSeason = {}, onDismiss = { open = false })
     }
 }
 

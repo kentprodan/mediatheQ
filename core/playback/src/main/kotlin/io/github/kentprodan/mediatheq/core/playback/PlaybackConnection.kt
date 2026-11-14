@@ -47,6 +47,12 @@ interface PlaybackConnection {
     )
 
     /**
+     * Opens the playing video again where it is (#274): a new stream with the tracks chosen since (the server converts
+     * with them, the player selects them); nothing when no video plays.
+     */
+    fun reloadVideo()
+
+    /**
      * The session's player as a controller, for the video surface only (`PlayerSurface`, ADR 0049); `null` while not
      * connected. Screens never command it: commands go through this connection.
      */

@@ -1,11 +1,14 @@
 package io.github.kentprodan.mediatheq.core.database.dao
 
 import androidx.room3.Dao
+import androidx.room3.Insert
+import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import io.github.kentprodan.mediatheq.core.database.entity.SeasonEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SeriesEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamEntity
+import io.github.kentprodan.mediatheq.core.database.entity.VideoTrackChoiceEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -129,4 +132,20 @@ interface VideoDao {
         const val SORT_ADDED = "added"
         const val SORT_YEAR = "year"
     }
+
+    /** The tracks chosen for a movie, an episode or a season (#274). */
+    @Query("SELECT * FROM video_track_choice WHERE server_id = :serverId AND item_id = :itemId")
+    fun trackChoice(
+        serverId: String,
+        itemId: String,
+    ): Flow<VideoTrackChoiceEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveTrackChoice(choice: VideoTrackChoiceEntity)
+
+    @Query("DELETE FROM video_track_choice WHERE server_id = :serverId AND item_id = :itemId")
+    suspend fun clearTrackChoice(
+        serverId: String,
+        itemId: String,
+    )
 }

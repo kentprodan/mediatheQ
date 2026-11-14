@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.playback
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality.Original
+import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
 import io.github.kentprodan.mediatheq.core.model.TranscodingTarget
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import org.junit.Test
@@ -198,6 +199,23 @@ class DeviceProfileBuilderTest {
         assertThat(transcoding.videoCodec).isEqualTo("hevc,h264")
         assertThat(transcoding.codec).isEqualTo("aac,opus")
         assertThat(transcoding.maxChannels).isEqualTo(6)
+    }
+
+    @Test
+    fun `subtitles go as files or inside the stream, bitmap ones burned in, styled ones only on request`() {
+        fun methods(
+            format: String,
+            burnIn: Boolean = false,
+        ) = DeviceProfileBuilder.subtitleProfiles(burnIn).filter { it.format == format }.map { it.method }
+
+        assertThat(methods("subrip")).containsExactly(SubtitleMethod.External, SubtitleMethod.Embed)
+        assertThat(methods("webvtt")).containsExactly(SubtitleMethod.External, SubtitleMethod.Embed, SubtitleMethod.Hls)
+        assertThat(methods("pgssub")).containsExactly(SubtitleMethod.Embed, SubtitleMethod.Encode)
+        assertThat(methods("dvdsub")).containsExactly(SubtitleMethod.Encode)
+        assertThat(methods("ass")).containsExactly(SubtitleMethod.External, SubtitleMethod.Embed)
+        assertThat(methods("ass", burnIn = true)).containsExactly(SubtitleMethod.Encode)
+        assertThat(DeviceProfileBuilder.video(pixel, h264, VideoQuality.Original).subtitleProfiles)
+            .isEqualTo(DeviceProfileBuilder.subtitleProfiles(false))
     }
 }
 

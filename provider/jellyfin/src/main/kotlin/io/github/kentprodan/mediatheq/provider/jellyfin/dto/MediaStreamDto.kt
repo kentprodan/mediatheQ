@@ -26,4 +26,8 @@ internal data class MediaStreamDto(
     @SerialName("Height") val height: Int? = null,
     /** `SDR`, `HDR10`, `HDR10Plus`, `HLG`, `DOVI`, `DOVIWithHDR10`, `DOVIWithHLG`, `DOVIWithSDR`, `Unknown`. */
     @SerialName("VideoRangeType") val videoRangeType: String? = null,
+    /** How a subtitle reaches the device in a `PlaybackInfo` answer: `Embed`, `External`, `Hls`, `Encode`, `Drop`. */
+    @SerialName("DeliveryMethod") val deliveryMethod: String? = null,
+    /** The file of an `External` subtitle, server-relative; it may carry `ApiKey` (R25). */
+    @SerialName("DeliveryUrl") val deliveryUrl: String? = null,
 )

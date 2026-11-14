@@ -8,10 +8,12 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.model.ResolvedTracks
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +21,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.time.Duration
@@ -29,6 +33,7 @@ import kotlin.time.Duration.Companion.seconds
  * The full-screen video player (ADR 0047, 0049): starts the video in the session's player (unless [key] attaches to it
  * as it plays) and drives the controls, which hide by themselves while it plays.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel(assistedFactory = VideoPlayerViewModel.Factory::class)
 class VideoPlayerViewModel
     @AssistedInject
@@ -36,6 +41,7 @@ class VideoPlayerViewModel
         @Assisted private val key: VideoPlayerKey,
         videos: VideoRepository,
         private val playback: PlaybackConnection,
+        private val picker: TrackPicker,
     ) : ViewModel() {
         private val controlsShown = MutableStateFlow(true)
         private var hideJob: Job? = null
@@ -50,8 +56,10 @@ class VideoPlayerViewModel
         /** Sampled by the connection while playing. */
         val position: StateFlow<Duration> = playback.position
 
+        private val tracks = video.flatMapLatest { it?.let(picker::tracks) ?: flowOf(null) }
+
         val uiState: StateFlow<VideoPlayerUiState> =
-            combine(video, playback.state, controlsShown) { video, player, shown ->
+            combine(video, playback.state, controlsShown, tracks) { video, player, shown, tracks ->
                 val item = player.item?.takeIf { it.isVideo && it.id == key.id }
                 if (item != null) seen = true
                 when {
@@ -78,6 +86,7 @@ class VideoPlayerViewModel
                             aspectRatio = player.videoAspectRatio,
                             // Paused or buffering, the controls stay: there is nothing to watch behind them.
                             controlsShown = shown || !player.isPlaying,
+                            tracks = tracks,
                         )
                     }
                 }
@@ -116,6 +125,40 @@ class VideoPlayerViewModel
                 VideoPlayerAction.Leave -> {
                     playback.pause()
                 }
+
+                is VideoPlayerAction.ChooseAudio -> {
+                    choose { it.copy(audioIndex = action.index) }
+                }
+
+                is VideoPlayerAction.ChooseSubtitle -> {
+                    choose(subtitleOff = action.index == null) { it.copy(subtitleIndex = action.index) }
+                }
+
+                is VideoPlayerAction.WholeSeason -> {
+                    choose(wholeSeason = action.on) { it }
+                }
+            }
+        }
+
+        /** Saves the tracks [change] makes (on the episode, or its season), then plays on with them where it is. */
+        private fun choose(
+            wholeSeason: Boolean? = null,
+            subtitleOff: Boolean = false,
+            change: (ResolvedTracks) -> ResolvedTracks,
+        ) {
+            val playing = uiState.value as? VideoPlayerUiState.Playing ?: return
+            val current = playing.tracks ?: return
+            viewModelScope.launch {
+                val video = video.first() ?: return@launch
+                val tracks = change(current.resolved)
+                picker.choose(
+                    video,
+                    tracks.audioIndex,
+                    tracks.subtitleIndex,
+                    wholeSeason ?: (current.wholeSeason == true),
+                    subtitleOff,
+                )
+                playback.reloadVideo()
             }
         }
 

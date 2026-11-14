@@ -15,5 +15,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     // The video surface and its presentation state (ADR 0049); @UnstableApi, opted in only in MqVideoSurface.
     implementation(libs.androidx.media3.ui.compose)
+    // SubtitleView: cues with the system caption style (ADR 0049) until Media3's Compose cues are stable.
+    implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.common)
 }

@@ -141,6 +141,17 @@ internal class MediaControllerPlaybackConnection
                 }
         }
 
+        override fun reloadVideo() {
+            command { controller ->
+                val item = controller.currentMediaItem?.takeIf { it.isVideo() } ?: return@command
+                val position = controller.currentPosition.milliseconds
+                val playing = controller.playWhenReady
+                controller.setMediaItem(item.withVideoStart(position), position.inWholeMilliseconds)
+                controller.prepare()
+                controller.playWhenReady = playing
+            }
+        }
+
         override val videoPlayer: StateFlow<Player?> =
             connected
                 .onStart { command {} }

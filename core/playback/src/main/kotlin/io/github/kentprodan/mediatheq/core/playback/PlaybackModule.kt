@@ -30,6 +30,9 @@ internal interface PlaybackModule {
 
     @Binds
     fun videoDecoders(decoders: MediaCodecVideoDecoders): VideoDecoders
+
+    @Binds
+    fun videoTrackChooser(chooser: RepositoryVideoTrackChooser): VideoTrackChooser
 }
 
 @UnstableApi

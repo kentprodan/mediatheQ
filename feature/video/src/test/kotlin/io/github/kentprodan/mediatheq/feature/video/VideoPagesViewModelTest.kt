@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoFormat
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.model.VideoRange
+import io.github.kentprodan.mediatheq.core.testing.FakeTrackChoiceRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
@@ -33,6 +34,8 @@ class VideoPagesViewModelTest {
 
     private val videos = FakeVideoRepository()
     private val userData = FakeUserDataRepository()
+    private val choices = FakeTrackChoiceRepository()
+    private val picker = TrackPicker(videos, choices)
 
     private val movie =
         Video(
@@ -67,13 +70,13 @@ class VideoPagesViewModelTest {
     private fun test(block: suspend TestScope.() -> Unit) = runTest(mainDispatcherRule.testDispatcher) { block() }
 
     private fun TestScope.movieViewModel(movieId: MediaId = movie.id) =
-        MovieViewModel(movieId, videos, userData).also { vm ->
+        MovieViewModel(movieId, videos, userData, picker).also { vm ->
             backgroundScope.launch { vm.uiState.collect() }
             runCurrent()
         }
 
     private fun TestScope.seriesViewModel() =
-        SeriesViewModel(series.id, videos, userData).also { vm ->
+        SeriesViewModel(series.id, videos, userData, picker).also { vm ->
             backgroundScope.launch { vm.uiState.collect() }
             runCurrent()
         }

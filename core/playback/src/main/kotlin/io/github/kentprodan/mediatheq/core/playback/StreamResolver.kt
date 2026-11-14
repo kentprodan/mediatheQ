@@ -32,6 +32,7 @@ class StreamResolver
         private val networkMonitor: NetworkMonitor,
         private val audioPreferences: AudioPreferencesRepository,
         private val videoDecoders: VideoDecoders = VideoDecoders { emptySet() },
+        private val trackChooser: VideoTrackChooser = VideoTrackChooser.None,
     ) {
         private class Resolved(
             val stream: PlaybackStream,
@@ -104,7 +105,10 @@ class StreamResolver
         ): MqResult<PlaybackStream> {
             val quality = if (networkMonitor.isMetered()) VideoQuality.P480 else VideoQuality.Original
             val profile = DeviceProfileBuilder.video(decoderMimeTypes, videoDecoders.mimeTypes(), quality)
-            val result = playbackRepository.stream(itemId, profile, StreamChoice(startPosition))
+            // The chosen tracks (#274): the server's conversion takes them, and the player selects them in a file.
+            val tracks = trackChooser.tracks(itemId)
+            val choice = StreamChoice(startPosition, tracks?.audioIndex, tracks?.subtitleIndex)
+            val result = playbackRepository.stream(itemId, profile, choice)
             if (result is MqResult.Success) {
                 streams[itemId] = Resolved(result.value, StreamingQuality.Original, video = true)
             }

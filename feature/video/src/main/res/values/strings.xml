@@ -37,4 +37,7 @@
         <item quantity="one">%d subtitle file</item>
         <item quantity="other">%d subtitle files</item>
     </plurals>
+    <string name="video_tracks_off">Off</string>
+    <string name="video_track">Track %1$d</string>
+    <string name="video_tracks_open">Audio and subtitles</string>
 </resources>

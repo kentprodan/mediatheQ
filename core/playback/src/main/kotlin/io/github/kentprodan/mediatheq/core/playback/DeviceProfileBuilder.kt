@@ -2,6 +2,8 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.model.DeviceProfile
+import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
+import io.github.kentprodan.mediatheq.core.model.SubtitleProfile
 import io.github.kentprodan.mediatheq.core.model.TranscodingTarget
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
 
@@ -94,6 +96,8 @@ object DeviceProfileBuilder {
         audioMimeTypes: Set<String>,
         videoMimeTypes: Set<String>,
         quality: VideoQuality,
+        /** Settings -> Video -> Burn in styled subtitles (#276): ASS / SSA keep their styling, converted into the picture. */
+        burnInStyled: Boolean = false,
     ): DeviceProfile =
         DeviceProfile(
             directPlayContainers = VIDEO_CONTAINERS,
@@ -102,7 +106,24 @@ object DeviceProfileBuilder {
             maxStreamingBitrate = quality.bitrate,
             videoCodecs = VIDEO_CODECS.filter { (_, mime) -> mime in videoMimeTypes }.map { it.first },
             maxHeight = quality.maxHeight,
+            subtitleProfiles = subtitleProfiles(burnInStyled),
         )
+
+    /**
+     * How each subtitle format reaches the phone (ADR 0050): text formats as files beside the stream or inside it, PGS
+     * inside a direct play, WebVTT inside a conversion's playlist; bitmap formats a conversion cannot carry are burned
+     * in, and so are styled ASS / SSA when [burnInStyled] (Media3 keeps only their text).
+     */
+    fun subtitleProfiles(burnInStyled: Boolean): List<SubtitleProfile> {
+        val styled = setOf("ass", "ssa")
+        val text = listOf("subrip", "webvtt", "ass", "ssa", "mov_text").filterNot { burnInStyled && it in styled }
+        return text.map { SubtitleProfile(it, SubtitleMethod.External) } +
+            (text + "pgssub").map { SubtitleProfile(it, SubtitleMethod.Embed) } +
+            SubtitleProfile("webvtt", SubtitleMethod.Hls) +
+            (listOf("pgssub", "dvdsub") + if (burnInStyled) styled else emptySet()).map {
+                SubtitleProfile(it, SubtitleMethod.Encode)
+            }
+    }
 
     private val VIDEO_CODECS =
         listOf(

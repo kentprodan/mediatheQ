@@ -48,11 +48,12 @@ import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoTrackChoiceEntity
 import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 13,
+    version = 14,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -82,6 +83,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AlbumLabelEntity::class,
         AlbumLabelStaging::class,
         AlbumResumeEntity::class,
+        VideoTrackChoiceEntity::class,
         PlaylistResumeEntity::class,
         SeriesEntity::class,
         SeasonEntity::class,
@@ -117,6 +119,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 11, to = 12, spec = SyncVideoMigration::class),
         // 13: a watched change waiting for the server, beside favorite and rating (#273); no resync.
         AutoMigration(from = 12, to = 13),
+        // 14: the audio and subtitle tracks chosen per movie, episode or season (#274); no resync.
+        AutoMigration(from = 13, to = 14),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

@@ -11,6 +11,8 @@ import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.StreamChoice
+import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
+import io.github.kentprodan.mediatheq.core.model.SubtitleProfile
 import io.github.kentprodan.mediatheq.core.model.TranscodingTarget
 import io.github.kentprodan.mediatheq.core.network.MediatheqJson
 import io.github.kentprodan.mediatheq.core.network.mediatheqOkHttpClient
@@ -376,5 +378,79 @@ class JellyfinPlaybackSourceTest {
             assertThat(body["StartTimeTicks"].toString()).isEqualTo("900000000")
             assertThat(body["AudioStreamIndex"].toString()).isEqualTo("1")
             assertThat(body["SubtitleStreamIndex"].toString()).isEqualTo("3")
+        }
+
+    @Test
+    fun `R25 an external subtitle comes as an absolute file url without ApiKey, an embedded one as a track`() =
+        runTest {
+            enqueue("items_playbackinfo/video_external_subtitles.json")
+
+            val subtitles = (source.stream(server(), itemId, video) as MqResult.Success).value.subtitles
+
+            assertThat(subtitles.map { it.index to it.method })
+                .containsExactly(2 to SubtitleMethod.Embed, 3 to SubtitleMethod.External)
+                .inOrder()
+            val external = subtitles.last()
+            assertThat(external.url).startsWith(mockServer.url("/Videos/").toString())
+            assertThat(external.url).endsWith("/Subtitles/3/0/Stream.subrip")
+            assertThat(external.language).isEqualTo("eng")
+        }
+
+    @Test
+    fun `a burned-in subtitle is marked Encode, an HLS one Hls, and a dropped one kept as Drop`() =
+        runTest {
+            enqueue("items_playbackinfo/video_burn_in.json")
+            enqueue("items_playbackinfo/video_hls_subtitles.json")
+
+            val burnIn = (source.stream(server(), itemId, video) as MqResult.Success).value.subtitles
+            val hls = (source.stream(server(), itemId, video) as MqResult.Success).value.subtitles
+
+            assertThat(burnIn.single().method).isEqualTo(SubtitleMethod.Encode)
+            assertThat(hls.map { it.method }).containsExactly(SubtitleMethod.Hls, SubtitleMethod.Drop).inOrder()
+            assertThat(hls.first().isForced).isTrue()
+        }
+
+    @Test
+    fun `the subtitle profiles go to the server as Format and Method`() =
+        runTest {
+            enqueue("items_playbackinfo/video_transcode_hls.json")
+
+            source.stream(
+                server(),
+                itemId,
+                video.copy(
+                    subtitleProfiles =
+                        listOf(
+                            SubtitleProfile("subrip", SubtitleMethod.External),
+                            SubtitleProfile("pgssub", SubtitleMethod.Encode),
+                        ),
+                ),
+            )
+
+            assertThat(body()["DeviceProfile"]!!.jsonObject["SubtitleProfiles"].toString())
+                .isEqualTo("""[{"Format":"subrip","Method":"External"},{"Format":"pgssub","Method":"Encode"}]""")
+        }
+
+    @Test
+    fun `a video's reports carry its stream indexes, so the web UI's session shows them`() =
+        runTest {
+            mockServer.enqueue(MockResponse(code = 204))
+            val stream =
+                PlaybackStream(
+                    itemId,
+                    "u",
+                    PlayMethod.DirectPlay,
+                    "src-1",
+                    "session-1",
+                    canSeek = true,
+                    audioStreamIndex = 2,
+                    subtitleStreamIndex = 5,
+                )
+
+            source.reportProgress(server(), PlaybackReport(stream, position = 12.seconds, isPaused = false))
+
+            val body = body()
+            assertThat(body["AudioStreamIndex"].toString()).isEqualTo("2")
+            assertThat(body["SubtitleStreamIndex"].toString()).isEqualTo("5")
         }
 }

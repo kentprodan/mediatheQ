@@ -39,6 +39,9 @@ internal interface DataModule {
     fun appModeRepository(repository: DefaultAppModeRepository): AppModeRepository
 
     @Binds
+    fun trackChoiceRepository(repository: DefaultTrackChoiceRepository): TrackChoiceRepository
+
+    @Binds
     fun videoRepository(repository: DefaultVideoRepository): VideoRepository
 
     @Binds

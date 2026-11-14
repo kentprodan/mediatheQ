@@ -115,4 +115,8 @@
     <string name="core_ui_video_pause">Pause</string>
     <string name="core_ui_video_back_10">Back 10 seconds</string>
     <string name="core_ui_video_forward_10">Forward 10 seconds</string>
+    <string name="core_ui_tracks_audio">Audio</string>
+    <string name="core_ui_tracks_subtitles">Subtitles</string>
+    <string name="core_ui_tracks_whole_season">Apply to the whole season</string>
+    <string name="core_ui_tracks_open">Audio and subtitles</string>
 </resources>
