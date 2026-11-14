@@ -98,6 +98,7 @@ data class VideoPlayback(
 )
 
 /** The range a decoded format carries (#276): Dolby Vision by its decoder, else HDR10 (PQ) or HLG by its transfer. */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 fun videoRangeOf(
     mimeType: String?,
     colorTransfer: Int,
