@@ -25,4 +25,5 @@
         <item quantity="one">%1$d album</item>
         <item quantity="other">%1$d albums</item>
     </plurals>
+    <string name="tv_library_sort_reverse">Reverse order</string>
 </resources>

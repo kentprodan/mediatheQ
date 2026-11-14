@@ -18,6 +18,9 @@ class TvShellViewModel
     ) : ViewModel() {
         val player: StateFlow<PlayerUiModel> = playback.state
 
+        /** Close on Back at Home (#343): the music stops with the app; the queue stays for next time. */
+        fun stopMusic() = playback.pause()
+
         /** A destination no TV screen registers yet: logged, never thrown (ADR 0041). */
         fun unknownDestination(key: Any) = log.warn(TAG, "No TV screen for $key")
 

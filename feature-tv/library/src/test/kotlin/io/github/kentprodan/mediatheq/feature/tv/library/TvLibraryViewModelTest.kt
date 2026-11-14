@@ -88,6 +88,37 @@ class TvLibraryViewModelTest {
         }
 
     @Test
+    fun `Reverse order turns the list and the A-Z strip around, and back`() =
+        test {
+            sync.status.value = SyncStatus.Idle(day(10))
+            val gamma = Album(id("g"), "Gamma", listOf(ada))
+            library.albums.value = listOf(zed, alpha, beta, gamma)
+            val viewModel = viewModel(LibraryFilter.Albums)
+
+            viewModel.onAction(TvLibraryAction.ReverseSort)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.reversed).isTrue()
+            assertThat(viewModel.titles()).containsExactly("Zed", "Gamma", "beta", "Alpha").inOrder()
+            assertThat(viewModel.items().letters)
+                .containsExactly(Letter('Z', 0), Letter('G', 1), Letter('B', 2), Letter('A', 3))
+                .inOrder()
+
+            viewModel.onAction(TvLibraryAction.ReverseSort)
+            runCurrent()
+            assertThat(viewModel.titles()).containsExactly("Alpha", "beta", "Gamma", "Zed").inOrder()
+        }
+
+    @Test
+    fun `a letter with several cards jumps to its first card in the reversed order`() {
+        val items = (0..4).map { TvLibraryItem(id("$it"), TvLibraryItem.Kind.Album, "t$it") }
+        // A A B B B -> reversed B B B A A: B at 0, A at 3.
+        val reversed = TvLibraryContent.Items(items, listOf(Letter('A', 0), Letter('B', 2))).reversed()
+
+        assertThat(reversed.letters).containsExactly(Letter('B', 0), Letter('A', 3)).inOrder()
+    }
+
+    @Test
     fun `artists, playlists and genres are their own tabs`() =
         test {
             sync.status.value = SyncStatus.Idle(day(10))

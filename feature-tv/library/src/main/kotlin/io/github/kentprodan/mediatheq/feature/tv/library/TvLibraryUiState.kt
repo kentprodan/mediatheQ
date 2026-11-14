@@ -11,6 +11,8 @@ data class TvLibraryUiState(
     val filter: LibraryFilter,
     val sort: LibrarySort = filter.sorts.first(),
     val content: TvLibraryContent = TvLibraryContent.Loading,
+    /** The sort runs against its natural direction (#349). */
+    val reversed: Boolean = false,
 )
 
 sealed interface TvLibraryContent {
@@ -29,7 +31,16 @@ sealed interface TvLibraryContent {
     data class Items(
         val items: List<TvLibraryItem>,
         val letters: List<Letter> = emptyList(),
-    ) : TvLibraryContent
+    ) : TvLibraryContent {
+        /** Turned around (#349): Z to A, each letter jumping to its first card in the new order. */
+        fun reversed(): Items {
+            val ends = letters.drop(1).map { it.index } + items.size
+            return Items(
+                items.reversed(),
+                letters.zip(ends) { letter, end -> Letter(letter.letter, items.size - end) }.reversed(),
+            )
+        }
+    }
 }
 
 /** A card of the grid: what it is ([kind]), its name, a second line and its picture. */
@@ -58,4 +69,7 @@ sealed interface TvLibraryAction {
 
     /** Retry from the error and empty states. */
     data object Sync : TvLibraryAction
+
+    /** Sort's Reverse order (#349). */
+    data object ReverseSort : TvLibraryAction
 }

@@ -18,6 +18,19 @@ class PassthroughTest {
     private val gains = ItemGains(albumDb = -6.0, trackDb = null)
 
     @Test
+    fun `an HDMI sink that lists only PCM takes no passthrough, one listing any Dolby format or nothing is trusted`() {
+        val pcm = intArrayOf(android.media.AudioFormat.ENCODING_PCM_16BIT)
+        val dolby = intArrayOf(android.media.AudioFormat.ENCODING_PCM_16BIT, android.media.AudioFormat.ENCODING_E_AC3)
+
+        // #352: back from standby the soundbar's EDID had PCM only; the app still sent E-AC-3 JOC, decoded on the way.
+        assertThat(hdmiTakesPcmOnly(AudioDeviceInfo.TYPE_HDMI, pcm)).isTrue()
+        assertThat(hdmiTakesPcmOnly(AudioDeviceInfo.TYPE_HDMI_EARC, pcm)).isTrue()
+        assertThat(hdmiTakesPcmOnly(AudioDeviceInfo.TYPE_HDMI, dolby)).isFalse()
+        assertThat(hdmiTakesPcmOnly(AudioDeviceInfo.TYPE_HDMI, intArrayOf())).isFalse()
+        assertThat(hdmiTakesPcmOnly(AudioDeviceInfo.TYPE_USB_DEVICE, pcm)).isFalse()
+    }
+
+    @Test
     fun `HDMI with the switch on and the track's codec in the set passes through`() {
         assertThat(AudioPolicy.decide(on, AudioRoute.Hdmi, false, set, joc)).isEqualTo(AudioMode.Passthrough)
     }

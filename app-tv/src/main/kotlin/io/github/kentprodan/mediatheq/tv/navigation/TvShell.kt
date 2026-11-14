@@ -1,5 +1,7 @@
 package io.github.kentprodan.mediatheq.tv.navigation
 
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,7 +12,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
@@ -42,6 +46,8 @@ import androidx.tv.material3.NavigationDrawerScope
 import androidx.tv.material3.Text
 import androidx.tv.material3.rememberDrawerState
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.NowPlayingKey
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
@@ -85,7 +91,16 @@ internal fun TvShellRoute(
             onPlayerOpened()
         }
     }
-    TvShell(backStack, player, onUnknown = viewModel::unknownDestination) { navigator ->
+    val activity = LocalActivity.current
+    TvShell(
+        backStack,
+        player,
+        onUnknown = viewModel::unknownDestination,
+        onClose = {
+            viewModel.stopMusic()
+            activity?.finish()
+        },
+    ) { navigator ->
         tvHomeEntry(navigator)
         tvLibraryEntries(navigator)
         tvAlbumEntries()
@@ -101,7 +116,8 @@ internal fun TvShellRoute(
 /**
  * The TV frame (ADR 0041): the drawer on the left (collapsed to icons until focused, the now-playing strip in its
  * footer), the top of the one back stack on the right. [entries] registers the screens; a key without a screen shows
- * a placeholder and is logged once. Back pops; on Home the shell does not handle it, so the activity's own Back leaves.
+ * a placeholder and is logged once. Back pops; on Home it asks whether to close the app (#343): [onClose] stops the music
+ * and leaves. The remote's Home button leaves with the music going on.
  */
 @Composable
 fun TvShell(
@@ -109,9 +125,22 @@ fun TvShell(
     player: PlayerUiModel,
     onUnknown: (NavKey) -> Unit = {},
     initialDrawer: DrawerValue = DrawerValue.Closed,
+    onClose: () -> Unit = {},
     entries: EntryProviderScope<NavKey>.(TvNavigator) -> Unit,
 ) {
     val navigator = remember(backStack) { TvNavigator(backStack) }
+    var closing by remember { mutableStateOf(false) }
+    BackHandler(enabled = backStack.size <= 1) { closing = true }
+    if (closing) {
+        MqTvMenu(
+            stringResource(R.string.tv_close_title),
+            listOf(
+                MqTvMenuEntry(stringResource(R.string.tv_close), null, onClose),
+                MqTvMenuEntry(stringResource(R.string.tv_close_cancel), null) {},
+            ),
+            onDismiss = { closing = false },
+        )
+    }
     val selected = backStack.lastOrNull { TvDestination.of(it) != null }?.let(TvDestination::of) ?: TvDestination.Home
     TvFrame(selected, player, navigator::navigateTo, initialDrawer) {
         // Each screen requests its own initial focus once, the item it had before when it comes back (FocusMemory).

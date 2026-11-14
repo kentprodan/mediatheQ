@@ -35,6 +35,29 @@ internal fun atmosPassthrough(
 /** Whether an opened AudioTrack carries an encoded stream (passthrough), not PCM. */
 internal fun isPassthroughEncoding(encoding: Int?): Boolean = encoding in PASSTHROUGH_ENCODINGS
 
+/**
+ * Whether the HDMI sink takes PCM only right now (#352): it reports its encodings (the EDID) and no Dolby one is among
+ * them. The Streamer's Dolby mixer still accepts E-AC-3 JOC directly then, and decodes it to PCM itself, so Media3's
+ * answer alone said "Atmos" while the soundbar got PCM. An empty list means the device does not say: trust Media3. Pure.
+ */
+internal fun hdmiTakesPcmOnly(
+    type: Int,
+    encodings: IntArray,
+): Boolean = type in HDMI_TYPES && encodings.isNotEmpty() && encodings.none { it in DOLBY_ENCODINGS }
+
+private val HDMI_TYPES =
+    setOf(AudioDeviceInfo.TYPE_HDMI, AudioDeviceInfo.TYPE_HDMI_ARC, AudioDeviceInfo.TYPE_HDMI_EARC)
+
+// Any Dolby bitstream the sink lists means its EDID has Dolby: the per-format answer stays Media3's.
+private val DOLBY_ENCODINGS =
+    setOf(
+        android.media.AudioFormat.ENCODING_AC3,
+        android.media.AudioFormat.ENCODING_E_AC3,
+        android.media.AudioFormat.ENCODING_E_AC3_JOC,
+        android.media.AudioFormat.ENCODING_DOLBY_TRUEHD,
+        android.media.AudioFormat.ENCODING_DOLBY_MAT,
+    )
+
 /** The encodings the sink can pass through, as AudioTrack and Media3 name them. */
 private val PASSTHROUGH_ENCODINGS =
     mapOf(
@@ -73,11 +96,12 @@ internal class Media3PassthroughCapabilities(
     override fun mimeTypes(): Set<String> {
         // The route can change without a capabilities broadcast (the output switcher): read them again, quietly (this
         // runs inside a decision, which must not start another one).
-        val device = currentDevice()?.id
-        if (device != routed) {
-            routed = device
+        val device = currentDevice()
+        if (device?.id != routed) {
+            routed = device?.id
             current = AudioCapabilities.getCapabilities(context, MEDIA, null, emptyList())
         }
+        if (device != null && hdmiTakesPcmOnly(device.type, device.encodings)) return emptySet()
         return passthroughMimes(current::supportsEncoding)
     }
 

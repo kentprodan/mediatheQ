@@ -48,9 +48,21 @@ class TvLibraryViewModel
     ) : ViewModel() {
         private val sort = preferences.preferences.map { it.sortFor(filter) }.distinctUntilChanged()
 
+        // A tab's sort turned around (#349, the phone's #187); a genre's or a year's page keeps the natural order.
+        private val reversed =
+            preferences.preferences
+                .map {
+                    genre == null && year == null &&
+                        it.isReversed(
+                            filter,
+                        )
+                }.distinctUntilChanged()
+
         /** The sorted cards, with the A-Z strip when sorted by name. */
         private val items: Flow<TvLibraryContent.Items> =
-            combine(sorter(), sort) { sorter, sort -> sorter(sort) }.flowOn(defaultDispatcher)
+            combine(sorter(), sort, reversed) { sorter, sort, reversed ->
+                sorter(sort).let { if (reversed) it.reversed() else it }
+            }.flowOn(defaultDispatcher)
 
         /** The status, and whether a full sync ever completed (then an empty list is really empty). */
         private val status =
@@ -59,8 +71,8 @@ class TvLibraryViewModel
             }
 
         val uiState: StateFlow<TvLibraryUiState> =
-            combine(items, sort, status) { items, sort, status ->
-                val (current, everSynced) = status ?: return@combine TvLibraryUiState(filter, sort)
+            combine(items, sort, reversed, status) { items, sort, reversed, status ->
+                val (current, everSynced) = status ?: return@combine TvLibraryUiState(filter, sort, reversed = reversed)
                 val content =
                     when {
                         items.items.isNotEmpty() -> items
@@ -68,7 +80,7 @@ class TvLibraryViewModel
                         current is SyncStatus.Failed -> TvLibraryContent.Error(current.error)
                         else -> TvLibraryContent.Loading
                     }
-                TvLibraryUiState(filter, sort, content)
+                TvLibraryUiState(filter, sort, content, reversed)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvLibraryUiState(filter))
 
         /** A genre page's title: the genre's name. */
@@ -80,6 +92,7 @@ class TvLibraryViewModel
             viewModelScope.launch {
                 when (action) {
                     is TvLibraryAction.SetSort -> preferences.setSort(filter, action.sort)
+                    TvLibraryAction.ReverseSort -> preferences.reverseSort(filter)
                     TvLibraryAction.Sync -> sync.sync()
                 }
             }
