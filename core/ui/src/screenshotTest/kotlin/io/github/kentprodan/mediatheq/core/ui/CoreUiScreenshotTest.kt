@@ -25,8 +25,12 @@ import io.github.kentprodan.mediatheq.core.designsystem.preview.rememberPreviewC
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
+import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
 import kotlin.time.Duration.Companion.minutes
 
@@ -320,6 +324,34 @@ fun MqVideoControlsScreenshot() {
                         onBack = {},
                     )
                 }
+            }
+        }
+    }
+}
+
+/** Episode rows (#273): new, halfway (progress line), watched (check), downloaded. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun MqEpisodeRowScreenshot() {
+    fun episode(
+        n: Int,
+        userData: UserData = UserData(),
+    ) = Video(
+        MediaId(ServerId("s"), "e$n"),
+        VideoKind.Episode,
+        if (n == 4) "A much longer episode title that has to wrap onto a second line" else "Episode $n",
+        duration = 44.minutes,
+        episodeNumber = n,
+        userData = userData,
+    )
+    MediatheqTheme {
+        Surface {
+            Column {
+                MqEpisodeRow(episode(1), onClick = {})
+                MqEpisodeRow(episode(2, UserData(playbackPosition = 20.minutes)), onClick = {})
+                MqEpisodeRow(episode(3, UserData(played = true)), onClick = {})
+                MqEpisodeRow(episode(4), onClick = {}, downloaded = true)
             }
         }
     }
