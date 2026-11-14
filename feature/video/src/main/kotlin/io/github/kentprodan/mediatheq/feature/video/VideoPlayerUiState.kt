@@ -60,6 +60,9 @@ sealed interface VideoPlayerAction {
         val index: Int?,
     ) : VideoPlayerAction
 
+    /** The skip button: the segment showing it is skipped (#277). */
+    data object SkipSegment : VideoPlayerAction
+
     /** The countdown's Cancel: the next episode is taken off, the video stops at its end (#275). */
     data object CancelNext : VideoPlayerAction
 
