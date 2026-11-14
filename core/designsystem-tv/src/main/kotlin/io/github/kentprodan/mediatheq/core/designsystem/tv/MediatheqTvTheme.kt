@@ -1,8 +1,10 @@
 package io.github.kentprodan.mediatheq.core.designsystem.tv
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.tv.material3.ColorScheme
+import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.darkColorScheme
 import com.materialkolor.dynamiccolor.ColorSpec
@@ -27,7 +29,11 @@ fun MediatheqTvTheme(
     seed: Int = IRIS_SEED,
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(colorScheme = tvColorScheme(seed), content = content)
+    MaterialTheme(colorScheme = tvColorScheme(seed)) {
+        // tv-material's Text is black outside a Surface: text on the plain background (headers, Now Playing) reads
+        // onSurface instead.
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface, content = content)
+    }
 }
 
 /** The dark tv-material scheme from [seed], with the phone's generator (vibrant, spec 2025): same seed, same colors. */
