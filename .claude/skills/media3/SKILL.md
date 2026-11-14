@@ -72,7 +72,7 @@ Jellyfin marks it as `AudioSpatialFormat = DolbyAtmos` (see `jellyfin` skill). M
 
 Two ways to play it:
 
-- **Passthrough (TV, TV 1):** the compressed bitstream goes untouched over HDMI/eARC to the soundbar/AVR (Streamer -> TV -> eARC -> LG DSN11RG; later Denon AVR). This is the only way to get real Atmos. Requires the output route to report the encoding as supported (`AudioCapabilities` for the current route: E-AC-3 JOC, TrueHD).
+- **Passthrough (TV, TV 1):** the compressed bitstream goes untouched over HDMI/eARC to the soundbar/AVR (Streamer -> TV -> eARC -> LG DSN11RG; later Denon AVR). This is the only way to get real Atmos. Requires the output route to report the encoding as supported (`AudioCapabilities` for the current route: E-AC-3 JOC, TrueHD). **And the HDMI sink must list a Dolby encoding** (`AudioDeviceInfo.encodings`, the EDID): the Streamer's MS12 mixer accepts E-AC-3 JOC directly even when the sink takes PCM only and decodes it itself, so `AudioCapabilities` alone said Atmos while the soundbar got PCM (#352, `hdmiTakesPcmOnly`).
 - **Decode (phone):** the device decodes to PCM. Media3 1.11 removed the E-AC-3 JOC -> E-AC-3 fallback on Pixel because Pixel's standard E-AC-3 decoders **cannot decode E-AC-3 JOC**. So on the Pixel 9, E-AC-3 JOC tracks must **not** be sent for direct play unless a JOC-capable decoder is detected on the device.
 
 Rules:
