@@ -7,6 +7,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.VideoPreferences
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
@@ -130,6 +131,16 @@ class VideoPlayerViewModel
             }.distinctUntilChanged()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+        // Read at once on Back (#278): the leave rule cannot wait for the store.
+        private val settings =
+            videoPreferences.preferences.stateIn(viewModelScope, SharingStarted.Eagerly, VideoPreferences())
+
+        /** The PiP window's set-up for the playing video (#278). */
+        val pip: StateFlow<PipSpec> =
+            combine(playback.state, videoPreferences.preferences) { player, settings ->
+                pipSpec(settings.pictureInPicture, player.isPlaying, player.hasNext, player.videoAspectRatio)
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), pipSpec(false, false, false, null))
+
         /** The playing video's chapters and seek previews (#277); none while loading, offline or without. */
         val extras: StateFlow<PlayerExtras> =
             videoId
@@ -252,7 +263,8 @@ class VideoPlayerViewModel
                 }
 
                 VideoPlayerAction.Leave -> {
-                    playback.pause()
+                    // "Keep audio when leaving" (#278): the sound goes on, the mini player shows the video.
+                    if (leavePauses(settings.value.keepAudio)) playback.pause()
                 }
 
                 VideoPlayerAction.SkipSegment -> {

@@ -370,4 +370,19 @@ class VideoPlayerViewModelTest {
 
             assertThat(playback.commands).contains("seekTo ${44.minutes - 10.seconds}")
         }
+
+    @Test
+    fun `Back pauses, unless Keep audio when leaving is on`() =
+        test {
+            val viewModel = viewModel()
+            playing()
+            viewModel.onAction(VideoPlayerAction.Leave)
+            assertThat(playback.commands).contains("pause")
+
+            playback.commands.clear()
+            settings.update { it.copy(keepAudio = true) }
+            runCurrent()
+            viewModel.onAction(VideoPlayerAction.Leave)
+            assertThat(playback.commands).doesNotContain("pause")
+        }
 }
