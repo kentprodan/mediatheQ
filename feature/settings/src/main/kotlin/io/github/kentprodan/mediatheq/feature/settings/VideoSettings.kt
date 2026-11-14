@@ -4,6 +4,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import io.github.kentprodan.mediatheq.core.data.VideoPreferences
+import io.github.kentprodan.mediatheq.core.model.SkipMode
 import io.github.kentprodan.mediatheq.core.model.SubtitleMode
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import java.util.Locale
@@ -92,6 +93,35 @@ internal fun LazyListScope.videoGroups(
             }
         }
     }
+    item(key = "video_skipping") {
+        Group(R.string.settings_video_skipping) {
+            listOf(
+                R.string.settings_video_skip_intro to VideoPreferences::skipIntro,
+                R.string.settings_video_skip_credits to VideoPreferences::skipCredits,
+                R.string.settings_video_skip_recap to VideoPreferences::skipRecapPreview,
+            ).forEach { (title, current) ->
+                item { shapes ->
+                    ChoiceItem(
+                        shapes,
+                        stringResource(title),
+                        null,
+                        SkipMode.entries,
+                        selected = current(video),
+                        label = { stringResource(it.label) },
+                        onSelect = { mode ->
+                            set {
+                                when (title) {
+                                    R.string.settings_video_skip_intro -> copy(skipIntro = mode)
+                                    R.string.settings_video_skip_credits -> copy(skipCredits = mode)
+                                    else -> copy(skipRecapPreview = mode)
+                                }
+                            }
+                        },
+                    )
+                }
+            }
+        }
+    }
     item(key = "video_player") {
         Group(R.string.settings_video_player) {
             item { shapes ->
@@ -142,4 +172,12 @@ private val SubtitleMode.label: Int
             SubtitleMode.Off -> R.string.settings_video_subtitles_off
             SubtitleMode.ForcedOnly -> R.string.settings_video_subtitles_forced
             SubtitleMode.Language -> R.string.settings_video_subtitles_language
+        }
+
+private val SkipMode.label: Int
+    get() =
+        when (this) {
+            SkipMode.Off -> R.string.settings_video_skip_off
+            SkipMode.Button -> R.string.settings_video_skip_button
+            SkipMode.Auto -> R.string.settings_video_skip_auto
         }

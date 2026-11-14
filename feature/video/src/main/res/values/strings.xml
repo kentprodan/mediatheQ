@@ -51,4 +51,14 @@
     <string name="video_method_direct_play">Direct play</string>
     <string name="video_method_direct_stream">Remuxed</string>
     <string name="video_method_transcode">Converted</string>
+    <string name="video_skip_intro">Skip intro</string>
+    <string name="video_skip_credits">Skip credits</string>
+    <string name="video_skip_recap">Skip recap</string>
+    <string name="video_skip_preview">Skip preview</string>
+    <string name="video_skip_commercial">Skip ad</string>
+    <string name="video_skipped_intro">Skipped intro</string>
+    <string name="video_skipped_credits">Skipped credits</string>
+    <string name="video_skipped_recap">Skipped recap</string>
+    <string name="video_skipped_preview">Skipped preview</string>
+    <string name="video_skipped_commercial">Skipped ad</string>
 </resources>
