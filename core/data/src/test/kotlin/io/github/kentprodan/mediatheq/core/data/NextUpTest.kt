@@ -95,4 +95,18 @@ class NextUpTest {
         assertThat(nextEpisode(episodes, episodes[1])?.id?.itemId).isEqualTo("a-s2e1")
         assertThat(nextEpisode(episodes, episodes[3])).isNull()
     }
+
+    @Test
+    fun `Home's Next up leaves out an episode left halfway and the specials`() {
+        val episodes =
+            listOf(
+                inSeries("a", 1, 1, played = true, lastPlayedDay = 1),
+                inSeries("a", 1, 2).copy(userData = UserData(playbackPosition = 5.minutes)),
+                inSeries("b", 0, 1, played = true, lastPlayedDay = 2),
+                inSeries("b", 1, 1, played = true, lastPlayedDay = 1),
+                inSeries("b", 1, 2),
+            )
+
+        assertThat(nextUpPerSeries(episodes).map { it.id.itemId }).containsExactly("b-s1e2")
+    }
 }

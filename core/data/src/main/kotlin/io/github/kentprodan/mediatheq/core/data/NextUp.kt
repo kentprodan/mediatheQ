@@ -20,11 +20,16 @@ fun nextUp(episodes: List<Video>): Video? {
  */
 fun nextUpPerSeries(episodes: List<Video>): List<Video> =
     episodes
+        // Specials (season 0) are not part of the run of a series.
+        .filter { it.seasonNumber != 0 }
         .groupBy { it.seriesId }
         .values
         .filter { series -> series.any { it.userData.played || it.userData.playbackPosition > Duration.ZERO } }
         .mapNotNull { series ->
-            nextUp(series)?.let { it to series.mapNotNull { e -> e.userData.lastPlayedAt }.maxOrNull() }
+            nextUp(series)
+                // One left halfway is in Continue watching already (the server's NextUp has it the same way).
+                ?.takeUnless { it.userData.playbackPosition > Duration.ZERO }
+                ?.let { it to series.mapNotNull { e -> e.userData.lastPlayedAt }.maxOrNull() }
         }.sortedByDescending { it.second }
         .map { it.first }
 

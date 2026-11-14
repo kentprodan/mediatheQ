@@ -243,4 +243,25 @@ class VideoPlayerViewModelTest {
 
             assertThat(viewModel.content().title).isEqualTo("Episode 2")
         }
+
+    @Test
+    fun `while the next episode is read the screen loads, it never ends`() =
+        test {
+            val next = Video(MediaId(ServerId("s"), "m2"), VideoKind.Episode, "Episode 2")
+            val viewModel = viewModel()
+            playing()
+            runCurrent()
+            val states = mutableListOf<VideoPlayerUiState>()
+            backgroundScope.launch { viewModel.uiState.collect { states += it } }
+            runCurrent()
+
+            // The player is on the next episode before Room has it.
+            playback.state.value = PlayerUiModel(item = NowPlayingItem(next.id, "Episode 2", "", isVideo = true))
+            runCurrent()
+            videos.movies.value = listOf(movie, next)
+            runCurrent()
+
+            assertThat(states).doesNotContain(VideoPlayerUiState.Ended)
+            assertThat(viewModel.content().title).isEqualTo("Episode 2")
+        }
 }

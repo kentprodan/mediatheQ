@@ -107,7 +107,9 @@ class HomeViewModel
                 appMode.mode,
             ) { library, home, seed, mode ->
                 // An empty music library leaves Home to its empty states; Video mode has no music to wait for.
-                if (mode.music && library.albums.isEmpty() && library.tracks.isEmpty()) return@combine null
+                val noMusic = library.albums.isEmpty() && library.tracks.isEmpty()
+                val noVideo = library.videos == HomeVideos()
+                if (mode.music && noMusic && (!mode.video || noVideo)) return@combine null
                 val now = clock.now()
                 home.shown.filter { it.allowed(mode) }.mapNotNull { section ->
                     val settings = home.settingsOf(section)

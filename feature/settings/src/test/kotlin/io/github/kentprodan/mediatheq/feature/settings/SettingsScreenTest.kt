@@ -72,6 +72,7 @@ import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.data.TransitionsPreferences
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqSeedPresets
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import org.junit.Rule
@@ -83,6 +84,10 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, qualifiers = "w412dp-h915dp-xxhdpi")
 class SettingsScreenTest {
+    // In Music mode the Home page lists the music sections; the video ones keep their place after them (#275).
+    private val musicSections = HomeSection.entries.filter { it.allowed(AppMode.Music) }
+    private val videoSections = HomeSection.entries.filterNot { it.allowed(AppMode.Music) }
+
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -570,7 +575,7 @@ class SettingsScreenTest {
                 SettingsAction.SetHomeHidden(defaults.hidden + HomeSection.FavoriteAlbums),
                 SettingsAction.SetHomeHidden(defaults.hidden - HomeSection.RecentlyAddedTracks),
                 SettingsAction.SetHomeOrder(
-                    listOf(HomeSection.entries[1], HomeSection.entries[0]) + HomeSection.entries.drop(2),
+                    listOf(musicSections[1], musicSections[0]) + musicSections.drop(2) + videoSections,
                 ),
             ).inOrder()
     }
@@ -614,7 +619,7 @@ class SettingsScreenTest {
         assertThat(actions)
             .containsExactly(
                 SettingsAction.SetHomeOrder(
-                    listOf(HomeSection.entries[1], HomeSection.entries[0]) + HomeSection.entries.drop(2),
+                    listOf(musicSections[1], musicSections[0]) + musicSections.drop(2) + videoSections,
                 ),
             )
     }

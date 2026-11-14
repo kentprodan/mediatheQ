@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.SeasonStaging
 import io.github.kentprodan.mediatheq.core.database.entity.SeriesStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoUserColumns
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -170,5 +171,21 @@ class DefaultVideoRepositoryTest {
             val watching = repository.continueWatching(20).first()
             assertThat(watching.map { it.id }).containsExactly(movie.id)
             assertThat(watching.single().userData.playbackPosition).isEqualTo(20.minutes)
+        }
+
+    @Test
+    fun `a movie no longer halfway on the server leaves Continue watching`() =
+        runTest {
+            database.syncDao().stageVideos(
+                listOf(VideoStaging(movie.toEntity().copy(videoUser = VideoUserColumns(positionMillis = 600_000)))),
+            )
+            database.syncDao().swap(1, "s", "user-1")
+            accountStore.save(StoredAccount("http://nas:8096", server, "Home", "user-1", "Ana", accessToken = "token"))
+            assertThat(repository.continueWatching(20).first()).hasSize(1)
+            source.resumeAnswer = MqResult.Success(emptyMap())
+
+            repository.refreshResume()
+
+            assertThat(repository.continueWatching(20).first()).isEmpty()
         }
 }

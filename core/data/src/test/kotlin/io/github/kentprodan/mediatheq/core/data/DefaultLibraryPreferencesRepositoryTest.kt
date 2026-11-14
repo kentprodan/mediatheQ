@@ -1129,4 +1129,27 @@ class DefaultLibraryPreferencesRepositoryTest {
                 .isEqualTo(HomeSection.FavoriteAlbums.defaultSettings.copy(showHeader = false))
             assertThat(home.settings.keys).containsExactly(HomeSection.FavoriteAlbums)
         }
+
+    @Test
+    fun `a Home order stored before the video sections gets them after the mix buttons, the off ones hidden`() =
+        runTest {
+            repository.setHomeOrder(listOf(HomeSection.Shortcuts, HomeSection.FavoriteAlbums))
+            repository.setHomeHidden(setOf(HomeSection.RandomTracks))
+            // As stored before #275: neither list knows the video sections.
+            val stored = HomeSection.entries.filter { it.kind != HomeKind.Videos }
+            repository.setHomeOrder(stored)
+
+            val home = repository.preferences.first().home
+
+            assertThat(home.order.take(5))
+                .containsExactly(
+                    HomeSection.Shortcuts,
+                    HomeSection.ContinueWatching,
+                    HomeSection.NextUp,
+                    HomeSection.RecentlyAddedMovies,
+                    HomeSection.RecentlyAddedEpisodes,
+                ).inOrder()
+            assertThat(home.hidden).containsAtLeast(HomeSection.RecentlyAddedMovies, HomeSection.RecentlyAddedEpisodes)
+            assertThat(home.hidden).containsNoneOf(HomeSection.ContinueWatching, HomeSection.NextUp)
+        }
 }

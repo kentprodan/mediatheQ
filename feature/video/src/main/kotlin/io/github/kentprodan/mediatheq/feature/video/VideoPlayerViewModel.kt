@@ -73,7 +73,14 @@ class VideoPlayerViewModel
                     }
 
                     item == null -> {
-                        if (seen) VideoPlayerUiState.Ended else VideoPlayerUiState.Loading
+                        // Another video arriving (the next episode, read from Room a moment later) is loading.
+                        if (seen &&
+                            player.item?.isVideo != true
+                        ) {
+                            VideoPlayerUiState.Ended
+                        } else {
+                            VideoPlayerUiState.Loading
+                        }
                     }
 
                     player.isFailed -> {

@@ -67,7 +67,7 @@ interface VideoRepository {
     /** The episode after [episode] for auto-play ([nextEpisode]); `null` for a movie or after the last. */
     suspend fun nextEpisode(episode: MediaId): Video?
 
-    /** Brings the resume points of what is halfway from the server into the rows (Home opens, a video stops; R26). */
+    /** Brings the resume points of what is halfway from the server into the rows when Home opens (R26). */
     suspend fun refreshResume()
 }
 
@@ -153,6 +153,14 @@ class DefaultVideoRepository
             // Best effort: a failure leaves the last synced positions, which the next sync or socket event refreshes.
             val resume = (source.resumeVideos(server, RESUME_LIMIT) as? MqResult.Success)?.value ?: return
             userData.applyFromServer(resume)
+            // Finished or reset elsewhere: no longer halfway on the server, so not here either (a full answer only).
+            if (resume.size < RESUME_LIMIT) {
+                dao
+                    .continueWatching(Int.MAX_VALUE, all = true, downloaded = emptyList())
+                    .first()
+                    .filter { MediaId(server.serverId, it.id) !in resume }
+                    .forEach { userData.clearVideoProgress(MediaId(server.serverId, it.id)) }
+            }
         }
 
         override fun streams(videoId: MediaId): Flow<List<MediaStreamInfo>> =

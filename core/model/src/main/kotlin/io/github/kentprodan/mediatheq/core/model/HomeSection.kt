@@ -44,6 +44,14 @@ enum class HomeSection(
 ) {
     /** Buttons that start a mix (#128); its own settings come with the section gear (#182). */
     Shortcuts(HomeKind.Shortcuts, true, HomeSectionSettings(moreIndicator = false)),
+
+    /** Movies and episodes left halfway (#275). */
+    ContinueWatching(HomeKind.Videos, true, VIDEO_ROW),
+
+    /** The next episode of each series in progress (#275). */
+    NextUp(HomeKind.Videos, true, VIDEO_ROW),
+    RecentlyAddedMovies(HomeKind.Videos, false, VIDEO_ROW),
+    RecentlyAddedEpisodes(HomeKind.Videos, false, VIDEO_ROW),
     FavoritePlaylists(HomeKind.Playlists, true, HomeSectionSettings()),
     FavoriteAlbums(HomeKind.Albums, true, HomeSectionSettings()),
     FavoriteTracks(HomeKind.Tracks, true, TRACK_LIST),
@@ -65,13 +73,6 @@ enum class HomeSection(
     RediscoverTracks(HomeKind.Tracks, false, TRACK_LIST),
     FiveStarTracks(HomeKind.Tracks, false, TRACK_LIST),
 
-    /** Movies and episodes left halfway (#275). */
-    ContinueWatching(HomeKind.Videos, true, VIDEO_ROW),
-
-    /** The next episode of each series in progress (#275). */
-    NextUp(HomeKind.Videos, true, VIDEO_ROW),
-    RecentlyAddedMovies(HomeKind.Videos, false, VIDEO_ROW),
-    RecentlyAddedEpisodes(HomeKind.Videos, false, VIDEO_ROW),
     ;
 
     /** Shown in [mode] (ADR 0051): video sections with video, the others with music. */
