@@ -149,6 +149,7 @@ class VideoPlayerViewModel
         // Per video: what was skipped, and where each button first showed.
         private val skipped = mutableSetOf<MediaSegment>()
         private val buttonShownAt = mutableMapOf<MediaSegment, Duration>()
+        private var noticeJob: Job? = null
 
         init {
             viewModelScope.launch {
@@ -183,10 +184,12 @@ class VideoPlayerViewModel
                             is SegmentAction.Skip -> {
                                 skip(action.segment)
                                 notice.value = action.segment.type
-                                launch {
-                                    delay(NOTICE_TIME)
-                                    notice.value = null
-                                }
+                                noticeJob?.cancel()
+                                noticeJob =
+                                    launch {
+                                        delay(NOTICE_TIME)
+                                        notice.value = null
+                                    }
                             }
                         }
                     }
@@ -220,9 +223,10 @@ class VideoPlayerViewModel
             viewModelScope.launch {
                 val autoPlay = videoPreferences.preferences.first().autoPlayNext
                 val countdown = player.duration - NEXT_COUNTDOWN
+                // Credits usually run to the end: landing at their end would skip the countdown too (review).
                 val toCountdown =
-                    segment.type == SegmentType.Outro && player.hasNext && autoPlay && countdown > segment.end
-                playback.seekTo(if (toCountdown) countdown else segment.end)
+                    segment.type == SegmentType.Outro && player.hasNext && autoPlay && countdown > segment.start
+                playback.seekTo(if (toCountdown) minOf(segment.end, countdown) else segment.end)
             }
         }
 

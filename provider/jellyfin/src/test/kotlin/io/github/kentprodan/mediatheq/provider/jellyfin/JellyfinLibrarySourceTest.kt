@@ -577,7 +577,7 @@ class JellyfinLibrarySourceTest {
             assertThat(request.url.encodedPath).isEqualTo("/MediaSegments/${id.itemId}")
             assertThat(
                 request.url.queryParameter("includeSegmentTypes"),
-            ).isEqualTo("Intro,Recap,Preview,Commercial,Outro")
+            ).isNull()
             assertThat(segments)
                 .containsExactly(
                     MediaSegment(SegmentType.Intro, 45.seconds, 135.seconds),

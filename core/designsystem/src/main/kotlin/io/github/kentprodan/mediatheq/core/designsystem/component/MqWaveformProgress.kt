@@ -306,7 +306,8 @@ private fun Modifier.chapterMarks(marks: List<Float>): Modifier {
     val color = MaterialTheme.colorScheme.surface
     return drawWithContent {
         drawContent()
-        val inset = 10.dp.toPx()
+        // The expressive Slider's track runs almost edge to edge (a 4 dp thumb): half of it each side.
+        val inset = 2.dp.toPx()
         val width = size.width - 2 * inset
         marks.forEach { mark ->
             val x = inset + width * mark.coerceIn(0f, 1f)

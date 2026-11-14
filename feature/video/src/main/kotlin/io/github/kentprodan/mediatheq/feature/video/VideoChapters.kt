@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
@@ -118,11 +118,12 @@ internal fun TrickplayPreview(
                                 }.build(),
                         ).build(),
                     contentDescription = null,
-                    contentScale = ContentScale.FillBounds,
+                    // Width only: the last tile image is just as tall as the rows it uses (review).
+                    contentScale = ContentScale.FillWidth,
                     modifier =
                         Modifier
                             .wrapContentSize(Alignment.TopStart, unbounded = true)
-                            .requiredSize(width * tiles.tileWidth, height * tiles.tileHeight)
+                            .requiredWidth(width * tiles.tileWidth)
                             .offset(-width * cell.column, -height * cell.row),
                 )
             }
