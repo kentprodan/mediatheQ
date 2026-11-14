@@ -2,6 +2,8 @@ package io.github.kentprodan.mediatheq.feature.tv.library
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
 import androidx.tv.material3.Surface
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.common.MqError
@@ -44,7 +46,7 @@ private fun Tab(
 ) = MediatheqTvTheme {
     Surface {
         Column {
-            TvLibraryTabs(tab) {}
+            TvLibraryTabs(tab, remember { FocusRequester() }) {}
             TvLibraryList(state, {}, TvLibraryNavigation())
         }
     }
