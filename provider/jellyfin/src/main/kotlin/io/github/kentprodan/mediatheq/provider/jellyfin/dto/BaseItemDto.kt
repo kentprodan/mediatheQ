@@ -12,6 +12,9 @@ internal data class BaseItemDto(
     @SerialName("DateCreated") val dateCreated: String? = null,
     @SerialName("ProductionYear") val productionYear: Int? = null,
     @SerialName("RunTimeTicks") val runTimeTicks: Long? = null,
+    @SerialName("Chapters") val chapters: List<ChapterDto>? = null,
+    /** Media source id -> width -> tiles (#277). */
+    @SerialName("Trickplay") val trickplay: Map<String, Map<String, TrickplayInfoDto>>? = null,
     @SerialName("ChildCount") val childCount: Int? = null,
     @SerialName("IndexNumber") val indexNumber: Int? = null,
     @SerialName("ParentIndexNumber") val parentIndexNumber: Int? = null,

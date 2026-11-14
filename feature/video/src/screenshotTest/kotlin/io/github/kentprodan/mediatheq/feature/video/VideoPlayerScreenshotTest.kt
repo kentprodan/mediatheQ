@@ -11,9 +11,13 @@ import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.model.Chapter
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
+import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.TrickplayInfo
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
@@ -21,6 +25,7 @@ import io.github.kentprodan.mediatheq.core.model.VideoRange
 import io.github.kentprodan.mediatheq.core.playback.VideoPlayback
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 private val playing =
     VideoPlayerUiState.Playing(
@@ -117,4 +122,70 @@ fun VideoPlayerNotesScreenshot() =
             onBack = {},
             surface = darkFrame,
         )
+    }
+
+/** An intro with "Show a button" (#277): Skip intro above the seek bar. */
+@PreviewTest
+@Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
+@Composable
+fun VideoPlayerSkipIntroScreenshot() =
+    MediatheqTheme {
+        VideoPlayerScreen(playing, position = 1.minutes, onAction = {
+        }, onBack = {}, skip = SegmentType.Intro, surface = darkFrame)
+    }
+
+/** Credits skipped by themselves (#277): the short note, and Skip credits on another segment. */
+@PreviewTest
+@Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
+@Composable
+fun VideoPlayerSkippedScreenshot() =
+    MediatheqTheme {
+        VideoPlayerScreen(
+            playing.copy(controlsShown = false),
+            position = 41.minutes,
+            onAction = {},
+            onBack = {},
+            skip = SegmentType.Outro,
+            skipped = SegmentType.Intro,
+            surface = darkFrame,
+        )
+    }
+
+private val chapters =
+    listOf(
+        Chapter(0, 0.minutes, "Opening"),
+        Chapter(1, 12.minutes, "The village"),
+        Chapter(2, 40.minutes, "The storm"),
+        Chapter(3, 75.minutes, null),
+    )
+
+/** Chapter marks on the seek bar and the chapters button (#277). */
+@PreviewTest
+@Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
+@Composable
+fun VideoPlayerChaptersScreenshot() =
+    MediatheqTheme {
+        VideoPlayerScreen(
+            playing,
+            position = 20.minutes,
+            onAction = {},
+            onBack = {},
+            extras = PlayerExtras(chapters),
+            surface = darkFrame,
+        )
+    }
+
+/** The chapters sheet's list (#277): no pictures in the preview, a chapter without a name is numbered. */
+@PreviewTest
+@Preview(name = "Phone")
+@Composable
+fun VideoChaptersListScreenshot() = MediatheqTheme { ChaptersContent(chapters) {} }
+
+/** The seek preview bubble (#277): the thumbnail box and the time. */
+@PreviewTest
+@Preview(name = "Bubble")
+@Composable
+fun VideoTrickplayPreviewScreenshot() =
+    MediatheqTheme(systemDark = true) {
+        TrickplayPreview(TrickplayInfo("s", 320, 180, 10, 10, 540, 10.seconds), 23.minutes)
     }

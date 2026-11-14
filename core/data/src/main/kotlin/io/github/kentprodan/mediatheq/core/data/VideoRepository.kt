@@ -4,18 +4,23 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.dao.VideoDao
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
+import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.ServerCapabilities
+import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 /** How the Movies and Series grids sort: by name, newest added first, or newest year first. */
@@ -69,6 +74,12 @@ interface VideoRepository {
 
     /** Brings the resume points of what is halfway from the server into the rows when Home opens (R26). */
     suspend fun refreshResume()
+
+    /** [videoId]'s chapters and seek previews (#277), kept for the session; offline or failed: none. */
+    suspend fun playerExtras(videoId: MediaId): PlayerExtras
+
+    /** [videoId]'s skippable segments (#277), kept for the session; offline, not analyzed or failed: none. */
+    suspend fun segments(videoId: MediaId): List<MediaSegment>
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -81,6 +92,7 @@ class DefaultVideoRepository
         private val source: LibrarySource,
         private val accountStore: AccountStore,
         private val userData: DefaultUserDataRepository,
+        private val playbackSource: PlaybackSource,
     ) : VideoRepository {
         override val hasVideo = capabilities.video
 
@@ -147,6 +159,56 @@ class DefaultVideoRepository
             return nextEpisode(episodes.map { it.toDomain() }, current)
         }
 
+        private val extras = ConcurrentHashMap<MediaId, PlayerExtras>()
+        private val segmentCache = ConcurrentHashMap<MediaId, List<MediaSegment>>()
+
+        override suspend fun playerExtras(videoId: MediaId): PlayerExtras =
+            extras[videoId] ?: fromServer { server ->
+                when (val result = source.playerExtras(server, videoId)) {
+                    is MqResult.Success -> MqResult.Success(result.value.withUrls(server, videoId))
+                    is MqResult.Failure -> result
+                }
+            }?.also { extras[videoId] = it }
+                ?: PlayerExtras()
+
+        // The pictures' and tiles' URLs (#277): chapter pictures are public, the tiles need the auth header.
+        private fun PlayerExtras.withUrls(
+            server: SignedInServer,
+            videoId: MediaId,
+        ) = copy(
+            chapters =
+                chapters.map {
+                    it.copy(imageUrl = source.chapterImageUrl(server.connection.baseUrl, videoId, it, CHAPTER_WIDTH))
+                },
+            trickplay =
+                trickplay?.let { tiles ->
+                    tiles.copy(
+                        tileUrls =
+                            (0 until tiles.tileCount).map {
+                                source.trickplayTileUrl(
+                                    server.connection.baseUrl,
+                                    videoId,
+                                    tiles,
+                                    it,
+                                )
+                            },
+                        headers = playbackSource.streamHeaders(server),
+                    )
+                },
+        )
+
+        override suspend fun segments(videoId: MediaId): List<MediaSegment> =
+            segmentCache[videoId] ?: fromServer { server -> source.segments(server, videoId) }
+                ?.also { segmentCache[videoId] = it }
+                .orEmpty()
+
+        /** Asked only online; a failure is not kept, so the next opening asks again. */
+        private suspend fun <T> fromServer(ask: suspend (SignedInServer) -> MqResult<T>): T? {
+            if (filter.active.first()) return null
+            val server = accountStore.signedInServer() ?: return null
+            return (ask(server) as? MqResult.Success)?.value
+        }
+
         override suspend fun refreshResume() {
             if (!hasVideo) return
             val server = accountStore.signedInServer() ?: return
@@ -177,3 +239,6 @@ class DefaultVideoRepository
 
 /** As many as Home shows in a section at most. */
 private const val RESUME_LIMIT = 50
+
+/** A chapter picture's width in the chapters sheet (#277). */
+private const val CHAPTER_WIDTH = 400

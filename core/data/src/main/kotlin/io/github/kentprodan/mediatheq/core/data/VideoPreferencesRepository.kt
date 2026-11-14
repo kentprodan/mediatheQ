@@ -2,6 +2,8 @@ package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.datastore.AudioPreferencesStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredVideoPreferences
+import io.github.kentprodan.mediatheq.core.model.SegmentType
+import io.github.kentprodan.mediatheq.core.model.SkipMode
 import io.github.kentprodan.mediatheq.core.model.SubtitleMode
 import io.github.kentprodan.mediatheq.core.model.TrackDefaults
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
@@ -31,7 +33,19 @@ data class VideoPreferences(
     val pictureInPicture: Boolean = true,
     /** Leaving the player keeps the sound going (#278). */
     val keepAudio: Boolean = false,
+    /** Skipping (#277): intros, credits (outros), recaps and previews (with commercials). */
+    val skipIntro: SkipMode = SkipMode.Button,
+    val skipCredits: SkipMode = SkipMode.Button,
+    val skipRecapPreview: SkipMode = SkipMode.Button,
 ) {
+    /** The setting for a segment of [type]. */
+    fun skipFor(type: SegmentType): SkipMode =
+        when (type) {
+            SegmentType.Intro -> skipIntro
+            SegmentType.Outro -> skipCredits
+            SegmentType.Recap, SegmentType.Preview, SegmentType.Commercial -> skipRecapPreview
+        }
+
     fun quality(metered: Boolean): VideoQuality = if (metered) meteredQuality else unmeteredQuality
 
     /** The track defaults for items without a choice; [phoneLanguage] stands in for an unset audio language. */
@@ -85,6 +99,9 @@ internal fun StoredVideoPreferences.toPreferences(): VideoPreferences {
         autoPlayNext = autoPlayNext ?: defaults.autoPlayNext,
         pictureInPicture = pictureInPicture ?: defaults.pictureInPicture,
         keepAudio = keepAudio ?: defaults.keepAudio,
+        skipIntro = enumOrNull<SkipMode>(skipIntro) ?: defaults.skipIntro,
+        skipCredits = enumOrNull<SkipMode>(skipCredits) ?: defaults.skipCredits,
+        skipRecapPreview = enumOrNull<SkipMode>(skipRecapPreview) ?: defaults.skipRecapPreview,
     )
 }
 
@@ -103,5 +120,8 @@ internal fun VideoPreferences.toStored(): StoredVideoPreferences {
         autoPlayNext = autoPlayNext.unlessDefault(defaults.autoPlayNext),
         pictureInPicture = pictureInPicture.unlessDefault(defaults.pictureInPicture),
         keepAudio = keepAudio.unlessDefault(defaults.keepAudio),
+        skipIntro = skipIntro.unlessDefault(defaults.skipIntro)?.name,
+        skipCredits = skipCredits.unlessDefault(defaults.skipCredits)?.name,
+        skipRecapPreview = skipRecapPreview.unlessDefault(defaults.skipRecapPreview)?.name,
     )
 }

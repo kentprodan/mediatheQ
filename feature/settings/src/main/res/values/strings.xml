@@ -657,4 +657,11 @@
     <string name="settings_video_pip_summary">Keep the video in a small window when you leave the player</string>
     <string name="settings_video_keep_audio">Keep audio when leaving</string>
     <string name="settings_video_keep_audio_summary">The sound goes on without the picture</string>
+    <string name="settings_video_skipping">Skipping</string>
+    <string name="settings_video_skip_intro">Intros</string>
+    <string name="settings_video_skip_credits">Credits</string>
+    <string name="settings_video_skip_recap">Recaps, previews and ads</string>
+    <string name="settings_video_skip_off">Off</string>
+    <string name="settings_video_skip_button">Show a button</string>
+    <string name="settings_video_skip_auto">Skip automatically</string>
 </resources>
