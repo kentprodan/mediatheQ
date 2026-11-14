@@ -2,7 +2,9 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
+import io.github.kentprodan.mediatheq.core.model.VideoRange
 import kotlin.time.Duration
 
 /** What the player is doing, for screens (architecture skill, section 7). The position comes separately, sampled. */
@@ -56,6 +58,8 @@ data class AudioOutputInfo(
     val streamKnown: Boolean = false,
     /** The bitrate of the server's conversion that plays (Opus); `null` when the original file plays (#125). */
     val convertedKbps: Int? = null,
+    /** What the playing video really plays as (#276); `null` for music or before its first frame. */
+    val video: VideoPlayback? = null,
 ) {
     /** The equalizer is off while bit-perfect: the samples must reach the DAC unchanged. */
     val equalizerBlocked: Boolean get() = bitPerfectSampleRateHz != null
@@ -81,3 +85,26 @@ data class NowPlayingItem(
     /** A movie or an episode (ADR 0047): the video player shows it, never Now Playing. */
     val isVideo: Boolean = false,
 )
+
+/** The player's info line (#276): the video's codec, picture size, range, how it is delivered and the decoder. */
+data class VideoPlayback(
+    /** `video/hevc`, `video/dolby-vision`, ... */
+    val mimeType: String? = null,
+    val width: Int = 0,
+    val height: Int = 0,
+    val range: VideoRange = VideoRange.Sdr,
+    val playMethod: PlayMethod? = null,
+    val decoder: String? = null,
+)
+
+/** The range a decoded format carries (#276): Dolby Vision by its decoder, else HDR10 (PQ) or HLG by its transfer. */
+fun videoRangeOf(
+    mimeType: String?,
+    colorTransfer: Int,
+): VideoRange =
+    when {
+        mimeType == "video/dolby-vision" -> VideoRange.DolbyVision
+        colorTransfer == androidx.media3.common.C.COLOR_TRANSFER_ST2084 -> VideoRange.Hdr10
+        colorTransfer == androidx.media3.common.C.COLOR_TRANSFER_HLG -> VideoRange.Hlg
+        else -> VideoRange.Sdr
+    }
