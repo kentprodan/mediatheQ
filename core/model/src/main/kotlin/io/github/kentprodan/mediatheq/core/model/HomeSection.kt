@@ -66,12 +66,12 @@ enum class HomeSection(
     FiveStarTracks(HomeKind.Tracks, false, TRACK_LIST),
 
     /** Movies and episodes left halfway (#275). */
-    ContinueWatching(HomeKind.Videos, true, HomeSectionSettings()),
+    ContinueWatching(HomeKind.Videos, true, VIDEO_ROW),
 
     /** The next episode of each series in progress (#275). */
-    NextUp(HomeKind.Videos, true, HomeSectionSettings()),
-    RecentlyAddedMovies(HomeKind.Videos, false, HomeSectionSettings()),
-    RecentlyAddedEpisodes(HomeKind.Videos, false, HomeSectionSettings()),
+    NextUp(HomeKind.Videos, true, VIDEO_ROW),
+    RecentlyAddedMovies(HomeKind.Videos, false, VIDEO_ROW),
+    RecentlyAddedEpisodes(HomeKind.Videos, false, VIDEO_ROW),
     ;
 
     /** Shown in [mode] (ADR 0051): video sections with video, the others with music. */
@@ -82,3 +82,6 @@ enum class HomeSection(
 }
 
 private val TRACK_LIST: HomeSectionSettings get() = HomeSectionSettings(display = HomeDisplay.List)
+
+/** A video section has no full list yet (#275): no more indicator on its header. */
+private val VIDEO_ROW: HomeSectionSettings get() = HomeSectionSettings(moreIndicator = false)
