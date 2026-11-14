@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.testing
 
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoSort
+import io.github.kentprodan.mediatheq.core.data.nextUp
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.Season
@@ -53,9 +54,18 @@ class FakeVideoRepository(
 
     override fun series(id: MediaId): Flow<Series?> = series.map { all -> all.firstOrNull { it.id == id } }
 
-    override fun seasons(seriesId: MediaId): Flow<List<Season>> = MutableStateFlow(emptyList())
+    override fun seasons(seriesId: MediaId): Flow<List<Season>> = seriesSeasons.map { it[seriesId].orEmpty() }
 
-    override fun episodes(seasonId: MediaId): Flow<List<Video>> = MutableStateFlow(emptyList())
+    override fun episodes(seasonId: MediaId): Flow<List<Video>> = seasonEpisodes.map { it[seasonId].orEmpty() }
 
     override fun streams(videoId: MediaId): Flow<List<MediaStreamInfo>> = MutableStateFlow(emptyList())
+
+    /** Episodes by season id, for [episodes] and [nextUp]. */
+    val seasonEpisodes = MutableStateFlow<Map<MediaId, List<Video>>>(emptyMap())
+
+    /** Seasons by series id. */
+    val seriesSeasons = MutableStateFlow<Map<MediaId, List<Season>>>(emptyMap())
+
+    override fun nextUp(seriesId: MediaId): Flow<Video?> =
+        seasonEpisodes.map { all -> nextUp(all.values.flatten().filter { it.seriesId == seriesId }) }
 }

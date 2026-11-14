@@ -41,6 +41,25 @@ class JellyfinUserDataSink internal constructor(
         rating: Double?,
     ) = update(server, itemId, UpdateUserItemDataDto(rating = rating ?: UNRATED))
 
+    /** R24: `POST` / `DELETE /UserPlayedItems/{itemId}`; marking it watched also clears its resume point. */
+    override suspend fun setPlayed(
+        server: SignedInServer,
+        itemId: MediaId,
+        played: Boolean,
+    ): MqResult<Unit> {
+        val path = "UserPlayedItems/${itemId.itemId}"
+        val query = listOf("userId" to server.userId)
+        return if (played) {
+            http.post(
+                server.connection,
+                path,
+                query = query,
+            )
+        } else {
+            http.delete(server.connection, path, query)
+        }
+    }
+
     private suspend fun update(
         server: SignedInServer,
         itemId: MediaId,

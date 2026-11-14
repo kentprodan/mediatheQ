@@ -94,6 +94,7 @@ class VideoQueriesTest {
         "episode $id",
         seriesId = "sr1",
         seasonId = season,
+        seasonNumber = season.removePrefix("se").toInt(),
         episodeNumber = number,
     )
 
@@ -173,6 +174,10 @@ class VideoQueriesTest {
                 dao.episodes("se1", true, emptyList()).first().map { it.id },
             ).containsExactly("e1", "e2").inOrder()
             assertThat(dao.streams("m1").first().map { it.streamIndex }).containsExactly(1, 2).inOrder()
+            // A series' episodes in watching order across its seasons (Next up, #273).
+            assertThat(dao.seriesEpisodes("sr1", true, emptyList()).first().map { it.id })
+                .containsExactly("e1", "e2", "e3")
+                .inOrder()
             assertThat(dao.video("m1").first()?.title).isEqualTo("Moșoi")
             assertThat(dao.seriesById("sr1").first()?.title).isEqualTo("Show")
         }

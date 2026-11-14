@@ -92,6 +92,20 @@ interface VideoDao {
         downloaded: List<String>,
     ): Flow<List<VideoEntity>>
 
+    /** Every episode of a series in watching order: by season, then episode, specials (season 0) last (#273, Next up). */
+    @Query(
+        """
+        SELECT * FROM video WHERE kind = 'Episode' AND series_id = :seriesId AND (:all OR id IN (:downloaded))
+        ORDER BY season_number IS NULL OR season_number = 0, season_number, episode_number IS NULL, episode_number,
+        sort_name, id
+        """,
+    )
+    fun seriesEpisodes(
+        seriesId: String,
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<VideoEntity>>
+
     @Query("SELECT * FROM video WHERE id = :id")
     fun video(id: String): Flow<VideoEntity?>
 
