@@ -553,6 +553,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
             },
         )
         player.addAnalyticsListener(VideoLogListener(appLog))
+        // A video's chosen subtitle on, or text off (#274).
+        player.addListener(VideoTextSelector(player, streamResolver))
         usbAudio = AudioOutputPort.create(getSystemService(AudioManager::class.java))
         // What HDMI passes through (ADR 0039); a change (plug, the TV's surround setting) decides again.
         passthroughCapabilities = Media3PassthroughCapabilities(this) { audioOutput.onCapabilitiesChanged() }

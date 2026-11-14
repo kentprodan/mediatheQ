@@ -21,4 +21,7 @@ data class PlaybackStream(
     val segmented: Boolean = false,
     /** A video's subtitle streams and how each is delivered (#274); empty for music. */
     val subtitles: List<SubtitleDelivery> = emptyList(),
+    /** The audio and subtitle streams asked for (#274), carried into every report; `null` = the server's default / none. */
+    val audioStreamIndex: Int? = null,
+    val subtitleStreamIndex: Int? = null,
 )

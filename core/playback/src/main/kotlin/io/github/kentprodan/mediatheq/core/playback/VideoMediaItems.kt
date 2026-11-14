@@ -72,6 +72,15 @@ private fun Video.subtitle(): String? =
 /** A movie or an episode, not a track (the extra survives the controller-to-session hop; the URI does not). */
 internal fun MediaItem.isVideo(): Boolean = mediaMetadata.extras?.getBoolean(EXTRA_VIDEO, false) == true
 
+/** The same video item starting at [position] (also asked of the server, so a conversion begins there). */
+internal fun MediaItem.withVideoStart(position: Duration): MediaItem {
+    val extras =
+        Bundle(
+            mediaMetadata.extras ?: Bundle(),
+        ).apply { putLong(EXTRA_START_MS, position.inWholeMilliseconds) }
+    return buildUpon().setMediaMetadata(mediaMetadata.buildUpon().setExtras(extras).build()).build()
+}
+
 /** Where the video starts, as its item asked. */
 internal fun MediaItem.videoStart(): Duration = (mediaMetadata.extras?.getLong(EXTRA_START_MS, 0L) ?: 0L).milliseconds
 

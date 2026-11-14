@@ -103,6 +103,8 @@ class JellyfinPlaybackSource internal constructor(
                         canSeek = true,
                         sizeBytes = source.size,
                         subtitles = source.subtitles(baseUrl),
+                        audioStreamIndex = choice.audioStreamIndex,
+                        subtitleStreamIndex = choice.subtitleStreamIndex,
                     ),
                 )
             }
@@ -127,6 +129,8 @@ class JellyfinPlaybackSource internal constructor(
                         canSeek = segmented,
                         segmented = segmented,
                         subtitles = source.subtitles(baseUrl),
+                        audioStreamIndex = choice.audioStreamIndex,
+                        subtitleStreamIndex = choice.subtitleStreamIndex,
                     ),
                 )
             }
@@ -302,6 +306,8 @@ private fun PlaybackReport.toDto() =
         isPaused = isPaused,
         playMethod = stream.playMethod.name,
         canSeek = stream.canSeek,
+        audioStreamIndex = stream.audioStreamIndex,
+        subtitleStreamIndex = stream.subtitleStreamIndex,
     )
 
 /** The original file, byte-range seekable; [kind] `Audio` or `Videos`. */

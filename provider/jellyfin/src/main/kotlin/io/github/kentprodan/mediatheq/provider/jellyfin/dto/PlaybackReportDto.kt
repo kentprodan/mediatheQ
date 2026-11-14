@@ -14,4 +14,7 @@ internal data class PlaybackReportDto(
     @SerialName("PlayMethod") val playMethod: String? = null,
     @SerialName("CanSeek") val canSeek: Boolean? = null,
     @SerialName("Failed") val failed: Boolean? = null,
+    /** The streams playing (#274): the web UI's session shows them. */
+    @SerialName("AudioStreamIndex") val audioStreamIndex: Int? = null,
+    @SerialName("SubtitleStreamIndex") val subtitleStreamIndex: Int? = null,
 )

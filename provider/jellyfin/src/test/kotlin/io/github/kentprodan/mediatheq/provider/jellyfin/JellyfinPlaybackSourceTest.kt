@@ -430,4 +430,27 @@ class JellyfinPlaybackSourceTest {
             assertThat(body()["DeviceProfile"]!!.jsonObject["SubtitleProfiles"].toString())
                 .isEqualTo("""[{"Format":"subrip","Method":"External"},{"Format":"pgssub","Method":"Encode"}]""")
         }
+
+    @Test
+    fun `a video's reports carry its stream indexes, so the web UI's session shows them`() =
+        runTest {
+            mockServer.enqueue(MockResponse(code = 204))
+            val stream =
+                PlaybackStream(
+                    itemId,
+                    "u",
+                    PlayMethod.DirectPlay,
+                    "src-1",
+                    "session-1",
+                    canSeek = true,
+                    audioStreamIndex = 2,
+                    subtitleStreamIndex = 5,
+                )
+
+            source.reportProgress(server(), PlaybackReport(stream, position = 12.seconds, isPaused = false))
+
+            val body = body()
+            assertThat(body["AudioStreamIndex"].toString()).isEqualTo("2")
+            assertThat(body["SubtitleStreamIndex"].toString()).isEqualTo("5")
+        }
 }

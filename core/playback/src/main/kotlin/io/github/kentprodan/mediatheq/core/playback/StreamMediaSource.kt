@@ -21,6 +21,7 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.SubtitleDelivery
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -40,9 +41,14 @@ internal sealed interface StreamSource {
         val url: String,
     ) : StreamSource
 
-    /** A video file played as it is (ADR 0047): straight from the server, never through the streaming cache. */
+    /**
+     * A video file played as it is (ADR 0047): straight from the server, never through the streaming cache, with its
+     * external subtitle files side-loaded ([subtitles], the [chosenSubtitle] flagged default; #274).
+     */
     data class Direct(
         val url: String,
+        val subtitles: List<SubtitleDelivery> = emptyList(),
+        val chosenSubtitle: Int? = null,
     ) : StreamSource
 }
 
@@ -102,7 +108,7 @@ internal suspend fun chooseVideoSource(
                 return if (result.value.segmented) {
                     StreamSource.Hls(result.value.url)
                 } else {
-                    StreamSource.Direct(result.value.url)
+                    StreamSource.Direct(result.value.url, result.value.subtitles, result.value.subtitleStreamIndex)
                 }
             }
 
@@ -165,7 +171,13 @@ internal class StreamMediaSourceFactory(
             is StreamSource.Direct -> {
                 DefaultMediaSourceFactory(authenticated())
                     .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
-                    .createMediaSource(mediaItem.buildUpon().setUri(source.url).build())
+                    .createMediaSource(
+                        mediaItem
+                            .buildUpon()
+                            .setUri(source.url)
+                            .setSubtitleConfigurations(sideLoadedSubtitles(source.subtitles, source.chosenSubtitle))
+                            .build(),
+                    )
             }
 
             is StreamSource.Hls -> {

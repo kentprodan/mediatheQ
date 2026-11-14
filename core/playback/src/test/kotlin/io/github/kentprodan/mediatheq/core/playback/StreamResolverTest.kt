@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
+import io.github.kentprodan.mediatheq.core.model.ResolvedTracks
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
@@ -418,7 +419,14 @@ class StreamResolverTest {
     fun `a video asks for the video profile from its start, and its stream is known for reports`() =
         runTest {
             val video =
-                StreamResolver(repository, { setOf("audio/flac") }, network, audioPreferences) { setOf("video/avc") }
+                StreamResolver(
+                    repository,
+                    { setOf("audio/flac") },
+                    network,
+                    audioPreferences,
+                    videoDecoders = { setOf("video/avc") },
+                    trackChooser = { ResolvedTracks(audioIndex = 2, subtitleIndex = 5) },
+                )
 
             val stream = (video.resolveVideo(itemId, 90.seconds) as MqResult.Success).value
 
@@ -426,6 +434,9 @@ class StreamResolverTest {
             assertThat(profile.videoCodecs).containsExactly("h264")
             assertThat(profile.maxHeight).isNull()
             assertThat(repository.streamChoices.single().startPosition).isEqualTo(90.seconds)
+            // The chosen tracks go with the request (#274).
+            assertThat(repository.streamChoices.single().audioStreamIndex).isEqualTo(2)
+            assertThat(repository.streamChoices.single().subtitleStreamIndex).isEqualTo(5)
             assertThat(video.current(itemId)).isEqualTo(stream)
             // No music quality: the instant transcoder leaves a video alone.
             assertThat(video.quality(itemId)).isNull()
