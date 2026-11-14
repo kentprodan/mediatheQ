@@ -351,4 +351,23 @@ class VideoPlayerViewModelTest {
 
             assertThat(viewModel.extras.value).isEqualTo(extras)
         }
+
+    @Test
+    fun `skipping credits that run to the end lands where the next episode's countdown runs`() =
+        test {
+            // 41 to 44 min on a 44 min episode, the next one queued and auto-play on.
+            val credits = MediaSegment(SegmentType.Outro, 41.minutes, 44.minutes)
+            videos.segments[id] = listOf(credits)
+            val viewModel = viewModel()
+            playing()
+            playback.state.value = playback.state.value.copy(duration = 44.minutes, hasNext = true)
+            backgroundScope.launch { viewModel.nextIn.collect() }
+
+            playback.position.value = 41.minutes + 2.seconds
+            runCurrent()
+            viewModel.onAction(VideoPlayerAction.SkipSegment)
+            runCurrent()
+
+            assertThat(playback.commands).contains("seekTo ${44.minutes - 10.seconds}")
+        }
 }

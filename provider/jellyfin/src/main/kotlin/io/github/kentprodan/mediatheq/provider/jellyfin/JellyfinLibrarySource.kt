@@ -201,7 +201,8 @@ class JellyfinLibrarySource internal constructor(
             server.connection,
             "MediaSegments/${videoId.itemId}",
             MediaSegmentsDto.serializer(),
-            listOf("includeSegmentTypes" to "Intro,Recap,Preview,Commercial,Outro"),
+            // No includeSegmentTypes: an array the controller may not read comma-joined; unknown types are dropped here.
+            emptyList(),
         ) { result ->
             result.items.mapNotNull { segment ->
                 val type = SegmentType.entries.firstOrNull { it.name == segment.type } ?: return@mapNotNull null

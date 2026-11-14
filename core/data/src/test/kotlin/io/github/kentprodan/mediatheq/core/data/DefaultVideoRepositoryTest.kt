@@ -21,6 +21,7 @@ import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.StreamType
+import io.github.kentprodan.mediatheq.core.model.TrickplayInfo
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoFormat
@@ -44,6 +45,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class DefaultVideoRepositoryTest {
     private val database = inMemoryDatabase()
@@ -200,6 +202,22 @@ class DefaultVideoRepositoryTest {
             preferences.setOfflineMode(true)
             assertThat(repository.segments(id("other"))).isEmpty()
             assertThat(source.calls.filter { it == "segments other" }).isEmpty()
+        }
+
+    @Test
+    fun `the tiles' and chapter pictures' addresses are filled, the tiles with the login header`() =
+        runTest {
+            accountStore.save(StoredAccount("http://nas:8096", server, "Home", "user-1", "Ana", accessToken = "token"))
+            val tiles = TrickplayInfo("s", 320, 180, 10, 10, 250, 10.seconds)
+            source.extrasAnswer =
+                MqResult.Success(PlayerExtras(listOf(Chapter(0, 0.minutes, "One", imageTag = "t")), tiles))
+
+            val extras = repository.playerExtras(movie.id)
+
+            assertThat(extras.trickplay!!.tileUrls).hasSize(3)
+            assertThat(extras.trickplay!!.tileUrls.first()).startsWith("http://nas:8096/")
+            assertThat(extras.trickplay!!.headers).isNotEmpty()
+            assertThat(extras.chapters.single().imageUrl).isNotNull()
         }
 
     @Test
