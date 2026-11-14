@@ -23,6 +23,10 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -67,6 +71,14 @@ fun MqVideoControls(
     notes: List<String> = emptyList(),
     /** Tapping the title (#276): shows or hides the info line; `null` = not tappable. */
     onTitleClick: (() -> Unit)? = null,
+    /** Chapter starts (#277): marks on the seek bar. */
+    chapters: List<Duration> = emptyList(),
+    /** Opens the chapters sheet (#277); `null` hides the button. */
+    onChapters: (() -> Unit)? = null,
+    /** The position being dragged to, `null` once let go (#277). */
+    onScrub: (Duration?) -> Unit = {},
+    /** Shown above the seek bar while dragging (#277): the trickplay preview of [Duration]. */
+    preview: @Composable (Duration) -> Unit = {},
 ) {
     val skipBack = stringResource(R.string.core_ui_video_back_10)
     val skipForward = stringResource(R.string.core_ui_video_forward_10)
@@ -90,6 +102,10 @@ fun MqVideoControls(
             onTracks,
             notes,
             onTitleClick,
+            chapters,
+            onChapters,
+            onScrub,
+            preview,
         )
     }
 }
@@ -113,7 +129,12 @@ private fun VideoControlsContent(
     onTracks: (() -> Unit)?,
     notes: List<String>,
     onTitleClick: (() -> Unit)?,
+    chapters: List<Duration>,
+    onChapters: (() -> Unit)?,
+    onScrub: (Duration?) -> Unit,
+    preview: @Composable (Duration) -> Unit,
 ) {
+    var scrubbing by remember { mutableStateOf<Duration?>(null) }
     Box(
         modifier
             .fillMaxSize()
@@ -137,6 +158,11 @@ private fun VideoControlsContent(
                     }
                     notes.forEach {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.8f))
+                    }
+                }
+                onChapters?.let {
+                    IconButton(onClick = it) {
+                        Icon(MqIcons.Checklist, stringResource(R.string.core_ui_chapters_open), tint = Color.White)
                     }
                 }
                 onTracks?.let {
@@ -189,12 +215,30 @@ private fun VideoControlsContent(
                     modifier = Modifier.semantics { contentDescription = skipForward },
                 ) { Text("+10") }
             }
+            scrubbing?.let { at ->
+                Box(Modifier.fillMaxWidth()) {
+                    val fraction = if (duration > Duration.ZERO) (at / duration).toFloat().coerceIn(0f, 1f) else 0f
+                    Box(Modifier.fillMaxWidth(fraction.coerceAtLeast(0.001f)), contentAlignment = Alignment.BottomEnd) {
+                        preview(at)
+                    }
+                }
+            }
             MqSeekBar(
                 progress = if (duration > Duration.ZERO) (position / duration).toFloat().coerceIn(0f, 1f) else 0f,
                 elapsedLabel = formatDuration(position),
                 totalLabel = formatDuration(duration),
                 onSeek = { fraction -> onSeek(duration * fraction.toDouble()) },
                 enabled = isSeekable,
+                marks =
+                    if (duration > Duration.ZERO) {
+                        chapters.filter { it > Duration.ZERO }.map { (it / duration).toFloat() }
+                    } else {
+                        emptyList()
+                    },
+                onScrub = { fraction ->
+                    scrubbing = fraction?.let { duration * it.toDouble() }
+                    onScrub(scrubbing)
+                },
             )
         }
     }

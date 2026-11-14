@@ -26,6 +26,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -72,8 +73,13 @@ fun MqWaveformProgress(
     enabled: Boolean = true,
     style: MqWaveformStyle = MqWaveformStyle.Sharp,
     fallback: MqProgressFallback = MqProgressFallback.Basic,
+    /** Chapter marks (#277), as fractions of the track; drawn on the basic bar. */
+    marks: List<Float> = emptyList(),
+    /** The dragged fraction while dragging, `null` once let go (#277: the seek preview). */
+    onScrub: (Float?) -> Unit = {},
 ) {
     var dragged by remember { mutableStateOf<Float?>(null) }
+    LaunchedEffect(dragged) { onScrub(dragged) }
     val shown = dragged ?: progress.coerceIn(0f, 1f)
     val description = stringResource(R.string.mq_seek)
     val fade = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
@@ -100,10 +106,12 @@ fun MqWaveformProgress(
                 },
                 enabled = enabled,
                 modifier =
-                    Modifier.fillMaxSize().semantics {
-                        contentDescription = description
-                        stateDescription = positionText
-                    },
+                    Modifier
+                        .fillMaxSize()
+                        .semantics {
+                            contentDescription = description
+                            stateDescription = positionText
+                        }.then(if (marks.isEmpty()) Modifier else Modifier.chapterMarks(marks)),
             )
         } else {
             SeekArea(
@@ -291,3 +299,18 @@ private val BAR_WIDTH = 3.dp
 private val BAR_GAP = 2.dp
 private val REFLECTION_GAP = 1.dp
 private const val REFLECTION_ALPHA = 0.35f
+
+/** Short ticks at [marks] across the bar (#277), under the thumb; the Slider's track is inset by its thumb's half. */
+@Composable
+private fun Modifier.chapterMarks(marks: List<Float>): Modifier {
+    val color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    return drawWithContent {
+        val inset = 10.dp.toPx()
+        val width = size.width - 2 * inset
+        marks.forEach { mark ->
+            val x = inset + width * mark.coerceIn(0f, 1f)
+            drawLine(color, Offset(x, center.y - 6.dp.toPx()), Offset(x, center.y + 6.dp.toPx()), 2.dp.toPx())
+        }
+        drawContent()
+    }
+}

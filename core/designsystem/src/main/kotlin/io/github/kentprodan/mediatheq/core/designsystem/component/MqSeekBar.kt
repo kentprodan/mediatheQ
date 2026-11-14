@@ -35,6 +35,10 @@ fun MqSeekBar(
     fallback: MqProgressFallback = MqProgressFallback.Basic,
     remainingLabel: String? = null,
     center: @Composable () -> Unit = {},
+    /** Chapter marks as fractions (#277). */
+    marks: List<Float> = emptyList(),
+    /** The dragged fraction, `null` once let go (#277). */
+    onScrub: (Float?) -> Unit = {},
 ) {
     Column(modifier) {
         MqWaveformProgress(
@@ -45,6 +49,8 @@ fun MqSeekBar(
             enabled = enabled,
             style = style,
             fallback = fallback,
+            marks = marks,
+            onScrub = onScrub,
         )
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
