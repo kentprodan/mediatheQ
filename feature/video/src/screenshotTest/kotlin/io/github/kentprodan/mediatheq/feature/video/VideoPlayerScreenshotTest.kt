@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
+import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
@@ -115,6 +116,33 @@ fun VideoPlayerNotesScreenshot() =
             position = 12.minutes,
             onAction = {},
             onBack = {},
+            surface = darkFrame,
+        )
+    }
+
+/** An intro with "Show a button" (#277): Skip intro above the seek bar. */
+@PreviewTest
+@Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
+@Composable
+fun VideoPlayerSkipIntroScreenshot() =
+    MediatheqTheme {
+        VideoPlayerScreen(playing, position = 1.minutes, onAction = {
+        }, onBack = {}, skip = SegmentType.Intro, surface = darkFrame)
+    }
+
+/** Credits skipped by themselves (#277): the short note, and Skip credits on another segment. */
+@PreviewTest
+@Preview(name = "Landscape", device = "spec:width=915dp,height=412dp,dpi=420")
+@Composable
+fun VideoPlayerSkippedScreenshot() =
+    MediatheqTheme {
+        VideoPlayerScreen(
+            playing.copy(controlsShown = false),
+            position = 41.minutes,
+            onAction = {},
+            onBack = {},
+            skip = SegmentType.Outro,
+            skipped = SegmentType.Intro,
             surface = darkFrame,
         )
     }
