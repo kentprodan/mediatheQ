@@ -33,6 +33,9 @@ data class TrickplayInfo(
 /** The kinds of media segments the player acts on (#277); Intro Skipper's credits arrive as [Outro]. */
 enum class SegmentType { Intro, Recap, Preview, Commercial, Outro }
 
+/** What the player does when a segment starts (Settings -> Video -> Skipping, #277). */
+enum class SkipMode { Off, Button, Auto }
+
 /** A part of a video that can be skipped, from Jellyfin's media segments (#277). */
 data class MediaSegment(
     val type: SegmentType,

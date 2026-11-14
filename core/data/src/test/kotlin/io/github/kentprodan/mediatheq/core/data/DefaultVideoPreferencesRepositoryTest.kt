@@ -3,6 +3,8 @@ package io.github.kentprodan.mediatheq.core.data
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.datastore.AudioPreferencesStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredVideoPreferences
+import io.github.kentprodan.mediatheq.core.model.SegmentType
+import io.github.kentprodan.mediatheq.core.model.SkipMode
 import io.github.kentprodan.mediatheq.core.model.SubtitleMode
 import io.github.kentprodan.mediatheq.core.model.TrackDefaults
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
@@ -44,9 +46,13 @@ class DefaultVideoPreferencesRepositoryTest {
                     autoPlayNext = false,
                     pictureInPicture = false,
                     keepAudio = true,
+                    skipIntro = SkipMode.Auto,
+                    skipCredits = SkipMode.Off,
+                    skipRecapPreview = SkipMode.Auto,
                 )
 
             repository.update { changed }
+            assertThat(repository.preferences.first().skipFor(SegmentType.Commercial)).isEqualTo(SkipMode.Auto)
 
             assertThat(repository.preferences.first()).isEqualTo(changed)
             assertThat(repository.preferences.first().trackDefaults("de"))
