@@ -3,11 +3,13 @@ package io.github.kentprodan.mediatheq.feature.downloads
 import io.github.kentprodan.mediatheq.core.common.foldForSearch
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.data.VideoDownload
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
 import kotlin.time.Duration
 
 /**
@@ -127,3 +129,37 @@ internal fun filterDownloads(
 }
 
 private fun List<TrackDownload>.duration(): Duration = fold(Duration.ZERO) { total, it -> total + it.track.duration }
+
+/**
+ * The Downloads tab's videos (#279): finished movies, finished episodes under their season (through the season or on
+ * their own), and everything unfinished. [info] names the episodes' seasons; one not in the library keeps its title.
+ */
+internal fun videoDownloadsContent(
+    videos: List<VideoDownload>,
+    info: Map<MediaId, Video>,
+): Triple<List<VideoDownload>, List<DownloadedSeason>, List<VideoDownload>> {
+    val (done, queue) = videos.partition { it.state == DownloadState.Completed }
+    val movies = done.filter { download -> download.origins.any { it is DownloadOrigin.Movie } }
+    val seasons =
+        done
+            .filterNot { it in movies }
+            .groupBy { download ->
+                download.origins.firstNotNullOfOrNull { (it as? DownloadOrigin.Season)?.id }
+                    ?: info[download.id]?.seasonId
+            }.mapNotNull { (seasonId, episodes) ->
+                seasonId ?: return@mapNotNull null
+                val first = info[episodes.first().id]
+                val title =
+                    listOfNotNull(first?.seriesName, first?.seasonNumber?.let { "Season $it" })
+                        .joinToString(" · ")
+                        .ifEmpty { episodes.first().title }
+                DownloadedSeason(
+                    seasonId,
+                    title,
+                    episodes.sortedBy { info[it.id]?.episodeNumber ?: Int.MAX_VALUE },
+                    episodes.sumOf { it.bytes },
+                    whole = episodes.any { DownloadOrigin.Season(seasonId) in it.origins },
+                )
+            }.sortedBy { it.title.lowercase() }
+    return Triple(movies, seasons, queue)
+}

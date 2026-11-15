@@ -225,6 +225,37 @@ private fun FilesTab(
                 )
             }
         }
+        section(R.string.downloads_section_movies, state.movies.isNotEmpty()) {
+            items(state.movies, key = { "movie-${it.id}" }) { movie ->
+                VideoCollectionRow(
+                    movie.title,
+                    Formatter.formatShortFileSize(LocalContext.current, movie.bytes),
+                ) { onAction(DownloadsAction.RemoveVideos(DownloadOrigin.Movie(movie.id))) }
+            }
+        }
+        section(R.string.downloads_section_seasons, state.seasons.isNotEmpty()) {
+            items(state.seasons, key = { "season-${it.seasonId}" }) { season ->
+                val size = Formatter.formatShortFileSize(LocalContext.current, season.bytes)
+                VideoCollectionRow(
+                    season.title,
+                    pluralStringResource(
+                        R.plurals.downloads_episodes,
+                        season.episodes.size,
+                        season.episodes.size,
+                        size,
+                    ),
+                ) {
+                    // The season's own download; episodes downloaded on their own keep theirs.
+                    onAction(
+                        if (season.whole) {
+                            DownloadsAction.RemoveVideos(DownloadOrigin.Season(season.seasonId))
+                        } else {
+                            DownloadsAction.RemoveVideos(DownloadOrigin.Single, season.episodes.map { it.id })
+                        },
+                    )
+                }
+            }
+        }
         section(R.string.downloads_section_songs, state.songs.isNotEmpty()) {
             items(
                 state.songs,
@@ -266,6 +297,34 @@ private fun QueueTab(
         }
         items(state.downloading, key = { "queue-${it.track.id}" }) {
             DownloadRow(it, state.paused, onAction, DownloadsAction::Remove)
+        }
+        items(state.videoQueue, key = { "video-queue-${it.id}" }) { video ->
+            ListItem(
+                headlineContent = { Text(video.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                supportingContent = {
+                    Text(
+                        when {
+                            video.cannotDownload -> stringResource(R.string.downloads_video_cannot)
+                            video.state == DownloadState.Failed -> stringResource(R.string.downloads_failed)
+                            else -> Formatter.formatShortFileSize(LocalContext.current, video.bytes)
+                        },
+                        color =
+                            if (video.state == DownloadState.Failed) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                    )
+                },
+                trailingContent = {
+                    IconButton(onClick = { onAction(DownloadsAction.CancelVideo(video.id)) }) {
+                        Icon(
+                            MqIcons.Close,
+                            contentDescription = stringResource(R.string.downloads_remove_video, video.title),
+                        )
+                    }
+                },
+            )
         }
     }
 }
@@ -357,6 +416,25 @@ internal fun CleanupBody(preview: CleanupPreview) {
             )
         }
     Text(text, style = MaterialTheme.typography.bodyMedium)
+}
+
+/** A downloaded movie or season (#279): its name, its size, and Remove download. */
+@Composable
+private fun VideoCollectionRow(
+    title: String,
+    details: String,
+    onRemove: () -> Unit,
+) {
+    ListItem(
+        headlineContent = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        supportingContent = { Text(details) },
+        leadingContent = { Icon(MqIcons.Movie, contentDescription = null) },
+        trailingContent = {
+            IconButton(onClick = onRemove) {
+                Icon(MqIcons.Delete, contentDescription = stringResource(R.string.downloads_remove_video, title))
+            }
+        },
+    )
 }
 
 /** A titled section, only when [shown]. */
