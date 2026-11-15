@@ -25,7 +25,17 @@ sealed interface DownloadOrigin {
         override val auto: Boolean = false,
     ) : DownloadOrigin
 
-    /** The track on its own (a track menu, the Songs tab). */
+    /** A movie (#279): the Downloads tab's Movies. */
+    data class Movie(
+        val id: MediaId,
+    ) : DownloadOrigin
+
+    /** A season's episodes (#279); an episode on its own is [Single], kept when the season goes. */
+    data class Season(
+        val id: MediaId,
+    ) : DownloadOrigin
+
+    /** The track (or episode, #279) on its own (a track menu, the Songs tab). */
     data object Single : DownloadOrigin
 
     /** A favorite track, downloaded by itself (#145). */
@@ -79,7 +89,13 @@ internal class DefaultDownloadOrigins
 
         override suspend fun removeCollection(origin: DownloadOrigin) {
             val server =
-                (origin as? DownloadOrigin.Album)?.id?.serverId ?: (origin as? DownloadOrigin.Playlist)?.id?.serverId
+                when (origin) {
+                    is DownloadOrigin.Album -> origin.id.serverId
+                    is DownloadOrigin.Playlist -> origin.id.serverId
+                    is DownloadOrigin.Movie -> origin.id.serverId
+                    is DownloadOrigin.Season -> origin.id.serverId
+                    else -> null
+                }
             // Single and Favorite origins belong to their tracks: they are removed per track.
             if (server != null) dao.removeCollection(origin.kind, server.value, origin.collectionId)
         }
@@ -99,6 +115,8 @@ internal class DefaultDownloadOrigins
                 when (this) {
                     is DownloadOrigin.Album -> if (auto) AUTO_ALBUM else ALBUM
                     is DownloadOrigin.Playlist -> if (auto) AUTO_PLAYLIST else PLAYLIST
+                    is DownloadOrigin.Movie -> MOVIE
+                    is DownloadOrigin.Season -> SEASON
                     DownloadOrigin.Single -> SINGLE
                     DownloadOrigin.Favorite -> FAVORITE
                 }
@@ -108,6 +126,8 @@ internal class DefaultDownloadOrigins
                 when (this) {
                     is DownloadOrigin.Album -> id.itemId
                     is DownloadOrigin.Playlist -> id.itemId
+                    is DownloadOrigin.Movie -> id.itemId
+                    is DownloadOrigin.Season -> id.itemId
                     DownloadOrigin.Single, DownloadOrigin.Favorite -> ""
                 }
 
@@ -120,6 +140,8 @@ internal class DefaultDownloadOrigins
                 AUTO_ALBUM -> DownloadOrigin.Album(MediaId(ServerId(serverId), collectionId), auto = true)
                 AUTO_PLAYLIST -> DownloadOrigin.Playlist(MediaId(ServerId(serverId), collectionId), auto = true)
                 FAVORITE -> DownloadOrigin.Favorite
+                MOVIE -> DownloadOrigin.Movie(MediaId(ServerId(serverId), collectionId))
+                SEASON -> DownloadOrigin.Season(MediaId(ServerId(serverId), collectionId))
                 else -> null
             }
 
@@ -132,5 +154,9 @@ internal class DefaultDownloadOrigins
             const val AUTO_ALBUM = "AutoAlbum"
             const val AUTO_PLAYLIST = "AutoPlaylist"
             const val FAVORITE = "Favorite"
+
+            // Video downloads (#279); an older app skips these kinds.
+            const val MOVIE = "Movie"
+            const val SEASON = "Season"
         }
     }

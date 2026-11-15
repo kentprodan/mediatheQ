@@ -32,6 +32,18 @@ interface DownloadRepository {
         origin: DownloadOrigin? = DownloadOrigin.Single,
     )
 
+    /** Every video download of the active account's server (#279), with its subtitle files counted in. */
+    val videoDownloads: Flow<List<VideoDownload>>
+
+    /**
+     * Queues [videos] as originals with their external subtitle files (#279), through [origin] ([DownloadOrigin.Movie],
+     * [DownloadOrigin.Season] or [DownloadOrigin.Single] for an episode on its own); `null` retries.
+     */
+    fun downloadVideos(
+        videos: List<VideoToDownload>,
+        origin: DownloadOrigin?,
+    )
+
     /** Deletes the local copies of [ids], whatever they were downloaded through. */
     fun remove(ids: List<MediaId>)
 
@@ -79,6 +91,25 @@ interface DownloadRepository {
 data class CleanupPreview(
     val failed: Int,
     val bytes: Long,
+)
+
+/** A video to download (#279): its [id], a [title] kept for when it leaves the library, its external text subtitles. */
+data class VideoToDownload(
+    val id: MediaId,
+    val title: String,
+    val subtitleIndexes: List<Int> = emptyList(),
+)
+
+/** One video download (#279). */
+data class VideoDownload(
+    val id: MediaId,
+    val title: String,
+    val state: DownloadState,
+    /** The video and its subtitle files, on the device so far. */
+    val bytes: Long = 0,
+    val origins: Set<DownloadOrigin> = emptySet(),
+    /** Failed because the phone cannot play the original, and videos are never converted (ADR 0024). */
+    val cannotDownload: Boolean = false,
 )
 
 /** One download: its track and where it is. */
