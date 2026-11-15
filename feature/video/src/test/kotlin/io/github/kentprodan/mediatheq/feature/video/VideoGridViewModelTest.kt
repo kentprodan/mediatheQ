@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.video
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferences
+import io.github.kentprodan.mediatheq.core.data.VideoList
 import io.github.kentprodan.mediatheq.core.data.VideoSort
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Series
@@ -63,7 +64,7 @@ class VideoGridViewModelTest {
         }
 
     @Test
-    fun `sort and the unwatched filter ask again and survive in the saved state`() =
+    fun `the sort is saved per list, the unwatched filter in the saved state`() =
         runTest(mainDispatcherRule.testDispatcher) {
             videos.movies.value = listOf(watched, fresh)
             val saved = SavedStateHandle()
@@ -77,9 +78,18 @@ class VideoGridViewModelTest {
             assertThat(state.sort).isEqualTo(VideoSort.Year)
             assertThat(state.items.map { it.title }).containsExactly("Dune")
             assertThat(videos.requests.last()).isEqualTo("movies:Year:true")
-            val again = MoviesViewModel(saved, preferences, videos)
+            assertThat(preferences.preferences.value.videoSorts).containsExactly(VideoList.Movies, VideoSort.Year)
+            // The unwatched filter comes back with the saved state (process death).
+            val restored = MoviesViewModel(saved, preferences, videos)
+            backgroundScope.launch { restored.uiState.collect() }
+            assertThat((restored.uiState.value as VideoGridUiState.Content).unwatched).isTrue()
+            // A restart: a new grid without the saved state still sorts by year; Series keeps its own sort.
+            val again = MoviesViewModel(SavedStateHandle(), preferences, videos)
             backgroundScope.launch { again.uiState.collect() }
             assertThat((again.uiState.value as VideoGridUiState.Content).sort).isEqualTo(VideoSort.Year)
+            val series = SeriesListViewModel(SavedStateHandle(), preferences, videos)
+            backgroundScope.launch { series.uiState.collect() }
+            assertThat((series.uiState.value as VideoGridUiState.Content).sort).isEqualTo(VideoSort.Name)
         }
 
     @Test

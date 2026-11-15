@@ -22,9 +22,11 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.navigation.MovieKey
 import io.github.kentprodan.mediatheq.core.navigation.MoviesKey
+import io.github.kentprodan.mediatheq.core.navigation.MoviesTabKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
 import io.github.kentprodan.mediatheq.core.navigation.SeriesListKey
+import io.github.kentprodan.mediatheq.core.navigation.SeriesTabKey
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 
 internal val MovieTexts =
@@ -38,22 +40,24 @@ internal val SeriesTexts =
 
 /** Registers the Movies and Series grids (#270), the movie and series pages (#273) and the video player (#272). */
 fun EntryProviderScope<NavKey>.videoEntry(navigator: Navigator) {
-    entry<MoviesKey> {
+    @Composable
+    fun Movies(onBack: (() -> Unit)?) {
         val viewModel: MoviesViewModel = hiltViewModel()
         val state by viewModel.uiState.collectAsStateWithLifecycle()
-        VideoGridScreen(MovieTexts, state, viewModel::onAction, { navigator.navigateTo(MovieKey(it)) }, navigator::back)
+        VideoGridScreen(MovieTexts, state, viewModel::onAction, { navigator.navigateTo(MovieKey(it)) }, onBack)
     }
-    entry<SeriesListKey> {
+
+    @Composable
+    fun Series(onBack: (() -> Unit)?) {
         val viewModel: SeriesListViewModel = hiltViewModel()
         val state by viewModel.uiState.collectAsStateWithLifecycle()
-        VideoGridScreen(
-            SeriesTexts,
-            state,
-            viewModel::onAction,
-            { navigator.navigateTo(SeriesKey(it)) },
-            navigator::back,
-        )
+        VideoGridScreen(SeriesTexts, state, viewModel::onAction, { navigator.navigateTo(SeriesKey(it)) }, onBack)
     }
+    entry<MoviesKey> { Movies(navigator::back) }
+    entry<SeriesListKey> { Series(navigator::back) }
+    // As navigation entries (#325): the tab's root, nothing to go back to.
+    entry<MoviesTabKey> { Movies(null) }
+    entry<SeriesTabKey> { Series(null) }
     entry<MovieKey> { key ->
         MovieRoute(
             key.id,

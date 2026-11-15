@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.search
 
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
+import io.github.kentprodan.mediatheq.core.data.VideoSearchResults
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -27,6 +28,8 @@ sealed interface SearchUiState {
         /** The chip chosen (#136); one with nothing to show falls back to All, see [filter]. */
         val chosenFilter: SearchFilter = SearchFilter.All,
         val page: SearchPagePreferences = SearchPagePreferences(),
+        /** Movies, series and episodes found (#325), shown under All only; never selectable. */
+        val videos: VideoSearchResults = VideoSearchResults(),
     ) : SearchUiState {
         /** The chip in effect. */
         val filter: SearchFilter get() = if (results.has(chosenFilter)) chosenFilter else SearchFilter.All
@@ -40,9 +43,6 @@ sealed interface SearchUiState {
                 shown.artists.map { it.id } + shown.albums.map { it.id } + shown.tracks.map { it.id } +
                     shown.playlists.map { it.id }
     }
-
-    /** Video mode (ADR 0051): no music is searched; movies and series come with #325. */
-    data object VideoMode : SearchUiState
 
     data class NoResults(
         val query: String,

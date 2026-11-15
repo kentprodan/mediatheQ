@@ -46,3 +46,11 @@ data object PlaylistsKey : NavKey
 /** Library -> Songs as its own navigation entry (#122). */
 @Serializable
 data object TracksKey : NavKey
+
+/** Movies as its own navigation entry (#325): the grid without a Back button. */
+@Serializable
+data object MoviesTabKey : NavKey
+
+/** Series as its own navigation entry (#325). */
+@Serializable
+data object SeriesTabKey : NavKey

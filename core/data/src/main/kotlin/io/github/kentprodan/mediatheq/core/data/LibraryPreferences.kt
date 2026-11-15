@@ -32,6 +32,8 @@ data class LibraryPreferences(
     val sorts: Map<LibraryFilter, LibrarySort> = emptyMap(),
     /** The tabs whose sort is turned around (#187). */
     val reversedSorts: Set<LibraryFilter> = emptySet(),
+    /** The Movies and Series grids' sorts (#325); missing = [VideoSort.Name]. */
+    val videoSorts: Map<VideoList, VideoSort> = emptyMap(),
     val ratingMode: RatingMode = RatingMode.WholeStars,
     /** Only downloads show and play, also with a network (#63); without one, offline mode is on anyway. */
     val offlineMode: Boolean = false,
@@ -56,6 +58,8 @@ data class LibraryPreferences(
     /** The sort of [filter]: the stored one when that tab offers it, else its default. */
     fun sortFor(filter: LibraryFilter): LibrarySort =
         sorts[filter]?.takeIf { it in filter.sorts } ?: filter.sorts.first()
+
+    fun videoSortFor(list: VideoList): VideoSort = videoSorts[list] ?: VideoSort.Name
 
     /** [filter]'s sort runs against its natural direction (#187). */
     fun isReversed(filter: LibraryFilter): Boolean = filter in reversedSorts

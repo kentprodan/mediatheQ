@@ -292,6 +292,8 @@ internal val MainNavEntry.label: Int
             MainNavEntry.Tracks -> R.string.settings_entry_tracks
             MainNavEntry.Search -> R.string.settings_entry_search
             MainNavEntry.Downloads -> R.string.settings_entry_downloads
+            MainNavEntry.Movies -> R.string.settings_entry_movies
+            MainNavEntry.Series -> R.string.settings_entry_series
         }
 
 private val PortraitNavStyle.label: Int

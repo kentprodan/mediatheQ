@@ -5,9 +5,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
+import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
+import io.github.kentprodan.mediatheq.core.navigation.MovieKey
+import io.github.kentprodan.mediatheq.core.navigation.MoviesTabKey
 import io.github.kentprodan.mediatheq.core.navigation.SearchKey
+import io.github.kentprodan.mediatheq.core.navigation.SeriesTabKey
 import io.github.kentprodan.mediatheq.core.navigation.TracksKey
 import org.junit.Test
 
@@ -23,6 +28,16 @@ class TabNavigatorTest {
         assertThat(navigator.currentTab).isEqualTo(TopLevelTab.Home)
         assertThat(navigator.stack(TopLevelTab.Home)).containsExactly(HomeKey)
         assertThat(navigator.visibleTabs).containsExactly(TopLevelTab.Home)
+    }
+
+    @Test
+    fun `the Movies and Series entries start at their own grids, not the Library's`() {
+        navigator.select(TopLevelTab.Movies)
+        navigator.navigateTo(MovieKey(MediaId(ServerId("s"), "m1")))
+        navigator.select(TopLevelTab.Movies)
+
+        assertThat(navigator.stack(TopLevelTab.Movies)).containsExactly(MoviesTabKey)
+        assertThat(navigator.stack(TopLevelTab.Series)).containsExactly(SeriesTabKey)
     }
 
     @Test

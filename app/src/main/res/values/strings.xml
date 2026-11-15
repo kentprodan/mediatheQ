@@ -12,6 +12,8 @@
     <string name="tab_tracks">Tracks</string>
     <string name="tab_search">Search</string>
     <string name="tab_downloads">Downloads</string>
+    <string name="tab_movies">Movies</string>
+    <string name="tab_series">Series</string>
     <string name="user_data_save_failed">Could not save that change. Try again.</string>
     <string name="playback_not_downloaded_skipped">“%1$s” is not downloaded, skipped</string>
     <string name="playback_not_downloaded">“%1$s” is not downloaded and cannot play offline</string>

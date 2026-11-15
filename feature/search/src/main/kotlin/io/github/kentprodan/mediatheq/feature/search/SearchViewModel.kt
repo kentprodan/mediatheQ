@@ -13,12 +13,16 @@ import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.data.VideoSearchResults
 import io.github.kentprodan.mediatheq.core.data.downloadAlbums
 import io.github.kentprodan.mediatheq.core.data.downloadPlaylists
 import io.github.kentprodan.mediatheq.core.data.tracksOfAlbums
 import io.github.kentprodan.mediatheq.core.data.tracksOfArtists
 import io.github.kentprodan.mediatheq.core.data.tracksOfPlaylists
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
@@ -53,6 +57,7 @@ class SearchViewModel
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
         private val playlists: PlaylistRepository,
+        private val videos: VideoRepository,
         appMode: AppModeRepository,
     ) : ViewModel() {
         private val selection = MutableStateFlow(ListSelection<MediaId>())
@@ -70,15 +75,17 @@ class SearchViewModel
         // shortcut: a query runs once, so a sync finishing (or, in offline mode, a download completing) while results
         // show does not refresh them; retype to see it.
         val uiState: StateFlow<SearchUiState> =
-            // Offline mode on or off runs the query again: it searches other items (#63).
-            combine(query, retries, libraryRepository.offline) { query, _, offline -> query.trim() to offline }
+            // Offline mode on or off runs the query again: it searches other items (#63); so does the app mode (#325).
+            combine(query, retries, libraryRepository.offline, appMode.mode) { query, _, offline, mode ->
+                Query(query.trim(), offline, mode)
+            }
                 // Clearing the field shows the recent searches at once; typing waits for a short pause.
-                .debounce { (query, _) -> if (query.isEmpty()) 0L else DEBOUNCE_MILLIS }
-                .flatMapLatest<Pair<String, Boolean>, SearchUiState> { (query, offline) ->
-                    if (query.isEmpty()) {
+                .debounce { if (it.text.isEmpty()) 0L else DEBOUNCE_MILLIS }
+                .flatMapLatest<Query, SearchUiState> { query ->
+                    if (query.text.isEmpty()) {
                         preferencesRepository.recentSearches.map { SearchUiState.Recent(it) }
                     } else {
-                        flow { emit(search(query, offline)) }
+                        flow { emit(search(query)) }
                     }
                 }.combine(combine(selection, addToPlaylist, filter, page, ::Extras)) { state, extras ->
                     if (state is SearchUiState.Results) {
@@ -93,8 +100,7 @@ class SearchViewModel
                     } else {
                         state
                     }
-                }.combine(appMode.mode) { state, mode -> if (mode.music) state else SearchUiState.VideoMode }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState.Loading)
+                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState.Loading)
 
         fun onAction(action: SearchAction) {
             when (action) {
@@ -245,23 +251,47 @@ class SearchViewModel
             viewModelScope.launch { preferencesRepository.addRecentSearch(query) }
         }
 
-        private suspend fun search(
-            query: String,
-            offline: Boolean,
-        ): SearchUiState =
-            when (val result = libraryRepository.search(query, FULL_LIMIT)) {
-                is MqResult.Failure -> {
-                    SearchUiState.Error(result.error)
+        /** Music and video as [Query.mode] has them (ADR 0051); nothing found only when both found nothing (#325). */
+        private suspend fun search(query: Query): SearchUiState {
+            val music =
+                if (query.mode.music) {
+                    libraryRepository.search(
+                        query.text,
+                        FULL_LIMIT,
+                    )
+                } else {
+                    MqResult.Success(SearchResults())
+                }
+            // Videos show under All only: its size per kind is enough.
+            val video =
+                if (query.mode.video) {
+                    videos.search(
+                        query.text,
+                        ALL_PER_KIND,
+                    )
+                } else {
+                    MqResult.Success(VideoSearchResults())
+                }
+            return when {
+                music is MqResult.Failure -> {
+                    SearchUiState.Error(music.error)
                 }
 
-                is MqResult.Success -> {
-                    if (result.value.isEmpty()) {
-                        SearchUiState.NoResults(query, offline)
+                video is MqResult.Failure -> {
+                    SearchUiState.Error(video.error)
+                }
+
+                else -> {
+                    val found = (music as MqResult.Success).value
+                    val videoFound = (video as MqResult.Success).value
+                    if (found.isEmpty() && videoFound.isEmpty()) {
+                        SearchUiState.NoResults(query.text, query.offline)
                     } else {
-                        SearchUiState.Results(result.value)
+                        SearchUiState.Results(found, videos = videoFound)
                     }
                 }
             }
+        }
 
         internal companion object {
             /** Short: a local search takes milliseconds, this only skips the queries of fast typing. */
@@ -274,6 +304,12 @@ class SearchViewModel
             const val FULL_LIMIT = 500
         }
     }
+
+private data class Query(
+    val text: String,
+    val offline: Boolean,
+    val mode: AppMode,
+)
 
 private data class Extras(
     val selection: ListSelection<MediaId>,

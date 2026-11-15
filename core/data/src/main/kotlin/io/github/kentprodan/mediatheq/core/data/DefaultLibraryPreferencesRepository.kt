@@ -36,6 +36,11 @@ class DefaultLibraryPreferencesRepository
                     genresGrid = stored.genresGrid ?: false,
                     sorts = sorts.mapValues { it.value.first },
                     reversedSorts = sorts.filterValues { it.second }.keys,
+                    videoSorts =
+                        VideoList.entries
+                            .mapNotNull { list ->
+                                enumOrNull<VideoSort>(stored.sorts[VIDEO_SORT + list.name])?.let { list to it }
+                            }.toMap(),
                     ratingMode = enumOrNull<RatingMode>(stored.ratingMode) ?: RatingMode.WholeStars,
                     offlineMode = stored.offlineMode ?: false,
                     autoOffline = enumOrNull<AutoOffline>(stored.autoOffline) ?: AutoOffline.NoNetwork,
@@ -563,6 +568,11 @@ class DefaultLibraryPreferencesRepository
             if (sort in filter.sorts) store.setSort(filter.name, if (reversed) sort.name + REVERSED else sort.name)
         }
 
+        override suspend fun setVideoSort(
+            list: VideoList,
+            sort: VideoSort,
+        ) = store.setSort(VIDEO_SORT + list.name, sort.name)
+
         override suspend fun reverseSort(filter: LibraryFilter) =
             store.updateSort(filter.name) { stored ->
                 val (sort, reversed) =
@@ -599,6 +609,9 @@ class DefaultLibraryPreferencesRepository
 
             /** Suffix of a stored sort run against its natural direction (#187). */
             const val REVERSED = ",reversed"
+
+            /** Key prefix of a video grid's sort in the stored sorts (#325); no [LibraryFilter] name has it. */
+            const val VIDEO_SORT = "video:"
         }
     }
 

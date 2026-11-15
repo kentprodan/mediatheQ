@@ -12,13 +12,16 @@ class AppModeFiltersTest {
     private val always = listOf(MainNavEntry.Home, MainNavEntry.Library, MainNavEntry.Search, MainNavEntry.Downloads)
 
     @Test
-    fun `Video mode allows only Home, Library, Search and Downloads`() {
-        assertThat(MainNavEntry.entries.filter { it.allowed(AppMode.Video) }).containsExactlyElementsIn(always)
+    fun `Video mode allows Home, Library, Search, Downloads, Movies and Series`() {
+        assertThat(MainNavEntry.entries.filter { it.allowed(AppMode.Video) })
+            .containsExactlyElementsIn(always + listOf(MainNavEntry.Movies, MainNavEntry.Series))
     }
 
     @Test
-    fun `Music and Both allow every entry`() {
-        assertThat(MainNavEntry.entries.all { it.allowed(AppMode.Music) && it.allowed(AppMode.Both) }).isTrue()
+    fun `Music allows every entry but Movies and Series, Both every entry`() {
+        assertThat(MainNavEntry.entries.filterNot { it.allowed(AppMode.Music) })
+            .containsExactly(MainNavEntry.Movies, MainNavEntry.Series)
+        assertThat(MainNavEntry.entries.all { it.allowed(AppMode.Both) }).isTrue()
     }
 
     @Test

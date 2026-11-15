@@ -63,3 +63,18 @@ fun SeriesAllWatchedScreenshot() = Grid(SeriesTexts, VideoGridUiState.Content(em
 @MqPreviews
 @Composable
 fun MoviesErrorScreenshot() = Grid(MovieTexts, VideoGridUiState.Error)
+
+/** Movies as a navigation entry (#325): the tab's root, no Back button. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun MoviesTabScreenshot() =
+    MediatheqTheme {
+        VideoGridScreen(
+            MovieTexts,
+            VideoGridUiState.Content(posters("Arrival", "Dune", "Her"), VideoSort.Year, unwatched = false, columns = 4),
+            {},
+            {},
+            onBack = null,
+        )
+    }

@@ -184,10 +184,31 @@ class VideoQueriesTest {
         }
 
     @Test
+    fun `video search keeps each kind apart, in order, limited, and offline only downloaded ones`() =
+        runTest {
+            suspend fun episodes(
+                limit: Int = 10,
+                all: Boolean = true,
+                downloaded: List<String> = emptyList(),
+            ) = dao.searchVideos("episode*", "episode", limit, all, downloaded).map { it.id }
+
+            // Episodes never fill the movies' list (#325): each kind has its own limit.
+            assertThat(dao.searchVideos("episode*", "movie", 10, true, emptyList())).isEmpty()
+            assertThat(episodes()).containsExactly("e1", "e2", "e3").inOrder()
+            assertThat(episodes(limit = 2)).containsExactly("e1", "e2").inOrder()
+
+            assertThat(episodes(all = false, downloaded = listOf("e2"))).containsExactly("e2")
+            assertThat(dao.searchVideos("mosoi*", "movie", 10, false, listOf("m2"))).isEmpty()
+            // A series offline: only with a downloaded episode.
+            assertThat(dao.searchSeries("show*", 10, false, listOf("e3")).map { it.id }).containsExactly("sr1")
+            assertThat(dao.searchSeries("show*", 10, false, listOf("m1"))).isEmpty()
+        }
+
+    @Test
     fun `search finds a movie title without its diacritics, and music search ignores videos`() =
         runTest {
-            assertThat(dao.searchIds("mosoi")).containsExactly("m1")
-            assertThat(dao.searchIds("show")).containsExactly("sr1")
+            assertThat(dao.searchVideos("mosoi*", "movie", 10, true, emptyList()).map { it.id }).containsExactly("m1")
+            assertThat(dao.searchSeries("show*", 10, true, emptyList()).map { it.id }).containsExactly("sr1")
             assertThat(
                 database
                     .libraryDao()

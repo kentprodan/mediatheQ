@@ -400,3 +400,26 @@ sealed interface SettingsAction {
         val mode: RatingMode,
     ) : SettingsAction
 }
+
+/**
+ * [stored] with its [shown] items replaced by [chosen] (#325): items not shown (the other mode's) keep their places,
+ * the chosen ones fill the shown places in their new order, any extra go last.
+ */
+internal fun <T> mergeShown(
+    stored: List<T>,
+    chosen: List<T>,
+    shown: (T) -> Boolean,
+): List<T> {
+    val next = chosen.iterator()
+    val merged =
+        stored.mapNotNull {
+            if (!shown(it)) {
+                it
+            } else if (next.hasNext()) {
+                next.next()
+            } else {
+                null
+            }
+        }
+    return merged + next.asSequence().toList()
+}

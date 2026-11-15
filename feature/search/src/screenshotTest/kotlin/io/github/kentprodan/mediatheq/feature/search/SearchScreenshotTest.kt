@@ -5,11 +5,17 @@ import androidx.compose.runtime.Composable
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
+import io.github.kentprodan.mediatheq.core.data.VideoSearchResults
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Genre
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.SearchResults
+import io.github.kentprodan.mediatheq.core.model.Series
+import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
 
 @Composable
@@ -174,3 +180,47 @@ fun SearchPlaylistsChipScreenshot() = Chip(SearchFilter.Playlists)
 @MqPreviews
 @Composable
 fun SearchGenresChipScreenshot() = Chip(SearchFilter.Genres)
+
+private fun videoId(value: String) = MediaId(ServerId("preview"), value)
+
+/** Both modes (#325): a song found, then the movies, series and episodes (series name and number). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SearchVideoResultsScreenshot() =
+    Search(
+        SearchUiState.Results(
+            SearchResults(tracks = listOf(PreviewData.track)),
+            videos =
+                VideoSearchResults(
+                    movies = listOf(Video(videoId("m1"), VideoKind.Movie, "Moșoi", year = 2020)),
+                    series = listOf(Series(videoId("sr1"), "Moșoi Chronicles", year = 2019)),
+                    episodes =
+                        listOf(
+                            Video(
+                                videoId("e1"),
+                                VideoKind.Episode,
+                                "Moșoi Returns",
+                                seriesId = videoId("sr1"),
+                                seriesName = "Moșoi Chronicles",
+                                seasonNumber = 2,
+                                episodeNumber = 5,
+                            ),
+                        ),
+                ),
+        ),
+        query = "mos",
+    )
+
+/** Video mode (#325): only videos, no chips. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SearchVideoOnlyScreenshot() =
+    Search(
+        SearchUiState.Results(
+            SearchResults(),
+            videos = VideoSearchResults(movies = listOf(Video(videoId("m1"), VideoKind.Movie, "Dune", year = 2021))),
+        ),
+        query = "dune",
+    )

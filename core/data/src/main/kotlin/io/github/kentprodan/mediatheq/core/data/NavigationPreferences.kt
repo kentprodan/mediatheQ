@@ -14,13 +14,21 @@ enum class MainNavEntry {
     Tracks,
     Search,
     Downloads,
+
+    /** The video grids as tabs of their own (#325), off by default. */
+    Movies,
+    Series,
     ;
 
-    /** Shown in [mode] (ADR 0051): the music lists only with music; Home, Library, Search and Downloads always. */
+    /**
+     * Shown in [mode] (ADR 0051): the music lists only with music, Movies and Series only with video; Home, Library,
+     * Search and Downloads always.
+     */
     fun allowed(mode: AppMode): Boolean =
         when (this) {
             Home, Library, Search, Downloads -> true
             Albums, AlbumArtists, Genres, RecordLabels, Playlists, Tracks -> mode.music
+            Movies, Series -> mode.video
         }
 }
 

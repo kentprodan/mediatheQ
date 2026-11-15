@@ -13,9 +13,11 @@ import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.GenresKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
+import io.github.kentprodan.mediatheq.core.navigation.MoviesTabKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistsKey
 import io.github.kentprodan.mediatheq.core.navigation.RecordLabelsKey
 import io.github.kentprodan.mediatheq.core.navigation.SearchKey
+import io.github.kentprodan.mediatheq.core.navigation.SeriesTabKey
 import io.github.kentprodan.mediatheq.core.navigation.TracksKey
 
 /**
@@ -36,6 +38,8 @@ enum class TopLevelTab(
     Tracks(TracksKey, R.string.tab_tracks),
     Search(SearchKey, R.string.tab_search),
     Downloads(DownloadsKey, R.string.tab_downloads),
+    Movies(MoviesTabKey, R.string.tab_movies),
+    Series(SeriesTabKey, R.string.tab_series),
     ;
 
     /**
@@ -56,6 +60,8 @@ enum class TopLevelTab(
             Tracks -> MqIcons.MusicNote
             Search -> if (selected) MqIcons.SearchFilled else MqIcons.Search
             Downloads -> if (selected) MqIcons.DownloadFilled else MqIcons.Download
+            Movies -> MqIcons.Movie
+            Series -> MqIcons.Tv
         }
 
     companion object {

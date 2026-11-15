@@ -103,6 +103,19 @@ class DefaultBackupRepositoryTest {
         }
 
     @Test
+    fun `a video grid's sort comes back with a restore`() =
+        runTest(dispatcher) {
+            val preferences = DefaultLibraryPreferencesRepository(LibraryPreferencesStore(library))
+            preferences.setVideoSort(VideoList.Series, VideoSort.DateAdded)
+            repository.write(uri("b.json"))
+            preferences.setVideoSort(VideoList.Series, VideoSort.Name)
+
+            repository.restore(uri("b.json"))
+
+            assertThat(preferences.preferences.first().videoSortFor(VideoList.Series)).isEqualTo(VideoSort.DateAdded)
+        }
+
+    @Test
     fun `a restore replaces the settings and adds the missing accounts signed out, once`() =
         runTest(dispatcher) {
             accounts.save(home)

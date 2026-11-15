@@ -20,6 +20,7 @@ import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.entriesFor
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
+import io.github.kentprodan.mediatheq.core.model.allowed
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -194,7 +195,13 @@ class SettingsViewModel
                             library.preferences
                                 .first()
                                 .libraryPage.shortcuts
-                        shortcutsDraft.value = OrganizeDraft.of(stored, LibraryShortcut.entries)
+                        // Only the tiles of the mode (#325): no video tiles without video on the server (always Music).
+                        val mode = appMode.mode.first()
+                        shortcutsDraft.value =
+                            OrganizeDraft.of(
+                                stored.filter { it.allowed(mode) },
+                                LibraryShortcut.entries.filter { it.allowed(mode) },
+                            )
                     }
 
                     is SettingsAction.ToggleLibraryShortcut -> {
@@ -208,7 +215,9 @@ class SettingsViewModel
                     SettingsAction.ConfirmLibraryShortcuts -> {
                         shortcutsDraft.value?.let { draft ->
                             val page = library.preferences.first().libraryPage
-                            library.setLibraryPage(page.copy(shortcuts = draft.entries))
+                            val mode = appMode.mode.first()
+                            val shortcuts = mergeShown(page.shortcuts, draft.entries) { it.allowed(mode) }
+                            library.setLibraryPage(page.copy(shortcuts = shortcuts))
                         }
                         shortcutsDraft.value = null
                     }

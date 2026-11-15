@@ -215,7 +215,9 @@ class SettingsViewModelTest {
 
                 val draft = (expectMostRecentItem() as SettingsUiState.Content).entriesDraft!!
                 assertThat(draft.order.take(4)).isEqualTo(NavigationPreferences.DEFAULT_ENTRIES)
-                assertThat(draft.order).containsExactlyElementsIn(MainNavEntry.entries)
+                // Music mode: every entry but the video grids (#325).
+                assertThat(draft.order)
+                    .containsExactlyElementsIn(MainNavEntry.entries - MainNavEntry.Movies - MainNavEntry.Series)
                 assertThat(draft.checked).containsExactlyElementsIn(NavigationPreferences.DEFAULT_ENTRIES)
             }
         }
@@ -329,6 +331,7 @@ class SettingsViewModelTest {
     fun `the library tiles are organized in a draft and stored only with OK`() =
         runTest {
             signIn()
+            appMode.stored.value = AppMode.Both
             val organized =
                 listOf(
                     LibraryShortcut.Years,
@@ -353,6 +356,45 @@ class SettingsViewModelTest {
             }
             assertThat(library.preferences.value.libraryPage.shortcuts).isEqualTo(organized)
         }
+
+    @Test
+    fun `in Music mode, as without video on the server, the tile dialog offers no video tiles and keeps them stored`() =
+        runTest {
+            signIn()
+            viewModel.uiState.test {
+                viewModel.onAction(SettingsAction.OpenLibraryShortcuts)
+                viewModel.onAction(SettingsAction.ToggleLibraryShortcut(LibraryShortcut.Tracks))
+                val draft = (expectMostRecentItem() as SettingsUiState.Content).shortcutsDraft
+                assertThat(draft?.order).containsNoneOf(LibraryShortcut.Movies, LibraryShortcut.Series)
+
+                viewModel.onAction(SettingsAction.ConfirmLibraryShortcuts)
+                cancelAndIgnoreRemainingEvents()
+            }
+            assertThat(library.preferences.value.libraryPage.shortcuts)
+                .isEqualTo(LibraryShortcut.entries - LibraryShortcut.Tracks)
+        }
+
+    @Test
+    fun `the other mode's tiles keep their places in a mixed order`() {
+        val stored =
+            listOf(LibraryShortcut.Movies, LibraryShortcut.Albums, LibraryShortcut.Series, LibraryShortcut.Genres)
+        val shown = { it: LibraryShortcut -> it != LibraryShortcut.Movies && it != LibraryShortcut.Series }
+
+        // Genres moved first, Tracks added: the video tiles stay first and third.
+        assertThat(
+            mergeShown(stored, listOf(LibraryShortcut.Genres, LibraryShortcut.Albums, LibraryShortcut.Tracks), shown),
+        ).containsExactly(
+            LibraryShortcut.Movies,
+            LibraryShortcut.Genres,
+            LibraryShortcut.Series,
+            LibraryShortcut.Albums,
+            LibraryShortcut.Tracks,
+        ).inOrder()
+        // One left: the other shown place goes.
+        assertThat(mergeShown(stored, listOf(LibraryShortcut.Albums), shown))
+            .containsExactly(LibraryShortcut.Movies, LibraryShortcut.Albums, LibraryShortcut.Series)
+            .inOrder()
+    }
 
     @Test
     fun `cancel drops the library tiles draft`() =
@@ -740,6 +782,8 @@ class SettingsViewModelTest {
                     MainNavEntry.Library,
                     MainNavEntry.Search,
                     MainNavEntry.Downloads,
+                    MainNavEntry.Movies,
+                    MainNavEntry.Series,
                 )
             }
         }

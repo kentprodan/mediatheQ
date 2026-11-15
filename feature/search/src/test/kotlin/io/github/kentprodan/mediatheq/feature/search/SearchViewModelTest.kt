@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.search
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
@@ -10,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.data.SearchSort
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.TrackAction
+import io.github.kentprodan.mediatheq.core.data.VideoSearchResults
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.Artist
@@ -17,6 +19,8 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.SearchResults
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
@@ -26,6 +30,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import kotlinx.coroutines.flow.collect
@@ -51,8 +56,20 @@ class SearchViewModelTest {
     private val downloads = FakeDownloadRepository()
     private val playlists = FakePlaylistRepository()
     private val appMode = FakeAppModeRepository()
+    private val videos = FakeVideoRepository()
     private val viewModel by lazy {
-        SearchViewModel(library, preferences, playback, trackTaps, commands, userData, downloads, playlists, appMode)
+        SearchViewModel(
+            library,
+            preferences,
+            playback,
+            trackTaps,
+            commands,
+            userData,
+            downloads,
+            playlists,
+            videos,
+            appMode,
+        )
     }
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
@@ -458,15 +475,52 @@ class SearchViewModelTest {
             assertThat(viewModel.results.shown.tracks).hasSize(20)
         }
 
+    private val dune = Video(id("m1"), VideoKind.Movie, "Dune")
+
     @Test
-    fun `Video mode searches no music and shows its own state`() =
+    fun `Video mode searches only videos`() =
         test {
             appMode.stored.value = AppMode.Video
-            viewModel.uiState.test {
-                assertThat(awaitItem()).isEqualTo(SearchUiState.VideoMode)
-                viewModel.onAction(SearchAction.QueryChanged("mosoi"))
-                advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
-                expectNoEvents()
-            }
+            videos.searchResult = MqResult.Success(VideoSearchResults(movies = listOf(dune)))
+            backgroundScope.launch { viewModel.uiState.collect() }
+
+            viewModel.onAction(SearchAction.QueryChanged("dune"))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+
+            assertThat(viewModel.results.videos.movies).containsExactly(dune)
+            assertThat(viewModel.results.results.isEmpty()).isTrue()
+            assertThat(library.searches).isEmpty()
+        }
+
+    @Test
+    fun `in Both, a query that finds only a movie shows it, and nothing at all is no results`() =
+        test {
+            appMode.stored.value = AppMode.Both
+            backgroundScope.launch { viewModel.uiState.collect() }
+            videos.searchResult = MqResult.Success(VideoSearchResults(movies = listOf(dune)))
+
+            viewModel.onAction(SearchAction.QueryChanged("dune"))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            assertThat(viewModel.results.videos.movies).containsExactly(dune)
+            assertThat(library.searches).containsExactly("dune")
+
+            videos.searchResult = MqResult.Success(VideoSearchResults())
+            viewModel.onAction(SearchAction.QueryChanged("zzz"))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            assertThat(viewModel.uiState.value).isEqualTo(SearchUiState.NoResults("zzz"))
+        }
+
+    @Test
+    fun `Music mode never searches videos, and a failed video search is an error`() =
+        test {
+            backgroundScope.launch { viewModel.uiState.collect() }
+            viewModel.onAction(SearchAction.QueryChanged("mosoi"))
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            assertThat(videos.searches).isEmpty()
+
+            appMode.stored.value = AppMode.Both
+            videos.searchResult = MqResult.Failure(MqError.Storage)
+            advanceTimeBy(SearchViewModel.DEBOUNCE_MILLIS + 1)
+            assertThat(viewModel.uiState.value).isEqualTo(SearchUiState.Error(MqError.Storage))
         }
 }
