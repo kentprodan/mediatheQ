@@ -79,6 +79,10 @@ class VideoGridViewModelTest {
             assertThat(state.items.map { it.title }).containsExactly("Dune")
             assertThat(videos.requests.last()).isEqualTo("movies:Year:true")
             assertThat(preferences.preferences.value.videoSorts).containsExactly(VideoList.Movies, VideoSort.Year)
+            // The unwatched filter comes back with the saved state (process death).
+            val restored = MoviesViewModel(saved, preferences, videos)
+            backgroundScope.launch { restored.uiState.collect() }
+            assertThat((restored.uiState.value as VideoGridUiState.Content).unwatched).isTrue()
             // A restart: a new grid without the saved state still sorts by year; Series keeps its own sort.
             val again = MoviesViewModel(SavedStateHandle(), preferences, videos)
             backgroundScope.launch { again.uiState.collect() }

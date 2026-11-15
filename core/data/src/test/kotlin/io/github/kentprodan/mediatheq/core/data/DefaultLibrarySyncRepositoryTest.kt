@@ -911,7 +911,8 @@ class DefaultLibrarySyncRepositoryTest {
             assertThat(count("series")).isEqualTo(1)
             assertThat(count("season")).isEqualTo(1)
             assertThat(database.rows("SELECT video_id, codec FROM video_stream")).containsExactly(listOf("m1", "eac3"))
-            assertThat(database.videoDao().searchIds("mosoi")).containsExactly("m1")
+            assertThat(database.videoDao().searchVideos("mosoi*", "movie", 10, true, emptyList()).map { it.id })
+                .containsExactly("m1")
             assertThat(count("track")).isEqualTo(3)
         }
 

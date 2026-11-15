@@ -6,22 +6,28 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
+import io.github.kentprodan.mediatheq.core.data.VideoSearchResults
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.SearchResults
+import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.ui.ListSelection
 import org.junit.Rule
@@ -45,6 +51,8 @@ class SearchScreenTest {
         onOpenArtist: (MediaId) -> Unit = {},
         onOpenGenre: (MediaId) -> Unit = {},
         onOpenLabel: (RecordLabelKey) -> Unit = {},
+        onOpenMovie: (MediaId) -> Unit = {},
+        onOpenSeries: (MediaId) -> Unit = {},
     ) {
         composeRule.setContent {
             MediatheqTheme {
@@ -57,6 +65,8 @@ class SearchScreenTest {
                     textFieldState = field,
                     onOpenGenre = onOpenGenre,
                     onOpenLabel = onOpenLabel,
+                    onOpenMovie = onOpenMovie,
+                    onOpenSeries = onOpenSeries,
                 )
             }
         }
@@ -140,6 +150,47 @@ class SearchScreenTest {
 
         assertThat(opened).isEqualTo(RecordLabelKey(label.id, "Electrecord"))
         assertThat(actions).contains(SearchAction.ResultOpened)
+    }
+
+    @Test
+    fun `a movie opens its page, a series and an episode the series' page, also while selecting`() {
+        val movie = Video(MediaId(ServerId("s"), "m1"), VideoKind.Movie, "Dune", year = 2021)
+        val show = Series(MediaId(ServerId("s"), "sr1"), "Dark")
+        val episode = Video(MediaId(ServerId("s"), "e1"), VideoKind.Episode, "Secrets", seriesId = show.id)
+        val movies = mutableListOf<MediaId>()
+        val series = mutableListOf<MediaId>()
+        show(
+            SearchUiState.Results(
+                SearchResults(tracks = listOf(song)),
+                selection = ListSelection<MediaId>().toggle(song.id),
+                videos = VideoSearchResults(listOf(movie), listOf(show), listOf(episode)),
+            ),
+            onOpenMovie = { movies += it },
+            onOpenSeries = { series += it },
+        )
+
+        // The window is small: each row is scrolled to before the tap.
+        fun tap(title: String) {
+            composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(title))
+            composeRule.onNodeWithText(title).performClick()
+        }
+        composeRule.onNode(hasText("Movies") and isHeading()).assertExists()
+        tap("Dune")
+        tap("Dark")
+        tap("Secrets")
+
+        assertThat(movies).containsExactly(movie.id)
+        assertThat(series).containsExactly(show.id, show.id).inOrder()
+        assertThat(actions).contains(SearchAction.ResultOpened)
+    }
+
+    @Test
+    fun `with only videos found there are no chips`() {
+        val movie = Video(MediaId(ServerId("s"), "m1"), VideoKind.Movie, "Dune")
+        show(SearchUiState.Results(SearchResults(), videos = VideoSearchResults(movies = listOf(movie))))
+
+        composeRule.onNodeWithText("Dune").assertIsDisplayed()
+        composeRule.onNodeWithText("All").assertDoesNotExist()
     }
 
     private val ada = Artist(MediaId(ServerId("s"), "ar"), "Ada")

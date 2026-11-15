@@ -158,26 +158,21 @@ interface VideoDao {
     @Query("SELECT * FROM video_stream WHERE video_id = :videoId ORDER BY stream_index")
     fun streams(videoId: String): Flow<List<VideoStreamEntity>>
 
-    /** Movies, series and episodes whose title matches the FTS [match], best first (diacritics folded, ADR 0006). */
-    @Query(
-        """
-        SELECT item_id FROM search WHERE search MATCH :match AND kind IN ('movie', 'series', 'episode')
-        ORDER BY rank, name
-        """,
-    )
-    suspend fun searchIds(match: String): List<String>
-
-    /** Movies and episodes whose title matches the FTS [match], best first (#325); offline only downloaded ones. */
+    /**
+     * Movies ([kind] `movie`) or episodes (`episode`) whose title matches the FTS [match], best first (#325, diacritics
+     * folded, ADR 0006); offline only downloaded ones. One kind per query, so neither crowds the other out.
+     */
     @Query(
         """
         SELECT video.* FROM search
         JOIN video ON video.server_id = search.server_id AND video.id = search.item_id
-        WHERE search MATCH :match AND search.kind IN ('movie', 'episode') AND (:all OR video.id IN (:downloaded))
+        WHERE search MATCH :match AND search.kind = :kind AND (:all OR video.id IN (:downloaded))
         ORDER BY search.rank, video.sort_name, video.id LIMIT :limit
         """,
     )
     suspend fun searchVideos(
         match: String,
+        kind: String,
         limit: Int,
         all: Boolean,
         downloaded: List<String>,

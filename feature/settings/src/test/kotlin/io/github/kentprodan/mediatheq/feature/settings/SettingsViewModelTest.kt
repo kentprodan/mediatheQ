@@ -375,6 +375,28 @@ class SettingsViewModelTest {
         }
 
     @Test
+    fun `the other mode's tiles keep their places in a mixed order`() {
+        val stored =
+            listOf(LibraryShortcut.Movies, LibraryShortcut.Albums, LibraryShortcut.Series, LibraryShortcut.Genres)
+        val shown = { it: LibraryShortcut -> it != LibraryShortcut.Movies && it != LibraryShortcut.Series }
+
+        // Genres moved first, Tracks added: the video tiles stay first and third.
+        assertThat(
+            mergeShown(stored, listOf(LibraryShortcut.Genres, LibraryShortcut.Albums, LibraryShortcut.Tracks), shown),
+        ).containsExactly(
+            LibraryShortcut.Movies,
+            LibraryShortcut.Genres,
+            LibraryShortcut.Series,
+            LibraryShortcut.Albums,
+            LibraryShortcut.Tracks,
+        ).inOrder()
+        // One left: the other shown place goes.
+        assertThat(mergeShown(stored, listOf(LibraryShortcut.Albums), shown))
+            .containsExactly(LibraryShortcut.Movies, LibraryShortcut.Albums, LibraryShortcut.Series)
+            .inOrder()
+    }
+
+    @Test
     fun `cancel drops the library tiles draft`() =
         runTest {
             signIn()

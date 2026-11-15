@@ -150,17 +150,12 @@ class DefaultVideoRepository
             val match = ftsMatchExpression(query) ?: return MqResult.Success(VideoSearchResults())
             return try {
                 filter.once { all, downloaded ->
-                    // Movies and episodes share one ranked list: twice the limit so either kind can fill its own.
-                    val (movies, episodes) =
-                        dao
-                            .searchVideos(match, limitPerKind * 2, all, downloaded)
-                            .map { it.toDomain() }
-                            .partition { it.kind == VideoKind.Movie }
+                    suspend fun videos(kind: String) = dao.searchVideos(match, kind, limitPerKind, all, downloaded)
                     MqResult.Success(
                         VideoSearchResults(
-                            movies.take(limitPerKind),
+                            videos("movie").map { it.toDomain() },
                             dao.searchSeries(match, limitPerKind, all, downloaded).map { it.toDomain() },
-                            episodes.take(limitPerKind),
+                            videos("episode").map { it.toDomain() },
                         ),
                     )
                 }

@@ -216,9 +216,8 @@ class SettingsViewModel
                         shortcutsDraft.value?.let { draft ->
                             val page = library.preferences.first().libraryPage
                             val mode = appMode.mode.first()
-                            // The other mode's tiles stay chosen for when it comes back.
-                            val hidden = page.shortcuts.filterNot { it.allowed(mode) }
-                            library.setLibraryPage(page.copy(shortcuts = draft.entries + hidden))
+                            val shortcuts = mergeShown(page.shortcuts, draft.entries) { it.allowed(mode) }
+                            library.setLibraryPage(page.copy(shortcuts = shortcuts))
                         }
                         shortcutsDraft.value = null
                     }
