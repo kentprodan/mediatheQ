@@ -97,11 +97,11 @@ class DefaultVideoRepository
         override val hasVideo = capabilities.video
 
         /**
-         * [query] over everything, or, in offline mode, over the downloaded videos (ADR 0021). shortcut: no video is
-         * downloaded before #279, so offline lists are empty; pass the completed video downloads' ids then.
+         * [query] over everything, or, in offline mode, over the downloaded videos (ADR 0021, #279): a series or season
+         * counts through its downloaded episodes (the DAO joins them).
          */
         private fun <T> offlineAware(query: (all: Boolean, downloaded: List<String>) -> Flow<T>): Flow<T> =
-            filter.active.flatMapLatest { offline -> query(!offline, emptyList()) }
+            filter.of(query)
 
         override val movieCount: Flow<Int> = offlineAware(dao::movieCount)
 
