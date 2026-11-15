@@ -238,6 +238,32 @@ class StreamResolver
             }
         }
 
+        /**
+         * The file to download the video [itemId] from (#279): its original, played as it is, or a failure saying the
+         * server cannot send it so ([CANNOT_DOWNLOAD]); never a conversion or a playlist.
+         */
+        suspend fun downloadVideoStream(itemId: MediaId): MqResult<PlaybackStream> {
+            val profile =
+                DeviceProfileBuilder.videoDownload(
+                    decoderMimeTypes,
+                    videoDecoders.mimeTypes(),
+                    videoRangeTypes(displayHdr.types(), hdrDecoders),
+                )
+            return when (val result = playbackRepository.stream(itemId, profile)) {
+                is MqResult.Failure -> {
+                    result
+                }
+
+                is MqResult.Success -> {
+                    result.takeIf {
+                        it.value.playMethod == PlayMethod.DirectPlay &&
+                            !it.value.segmented
+                    }
+                        ?: MqResult.Failure(MqError.Client(0, CANNOT_DOWNLOAD))
+                }
+            }
+        }
+
         private suspend fun currentQuality(): StreamingQuality =
             audioPreferences.preferences.first().qualityFor(networkMonitor.isMetered())
 
@@ -268,3 +294,6 @@ data class DownloadStream(
 )
 
 private const val BITS_PER_KBIT = 1000
+
+/** Why a video download failed (#279): the phone cannot play the original, and videos are never converted for it. */
+const val CANNOT_DOWNLOAD = "download: the server cannot send this video as it is"
