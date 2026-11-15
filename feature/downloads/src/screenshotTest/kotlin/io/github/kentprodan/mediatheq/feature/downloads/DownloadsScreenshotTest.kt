@@ -181,7 +181,8 @@ fun DownloadsVideosScreenshot() =
                 listOf(
                     DownloadedSeason(
                         MediaId(ServerId("preview"), "se1"),
-                        "Show · Season 2",
+                        "Show",
+                        2,
                         listOf(videoDownload(2, "Episode 1", 900_000_000), videoDownload(3, "Episode 2", 880_000_000)),
                         1_780_000_000,
                         whole = true,

@@ -363,15 +363,19 @@ internal class DefaultDownloadRepository
                 }
             }
             val known = entries.value
-            videos
-                .filter { known[it.id]?.state.let { state -> state == null || state == Download.STATE_FAILED } }
-                .forEach { video ->
-                    // A video always continues its partial copy (an original, never converted): no starting over.
+            val knownSubtitles = subtitleEntries.value
+            // Only missing or failed files go again, a video's and each subtitle's on their own: a failed subtitle
+            // of a finished video retries too. A video always continues its partial copy (an original, never converted).
+            fun retry(state: Int?) = state == null || state == Download.STATE_FAILED
+            videos.forEach { video ->
+                if (retry(known[video.id]?.state)) {
                     send(DownloadKey.Item(video.id).toString(), DownloadKey.VIDEO_URI, video.title)
-                    video.subtitleIndexes.forEach { index ->
-                        send(DownloadKey.Subtitle(video.id, index).toString(), DownloadKey.SUBTITLE_URI, video.title)
-                    }
                 }
+                video.subtitleIndexes.forEach { index ->
+                    val key = DownloadKey.Subtitle(video.id, index).toString()
+                    if (retry(knownSubtitles[key]?.state)) send(key, DownloadKey.SUBTITLE_URI, video.title)
+                }
+            }
         }
 
         private fun send(
@@ -451,8 +455,14 @@ internal class DefaultDownloadRepository
             // The stored stop reasons: the manager's events may not have reached [entries] yet.
             val changes =
                 withContext(ioDispatcher) {
-                    entries.value.keys.mapNotNull { id ->
-                        val download = manager.downloadIndex.getDownload(id.toString()) ?: return@mapNotNull null
+                    // A video's subtitle files wait with it (#279).
+                    val keys =
+                        entries.value.keys.map { it to it.toString() } +
+                            subtitleEntries.value.keys.mapNotNull { key ->
+                                (DownloadKey.parse(key) as? DownloadKey.Subtitle)?.let { it.id to key }
+                            }
+                    keys.mapNotNull { (id, key) ->
+                        val download = manager.downloadIndex.getDownload(key) ?: return@mapNotNull null
                         if (download.state == Download.STATE_COMPLETED || download.state == Download.STATE_FAILED) {
                             return@mapNotNull null
                         }

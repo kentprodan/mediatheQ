@@ -155,7 +155,8 @@ class DefaultVideoRepository
         override suspend fun nextEpisode(episode: MediaId): Video? {
             val current = dao.video(episode.itemId).first()?.toDomain() ?: return null
             val series = current.seriesId ?: return null
-            val episodes = dao.seriesEpisodes(series.itemId, all = true, downloaded = emptyList()).first()
+            // Offline, the next downloaded episode: one not on the phone could not play (#279).
+            val episodes = offlineAware { all, downloaded -> dao.seriesEpisodes(series.itemId, all, downloaded) }.first()
             return nextEpisode(episodes.map { it.toDomain() }, current)
         }
 

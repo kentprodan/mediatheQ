@@ -216,6 +216,8 @@ private fun videoDownloadSpec(
             }
             throw e
         }
+    // A later direct play (another server version, a new decoder) clears an earlier "cannot download".
+    cache.applyContentMetadataMutations(key, ContentMetadataMutations().remove(DownloadKey.CANNOT_DOWNLOAD_METADATA))
     return dataSpec.withUri(stream.url.toUri()).withAdditionalHeaders(runBlocking { resolver.headers() })
 }
 

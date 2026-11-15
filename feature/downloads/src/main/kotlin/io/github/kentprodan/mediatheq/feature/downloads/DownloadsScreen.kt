@@ -230,14 +230,24 @@ private fun FilesTab(
                 VideoCollectionRow(
                     movie.title,
                     Formatter.formatShortFileSize(LocalContext.current, movie.bytes),
-                ) { onAction(DownloadsAction.RemoveVideos(DownloadOrigin.Movie(movie.id))) }
+                ) {
+                    // A movie's own download; a video listed here with no season (gone from the library) by its id.
+                    onAction(
+                        if (DownloadOrigin.Movie(movie.id) in movie.origins) {
+                            DownloadsAction.RemoveVideos(DownloadOrigin.Movie(movie.id))
+                        } else {
+                            DownloadsAction.RemoveVideos(DownloadOrigin.Single, listOf(movie.id))
+                        },
+                    )
+                }
             }
         }
         section(R.string.downloads_section_seasons, state.seasons.isNotEmpty()) {
             items(state.seasons, key = { "season-${it.seasonId}" }) { season ->
                 val size = Formatter.formatShortFileSize(LocalContext.current, season.bytes)
                 VideoCollectionRow(
-                    season.title,
+                    season.seasonNumber?.let { stringResource(R.string.downloads_season_title, season.title, it) }
+                        ?: season.title,
                     pluralStringResource(
                         R.plurals.downloads_episodes,
                         season.episodes.size,

@@ -139,27 +139,27 @@ internal fun videoDownloadsContent(
     info: Map<MediaId, Video>,
 ): Triple<List<VideoDownload>, List<DownloadedSeason>, List<VideoDownload>> {
     val (done, queue) = videos.partition { it.state == DownloadState.Completed }
-    val movies = done.filter { download -> download.origins.any { it is DownloadOrigin.Movie } }
+    fun seasonOf(download: VideoDownload): MediaId? =
+        if (download.origins.any { it is DownloadOrigin.Movie }) {
+            null
+        } else {
+            download.origins.firstNotNullOfOrNull { (it as? DownloadOrigin.Season)?.id } ?: info[download.id]?.seasonId
+        }
+    // A video with no season known (a movie, or an episode gone from the library) lists as a movie: still removable.
+    val (movies, episodes) = done.partition { seasonOf(it) == null }
     val seasons =
-        done
-            .filterNot { it in movies }
-            .groupBy { download ->
-                download.origins.firstNotNullOfOrNull { (it as? DownloadOrigin.Season)?.id }
-                    ?: info[download.id]?.seasonId
-            }.mapNotNull { (seasonId, episodes) ->
-                seasonId ?: return@mapNotNull null
+        episodes
+            .groupBy { seasonOf(it)!! }
+            .map { (seasonId, episodes) ->
                 val first = info[episodes.first().id]
-                val title =
-                    listOfNotNull(first?.seriesName, first?.seasonNumber?.let { "Season $it" })
-                        .joinToString(" · ")
-                        .ifEmpty { episodes.first().title }
                 DownloadedSeason(
                     seasonId,
-                    title,
+                    first?.seriesName ?: episodes.first().title,
+                    first?.seasonNumber,
                     episodes.sortedBy { info[it.id]?.episodeNumber ?: Int.MAX_VALUE },
                     episodes.sumOf { it.bytes },
                     whole = episodes.any { DownloadOrigin.Season(seasonId) in it.origins },
                 )
-            }.sortedBy { it.title.lowercase() }
+            }.sortedWith(compareBy({ it.title.lowercase() }, { it.seasonNumber }))
     return Triple(movies, seasons, queue)
 }

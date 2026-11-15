@@ -78,8 +78,10 @@ data class OfflineUsage(
 /** A season's downloaded episodes (#279); [whole] when the season itself was downloaded. */
 data class DownloadedSeason(
     val seasonId: MediaId,
-    /** "Show · Season 2". */
+    /** The series' name, or the first episode's title when the library does not know it. */
     val title: String,
+    /** Shown as "Show · Season 2" when known. */
+    val seasonNumber: Int?,
     val episodes: List<VideoDownload>,
     val bytes: Long,
     val whole: Boolean,

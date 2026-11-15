@@ -184,6 +184,40 @@ class DefaultVideoRepositoryTest {
         }
 
     @Test
+    fun `offline, the next episode is the next downloaded one`() =
+        runTest {
+            fun episode(
+                value: String,
+                number: Int,
+            ) = Video(
+                id(value),
+                VideoKind.Episode,
+                value,
+                seriesId = id("sr1"),
+                seasonId = id("se1"),
+                seasonNumber = 1,
+                episodeNumber = number,
+            )
+            database.syncDao().stageVideos(
+                listOf(episode("e1", 1), episode("e2", 2), episode("e3", 3)).map { VideoStaging(it.toEntity()) },
+            )
+            database.syncDao().stageSeries(listOf(SeriesStaging(Series(id("sr1"), "Show").toEntity())))
+            database.syncDao().stageSeasons(listOf(SeasonStaging(SeasonEntity("s", "se1", "sr1", "Season 1", 1))))
+            database.syncDao().swap(1, "s", "u")
+            // Offline the playing episode is a downloaded one too.
+            downloads.downloadVideos(
+                listOf(VideoToDownload(id("e1"), "e1"), VideoToDownload(id("e3"), "e3")),
+                DownloadOrigin.Single,
+            )
+            downloads.videoDownloads.value =
+                downloads.videoDownloads.value.map { it.copy(state = DownloadState.Completed) }
+
+            assertThat(repository.nextEpisode(id("e1"))?.id).isEqualTo(id("e2"))
+            preferences.setOfflineMode(true)
+            assertThat(repository.nextEpisode(id("e1"))?.id).isEqualTo(id("e3"))
+        }
+
+    @Test
     fun `refreshing Continue watching writes the server's resume points into the rows`() =
         runTest {
             database.syncDao().stageVideos(listOf(VideoStaging(movie.toEntity())))

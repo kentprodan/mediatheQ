@@ -225,11 +225,15 @@ class DownloadsGroupingTest {
                 ),
             ).associateBy { it.id }
 
-        val (movies, seasons, queue) = videoDownloadsContent(listOf(movie, e2, e1, running), info)
+        // An episode gone from the library, kept on its own: listed with the movies so it can be removed.
+        val gone = VideoDownload(id("e9"), "Gone", DownloadState.Completed, 7, setOf(DownloadOrigin.Single))
 
-        assertThat(movies).containsExactly(movie)
+        val (movies, seasons, queue) = videoDownloadsContent(listOf(movie, e2, e1, running, gone), info)
+
+        assertThat(movies).containsExactly(movie, gone)
         val only = seasons.single()
-        assertThat(only.title).isEqualTo("Show · Season 1")
+        assertThat(only.title).isEqualTo("Show")
+        assertThat(only.seasonNumber).isEqualTo(1)
         assertThat(only.episodes).containsExactly(e1, e2).inOrder()
         assertThat(only.bytes).isEqualTo(30)
         assertThat(only.whole).isTrue()
