@@ -21,6 +21,15 @@ sealed interface DownloadKey {
     }
 
     companion object {
+        /** The request URI of a video download (#279); a track's stays `mediatheq://download`. */
+        const val VIDEO_URI = "mediatheq://download/video"
+
+        /** The request URI of a downloaded video's external subtitle file (#279). */
+        const val SUBTITLE_URI = "mediatheq://download/sub"
+
+        /** Content metadata of a video key (#279): 1 when the phone cannot play its original (no converted videos). */
+        const val CANNOT_DOWNLOAD_METADATA = "mediatheq.cannot_download"
+
         private const val SUBTITLE_MARK = ":sub:"
 
         /** `null` for a key that is neither (never thrown: old or foreign keys are skipped). */

@@ -26,6 +26,9 @@ import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.data.VideoDownload
+import io.github.kentprodan.mediatheq.core.data.VideoToDownload
+import io.github.kentprodan.mediatheq.core.model.DownloadKey
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -82,6 +85,9 @@ internal class DefaultDownloadRepository
         /** Every download by track: the stored index at start, then the manager's changes. */
         private val entries = MutableStateFlow<Map<MediaId, Download>>(emptyMap())
 
+        // A video's external subtitle files (#279), by key: never listed, counted with and removed with their video.
+        private val subtitleEntries = MutableStateFlow<Map<String, Download>>(emptyMap())
+
         // The active account's server (#147): other accounts' downloads stay in the shared index, unlisted and held.
         private val activeServer = session.activeServerId
 
@@ -115,6 +121,10 @@ internal class DefaultDownloadRepository
                         download: Download,
                         finalException: Exception?,
                     ) {
+                        if (download.isSubtitle()) {
+                            subtitleEntries.update { it + (download.request.id to download) }
+                            return
+                        }
                         val id = download.trackId() ?: return
                         when (download.state) {
                             Download.STATE_QUEUED -> {
@@ -140,6 +150,10 @@ internal class DefaultDownloadRepository
                         downloadManager: DownloadManager,
                         download: Download,
                     ) {
+                        if (download.isSubtitle()) {
+                            subtitleEntries.update { it - download.request.id }
+                            return
+                        }
                         val id = download.trackId() ?: return
                         if (!loaded) removedBeforeLoad += id
                         entries.update { it - id }
@@ -170,15 +184,21 @@ internal class DefaultDownloadRepository
                     .collect { manager.maxParallelDownloads = it }
             }
             scope.launch(ioDispatcher) {
+                val subtitles = mutableMapOf<String, Download>()
                 val stored =
                     manager.downloadIndex.getDownloads().use { cursor ->
                         buildMap {
                             while (cursor.moveToNext()) {
                                 val download = cursor.download
-                                download.trackId()?.let { put(it, download) }
+                                if (download.isSubtitle()) {
+                                    subtitles[download.request.id] = download
+                                } else {
+                                    download.trackId()?.let { put(it, download) }
+                                }
                             }
                         }
                     }
+                subtitleEntries.update { subtitles + it }
                 // Changes the manager reported meanwhile are newer than the index.
                 entries.update { (stored - removedBeforeLoad) + it }
                 loaded = true
@@ -209,6 +229,7 @@ internal class DefaultDownloadRepository
                 if (tracks.isEmpty()) return@withLock
                 mine
                     .first()
+                    .filterValues { !it.isVideo() }
                     .keys
                     .filter { it !in known && it !in requested }
                     .groupBy { tracks[it]?.albumId }
@@ -230,6 +251,7 @@ internal class DefaultDownloadRepository
             ) { entries, notMet, _, tracks, origins ->
                 val current = manager.currentDownloads.associateBy { it.request.id }
                 entries
+                    .filterValues { !it.isVideo() }
                     .mapNotNull { (id, download) ->
                         val live = current[download.request.id] ?: download
                         val state = downloadState(live.state, live.percentDownloaded, notMet) ?: return@mapNotNull null
@@ -243,6 +265,45 @@ internal class DefaultDownloadRepository
                             origins[id].orEmpty(),
                         )
                     }.sortedWith(ALBUM_ORDER)
+            }.distinctUntilChanged()
+                .flowOn(defaultDispatcher)
+
+        override val videoDownloads: Flow<List<VideoDownload>> =
+            combine(
+                mine,
+                subtitleEntries,
+                notMetRequirements,
+                ticks,
+                origins.origins,
+            ) { entries, subtitles, notMet, _, origins ->
+                val current = manager.currentDownloads.associateBy { it.request.id }
+                entries
+                    .filterValues { it.isVideo() }
+                    .mapNotNull { (id, download) ->
+                        val live = current[download.request.id] ?: download
+                        val state = downloadState(live.state, live.percentDownloaded, notMet) ?: return@mapNotNull null
+                        val subtitleBytes =
+                            subtitles
+                                .filterKeys { (DownloadKey.parse(it) as? DownloadKey.Subtitle)?.id == id }
+                                .values
+                                .sumOf { (current[it.request.id] ?: it).bytesDownloaded }
+                        VideoDownload(
+                            id,
+                            download.request.data
+                                .decodeToString()
+                                .ifEmpty { id.itemId },
+                            state,
+                            live.bytesDownloaded + subtitleBytes,
+                            origins[id].orEmpty(),
+                            cannotDownload =
+                                live.state == Download.STATE_FAILED &&
+                                    cache
+                                        .getContentMetadata(
+                                            download.request.id,
+                                        ).get(DownloadKey.CANNOT_DOWNLOAD_METADATA, 0L) ==
+                                    1L,
+                        )
+                    }.sortedBy { it.title }
             }.distinctUntilChanged()
                 .flowOn(defaultDispatcher)
 
@@ -289,6 +350,42 @@ internal class DefaultDownloadRepository
                         }
                     }
                 }
+        }
+
+        override fun downloadVideos(
+            videos: List<VideoToDownload>,
+            origin: DownloadOrigin?,
+        ) {
+            videos.forEach { requested += it.id }
+            if (origin != null) {
+                scope.launch(ioDispatcher, CoroutineStart.UNDISPATCHED) {
+                    originsLock.withLock { origins.add(videos.map { it.id }, origin) }
+                }
+            }
+            val known = entries.value
+            videos
+                .filter { known[it.id]?.state.let { state -> state == null || state == Download.STATE_FAILED } }
+                .forEach { video ->
+                    // A video always continues its partial copy (an original, never converted): no starting over.
+                    send(DownloadKey.Item(video.id).toString(), DownloadKey.VIDEO_URI, video.title)
+                    video.subtitleIndexes.forEach { index ->
+                        send(DownloadKey.Subtitle(video.id, index).toString(), DownloadKey.SUBTITLE_URI, video.title)
+                    }
+                }
+        }
+
+        private fun send(
+            key: String,
+            uri: String,
+            title: String,
+        ) {
+            val request =
+                DownloadRequest
+                    .Builder(key, uri.toUri())
+                    .setCustomCacheKey(key)
+                    .setData(title.encodeToByteArray())
+                    .build()
+            DownloadService.sendAddDownload(context, MediatheqDownloadService::class.java, request, false)
         }
 
         private fun enqueue(track: Track) {
@@ -375,8 +472,13 @@ internal class DefaultDownloadRepository
         private suspend fun delete(ids: List<MediaId>) {
             if (ids.isEmpty()) return
             originsLock.withLock { origins.forget(ids) }
-            ids.forEach {
-                DownloadService.sendRemoveDownload(context, MediatheqDownloadService::class.java, it.toString(), false)
+            // A video's subtitle files go with it (#279).
+            val subtitles =
+                subtitleEntries.value.keys.filter { key ->
+                    (DownloadKey.parse(key) as? DownloadKey.Subtitle)?.id in ids
+                }
+            (ids.map { it.toString() } + subtitles).forEach {
+                DownloadService.sendRemoveDownload(context, MediatheqDownloadService::class.java, it, false)
             }
         }
 
@@ -455,8 +557,16 @@ internal class DefaultDownloadRepository
         }
     }
 
+/** A track's or a video's id; `null` for a subtitle file or a foreign key. */
 @UnstableApi
-private fun Download.trackId(): MediaId? = runCatching { MediaId.parse(request.id) }.getOrNull()
+private fun Download.trackId(): MediaId? = (DownloadKey.parse(request.id) as? DownloadKey.Item)?.id
+
+/** A video download (#279), by its request's URI; tracks keep `mediatheq://download`. */
+@UnstableApi
+private fun Download.isVideo(): Boolean = request.uri.toString() == DownloadKey.VIDEO_URI
+
+@UnstableApi
+private fun Download.isSubtitle(): Boolean = DownloadKey.parse(request.id) is DownloadKey.Subtitle
 
 /**
  * A download whose track left the library (deleted on the server) still plays and can be removed; only its title is
