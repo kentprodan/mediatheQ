@@ -62,8 +62,12 @@ import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.WaveformRepository
+import io.github.kentprodan.mediatheq.core.model.DownloadKey
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
+import io.github.kentprodan.mediatheq.core.model.StreamType
+import io.github.kentprodan.mediatheq.core.model.SubtitleDelivery
+import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -117,6 +121,33 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var displayHdr: DisplayHdr
 
     @Inject lateinit var videoHdr: VideoHdrCapabilities
+
+    /**
+     * A downloaded video's source (#279): its downloaded external subtitles from Room's streams (only fully downloaded
+     * files: a missing side-loaded file would fail the playback), the chosen one on by default.
+     */
+    private suspend fun downloadedVideo(id: MediaId): StreamSource.Downloaded? {
+        if (!downloads.isDownloaded(id)) return null
+        val subtitles =
+            videoRepository
+                .streams(id)
+                .first()
+                .filter { it.type == StreamType.Subtitle && it.isExternal }
+                .filter { downloadCache.isFullyCached(DownloadKey.Subtitle(id, it.index).toString()) }
+                .map {
+                    SubtitleDelivery(
+                        it.index,
+                        SubtitleMethod.External,
+                        url = localSubtitleUri(id, it.index),
+                        codec = it.codec,
+                        language = it.language,
+                        title = it.displayTitle ?: it.title,
+                        isForced = it.isForced,
+                        isDefault = it.isDefault,
+                    )
+                }
+        return StreamSource.Downloaded(subtitles, streamResolver.chosenTracks(id)?.subtitleIndex)
+    }
 
     // What the playing video plays as (#276), from the video listener.
     private var videoPlayback: VideoPlayback? = null
@@ -250,8 +281,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         dispatcher = ioDispatcher,
                         onOpen = { prefetcher.cancel(it) },
                         chooseVideo = { id, item ->
-                            chooseVideoSource(id, streamResolver, item.videoStart(), playerNetwork::isOnline)
+                            chooseVideoSource(id, streamResolver, item.videoStart(), playerNetwork::isOnline) { video ->
+                                downloadedVideo(video)
+                            }
                         },
+                        downloadCache = downloadCache,
                     ),
                 ).build()
         startAudioOutput(player)

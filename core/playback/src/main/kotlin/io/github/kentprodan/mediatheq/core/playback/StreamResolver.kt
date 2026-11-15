@@ -127,6 +127,9 @@ class StreamResolver
             return result
         }
 
+        /** [videoId]'s chosen tracks (#274), for a downloaded video played without the server (#279). */
+        suspend fun chosenTracks(videoId: MediaId) = trackChooser.tracks(videoId)
+
         /** Keeps [itemId]'s Atmos MIME type for [playsCachedOriginal] and [requestQuality]; `null` changes nothing. */
         fun rememberAtmos(
             itemId: MediaId,
