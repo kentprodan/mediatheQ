@@ -634,4 +634,27 @@
     <string name="settings_sync_error_unknown">unexpected error</string>
     <string name="settings_app_mode">App mode</string>
     <string name="settings_app_mode_group">What you use mediatheQ for</string>
+    <string name="settings_video">Video</string>
+    <string name="settings_video_summary">Quality, subtitles and audio defaults, next episode</string>
+    <string name="settings_video_quality">Quality</string>
+    <string name="settings_video_quality_original">Original</string>
+    <string name="settings_video_quality_height">%1$dp</string>
+    <string name="settings_video_tracks">Audio and subtitles</string>
+    <string name="settings_video_audio_language">Audio language</string>
+    <string name="settings_video_phone_language">Phone language</string>
+    <string name="settings_video_subtitles">Subtitles</string>
+    <string name="settings_video_subtitles_off">Off</string>
+    <string name="settings_video_subtitles_forced">Forced only</string>
+    <string name="settings_video_subtitles_language">In a language</string>
+    <string name="settings_video_subtitle_language">Subtitle language</string>
+    <string name="settings_video_subtitle_language_summary">With Subtitles set to In a language. Phone language follows the audio language.</string>
+    <string name="settings_video_burn_in">Burn in styled subtitles</string>
+    <string name="settings_video_burn_in_summary">ASS and SSA keep their styling; the server converts the video to draw them in</string>
+    <string name="settings_video_player">Player</string>
+    <string name="settings_video_auto_play">Auto-play next episode</string>
+    <string name="settings_video_auto_play_summary">After a 10-second countdown at the end of an episode</string>
+    <string name="settings_video_pip">Picture-in-picture</string>
+    <string name="settings_video_pip_summary">Keep the video in a small window when you leave the player</string>
+    <string name="settings_video_keep_audio">Keep audio when leaving</string>
+    <string name="settings_video_keep_audio_summary">The sound goes on without the picture</string>
 </resources>

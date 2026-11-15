@@ -13,8 +13,12 @@ import io.github.kentprodan.mediatheq.core.data.GenreSection
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.data.StorageLocation
 import io.github.kentprodan.mediatheq.core.data.StorageMove
+import io.github.kentprodan.mediatheq.core.data.VideoPreferences
+import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.entriesFor
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,6 +40,8 @@ class SettingsViewModel
         private val library: LibraryPreferencesRepository,
         private val storage: DownloadStorageRepository,
         private val appMode: AppModeRepository,
+        private val video: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
+        // Last: tests pass it as a trailing lambda.
         private val restarter: AppRestarter,
     ) : ViewModel() {
         private val entriesDraft = MutableStateFlow<NavEntriesDraft?>(null)
@@ -50,13 +56,13 @@ class SettingsViewModel
                 audio.preferences,
                 library.preferences,
                 combine(entriesDraft, shortcutsDraft, sectionsDraft, artistSectionsDraft, genreSectionsDraft, ::Drafts),
-                combine(storage.locations, storage.move, appMode.mode, ::Triple),
+                combine(storage.locations, storage.move, appMode.mode, video.preferences, ::Places),
             ) {
                 session,
                 audio,
                 library,
                 (draft, shortcuts, sections, artistSections, genreSections),
-                (locations, move, mode),
+                (locations, move, mode, video),
                 ->
                 // Signed out: the app leaves for onboarding, nothing to show meanwhile.
                 (session as? SessionState.LoggedIn)?.let {
@@ -72,6 +78,7 @@ class SettingsViewModel
                         move,
                         mode,
                         appMode.videoAvailable,
+                        video,
                     )
                 } ?: SettingsUiState.Loading
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState.Loading)
@@ -79,6 +86,10 @@ class SettingsViewModel
         fun onAction(action: SettingsAction) {
             viewModelScope.launch {
                 when (action) {
+                    is SettingsAction.SetVideo -> {
+                        video.update(action.change)
+                    }
+
                     is SettingsAction.SetStreamingQuality -> {
                         audio.setStreamingQuality(action.metered, action.quality)
                     }
@@ -435,4 +446,12 @@ private data class Drafts(
     val albumSections: OrganizeDraft<AlbumSection>?,
     val artistSections: OrganizeDraft<ArtistSection>?,
     val genreSections: OrganizeDraft<GenreSection>?,
+)
+
+/** Storage, the app mode and the Video settings, combined as one flow. */
+private data class Places(
+    val locations: List<StorageLocation>,
+    val move: StorageMove,
+    val mode: AppMode,
+    val video: VideoPreferences,
 )

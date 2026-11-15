@@ -3,12 +3,17 @@ package io.github.kentprodan.mediatheq.feature.video
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoFormat
 import io.github.kentprodan.mediatheq.core.model.VideoKind
+import io.github.kentprodan.mediatheq.core.model.VideoRange
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
+import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.playback.VideoPlayback
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeTrackChoiceRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
@@ -263,5 +268,24 @@ class VideoPlayerViewModelTest {
 
             assertThat(states).doesNotContain(VideoPlayerUiState.Ended)
             assertThat(viewModel.content().title).isEqualTo("Episode 2")
+        }
+
+    @Test
+    fun `a Dolby Vision file that plays as HDR10 says Dolby Vision is not available, one that plays as DV does not`() =
+        test {
+            videos.movies.value = listOf(movie.copy(format = VideoFormat("hevc", range = VideoRange.DolbyVision)))
+            val viewModel = viewModel()
+            playing()
+            val asHdr10 = VideoPlayback("video/hevc", 3840, 2160, VideoRange.Hdr10, PlayMethod.DirectPlay, "c2.hevc")
+
+            playback.state.value = playback.state.value.copy(output = AudioOutputInfo(video = asHdr10))
+            runCurrent()
+            assertThat(viewModel.content().dolbyVisionUnavailable).isTrue()
+            assertThat(viewModel.content().info).isEqualTo(asHdr10)
+
+            val asDv = asHdr10.copy(mimeType = "video/dolby-vision", range = VideoRange.DolbyVision)
+            playback.state.value = playback.state.value.copy(output = AudioOutputInfo(video = asDv))
+            runCurrent()
+            assertThat(viewModel.content().dolbyVisionUnavailable).isFalse()
         }
 }

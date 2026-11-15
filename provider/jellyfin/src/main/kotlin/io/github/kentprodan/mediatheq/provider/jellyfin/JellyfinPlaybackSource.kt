@@ -220,8 +220,8 @@ private fun DeviceProfile.toVideoDto(videoCodecs: List<String>) =
                     listOfNotNull(
                         condition("LessThanEqual", "Width", MAX_WIDTH),
                         condition("LessThanEqual", "VideoBitDepth", MAX_BIT_DEPTH),
-                        // HDR ranges come with the display's capabilities (#276); SDR plays everywhere.
-                        condition("EqualsAny", "VideoRangeType", "SDR"),
+                        // The ranges the display and the decoders take (#276); the server tone-maps the others.
+                        condition("EqualsAny", "VideoRangeType", videoRangeTypes.joinToString("|")),
                         maxHeight?.let { condition("LessThanEqual", "Height", it.toString()) },
                     ),
                 ),

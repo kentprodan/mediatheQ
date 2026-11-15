@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.video
 
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.playback.VideoPlayback
 import kotlin.time.Duration
 
 /** What the video player shows (ADR 0049). The position comes apart, sampled by the connection. */
@@ -21,6 +22,10 @@ sealed interface VideoPlayerUiState {
         val controlsShown: Boolean,
         /** Its audio and subtitle streams and what plays (#274); `null` while read. */
         val tracks: VideoTracks? = null,
+        /** What it really plays as (#276); `null` until the first frame. */
+        val info: VideoPlayback? = null,
+        /** A Dolby Vision file that plays as HDR10 / SDR here: no Dolby Vision on this phone (#276). */
+        val dolbyVisionUnavailable: Boolean = false,
     ) : VideoPlayerUiState
 
     /** The video is no longer the player's (it ended and the music came back, or something else was played). */

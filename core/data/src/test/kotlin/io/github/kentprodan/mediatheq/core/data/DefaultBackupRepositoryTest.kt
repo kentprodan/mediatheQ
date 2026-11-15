@@ -133,6 +133,25 @@ class DefaultBackupRepositoryTest {
         }
 
     @Test
+    fun `the Video settings come back with a restore`() =
+        runTest(dispatcher) {
+            val video = DefaultVideoPreferencesRepository(AudioPreferencesStore(audio))
+            val chosen =
+                VideoPreferences(
+                    meteredQuality = io.github.kentprodan.mediatheq.core.model.VideoQuality.P720,
+                    audioLanguage = "en",
+                    autoPlayNext = false,
+                )
+            video.update { chosen }
+            repository.write(uri("b.json"))
+            video.update { VideoPreferences() }
+
+            repository.restore(uri("b.json"))
+
+            assertThat(video.preferences.first()).isEqualTo(chosen)
+        }
+
+    @Test
     fun `a broken file changes nothing`() =
         runTest(dispatcher) {
             file("broken.json", """{"format": 1, "created": "nope"}""")

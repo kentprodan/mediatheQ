@@ -23,7 +23,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import mockwebserver3.MockResponse
 import mockwebserver3.junit4.MockWebServerRule
 import org.junit.Rule
@@ -327,6 +329,36 @@ class JellyfinPlaybackSourceTest {
                     ),
                 )
         }
+
+    @Test
+    fun `the declared video ranges go out as one EqualsAny, a Dolby Vision 5 file without them is converted`() =
+        runTest {
+            enqueue("items_playbackinfo/video_hdr_tonemap.json")
+            enqueue("items_playbackinfo/video_hdr_tonemap.json")
+            val hdr = video.copy(videoRangeTypes = listOf("SDR", "HDR10", "DOVI", "DOVIWithHDR10", "DOVIWithSDR"))
+
+            source.stream(server(), itemId, video)
+            val sdrOnly = rangeCondition()
+            val converted = (source.stream(server(), itemId, hdr) as MqResult.Success).value
+
+            // #276: SDR only, then a display and decoder with HDR10 and Dolby Vision.
+            assertThat(sdrOnly).isEqualTo("SDR")
+            assertThat(rangeCondition()).isEqualTo("SDR|HDR10|DOVI|DOVIWithHDR10|DOVIWithSDR")
+            // The server's answer for a range the profile lacks: a tone-mapped HLS conversion.
+            assertThat(converted.playMethod).isEqualTo(PlayMethod.Transcode)
+            assertThat(converted.segmented).isTrue()
+        }
+
+    private fun rangeCondition(): String =
+        body()["DeviceProfile"]!!
+            .jsonObject["CodecProfiles"]!!
+            .jsonArray
+            .first { it.jsonObject["Type"]!!.jsonPrimitive.content == "Video" }
+            .jsonObject["Conditions"]!!
+            .jsonArray
+            .first { it.jsonObject["Property"]!!.jsonPrimitive.content == "VideoRangeType" }
+            .jsonObject["Value"]!!
+            .jsonPrimitive.content
 
     @Test
     fun `a video direct play is the original file from the Videos route`() =

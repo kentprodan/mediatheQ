@@ -9,9 +9,12 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.ResolvedTracks
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
+import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeVideoPreferencesRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -452,6 +455,38 @@ class StreamResolverTest {
             val profile = repository.streamRequests.single().second
             assertThat(profile.maxHeight).isEqualTo(480)
             assertThat(profile.maxStreamingBitrate).isEqualTo(1_500_000)
+        }
+
+    @Test
+    fun `the Video settings set the quality per network and the burn-in of styled subtitles`() =
+        runTest {
+            val settings = FakeVideoPreferencesRepository()
+            settings.update {
+                it.copy(
+                    meteredQuality = VideoQuality.Original,
+                    unmeteredQuality = VideoQuality.P720,
+                    burnInStyled = true,
+                )
+            }
+            val video =
+                StreamResolver(
+                    repository,
+                    { setOf("audio/flac") },
+                    network,
+                    audioPreferences,
+                    videoPreferences = settings,
+                )
+
+            network.metered = true
+            video.resolveVideo(itemId)
+            network.metered = false
+            video.resolveVideo(itemId)
+
+            val (onMobile, onWifi) = repository.streamRequests.map { it.second }
+            assertThat(onMobile.maxHeight).isNull()
+            assertThat(onWifi.maxHeight).isEqualTo(720)
+            assertThat(onWifi.subtitleProfiles.filter { it.method == SubtitleMethod.Encode }.map { it.format })
+                .containsAtLeast("ass", "ssa")
         }
 }
 

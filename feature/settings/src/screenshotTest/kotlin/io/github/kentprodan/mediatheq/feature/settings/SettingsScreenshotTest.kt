@@ -94,6 +94,22 @@ fun SettingsPlaybackScreenshot() = Page(SettingsPage.Playback)
 @Composable
 fun SettingsDecodingScreenshot() = Page(SettingsPage.Decoding)
 
+/** Settings -> Playback -> Video (#276), defaults: Original on Wi-Fi, 480p on mobile data, forced subtitles. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsVideoScreenshot() = Page(SettingsPage.Video)
+
+/** The Playback hub in Video mode (#276): the Video row first, no music-only pages. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsPlaybackVideoModeScreenshot() {
+    MediatheqTheme {
+        SettingsPageScreen(SettingsPage.Playback, content.copy(appMode = AppMode.Video), {}, {}, {})
+    }
+}
+
 /** Settings -> Playback -> Playback (#138), defaults. */
 @PreviewTest
 @MqPreviews

@@ -33,6 +33,12 @@ internal interface PlaybackModule {
 
     @Binds
     fun videoTrackChooser(chooser: RepositoryVideoTrackChooser): VideoTrackChooser
+
+    @Binds
+    fun videoHdr(capabilities: MediaCodecVideoHdr): VideoHdrCapabilities
+
+    @Binds
+    fun displayHdr(display: DefaultDisplayHdr): DisplayHdr
 }
 
 @UnstableApi

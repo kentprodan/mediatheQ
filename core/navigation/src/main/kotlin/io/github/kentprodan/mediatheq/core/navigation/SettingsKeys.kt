@@ -101,6 +101,10 @@ data object StoragePlaybackSettingsKey : NavKey
 @Serializable
 data object StorageImagesSettingsKey : NavKey
 
+/** Settings -> Playback -> Video (#276). */
+@Serializable
+data object VideoSettingsKey : NavKey
+
 /** Settings -> Playback -> Transitions (#142). */
 @Serializable
 data object TransitionsSettingsKey : NavKey

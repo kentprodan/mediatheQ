@@ -19,6 +19,8 @@ data class DeviceProfile(
     val maxHeight: Int? = null,
     /** How each subtitle format can reach the device (a video profile only, #274). */
     val subtitleProfiles: List<SubtitleProfile> = emptyList(),
+    /** Jellyfin `VideoRangeType`s played as they are (#276): `SDR`, `HDR10`, `DOVIWithHDR10`, ...; others are tone-mapped. */
+    val videoRangeTypes: List<String> = listOf("SDR"),
 )
 
 /** The format the server converts to when a file cannot be played as it is. */

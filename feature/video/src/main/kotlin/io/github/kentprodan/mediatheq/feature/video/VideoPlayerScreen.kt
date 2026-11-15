@@ -131,6 +131,8 @@ fun VideoPlayerScreen(
     surface: @Composable () -> Unit,
 ) {
     val toggleLabel = stringResource(R.string.video_player_toggle_controls)
+    // The info line under the title (#276), toggled by tapping it.
+    var infoShown by rememberSaveable { mutableStateOf(false) }
     var tracksOpen by rememberSaveable { mutableStateOf(false) }
     val keepOn = (state as? VideoPlayerUiState.Playing)?.isPlaying == true
     Box(
@@ -184,6 +186,8 @@ fun VideoPlayerScreen(
                         onSeek = { onAction(VideoPlayerAction.SeekTo(it)) },
                         onBack = onBack,
                         onTracks = state.tracks?.let { { tracksOpen = true } },
+                        notes = videoNotes(state.info, infoShown, state.dolbyVisionUnavailable),
+                        onTitleClick = { infoShown = !infoShown },
                     )
                 }
                 nextIn?.let { seconds ->

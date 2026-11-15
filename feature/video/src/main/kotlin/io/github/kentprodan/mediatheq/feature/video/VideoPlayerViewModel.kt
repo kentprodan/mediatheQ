@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.model.ResolvedTracks
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
+import io.github.kentprodan.mediatheq.core.model.VideoRange
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -99,6 +100,10 @@ class VideoPlayerViewModel
                             // Paused or buffering, the controls stay: there is nothing to watch behind them.
                             controlsShown = shown || !player.isPlaying,
                             tracks = tracks,
+                            info = player.output.video,
+                            dolbyVisionUnavailable =
+                                video.format?.range == VideoRange.DolbyVision &&
+                                    player.output.video?.let { it.range != VideoRange.DolbyVision } == true,
                         )
                     }
                 }

@@ -7,7 +7,9 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
+import io.github.kentprodan.mediatheq.core.model.VideoRange
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -69,6 +71,14 @@ internal fun AudioOutputInfo.toBundle(): Bundle =
         playedItemId?.let { putString(EXTRA_PLAYED_ITEM, it) }
         putBoolean(EXTRA_STREAM_KNOWN, streamKnown)
         convertedKbps?.let { putInt(EXTRA_CONVERTED_KBPS, it) }
+        video?.let { video ->
+            putString(EXTRA_VIDEO_MIME, video.mimeType)
+            putInt(EXTRA_VIDEO_WIDTH, video.width)
+            putInt(EXTRA_VIDEO_HEIGHT, video.height)
+            putString(EXTRA_VIDEO_RANGE, video.range.name)
+            video.playMethod?.let { putString(EXTRA_VIDEO_METHOD, it.name) }
+            putString(EXTRA_VIDEO_DECODER, video.decoder)
+        }
     }
 
 internal fun Bundle.toAudioOutputInfo(): AudioOutputInfo =
@@ -83,6 +93,20 @@ internal fun Bundle.toAudioOutputInfo(): AudioOutputInfo =
         playedItemId = getString(EXTRA_PLAYED_ITEM),
         streamKnown = getBoolean(EXTRA_STREAM_KNOWN),
         convertedKbps = if (containsKey(EXTRA_CONVERTED_KBPS)) getInt(EXTRA_CONVERTED_KBPS) else null,
+        video =
+            getString(EXTRA_VIDEO_RANGE)?.let { range ->
+                VideoPlayback(
+                    mimeType = getString(EXTRA_VIDEO_MIME),
+                    width = getInt(EXTRA_VIDEO_WIDTH),
+                    height = getInt(EXTRA_VIDEO_HEIGHT),
+                    range = runCatching { VideoRange.valueOf(range) }.getOrDefault(VideoRange.Sdr),
+                    playMethod =
+                        getString(
+                            EXTRA_VIDEO_METHOD,
+                        )?.let { runCatching { PlayMethod.valueOf(it) }.getOrNull() },
+                    decoder = getString(EXTRA_VIDEO_DECODER),
+                )
+            },
     )
 
 /** A track that could not play, as the service sends it to the app's controller (#61). */
@@ -99,6 +123,12 @@ internal fun Bundle.toPlaybackError(): PlaybackError? {
     return reason?.let { PlaybackError(getString(EXTRA_ERROR_TITLE).orEmpty(), it, getBoolean(EXTRA_ERROR_SKIPPED)) }
 }
 
+private const val EXTRA_VIDEO_MIME = "io.github.kentprodan.mediatheq.VIDEO_MIME"
+private const val EXTRA_VIDEO_WIDTH = "io.github.kentprodan.mediatheq.VIDEO_WIDTH"
+private const val EXTRA_VIDEO_HEIGHT = "io.github.kentprodan.mediatheq.VIDEO_HEIGHT"
+private const val EXTRA_VIDEO_RANGE = "io.github.kentprodan.mediatheq.VIDEO_RANGE"
+private const val EXTRA_VIDEO_METHOD = "io.github.kentprodan.mediatheq.VIDEO_METHOD"
+private const val EXTRA_VIDEO_DECODER = "io.github.kentprodan.mediatheq.VIDEO_DECODER"
 private const val EXTRA_ERROR_TITLE = "io.github.kentprodan.mediatheq.ERROR_TITLE"
 private const val EXTRA_ERROR_REASON = "io.github.kentprodan.mediatheq.ERROR_REASON"
 private const val EXTRA_ERROR_SKIPPED = "io.github.kentprodan.mediatheq.ERROR_SKIPPED"

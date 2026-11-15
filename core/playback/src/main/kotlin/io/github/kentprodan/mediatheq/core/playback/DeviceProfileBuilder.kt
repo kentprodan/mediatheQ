@@ -89,8 +89,8 @@ object DeviceProfileBuilder {
 
     /**
      * The profile for streaming a video (ADR 0050): the video codecs the device decodes, the music rule for the audio
-     * inside (E-AC-3 only with a JOC decoder, never TrueHD on a phone), and [quality]'s cap and height. HDR ranges come
-     * with #276, so everything plays as SDR or is tone-mapped by the server.
+     * inside (E-AC-3 only with a JOC decoder, never TrueHD on a phone), [quality]'s cap and height, and the HDR
+     * [videoRangeTypes] the display and decoders take (#276; the server tone-maps the others).
      */
     fun video(
         audioMimeTypes: Set<String>,
@@ -98,6 +98,7 @@ object DeviceProfileBuilder {
         quality: VideoQuality,
         /** Settings -> Video -> Burn in styled subtitles (#276): ASS / SSA keep their styling, converted into the picture. */
         burnInStyled: Boolean = false,
+        videoRangeTypes: List<String> = listOf("SDR"),
     ): DeviceProfile =
         DeviceProfile(
             directPlayContainers = VIDEO_CONTAINERS,
@@ -107,6 +108,7 @@ object DeviceProfileBuilder {
             videoCodecs = VIDEO_CODECS.filter { (_, mime) -> mime in videoMimeTypes }.map { it.first },
             maxHeight = quality.maxHeight,
             subtitleProfiles = subtitleProfiles(burnInStyled),
+            videoRangeTypes = videoRangeTypes,
         )
 
     /**
@@ -131,6 +133,9 @@ object DeviceProfileBuilder {
             "hevc" to "video/hevc",
             "av1" to "video/av01",
             "vp9" to "video/x-vnd.on2.vp9",
+            // Dolby Vision in MP4 (ADR 0050): only with a Dolby Vision decoder.
+            "dvhe" to "video/dolby-vision",
+            "dvh1" to "video/dolby-vision",
         )
 
     /**

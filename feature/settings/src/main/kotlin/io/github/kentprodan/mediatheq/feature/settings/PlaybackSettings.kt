@@ -29,6 +29,11 @@ internal fun LazyListScope.playbackHubGroups(pages: PlaybackPages) {
                     pages.behavior,
                 )
             }
+            if (pages.showVideo) {
+                item { shapes ->
+                    HubRow(shapes, R.string.settings_video, R.string.settings_video_summary, MqIcons.Movie, pages.video)
+                }
+            }
             if (pages.music) {
                 item { shapes ->
                     HubRow(
@@ -112,6 +117,9 @@ internal class PlaybackPages(
     val transitions: () -> Unit,
     /** Decoding and transcoding and Transitions are music only (ADR 0051). */
     val music: Boolean = true,
+    /** Settings -> Playback -> Video (#276), shown when the app mode has video. */
+    val video: () -> Unit = {},
+    val showVideo: Boolean = false,
 )
 
 @androidx.compose.runtime.Composable

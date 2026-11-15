@@ -46,4 +46,9 @@
         <item quantity="one">Next episode in %d second</item>
         <item quantity="other">Next episode in %d seconds</item>
     </plurals>
+    <string name="video_converted">Converted by the server</string>
+    <string name="video_dolby_vision_unavailable">Dolby Vision not available on this phone · playing %1$s</string>
+    <string name="video_method_direct_play">Direct play</string>
+    <string name="video_method_direct_stream">Remuxed</string>
+    <string name="video_method_transcode">Converted</string>
 </resources>

@@ -42,6 +42,7 @@ import io.github.kentprodan.mediatheq.core.navigation.StoragePlaybackSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.StorageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.ThemeSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.TransitionsSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.VideoSettingsKey
 
 /**
  * Registers the Settings hub, its pages, the Audio page and the open-source licenses. [about] describes the app and the
@@ -115,8 +116,10 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             onOpenNotificationButtons = { navigator.navigateTo(NotificationButtonsSettingsKey) },
             onOpenAutoActions = { navigator.navigateTo(AutoActionsSettingsKey) },
             onOpenTransitions = { navigator.navigateTo(TransitionsSettingsKey) },
+            onOpenVideo = { navigator.navigateTo(VideoSettingsKey) },
         )
     }
+    entry<VideoSettingsKey> { SettingsPageRoute(SettingsPage.Video, openOutputs, back) }
     entry<PlaybackBehaviorSettingsKey> { SettingsPageRoute(SettingsPage.PlaybackBehavior, openOutputs, back) }
     entry<DecodingSettingsKey> { SettingsPageRoute(SettingsPage.Decoding, openOutputs, back) }
     entry<AudioFocusSettingsKey> { SettingsPageRoute(SettingsPage.AudioFocus, openOutputs, back) }

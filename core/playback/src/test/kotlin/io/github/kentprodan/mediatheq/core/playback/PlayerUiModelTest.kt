@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.playback
 
 import android.content.Context
 import android.os.Looper
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -21,9 +22,11 @@ import com.google.common.util.concurrent.Futures
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.VideoRange
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -259,5 +262,22 @@ class PlayerUiModelTest {
     fun `missing extras mean a plain output where bit-perfect is possible`() {
         assertThat(android.os.Bundle().toAudioOutputInfo()).isEqualTo(AudioOutputInfo())
         assertThat(AudioOutputInfo().equalizerBlocked).isFalse()
+    }
+
+    @Test
+    fun `what a video plays as goes to the screens with the output, and music has none`() {
+        val video =
+            VideoPlayback("video/hevc", 3840, 2160, VideoRange.Hdr10, PlayMethod.DirectPlay, "c2.exynos.hevc.decoder")
+
+        assertThat(AudioOutputInfo(video = video).toBundle().toAudioOutputInfo().video).isEqualTo(video)
+        assertThat(AudioOutputInfo().toBundle().toAudioOutputInfo().video).isNull()
+    }
+
+    @Test
+    fun `a decoded format's range comes from its decoder type and color transfer`() {
+        assertThat(videoRangeOf("video/dolby-vision", C.COLOR_TRANSFER_ST2084)).isEqualTo(VideoRange.DolbyVision)
+        assertThat(videoRangeOf("video/hevc", C.COLOR_TRANSFER_ST2084)).isEqualTo(VideoRange.Hdr10)
+        assertThat(videoRangeOf("video/hevc", C.COLOR_TRANSFER_HLG)).isEqualTo(VideoRange.Hlg)
+        assertThat(videoRangeOf("video/avc", C.COLOR_TRANSFER_SDR)).isEqualTo(VideoRange.Sdr)
     }
 }
