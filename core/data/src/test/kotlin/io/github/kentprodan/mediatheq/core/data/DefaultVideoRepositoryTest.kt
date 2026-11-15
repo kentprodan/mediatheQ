@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.VideoUserColumns
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.model.Chapter
+import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
@@ -52,10 +53,11 @@ class DefaultVideoRepositoryTest {
     private val preferences = FakeLibraryPreferencesRepository()
     private val accountStore = AccountStore(InMemoryPreferencesDataStore(), FakeTokenCipher())
     private val source = FakeLibrarySource()
+    private val downloads = FakeDownloadRepository()
     private val repository =
         DefaultVideoRepository(
             database.videoDao(),
-            OfflineFilter(preferences, FakeNetworkMonitor()) { FakeDownloadRepository() },
+            OfflineFilter(preferences, FakeNetworkMonitor()) { downloads },
             ServerCapabilities(video = true),
             source,
             accountStore,
@@ -159,6 +161,26 @@ class DefaultVideoRepositoryTest {
             assertThat(repository.movies(VideoSort.Name, unwatched = false).first()).isEmpty()
             assertThat(repository.movieCount.first()).isEqualTo(0)
             assertThat(repository.seriesCount.first()).isEqualTo(0)
+        }
+
+    @Test
+    fun `offline mode lists the downloaded movie, and the series and season of a downloaded episode`() =
+        runTest {
+            library()
+            downloads.downloadVideos(
+                listOf(VideoToDownload(movie.id, movie.title), VideoToDownload(id("e1"), "Pilot")),
+                DownloadOrigin.Single,
+            )
+            downloads.videoDownloads.value =
+                downloads.videoDownloads.value.map { it.copy(state = DownloadState.Completed) }
+            preferences.setOfflineMode(true)
+
+            assertThat(
+                repository.movies(VideoSort.Name, unwatched = false).first().map { it.id },
+            ).containsExactly(movie.id)
+            assertThat(repository.seriesCount.first()).isEqualTo(1)
+            assertThat(repository.seasons(id("sr1")).first().map { it.id }).containsExactly(id("se1"))
+            assertThat(repository.episodes(id("se1")).first().map { it.id }).containsExactly(id("e1"))
         }
 
     @Test
