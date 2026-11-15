@@ -73,6 +73,16 @@ object DeviceProfileBuilder {
         )
     }
 
+    /**
+     * For a video download (#279, ADR 0024): the Original lists of [video] with its HDR ranges, no cap. Only a direct play
+     * is kept (`StreamResolver.downloadVideoStream`): videos are never downloaded converted.
+     */
+    fun videoDownload(
+        audioMimeTypes: Set<String>,
+        videoMimeTypes: Set<String>,
+        videoRangeTypes: List<String> = listOf("SDR"),
+    ): DeviceProfile = video(audioMimeTypes, videoMimeTypes, VideoQuality.Original, videoRangeTypes = videoRangeTypes)
+
     /** Video containers Media3 reads (Jellyfin names, ADR 0050). */
     val VIDEO_CONTAINERS = listOf("mp4", "m4v", "mkv", "webm", "ts")
 
