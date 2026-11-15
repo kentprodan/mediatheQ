@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.downloads
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.data.VideoDownload
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.DownloadState
@@ -10,6 +11,8 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import org.junit.Test
 import kotlin.time.Duration.Companion.minutes
 
@@ -188,5 +191,48 @@ class DownloadsGroupingTest {
         assertThat(queueStatus(DownloadState.Queued, paused = false)).isEqualTo(QueueStatus.Queued)
         assertThat(queueStatus(DownloadState.Failed, paused = true)).isEqualTo(QueueStatus.Failed)
         assertThat(queueStatus(DownloadState.Downloading(0.5f), paused = true)).isEqualTo(QueueStatus.Downloading)
+    }
+
+    @Test
+    fun `videos group into movies and seasons, an episode on its own under its season, the rest is the queue`() {
+        val server = ServerId("s")
+
+        fun id(v: String) = MediaId(server, v)
+        val season = id("se1")
+        val movie = VideoDownload(id("m1"), "Film", DownloadState.Completed, 100, setOf(DownloadOrigin.Movie(id("m1"))))
+        val e1 = VideoDownload(id("e1"), "Pilot", DownloadState.Completed, 10, setOf(DownloadOrigin.Season(season)))
+        val e2 = VideoDownload(id("e2"), "Two", DownloadState.Completed, 20, setOf(DownloadOrigin.Single))
+        val running = VideoDownload(id("e3"), "Three", DownloadState.Downloading(0.5f), 5, setOf(DownloadOrigin.Single))
+        val info =
+            listOf(
+                Video(
+                    id("e1"),
+                    VideoKind.Episode,
+                    "Pilot",
+                    seriesName = "Show",
+                    seasonId = season,
+                    seasonNumber = 1,
+                    episodeNumber = 1,
+                ),
+                Video(
+                    id("e2"),
+                    VideoKind.Episode,
+                    "Two",
+                    seriesName = "Show",
+                    seasonId = season,
+                    seasonNumber = 1,
+                    episodeNumber = 2,
+                ),
+            ).associateBy { it.id }
+
+        val (movies, seasons, queue) = videoDownloadsContent(listOf(movie, e2, e1, running), info)
+
+        assertThat(movies).containsExactly(movie)
+        val only = seasons.single()
+        assertThat(only.title).isEqualTo("Show · Season 1")
+        assertThat(only.episodes).containsExactly(e1, e2).inOrder()
+        assertThat(only.bytes).isEqualTo(30)
+        assertThat(only.whole).isTrue()
+        assertThat(queue).containsExactly(running)
     }
 }

@@ -6,9 +6,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.CleanupPreview
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
+import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.Job
@@ -17,6 +19,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -33,6 +37,7 @@ class DownloadsViewModel
         storage: DownloadStorageRepository,
         audioPreferences: AudioPreferencesRepository,
         appMode: AppModeRepository,
+        videos: VideoRepository,
     ) : ViewModel() {
         private val filter = MutableStateFlow("")
         private val cleanup = MutableStateFlow<CleanupPreview?>(null)
@@ -50,6 +55,18 @@ class DownloadsViewModel
                     .copy(unavailableOn = if (available) null else storage.locationName.orEmpty())
             }
 
+        // The downloaded videos and what the library knows of them (their seasons, #279).
+        private val videoLists =
+            downloadRepository.videoDownloads.flatMapLatest { list ->
+                if (list.isEmpty()) {
+                    flowOf(Triple(emptyList(), emptyList(), emptyList()))
+                } else {
+                    combine(list.map { videos.video(it.id) }) { found ->
+                        videoDownloadsContent(list, found.filterNotNull().associateBy { it.id })
+                    }
+                }
+            }
+
         private val rules =
             audioPreferences.preferences
                 .map {
@@ -62,11 +79,21 @@ class DownloadsViewModel
         val uiState: StateFlow<DownloadsUiState> =
             combine(
                 // Video mode lists no music download (ADR 0051): they are kept and counted in the totals.
-                combine(grouped, appMode.mode) { content, mode ->
+                combine(grouped, appMode.mode, videoLists) { content, mode, (movies, seasons, videoQueue) ->
+                    val withVideos =
+                        if (mode.video) {
+                            content.copy(
+                                movies = movies,
+                                seasons = seasons,
+                                videoQueue = videoQueue,
+                            )
+                        } else {
+                            content
+                        }
                     if (mode.music) {
-                        content
+                        withVideos
                     } else {
-                        content.copy(
+                        withVideos.copy(
                             downloading = emptyList(),
                             albums = emptyList(),
                             playlists = emptyList(),
@@ -80,7 +107,8 @@ class DownloadsViewModel
                 cleanup,
             ) { content, paused, rules, filter, cleanup ->
                 val hasFiles =
-                    content.albums.isNotEmpty() || content.playlists.isNotEmpty() || content.songs.isNotEmpty()
+                    content.albums.isNotEmpty() || content.playlists.isNotEmpty() || content.songs.isNotEmpty() ||
+                        content.movies.isNotEmpty() || content.seasons.isNotEmpty()
                 filterDownloads(content, filter)
                     .copy(paused = paused, rules = rules, filter = filter, hasFiles = hasFiles, cleanup = cleanup)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DownloadsUiState.Loading)
@@ -117,6 +145,19 @@ class DownloadsViewModel
 
                 is DownloadsAction.RemoveCollection -> {
                     downloadRepository.removeCollection(action.origin)
+                }
+
+                is DownloadsAction.RemoveVideos -> {
+                    if (action.origin == DownloadOrigin.Single) {
+                        downloadRepository.removeOrigin(action.ids, action.origin)
+                    } else {
+                        downloadRepository.removeCollection(action.origin)
+                    }
+                }
+
+                // From the queue: an unfinished or failed video goes, whatever it was asked through.
+                is DownloadsAction.CancelVideo -> {
+                    downloadRepository.remove(listOf(action.id))
                 }
 
                 DownloadsAction.PauseAll -> {

@@ -4,7 +4,9 @@ import io.github.kentprodan.mediatheq.core.data.AutoDownloads
 import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.data.VideoDownload
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlin.time.Duration
@@ -25,6 +27,12 @@ sealed interface DownloadsUiState {
         val playlists: List<DownloadedPlaylist> = emptyList(),
         /** Tracks downloaded on their own. */
         val songs: List<TrackDownload> = emptyList(),
+        /** Downloaded movies (#279). */
+        val movies: List<VideoDownload> = emptyList(),
+        /** Downloaded seasons, an episode on its own under its season (#279). */
+        val seasons: List<DownloadedSeason> = emptyList(),
+        /** Videos still downloading, waiting or failed (#279). */
+        val videoQueue: List<VideoDownload> = emptyList(),
         /** The name of the SD card the downloads are on while it is missing (#146): they are kept, not playable. */
         val unavailableOn: String? = null,
         /** The user paused every download (#149). */
@@ -67,6 +75,16 @@ data class OfflineUsage(
     val bytes: Long = 0,
 )
 
+/** A season's downloaded episodes (#279); [whole] when the season itself was downloaded. */
+data class DownloadedSeason(
+    val seasonId: MediaId,
+    /** "Show · Season 2". */
+    val title: String,
+    val episodes: List<VideoDownload>,
+    val bytes: Long,
+    val whole: Boolean,
+)
+
 /** An album downloaded as a whole, with what of it is on the device. */
 data class DownloadedAlbum(
     val album: Album,
@@ -88,6 +106,17 @@ data class DownloadedPlaylist(
 )
 
 sealed interface DownloadsAction {
+    /** An unfinished or failed video taken out of the queue (#279). */
+    data class CancelVideo(
+        val id: MediaId,
+    ) : DownloadsAction
+
+    /** Removes a movie's or a season's download, or an episode downloaded on its own ([ids], #279). */
+    data class RemoveVideos(
+        val origin: DownloadOrigin,
+        val ids: List<MediaId> = emptyList(),
+    ) : DownloadsAction
+
     /** Plays the downloaded songs from [track] on (or [track] alone when it is not among them). */
     data class Play(
         val track: Track,

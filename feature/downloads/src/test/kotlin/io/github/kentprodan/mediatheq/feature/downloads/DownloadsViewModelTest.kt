@@ -22,6 +22,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeDownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.update
@@ -36,6 +37,7 @@ class DownloadsViewModelTest {
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
+    private val videos = FakeVideoRepository()
     private val albumA = Album(id("A"), "Album A", emptyList())
     private val mix = Playlist(id("p1"), "Mix")
     private val a1 = track("a1", "A")
@@ -61,7 +63,7 @@ class DownloadsViewModelTest {
     private val audioPreferences = FakeAudioPreferencesRepository()
     private val appMode = FakeAppModeRepository()
     private val viewModel by lazy {
-        DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences, appMode)
+        DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences, appMode, videos)
     }
 
     private suspend fun content(): DownloadsUiState.Content {
@@ -184,7 +186,7 @@ class DownloadsViewModelTest {
                     }
                 }
             val viewModel =
-                DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences, appMode)
+                DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences, appMode, videos)
 
             viewModel.onAction(DownloadsAction.AskCleanup)
             viewModel.onAction(DownloadsAction.DismissCleanup)

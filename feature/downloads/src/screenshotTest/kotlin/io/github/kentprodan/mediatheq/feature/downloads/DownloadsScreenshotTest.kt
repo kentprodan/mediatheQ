@@ -5,6 +5,7 @@ import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.data.AutoDownloads
 import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.data.VideoDownload
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialogContent
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
@@ -157,4 +158,52 @@ fun DownloadsUnavailableScreenshot() =
             unavailableOn = "SD card",
             hasFiles = true,
         ),
+    )
+
+private fun videoDownload(
+    n: Int,
+    title: String,
+    bytes: Long,
+    state: DownloadState = DownloadState.Completed,
+    cannot: Boolean = false,
+) = VideoDownload(MediaId(ServerId("preview"), "v-$n"), title, state, bytes, cannotDownload = cannot)
+
+/** Video mode's files (#279): a movie and a season with its episodes and sizes. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun DownloadsVideosScreenshot() =
+    Downloads(
+        DownloadsUiState.Content(
+            totals,
+            movies = listOf(videoDownload(1, "Moșoi: Tribul Mic", 4_200_000_000)),
+            seasons =
+                listOf(
+                    DownloadedSeason(
+                        MediaId(ServerId("preview"), "se1"),
+                        "Show · Season 2",
+                        listOf(videoDownload(2, "Episode 1", 900_000_000), videoDownload(3, "Episode 2", 880_000_000)),
+                        1_780_000_000,
+                        whole = true,
+                    ),
+                ),
+            hasFiles = true,
+        ),
+    )
+
+/** The queue with a video that cannot be downloaded on this phone (#279). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun DownloadsVideoQueueScreenshot() =
+    Downloads(
+        DownloadsUiState.Content(
+            totals,
+            videoQueue =
+                listOf(
+                    videoDownload(4, "Episode 3", 300_000_000, DownloadState.Downloading(0.3f)),
+                    videoDownload(5, "Dolby Vision 5 film", 0, DownloadState.Failed, cannot = true),
+                ),
+        ),
+        DownloadsTab.Queue,
     )
