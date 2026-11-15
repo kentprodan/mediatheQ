@@ -139,6 +139,7 @@ internal fun videoDownloadsContent(
     info: Map<MediaId, Video>,
 ): Triple<List<VideoDownload>, List<DownloadedSeason>, List<VideoDownload>> {
     val (done, queue) = videos.partition { it.state == DownloadState.Completed }
+
     fun seasonOf(download: VideoDownload): MediaId? =
         if (download.origins.any { it is DownloadOrigin.Movie }) {
             null

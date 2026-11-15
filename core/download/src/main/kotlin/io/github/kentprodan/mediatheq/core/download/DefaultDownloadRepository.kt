@@ -364,6 +364,7 @@ internal class DefaultDownloadRepository
             }
             val known = entries.value
             val knownSubtitles = subtitleEntries.value
+
             // Only missing or failed files go again, a video's and each subtitle's on their own: a failed subtitle
             // of a finished video retries too. A video always continues its partial copy (an original, never converted).
             fun retry(state: Int?) = state == null || state == Download.STATE_FAILED

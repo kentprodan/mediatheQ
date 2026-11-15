@@ -89,6 +89,15 @@ internal fun localDownloadKey(uri: String): String? =
         }
     }
 
+/** Reads a downloaded video and its subtitles ([localVideoUri], [localSubtitleUri]) from [cache], never the network. */
+@UnstableApi
+internal fun downloadedVideoDataSource(cache: Cache): CacheDataSource.Factory =
+    CacheDataSource
+        .Factory()
+        .setCache(cache)
+        .setCacheKeyFactory { spec -> localDownloadKey(spec.uri.toString()) ?: spec.uri.toString() }
+        .setUpstreamDataSourceFactory(null)
+
 private const val LOCAL_VIDEO = "mediatheq://download/video/"
 private const val LOCAL_SUBTITLE = "mediatheq://sub/"
 
@@ -229,14 +238,7 @@ internal class StreamMediaSourceFactory(
             }
 
             is StreamSource.Downloaded -> {
-                val local =
-                    CacheDataSource
-                        .Factory()
-                        .setCache(requireNotNull(downloadCache))
-                        .setCacheKeyFactory { spec -> localDownloadKey(spec.uri.toString()) ?: spec.uri.toString() }
-                        // Read only: a downloaded file never goes to the network.
-                        .setUpstreamDataSourceFactory(null)
-                DefaultMediaSourceFactory(local)
+                DefaultMediaSourceFactory(downloadedVideoDataSource(requireNotNull(downloadCache)))
                     .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
                     .createMediaSource(
                         mediaItem

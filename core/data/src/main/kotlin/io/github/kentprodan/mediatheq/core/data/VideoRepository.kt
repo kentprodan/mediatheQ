@@ -156,7 +156,7 @@ class DefaultVideoRepository
             val current = dao.video(episode.itemId).first()?.toDomain() ?: return null
             val series = current.seriesId ?: return null
             // Offline, the next downloaded episode: one not on the phone could not play (#279).
-            val episodes = offlineAware { all, downloaded -> dao.seriesEpisodes(series.itemId, all, downloaded) }.first()
+            val episodes = offlineAware { all, ids -> dao.seriesEpisodes(series.itemId, all, ids) }.first()
             return nextEpisode(episodes.map { it.toDomain() }, current)
         }
 
