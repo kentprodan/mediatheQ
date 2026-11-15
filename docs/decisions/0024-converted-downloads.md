@@ -38,3 +38,11 @@ though, is one file the player reads back from the download cache by its key, sn
   in kb/s (0 = the original; 1, from before, reads as 256), so Now Playing shows the real one. The quality is read
   when the download's data source opens: a paused original resumed after a change to a bitrate fails as "cannot
   continue" and must be downloaded again.
+
+## Amendment (2026-11-15, #279): no converted downloads for video
+
+Videos download only as their originals (`DeviceProfileBuilder.videoDownload`, Original lists and the HDR ranges the
+phone shows). When the server cannot send the file as it is (a codec or Dolby Vision profile the phone cannot decode),
+the download fails with "This video cannot be downloaded on this phone" and leaves no file: a converted video would be a
+long transcode with a fixed quality, and the Download quality setting stays music-only. External text subtitles
+download beside the video as `<id>:sub:<index>` keys and go with it.

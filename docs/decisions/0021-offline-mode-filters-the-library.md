@@ -47,3 +47,9 @@ from Room through `LibraryRepository` and `PlaylistRepository`.
   (unfiltered reads), only for the signed-in server, never with an empty library (downloads outlive sign-out), and
   only when the setting or the favorites change. An older app skips the new kinds: after a downgrade, automatic-only
   tracks drop out of the Downloads lists.
+
+## Note (2026-11-15, #279): video lists
+
+Every video list (`VideoDao` with `all` / `downloaded`) follows the same rule: offline, movies and episodes show only
+when downloaded, and series and seasons through their downloaded episodes. Home's video sections and Continue watching
+read Room, so their positions come from the last sync and the pending reports.
