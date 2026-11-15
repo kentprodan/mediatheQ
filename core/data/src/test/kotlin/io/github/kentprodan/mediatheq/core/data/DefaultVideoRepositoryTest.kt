@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.AppLog
+import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.entity.SeasonEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SeasonStaging
@@ -11,11 +12,16 @@ import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoUserColumns
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
+import io.github.kentprodan.mediatheq.core.model.Chapter
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
+import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.StreamType
+import io.github.kentprodan.mediatheq.core.model.TrickplayInfo
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoFormat
@@ -26,6 +32,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
+import io.github.kentprodan.mediatheq.core.testing.FakePlaybackSource
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataSink
@@ -38,6 +45,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class DefaultVideoRepositoryTest {
     private val database = inMemoryDatabase()
@@ -59,6 +67,7 @@ class DefaultVideoRepositoryTest {
                 CoroutineScope(Dispatchers.Unconfined),
                 AppLog.None,
             ),
+            FakePlaybackSource(),
         )
     private val server = ServerId("s")
 
@@ -171,6 +180,44 @@ class DefaultVideoRepositoryTest {
             val watching = repository.continueWatching(20).first()
             assertThat(watching.map { it.id }).containsExactly(movie.id)
             assertThat(watching.single().userData.playbackPosition).isEqualTo(20.minutes)
+        }
+
+    @Test
+    fun `extras and segments are asked once per session, a failure is asked again, offline asks nothing`() =
+        runTest {
+            accountStore.save(StoredAccount("http://nas:8096", server, "Home", "user-1", "Ana", accessToken = "token"))
+            val intro = MediaSegment(SegmentType.Intro, 0.minutes, 1.minutes)
+            source.extrasAnswer = MqResult.Failure(MqError.Network)
+            assertThat(repository.playerExtras(movie.id)).isEqualTo(PlayerExtras())
+            source.extrasAnswer = MqResult.Success(PlayerExtras(listOf(Chapter(0, 0.minutes, "One"))))
+            source.segmentsAnswer = MqResult.Success(listOf(intro))
+
+            repeat(2) {
+                assertThat(repository.playerExtras(movie.id).chapters).hasSize(1)
+                assertThat(repository.segments(movie.id)).containsExactly(intro)
+            }
+
+            assertThat(source.calls.filter { it.startsWith("extras") }).hasSize(2)
+            assertThat(source.calls.filter { it.startsWith("segments") }).hasSize(1)
+            preferences.setOfflineMode(true)
+            assertThat(repository.segments(id("other"))).isEmpty()
+            assertThat(source.calls.filter { it == "segments other" }).isEmpty()
+        }
+
+    @Test
+    fun `the tiles' and chapter pictures' addresses are filled, the tiles with the login header`() =
+        runTest {
+            accountStore.save(StoredAccount("http://nas:8096", server, "Home", "user-1", "Ana", accessToken = "token"))
+            val tiles = TrickplayInfo("s", 320, 180, 10, 10, 250, 10.seconds)
+            source.extrasAnswer =
+                MqResult.Success(PlayerExtras(listOf(Chapter(0, 0.minutes, "One", imageTag = "t")), tiles))
+
+            val extras = repository.playerExtras(movie.id)
+
+            assertThat(extras.trickplay!!.tileUrls).hasSize(3)
+            assertThat(extras.trickplay!!.tileUrls.first()).startsWith("http://nas:8096/")
+            assertThat(extras.trickplay!!.headers).isNotEmpty()
+            assertThat(extras.chapters.single().imageUrl).isNotNull()
         }
 
     @Test

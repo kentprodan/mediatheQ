@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -55,6 +56,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndic
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
+import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.ui.MqSubtitles
 import io.github.kentprodan.mediatheq.core.ui.MqTracksSheet
@@ -80,6 +83,9 @@ internal fun VideoPlayerRoute(
     val position by viewModel.position.collectAsStateWithLifecycle()
     val player by viewModel.player.collectAsStateWithLifecycle()
     val nextIn by viewModel.nextIn.collectAsStateWithLifecycle()
+    val skip by viewModel.skipButton.collectAsStateWithLifecycle()
+    val extras by viewModel.extras.collectAsStateWithLifecycle()
+    val skipped by viewModel.skippedNotice.collectAsStateWithLifecycle()
     val playing = state as? VideoPlayerUiState.Playing
     FullScreenVideo(wide = (playing?.aspectRatio ?: 0f) > 1f)
     val leave = {
@@ -89,7 +95,16 @@ internal fun VideoPlayerRoute(
     BackHandler(onBack = leave)
     // The video ended and the music came back (ADR 0047): back to the page that opened it.
     LaunchedEffect(state) { if (state == VideoPlayerUiState.Ended) onBack() }
-    VideoPlayerScreen(state, position, viewModel::onAction, leave, nextIn = nextIn) {
+    VideoPlayerScreen(
+        state,
+        position,
+        viewModel::onAction,
+        leave,
+        nextIn = nextIn,
+        skip = skip?.type,
+        skipped = skipped,
+        extras = extras,
+    ) {
         Box(Modifier.fillMaxSize()) {
             MqVideoSurface(player, Modifier.fillMaxSize())
             MqSubtitles(player, Modifier.fillMaxSize())
@@ -128,11 +143,18 @@ fun VideoPlayerScreen(
     onBack: () -> Unit,
     /** Seconds until the next episode, during the countdown (#275); `null` hides the card. */
     nextIn: Int? = null,
+    /** The segment kind whose skip button shows (#277), `null` for none. */
+    skip: SegmentType? = null,
+    /** A segment kind just skipped by itself (#277): a short note. */
+    skipped: SegmentType? = null,
+    /** Chapters and seek previews (#277). */
+    extras: PlayerExtras = PlayerExtras(),
     surface: @Composable () -> Unit,
 ) {
     val toggleLabel = stringResource(R.string.video_player_toggle_controls)
     // The info line under the title (#276), toggled by tapping it.
     var infoShown by rememberSaveable { mutableStateOf(false) }
+    var chaptersOpen by rememberSaveable { mutableStateOf(false) }
     var tracksOpen by rememberSaveable { mutableStateOf(false) }
     val keepOn = (state as? VideoPlayerUiState.Playing)?.isPlaying == true
     Box(
@@ -188,7 +210,44 @@ fun VideoPlayerScreen(
                         onTracks = state.tracks?.let { { tracksOpen = true } },
                         notes = videoNotes(state.info, infoShown, state.dolbyVisionUnavailable),
                         onTitleClick = { infoShown = !infoShown },
+                        chapters = extras.chapters.map { it.start },
+                        onChapters = extras.chapters.takeIf { it.isNotEmpty() }?.let { { chaptersOpen = true } },
+                        preview = { at -> extras.trickplay?.let { TrickplayPreview(it, at) } },
                     )
+                }
+                // The countdown takes the corner when both would show.
+                if (nextIn == null) {
+                    skip?.let { type ->
+                        MediatheqTheme(systemDark = true) {
+                            Button(
+                                onClick = { onAction(VideoPlayerAction.SkipSegment) },
+                                modifier =
+                                    Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .windowInsetsPadding(WindowInsets.safeDrawing)
+                                        .padding(bottom = SKIP_ABOVE_SEEK_BAR, end = MediatheqSpacing.xl),
+                            ) { Text(stringResource(type.skipLabel)) }
+                        }
+                    }
+                }
+                skipped?.let { type ->
+                    MediatheqTheme(systemDark = true) {
+                        Surface(
+                            Modifier
+                                .align(Alignment.TopCenter)
+                                .windowInsetsPadding(WindowInsets.safeDrawing)
+                                .padding(MediatheqSpacing.xl)
+                                .semantics { liveRegion = LiveRegionMode.Polite },
+                            shape = MaterialTheme.shapes.extraLarge,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            Text(
+                                stringResource(type.skippedLabel),
+                                Modifier.padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
+                    }
                 }
                 nextIn?.let { seconds ->
                     NextEpisodeCard(
@@ -200,6 +259,13 @@ fun VideoPlayerScreen(
                                 .align(Alignment.BottomEnd)
                                 .windowInsetsPadding(WindowInsets.safeDrawing)
                                 .padding(MediatheqSpacing.xl),
+                    )
+                }
+                if (chaptersOpen) {
+                    ChaptersSheet(
+                        extras.chapters,
+                        onChapter = { onAction(VideoPlayerAction.SeekTo(it.start)) },
+                        onDismiss = { chaptersOpen = false },
                     )
                 }
                 val tracks = state.tracks
@@ -247,3 +313,26 @@ internal fun NextEpisodeCard(
         }
     }
 }
+
+/** The skip button sits above the seek bar and its times. */
+private val SKIP_ABOVE_SEEK_BAR = 120.dp
+
+private val SegmentType.skipLabel: Int
+    get() =
+        when (this) {
+            SegmentType.Intro -> R.string.video_skip_intro
+            SegmentType.Outro -> R.string.video_skip_credits
+            SegmentType.Recap -> R.string.video_skip_recap
+            SegmentType.Preview -> R.string.video_skip_preview
+            SegmentType.Commercial -> R.string.video_skip_commercial
+        }
+
+private val SegmentType.skippedLabel: Int
+    get() =
+        when (this) {
+            SegmentType.Intro -> R.string.video_skipped_intro
+            SegmentType.Outro -> R.string.video_skipped_credits
+            SegmentType.Recap -> R.string.video_skipped_recap
+            SegmentType.Preview -> R.string.video_skipped_preview
+            SegmentType.Commercial -> R.string.video_skipped_commercial
+        }

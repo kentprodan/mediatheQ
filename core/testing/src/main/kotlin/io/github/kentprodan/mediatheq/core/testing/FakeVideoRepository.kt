@@ -5,7 +5,9 @@ import io.github.kentprodan.mediatheq.core.data.VideoSort
 import io.github.kentprodan.mediatheq.core.data.nextEpisode
 import io.github.kentprodan.mediatheq.core.data.nextUp
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Video
@@ -93,6 +95,14 @@ class FakeVideoRepository(
         val current = all.firstOrNull { it.id == episode } ?: return null
         return nextEpisode(all.filter { it.seriesId == current.seriesId }, current)
     }
+
+    /** What [playerExtras] and [segments] answer per video (#277). */
+    val extras = mutableMapOf<MediaId, PlayerExtras>()
+    val segments = mutableMapOf<MediaId, List<MediaSegment>>()
+
+    override suspend fun playerExtras(videoId: MediaId): PlayerExtras = extras[videoId] ?: PlayerExtras()
+
+    override suspend fun segments(videoId: MediaId): List<MediaSegment> = segments[videoId].orEmpty()
 
     override suspend fun refreshResume() {
         resumeRefreshes++

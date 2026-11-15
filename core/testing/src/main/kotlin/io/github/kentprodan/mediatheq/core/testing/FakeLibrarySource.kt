@@ -5,13 +5,17 @@ import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.Chapter
 import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.TrickplayInfo
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.server.LibraryPage
@@ -169,6 +173,40 @@ class FakeLibrarySource : LibrarySource {
         val total = if (name in shortListings) all.size + 1 else all.size
         return MqResult.Success(LibraryPage(all.drop(startIndex).take(limit), total))
     }
+
+    /** What [playerExtras] and [segments] answer (#277). */
+    var extrasAnswer: MqResult<PlayerExtras> = MqResult.Success(PlayerExtras())
+    var segmentsAnswer: MqResult<List<MediaSegment>> = MqResult.Success(emptyList())
+
+    override suspend fun playerExtras(
+        server: SignedInServer,
+        videoId: MediaId,
+    ): MqResult<PlayerExtras> {
+        calls += "extras ${videoId.itemId}"
+        return extrasAnswer
+    }
+
+    override suspend fun segments(
+        server: SignedInServer,
+        videoId: MediaId,
+    ): MqResult<List<MediaSegment>> {
+        calls += "segments ${videoId.itemId}"
+        return segmentsAnswer
+    }
+
+    override fun trickplayTileUrl(
+        baseUrl: String,
+        videoId: MediaId,
+        trickplay: TrickplayInfo,
+        index: Int,
+    ) = "$baseUrl/trickplay/${videoId.itemId}/${trickplay.width}/$index.jpg"
+
+    override fun chapterImageUrl(
+        baseUrl: String,
+        videoId: MediaId,
+        chapter: Chapter,
+        widthPx: Int,
+    ) = chapter.imageTag?.let { "$baseUrl/chapter/${videoId.itemId}/${chapter.index}" }
 
     /** What [resumeVideos] answers. */
     var resumeAnswer: MqResult<Map<MediaId, UserData>> = MqResult.Success(emptyMap())
