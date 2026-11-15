@@ -190,10 +190,11 @@ internal fun LazyListScope.storageMediaGroups(
                 )
             }
             item { shapes ->
+                // Music only: videos always download as their originals (#279, ADR 0024).
                 DialogItem(
                     shapes,
                     stringResource(R.string.settings_st_download_quality),
-                    audio.downloadQuality.label(),
+                    stringResource(R.string.settings_st_download_quality_videos, audio.downloadQuality.label()),
                 ) { onOpenDialog(StorageDialog.DownloadQuality) }
             }
             item { shapes ->
