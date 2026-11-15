@@ -7,6 +7,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.resumePosition
@@ -32,11 +33,17 @@ class MovieViewModel
         videos: VideoRepository,
         private val userData: UserDataRepository,
         private val picker: TrackPicker,
+        private val downloader: VideoDownloader,
     ) : ViewModel() {
         private val tracks = videos.video(id).flatMapLatest { it?.let(picker::tracks) ?: flowOf(null) }
 
         val uiState: StateFlow<MovieUiState> =
-            combine(videos.video(id), videos.streams(id), tracks) { movie, streams, tracks ->
+            combine(
+                videos.video(id),
+                videos.streams(id),
+                tracks,
+                downloader.states,
+            ) { movie, streams, tracks, downloads ->
                 if (movie == null) {
                     MovieUiState.Error(MqError.NotFound)
                 } else {
@@ -46,6 +53,7 @@ class MovieViewModel
                         externalSubtitles = externalSubtitles(streams),
                         resumeAt = movie.resumePosition().takeIf { it > Duration.ZERO },
                         tracks = tracks,
+                        download = downloads[movie.id],
                     )
                 }
             }.catch { emit(MovieUiState.Error(MqError.Storage)) }
@@ -63,6 +71,14 @@ class MovieViewModel
 
                     MovieAction.ToggleWatched -> {
                         userData.setPlayed(id, !movie.userData.played)
+                    }
+
+                    MovieAction.ToggleDownload -> {
+                        if (content.download == null) {
+                            downloader.download(listOf(movie), DownloadOrigin.Movie(id))
+                        } else {
+                            downloader.remove(DownloadOrigin.Movie(id))
+                        }
                     }
 
                     is MovieAction.ChooseAudio -> {

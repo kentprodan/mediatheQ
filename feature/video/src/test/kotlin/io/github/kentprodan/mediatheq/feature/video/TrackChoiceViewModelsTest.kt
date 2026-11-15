@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeTrackChoiceRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
@@ -43,6 +44,7 @@ class TrackChoiceViewModelsTest {
         )
     private val videos = FakeVideoRepository()
     private val choices = FakeTrackChoiceRepository()
+    private val downloads = FakeDownloadRepository()
     private val picker = TrackPicker(videos, choices)
     private val movie = Video(id("m1"), VideoKind.Movie, "Moșoi", duration = 90.minutes)
     private val season = Season(id("se1"), id("sr1"), "Season 1", 1)
@@ -79,7 +81,8 @@ class TrackChoiceViewModelsTest {
     fun `the movie page's sheet saves an audio choice with its language, without playing`() =
         test {
             videos.movies.value = listOf(movie)
-            val viewModel = MovieViewModel(movie.id, videos, FakeUserDataRepository(), picker)
+            val viewModel =
+                MovieViewModel(movie.id, videos, FakeUserDataRepository(), picker, VideoDownloader(downloads, videos))
             backgroundScope.launch { viewModel.uiState.collect() }
             runCurrent()
 
@@ -100,7 +103,8 @@ class TrackChoiceViewModelsTest {
             videos.seriesSeasons.value = mapOf(id("sr1") to listOf(season))
             videos.seasonEpisodes.value = mapOf(season.id to listOf(episode))
             choices.save(episode.id, TrackChoice(audioIndex = 1))
-            val viewModel = SeriesViewModel(id("sr1"), videos, FakeUserDataRepository(), picker)
+            val viewModel =
+                SeriesViewModel(id("sr1"), videos, FakeUserDataRepository(), picker, VideoDownloader(downloads, videos))
             backgroundScope.launch { viewModel.uiState.collect() }
             runCurrent()
 
