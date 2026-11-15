@@ -87,7 +87,19 @@ internal fun VideoPlayerRoute(
     val extras by viewModel.extras.collectAsStateWithLifecycle()
     val skipped by viewModel.skippedNotice.collectAsStateWithLifecycle()
     val playing = state as? VideoPlayerUiState.Playing
-    FullScreenVideo(wide = (playing?.aspectRatio ?: 0f) > 1f)
+    val inPip = rememberIsInPipMode()
+    val pip by viewModel.pip.collectAsStateWithLifecycle()
+    PipParams(pip, sourceRect = null)
+    // In PiP the window is the activity's: no orientation lock or hidden bars to keep (#278).
+    if (!inPip) FullScreenVideo(wide = (playing?.aspectRatio ?: 0f) > 1f)
+    if (inPip) {
+        // Only the picture and its subtitles in the small window (#278).
+        Box(Modifier.fillMaxSize()) {
+            MqVideoSurface(player, Modifier.fillMaxSize())
+            MqSubtitles(player, Modifier.fillMaxSize())
+        }
+        return
+    }
     val leave = {
         viewModel.onAction(VideoPlayerAction.Leave)
         onBack()
