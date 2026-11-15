@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import android.net.Uri
+import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSourceUtil
@@ -17,10 +18,13 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.CONVERTED_DOWNLOAD
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.model.DownloadKey
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.SubtitleDelivery
+import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
@@ -321,6 +325,51 @@ class StreamDataSourceTest {
         }
         assertThat(repository.streamRequests).isEmpty()
         assertThat(requests).isEmpty()
+    }
+
+    @Test
+    fun `a downloaded video and its subtitle play from the download cache, never the network`() {
+        val video = MediaId(ServerId("server-1"), "v1")
+        val subtitle = "WEBVTT 1".toByteArray()
+
+        fun store(
+            key: String,
+            data: ByteArray,
+        ) {
+            val spec =
+                DataSpec
+                    .Builder()
+                    .setUri("https://nas/$key")
+                    .setKey(key)
+                    .build()
+            CacheWriter(CacheDataSource(cache, FakeDataSource(FakeDataSet().setData(spec.uri, data))), spec, null, null)
+                .cache()
+        }
+        store(video.toString(), bytes)
+        store(DownloadKey.Subtitle(video, 4).toString(), subtitle)
+        val local = downloadedVideoDataSource(cache)
+
+        fun read(uri: String): ByteArray {
+            val source = local.createDataSource()
+            return try {
+                DataSourceUtil.readToEnd(source.apply { open(DataSpec(Uri.parse(uri))) })
+            } finally {
+                source.close()
+            }
+        }
+
+        assertThat(read(localVideoUri(video))).isEqualTo(bytes)
+        assertThat(read(localSubtitleUri(video, 4))).isEqualTo(subtitle)
+        // A subtitle that was never downloaded fails instead of asking the server.
+        assertThrows(Exception::class.java) { read(localSubtitleUri(video, 5)) }
+        assertThat(requests).isEmpty()
+        val configuration =
+            sideLoadedSubtitles(
+                listOf(SubtitleDelivery(4, SubtitleMethod.External, url = localSubtitleUri(video, 4), codec = "vtt")),
+                chosen = 4,
+            ).single()
+        assertThat(configuration.uri.toString()).isEqualTo("mediatheq://sub/$video/4")
+        assertThat(configuration.selectionFlags).isEqualTo(C.SELECTION_FLAG_DEFAULT)
     }
 
     /** What `:core:download` leaves behind: the file under the track's key, and the track in [state]. */

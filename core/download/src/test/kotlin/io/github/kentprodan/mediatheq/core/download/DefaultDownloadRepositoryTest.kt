@@ -15,6 +15,7 @@ import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.offline.DefaultDownloadIndex
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
+import androidx.media3.exoplayer.offline.DownloadProgress
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.test.utils.FakeDataSet
@@ -27,6 +28,8 @@ import io.github.kentprodan.mediatheq.core.common.CONVERTED_DOWNLOAD
 import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.data.VideoToDownload
+import io.github.kentprodan.mediatheq.core.model.DownloadKey
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -610,6 +613,101 @@ class DefaultDownloadRepositoryTest {
             log,
         )
     }
+
+    private val movie = MediaId(ServerId("server-1"), "m1")
+
+    private fun stored(
+        key: String,
+        uri: String,
+        state: Int,
+        bytes: Long = 0,
+    ) = Download(
+        DownloadRequest
+            .Builder(key, Uri.parse(uri))
+            .setCustomCacheKey(key)
+            .setData("Moșoi".encodeToByteArray())
+            .build(),
+        state,
+        0,
+        0,
+        bytes,
+        0,
+        if (state == Download.STATE_FAILED) Download.FAILURE_REASON_UNKNOWN else Download.FAILURE_REASON_NONE,
+        DownloadProgress().apply { bytesDownloaded = bytes },
+    )
+
+    @Test
+    fun `a video downloads with its subtitle files, which are never listed as tracks`() =
+        runTest {
+            val repository = repository()
+
+            repository.downloadVideos(
+                listOf(VideoToDownload(movie, "Moșoi", listOf(3, 4))),
+                DownloadOrigin.Movie(movie),
+            )
+
+            val requests = startedIntents().map { it.request() }
+            assertThat(requests.map { it.id to it.uri.toString() })
+                .containsExactly(
+                    movie.toString() to DownloadKey.VIDEO_URI,
+                    "$movie:sub:3" to DownloadKey.SUBTITLE_URI,
+                    "$movie:sub:4" to DownloadKey.SUBTITLE_URI,
+                )
+            assertThat(origins.origins.value).containsExactly(movie, setOf(DownloadOrigin.Movie(movie)))
+        }
+
+    @Test
+    fun `a completed video counts as on the device with its subtitles' bytes, the music list leaves it out`() =
+        runTest {
+            index.putDownload(stored(movie.toString(), DownloadKey.VIDEO_URI, Download.STATE_COMPLETED, 1000))
+            index.putDownload(stored("$movie:sub:3", DownloadKey.SUBTITLE_URI, Download.STATE_COMPLETED, 20))
+            val repository = repository()
+
+            assertThat(repository.completedIds.first()).contains(movie)
+            assertThat(repository.completedIds.first().map { it.itemId }).doesNotContain("m1:sub:3")
+            repository.downloads.test {
+                assertThat(expectMostRecentItem().map { it.track.id }).doesNotContain(movie)
+                cancelAndIgnoreRemainingEvents()
+            }
+            repository.videoDownloads.test {
+                val row = expectMostRecentItem().single()
+                assertThat(row.id).isEqualTo(movie)
+                assertThat(row.bytes).isEqualTo(1020)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `removing a movie removes its subtitle files too`() =
+        runTest {
+            index.putDownload(stored(movie.toString(), DownloadKey.VIDEO_URI, Download.STATE_COMPLETED))
+            index.putDownload(stored("$movie:sub:3", DownloadKey.SUBTITLE_URI, Download.STATE_COMPLETED))
+            val repository = repository()
+            repository.downloadVideos(listOf(VideoToDownload(movie, "Moșoi")), DownloadOrigin.Movie(movie))
+            startedIntents()
+
+            repository.removeCollection(DownloadOrigin.Movie(movie))
+
+            assertThat(startedIntents().map { it.getStringExtra(DownloadService.KEY_CONTENT_ID) })
+                .containsExactly(movie.toString(), "$movie:sub:3")
+        }
+
+    @Test
+    fun `a video the phone cannot play as it is fails saying so, with no file left`() =
+        runTest {
+            index.putDownload(stored(movie.toString(), DownloadKey.VIDEO_URI, Download.STATE_FAILED))
+            cache.applyContentMetadataMutations(
+                movie.toString(),
+                ContentMetadataMutations().set(DownloadKey.CANNOT_DOWNLOAD_METADATA, 1L),
+            )
+            val repository = repository()
+
+            repository.videoDownloads.test {
+                assertThat(expectMostRecentItem().single().cannotDownload).isTrue()
+                cancelAndIgnoreRemainingEvents()
+            }
+            assertThat(cache.getCachedBytes(movie.toString(), 0, C.LENGTH_UNSET.toLong())).isEqualTo(0)
+        }
 
     private fun startedIntents(): List<Intent> = generateSequence { shadowOf(context).nextStartedService }.toList()
 

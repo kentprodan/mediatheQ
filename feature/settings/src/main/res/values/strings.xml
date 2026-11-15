@@ -664,4 +664,5 @@
     <string name="settings_video_skip_off">Off</string>
     <string name="settings_video_skip_button">Show a button</string>
     <string name="settings_video_skip_auto">Skip automatically</string>
+    <string name="settings_st_download_quality_videos">%1$s · Videos download as originals</string>
 </resources>

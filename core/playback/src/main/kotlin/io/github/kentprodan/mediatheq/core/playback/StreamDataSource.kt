@@ -4,6 +4,7 @@ import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
@@ -15,9 +16,11 @@ import io.github.kentprodan.mediatheq.core.common.CONVERTED_DOWNLOAD
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
+import io.github.kentprodan.mediatheq.core.model.DownloadKey
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
+import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import java.io.IOException
@@ -101,6 +104,11 @@ internal fun downloadDataSourceFactory(
     ResolvingDataSource.Factory(OkHttpDataSource.Factory(okHttpClient)) { dataSpec ->
         val key =
             dataSpec.key ?: throw StreamUnavailableException(MqError.Client(0, "download: no track id"))
+        // A video or one of its subtitles (#279), told apart by the request's URI; tracks keep the old one.
+        when (dataSpec.uri.toString()) {
+            DownloadKey.VIDEO_URI -> return@Factory videoDownloadSpec(dataSpec, key, resolver, cache)
+            DownloadKey.SUBTITLE_URI -> return@Factory subtitleDownloadSpec(dataSpec, key, resolver)
+        }
         val itemId =
             runCatching { MediaId.parse(key) }.getOrNull()
                 ?: throw StreamUnavailableException(MqError.Client(0, "download: no track id"))
@@ -180,4 +188,54 @@ internal class StreamLoadErrorPolicy : DefaultLoadErrorHandlingPolicy() {
             super.getRetryDelayMsFor(loadErrorInfo)
         }
     }
+}
+
+/**
+ * A video's original file (#279); anything else fails with [CANNOT_DOWNLOAD], kept in the key's metadata for the
+ * Downloads tab. A video is never converted, so a partial copy always continues.
+ */
+@UnstableApi
+private fun videoDownloadSpec(
+    dataSpec: DataSpec,
+    key: String,
+    resolver: StreamResolver,
+    cache: Cache,
+): DataSpec {
+    val id =
+        (DownloadKey.parse(key) as? DownloadKey.Item)?.id
+            ?: throw StreamUnavailableException(MqError.Client(0, "download: no video id"))
+    val stream =
+        try {
+            awaitStream { resolver.downloadVideoStream(id) }
+        } catch (e: StreamUnavailableException) {
+            if (e.error == MqError.Client(0, CANNOT_DOWNLOAD)) {
+                cache.applyContentMetadataMutations(
+                    key,
+                    ContentMetadataMutations().set(DownloadKey.CANNOT_DOWNLOAD_METADATA, 1L),
+                )
+            }
+            throw e
+        }
+    // A later direct play (another server version, a new decoder) clears an earlier "cannot download".
+    cache.applyContentMetadataMutations(key, ContentMetadataMutations().remove(DownloadKey.CANNOT_DOWNLOAD_METADATA))
+    return dataSpec.withUri(stream.url.toUri()).withAdditionalHeaders(runBlocking { resolver.headers() })
+}
+
+/** One external subtitle file of a video (#279), from the same answer as its video's download. */
+@UnstableApi
+private fun subtitleDownloadSpec(
+    dataSpec: DataSpec,
+    key: String,
+    resolver: StreamResolver,
+): DataSpec {
+    val subtitle =
+        DownloadKey.parse(key) as? DownloadKey.Subtitle
+            ?: throw StreamUnavailableException(MqError.Client(0, "download: no subtitle"))
+    val stream = awaitStream { resolver.downloadVideoStream(subtitle.id) }
+    val url =
+        stream.subtitles
+            .firstOrNull { it.index == subtitle.index && it.method == SubtitleMethod.External }
+            ?.url
+            ?: throw StreamUnavailableException(MqError.Client(0, "download: the subtitle is not a file"))
+    return dataSpec.withUri(url.toUri()).withAdditionalHeaders(runBlocking { resolver.headers() })
 }

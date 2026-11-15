@@ -488,6 +488,22 @@ class StreamResolverTest {
             assertThat(onWifi.subtitleProfiles.filter { it.method == SubtitleMethod.Encode }.map { it.format })
                 .containsAtLeast("ass", "ssa")
         }
+
+    @Test
+    fun `a video downloads only as a direct play of its original, never converted`() =
+        runTest {
+            val direct = resolver.downloadVideoStream(itemId)
+            repository.playMethod = PlayMethod.Transcode
+            repository.segmented = true
+            val converted = resolver.downloadVideoStream(itemId)
+
+            assertThat((direct as MqResult.Success).value.playMethod).isEqualTo(PlayMethod.DirectPlay)
+            assertThat(converted).isEqualTo(MqResult.Failure(MqError.Client(0, CANNOT_DOWNLOAD)))
+            val profile = repository.streamRequests.first().second
+            assertThat(profile.maxHeight).isNull()
+            assertThat(profile.maxStreamingBitrate).isNull()
+            assertThat(profile.videoCodecs).isNotNull()
+        }
 }
 
 private const val JOC = "audio/eac3-joc"

@@ -4,11 +4,14 @@ import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.data.VideoDownload
+import io.github.kentprodan.mediatheq.core.data.VideoToDownload
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -41,10 +44,31 @@ class FakeDownloadRepository(
         downloads.update { current -> current.filterNot { it.state == DownloadState.Failed } }
     }
 
+    override val videoDownloads = MutableStateFlow<List<VideoDownload>>(emptyList())
+
+    /** Every [downloadVideos] call (#279): the videos with their subtitle indexes, and the origin. */
+    val videoRequests = mutableListOf<Pair<List<VideoToDownload>, DownloadOrigin?>>()
+
+    override fun downloadVideos(
+        videos: List<VideoToDownload>,
+        origin: DownloadOrigin?,
+    ) {
+        videoRequests += videos to origin
+        videoDownloads.update { current ->
+            val added = origin?.let(::setOf).orEmpty()
+            current.map { if (videos.any { v -> v.id == it.id }) it.copy(origins = it.origins + added) else it } +
+                videos
+                    .filter { v ->
+                        current.none { it.id == v.id }
+                    }.map { VideoDownload(it.id, it.title, DownloadState.Queued, origins = added) }
+        }
+    }
+
     override val completedIds =
-        downloads
-            .map { list -> list.filter { it.state == DownloadState.Completed }.mapTo(HashSet()) { it.track.id } }
-            .distinctUntilChanged()
+        combine(downloads, videoDownloads) { tracks, videos ->
+            tracks.filter { it.state == DownloadState.Completed }.mapTo(HashSet()) { it.track.id } +
+                videos.filter { it.state == DownloadState.Completed }.map { it.id }
+        }.distinctUntilChanged()
 
     override fun download(
         tracks: List<Track>,
@@ -71,6 +95,7 @@ class FakeDownloadRepository(
 
     override fun remove(ids: List<MediaId>) {
         downloads.update { current -> current.filterNot { it.track.id in ids } }
+        videoDownloads.update { current -> current.filterNot { it.id in ids } }
     }
 
     val removedServers = mutableListOf<ServerId>()

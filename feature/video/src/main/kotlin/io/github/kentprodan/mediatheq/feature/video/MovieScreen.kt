@@ -44,6 +44,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.formatDuration
+import io.github.kentprodan.mediatheq.core.data.VideoDownload
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
@@ -51,6 +52,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.MqTracksSheet
@@ -218,6 +220,15 @@ private fun MovieContent(
                 PlayButtons(state.resumeAt, onPlay)
                 MqFavoriteToggle(movie.userData.isFavorite, { onAction(MovieAction.ToggleFavorite) })
                 WatchedToggle(movie.userData.played) { onAction(MovieAction.ToggleWatched) }
+                DownloadToggle(state.download) { onAction(MovieAction.ToggleDownload) }
+            }
+            state.download?.takeIf { it.cannotDownload }?.let {
+                Text(
+                    stringResource(R.string.video_cannot_download),
+                    Modifier.padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
         }
         state.tracks?.let { tracks ->
@@ -299,6 +310,28 @@ internal fun PlayButtons(
 }
 
 /** The watched mark as a toggle: a check that fills when watched. */
+@Composable
+internal fun DownloadToggle(
+    download: VideoDownload?,
+    onToggle: () -> Unit,
+) {
+    MqIconToggle(
+        checked = download != null,
+        onClick = onToggle,
+        icon = if (download?.state == DownloadState.Completed) MqIcons.DownloadForOffline else MqIcons.Download,
+        contentDescription = stringResource(R.string.video_download),
+        stateDescription =
+            stringResource(
+                when {
+                    download == null -> R.string.video_not_downloaded
+                    download.state == DownloadState.Completed -> R.string.video_downloaded
+                    else -> R.string.video_downloading
+                },
+            ),
+    )
+}
+
+/** Watched or not, as a toggle (the movie page's row). */
 @Composable
 internal fun WatchedToggle(
     watched: Boolean,

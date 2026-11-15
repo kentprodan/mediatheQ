@@ -200,4 +200,24 @@ class ChooseStreamSourceTest {
 
             assertThat(failure.exceptionOrNull()).isInstanceOf(StreamUnavailableException::class.java)
         }
+
+    @Test
+    fun `a downloaded video plays from the download cache without asking the server, offline too`() =
+        runTest {
+            val local = StreamSource.Downloaded(emptyList(), chosenSubtitle = 3)
+            network.online.value = false
+
+            val source = chooseVideoSource(itemId, resolver, Duration.ZERO, network::isOnline) { local }
+
+            assertThat(source).isEqualTo(local)
+            assertThat(repository.streamRequests).isEmpty()
+        }
+
+    @Test
+    fun `local URIs map to their download keys, the music key scheme untouched`() {
+        assertThat(localDownloadKey(localVideoUri(itemId))).isEqualTo(itemId.toString())
+        assertThat(localDownloadKey(localSubtitleUri(itemId, 4))).isEqualTo("$itemId:sub:4")
+        assertThat(localDownloadKey("mediatheq://download")).isNull()
+        assertThat(localDownloadKey("https://nas/Audio/1/stream")).isNull()
+    }
 }

@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.video
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.Season
@@ -13,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoFormat
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.model.VideoRange
+import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTrackChoiceRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
@@ -35,6 +37,7 @@ class VideoPagesViewModelTest {
     private val videos = FakeVideoRepository()
     private val userData = FakeUserDataRepository()
     private val choices = FakeTrackChoiceRepository()
+    private val downloads = FakeDownloadRepository()
     private val picker = TrackPicker(videos, choices)
 
     private val movie =
@@ -70,13 +73,13 @@ class VideoPagesViewModelTest {
     private fun test(block: suspend TestScope.() -> Unit) = runTest(mainDispatcherRule.testDispatcher) { block() }
 
     private fun TestScope.movieViewModel(movieId: MediaId = movie.id) =
-        MovieViewModel(movieId, videos, userData, picker).also { vm ->
+        MovieViewModel(movieId, videos, userData, picker, VideoDownloader(downloads, videos)).also { vm ->
             backgroundScope.launch { vm.uiState.collect() }
             runCurrent()
         }
 
     private fun TestScope.seriesViewModel() =
-        SeriesViewModel(series.id, videos, userData, picker).also { vm ->
+        SeriesViewModel(series.id, videos, userData, picker, VideoDownloader(downloads, videos)).also { vm ->
             backgroundScope.launch { vm.uiState.collect() }
             runCurrent()
         }
@@ -220,5 +223,55 @@ class VideoPagesViewModelTest {
             val content = viewModel.uiState.value as SeriesUiState.Content
             assertThat(content.nextUp?.id).isEqualTo(id("se2e1"))
             assertThat(content.season).isEqualTo(season1)
+        }
+
+    @Test
+    fun `a movie downloads with its external text subtitles, and the toggle removes it`() =
+        test {
+            videos.movies.value = listOf(movie)
+            videos.streams.value =
+                mapOf(
+                    movie.id to
+                        listOf(
+                            MediaStreamInfo(3, StreamType.Subtitle, "subrip", "ron", isExternal = true),
+                            MediaStreamInfo(4, StreamType.Subtitle, "pgssub", "eng", isExternal = true),
+                            MediaStreamInfo(5, StreamType.Subtitle, "subrip", "eng"),
+                        ),
+                )
+            val viewModel = movieViewModel()
+
+            viewModel.onAction(MovieAction.ToggleDownload)
+            runCurrent()
+
+            val (requested, origin) = downloads.videoRequests.single()
+            assertThat(origin).isEqualTo(DownloadOrigin.Movie(movie.id))
+            assertThat(requested.single().subtitleIndexes).containsExactly(3)
+            assertThat((viewModel.uiState.value as MovieUiState.Content).download).isNotNull()
+        }
+
+    @Test
+    fun `a season downloads every episode, an episode on its own keeps the single origin`() =
+        test {
+            val one = episode(1, season1)
+            val two = episode(2, season1)
+            videos.series.value = listOf(series)
+            videos.seriesSeasons.value = mapOf(series.id to listOf(season1))
+            videos.seasonEpisodes.value = mapOf(season1.id to listOf(one, two))
+            val viewModel = seriesViewModel()
+
+            viewModel.onAction(SeriesAction.ToggleSeasonDownload)
+            runCurrent()
+            viewModel.onAction(SeriesAction.ToggleEpisodeDownload(one))
+            runCurrent()
+
+            assertThat(downloads.videoRequests.map { (videos, origin) -> videos.map { it.id } to origin })
+                .containsExactly(
+                    listOf(one.id, two.id) to DownloadOrigin.Season(season1.id),
+                    listOf(one.id) to DownloadOrigin.Single,
+                ).inOrder()
+            val content = viewModel.uiState.value as SeriesUiState.Content
+            assertThat(content.seasonDownloaded).isTrue()
+            assertThat(content.downloads.getValue(one.id).origins)
+                .containsExactly(DownloadOrigin.Season(season1.id), DownloadOrigin.Single)
         }
 }

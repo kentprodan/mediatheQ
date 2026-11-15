@@ -8,6 +8,7 @@ import androidx.media3.common.util.Util
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.Cache
+import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.CompositeMediaSource
@@ -50,7 +51,55 @@ internal sealed interface StreamSource {
         val subtitles: List<SubtitleDelivery> = emptyList(),
         val chosenSubtitle: Int? = null,
     ) : StreamSource
+
+    /**
+     * A downloaded video (#279): its file and its downloaded external subtitles from the download cache, no network.
+     * [subtitles] carry `mediatheq://sub/<id>/<index>` URLs ([localSubtitleUri]).
+     */
+    data class Downloaded(
+        val subtitles: List<SubtitleDelivery> = emptyList(),
+        val chosenSubtitle: Int? = null,
+    ) : StreamSource
 }
+
+/** The cache URI of a downloaded video's file (#279); [localDownloadKey] maps it back to the download key. */
+internal fun localVideoUri(id: MediaId) = "mediatheq://download/video/$id"
+
+/** The cache URI of a downloaded video's subtitle file (#279). */
+internal fun localSubtitleUri(
+    id: MediaId,
+    index: Int,
+) = "mediatheq://sub/$id/$index"
+
+/** The download key a local URI reads (#279): the video's id, or `<id>:sub:<index>`; `null` for any other URI. */
+internal fun localDownloadKey(uri: String): String? =
+    when {
+        uri.startsWith(LOCAL_VIDEO) -> {
+            uri.removePrefix(LOCAL_VIDEO)
+        }
+
+        uri.startsWith(LOCAL_SUBTITLE) -> {
+            val rest = uri.removePrefix(LOCAL_SUBTITLE)
+            val slash = rest.lastIndexOf('/')
+            if (slash > 0) "${rest.substring(0, slash)}:sub:${rest.substring(slash + 1)}" else null
+        }
+
+        else -> {
+            null
+        }
+    }
+
+/** Reads a downloaded video and its subtitles ([localVideoUri], [localSubtitleUri]) from [cache], never the network. */
+@UnstableApi
+internal fun downloadedVideoDataSource(cache: Cache): CacheDataSource.Factory =
+    CacheDataSource
+        .Factory()
+        .setCache(cache)
+        .setCacheKeyFactory { spec -> localDownloadKey(spec.uri.toString()) ?: spec.uri.toString() }
+        .setUpstreamDataSourceFactory(null)
+
+private const val LOCAL_VIDEO = "mediatheq://download/video/"
+private const val LOCAL_SUBTITLE = "mediatheq://sub/"
 
 /**
  * Chooses how [itemId] plays before the player builds its source (ADR 0019): HLS only for a segmented stream; a
@@ -100,7 +149,13 @@ internal suspend fun chooseVideoSource(
     resolver: StreamResolver,
     startPosition: Duration,
     isOnline: () -> Boolean,
+    /** A downloaded video's source (#279), `null` when it is not downloaded: it wins over the network. */
+    downloaded: suspend (MediaId) -> StreamSource.Downloaded? = { null },
 ): StreamSource {
+    downloaded(itemId)?.let { local ->
+        resolver.playLocal(itemId)
+        return local
+    }
     var attempt = 0
     while (true) {
         when (val result = resolver.resolveVideo(itemId, startPosition)) {
@@ -145,6 +200,8 @@ internal class StreamMediaSourceFactory(
     private val onOpen: (MediaId) -> Unit = {},
     /** Chooses the stream of a video ([chooseVideoSource]). */
     private val chooseVideo: suspend (MediaId, MediaItem) -> StreamSource = { _, _ -> StreamSource.Progressive },
+    /** The download cache, read only, for a downloaded video (#279). */
+    private val downloadCache: Cache? = null,
 ) : ForwardingMediaSourceFactory(progressive) {
     override fun createMediaSource(mediaItem: MediaItem): MediaSource {
         mediaItem.localConfiguration?.uri?.videoId()?.let { videoId ->
@@ -175,6 +232,18 @@ internal class StreamMediaSourceFactory(
                         mediaItem
                             .buildUpon()
                             .setUri(source.url)
+                            .setSubtitleConfigurations(sideLoadedSubtitles(source.subtitles, source.chosenSubtitle))
+                            .build(),
+                    )
+            }
+
+            is StreamSource.Downloaded -> {
+                DefaultMediaSourceFactory(downloadedVideoDataSource(requireNotNull(downloadCache)))
+                    .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
+                    .createMediaSource(
+                        mediaItem
+                            .buildUpon()
+                            .setUri(localVideoUri(itemId))
                             .setSubtitleConfigurations(sideLoadedSubtitles(source.subtitles, source.chosenSubtitle))
                             .build(),
                     )
