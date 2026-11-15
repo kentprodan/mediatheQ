@@ -1,6 +1,8 @@
 package io.github.kentprodan.mediatheq.core.testing
 
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.data.VideoSearchResults
 import io.github.kentprodan.mediatheq.core.data.VideoSort
 import io.github.kentprodan.mediatheq.core.data.nextEpisode
 import io.github.kentprodan.mediatheq.core.data.nextUp
@@ -57,6 +59,18 @@ class FakeVideoRepository(
     override fun video(id: MediaId): Flow<Video?> = movies.map { all -> all.firstOrNull { it.id == id } }
 
     override fun series(id: MediaId): Flow<Series?> = series.map { all -> all.firstOrNull { it.id == id } }
+
+    /** What [search] answers; [searches] records each query. */
+    var searchResult: MqResult<VideoSearchResults> = MqResult.Success(VideoSearchResults())
+    val searches = mutableListOf<String>()
+
+    override suspend fun search(
+        query: String,
+        limitPerKind: Int,
+    ): MqResult<VideoSearchResults> {
+        searches += query
+        return searchResult
+    }
 
     override fun seasons(seriesId: MediaId): Flow<List<Season>> = seriesSeasons.map { it[seriesId].orEmpty() }
 

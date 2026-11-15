@@ -126,6 +126,12 @@ interface LibraryPreferencesRepository {
         reversed: Boolean = false,
     )
 
+    /** The sort of a video grid (#325), kept across restarts and in backups. */
+    suspend fun setVideoSort(
+        list: VideoList,
+        sort: VideoSort,
+    )
+
     /** Turns [filter]'s stored sort around (#187), reading and writing it in one step. */
     suspend fun reverseSort(filter: LibraryFilter)
 

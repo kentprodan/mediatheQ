@@ -19,6 +19,7 @@
     <string name="search_playlists">Playlists</string>
     <string name="search_genres">Genres</string>
     <string name="search_record_labels">Record labels</string>
-    <string name="search_video_mode_title">Searching movies and series comes soon</string>
-    <string name="search_video_mode_body">Until then, find them in the Library.</string>
+    <string name="search_movies">Movies</string>
+    <string name="search_series">Series</string>
+    <string name="search_episodes">Episodes</string>
 </resources>

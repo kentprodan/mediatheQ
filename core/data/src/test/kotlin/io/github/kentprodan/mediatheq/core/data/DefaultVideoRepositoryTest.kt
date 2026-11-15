@@ -184,6 +184,31 @@ class DefaultVideoRepositoryTest {
         }
 
     @Test
+    fun `search finds movies, series and episodes without diacritics, offline only downloaded ones`() =
+        runTest {
+            library()
+
+            val online = (repository.search("mosoi", 10) as MqResult.Success).value
+            assertThat(online.movies.map { it.id }).containsExactly(id("m1"))
+            assertThat((repository.search("show", 10) as MqResult.Success).value.series.map { it.id })
+                .containsExactly(id("sr1"))
+            assertThat((repository.search("pil", 10) as MqResult.Success).value.episodes.map { it.id })
+                .containsExactly(id("e1"))
+            // Typed FTS syntax is plain text.
+            assertThat(repository.search("\"-mosoi", 10)).isInstanceOf(MqResult.Success::class.java)
+            assertThat((repository.search("  ", 10) as MqResult.Success).value.isEmpty()).isTrue()
+
+            downloads.downloadVideos(listOf(VideoToDownload(id("e1"), "Pilot")), DownloadOrigin.Single)
+            downloads.videoDownloads.value =
+                downloads.videoDownloads.value.map { it.copy(state = DownloadState.Completed) }
+            preferences.setOfflineMode(true)
+
+            assertThat((repository.search("mosoi", 10) as MqResult.Success).value.isEmpty()).isTrue()
+            assertThat((repository.search("show", 10) as MqResult.Success).value.series.map { it.id })
+                .containsExactly(id("sr1"))
+        }
+
+    @Test
     fun `offline, the next episode is the next downloaded one`() =
         runTest {
             fun episode(

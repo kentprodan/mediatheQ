@@ -1,5 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import androidx.sqlite.SQLiteException
+import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.dao.VideoDao
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
@@ -26,6 +28,18 @@ import javax.inject.Inject
 /** How the Movies and Series grids sort: by name, newest added first, or newest year first. */
 enum class VideoSort { Name, DateAdded, Year }
 
+/** What a search finds in the video library (#325), best first; offline only downloaded videos and their series. */
+data class VideoSearchResults(
+    val movies: List<Video> = emptyList(),
+    val series: List<Series> = emptyList(),
+    val episodes: List<Video> = emptyList(),
+) {
+    fun isEmpty(): Boolean = movies.isEmpty() && series.isEmpty() && episodes.isEmpty()
+}
+
+/** The video grids, each with its own saved [VideoSort] (#325). */
+enum class VideoList { Movies, Series }
+
 /** The video library on the device (#270, ADR 0048); reads only, the sync writes it. */
 interface VideoRepository {
     /** Whether the server has video at all (`ServerCapabilities.video`): the Library shows no video tiles otherwise. */
@@ -45,6 +59,12 @@ interface VideoRepository {
     ): Flow<List<Series>>
 
     fun video(id: MediaId): Flow<Video?>
+
+    /** Movies, series and episodes whose title matches [query] (diacritics optional), at most [limitPerKind] each. */
+    suspend fun search(
+        query: String,
+        limitPerKind: Int,
+    ): MqResult<VideoSearchResults>
 
     fun series(id: MediaId): Flow<Series?>
 
@@ -122,6 +142,32 @@ class DefaultVideoRepository
                 .map { rows -> rows.map { it.toDomain() } }
 
         override fun video(id: MediaId): Flow<Video?> = dao.video(id.itemId).map { it?.toDomain() }
+
+        override suspend fun search(
+            query: String,
+            limitPerKind: Int,
+        ): MqResult<VideoSearchResults> {
+            val match = ftsMatchExpression(query) ?: return MqResult.Success(VideoSearchResults())
+            return try {
+                filter.once { all, downloaded ->
+                    // Movies and episodes share one ranked list: twice the limit so either kind can fill its own.
+                    val (movies, episodes) =
+                        dao
+                            .searchVideos(match, limitPerKind * 2, all, downloaded)
+                            .map { it.toDomain() }
+                            .partition { it.kind == VideoKind.Movie }
+                    MqResult.Success(
+                        VideoSearchResults(
+                            movies.take(limitPerKind),
+                            dao.searchSeries(match, limitPerKind, all, downloaded).map { it.toDomain() },
+                            episodes.take(limitPerKind),
+                        ),
+                    )
+                }
+            } catch (_: SQLiteException) {
+                MqResult.Failure(MqError.Storage)
+            }
+        }
 
         override fun series(id: MediaId): Flow<Series?> = dao.seriesById(id.itemId).map { it?.toDomain() }
 

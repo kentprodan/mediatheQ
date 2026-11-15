@@ -215,7 +215,9 @@ class SettingsViewModelTest {
 
                 val draft = (expectMostRecentItem() as SettingsUiState.Content).entriesDraft!!
                 assertThat(draft.order.take(4)).isEqualTo(NavigationPreferences.DEFAULT_ENTRIES)
-                assertThat(draft.order).containsExactlyElementsIn(MainNavEntry.entries)
+                // Music mode: every entry but the video grids (#325).
+                assertThat(draft.order)
+                    .containsExactlyElementsIn(MainNavEntry.entries - MainNavEntry.Movies - MainNavEntry.Series)
                 assertThat(draft.checked).containsExactlyElementsIn(NavigationPreferences.DEFAULT_ENTRIES)
             }
         }
@@ -329,6 +331,7 @@ class SettingsViewModelTest {
     fun `the library tiles are organized in a draft and stored only with OK`() =
         runTest {
             signIn()
+            appMode.stored.value = AppMode.Both
             val organized =
                 listOf(
                     LibraryShortcut.Years,
@@ -352,6 +355,23 @@ class SettingsViewModelTest {
                 assertThat((expectMostRecentItem() as SettingsUiState.Content).shortcutsDraft).isNull()
             }
             assertThat(library.preferences.value.libraryPage.shortcuts).isEqualTo(organized)
+        }
+
+    @Test
+    fun `in Music mode, as without video on the server, the tile dialog offers no video tiles and keeps them stored`() =
+        runTest {
+            signIn()
+            viewModel.uiState.test {
+                viewModel.onAction(SettingsAction.OpenLibraryShortcuts)
+                viewModel.onAction(SettingsAction.ToggleLibraryShortcut(LibraryShortcut.Tracks))
+                val draft = (expectMostRecentItem() as SettingsUiState.Content).shortcutsDraft
+                assertThat(draft?.order).containsNoneOf(LibraryShortcut.Movies, LibraryShortcut.Series)
+
+                viewModel.onAction(SettingsAction.ConfirmLibraryShortcuts)
+                cancelAndIgnoreRemainingEvents()
+            }
+            assertThat(library.preferences.value.libraryPage.shortcuts)
+                .isEqualTo(LibraryShortcut.entries - LibraryShortcut.Tracks)
         }
 
     @Test
@@ -740,6 +760,8 @@ class SettingsViewModelTest {
                     MainNavEntry.Library,
                     MainNavEntry.Search,
                     MainNavEntry.Downloads,
+                    MainNavEntry.Movies,
+                    MainNavEntry.Series,
                 )
             }
         }

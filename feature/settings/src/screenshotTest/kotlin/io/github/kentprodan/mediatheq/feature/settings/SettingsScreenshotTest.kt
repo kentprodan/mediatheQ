@@ -842,3 +842,12 @@ fun SettingsNavigationVideoModeScreenshot() {
         )
     }
 }
+
+/** In Both, Movies and Series can be chosen as navigation entries (#325). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsNavEntriesDialogVideoScreenshot() {
+    val chosen = NavigationPreferences.DEFAULT_ENTRIES + MainNavEntry.Movies
+    MediatheqTheme { NavEntriesDialogContent(navEntriesDraft(chosen, AppMode.Both)) }
+}

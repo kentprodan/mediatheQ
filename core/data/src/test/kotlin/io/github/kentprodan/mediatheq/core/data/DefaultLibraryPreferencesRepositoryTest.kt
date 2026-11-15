@@ -107,6 +107,21 @@ class DefaultLibraryPreferencesRepositoryTest {
         }
 
     @Test
+    fun `each video grid keeps its own sort, apart from the music tabs`() =
+        runTest {
+            assertThat(repository.preferences.first().videoSortFor(VideoList.Movies)).isEqualTo(VideoSort.Name)
+
+            repository.setVideoSort(VideoList.Movies, VideoSort.Year)
+            repository.setSort(LibraryFilter.Albums, LibrarySort.Year)
+
+            val preferences = repository.preferences.first()
+            assertThat(preferences.videoSortFor(VideoList.Movies)).isEqualTo(VideoSort.Year)
+            assertThat(preferences.videoSortFor(VideoList.Series)).isEqualTo(VideoSort.Name)
+            assertThat(preferences.sorts).containsExactly(LibraryFilter.Albums, LibrarySort.Year)
+            assertThat(dataStore.data.first()[stringPreferencesKey("sort_video:Movies")]).isEqualTo("Year")
+        }
+
+    @Test
     fun `a sort can be reversed per tab, kept, and a new sort starts in its natural direction`() =
         runTest {
             repository.setSort(LibraryFilter.Albums, LibrarySort.Year, reversed = true)

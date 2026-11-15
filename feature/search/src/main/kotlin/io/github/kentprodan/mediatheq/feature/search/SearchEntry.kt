@@ -6,9 +6,11 @@ import io.github.kentprodan.mediatheq.core.navigation.AddToPlaylistKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
 import io.github.kentprodan.mediatheq.core.navigation.GenreKey
+import io.github.kentprodan.mediatheq.core.navigation.MovieKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistKey
 import io.github.kentprodan.mediatheq.core.navigation.SearchKey
+import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
 
 /** Registers the Search tab root. */
 fun EntryProviderScope<NavKey>.searchEntry(navigator: Navigator) {
@@ -20,6 +22,8 @@ fun EntryProviderScope<NavKey>.searchEntry(navigator: Navigator) {
             onAddToPlaylist = { navigator.navigateTo(AddToPlaylistKey(it)) },
             onOpenGenre = { navigator.navigateTo(GenreKey(it)) },
             onOpenLabel = { navigator.navigateTo(it) },
+            onOpenMovie = { navigator.navigateTo(MovieKey(it)) },
+            onOpenSeries = { navigator.navigateTo(SeriesKey(it)) },
         )
     }
 }

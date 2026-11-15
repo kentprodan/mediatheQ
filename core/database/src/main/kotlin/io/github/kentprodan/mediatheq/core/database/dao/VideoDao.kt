@@ -167,6 +167,41 @@ interface VideoDao {
     )
     suspend fun searchIds(match: String): List<String>
 
+    /** Movies and episodes whose title matches the FTS [match], best first (#325); offline only downloaded ones. */
+    @Query(
+        """
+        SELECT video.* FROM search
+        JOIN video ON video.server_id = search.server_id AND video.id = search.item_id
+        WHERE search MATCH :match AND search.kind IN ('movie', 'episode') AND (:all OR video.id IN (:downloaded))
+        ORDER BY search.rank, video.sort_name, video.id LIMIT :limit
+        """,
+    )
+    suspend fun searchVideos(
+        match: String,
+        limit: Int,
+        all: Boolean,
+        downloaded: List<String>,
+    ): List<VideoEntity>
+
+    /** Series whose title matches, best first (#325); offline only those with a downloaded episode. */
+    @Query(
+        """
+        SELECT series.* FROM search
+        JOIN series ON series.server_id = search.server_id AND series.id = search.item_id
+        WHERE search MATCH :match AND search.kind = 'series' AND (:all OR EXISTS (
+            SELECT 1 FROM video e WHERE e.server_id = series.server_id AND e.series_id = series.id
+            AND e.id IN (:downloaded)
+        ))
+        ORDER BY search.rank, series.sort_name, series.id LIMIT :limit
+        """,
+    )
+    suspend fun searchSeries(
+        match: String,
+        limit: Int,
+        all: Boolean,
+        downloaded: List<String>,
+    ): List<SeriesEntity>
+
     companion object {
         const val SORT_NAME = "name"
         const val SORT_ADDED = "added"

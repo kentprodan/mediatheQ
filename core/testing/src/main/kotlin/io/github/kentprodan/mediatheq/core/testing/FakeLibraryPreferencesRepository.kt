@@ -17,6 +17,8 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.data.SearchPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
+import io.github.kentprodan.mediatheq.core.data.VideoList
+import io.github.kentprodan.mediatheq.core.data.VideoSort
 import io.github.kentprodan.mediatheq.core.data.validNavEntries
 import io.github.kentprodan.mediatheq.core.data.validTransparency
 import io.github.kentprodan.mediatheq.core.data.withRecentSearch
@@ -215,6 +217,13 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
 
     override suspend fun setRatingMode(mode: RatingMode) {
         preferences.value = preferences.value.copy(ratingMode = mode)
+    }
+
+    override suspend fun setVideoSort(
+        list: VideoList,
+        sort: VideoSort,
+    ) {
+        preferences.value = preferences.value.let { it.copy(videoSorts = it.videoSorts + (list to sort)) }
     }
 
     override suspend fun reverseSort(filter: LibraryFilter) {

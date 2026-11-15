@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.VideoList
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoSort
 import io.github.kentprodan.mediatheq.core.model.Artwork
@@ -19,19 +20,21 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
  * A poster grid (#270): its items in the chosen sort, optionally unwatched only, in the album grid's columns + 1
- * (posters are narrower than covers). Sort and filter live in the saved state; a saved sort per list is a follow-up.
+ * (posters are narrower than covers). The sort is saved per list (#325); the unwatched filter lives in the saved state.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 abstract class VideoGridViewModel(
     private val savedState: SavedStateHandle,
-    preferences: LibraryPreferencesRepository,
+    private val preferences: LibraryPreferencesRepository,
+    private val list: VideoList,
     items: (VideoSort, Boolean) -> Flow<List<PosterItem>>,
 ) : ViewModel() {
-    private val sort = savedState.getStateFlow(KEY_SORT, VideoSort.Name)
+    private val sort = preferences.preferences.map { it.videoSortFor(list) }.distinctUntilChanged()
     private val unwatched = savedState.getStateFlow(KEY_UNWATCHED, false)
 
     val uiState: StateFlow<VideoGridUiState> =
@@ -50,13 +53,12 @@ abstract class VideoGridViewModel(
 
     fun onAction(action: VideoGridAction) {
         when (action) {
-            is VideoGridAction.SetSort -> savedState[KEY_SORT] = action.sort
+            is VideoGridAction.SetSort -> viewModelScope.launch { preferences.setVideoSort(list, action.sort) }
             is VideoGridAction.SetUnwatched -> savedState[KEY_UNWATCHED] = action.unwatched
         }
     }
 
     private companion object {
-        const val KEY_SORT = "sort"
         const val KEY_UNWATCHED = "unwatched"
     }
 }
@@ -71,6 +73,7 @@ class MoviesViewModel
     ) : VideoGridViewModel(
             savedState,
             preferences,
+            VideoList.Movies,
             { sort, unwatched ->
                 videos.movies(sort, unwatched).map { movies ->
                     movies.map { PosterItem(it.id, it.title, it.year?.toString(), it.artwork, it.userData.played) }
@@ -88,6 +91,7 @@ class SeriesListViewModel
     ) : VideoGridViewModel(
             savedState,
             preferences,
+            VideoList.Series,
             { sort, unwatched ->
                 videos.series(sort, unwatched).map { series ->
                     series.map {

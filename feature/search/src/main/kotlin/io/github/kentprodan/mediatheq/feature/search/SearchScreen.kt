@@ -62,7 +62,9 @@ import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.RecordLabelRow
 import io.github.kentprodan.mediatheq.core.ui.SelectableList
+import io.github.kentprodan.mediatheq.core.ui.SeriesRow
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
+import io.github.kentprodan.mediatheq.core.ui.VideoRow
 import io.github.kentprodan.mediatheq.core.ui.rememberSelectLongPress
 import io.github.kentprodan.mediatheq.core.ui.stateOf
 import io.github.kentprodan.mediatheq.core.ui.trackSwipes
@@ -75,6 +77,8 @@ internal fun SearchRoute(
     onAddToPlaylist: (List<MediaId>) -> Unit,
     onOpenGenre: (MediaId) -> Unit = {},
     onOpenLabel: (RecordLabelKey) -> Unit = {},
+    onOpenMovie: (MediaId) -> Unit = {},
+    onOpenSeries: (MediaId) -> Unit = {},
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -87,6 +91,8 @@ internal fun SearchRoute(
         onAddToPlaylist = onAddToPlaylist,
         onOpenGenre = onOpenGenre,
         onOpenLabel = onOpenLabel,
+        onOpenMovie = onOpenMovie,
+        onOpenSeries = onOpenSeries,
     )
 }
 
@@ -107,6 +113,9 @@ fun SearchScreen(
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
     onOpenGenre: (MediaId) -> Unit = {},
     onOpenLabel: (RecordLabelKey) -> Unit = {},
+    /** A movie or an episode found (#325): the screen passes the movie's id, or the episode's series id. */
+    onOpenMovie: (MediaId) -> Unit = {},
+    onOpenSeries: (MediaId) -> Unit = {},
 ) {
     LaunchedEffect(textFieldState) {
         snapshotFlow { textFieldState.text.toString() }.collect { onAction(SearchAction.QueryChanged(it)) }
@@ -122,6 +131,8 @@ fun SearchScreen(
             onAddToPlaylist,
             onOpenGenre,
             onOpenLabel,
+            onOpenMovie,
+            onOpenSeries,
         )
     }
 }
@@ -137,6 +148,8 @@ private fun SearchContent(
     onAddToPlaylist: (List<MediaId>) -> Unit,
     onOpenGenre: (MediaId) -> Unit,
     onOpenLabel: (RecordLabelKey) -> Unit,
+    onOpenMovie: (MediaId) -> Unit,
+    onOpenSeries: (MediaId) -> Unit,
 ) {
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         SearchField(textFieldState, onSearch = { onAction(SearchAction.Submit) })
@@ -169,18 +182,12 @@ private fun SearchContent(
                     open(onOpenPlaylist),
                     onAddToPlaylist,
                     open(onOpenGenre),
+                    open(onOpenMovie),
+                    open(onOpenSeries),
                 ) { label ->
                     onAction(SearchAction.ResultOpened)
                     onOpenLabel(label)
                 }
-            }
-
-            SearchUiState.VideoMode -> {
-                MqEmptyState(
-                    MqIcons.Movie,
-                    stringResource(R.string.search_video_mode_title),
-                    body = stringResource(R.string.search_video_mode_body),
-                )
             }
 
             is SearchUiState.NoResults -> {
@@ -296,6 +303,8 @@ private fun Results(
     onOpenPlaylist: (MediaId) -> Unit,
     onAddToPlaylist: (List<MediaId>) -> Unit,
     onOpenGenre: (MediaId) -> Unit,
+    onOpenMovie: (MediaId) -> Unit,
+    onOpenSeries: (MediaId) -> Unit,
     onOpenLabel: (RecordLabelKey) -> Unit,
 ) {
     val swipe =
@@ -319,7 +328,8 @@ private fun Results(
         id: MediaId,
         open: () -> Unit,
     ): () -> Unit = { if (selection.isActive) onAction(SearchAction.ToggleSelection(id)) else open() }
-    FilterChips(state) { onAction(SearchAction.SelectFilter(it)) }
+    // The chips filter music (#136); with only videos found (or in Video mode) they have nothing to choose.
+    if (!state.results.isEmpty()) FilterChips(state) { onAction(SearchAction.SelectFilter(it)) }
     SelectableList(
         selection,
         onCommand = { onAction(SearchAction.OnSelection(it)) },
@@ -390,6 +400,20 @@ private fun Results(
             // Record labels likewise (#131).
             section("labels", R.string.search_record_labels, results.labels, { it.id }) { label ->
                 RecordLabelRow(label, onClick = { onOpenLabel(RecordLabelKey(label.id, label.name)) })
+            }
+            // Videos under All only (#325), not selectable: a tap opens the page, also while selecting.
+            if (state.filter == SearchFilter.All) {
+                val videos = state.videos
+                section("movies", R.string.search_movies, videos.movies, { it.id }) { movie ->
+                    VideoRow(movie, onClick = { onOpenMovie(movie.id) })
+                }
+                section("series", R.string.search_series, videos.series, { it.id }) { series ->
+                    SeriesRow(series, onClick = { onOpenSeries(series.id) })
+                }
+                section("episodes", R.string.search_episodes, videos.episodes, { it.id }) { episode ->
+                    // An episode opens its series' page.
+                    VideoRow(episode, onClick = { episode.seriesId?.let(onOpenSeries) })
+                }
             }
         }
     }

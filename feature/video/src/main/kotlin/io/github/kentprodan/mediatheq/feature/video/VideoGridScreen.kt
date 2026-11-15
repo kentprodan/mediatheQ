@@ -56,7 +56,8 @@ fun VideoGridScreen(
     state: VideoGridUiState,
     onAction: (VideoGridAction) -> Unit,
     onOpen: (MediaId) -> Unit,
-    onBack: () -> Unit,
+    /** `null` for a navigation entry's root (#325): no Back button. */
+    onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -65,8 +66,10 @@ fun VideoGridScreen(
             TopAppBar(
                 title = { Text(stringResource(texts.title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.video_back))
+                    onBack?.let {
+                        IconButton(onClick = it) {
+                            Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.video_back))
+                        }
                     }
                 },
                 actions = { if (state is VideoGridUiState.Content) SortMenu(state.sort, onAction) },
