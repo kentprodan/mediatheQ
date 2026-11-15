@@ -36,6 +36,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.job
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -76,6 +77,8 @@ class PrefetcherTest {
     @After
     fun release() {
         scope.cancel()
+        // A prefetch still writing would release its span into the released cache and fail the next test class (#334).
+        RobolectricUtil.runMainLooperUntil { scope.coroutineContext.job.isCompleted }
         player.release()
         cache.release()
     }
