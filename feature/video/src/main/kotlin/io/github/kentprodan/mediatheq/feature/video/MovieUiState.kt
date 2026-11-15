@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.video
 
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.VideoDownload
 import io.github.kentprodan.mediatheq.core.model.Video
 import kotlin.time.Duration
 
@@ -17,6 +18,8 @@ sealed interface MovieUiState {
         val resumeAt: Duration?,
         /** Its audio and subtitle streams and what will play (#274); `null` while read. */
         val tracks: VideoTracks? = null,
+        /** Its download (#279), `null` when not downloaded. */
+        val download: VideoDownload? = null,
     ) : MovieUiState
 
     data class Error(
@@ -38,4 +41,7 @@ sealed interface MovieAction {
     data class ChooseSubtitle(
         val index: Int?,
     ) : MovieAction
+
+    /** Download it as its original (#279), or remove the download. */
+    data object ToggleDownload : MovieAction
 }

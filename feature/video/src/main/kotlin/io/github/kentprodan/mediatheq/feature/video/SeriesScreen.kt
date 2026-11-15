@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,16 +36,21 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
+import io.github.kentprodan.mediatheq.core.data.VideoDownload
 import io.github.kentprodan.mediatheq.core.data.resumePosition
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.MqEpisodeRow
 import io.github.kentprodan.mediatheq.core.ui.MqTracksSheet
+import io.github.kentprodan.mediatheq.core.ui.RemoveDownloadMenuItem
 import kotlin.time.Duration
 
 @Composable
@@ -181,9 +187,27 @@ private fun SeriesContent(
                     }
                 }
             }
+            item(key = "season_download") {
+                // The selected season's download (#279); no series-level download.
+                TextButton(
+                    onClick = { onAction(SeriesAction.ToggleSeasonDownload) },
+                    modifier = Modifier.padding(horizontal = MediatheqSpacing.s),
+                ) {
+                    val (icon, label) =
+                        if (state.seasonDownloaded) {
+                            MqIcons.Delete to R.string.video_remove_season_download
+                        } else {
+                            MqIcons.Download to R.string.video_download_season
+                        }
+                    Icon(icon, contentDescription = null)
+                    Text(stringResource(label), Modifier.padding(start = MediatheqSpacing.s))
+                }
+            }
             items(state.episodes, key = { it.id.toString() }) { episode ->
                 EpisodeWithMenu(
                     episode,
+                    download = state.downloads[episode.id],
+                    onDownload = { onAction(SeriesAction.ToggleEpisodeDownload(episode)) },
                     onPlay = { play(episode) },
                     onPlayFromStart = { onPlay(episode.id, Duration.ZERO) },
                     onTracks = { onAction(SeriesAction.OpenTracks(episode)) },
@@ -199,13 +223,20 @@ private fun SeriesContent(
 @Composable
 private fun EpisodeWithMenu(
     episode: Video,
+    download: VideoDownload?,
+    onDownload: () -> Unit,
     onPlay: () -> Unit,
     onPlayFromStart: () -> Unit,
     onTracks: () -> Unit,
     onToggleWatched: () -> Unit,
 ) {
     var menu by rememberSaveable { mutableStateOf(false) }
-    MqEpisodeRow(episode, onClick = onPlay, onLongClick = { menu = true }) {
+    MqEpisodeRow(
+        episode,
+        onClick = onPlay,
+        onLongClick = { menu = true },
+        downloaded = download?.state == DownloadState.Completed,
+    ) {
         Box {
             IconButton(onClick = { menu = true }) {
                 Icon(MqIcons.MoreVert, contentDescription = stringResource(R.string.video_episode_menu, episode.title))
@@ -218,6 +249,12 @@ private fun EpisodeWithMenu(
                         onPlayFromStart()
                     },
                 )
+                // On its own (#279): one kept only by its season shows Download, adding the single origin.
+                if (download?.origins?.contains(DownloadOrigin.Single) == true) {
+                    RemoveDownloadMenuItem(onDownload) { menu = false }
+                } else {
+                    DownloadMenuItem(onDownload) { menu = false }
+                }
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.video_tracks_open)) },
                     onClick = {

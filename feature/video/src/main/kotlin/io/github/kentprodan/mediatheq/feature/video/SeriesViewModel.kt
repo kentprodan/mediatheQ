@@ -7,7 +7,9 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.VideoDownload
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ResolvedTracks
@@ -42,7 +44,15 @@ sealed interface SeriesUiState {
         val nextUp: Video?,
         /** The episode whose tracks sheet is open, with its tracks (#274); `null` when closed. */
         val tracksOf: Pair<Video, VideoTracks>? = null,
-    ) : SeriesUiState
+        /** Video downloads by id (#279): the episodes' states and the season's. */
+        val downloads: Map<MediaId, VideoDownload> = emptyMap(),
+    ) : SeriesUiState {
+        /** The selected season is downloaded through its own origin (#279). */
+        val seasonDownloaded: Boolean
+            get() =
+                season != null &&
+                    episodes.any { downloads[it.id]?.origins?.contains(DownloadOrigin.Season(season.id)) == true }
+    }
 
     data class Error(
         val error: MqError,
@@ -50,6 +60,14 @@ sealed interface SeriesUiState {
 }
 
 sealed interface SeriesAction {
+    /** The selected season's download (#279): every episode, or removing them (episodes kept on their own stay). */
+    data object ToggleSeasonDownload : SeriesAction
+
+    /** An episode downloaded on its own (#279), or that single origin removed. */
+    data class ToggleEpisodeDownload(
+        val episode: Video,
+    ) : SeriesAction
+
     data class SelectSeason(
         val id: MediaId,
     ) : SeriesAction
@@ -95,6 +113,7 @@ class SeriesViewModel
         private val videos: VideoRepository,
         private val userData: UserDataRepository,
         private val picker: TrackPicker,
+        private val downloader: VideoDownloader,
     ) : ViewModel() {
         private val chosenSeason = MutableStateFlow<MediaId?>(null)
         private val tracksEpisode = MutableStateFlow<Video?>(null)
@@ -129,11 +148,12 @@ class SeriesViewModel
                 },
                 nextUp,
                 tracks,
-            ) { series, (seasons, season, episodes), next, tracks ->
+                downloader.states,
+            ) { series, (seasons, season, episodes), next, tracks, downloads ->
                 if (series == null) {
                     SeriesUiState.Error(MqError.NotFound)
                 } else {
-                    SeriesUiState.Content(series, seasons, season, episodes, next, tracks)
+                    SeriesUiState.Content(series, seasons, season, episodes, next, tracks, downloads)
                 }
             }.catch { emit(SeriesUiState.Error(MqError.Storage)) }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SeriesUiState.Loading)
@@ -142,6 +162,29 @@ class SeriesViewModel
             when (action) {
                 is SeriesAction.SelectSeason -> {
                     chosenSeason.value = action.id
+                }
+
+                SeriesAction.ToggleSeasonDownload -> {
+                    val content = uiState.value as? SeriesUiState.Content ?: return
+                    val season = content.season ?: return
+                    viewModelScope.launch {
+                        if (content.seasonDownloaded) {
+                            downloader.remove(DownloadOrigin.Season(season.id))
+                        } else {
+                            downloader.download(content.episodes, DownloadOrigin.Season(season.id))
+                        }
+                    }
+                }
+
+                is SeriesAction.ToggleEpisodeDownload -> {
+                    val content = uiState.value as? SeriesUiState.Content ?: return
+                    viewModelScope.launch {
+                        if (content.downloads[action.episode.id]?.origins?.contains(DownloadOrigin.Single) == true) {
+                            downloader.remove(DownloadOrigin.Single, listOf(action.episode.id))
+                        } else {
+                            downloader.download(listOf(action.episode), DownloadOrigin.Single)
+                        }
+                    }
                 }
 
                 is SeriesAction.ToggleWatched -> {
