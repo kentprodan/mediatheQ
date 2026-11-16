@@ -45,6 +45,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.formatDuration
 import io.github.kentprodan.mediatheq.core.data.VideoDownload
+import io.github.kentprodan.mediatheq.core.data.VideoTracks
+import io.github.kentprodan.mediatheq.core.data.externalSubtitles
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle

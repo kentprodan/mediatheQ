@@ -1,4 +1,4 @@
-package io.github.kentprodan.mediatheq.feature.video
+package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.StreamType
@@ -6,10 +6,10 @@ import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoRange
 
 /**
- * The format line of a video page (#273): "4K · HEVC · HDR10 · 5.1" from its one video stream and its default (else
+ * The format line of a video page (#273, the TV's #427): "4K · HEVC · HDR10 · 5.1" from its one video stream and its default (else
  * first) audio stream; `null` when nothing is known.
  */
-internal fun formatLine(
+fun formatLine(
     video: Video,
     streams: List<MediaStreamInfo>,
 ): String? {
@@ -59,5 +59,5 @@ internal fun formatLine(
 }
 
 /** How many subtitle files sit beside the video (shown as "2 subtitle files"). */
-internal fun externalSubtitles(streams: List<MediaStreamInfo>): Int =
+fun externalSubtitles(streams: List<MediaStreamInfo>): Int =
     streams.count { it.type == StreamType.Subtitle && it.isExternal }

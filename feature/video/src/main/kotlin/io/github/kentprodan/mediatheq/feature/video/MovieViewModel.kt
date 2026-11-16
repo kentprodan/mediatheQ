@@ -8,8 +8,11 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
+import io.github.kentprodan.mediatheq.core.data.TrackPicker
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.data.externalSubtitles
+import io.github.kentprodan.mediatheq.core.data.formatLine
 import io.github.kentprodan.mediatheq.core.data.resumePosition
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import kotlinx.coroutines.ExperimentalCoroutinesApi

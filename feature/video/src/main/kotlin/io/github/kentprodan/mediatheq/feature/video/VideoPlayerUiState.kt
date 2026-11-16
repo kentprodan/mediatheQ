@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.video
 
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.VideoTracks
 import io.github.kentprodan.mediatheq.core.playback.VideoPlayback
 import kotlin.time.Duration
 
