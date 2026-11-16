@@ -85,4 +85,15 @@
     <string name="tv_series_confirm_series_unwatched">Mark every episode of the series unwatched?</string>
     <string name="tv_series_confirm_yes">Yes</string>
     <string name="tv_series_confirm_cancel">Cancel</string>
+    <string name="tv_player_play">Play</string>
+    <string name="tv_player_pause">Pause</string>
+    <string name="tv_player_back_10">−10 s</string>
+    <string name="tv_player_forward_30">+30 s</string>
+    <string name="tv_player_next">Next episode</string>
+    <!-- 1:57:12 · ends at 22:41 -->
+    <string name="tv_player_ends_at">%1$s · ends at %2$s</string>
+    <string name="tv_player_next_in">Next episode in %d s</string>
+    <string name="tv_player_play_now">Play now</string>
+    <string name="tv_player_error">This video did not play</string>
+    <string name="tv_player_error_body">The server or the network stopped answering. Try again from the page.</string>
 </resources>

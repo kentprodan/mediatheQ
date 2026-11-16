@@ -19,11 +19,11 @@ fun EntryProviderScope<NavKey>.tvVideoEntries(navigator: Navigator) {
     entry<SeriesListKey> { TvSeriesRoute { navigator.navigateTo(SeriesKey(it)) } }
     entry<VideoCollectionsKey> { TvCollectionsRoute { navigator.navigateTo(VideoCollectionKey(it)) } }
     entry<VideoCollectionKey> { key -> TvCollectionRoute(key.id) { navigator.navigateTo(MovieKey(it)) } }
-    // The player comes with #429: until then its key shows the shell's placeholder.
     entry<SeriesKey> { key ->
         TvSeriesPageRoute(key.id) { id, start -> navigator.navigateTo(VideoPlayerKey(id, start.inWholeMilliseconds)) }
     }
     entry<MovieKey> { key ->
         TvMovieRoute(key.id) { id, start -> navigator.navigateTo(VideoPlayerKey(id, start.inWholeMilliseconds)) }
     }
+    entry<VideoPlayerKey> { key -> TvPlayerRoute(key) { navigator.back() } }
 }
