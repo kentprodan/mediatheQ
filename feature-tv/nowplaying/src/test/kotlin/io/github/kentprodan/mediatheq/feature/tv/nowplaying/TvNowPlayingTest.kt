@@ -35,6 +35,8 @@ import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
+import io.github.kentprodan.mediatheq.core.playback.SleepTimer
+import io.github.kentprodan.mediatheq.core.playback.SleepTimerChoice
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLyricsRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
@@ -97,10 +99,12 @@ class TvNowPlayingTest {
         output = AudioOutputInfo(playedItemId = track.id.toString(), streamKnown = true),
     )
 
+    private val sleepTimer = SleepTimer({ null }, {})
+
     private fun TestScope.viewModel(): TvNowPlayingViewModel {
         library.tracks.value = listOf(track)
         playback.queue.value = queue
-        val viewModel = TvNowPlayingViewModel(playback, library, userData, lyrics)
+        val viewModel = TvNowPlayingViewModel(playback, library, userData, lyrics, sleepTimer)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -422,4 +426,21 @@ class TvNowPlayingTest {
     private fun keptOn(view: android.view.View): Boolean =
         view.keepScreenOn ||
             (view is android.view.ViewGroup && (0 until view.childCount).any { keptOn(view.getChildAt(it)) })
+
+    @Test
+    fun `the sleep timer starts and turns off from TV Now Playing (#393)`() =
+        test {
+            val viewModel = viewModel()
+            playback.state.value = playing()
+            runCurrent()
+
+            viewModel.onAction(TvNowPlayingAction.StartSleepTimer(SleepTimerChoice.Minutes(30)))
+            runCurrent()
+            assertThat((viewModel.uiState.value as TvNowPlayingUiState.Playing).sleepTimer?.choice)
+                .isEqualTo(SleepTimerChoice.Minutes(30))
+
+            viewModel.onAction(TvNowPlayingAction.CancelSleepTimer)
+            runCurrent()
+            assertThat((viewModel.uiState.value as TvNowPlayingUiState.Playing).sleepTimer).isNull()
+        }
 }

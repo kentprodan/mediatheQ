@@ -41,7 +41,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Lyrics from LRCLIB (Settings -> Playback -> Playback, off by default): synced lyrics for tracks your server has none for.
 - More like this at the bottom of an album page: albums from your library the server finds similar.
 - Start radio from a track, album, artist, genre or playlist menu (and Now Playing): the server mixes similar music from your library into a new queue.
-- Sleep timer on Now Playing (the moon button): stop after this track or a few tracks, after 5 to 60 minutes, or at a time you pick; the last choice is one tap away.
+- Sleep timer on Now Playing (the moon button): stop after this track or a few tracks, after 5 to 60 minutes, or at a time you pick; the last choice is one tap away. On the TV too, from the moon button of Now Playing.
 - Movies and Series can be tabs of their own (Settings -> Navigation), each grid keeps its sort, and Search finds movies, series and episodes.
 - Picture-in-picture: swipe home while a video plays and it goes on in a small window with play / pause and next episode; Back keeps the sound going when you ask for it.
 - Movies and episodes: chapter marks and a chapters list, a preview picture while you drag the seek bar, and Skip intro / Skip credits (or skipping by itself) from the server's Intro Skipper segments.

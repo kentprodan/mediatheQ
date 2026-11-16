@@ -64,6 +64,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
+import io.github.kentprodan.mediatheq.core.playback.SleepTimerChoice
+import io.github.kentprodan.mediatheq.core.playback.SleepTimerState
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvFormatBadge
 import kotlin.time.Duration
@@ -303,7 +305,8 @@ private fun Controls(
     val off = stringResource(R.string.tv_np_off)
     Row(
         Modifier.fillMaxWidth().focusRestorer(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+        // Eight buttons (the sleep timer, #393) fit the player pane at these sizes.
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Control(
@@ -353,7 +356,56 @@ private fun Controls(
             enabled = lyrics.available,
             onClick = lyrics.onToggle,
         )
+        var sleepMenu by remember { mutableStateOf(false) }
+        Control(
+            if (state.sleepTimer != null) MqTvIcons.BedtimeFilled else MqTvIcons.Bedtime,
+            stringResource(R.string.tv_np_sleep_timer),
+            if (state.sleepTimer != null) on else off,
+            selected = state.sleepTimer != null,
+        ) { sleepMenu = true }
+        if (sleepMenu) SleepTimerMenu(state.sleepTimer, onAction) { sleepMenu = false }
     }
+}
+
+/** The sleep timer's choices (#393), Turn off first while one runs. */
+@Composable
+private fun SleepTimerMenu(
+    timer: SleepTimerState?,
+    onAction: (TvNowPlayingAction) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val start = { choice: SleepTimerChoice -> { onAction(TvNowPlayingAction.StartSleepTimer(choice)) } }
+    val entries =
+        buildList {
+            if (timer != null) {
+                add(
+                    MqTvMenuEntry(
+                        stringResource(R.string.tv_np_sleep_off),
+                        null,
+                    ) { onAction(TvNowPlayingAction.CancelSleepTimer) },
+                )
+            }
+            add(MqTvMenuEntry(stringResource(R.string.tv_np_sleep_this_track), null, start(SleepTimerChoice.Tracks(1))))
+            listOf(2, 3).forEach { n ->
+                add(
+                    MqTvMenuEntry(
+                        stringResource(R.string.tv_np_sleep_tracks, n),
+                        null,
+                        start(SleepTimerChoice.Tracks(n)),
+                    ),
+                )
+            }
+            listOf(15, 30, 45, 60).forEach { m ->
+                add(
+                    MqTvMenuEntry(
+                        stringResource(R.string.tv_np_sleep_minutes, m),
+                        null,
+                        start(SleepTimerChoice.Minutes(m)),
+                    ),
+                )
+            }
+        }
+    MqTvMenu(stringResource(R.string.tv_np_sleep_timer), entries, onDismiss)
 }
 
 /**
@@ -389,7 +441,7 @@ private fun Control(
     IconButton(
         onClick,
         modifier
-            .size(if (large) 72.dp else 56.dp)
+            .size(if (large) 68.dp else 52.dp)
             .semantics { stateText?.let { stateDescription = it } },
         enabled = enabled,
     ) {
