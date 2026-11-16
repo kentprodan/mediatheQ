@@ -464,4 +464,43 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `16 to 17 adds the community rating, keeps the videos and makes the next start sync`() =
+        runTest {
+            helper.createDatabase(16).apply {
+                execSQL(
+                    "INSERT INTO sync_state (id, last_full_sync_at, owner_server_id, owner_user_id, " +
+                        "checkpoint_server_id, checkpoint_user_id, checkpoint_started_at, checkpoint_step, " +
+                        "checkpoint_index) VALUES (0, 1760000000000, 's', 'u', 's', 'u', 1760000000000, 'Movies', 50)",
+                )
+                execSQL(
+                    "INSERT INTO video (server_id, id, kind, title, sort_name, duration_ms, is_favorite, play_count, " +
+                        "played, position_ms) VALUES ('s', 'm1', 'Movie', 'Alien', 'Alien', 1000, 0, 0, 0, 0)",
+                )
+                execSQL(
+                    "INSERT INTO video_staging (server_id, id, kind, title, sort_name, duration_ms, is_favorite, " +
+                        "play_count, played, position_ms) VALUES ('s', 'm2', 'Movie', 'M', 'M', 1000, 0, 0, 0, 0)",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(17)
+
+            connection.prepare("SELECT last_full_sync_at, checkpoint_step FROM sync_state").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(0)
+                assertThat(it.isNull(1)).isTrue()
+            }
+            connection.prepare("SELECT title, community_rating FROM video").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getText(0)).isEqualTo("Alien")
+                assertThat(it.isNull(1)).isTrue()
+            }
+            connection.prepare("SELECT COUNT(*) FROM video_staging").use {
+                it.step()
+                assertThat(it.getLong(0)).isEqualTo(0)
+            }
+            connection.close()
+        }
 }

@@ -59,6 +59,7 @@ internal fun Video.toEntity() =
         genres = genres.joinedGenres(),
         tagline = tagline,
         officialRating = officialRating,
+        communityRating = communityRating,
         videoCodec = format?.codec,
         width = format?.width,
         height = format?.height,
@@ -109,6 +110,7 @@ internal fun VideoEntity.toDomain(): Video {
         genres = genres.splitGenres(),
         tagline = tagline,
         officialRating = officialRating,
+        communityRating = communityRating,
         format =
             videoCodec?.let { codec ->
                 VideoFormat(
@@ -150,6 +152,7 @@ internal fun Series.toEntity() =
         year = year,
         dateAddedMillis = dateAdded?.toEpochMilliseconds(),
         genres = genres.joinedGenres(),
+        communityRating = communityRating,
         image = artwork.toColumns(),
         backdrop = backdrop.toColumns(),
         userData = userData.toColumns(),
@@ -165,6 +168,7 @@ internal fun SeriesEntity.toDomain() =
         year = year,
         dateAdded = dateAddedMillis?.let(Instant::fromEpochMilliseconds),
         genres = genres.splitGenres(),
+        communityRating = communityRating,
         artwork = image.toDomain(),
         backdrop = backdrop.toDomain(ImageType.Backdrop),
         userData = userData(userData, videoUser),

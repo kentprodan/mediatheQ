@@ -26,10 +26,12 @@ data class TvPoster(
     val dateAdded: Instant? = null,
     /** A movie's length; `null` for a series. */
     val runtime: Duration? = null,
+    /** The public rating, 0-10. */
+    val rating: Double? = null,
 )
 
-/** The sorts of a TV video grid; [Runtime] only for movies. Rating comes with the community rating's sync. */
-enum class TvVideoSort { Name, DateAdded, Year, Runtime, Random }
+/** The sorts of a TV video grid; [Runtime] only for movies. */
+enum class TvVideoSort { Name, DateAdded, Year, Rating, Runtime, Random }
 
 enum class TvWatched { All, Unwatched, Watched }
 
@@ -58,8 +60,8 @@ data class TvArranged(
 )
 
 /**
- * Filters and sorts [posters]. Name ignores case and accents, like the music lists; the newest come first for
- * Date added and Year, the longest for Runtime, items without the value last. Random shuffles with [seed], so the
+ * Filters and sorts [posters]. Name ignores case and accents, like the music lists; the highest come first for
+ * Date added, Year and Rating, the longest for Runtime, items without the value last. Random shuffles with [seed], so the
  * order stays put until Random is chosen again.
  */
 fun arrange(
@@ -87,6 +89,8 @@ fun arrange(
             TvVideoSort.DateAdded -> kept.sortedWith(newestFirst<Instant> { it.dateAdded })
 
             TvVideoSort.Year -> kept.sortedWith(newestFirst<Int> { it.year })
+
+            TvVideoSort.Rating -> kept.sortedWith(newestFirst<Double> { it.rating })
 
             TvVideoSort.Runtime -> kept.sortedWith(newestFirst<Duration> { it.runtime })
 
@@ -134,6 +138,7 @@ internal fun Video.toPoster() =
         genres = genres,
         dateAdded = dateAdded,
         runtime = duration.takeIf { it.isPositive() },
+        rating = communityRating,
     )
 
 internal fun Series.toPoster() =
@@ -147,4 +152,5 @@ internal fun Series.toPoster() =
         favorite = userData.isFavorite,
         genres = genres,
         dateAdded = dateAdded,
+        rating = communityRating,
     )

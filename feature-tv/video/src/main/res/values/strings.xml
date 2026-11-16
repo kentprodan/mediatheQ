@@ -17,6 +17,7 @@
     <string name="tv_video_sort_name">Name</string>
     <string name="tv_video_sort_date_added">Date added</string>
     <string name="tv_video_sort_year">Year</string>
+    <string name="tv_video_sort_rating">Rating</string>
     <string name="tv_video_sort_runtime">Runtime</string>
     <string name="tv_video_sort_random">Random</string>
     <string name="tv_video_filter">Filter</string>

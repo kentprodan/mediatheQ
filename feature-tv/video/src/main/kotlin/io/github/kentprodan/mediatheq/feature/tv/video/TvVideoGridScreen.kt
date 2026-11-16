@@ -437,6 +437,7 @@ private val TvVideoSort.label: Int
             TvVideoSort.Name -> R.string.tv_video_sort_name
             TvVideoSort.DateAdded -> R.string.tv_video_sort_date_added
             TvVideoSort.Year -> R.string.tv_video_sort_year
+            TvVideoSort.Rating -> R.string.tv_video_sort_rating
             TvVideoSort.Runtime -> R.string.tv_video_sort_runtime
             TvVideoSort.Random -> R.string.tv_video_sort_random
         }

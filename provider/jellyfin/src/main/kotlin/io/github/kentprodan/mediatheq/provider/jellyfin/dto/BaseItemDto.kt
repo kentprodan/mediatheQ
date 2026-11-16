@@ -47,4 +47,6 @@ internal data class BaseItemDto(
     @SerialName("SeasonId") val seasonId: String? = null,
     @SerialName("Taglines") val taglines: List<String> = emptyList(),
     @SerialName("OfficialRating") val officialRating: String? = null,
+    /** The public rating, 0-10 (TMDB's for most movies); a default field of every item. */
+    @SerialName("CommunityRating") val communityRating: Double? = null,
 )

@@ -52,6 +52,8 @@ data class Video(
     val genres: List<String> = emptyList(),
     val tagline: String? = null,
     val officialRating: String? = null,
+    /** The public rating, 0-10 (#426: the TV's Rating sort, the movie page). */
+    val communityRating: Double? = null,
     val format: VideoFormat? = null,
     val sizeBytes: Long? = null,
     val artwork: Artwork? = null,
@@ -69,6 +71,7 @@ data class Series(
     val year: Int? = null,
     val dateAdded: Instant? = null,
     val genres: List<String> = emptyList(),
+    val communityRating: Double? = null,
     val artwork: Artwork? = null,
     val backdrop: Artwork? = null,
     val userData: UserData = UserData(),
