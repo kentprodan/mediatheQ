@@ -24,7 +24,9 @@ object NetworkModule {
     /** The one HTTP client of the app; providers add their own interceptors with `newBuilder()`. */
     @Provides
     @Singleton
-    fun okHttpClient(): OkHttpClient = mediatheqOkHttpClient()
+    fun okHttpClient(failover: AddressFailover): OkHttpClient =
+        // Several addresses of one server (#382): every request goes to the one that answers.
+        mediatheqOkHttpClient().newBuilder().addInterceptor(failover).build()
 
     /** JSON settings for server DTOs (jellyfin skill, section 1). */
     @Provides

@@ -261,4 +261,28 @@ class AccountStoreTest {
                     .signedIn,
             ).isFalse()
         }
+
+    @Test
+    fun `other addresses follow the account, survive a save and go with it (#382)`() =
+        runTest {
+            val store = store()
+            store.save(account)
+            assertThat(store.activeAddresses.first()).containsExactly("http://nas:8096")
+
+            store.setAlternateUrls(account.id, listOf("http://100.64.0.2:8096", "https://jf.example.org"))
+            store.save(account.copy(baseUrl = "http://nas2:8096"))
+
+            assertThat(store.activeAddresses.first())
+                .containsExactly("http://nas2:8096", "http://100.64.0.2:8096", "https://jf.example.org")
+                .inOrder()
+            assertThat(
+                store.saved
+                    .first()
+                    .single()
+                    .alternateUrls,
+            ).hasSize(2)
+
+            store.setAlternateUrls(account.id, emptyList())
+            assertThat(store.activeAddresses.first()).containsExactly("http://nas2:8096")
+        }
 }

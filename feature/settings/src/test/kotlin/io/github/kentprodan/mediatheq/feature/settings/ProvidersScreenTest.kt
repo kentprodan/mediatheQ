@@ -125,7 +125,8 @@ class ProvidersScreenTest {
                 EditAddressBody(
                     "http://nas:8096",
                     AddressEdit(home.id, error = AddressError.OtherServer),
-                ) {}
+                    onChange = {},
+                )
             }
         }
 

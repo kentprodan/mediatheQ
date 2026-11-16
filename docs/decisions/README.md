@@ -57,6 +57,7 @@ Format: Status, Context, Decision, Consequences. Superseded ADRs stay in the fol
 | [0050](0050-video-stream-selection-subtitles-and-downloads.md) | Video stream selection: device profile from real capabilities, HLS fMP4 transcodes, server-decided subtitle delivery, downloads as originals | Accepted |
 | [0051](0051-app-mode-music-video-both.md) | App mode: Music, Video or Both, one app-wide setting chosen in onboarding, Settings and Home | Accepted |
 | [0052](0052-r8-release-builds-and-daily-build.md) | R8 release builds (names kept) and a debug-signed `daily` build type for everyday installs | Accepted |
+| [0053](0053-several-addresses-per-server.md) | Several addresses per server: an OkHttp interceptor sends requests to the address that answers | Accepted |
 
 Template for new ADRs:
 

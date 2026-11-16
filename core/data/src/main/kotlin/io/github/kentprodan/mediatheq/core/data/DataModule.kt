@@ -48,6 +48,9 @@ internal interface DataModule {
     fun similarRepository(repository: DefaultSimilarRepository): SimilarRepository
 
     @Binds
+    fun serverAddresses(addresses: AccountAddresses): io.github.kentprodan.mediatheq.core.common.ServerAddressSource
+
+    @Binds
     fun playbackRepository(repository: DefaultPlaybackRepository): PlaybackRepository
 
     @Binds

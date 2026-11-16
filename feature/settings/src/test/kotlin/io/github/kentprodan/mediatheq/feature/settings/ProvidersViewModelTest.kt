@@ -122,4 +122,20 @@ class ProvidersViewModelTest {
             viewModel.onAction(ProvidersAction.DismissEdit)
             assertThat(content().edit).isNull()
         }
+
+    @Test
+    fun `other addresses alone are saved without checking the unchanged address (#382)`() =
+        runTest {
+            viewModel.onAction(ProvidersAction.EditAddress(home.id, "http://nas:8096/", "http://100.64.0.2:8096"))
+            advanceUntilIdle()
+
+            assertThat(accounts.edited).isEmpty()
+            assertThat(accounts.alternates).containsExactly(home.id to "http://100.64.0.2:8096")
+            assertThat(content().edit).isNull()
+
+            accounts.alternatesResult = false
+            viewModel.onAction(ProvidersAction.EditAddress(home.id, "http://nas:8096", "nope"))
+            advanceUntilIdle()
+            assertThat(content().edit).isEqualTo(AddressEdit(home.id, error = AddressError.InvalidOthers))
+        }
 }

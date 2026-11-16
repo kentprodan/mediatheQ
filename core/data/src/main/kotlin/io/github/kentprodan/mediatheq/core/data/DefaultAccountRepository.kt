@@ -49,6 +49,7 @@ internal class DefaultAccountRepository
                         active = it.id == databases.open,
                         lastSync = record,
                         signedIn = it.signedIn,
+                        alternateUrls = it.alternateUrls,
                     )
                 }
             }
@@ -79,6 +80,20 @@ internal class DefaultAccountRepository
                 check
             } catch (_: IOException) {
                 ServerCheck.Failed(MqError.Storage)
+            }
+        }
+
+        override suspend fun setAlternateAddresses(
+            id: String,
+            text: String,
+        ): Boolean {
+            val own = saved().firstOrNull { it.id == id }?.baseUrl?.trimEnd('/')
+            val urls = alternateAddresses(text) ?: return false
+            return try {
+                store.setAlternateUrls(id, urls.filter { it != own })
+                true
+            } catch (_: IOException) {
+                false
             }
         }
 
@@ -152,3 +167,14 @@ internal class DefaultAccountRepository
                 }
             }
     }
+
+/** The addresses of [text], one per line, blanks skipped, without a trailing slash; `null` when one is not http(s). */
+internal fun alternateAddresses(text: String): List<String>? {
+    val urls = text.lines().map { it.trim().trimEnd('/') }.filter { it.isNotEmpty() }
+    val valid =
+        urls.all { url ->
+            val uri = runCatching { java.net.URI(url) }.getOrNull()
+            uri != null && (uri.scheme == "http" || uri.scheme == "https") && !uri.host.isNullOrEmpty()
+        }
+    return if (valid) urls.distinct() else null
+}

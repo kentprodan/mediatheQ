@@ -21,7 +21,17 @@ data class AddressEdit(
     val error: AddressError? = null,
 )
 
-enum class AddressError { InvalidAddress, CleartextNotAllowed, Unreachable, OtherServer, Unsupported, Other }
+enum class AddressError {
+    InvalidAddress,
+    CleartextNotAllowed,
+    Unreachable,
+    OtherServer,
+    Unsupported,
+    Other,
+
+    /** A line of the other addresses (#382) is not an http(s) address. */
+    InvalidOthers,
+}
 
 sealed interface ProvidersAction {
     /** Switches to [id]: playback pauses, the app restarts on that account. */
@@ -46,9 +56,11 @@ sealed interface ProvidersAction {
         val id: String,
     ) : ProvidersAction
 
+    /** Saves the account's [address] and its [others] (#382: other addresses of the server, one per line). */
     data class EditAddress(
         val id: String,
         val address: String,
+        val others: String = "",
     ) : ProvidersAction
 
     data object DismissEdit : ProvidersAction
