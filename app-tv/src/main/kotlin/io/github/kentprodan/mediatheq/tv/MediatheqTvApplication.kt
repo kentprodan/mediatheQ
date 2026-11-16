@@ -8,10 +8,16 @@ import coil3.disk.DiskCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.serviceLoaderEnabled
 import dagger.hilt.android.HiltAndroidApp
+import io.github.kentprodan.mediatheq.core.common.ApplicationScope
 import io.github.kentprodan.mediatheq.core.common.FileAppLog
+import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.ArtworkInterceptor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.DefaultLibrarySyncRepository
+import io.github.kentprodan.mediatheq.core.model.AppMode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okio.Path.Companion.toOkioPath
 import javax.inject.Inject
@@ -36,6 +42,13 @@ class MediatheqTvApplication :
     @Inject
     lateinit var artworkUrls: ArtworkUrlResolver
 
+    @Inject
+    lateinit var appMode: AppModeRepository
+
+    @Inject
+    @ApplicationScope
+    lateinit var applicationScope: CoroutineScope
+
     override fun onCreate() {
         super.onCreate()
         // A crash goes into the app's log before the process ends (#169); nothing is sent anywhere.
@@ -46,6 +59,10 @@ class MediatheqTvApplication :
         }
         log.info("App", "Started (TV)")
         librarySync.start()
+        // A TV with no mode chosen shows music and video when the server has video (#426); Settings changes it.
+        applicationScope.launch {
+            if (appMode.videoAvailable && !appMode.chosen.first()) appMode.setMode(AppMode.Both)
+        }
     }
 
     /**

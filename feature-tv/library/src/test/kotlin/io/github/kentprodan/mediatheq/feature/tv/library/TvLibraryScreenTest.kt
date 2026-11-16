@@ -18,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.ui.tv.alphabetIndex
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

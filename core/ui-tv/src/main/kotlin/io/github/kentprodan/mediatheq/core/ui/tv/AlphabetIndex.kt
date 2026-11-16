@@ -1,9 +1,9 @@
-package io.github.kentprodan.mediatheq.feature.tv.library
+package io.github.kentprodan.mediatheq.core.ui.tv
 
 import java.text.Normalizer
 
 /**
- * The A-Z strip of a list sorted by name (#237): each letter the [names] start with, at the index of its first name.
+ * The A-Z strip of a list sorted by name (#237, shared with the video grids #426): each letter the [names] start with, at the index of its first name.
  * Accents do not count ("Élan" is under E, like the name sort reads it); a name starting with anything but a letter
  * is under '#'. A letter seen again later (the sort ignores case and accents) keeps its first index.
  */

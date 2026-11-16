@@ -1,11 +1,17 @@
 package io.github.kentprodan.mediatheq.tv.navigation
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.AppLog
+import io.github.kentprodan.mediatheq.core.data.AppModeRepository
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 /** The TV shell (ADR 0041): what plays, for the drawer's strip; navigation itself lives in the composition. */
@@ -15,8 +21,15 @@ class TvShellViewModel
     constructor(
         private val playback: PlaybackConnection,
         private val log: AppLog,
+        appMode: AppModeRepository,
     ) : ViewModel() {
         val player: StateFlow<PlayerUiModel> = playback.state
+
+        /** The drawer's entries for the TV's app mode (#426); music only until the mode is read. */
+        val destinations: StateFlow<List<TvDestination>> =
+            appMode.mode
+                .map(TvDestination::shownIn)
+                .stateIn(viewModelScope, SharingStarted.Eagerly, TvDestination.shownIn(AppMode.Music))
 
         /** Close on Back at Home (#343): the music stops with the app; the queue stays for next time. */
         fun stopMusic() = playback.pause()

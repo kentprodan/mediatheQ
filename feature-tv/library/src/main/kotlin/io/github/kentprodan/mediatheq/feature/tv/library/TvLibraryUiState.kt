@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.ui.tv.Letter
 
 /** One list of the TV Library (#237): a tab, or a genre's or year's albums. */
 data class TvLibraryUiState(
@@ -55,12 +56,6 @@ data class TvLibraryItem(
 ) {
     enum class Kind { Album, Artist, Playlist, Genre }
 }
-
-/** A letter of the A-Z strip and the index of the first item that starts with it. */
-data class Letter(
-    val letter: Char,
-    val index: Int,
-)
 
 sealed interface TvLibraryAction {
     data class SetSort(

@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.tv.settings
 
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.OutputId
 
 /** The HDMI output whose Dolby Atmos passthrough switch Settings shows (ADR 0039). */
@@ -12,7 +13,7 @@ data class TvHdmiOutput(
 )
 
 /** The dialog open over the settings list. */
-enum class TvSettingsDialog { Quality, SignOut }
+enum class TvSettingsDialog { Quality, SignOut, AppMode }
 
 /** Settings on TV (#243). */
 sealed interface TvSettingsUiState {
@@ -30,6 +31,8 @@ sealed interface TvSettingsUiState {
         val serverName: String?,
         val userName: String?,
         val dialog: TvSettingsDialog? = null,
+        /** What the TV shows (#426, ADR 0051); `null` when the server has no video, so the row is hidden. */
+        val appMode: AppMode? = null,
     ) : TvSettingsUiState
 }
 
@@ -44,6 +47,12 @@ sealed interface TvSettingsAction {
     ) : TvSettingsAction
 
     data object SyncNow : TvSettingsAction
+
+    data object ChooseAppMode : TvSettingsAction
+
+    data class SetAppMode(
+        val mode: AppMode,
+    ) : TvSettingsAction
 
     /** Asks before signing out. */
     data object AskSignOut : TvSettingsAction

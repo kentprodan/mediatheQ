@@ -32,4 +32,8 @@
     <string name="tv_settings_licenses">Open-source licenses</string>
     <string name="tv_licenses_title">Open-source licenses</string>
     <string name="tv_licenses_loading">Reading the licenses…</string>
+    <string name="tv_settings_app_mode">Show</string>
+    <string name="tv_settings_app_mode_music">Music only</string>
+    <string name="tv_settings_app_mode_video">Movies and series only</string>
+    <string name="tv_settings_app_mode_both">Music, movies and series</string>
 </resources>

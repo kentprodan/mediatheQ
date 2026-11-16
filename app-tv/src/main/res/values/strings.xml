@@ -12,4 +12,6 @@
     <string name="tv_close_title">Close mediatheQ?</string>
     <string name="tv_close">Close</string>
     <string name="tv_close_cancel">Cancel</string>
+    <string name="tv_nav_movies">Movies</string>
+    <string name="tv_nav_series">Series</string>
 </resources>

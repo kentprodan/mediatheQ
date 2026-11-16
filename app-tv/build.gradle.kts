@@ -59,6 +59,7 @@ dependencies {
     implementation(projects.featureTv.artist)
     implementation(projects.featureTv.nowplaying)
     implementation(projects.featureTv.search)
+    implementation(projects.featureTv.video)
     implementation(projects.featureTv.settings)
     // Covers through the app's OkHttp client (ADR 0013), like the phone.
     implementation(libs.coil.compose)
