@@ -28,6 +28,7 @@ import io.github.kentprodan.mediatheq.core.data.entriesFor
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.download.resumeDownloads
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
+import io.github.kentprodan.mediatheq.core.playback.RadioStarter
 import io.github.kentprodan.mediatheq.core.ui.LocalMediaListStyle
 import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.artist.artistEntry
@@ -60,6 +61,8 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject lateinit var log: FileAppLog
+
+    @Inject lateinit var radio: RadioStarter
 
     private val viewModel: MainViewModel by viewModels()
 
@@ -107,6 +110,7 @@ class MainActivity : ComponentActivity() {
                             val snackbar = remember { SnackbarHostState() }
                             UserDataErrorMessages(viewModel.userDataError, viewModel::dismissUserDataError, snackbar)
                             PlaybackErrorMessages(viewModel.playbackError, viewModel::dismissPlaybackError, snackbar)
+                            RadioErrorMessages(radio.error, radio::dismissError, snackbar)
                             SlowStartMessages(viewModel.slowStart, viewModel::dismissSlowStart, snackbar)
                             // Downloads is optional in the navigation (#122); without its tab it opens on the current one.
                             val openDownloads = {

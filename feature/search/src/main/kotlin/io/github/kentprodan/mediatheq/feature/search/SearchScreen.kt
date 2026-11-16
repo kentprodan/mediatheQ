@@ -63,6 +63,7 @@ import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.RecordLabelRow
 import io.github.kentprodan.mediatheq.core.ui.SelectableList
 import io.github.kentprodan.mediatheq.core.ui.SeriesRow
+import io.github.kentprodan.mediatheq.core.ui.StartRadioMenuItem
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.VideoRow
 import io.github.kentprodan.mediatheq.core.ui.rememberSelectLongPress
@@ -382,6 +383,7 @@ private fun Results(
                             close,
                         )
                         DownloadMenuItem({ onAction(SearchAction.Download(track)) }, close)
+                        StartRadioMenuItem({ onAction(SearchAction.StartRadio(track.id)) }, close)
                     },
                 )
             }

@@ -93,6 +93,11 @@ sealed interface ArtistAction {
 
     data object AddToQueue : ArtistAction
 
+    /** Start radio from [seed] (#379). */
+    data class StartRadio(
+        val seed: MediaId,
+    ) : ArtistAction
+
     /** Downloads the artist's own albums. */
     data object Download : ArtistAction
 

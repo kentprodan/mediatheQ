@@ -78,6 +78,7 @@ import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
 import io.github.kentprodan.mediatheq.core.ui.SelectionToolbar
+import io.github.kentprodan.mediatheq.core.ui.StartRadioMenuItem
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
@@ -398,6 +399,7 @@ private fun PlaylistRow(
                             close,
                         )
                         DownloadMenuItem({ onAction(PlaylistAction.Download(item.position)) }, close)
+                        StartRadioMenuItem({ onAction(PlaylistAction.StartRadio(item.track.id)) }, close)
                         if (canEditItem) {
                             DropdownMenuItem(
                                 text = { Text(remove) },

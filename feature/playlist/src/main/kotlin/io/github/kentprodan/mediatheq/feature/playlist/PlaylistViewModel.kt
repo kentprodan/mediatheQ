@@ -156,6 +156,10 @@ class PlaylistViewModel
                     viewModelScope.launch { trackTaps.tap(items.map { it.track }, index, playlistId) }
                 }
 
+                is PlaylistAction.StartRadio -> {
+                    commands.startRadio(action.seed)
+                }
+
                 is PlaylistAction.Download -> {
                     val tracks =
                         if (action.position ==

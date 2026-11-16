@@ -76,6 +76,11 @@ sealed interface SearchAction {
         val track: Track,
     ) : SearchAction
 
+    /** Start radio from [seed] (#379). */
+    data class StartRadio(
+        val seed: MediaId,
+    ) : SearchAction
+
     data class Download(
         val track: Track,
     ) : SearchAction

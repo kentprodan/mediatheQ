@@ -39,6 +39,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.AddToPlaylistMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
+import io.github.kentprodan.mediatheq.core.ui.StartRadioMenuItem
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
 
@@ -190,6 +191,7 @@ private fun HeaderButtons(
                 }
                 // No Download: a genre can hold thousands of tracks.
                 AddToPlaylistMenuItem({ onAddToPlaylist(state.tracks.map { it.id }) }, close)
+                StartRadioMenuItem({ onAction(GenreAction.StartRadio(state.genre.id)) }, close)
             }
         }
     }

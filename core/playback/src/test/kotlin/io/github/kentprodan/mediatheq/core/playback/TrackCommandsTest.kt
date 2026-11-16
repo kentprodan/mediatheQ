@@ -8,21 +8,32 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.playback.RadioStarter
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakeSimilarRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
+import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Duration.Companion.minutes
 
 class TrackCommandsTest {
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     private val playback = FakePlaybackConnection()
+    private val similar = FakeSimilarRepository()
+    private val radio by lazy { RadioStarter(similar, playback, CoroutineScope(Dispatchers.Unconfined)) }
     private val userData = FakeUserDataRepository()
     private val downloads = FakeDownloadRepository()
     private val preferences = FakeLibraryPreferencesRepository()
-    private val commands = TrackCommands(playback, userData, downloads, preferences)
+    private val commands = TrackCommands(playback, userData, downloads, preferences, radio)
 
     private fun track(
         value: String,
@@ -94,4 +105,13 @@ class TrackCommandsTest {
             assertThat(playback.playedNext).hasSize(1)
             assertThat(playback.addedToQueue).isEmpty()
         }
+
+    @Test
+    fun `Start radio asks for a mix like the seed`() {
+        val seed = MediaId(ServerId("s"), "album-1")
+
+        commands.startRadio(seed)
+
+        assertThat(similar.mixSeeds).containsExactly(seed)
+    }
 }

@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.SwipeAction
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -21,7 +22,11 @@ class TrackCommands
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
         private val preferences: LibraryPreferencesRepository,
+        private val radio: RadioStarter,
     ) {
+        /** Start radio from a track, album, artist, genre or playlist (#379); a failure shows app-wide. */
+        fun startRadio(seed: MediaId) = radio.start(seed)
+
         /** A top button (or the selection's Play) on [tracks], in their order; nothing for an empty list. */
         fun run(
             button: TopButton,

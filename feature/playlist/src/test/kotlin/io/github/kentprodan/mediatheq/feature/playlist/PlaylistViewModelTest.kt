@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.playback.RadioStarter
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
@@ -21,9 +22,12 @@ import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeResumeRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeSimilarRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -40,8 +44,18 @@ class PlaylistViewModelTest {
 
     private val repository = FakePlaylistRepository()
     private val playback = FakePlaybackConnection()
+    private val similar = FakeSimilarRepository()
+    private val radio by lazy { RadioStarter(similar, playback, CoroutineScope(Dispatchers.Unconfined)) }
     private val trackTaps by lazy { TrackTaps(playback, FakeLibraryPreferencesRepository()) }
-    private val commands by lazy { TrackCommands(playback, userData, downloads, FakeLibraryPreferencesRepository()) }
+    private val commands by lazy {
+        TrackCommands(
+            playback,
+            userData,
+            downloads,
+            FakeLibraryPreferencesRepository(),
+            radio,
+        )
+    }
     private val userData = FakeUserDataRepository()
     private val downloads = FakeDownloadRepository()
     private val playlistId = MediaId(ServerId("s"), "p1")

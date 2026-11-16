@@ -42,6 +42,7 @@ import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.SelectableList
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
+import io.github.kentprodan.mediatheq.core.ui.StartRadioMenuItem
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.rememberSelectLongPress
 import io.github.kentprodan.mediatheq.core.ui.stateOf
@@ -255,6 +256,7 @@ private fun LazyListScope.tracks(
                         close,
                     )
                     DownloadMenuItem({ onAction(AlbumAction.Download(track.id)) }, close)
+                    StartRadioMenuItem({ onAction(AlbumAction.StartRadio(track.id)) }, close)
                 },
             )
         }

@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.playback.RadioStarter
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
@@ -18,8 +19,11 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesReposit
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection.PlayCall
+import io.github.kentprodan.mediatheq.core.testing.FakeSimilarRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -35,9 +39,11 @@ class GenreViewModelTest {
     private val library = FakeLibraryRepository()
     private val preferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
+    private val similar = FakeSimilarRepository()
+    private val radio by lazy { RadioStarter(similar, playback, CoroutineScope(Dispatchers.Unconfined)) }
     private val trackTaps by lazy { TrackTaps(playback, preferences) }
     private val commands by lazy {
-        TrackCommands(playback, FakeUserDataRepository(), FakeDownloadRepository(), preferences)
+        TrackCommands(playback, FakeUserDataRepository(), FakeDownloadRepository(), preferences, radio)
     }
 
     private fun id(value: String) = MediaId(ServerId("s"), value)

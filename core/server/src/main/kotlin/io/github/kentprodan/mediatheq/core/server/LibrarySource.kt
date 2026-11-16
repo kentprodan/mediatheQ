@@ -81,6 +81,16 @@ interface LibrarySource {
         limit: Int,
     ): MqResult<Map<MediaId, UserData>>
 
+    /**
+     * The tracks of a mix made from [seed] (#379): a track, album, artist, genre or playlist; at most [limit], ids
+     * only (the library is in Room), in the server's order.
+     */
+    suspend fun instantMix(
+        server: SignedInServer,
+        seed: MediaId,
+        limit: Int,
+    ): MqResult<List<MediaId>>
+
     /** A video's chapters and trickplay previews (#277): one item query with `Chapters,Trickplay`. */
     suspend fun playerExtras(
         server: SignedInServer,

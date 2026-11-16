@@ -156,6 +156,9 @@ sealed interface NowPlayingAction {
 
     data object CancelSleepTimer : NowPlayingAction
 
+    /** The track menu's Start radio (#379): a mix like the playing track. */
+    data object StartRadio : NowPlayingAction
+
     /** Move the entry to position [to] of the queue. */
     data class MoveQueueItem(
         val entryId: String,

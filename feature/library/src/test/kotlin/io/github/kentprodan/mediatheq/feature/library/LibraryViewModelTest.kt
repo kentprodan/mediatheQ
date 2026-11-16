@@ -30,6 +30,7 @@ import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.navigation.HomeSectionListKey
 import io.github.kentprodan.mediatheq.core.navigation.RecordLabelKey
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
+import io.github.kentprodan.mediatheq.core.playback.RadioStarter
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
@@ -38,10 +39,13 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeSimilarRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import io.github.kentprodan.mediatheq.core.testing.TestClock
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -61,11 +65,13 @@ class LibraryViewModelTest {
     private val sync = FakeLibrarySyncRepository()
     private val preferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
+    private val similar = FakeSimilarRepository()
+    private val radio by lazy { RadioStarter(similar, playback, CoroutineScope(Dispatchers.Unconfined)) }
     private val trackTaps by lazy { TrackTaps(playback, preferences) }
     private val userData = FakeUserDataRepository()
     private val downloads = FakeDownloadRepository()
     private val playlistRepository = FakePlaylistRepository()
-    private val commands by lazy { TrackCommands(playback, userData, downloads, preferences) }
+    private val commands by lazy { TrackCommands(playback, userData, downloads, preferences, radio) }
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 

@@ -155,6 +155,24 @@ class JellyfinLibrarySource internal constructor(
                 .toMap()
         }
 
+    // #379: the generic route takes any seed (track, album, artist, genre, playlist); ids only, the rest is in Room.
+    override suspend fun instantMix(
+        server: SignedInServer,
+        seed: MediaId,
+        limit: Int,
+    ): MqResult<List<MediaId>> =
+        http.get(
+            server.connection,
+            "Items/${seed.itemId}/InstantMix",
+            QueryResultDto.serializer(),
+            listOf(
+                "userId" to server.userId,
+                "limit" to limit.toString(),
+                "enableImages" to "false",
+                "enableUserData" to "false",
+            ),
+        ) { result -> result.items.mapNotNull { item -> item.id?.let { MediaId(server.serverId, it) } } }
+
     // R27 (#277): chapters and trickplay come with the item, one request; the tile width closest to 320 px.
     override suspend fun playerExtras(
         server: SignedInServer,

@@ -212,6 +212,10 @@ class AlbumViewModel
                     viewModelScope.launch { userData.setRating(albumId, action.halfStars) }
                 }
 
+                is AlbumAction.StartRadio -> {
+                    commands.startRadio(action.seed)
+                }
+
                 is AlbumAction.Download -> {
                     // The whole album is downloaded as the album; one of its tracks on its own.
                     val origin = if (action.trackId == null) DownloadOrigin.Album(albumId) else DownloadOrigin.Single

@@ -89,6 +89,11 @@ sealed interface GenreAction {
 
     data object Shuffle : GenreAction
 
+    /** Start radio from [seed] (#379). */
+    data class StartRadio(
+        val seed: MediaId,
+    ) : GenreAction
+
     data object PlayNext : GenreAction
 
     data object AddToQueue : GenreAction

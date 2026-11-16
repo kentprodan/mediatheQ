@@ -107,7 +107,10 @@ fun TrackRowSelectionScreenshot() {
 fun QueueMenuItemsScreenshot() {
     MediatheqTheme {
         Surface {
-            Column(Modifier.width(IntrinsicSize.Max)) { QueueMenuItems(onPlayNext = {}, onAddToQueue = {}, close = {}) }
+            Column(Modifier.width(IntrinsicSize.Max)) {
+                QueueMenuItems(onPlayNext = {}, onAddToQueue = {}, close = {})
+                StartRadioMenuItem(onClick = {}, close = {})
+            }
         }
     }
 }
