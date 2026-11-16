@@ -23,6 +23,10 @@ JBR and your Android SDK, or create `local.properties` with `sdk.dir=...`):
 ./gradlew testDebugUnitTest      # unit tests
 ```
 
+For everyday use install the `daily` build (optimized by R8, debug-signed, installs over a debug build and keeps
+its data; ADR 0052): select the `daily` build variant in Android Studio, or `./gradlew :app:installDaily`
+(`:app-tv:installDaily` for the TV app).
+
 ## Project docs
 
 - Architecture decisions: [`docs/decisions`](docs/decisions/README.md)

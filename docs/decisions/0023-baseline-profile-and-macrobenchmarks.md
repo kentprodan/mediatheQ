@@ -16,8 +16,8 @@ Pixel 9: connected test runs there used to uninstall the app with its sign-in, s
   macrobenchmarks (cold start with and without the profile, frame timing of both lists). A small
   `mediatheq.android.test` convention plugin sets its SDK levels and toolchain.
 - `:app` applies the plugin as consumer and ships `profileinstaller` 1.4.1. The profile is committed in
-  `app/src/release/generated/baselineProfiles/`. No startup profile: it only feeds R8's DEX layout, and release builds are
-  not minified.
+  `app/src/release/generated/baselineProfiles/`. No startup profile: it only feeds R8's DEX layout (release builds are
+  minified since ADR 0052; a startup profile is a later option).
 - `:app` declares the `benchmarkRelease` and `nonMinifiedRelease` build types itself: debug-signed (there is no release
   key) and with `applicationIdSuffix = ".benchmark"`, so every device run uses a separate app and never touches the
   daily one.
