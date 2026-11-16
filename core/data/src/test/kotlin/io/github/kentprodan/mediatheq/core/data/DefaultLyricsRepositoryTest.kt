@@ -5,22 +5,32 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
+import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.LyricLine
 import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLyricsSource
+import io.github.kentprodan.mediatheq.core.testing.FakeOnlineLyricsSource
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class DefaultLyricsRepositoryTest {
     private val source = FakeLyricsSource()
     private val accountStore = AccountStore(InMemoryPreferencesDataStore(), FakeTokenCipher())
     private val session = FakeSessionRepository()
-    private val repository = DefaultLyricsRepository(source, accountStore, session)
+    private val online = FakeOnlineLyricsSource()
+    private val audio = FakeAudioPreferencesRepository()
+    private val library = FakeLibraryRepository()
+    private val repository = DefaultLyricsRepository(source, accountStore, session, online, audio, library)
     private val track = MediaId(ServerId("s"), "t1")
 
     private suspend fun signIn() =
@@ -73,5 +83,42 @@ class DefaultLyricsRepositoryTest {
 
             assertThat(repository.lyrics(track)).isEqualTo(MqResult.Failure(MqError.Network))
             assertThat(session.session.value).isEqualTo(SessionState.LoggedOut())
+        }
+
+    @Test
+    fun `without server lyrics, LRCLIB answers only while the setting is on, once per track`() =
+        runTest {
+            signIn()
+            library.tracks.value =
+                listOf(
+                    Track(track, "Strobe", listOf(Artist(MediaId(ServerId("s"), "ar1"), "deadmau5")), 10.minutes)
+                        .copy(albumTitle = "For Lack of a Better Name"),
+                )
+            val found = Lyrics(listOf(LyricLine("la", 1.seconds)))
+            online.answer = MqResult.Success(found)
+
+            assertThat(repository.lyrics(track)).isEqualTo(MqResult.Success(null))
+            assertThat(online.asked).isEmpty()
+
+            audio.setBehavior(BehaviorSwitch.OnlineLyrics, true)
+            assertThat(repository.lyrics(track)).isEqualTo(MqResult.Success(found))
+            assertThat(repository.lyrics(track)).isEqualTo(MqResult.Success(found))
+            assertThat(online.asked).containsExactly("Strobe|deadmau5|For Lack of a Better Name")
+        }
+
+    @Test
+    fun `server lyrics win, and an online failure keeps the server's none`() =
+        runTest {
+            signIn()
+            audio.setBehavior(BehaviorSwitch.OnlineLyrics, true)
+            library.tracks.value =
+                listOf(Track(track, "T", listOf(Artist(MediaId(ServerId("s"), "a"), "A")), 3.minutes))
+            online.answer = MqResult.Failure(MqError.Network)
+
+            assertThat(repository.lyrics(track)).isEqualTo(MqResult.Success(null))
+
+            val own = Lyrics(listOf(LyricLine("mine")))
+            source.lyrics[track] = own
+            assertThat(repository.lyrics(track)).isEqualTo(MqResult.Success(own))
         }
 }

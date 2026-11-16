@@ -36,6 +36,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Lyrics on the TV's Now Playing: the line being sung large in the queue's place, or the whole text for plain lyrics.
 - Movies and Series in the Library: after a sync they show as poster grids with how many there are, sorted by name, date added or year, with an Unwatched filter. Playing them comes in a later update.
 - Download a movie, an episode or a whole season (as the original file, with its subtitle files) and watch it offline; the Downloads tab lists Movies and Seasons.
+- Lyrics from LRCLIB (Settings -> Playback -> Playback, off by default): synced lyrics for tracks your server has none for.
 - More like this at the bottom of an album page: albums from your library the server finds similar.
 - Start radio from a track, album, artist, genre or playlist menu (and Now Playing): the server mixes similar music from your library into a new queue.
 - Sleep timer on Now Playing (the moon button): stop after this track or a few tracks, after 5 to 60 minutes, or at a time you pick; the last choice is one tap away.

@@ -103,6 +103,7 @@ class DefaultAudioPreferencesRepository
                     retainPlayerState = behavior.retainPlayerState,
                     weightedShuffle = behavior.weightedShuffle,
                     bluetoothLyrics = behavior.bluetoothLyrics,
+                    onlineLyrics = behavior.onlineLyrics,
                 ),
             )
 
@@ -197,6 +198,7 @@ class DefaultAudioPreferencesRepository
                 retainPlayerState = stored.retainPlayerState ?: defaults.retainPlayerState,
                 weightedShuffle = stored.weightedShuffle ?: defaults.weightedShuffle,
                 bluetoothLyrics = stored.bluetoothLyrics ?: defaults.bluetoothLyrics,
+                onlineLyrics = stored.onlineLyrics ?: defaults.onlineLyrics,
             )
         }
     }

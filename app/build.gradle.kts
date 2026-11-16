@@ -82,6 +82,7 @@ dependencies {
     implementation(projects.core.server)
     implementation(projects.core.network)
     implementation(projects.provider.jellyfin)
+    implementation(projects.provider.lrclib)
     implementation(projects.feature.onboarding)
     implementation(projects.feature.library)
     implementation(projects.feature.album)

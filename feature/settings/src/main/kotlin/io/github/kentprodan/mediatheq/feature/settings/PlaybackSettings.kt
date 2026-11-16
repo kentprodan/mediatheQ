@@ -184,14 +184,18 @@ internal fun LazyListScope.behaviorGroups(
     item(key = "behavior") {
         Group(R.string.settings_pb_queue) {
             // Bluetooth lyrics are music only (ADR 0051).
-            BehaviorSwitch.entries.filter { music || it != BehaviorSwitch.BluetoothLyrics }.forEach { switch ->
-                val (title, summary) = switch.texts
-                item { shapes ->
-                    SwitchItem(shapes, stringResource(title), stringResource(summary), behavior.isOn(switch)) {
-                        onAction(SettingsAction.SetBehavior(switch, it))
+            BehaviorSwitch.entries
+                .filter {
+                    music ||
+                        (it != BehaviorSwitch.BluetoothLyrics && it != BehaviorSwitch.OnlineLyrics)
+                }.forEach { switch ->
+                    val (title, summary) = switch.texts
+                    item { shapes ->
+                        SwitchItem(shapes, stringResource(title), stringResource(summary), behavior.isOn(switch)) {
+                            onAction(SettingsAction.SetBehavior(switch, it))
+                        }
                     }
                 }
-            }
         }
     }
     restoreDefaultsGroup(onRestore)
@@ -231,5 +235,9 @@ private val BehaviorSwitch.texts: Pair<Int, Int>
 
             BehaviorSwitch.BluetoothLyrics -> {
                 R.string.settings_pb_bluetooth_lyrics to R.string.settings_pb_bluetooth_lyrics_summary
+            }
+
+            BehaviorSwitch.OnlineLyrics -> {
+                R.string.settings_pb_online_lyrics to R.string.settings_pb_online_lyrics_summary
             }
         }
