@@ -13,9 +13,9 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -135,7 +135,7 @@ class FavoriteDownloads
                     // Off: nothing of the library is read (#399). On: only the favorites' ids are watched.
                     .flatMapLatest { settings ->
                         if (settings.first == AutoDownloads.Disabled) {
-                            emptyFlow()
+                            flowOf(settings)
                         } else {
                             library.favoriteIds().distinctUntilChanged().map { settings }
                         }
