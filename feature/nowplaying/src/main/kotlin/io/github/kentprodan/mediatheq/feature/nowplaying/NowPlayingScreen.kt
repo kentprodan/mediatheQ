@@ -42,6 +42,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +67,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
@@ -609,6 +611,27 @@ private fun BottomBarButtons(
     IconButton(onClick = navigation.onOpenEqualizer) {
         Icon(MqIcons.GraphicEq, contentDescription = stringResource(R.string.nowplaying_equalizer))
     }
+    SleepTimerButton(state, onAction)
+}
+
+/** Opens the sleep timer (#378); filled while one runs. */
+@Composable
+private fun SleepTimerButton(
+    state: NowPlayingUiState.Playing,
+    onAction: (NowPlayingAction) -> Unit,
+) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    val running = state.sleepTimer != null
+    val status =
+        stringResource(if (running) R.string.nowplaying_sleep_timer_on else R.string.nowplaying_sleep_timer_off)
+    IconButton(onClick = { open = true }, Modifier.semantics { stateDescription = status }) {
+        Icon(
+            if (running) MqIcons.BedtimeFilled else MqIcons.Bedtime,
+            contentDescription = stringResource(R.string.nowplaying_sleep_timer),
+            tint = if (running) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+        )
+    }
+    if (open) SleepTimerSheet(state.sleepTimer, state.sleepTimerLast, onAction, onDismiss = { open = false })
 }
 
 /** Bit-perfect USB is on for this track: its sample rate, and that the phone volume does nothing. */

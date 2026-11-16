@@ -174,6 +174,13 @@ object MqIcons {
     val Close: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_close)
 
+    /** The sleep timer (#378). */
+    val Bedtime: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_bedtime)
+
+    val BedtimeFilled: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_bedtime_filled)
+
     val Edit: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_edit)
 

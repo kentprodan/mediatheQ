@@ -26,6 +26,9 @@ import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
+import io.github.kentprodan.mediatheq.core.playback.SleepTimer
+import io.github.kentprodan.mediatheq.core.playback.SleepTimerChoice
+import io.github.kentprodan.mediatheq.core.playback.SleepTimerState
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
@@ -762,6 +765,40 @@ class NowPlayingViewModelTest {
                 if (next.trackNumber?.number == 3) next = awaitItem() as NowPlayingUiState.Playing
                 assertThat(next.trackNumber).isEqualTo(QueuePosition(4, 12))
                 cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `the sleep timer starts, shows and turns off from Now Playing`() =
+        runTest {
+            var stored: String? = "minutes:30"
+            val timer = SleepTimer({ stored }, { stored = it })
+            val viewModel =
+                NowPlayingViewModel(
+                    playback,
+                    library,
+                    userData,
+                    lyrics,
+                    libraryPreferences,
+                    waveforms,
+                    downloads,
+                    timer,
+                )
+            viewModel.uiState.test {
+                awaitItem()
+                playback.state.value = playing
+                val first = awaitItem() as NowPlayingUiState.Playing
+                assertThat(first.sleepTimer).isNull()
+                assertThat(first.sleepTimerLast).isEqualTo(SleepTimerChoice.Minutes(30))
+
+                viewModel.onAction(NowPlayingAction.StartSleepTimer(SleepTimerChoice.Tracks(2)))
+                val running = expectMostRecentItem() as NowPlayingUiState.Playing
+                assertThat(running.sleepTimer).isEqualTo(SleepTimerState(SleepTimerChoice.Tracks(2), tracksLeft = 2))
+                assertThat(running.sleepTimerLast).isEqualTo(SleepTimerChoice.Tracks(2))
+                assertThat(stored).isEqualTo("tracks:2")
+
+                viewModel.onAction(NowPlayingAction.CancelSleepTimer)
+                assertThat((awaitItem() as NowPlayingUiState.Playing).sleepTimer).isNull()
             }
         }
 }

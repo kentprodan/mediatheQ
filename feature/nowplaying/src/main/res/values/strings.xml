@@ -42,4 +42,31 @@
     <string name="nowplaying_cover">Cover</string>
     <string name="nowplaying_track_number">%1$d / %2$d</string>
     <string name="nowplaying_track_number_spoken">Track %1$d of %2$d in the queue</string>
+    <!-- Sleep timer (#378) -->
+    <string name="nowplaying_sleep_timer">Sleep timer</string>
+    <string name="nowplaying_sleep_timer_on">On</string>
+    <string name="nowplaying_sleep_timer_off">Off</string>
+    <string name="nowplaying_sleep_after_tracks">After tracks</string>
+    <string name="nowplaying_sleep_after_minutes">After minutes</string>
+    <string name="nowplaying_sleep_at_time">At a time</string>
+    <string name="nowplaying_sleep_this_track">This track</string>
+    <plurals name="nowplaying_sleep_tracks">
+        <item quantity="one">%d track</item>
+        <item quantity="other">%d tracks</item>
+    </plurals>
+    <string name="nowplaying_sleep_minutes">%d min</string>
+    <string name="nowplaying_sleep_pick_time">Pick a time</string>
+    <string name="nowplaying_sleep_stop_at_title">Stop at</string>
+    <string name="nowplaying_sleep_start">Start</string>
+    <string name="nowplaying_sleep_cancel">Cancel</string>
+    <string name="nowplaying_sleep_turn_off">Turn off</string>
+    <string name="nowplaying_sleep_again">Start again: %s</string>
+    <string name="nowplaying_sleep_at">At %s</string>
+    <string name="nowplaying_sleep_status_end_of_track">Playback stops at the end of this track</string>
+    <plurals name="nowplaying_sleep_status_tracks">
+        <item quantity="one">Playback stops after %d track, this one included</item>
+        <item quantity="other">Playback stops after %d tracks, this one included</item>
+    </plurals>
+    <string name="nowplaying_sleep_status_in">Playback stops in %s</string>
+    <string name="nowplaying_sleep_status_at">Playback stops at %s</string>
 </resources>

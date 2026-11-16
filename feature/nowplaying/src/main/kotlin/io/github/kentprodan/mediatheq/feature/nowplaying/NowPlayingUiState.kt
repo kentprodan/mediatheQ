@@ -9,6 +9,8 @@ import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
+import io.github.kentprodan.mediatheq.core.playback.SleepTimerChoice
+import io.github.kentprodan.mediatheq.core.playback.SleepTimerState
 import kotlin.time.Duration
 
 /** What the mini player and Now Playing show. */
@@ -60,6 +62,10 @@ sealed interface NowPlayingUiState {
         val settings: NowPlayingPreferences = NowPlayingPreferences(),
         /** "3 / 12" near the title (Advanced settings, #137); `null` when off or not in the queue. */
         val trackNumber: QueuePosition? = null,
+        /** The running sleep timer (#378); `null` when off. */
+        val sleepTimer: SleepTimerState? = null,
+        /** The sleep timer choice last started, offered first. */
+        val sleepTimerLast: SleepTimerChoice? = null,
     ) : NowPlayingUiState {
         /** The stars show when the page's switch is on and ratings are not off. */
         val showsRating: Boolean get() = settings.showRating && ratingMode != RatingMode.Off
@@ -142,6 +148,13 @@ sealed interface NowPlayingAction {
     data class Rate(
         val halfStars: Int?,
     ) : NowPlayingAction
+
+    /** Starts the sleep timer (#378), replacing a running one. */
+    data class StartSleepTimer(
+        val choice: SleepTimerChoice,
+    ) : NowPlayingAction
+
+    data object CancelSleepTimer : NowPlayingAction
 
     /** Move the entry to position [to] of the queue. */
     data class MoveQueueItem(
