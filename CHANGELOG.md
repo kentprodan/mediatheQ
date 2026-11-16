@@ -36,6 +36,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Lyrics on the TV's Now Playing: the line being sung large in the queue's place, or the whole text for plain lyrics.
 - Movies and Series in the Library: after a sync they show as poster grids with how many there are, sorted by name, date added or year, with an Unwatched filter. Playing them comes in a later update.
 - Download a movie, an episode or a whole season (as the original file, with its subtitle files) and watch it offline; the Downloads tab lists Movies and Seasons.
+- Start radio from a track, album, artist, genre or playlist menu (and Now Playing): the server mixes similar music from your library into a new queue.
 - Sleep timer on Now Playing (the moon button): stop after this track or a few tracks, after 5 to 60 minutes, or at a time you pick; the last choice is one tap away.
 - Movies and Series can be tabs of their own (Settings -> Navigation), each grid keeps its sort, and Search finds movies, series and episodes.
 - Picture-in-picture: swipe home while a video plays and it goes on in a small window with play / pause and next episode; Back keeps the sound going when you ask for it.

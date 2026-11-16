@@ -21,6 +21,7 @@ import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
+import io.github.kentprodan.mediatheq.core.playback.RadioStarter
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
@@ -29,10 +30,13 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesReposit
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeSimilarRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
@@ -48,8 +52,10 @@ class SearchViewModelTest {
     private val library = FakeLibraryRepository()
     private val preferences = FakeLibraryPreferencesRepository()
     private val playback = FakePlaybackConnection()
+    private val similar = FakeSimilarRepository()
+    private val radio by lazy { RadioStarter(similar, playback, CoroutineScope(Dispatchers.Unconfined)) }
     private val trackTaps by lazy { TrackTaps(playback, preferences) }
-    private val commands by lazy { TrackCommands(playback, userData, downloads, preferences) }
+    private val commands by lazy { TrackCommands(playback, userData, downloads, preferences, radio) }
     private val userData = FakeUserDataRepository()
 
     // Lazy: viewModelScope must be created after the rule replaced the main dispatcher.

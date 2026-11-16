@@ -531,6 +531,26 @@ class JellyfinLibrarySourceTest {
             assertThat(resume.getValue(MediaId(serverId, "dd5c5fec42b9b049dfdc923e80be676d")).isFavorite).isTrue()
         }
 
+    @Test
+    fun `an instant mix asks the generic route for ids only`() =
+        runTest {
+            enqueueFixture("items_instant_mix/mix.json")
+            val seed = MediaId(serverId, "aa1")
+
+            val mix = (source.instantMix(server, seed, 100) as MqResult.Success).value
+
+            val request = mockServer.takeRequest()
+            assertThat(request.url.encodedPath).isEqualTo("/Items/aa1/InstantMix")
+            assertThat(request.url.queryParameter("limit")).isEqualTo("100")
+            assertThat(request.url.queryParameter("enableImages")).isEqualTo("false")
+            assertThat(request.url.queryParameter("enableUserData")).isEqualTo("false")
+            assertThat(mix)
+                .containsExactly(
+                    MediaId(serverId, "bb3a3eca20f7fe27bfba701c68fc454b"),
+                    MediaId(serverId, "cc4b4fdb31a8af38cfcb812d79ad565c"),
+                ).inOrder()
+        }
+
     private fun enqueueFixture(path: String) =
         mockServer.enqueue(MockResponse(body = javaClass.getResource("/jellyfin/$path")!!.readText()))
 

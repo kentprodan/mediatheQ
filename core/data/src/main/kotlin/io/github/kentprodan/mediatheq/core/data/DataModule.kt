@@ -45,6 +45,9 @@ internal interface DataModule {
     fun videoRepository(repository: DefaultVideoRepository): VideoRepository
 
     @Binds
+    fun similarRepository(repository: DefaultSimilarRepository): SimilarRepository
+
+    @Binds
     fun playbackRepository(repository: DefaultPlaybackRepository): PlaybackRepository
 
     @Binds

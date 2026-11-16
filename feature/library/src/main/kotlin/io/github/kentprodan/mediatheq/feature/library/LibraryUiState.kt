@@ -141,6 +141,11 @@ sealed interface LibraryAction {
         val track: Track,
     ) : LibraryAction
 
+    /** Start radio from [seed] (#379). */
+    data class StartRadio(
+        val seed: MediaId,
+    ) : LibraryAction
+
     data class Download(
         val track: Track,
     ) : LibraryAction

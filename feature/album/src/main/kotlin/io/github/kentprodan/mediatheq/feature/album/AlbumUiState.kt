@@ -131,6 +131,11 @@ sealed interface AlbumAction {
         val halfStars: Int?,
     ) : AlbumAction
 
+    /** Start radio from [seed] (#379). */
+    data class StartRadio(
+        val seed: MediaId,
+    ) : AlbumAction
+
     /** Download one track, or the whole album when [trackId] is `null`. */
     data class Download(
         val trackId: MediaId? = null,

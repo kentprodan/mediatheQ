@@ -1,0 +1,21 @@
+{
+  "Items": [
+    {
+      "Name": "Track one",
+      "Id": "bb3a3eca20f7fe27bfba701c68fc454b",
+      "Type": "Audio",
+      "MediaType": "Audio"
+    },
+    {
+      "Name": "Track two",
+      "Id": "cc4b4fdb31a8af38cfcb812d79ad565c",
+      "Type": "Audio",
+      "MediaType": "Audio"
+    },
+    {
+      "Name": "No id"
+    }
+  ],
+  "TotalRecordCount": 3,
+  "StartIndex": 0
+}

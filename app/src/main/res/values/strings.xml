@@ -26,4 +26,8 @@
     <string name="local_network_denied_body">Access to your home network is turned off. Turn on Nearby devices in the app settings to reach your server.</string>
     <string name="local_network_open_settings">Open settings</string>
     <string name="local_network_not_now">Not now</string>
+    <!-- Start radio (#379) -->
+    <string name="radio_nothing_in_library">None of this radio's tracks are in your library</string>
+    <string name="radio_no_server">Start radio needs the server: check the connection</string>
+    <string name="radio_failed">Couldn't start the radio</string>
 </resources>

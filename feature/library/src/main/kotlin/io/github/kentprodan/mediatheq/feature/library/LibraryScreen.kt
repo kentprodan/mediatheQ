@@ -88,6 +88,7 @@ import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.RecordLabelRow
 import io.github.kentprodan.mediatheq.core.ui.SelectionToolbar
 import io.github.kentprodan.mediatheq.core.ui.SelectionToolbarSpace
+import io.github.kentprodan.mediatheq.core.ui.StartRadioMenuItem
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 import kotlinx.coroutines.flow.filter
@@ -410,6 +411,7 @@ private fun LibraryContentView(
                                 close,
                             )
                             DownloadMenuItem({ onAction(LibraryAction.Download(track)) }, close)
+                            StartRadioMenuItem({ onAction(LibraryAction.StartRadio(track.id)) }, close)
                         },
                         onSwipe = { onSwipe(track, it) },
                     )

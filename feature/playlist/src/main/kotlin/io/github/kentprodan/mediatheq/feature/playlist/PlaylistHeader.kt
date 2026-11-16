@@ -41,6 +41,7 @@ import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
+import io.github.kentprodan.mediatheq.core.ui.StartRadioMenuItem
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
 
@@ -214,6 +215,7 @@ private fun HeaderButtons(
             if (!state.shows(PlaylistButton.Favorite)) FavoriteMenuItem(favorite, onFavorite, close)
             if (enabled) {
                 DownloadMenuItem({ onAction(PlaylistAction.Download()) }, close)
+                StartRadioMenuItem({ onAction(PlaylistAction.StartRadio(state.playlist.id)) }, close)
                 ActionItem(R.string.playlist_edit, { onAction(PlaylistAction.StartEditing) }, close) {
                     Icon(MqIcons.Checklist, contentDescription = null)
                 }

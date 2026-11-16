@@ -92,6 +92,11 @@ sealed interface PlaylistAction {
         val isFavorite: Boolean,
     ) : PlaylistAction
 
+    /** Start radio from [seed] (#379). */
+    data class StartRadio(
+        val seed: MediaId,
+    ) : PlaylistAction
+
     /** Download one item, or the whole playlist when [position] is `null`. */
     data class Download(
         val position: Int? = null,

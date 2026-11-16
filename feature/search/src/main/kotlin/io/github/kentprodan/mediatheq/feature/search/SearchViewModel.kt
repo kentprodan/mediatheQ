@@ -130,6 +130,10 @@ class SearchViewModel
                     filter.value = action.filter
                 }
 
+                is SearchAction.StartRadio -> {
+                    commands.startRadio(action.seed)
+                }
+
                 is SearchAction.Download -> {
                     downloads.download(listOf(action.track))
                 }

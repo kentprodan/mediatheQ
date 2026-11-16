@@ -65,6 +65,10 @@ class GenreViewModel
                     if (state.tracks.isNotEmpty()) playback.play(state.tracks, shuffle = true)
                 }
 
+                is GenreAction.StartRadio -> {
+                    commands.startRadio(action.seed)
+                }
+
                 GenreAction.PlayNext -> {
                     viewModelScope.launch { commands.run(TopButton.PlayNext, state.tracks) }
                 }

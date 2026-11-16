@@ -84,6 +84,22 @@ fun AddToPlaylistMenuItem(
     )
 }
 
+/** "Start radio" (#379): a mix like this track, album, artist, genre or playlist, from the server. */
+@Composable
+fun StartRadioMenuItem(
+    onClick: () -> Unit,
+    close: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(stringResource(R.string.core_ui_start_radio)) },
+        leadingIcon = { Icon(MqIcons.Radio, contentDescription = null) },
+        onClick = {
+            onClick()
+            close()
+        },
+    )
+}
+
 /** "Add to favorites" or "Remove from favorites", for track menus. */
 @Composable
 fun FavoriteMenuItem(

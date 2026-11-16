@@ -51,6 +51,7 @@ import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
+import io.github.kentprodan.mediatheq.core.ui.StartRadioMenuItem
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
 import io.github.kentprodan.mediatheq.core.ui.text
 
@@ -265,6 +266,7 @@ private fun HeaderButtons(
             if (enabled) {
                 AddToPlaylistMenuItem({ onAddToPlaylist(state.tracks.map { it.id }) }, close)
                 DownloadMenuItem({ onAction(AlbumAction.Download()) }, close)
+                StartRadioMenuItem({ onAction(AlbumAction.StartRadio(albumId)) }, close)
             }
         }
     }

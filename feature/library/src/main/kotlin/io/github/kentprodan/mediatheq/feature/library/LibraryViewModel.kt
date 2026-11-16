@@ -303,6 +303,10 @@ class LibraryViewModel
                     launch { userData.setFavorite(action.track.id, action.isFavorite) }
                 }
 
+                is LibraryAction.StartRadio -> {
+                    commands.startRadio(action.seed)
+                }
+
                 is LibraryAction.Download -> {
                     downloads.download(listOf(action.track))
                 }

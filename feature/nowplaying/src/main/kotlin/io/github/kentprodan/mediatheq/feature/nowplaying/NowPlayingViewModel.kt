@@ -21,6 +21,7 @@ import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
+import io.github.kentprodan.mediatheq.core.playback.RadioStarter
 import io.github.kentprodan.mediatheq.core.playback.SleepTimer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -51,6 +52,7 @@ class NowPlayingViewModel
         private val libraryPreferences: LibraryPreferencesRepository,
         waveforms: WaveformRepository,
         private val downloads: DownloadRepository,
+        private val radio: RadioStarter,
         private val sleepTimer: SleepTimer = SleepTimer({ null }, {}),
     ) : ViewModel() {
         private val lyricsShown = MutableStateFlow(false)
@@ -289,6 +291,12 @@ class NowPlayingViewModel
 
                 is NowPlayingAction.StartSleepTimer -> {
                     sleepTimer.start(action.choice)
+                }
+
+                NowPlayingAction.StartRadio -> {
+                    playback.state.value.item
+                        ?.id
+                        ?.let(radio::start)
                 }
 
                 NowPlayingAction.CancelSleepTimer -> {

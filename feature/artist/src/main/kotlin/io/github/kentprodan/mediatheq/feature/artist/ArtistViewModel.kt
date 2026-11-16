@@ -115,6 +115,10 @@ class ArtistViewModel
                     viewModelScope.launch { commands.run(TopButton.AddToQueue, state.tracks) }
                 }
 
+                is ArtistAction.StartRadio -> {
+                    commands.startRadio(action.seed)
+                }
+
                 ArtistAction.Download -> {
                     viewModelScope.launch { downloads.downloadAlbums(libraryRepository, state.albums.map { it.id }) }
                 }

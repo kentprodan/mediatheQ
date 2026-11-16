@@ -211,6 +211,18 @@ class FakeLibrarySource : LibrarySource {
     /** What [resumeVideos] answers. */
     var resumeAnswer: MqResult<Map<MediaId, UserData>> = MqResult.Success(emptyMap())
 
+    /** What [instantMix] answers; every call is recorded as `mix:<seed>@<limit>`. */
+    var mixAnswer: MqResult<List<MediaId>> = MqResult.Success(emptyList())
+
+    override suspend fun instantMix(
+        server: SignedInServer,
+        seed: MediaId,
+        limit: Int,
+    ): MqResult<List<MediaId>> {
+        calls += "mix:${seed.itemId}@$limit"
+        return mixAnswer
+    }
+
     override suspend fun resumeVideos(
         server: SignedInServer,
         limit: Int,
