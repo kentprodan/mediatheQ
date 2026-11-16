@@ -28,16 +28,20 @@ class AddressFailoverTest {
 
     private val probes = OkHttpClient.Builder().connectTimeout(1, TimeUnit.SECONDS).build()
 
-    private fun failover() =
+    private fun failover(probeClient: OkHttpClient = probes) =
         AddressFailover(
             object : ServerAddressSource {
                 override val addresses = this@AddressFailoverTest.addresses
             },
             flowOf(true),
             scope,
-            probes,
+            probeClient,
             recheck = 200.milliseconds,
         )
+
+    /** Probes that never answer: the first address stays active, as before any probe has run. */
+    private val deadProbes =
+        OkHttpClient.Builder().addInterceptor { throw java.io.IOException("no probe") }.build()
 
     @After
     fun close() {
@@ -85,9 +89,9 @@ class AddressFailoverTest {
                     .toString(),
                 awayUrl,
             )
-        val failover = failover()
-        // The addresses arrive; whether the probe already moved away or not, the request must reach the other one.
-        waitFor { failover.active != null }
+        val failover = failover(deadProbes)
+        // The dead first address stays active: only the retry inside the request can reach the other one.
+        waitFor { failover.active?.port == 1 }
         val client =
             OkHttpClient
                 .Builder()

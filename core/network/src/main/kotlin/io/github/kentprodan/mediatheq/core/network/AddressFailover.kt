@@ -9,8 +9,10 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
@@ -22,11 +24,13 @@ import okhttp3.Response
 import java.io.IOException
 import java.net.ConnectException
 import java.net.NoRouteToHostException
+import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -39,7 +43,7 @@ import kotlin.time.Duration.Companion.seconds
 @Singleton
 class AddressFailover internal constructor(
     source: ServerAddressSource,
-    online: Flow<Boolean>,
+    networkChanges: Flow<Any>,
     scope: CoroutineScope,
     private val probeClient: OkHttpClient,
     private val recheck: Duration,
@@ -49,24 +53,41 @@ class AddressFailover internal constructor(
         source: ServerAddressSource,
         network: NetworkMonitor,
         @ApplicationScope scope: CoroutineScope,
-    ) : this(source, network.online, scope, probeClient(), 30.seconds)
+    ) : this(
+        source,
+        // Wi-Fi to mobile data keeps "online" true but changes "metered": both count as a new network.
+        combine(network.online, network.meteredChanges, ::Pair),
+        scope,
+        probeClient(),
+        30.seconds,
+    )
 
     @Volatile private var candidates: List<HttpUrl> = emptyList()
 
-    /** Where requests go now; `null` before the first probe (requests then keep their own address). */
-    @Volatile var active: HttpUrl? = null
-        private set
+    private val current = MutableStateFlow<HttpUrl?>(null)
+
+    /** Where requests go now; `null` before the addresses are known (requests then keep their own address). */
+    val active: HttpUrl? get() = current.value
 
     init {
         scope.launch {
-            combine(source.addresses, online) { addresses, _ -> addresses }.collectLatest { addresses ->
+            combine(source.addresses, networkChanges) { addresses, _ -> addresses }.collectLatest { addresses ->
                 candidates = addresses.mapNotNull { it.trimEnd('/').toHttpUrlOrNull() }.distinct()
-                active = candidates.firstOrNull()
+                // The current address stays until a probe decides: a new network must not stall every request.
+                if (current.value !in candidates) current.value = candidates.firstOrNull()
                 if (candidates.size < 2) return@collectLatest
                 probe()
-                while (active != candidates.first()) {
-                    delay(recheck)
+                var wait = recheck
+                while (true) {
+                    // On the preferred address: nothing to do until a failed request moves away from it.
+                    if (current.value == candidates.first()) {
+                        current.first { it != candidates.first() }
+                        wait = recheck
+                    }
+                    delay(wait)
                     probe()
+                    // Away for long (no home network around): ask less and less often, up to every 15 minutes.
+                    wait = (wait * 2).coerceAtMost(MAX_RECHECK)
                 }
             }
         }
@@ -79,7 +100,7 @@ class AddressFailover internal constructor(
             withContext(Dispatchers.IO) {
                 list.map { url -> async { answers(url) } }.awaitAll()
             }
-        list.zip(answered).firstOrNull { it.second }?.let { active = it.first }
+        list.zip(answered).firstOrNull { it.second }?.let { current.value = it.first }
     }
 
     private fun answers(url: HttpUrl): Boolean =
@@ -94,12 +115,13 @@ class AddressFailover internal constructor(
         val list = candidates
         val from = list.firstOrNull { request.url.isUnder(it) }
         if (list.size < 2 || from == null) return chain.proceed(request)
-        val order = listOfNotNull(active) + list.filter { it != active }
+        val now = current.value
+        val order = listOfNotNull(now) + list.filter { it != now }
         var failure: IOException? = null
         for (target in order) {
             try {
                 val response = chain.proceed(request.newBuilder().url(request.url.moved(from, target)).build())
-                if (target != active) active = target
+                if (target != current.value) current.value = target
                 return response
             } catch (e: IOException) {
                 if (!request.retriable(e)) throw e
@@ -111,6 +133,7 @@ class AddressFailover internal constructor(
 
     private companion object {
         val PROBE_TIMEOUT = 4.seconds
+        val MAX_RECHECK = 15.minutes
 
         fun probeClient(): OkHttpClient =
             OkHttpClient
@@ -124,11 +147,15 @@ class AddressFailover internal constructor(
         /** A failure worth another address: anything for a read, only a connection that never opened otherwise. */
         fun Request.retriable(e: IOException): Boolean =
             method == "GET" || method == "HEAD" ||
-                e is ConnectException || e is UnknownHostException || e is NoRouteToHostException
+                e is ConnectException || e is UnknownHostException || e is NoRouteToHostException ||
+                // A connect timeout ("failed to connect to ... after 10000ms"): the request was never sent.
+                (e is SocketTimeoutException && e.message.orEmpty().contains("connect", ignoreCase = true))
 
-        fun HttpUrl.isUnder(base: HttpUrl): Boolean =
-            scheme == base.scheme && host == base.host && port == base.port &&
-                encodedPath.startsWith(base.encodedPath.trimEnd('/'))
+        fun HttpUrl.isUnder(base: HttpUrl): Boolean {
+            val prefix = base.encodedPath.trimEnd('/')
+            return scheme == base.scheme && host == base.host && port == base.port &&
+                (prefix.isEmpty() || encodedPath == prefix || encodedPath.startsWith(prefix + "/"))
+        }
 
         /** This URL with [from]'s scheme, host, port and path prefix replaced by [to]'s. */
         fun HttpUrl.moved(
@@ -141,7 +168,7 @@ class AddressFailover internal constructor(
                 .scheme(to.scheme)
                 .host(to.host)
                 .port(to.port)
-                .encodedPath(to.encodedPath.trimEnd('/') + rest)
+                .encodedPath((to.encodedPath.trimEnd('/') + rest).ifEmpty { "/" })
                 .build()
         }
     }

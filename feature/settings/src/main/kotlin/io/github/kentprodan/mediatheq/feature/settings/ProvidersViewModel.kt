@@ -62,6 +62,11 @@ class ProvidersViewModel
 
                     is ProvidersAction.EditAddress -> {
                         edit.value = AddressEdit(action.id, checking = true)
+                        // The other addresses first: they need no server, and a bad one must not leave a half save.
+                        if (!accounts.setAlternateAddresses(action.id, action.others)) {
+                            edit.value = AddressEdit(action.id, error = AddressError.InvalidOthers)
+                            return@launch
+                        }
                         val current =
                             accounts.accounts
                                 .first()
@@ -75,12 +80,7 @@ class ProvidersViewModel
                                 return@launch
                             }
                         }
-                        edit.value =
-                            if (accounts.setAlternateAddresses(action.id, action.others)) {
-                                null
-                            } else {
-                                AddressEdit(action.id, error = AddressError.InvalidOthers)
-                            }
+                        edit.value = null
                     }
 
                     ProvidersAction.DismissEdit -> {
