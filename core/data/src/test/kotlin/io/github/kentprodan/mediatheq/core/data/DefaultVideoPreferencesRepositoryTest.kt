@@ -46,6 +46,7 @@ class DefaultVideoPreferencesRepositoryTest {
                     autoPlayNext = false,
                     pictureInPicture = false,
                     keepAudio = true,
+                    hideUnwatchedOverviews = true,
                     skipIntro = SkipMode.Auto,
                     skipCredits = SkipMode.Off,
                     skipRecapPreview = SkipMode.Auto,

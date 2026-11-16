@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
@@ -91,7 +92,9 @@ private fun Content(
     onPlay: (MediaId, Duration) -> Unit,
 ) {
     val series = state.series
-    var focused by remember { mutableStateOf<Video?>(null) }
+    // By id, read from the current episodes: a season switch or a watched change never shows a stale overview.
+    var focusedId by remember { mutableStateOf<MediaId?>(null) }
+    val focused = state.episodes.firstOrNull { it.id == focusedId }
     MqTvBackdrop(series.backdrop, Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().padding(top = 48.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.padding(horizontal = EDGE), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -130,7 +133,7 @@ private fun Content(
                 Buttons(state, onAction, onPlay)
             }
             if (state.seasons.size > 1) Seasons(state, onAction)
-            Episodes(state, onAction, onPlay) { focused = it }
+            Episodes(state, onAction, onPlay) { focusedId = it.id }
             focused?.let { episode ->
                 val hidden = state.hideUnwatchedOverviews && !episode.userData.played && episode.overview != null
                 Text(
@@ -275,10 +278,18 @@ private fun Seasons(
     onAction: (TvSeriesPageAction) -> Unit,
 ) {
     val selected = state.seasons.indexOfFirst { it.id == state.season?.id }.coerceAtLeast(0)
-    TabRow(selected, Modifier.padding(start = EDGE, top = 8.dp)) {
+    val requesters = remember(state.seasons.size) { List(state.seasons.size) { FocusRequester() } }
+    // Into the tabs from above or below: the selected season's tab, never the nearest one (it would select itself).
+    TabRow(
+        selected,
+        Modifier
+            .padding(start = EDGE, top = 8.dp)
+            .focusProperties { onEnter = { requesters.getOrNull(selected)?.requestFocus() } },
+    ) {
         state.seasons.forEachIndexed { i, season ->
             Tab(
                 selected = i == selected,
+                modifier = Modifier.focusRequester(requesters[i]),
                 onFocus = { if (i != selected) onAction(TvSeriesPageAction.SelectSeason(season.id)) },
                 colors =
                     TabDefaults.pillIndicatorTabColors(
@@ -304,12 +315,9 @@ private fun Episodes(
 ) {
     val row = rememberLazyListState()
     var menuFor by remember { mutableStateOf<Video?>(null) }
-    // Opens on Next up when it is in this season.
+    // Opens on Next up when it is in this season, else on its first episode (the row keeps no index across seasons).
     LaunchedEffect(state.season?.id) {
-        state.episodes
-            .indexOfFirst { it.id == state.nextUp?.id }
-            .takeIf { it >= 0 }
-            ?.let { row.scrollToItem(it) }
+        row.scrollToItem(state.episodes.indexOfFirst { it.id == state.nextUp?.id }.coerceAtLeast(0))
     }
     LazyRow(
         Modifier.heightIn(min = 200.dp),

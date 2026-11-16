@@ -59,6 +59,24 @@ interface UserDataDao {
     }
 
     /**
+     * The episodes of season or series [parentId] marked [played] with it (#428): the server marks the children of a
+     * season or series too, so the page shows it at once; watched clears their resume points.
+     */
+    @Query(
+        """
+        UPDATE video SET played = :played,
+            position_ms = CASE WHEN :played THEN 0 ELSE position_ms END,
+            played_percentage = CASE WHEN :played THEN NULL ELSE played_percentage END
+        WHERE server_id = :serverId AND (season_id = :parentId OR series_id = :parentId)
+        """,
+    )
+    suspend fun setChildrenPlayed(
+        serverId: String,
+        parentId: String,
+        played: Boolean,
+    )
+
+    /**
      * A movie's or an episode's resume point (#273): from the server's user data (a socket event after a play), or
      * cleared when it is marked watched.
      */

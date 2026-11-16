@@ -227,6 +227,8 @@ class DefaultUserDataRepository
             userDataDao.setUserDataAndQueue(change.applyTo(stored), pending)
             // shortcut: an undone watched change leaves the resume point cleared until the next sync or socket event.
             if (change.played == true) userDataDao.setVideoProgress(id.serverId.value, id.itemId, 0, null)
+            // A season or series: its episodes follow at once, as the server marks them (#428).
+            change.played?.let { userDataDao.setChildrenPlayed(id.serverId.value, id.itemId, it) }
             return MqResult.Success(Unit)
         }
 
