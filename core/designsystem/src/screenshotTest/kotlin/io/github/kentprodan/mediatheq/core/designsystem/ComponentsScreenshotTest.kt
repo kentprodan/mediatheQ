@@ -28,6 +28,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqRatingDialogContent
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqTimePickerContent
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.preview.PREVIEW_BLUR_HASH
@@ -132,6 +133,18 @@ fun MqDialogScreenshot() {
                 Text("The playlist is deleted from the server. Its tracks stay in your library.")
             }
             MqDialogContent("New playlist", "Create", {}, "Cancel", {}, confirmEnabled = false)
+        }
+    }
+}
+
+/** The time picker dialog's content in place (#378), 24 hour. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun MqTimePickerScreenshot() {
+    MediatheqTheme {
+        Column(Modifier.padding(MediatheqSpacing.l)) {
+            MqTimePickerContent("Stop at", 23, 15, is24Hour = true, "Start", "Cancel", { _, _ -> }, {})
         }
     }
 }

@@ -21,6 +21,7 @@ import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
+import io.github.kentprodan.mediatheq.core.playback.SleepTimer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,6 +51,7 @@ class NowPlayingViewModel
         private val libraryPreferences: LibraryPreferencesRepository,
         waveforms: WaveformRepository,
         private val downloads: DownloadRepository,
+        private val sleepTimer: SleepTimer = SleepTimer({ null }, {}),
     ) : ViewModel() {
         private val lyricsShown = MutableStateFlow(false)
 
@@ -136,6 +138,8 @@ class NowPlayingViewModel
                 }
             }.combine(trackNumber) { ui, number ->
                 if (ui is NowPlayingUiState.Playing) ui.copy(trackNumber = number) else ui
+            }.combine(combine(sleepTimer.state, sleepTimer.last, ::Pair)) { ui, (timer, last) ->
+                if (ui is NowPlayingUiState.Playing) ui.copy(sleepTimer = timer, sleepTimerLast = last) else ui
             }.stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
@@ -281,6 +285,14 @@ class NowPlayingViewModel
                 NowPlayingAction.ToggleQualityDetail -> {
                     val detail = (uiState.value as? NowPlayingUiState.Playing)?.qualityDetail ?: return
                     viewModelScope.launch { libraryPreferences.setQualityDetail(!detail) }
+                }
+
+                is NowPlayingAction.StartSleepTimer -> {
+                    sleepTimer.start(action.choice)
+                }
+
+                NowPlayingAction.CancelSleepTimer -> {
+                    sleepTimer.cancel()
                 }
 
                 NowPlayingAction.Download -> {

@@ -169,6 +169,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var lyricsRepository: LyricsRepository
 
+    @Inject lateinit var sleepTimer: SleepTimer
+
     @Inject
     @DownloadCache
     lateinit var downloadCache: Cache
@@ -207,6 +209,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private lateinit var autoActions: AutoActionsController
     private lateinit var fader: VolumeFader
     private lateinit var bluetoothLyrics: BluetoothLyrics
+    private var detachSleepTimer: (() -> Unit)? = null
 
     // The audio settings as last read, on the main thread like the player; the defaults until then (milliseconds).
     private var audio = AudioPreferences()
@@ -448,6 +451,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 onTitle = queuePlayer::setLyricsTitle,
             )
         player.addListener(bluetoothLyrics)
+        // The session's player, so the timer's pause fades out like any other (#378).
+        detachSleepTimer =
+            sleepTimer.attach(
+                queuePlayer,
+                pauseAtEnd = { player.pauseAtEndOfMediaItems = it },
+                schedule = handlerSchedule(Handler(Looper.getMainLooper())),
+            )
         behaviorJob =
             applicationScope.launch(Dispatchers.Main) {
                 audioPreferences.preferences.collect {
@@ -847,6 +857,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         outputsJob?.cancel()
         autoActions.release()
         fader.release()
+        detachSleepTimer?.invoke()
         bluetoothLyrics.release()
         // A reopen in progress ends now, not on a timer after the player is gone.
         reopener.release()

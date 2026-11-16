@@ -34,6 +34,8 @@ import io.github.kentprodan.mediatheq.core.model.Lyrics
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.playback.SleepTimerChoice
+import io.github.kentprodan.mediatheq.core.playback.SleepTimerState
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -167,6 +169,21 @@ fun NowPlayingBitPerfectScreenshot() {
 @Composable
 fun NowPlayingShuffleRepeatAllScreenshot() {
     MediatheqTheme { Screen(playing.copy(shuffle = true, repeatMode = RepeatMode.All)) }
+}
+
+/** A sleep timer runs (#378): its button filled in the bottom bar. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun NowPlayingSleepTimerScreenshot() {
+    MediatheqTheme {
+        Screen(
+            playing.copy(
+                sleepTimer =
+                    SleepTimerState(SleepTimerChoice.Tracks(2), tracksLeft = 2),
+            ),
+        )
+    }
 }
 
 /** Repeat one: its own icon. */
