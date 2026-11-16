@@ -50,6 +50,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - App mode: choose Music, Video or Both after signing in, at the top of Home or in Settings -> Interface -> App mode. Video hides the music, Music stays as before, and the sync only fetches what the mode shows.
 
 ### Changed
+- Moving between screens now slides in the direction you go (forward or back) instead of a plain fade; the back gesture shrinks the screen as you drag.
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 
 ### Fixed
