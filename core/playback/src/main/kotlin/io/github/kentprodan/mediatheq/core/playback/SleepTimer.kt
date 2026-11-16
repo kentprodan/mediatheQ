@@ -69,10 +69,10 @@ class SleepTimer(
         @ApplicationScope scope: CoroutineScope,
         @IoDispatcher io: CoroutineDispatcher,
     ) : this(
-        { context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).getString(LAST_KEY, null) },
+        { context.getSharedPreferences("sleep_timer", Context.MODE_PRIVATE).getString(LAST_KEY, null) },
         { value ->
             context
-                .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+                .getSharedPreferences("sleep_timer", Context.MODE_PRIVATE)
                 .edit()
                 .putString(LAST_KEY, value)
                 .apply()
@@ -215,7 +215,6 @@ class SleepTimer(
     }
 
     private companion object {
-        const val PREFERENCES = "sleep_timer"
         const val LAST_KEY = "last"
     }
 }

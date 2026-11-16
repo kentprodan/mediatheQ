@@ -30,10 +30,12 @@ class SettingsFilesTest {
                 // In the backup: every setting.
                 "\"library_prefs\"",
                 "\"audio_prefs\"",
-                // Left out: tokens and the DeviceId; which database is open; whether a queue was saved; the SD card.
+                // Left out: tokens and the DeviceId; which database is open; whether a queue was saved; the SD card;
+                // the sleep timer's last choice (#378).
                 "\"account\"",
                 "\"accounts\"",
                 "\"saved_queue\"",
+                "\"sleep_timer\"",
                 "DownloadStorage.PREFERENCES",
             )
     }
