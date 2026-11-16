@@ -2,3 +2,6 @@
 
 # Optimize and shrink, but keep names: the app's log (Export logs, #169) and crashes name real classes.
 -dontobfuscate
+
+# File names and line numbers stay in stack traces.
+-keepattributes SourceFile,LineNumberTable

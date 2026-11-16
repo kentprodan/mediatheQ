@@ -7,6 +7,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.MainNavEntry
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
+import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
 import io.github.kentprodan.mediatheq.core.navigation.MovieKey
@@ -163,5 +164,23 @@ class TabNavigatorTest {
     @Test
     fun `every navigation entry has its tab`() {
         assertThat(MainNavEntry.entries.map { TopLevelTab.of(it).name }).isEqualTo(MainNavEntry.entries.map { it.name })
+    }
+
+    @Test
+    fun `a change of tab is told apart from a push or a pop (#405)`() {
+        val navigator = TabNavigator(TopLevelTab.entries.associateWith { mutableListOf(it.rootKey) })
+
+        navigator.select(TopLevelTab.Library)
+        assertThat(navigator.lastWasTabSwitch).isTrue()
+
+        navigator.navigateTo(AlbumKey(MediaId(ServerId("s"), "al1")))
+        assertThat(navigator.lastWasTabSwitch).isFalse()
+
+        navigator.back()
+        assertThat(navigator.lastWasTabSwitch).isFalse()
+
+        // Back from a tab's root goes to Home: a change of tab.
+        navigator.back()
+        assertThat(navigator.lastWasTabSwitch).isTrue()
     }
 }

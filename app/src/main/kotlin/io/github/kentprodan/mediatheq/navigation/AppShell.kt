@@ -40,7 +40,6 @@ import androidx.compose.material3.WideNavigationRail
 import androidx.compose.material3.WideNavigationRailItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -216,10 +215,6 @@ private fun ShellContent(
             effects,
             rtl = direction == LayoutDirection.Rtl,
         )
-    // A change of tab fades (#405); read by the transition specs in the composition that changed it.
-    var shownTab by remember { mutableStateOf(navigator.currentTab) }
-    val tabSwitch = navigator.currentTab != shownTab
-    SideEffect { shownTab = navigator.currentTab }
     SharedTransitionLayout(Modifier.padding(aboveBars).consumeWindowInsets(padding)) {
         CompositionLocalProvider(
             LocalSharedTransitionScope provides this,
@@ -232,8 +227,9 @@ private fun ShellContent(
                 // Entries marked as dialogs (Add to playlist) show in a dialog window over the screen below.
                 sceneStrategies = listOf(DialogSceneStrategy()),
                 // Theme motion (expressive-design skill, section 4): shared axis X, a fade between tabs (#405).
-                transitionSpec = { motion.forward(tabSwitch) },
-                popTransitionSpec = { motion.back(tabSwitch) },
+                // Read when the transition starts: NavDisplay animates a composition after the change.
+                transitionSpec = { motion.forward(navigator.lastWasTabSwitch) },
+                popTransitionSpec = { motion.back(navigator.lastWasTabSwitch) },
                 predictivePopTransitionSpec = { motion.predictiveBack() },
             )
         }
