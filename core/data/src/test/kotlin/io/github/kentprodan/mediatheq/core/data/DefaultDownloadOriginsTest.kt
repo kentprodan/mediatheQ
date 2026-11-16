@@ -86,4 +86,23 @@ class DefaultDownloadOriginsTest {
 
             assertThat(origins.origins.first()).containsExactly(id("t2"), setOf(album))
         }
+
+    @Test
+    fun `a followed series origin reads back and goes as a collection (#383)`() =
+        runTest {
+            val followed = DownloadOrigin.FollowedSeries(id("show"))
+            origins.add(listOf(id("e1"), id("e2")), followed)
+            origins.add(listOf(id("e1")), DownloadOrigin.Single)
+
+            assertThat(origins.origins.first()).containsExactly(
+                id("e1"),
+                setOf(followed, DownloadOrigin.Single),
+                id("e2"),
+                setOf(followed),
+            )
+            assertThat(followed.auto).isTrue()
+
+            origins.removeCollection(followed)
+            assertThat(origins.origins.first()).containsExactly(id("e1"), setOf(DownloadOrigin.Single))
+        }
 }

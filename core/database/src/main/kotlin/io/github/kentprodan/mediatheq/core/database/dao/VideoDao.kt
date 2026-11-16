@@ -4,6 +4,7 @@ import androidx.room3.Dao
 import androidx.room3.Insert
 import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
+import io.github.kentprodan.mediatheq.core.database.entity.FollowedSeriesEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SeasonEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SeriesEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
@@ -217,5 +218,18 @@ interface VideoDao {
     suspend fun clearTrackChoice(
         serverId: String,
         itemId: String,
+    )
+
+    /** The series followed for smart downloads (#383). */
+    @Query("SELECT * FROM followed_series ORDER BY server_id, series_id")
+    fun followedSeries(): Flow<List<FollowedSeriesEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun follow(series: FollowedSeriesEntity)
+
+    @Query("DELETE FROM followed_series WHERE server_id = :serverId AND series_id = :seriesId")
+    suspend fun unfollow(
+        serverId: String,
+        seriesId: String,
     )
 }

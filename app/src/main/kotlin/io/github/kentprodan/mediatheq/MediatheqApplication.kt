@@ -24,6 +24,7 @@ import io.github.kentprodan.mediatheq.core.data.FavoriteDownloads
 import io.github.kentprodan.mediatheq.core.data.ImagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
+import io.github.kentprodan.mediatheq.core.data.SmartDownloads
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -58,6 +59,9 @@ class MediatheqApplication :
 
     @Inject
     lateinit var favoriteDownloads: FavoriteDownloads
+
+    @Inject
+    lateinit var smartDownloads: SmartDownloads
 
     @Inject
     lateinit var libraryPreferences: LibraryPreferencesRepository
@@ -99,6 +103,8 @@ class MediatheqApplication :
         downloadedCovers.start()
         // Downloads the favorites by themselves, per Settings -> Offline, cache, and download -> Media (#145).
         favoriteDownloads.start()
+        // Keeps the next episodes of followed series downloaded (#383).
+        smartDownloads.start()
         // The database of an account removed while it was open goes now that another one is open (#147).
         applicationScope.launch { accounts.cleanUp() }
         images =

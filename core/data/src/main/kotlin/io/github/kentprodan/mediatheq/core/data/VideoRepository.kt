@@ -4,6 +4,7 @@ import androidx.sqlite.SQLiteException
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.dao.VideoDao
+import io.github.kentprodan.mediatheq.core.database.entity.FollowedSeriesEntity
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
@@ -11,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
+import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
@@ -76,6 +78,18 @@ interface VideoRepository {
 
     /** The episode to watch next in [seriesId] ([nextUp]); `null` when every episode was watched. */
     fun nextUp(seriesId: MediaId): Flow<Video?>
+
+    /** Every episode of [seriesId] in watching order, downloaded or not (#383: smart downloads plan from them). */
+    fun allSeriesEpisodes(seriesId: MediaId): Flow<List<Video>>
+
+    /** The series followed for smart downloads (#383). */
+    val followedSeries: Flow<Set<MediaId>>
+
+    /** Follows [seriesId] (#383): its next episodes stay downloaded; unfollowing lets smart downloads drop them. */
+    suspend fun setFollowed(
+        seriesId: MediaId,
+        followed: Boolean,
+    )
 
     /** Movies and episodes left halfway, the last played first (Home, #275). */
     fun continueWatching(limit: Int): Flow<List<Video>>
@@ -177,6 +191,21 @@ class DefaultVideoRepository
         override fun nextUp(seriesId: MediaId): Flow<Video?> =
             offlineAware { all, downloaded -> dao.seriesEpisodes(seriesId.itemId, all, downloaded) }
                 .map { rows -> nextUp(rows.map { it.toDomain() }) }
+
+        override fun allSeriesEpisodes(seriesId: MediaId): Flow<List<Video>> =
+            dao.seriesEpisodes(seriesId.itemId, true, emptyList()).map { rows -> rows.map { it.toDomain() } }
+
+        override val followedSeries: Flow<Set<MediaId>> =
+            dao.followedSeries().map { rows -> rows.map { MediaId(ServerId(it.serverId), it.seriesId) }.toSet() }
+
+        override suspend fun setFollowed(
+            seriesId: MediaId,
+            followed: Boolean,
+        ) = if (followed) {
+            dao.follow(FollowedSeriesEntity(seriesId.serverId.value, seriesId.itemId))
+        } else {
+            dao.unfollow(seriesId.serverId.value, seriesId.itemId)
+        }
 
         override fun continueWatching(limit: Int): Flow<List<Video>> =
             offlineAware { all, downloaded -> dao.continueWatching(limit, all, downloaded) }

@@ -72,4 +72,5 @@
     <string name="video_download_season">Download season</string>
     <string name="video_remove_season_download">Remove season download</string>
     <string name="video_cannot_download">This video cannot be downloaded on this phone: it can only be played as it is, and videos are never converted for downloads.</string>
+    <string name="video_follow">Keep the next %d episodes downloaded</string>
 </resources>

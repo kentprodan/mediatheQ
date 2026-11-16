@@ -450,4 +450,18 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `15 to 16 adds an empty followed series table`() =
+        runTest {
+            helper.createDatabase(15).close()
+
+            val connection = helper.runMigrationsAndValidate(16)
+
+            connection.prepare("SELECT COUNT(*) FROM followed_series").use {
+                it.step()
+                assertThat(it.getLong(0)).isEqualTo(0)
+            }
+            connection.close()
+        }
 }
