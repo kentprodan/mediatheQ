@@ -72,9 +72,10 @@ class LrclibLyricsSourceTest {
     fun `an instrumental track has no lyrics`() =
         runTest {
             answer(200, """{"instrumental":true,"duration":240.0}""")
-            answer(200, "[]")
 
             assertThat(source.lyrics("Intro", "A", "B", 4.minutes)).isEqualTo(MqResult.Success(null))
+            // No search for another version's words.
+            assertThat(server.requestCount).isEqualTo(1)
         }
 
     @Test
@@ -112,5 +113,14 @@ class LrclibLyricsSourceTest {
                 LyricLine("a", 20005.milliseconds),
             ).inOrder()
         assertThat(parseLrc("just text")).isNull()
+    }
+
+    @Test
+    fun `an offset, long fractions, word stamps and CRLF`() {
+        val lyrics = parseLrc("[offset:+500]\r\n[00:02.1234]<00:02.12>one <00:02.50>two\r\n[00:00.20]start")!!
+
+        assertThat(lyrics.lines)
+            .containsExactly(LyricLine("start", Duration.ZERO), LyricLine("one two", 1623.milliseconds))
+            .inOrder()
     }
 }

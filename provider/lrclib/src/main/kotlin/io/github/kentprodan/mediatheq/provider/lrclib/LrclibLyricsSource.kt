@@ -56,8 +56,10 @@ internal class LrclibLyricsSource(
                     },
                 )
             if (exact is MqResult.Failure) return exact
-            val lyrics = (exact as MqResult.Success).value?.let { decode(it, LrclibTrack.serializer()) }?.lyrics()
-            if (lyrics != null) return MqResult.Success(lyrics)
+            val record = (exact as MqResult.Success).value?.let { decode(it, LrclibTrack.serializer()) }
+            // The exact track is instrumental: a search would only find another version's words.
+            if (record?.instrumental == true) return MqResult.Success(null)
+            record?.lyrics()?.let { return MqResult.Success(it) }
         }
         val found =
             get(

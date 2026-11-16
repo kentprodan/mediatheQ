@@ -121,4 +121,18 @@ class DefaultLyricsRepositoryTest {
             source.lyrics[track] = own
             assertThat(repository.lyrics(track)).isEqualTo(MqResult.Success(own))
         }
+
+    @Test
+    fun `an online none is kept too, so the track is not asked again`() =
+        runTest {
+            signIn()
+            audio.setBehavior(BehaviorSwitch.OnlineLyrics, true)
+            library.tracks.value =
+                listOf(Track(track, "T", listOf(Artist(MediaId(ServerId("s"), "a"), "A")), 3.minutes))
+
+            repository.lyrics(track)
+            repository.lyrics(track)
+
+            assertThat(online.asked).hasSize(1)
+        }
 }
