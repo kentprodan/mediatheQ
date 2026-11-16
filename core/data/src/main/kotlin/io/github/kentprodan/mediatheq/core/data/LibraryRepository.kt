@@ -96,6 +96,9 @@ interface LibraryRepository {
     /** [tracks], also in offline mode: the Downloads tab names queued and failed downloads too. */
     fun allTracks(): Flow<List<Track>>
 
+    /** The ids of every favorite track, album and playlist (#399), without reading the items. */
+    fun favoriteIds(): Flow<Set<MediaId>>
+
     /**
      * Diacritic-insensitive search over names, at most [limitPerKind] of each kind; the last word matches as a prefix.
      * Any typed text is safe; a blank query finds nothing.

@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 
 /** [LibraryRepository] with settable contents; search matches names (and track titles) case-insensitively. */
 class FakeLibraryRepository : LibraryRepository {
@@ -68,6 +69,17 @@ class FakeLibraryRepository : LibraryRepository {
     override fun allPlaylists() = playlists
 
     override fun allTracks() = tracks
+
+    /** How many times [favoriteIds] was collected. */
+    var favoriteIdsCollected = 0
+
+    override fun favoriteIds() =
+        combine(tracks, albums, playlists) { t, a, p ->
+            (
+                t.filter { it.userData.isFavorite }.map { it.id } + a.filter { it.userData.isFavorite }.map { it.id } +
+                    p.filter { it.userData.isFavorite }.map { it.id }
+            ).toSet()
+        }.onStart { favoriteIdsCollected++ }
 
     override fun tracks() = tracks
 

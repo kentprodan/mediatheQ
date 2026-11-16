@@ -93,6 +93,9 @@ class DefaultLibraryRepository
         override fun allTracks(): Flow<List<Track>> =
             libraryDao.tracks(all = true, downloaded = emptyList()).map { rows -> rows.map { it.toDomain() } }
 
+        override fun favoriteIds(): Flow<Set<MediaId>> =
+            libraryDao.favoriteIds().map { keys -> keys.map { MediaId(ServerId(it.serverId), it.id) }.toSet() }
+
         override fun allPlaylists(): Flow<List<Playlist>> =
             libraryDao.playlists(all = true, downloaded = emptyList()).map { rows -> rows.map { it.toDomain() } }
 

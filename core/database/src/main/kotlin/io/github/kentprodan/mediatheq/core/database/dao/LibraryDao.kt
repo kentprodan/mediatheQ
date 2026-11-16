@@ -531,6 +531,17 @@ interface LibraryDao {
         """,
     )
     fun fullyDownloaded(downloaded: List<String>): Flow<List<ItemKey>>
+
+    /** The favorite tracks, albums and playlists, ids only (#399): what automatic downloads follow. */
+    @Query(
+        """
+        SELECT server_id, id FROM track WHERE is_favorite
+        UNION ALL SELECT server_id, id FROM album WHERE is_favorite
+        UNION ALL SELECT server_id, id FROM playlist WHERE is_favorite
+        ORDER BY server_id, id
+        """,
+    )
+    fun favoriteIds(): Flow<List<ItemKey>>
 }
 
 /** An item's server and id. */
