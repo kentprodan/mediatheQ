@@ -9,7 +9,6 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -28,9 +27,8 @@ class DefaultSimilarRepository
                 }
 
                 is MqResult.Success -> {
-                    // The library's tracks, filtered like every list (offline: only downloads).
-                    val tracks = library.tracks().first().associateBy { it.id }
-                    MqResult.Success((listOf(seed) + ids.value).distinct().mapNotNull { tracks[it] })
+                    // Filtered like every list (offline: only downloads); a track seed first.
+                    MqResult.Success(library.tracksById((listOf(seed) + ids.value).distinct()))
                 }
             }
 
@@ -41,8 +39,7 @@ class DefaultSimilarRepository
                 }
 
                 is MqResult.Success -> {
-                    val albums = library.albums().first().associateBy { it.id }
-                    MqResult.Success(ids.value.filter { it != albumId }.mapNotNull { albums[it] })
+                    MqResult.Success(library.albumsById(ids.value.filter { it != albumId }))
                 }
             }
 

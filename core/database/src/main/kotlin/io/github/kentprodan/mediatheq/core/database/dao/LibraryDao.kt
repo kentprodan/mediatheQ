@@ -532,6 +532,31 @@ interface LibraryDao {
     )
     fun fullyDownloaded(downloaded: List<String>): Flow<List<ItemKey>>
 
+    /** The tracks of [ids] that are in the library (offline: downloaded), in no order (#400). */
+    @Transaction
+    @Query("SELECT * FROM track WHERE id IN (:ids) AND (:all OR id IN (:downloaded))")
+    suspend fun tracksById(
+        ids: List<String>,
+        all: Boolean,
+        downloaded: List<String>,
+    ): List<TrackWithArtists>
+
+    /** The albums of [ids] in the library (offline: with a downloaded track), in no order (#400). */
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM album WHERE id IN (:ids) AND (:all OR EXISTS (
+            SELECT 1 FROM track d
+            WHERE d.server_id = album.server_id AND d.album_id = album.id AND d.id IN (:downloaded)
+        ))
+        """,
+    )
+    suspend fun albumsById(
+        ids: List<String>,
+        all: Boolean,
+        downloaded: List<String>,
+    ): List<AlbumWithArtists>
+
     /** The favorite tracks, albums and playlists, ids only (#399): what automatic downloads follow. */
     @Query(
         """
