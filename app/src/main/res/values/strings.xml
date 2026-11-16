@@ -29,5 +29,5 @@
     <!-- Start radio (#379) -->
     <string name="radio_nothing_similar">The server found no music like this in your library</string>
     <string name="radio_no_server">Start radio needs the server: check the connection</string>
-    <string name="radio_failed">Couldn't start the radio</string>
+    <string name="radio_failed">Could not start the radio</string>
 </resources>
