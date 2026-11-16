@@ -105,10 +105,10 @@ Android TV only, Jellyfin, video + music; Kotlin, Compose for TV, Media3 1.11, H
 `app-tv`. Optional MPV engine and own builds of the Media3 ffmpeg and AV1 decoders. ~107k lines, 59 test files.
 **GPL-2.0** (only, per SPDX): ideas only, no code.
 
-- **Hold-to-seek acceleration** (fixes our #353): the multiplier grows with `repeatCount / 3` (device repeat rates
+- **Hold-to-seek acceleration**: the multiplier grows with `repeatCount / 3` (device repeat rates
   differ) and with the item's length: up to x2 under 30 min, x4 under 90 min, x6 under 150 min, x10 beyond. One shared
   function serves the seek bar and the key handler.
-- **Screen kept on only while playing** (fixes our #355): `keepScreenOn(isPlaying)` from the player listener; pause
+- **Screen kept on only while playing**: `keepScreenOn(isPlaying)` from the player listener; pause
   releases `FLAG_KEEP_SCREEN_ON`, so the system screensaver runs. An optional in-app screensaver and dimming come on top.
 - **Refresh rate and resolution switching** (`RefreshRateService`): pick a mode from `display.supportedModes`, call
   `preferredDisplayModeId`, wait for `onDisplayChanged` (5 s timeout), then 2 s more when the switch is not seamless
@@ -144,8 +144,9 @@ never hit.
 - Code that may be copied: Moonfin's own Kotlin (GPL-3.0, check each file's origin). Wholphin and the official
   clients (GPL-2.0) and JellyBox (AGPL-3.0, Dart): ideas only.
 - Order of what to take:
-  1. Now (open TV bugs): #355 keep the screen on only while playing (Wholphin); #353 hold-to-seek acceleration
-     (Wholphin).
+  1. Now (open TV bugs): #355 and #353. Our code already does what Wholphin does (keep-on follows `isPlaying`,
+     the held seek speeds up from `repeatCount`), so the causes are elsewhere: a remote that never reports key
+     repeats, or something else holding the screen on; see the comments on the issues.
   2. TV 1 hardening (the Atmos music app on the Streamer): HDMI route flap hold and passthrough silence recovery
      (Moonfin); decoder re-prepare after the screensaver (Moonfin).
   3. Mobile 2 · Polish: sleep timer, Start radio (Instant Mix), similar albums, LRCLIB lyrics (JellyBox).
