@@ -302,7 +302,7 @@ private fun PlaylistList(
                 )
             }
         }
-        items(rows, key = { it.position }) { item ->
+        items(rows, key = { it.position }, contentType = { "track" }) { item ->
             PlaylistRow(
                 item,
                 state,

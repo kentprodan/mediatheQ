@@ -370,7 +370,7 @@ fun ArtistTopTracksScreen(
                         Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(top = padding.calculateTopPadding()).plusBottomBars(),
                     ) {
-                        items(content.playedTracks, key = { it.id.toString() }) { track ->
+                        items(content.playedTracks, key = { it.id.toString() }, contentType = { "track" }) { track ->
                             ArtistTrackRow(track, content, onAction, noSelect, swipe, all = true)
                         }
                     }

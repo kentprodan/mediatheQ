@@ -232,8 +232,8 @@ private fun LazyListScope.tracks(
     onAddToPlaylist: (List<MediaId>) -> Unit,
 ) {
     state.discs.forEach { disc ->
-        if (state.showDiscHeaders) item(key = "disc-${disc.number}") { DiscHeader(disc.number) }
-        items(disc.tracks, key = { it.id.toString() }) { track ->
+        if (state.showDiscHeaders) item(key = "disc-${disc.number}", contentType = "disc") { DiscHeader(disc.number) }
+        items(disc.tracks, key = { it.id.toString() }, contentType = { "track" }) { track ->
             TrackRow(
                 track,
                 onClick = {
