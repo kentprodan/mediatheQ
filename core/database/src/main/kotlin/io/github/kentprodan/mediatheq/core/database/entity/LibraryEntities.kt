@@ -60,8 +60,12 @@ data class AlbumEntity(
     @ColumnInfo(name = "release_date") val releaseDateMillis: Long? = null,
 )
 
-/** Album -> artist, in credit order. */
-@Entity(tableName = "album_artist", primaryKeys = ["server_id", "album_id", "position"])
+/** Album -> artist, in credit order; indexed by artist too (#401: the artist page looks albums up by artist). */
+@Entity(
+    tableName = "album_artist",
+    primaryKeys = ["server_id", "album_id", "position"],
+    indices = [Index("server_id", "artist_id")],
+)
 data class AlbumArtistEntity(
     @ColumnInfo(name = "server_id") val serverId: String,
     @ColumnInfo(name = "album_id") val albumId: String,
@@ -99,8 +103,12 @@ data class TrackEntity(
     @ColumnInfo(name = "size_bytes") val sizeBytes: Long? = null,
 )
 
-/** Track -> artist, in credit order. */
-@Entity(tableName = "track_artist", primaryKeys = ["server_id", "track_id", "position"])
+/** Track -> artist, in credit order; indexed by artist too (#401: an artist's tracks and appearances). */
+@Entity(
+    tableName = "track_artist",
+    primaryKeys = ["server_id", "track_id", "position"],
+    indices = [Index("server_id", "artist_id")],
+)
 data class TrackArtistEntity(
     @ColumnInfo(name = "server_id") val serverId: String,
     @ColumnInfo(name = "track_id") val trackId: String,
