@@ -32,7 +32,7 @@ class TvVideoGridViewModelTest {
     ) = Video(MediaId(ServerId("s"), title), VideoKind.Movie, title, year = year, userData = UserData(played = watched))
 
     private fun TestScope.viewModel(): TvMoviesViewModel {
-        val viewModel = TvMoviesViewModel(savedState, sync, videos)
+        val viewModel = TvMoviesViewModel(savedState, sync, videos, mainDispatcherRule.testDispatcher)
         backgroundScope.launch { viewModel.uiState.collect {} }
         runCurrent()
         return viewModel
@@ -71,7 +71,9 @@ class TvVideoGridViewModelTest {
             assertThat(content.posters.map { it.title }).containsExactly("Heat", "Brazil").inOrder()
             assertThat(content.total).isEqualTo(3)
             assertThat(content.decades).containsExactly(1990, 1980, 1970).inOrder()
-            assertThat(TvMoviesViewModel(savedState, sync, videos).kind).isEqualTo(TvVideoKind.Movies)
+            assertThat(
+                TvMoviesViewModel(savedState, sync, videos, mainDispatcherRule.testDispatcher).kind,
+            ).isEqualTo(TvVideoKind.Movies)
             assertThat(savedState.get<TvVideoSort>("sort")).isEqualTo(TvVideoSort.Year)
 
             viewModel.onAction(TvVideoGridAction.SetDecade(1980))

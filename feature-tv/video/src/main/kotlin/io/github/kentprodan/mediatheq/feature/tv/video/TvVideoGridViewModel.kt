@@ -4,15 +4,18 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoSort
 import io.github.kentprodan.mediatheq.core.ui.tv.Letter
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -29,6 +32,7 @@ abstract class TvVideoGridViewModel(
     private val sync: LibrarySyncRepository,
     val kind: TvVideoKind,
     posters: Flow<List<TvPoster>>,
+    defaultDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val sort = savedState.getStateFlow(KEY_SORT, TvVideoSort.Name)
     private val watched = savedState.getStateFlow(KEY_WATCHED, TvWatched.All)
@@ -54,9 +58,12 @@ abstract class TvVideoGridViewModel(
                     genres = genresOf(all),
                     decades = decadesOf(all),
                     total = all.size,
+                    seed = r,
                 )
             }
         }
+            // A few thousand posters mapped and sorted again on every library write: off the main thread.
+            .flowOn(defaultDispatcher)
             // A database read failed: the next change reads again.
             .catch { emit(TvVideoGridUiState.Error) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvVideoGridUiState.Loading)
@@ -119,11 +126,13 @@ class TvMoviesViewModel
         savedState: SavedStateHandle,
         sync: LibrarySyncRepository,
         videos: VideoRepository,
+        @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
     ) : TvVideoGridViewModel(
             savedState,
             sync,
             TvVideoKind.Movies,
             videos.movies(VideoSort.Name, unwatched = false).map { movies -> movies.map { it.toPoster() } },
+            defaultDispatcher,
         )
 
 @HiltViewModel
@@ -133,11 +142,13 @@ class TvSeriesViewModel
         savedState: SavedStateHandle,
         sync: LibrarySyncRepository,
         videos: VideoRepository,
+        @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
     ) : TvVideoGridViewModel(
             savedState,
             sync,
             TvVideoKind.Series,
             videos.series(VideoSort.Name, unwatched = false).map { series -> series.map { it.toPoster() } },
+            defaultDispatcher,
         )
 
 sealed interface TvVideoGridUiState {
@@ -157,6 +168,8 @@ sealed interface TvVideoGridUiState {
         val genres: List<String>,
         val decades: List<Int>,
         val total: Int,
+        /** Random's shuffle: a new one starts the grid at the top again. */
+        val seed: Long = 0,
     ) : TvVideoGridUiState
 }
 

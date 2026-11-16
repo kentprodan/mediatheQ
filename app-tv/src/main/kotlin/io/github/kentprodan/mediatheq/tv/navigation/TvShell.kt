@@ -146,6 +146,11 @@ fun TvShell(
             onDismiss = { closing = false },
         )
     }
+    // The mode hid an entry (Settings -> Show): its screen and what it opened leave the stack, down to Home.
+    LaunchedEffect(destinations) {
+        val hidden = backStack.indexOfFirst { key -> TvDestination.of(key)?.let { it !in destinations } == true }
+        if (hidden > 0) repeat(backStack.size - hidden) { backStack.removeAt(backStack.lastIndex) }
+    }
     val selected = backStack.lastOrNull { TvDestination.of(it) != null }?.let(TvDestination::of) ?: TvDestination.Home
     TvFrame(selected, player, navigator::navigateTo, initialDrawer, destinations) {
         // Each screen requests its own initial focus once, the item it had before when it comes back (FocusMemory).

@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.tv.video
 
+import io.github.kentprodan.mediatheq.core.common.nameComparator
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Series
@@ -57,7 +58,7 @@ data class TvArranged(
 )
 
 /**
- * Filters and sorts [posters] (read by name from the database). Name keeps that order; the newest come first for
+ * Filters and sorts [posters]. Name ignores case and accents, like the music lists; the newest come first for
  * Date added and Year, the longest for Runtime, items without the value last. Random shuffles with [seed], so the
  * order stays put until Random is chosen again.
  */
@@ -80,10 +81,15 @@ fun arrange(
         }
     val sorted =
         when (sort) {
-            TvVideoSort.Name -> kept
+            // The music's name order (case and accents ignored), which the A-Z strip expects; SQLite's is bytewise.
+            TvVideoSort.Name -> kept.sortedWith(compareBy(nameComparator()) { it.sortName })
+
             TvVideoSort.DateAdded -> kept.sortedWith(newestFirst<Instant> { it.dateAdded })
+
             TvVideoSort.Year -> kept.sortedWith(newestFirst<Int> { it.year })
+
             TvVideoSort.Runtime -> kept.sortedWith(newestFirst<Duration> { it.runtime })
+
             TvVideoSort.Random -> kept.shuffled(Random(seed))
         }
     val letters = if (sort == TvVideoSort.Name) alphabetIndex(sorted.map { it.sortName }) else emptyList()

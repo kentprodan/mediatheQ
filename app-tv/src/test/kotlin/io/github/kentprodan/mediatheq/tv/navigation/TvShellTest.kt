@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
@@ -29,11 +32,13 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
+import io.github.kentprodan.mediatheq.core.navigation.MoviesKey
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import org.junit.Rule
 import org.junit.Test
@@ -173,6 +178,27 @@ class TvShellTest {
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
 
         composeRule.onNodeWithText("Home").assertIsFocused()
+    }
+
+    @Test
+    fun `an entry the app mode hides leaves the back stack with what it opened`() {
+        var destinations by mutableStateOf(TvDestination.entries.toList())
+        backStack += listOf(MoviesKey, album)
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvShell(backStack, PlayerUiModel(), destinations = destinations) { _ ->
+                    entry(HomeKey) { Text("Home screen") }
+                    entry(MoviesKey) { Text("Movies screen") }
+                    entry(album) { Text("Album page") }
+                }
+            }
+        }
+        composeRule.onNodeWithText("Album page").assertExists()
+
+        destinations = TvDestination.shownIn(AppMode.Music)
+
+        composeRule.onNodeWithText("Home screen").assertExists()
+        assertThat(backStack.toList()).containsExactly(HomeKey)
     }
 
     @Test

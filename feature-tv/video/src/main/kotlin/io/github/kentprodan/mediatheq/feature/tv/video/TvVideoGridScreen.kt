@@ -204,7 +204,7 @@ private fun Grid(
     val focus = rememberFocusMemory()
     val grid = rememberLazyGridState()
     // A new sort or filter starts at the top; the posters keep their keys, so the grid would stay on the old first one.
-    val order = state.sort to state.filter
+    val order = Triple(state.sort, state.filter, state.seed)
     var shownOrder by rememberSaveable { mutableStateOf(order.toString()) }
     LaunchedEffect(order) {
         if (order.toString() != shownOrder) grid.scrollToItem(0)

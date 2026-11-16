@@ -56,6 +56,15 @@ class TvPostersTest {
     }
 
     @Test
+    fun `name ignores case and accents`() {
+        val names = listOf(poster("zodiac"), poster("Élan"), poster("alien"), poster("Brazil"))
+
+        assertThat(arrange(names, TvVideoSort.Name, TvVideoFilter(), 0).posters.map { it.title })
+            .containsExactly("alien", "Brazil", "Élan", "zodiac")
+            .inOrder()
+    }
+
+    @Test
     fun `date added, year and runtime put the largest first and items without one last`() {
         assertThat(titles(TvVideoSort.DateAdded)).containsExactly("Alien", "Heat", "Brazil", "Zelig").inOrder()
         assertThat(titles(TvVideoSort.Year)).containsExactly("Heat", "Brazil", "Alien", "Zelig").inOrder()
