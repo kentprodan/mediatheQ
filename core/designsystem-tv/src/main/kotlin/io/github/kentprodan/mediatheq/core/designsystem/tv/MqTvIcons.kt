@@ -28,4 +28,8 @@ object MqTvIcons {
     val SkipPrevious: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_skip_previous_filled)
     val Playing: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_graphic_eq)
     val Lyrics: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_lyrics)
+
+    /** The sleep timer (#393), filled while one runs. */
+    val Bedtime: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_bedtime)
+    val BedtimeFilled: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_bedtime_filled)
 }

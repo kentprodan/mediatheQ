@@ -17,6 +17,9 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.QueueItem
+import io.github.kentprodan.mediatheq.core.playback.SleepTimer
+import io.github.kentprodan.mediatheq.core.playback.SleepTimerChoice
+import io.github.kentprodan.mediatheq.core.playback.SleepTimerState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -63,6 +66,8 @@ sealed interface TvNowPlayingUiState {
         /** The queue in play order, the playing entry marked by [currentEntryId]. */
         val queue: List<QueueItem> = emptyList(),
         val currentEntryId: String? = null,
+        /** The running sleep timer (#393); `null` when off. */
+        val sleepTimer: SleepTimerState? = null,
     ) : TvNowPlayingUiState
 }
 
@@ -97,6 +102,13 @@ sealed interface TvNowPlayingAction {
     data object CycleRepeat : TvNowPlayingAction
 
     data object ToggleFavorite : TvNowPlayingAction
+
+    /** Starts the sleep timer (#393), replacing a running one. */
+    data class StartSleepTimer(
+        val choice: SleepTimerChoice,
+    ) : TvNowPlayingAction
+
+    data object CancelSleepTimer : TvNowPlayingAction
 
     /** Left or Right on the progress row; [repeat] counts the held key's repeats ([seekTarget]). */
     data class Seek(
@@ -143,6 +155,7 @@ class TvNowPlayingViewModel
         library: LibraryRepository,
         private val userData: UserDataRepository,
         lyricsRepository: LyricsRepository,
+        private val sleepTimer: SleepTimer = SleepTimer({ null }, {}),
     ) : ViewModel() {
         // Favorite, album and format come from Room, so a change made here or on the phone shows at once.
         private val track =
@@ -152,12 +165,15 @@ class TvNowPlayingViewModel
                 .flatMapLatest { id -> id?.let { library.track(it) } ?: flowOf(null) }
 
         val uiState: StateFlow<TvNowPlayingUiState> =
-            combine(playback.state, track, playback.queue) { state, track, queue -> state.toUiState(track, queue) }
-                .stateIn(
-                    viewModelScope,
-                    SharingStarted.WhileSubscribed(5_000),
-                    playback.state.value.toUiState(null, emptyList()),
-                )
+            combine(playback.state, track, playback.queue, sleepTimer.state) { state, track, queue, timer ->
+                state.toUiState(track, queue).let { ui ->
+                    if (ui is TvNowPlayingUiState.Playing) ui.copy(sleepTimer = timer) else ui
+                }
+            }.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                playback.state.value.toUiState(null, emptyList()),
+            )
 
         /** Bumped by the Lyrics button after a failed load, so the same track asks again. */
         private val lyricsRetries = MutableStateFlow(0)
@@ -236,6 +252,14 @@ class TvNowPlayingViewModel
                             RepeatMode.One -> RepeatMode.Off
                         },
                     )
+                }
+
+                is TvNowPlayingAction.StartSleepTimer -> {
+                    sleepTimer.start(action.choice)
+                }
+
+                TvNowPlayingAction.CancelSleepTimer -> {
+                    sleepTimer.cancel()
                 }
 
                 TvNowPlayingAction.ToggleFavorite -> {

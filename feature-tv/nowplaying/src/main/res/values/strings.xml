@@ -23,4 +23,9 @@
     <string name="tv_np_lyrics">Lyrics</string>
     <string name="tv_np_lyrics_none">No lyrics for this song</string>
     <string name="tv_np_lyrics_error">Lyrics could not be loaded. Select Lyrics to try again.</string>
+    <string name="tv_np_sleep_timer">Sleep timer</string>
+    <string name="tv_np_sleep_off">Turn off</string>
+    <string name="tv_np_sleep_this_track">At the end of this track</string>
+    <string name="tv_np_sleep_tracks">After %d tracks</string>
+    <string name="tv_np_sleep_minutes">In %d minutes</string>
 </resources>
