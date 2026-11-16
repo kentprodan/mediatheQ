@@ -252,7 +252,7 @@ private fun LazyListScope.artistRow(
     artists: List<Artist>,
     onOpenArtist: (MediaId) -> Unit,
 ) {
-    item(key = "$key-title") { SectionTitle(title) }
+    item(key = "$key-title", contentType = "title") { SectionTitle(title) }
     item(key = key) {
         LazyRow(
             contentPadding = PaddingValues(horizontal = MediatheqSpacing.l),
@@ -299,7 +299,9 @@ private fun LazyListScope.topTracks(
             }
         }
     }
-    items(content.topTracks, key = { "top-${it.id}" }) { track -> GenreTrackRow(track, content, onAction, all = false) }
+    items(content.topTracks, key = {
+        "top-${it.id}"
+    }, contentType = { "track" }) { track -> GenreTrackRow(track, content, onAction, all = false) }
 }
 
 @Composable

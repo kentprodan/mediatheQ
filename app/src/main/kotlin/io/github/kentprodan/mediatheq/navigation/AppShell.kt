@@ -40,8 +40,11 @@ import androidx.compose.material3.WideNavigationRail
 import androidx.compose.material3.WideNavigationRailItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -55,6 +58,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavEntryDecorator
@@ -205,6 +209,12 @@ private fun ShellContent(
         )
     // Covers fly between screens of a tab (grid -> album). Inside the Scaffold, so they never draw over the bar.
     // The bottom inset is consumed too: screens get it through LocalBottomBarsPadding, never twice.
+    val motion =
+        NavMotion(
+            MaterialTheme.motionScheme.defaultSpatialSpec(),
+            effects,
+            rtl = direction == LayoutDirection.Rtl,
+        )
     SharedTransitionLayout(Modifier.padding(aboveBars).consumeWindowInsets(padding)) {
         CompositionLocalProvider(
             LocalSharedTransitionScope provides this,
@@ -216,10 +226,11 @@ private fun ShellContent(
                 onBack = { navigator.back() },
                 // Entries marked as dialogs (Add to playlist) show in a dialog window over the screen below.
                 sceneStrategies = listOf(DialogSceneStrategy()),
-                // Theme motion (expressive-design skill, section 4) instead of NavDisplay's default tween.
-                transitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) },
-                popTransitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) },
-                predictivePopTransitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) },
+                // Theme motion (expressive-design skill, section 4): shared axis X, a fade between tabs (#405).
+                // Read when the transition starts: NavDisplay animates a composition after the change.
+                transitionSpec = { motion.forward(navigator.lastWasTabSwitch) },
+                popTransitionSpec = { motion.back(navigator.lastWasTabSwitch) },
+                predictivePopTransitionSpec = { motion.predictiveBack() },
             )
         }
     }

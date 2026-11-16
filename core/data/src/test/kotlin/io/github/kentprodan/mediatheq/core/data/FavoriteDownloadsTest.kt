@@ -158,6 +158,20 @@ class FavoriteDownloadsTest {
         FavoriteDownloads(audio, library, playlists, downloads, backgroundScope, StandardTestDispatcher(testScheduler))
 
     @Test
+    fun `while disabled nothing of the library is watched, turned on only the favorite ids are`() =
+        runTest {
+            library.tracks.value = listOf(t2, t3)
+            runner().start()
+            settle()
+            assertThat(library.favoriteIdsCollected).isEqualTo(0)
+
+            audio.setAutoDownloads(AutoDownloads.Tracks)
+            settle()
+
+            assertThat(library.favoriteIdsCollected).isEqualTo(1)
+        }
+
+    @Test
     fun `favoriting a track (as a live sync writes it) downloads it, unfavoriting removes it`() =
         runTest {
             audio.setAutoDownloads(AutoDownloads.Tracks)

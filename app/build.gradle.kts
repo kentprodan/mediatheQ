@@ -34,6 +34,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // The daily build ships the generated profile too (it lives with release, #71).
+    sourceSets.getByName("daily").baselineProfiles.srcDir("src/release/generated/baselineProfiles")
+
     // The builds :baselineprofile generates and measures with (#71, ADR 0023). Declared here (the plugin then uses them
     // as they are) to sign them with the debug key and make them a separate app on the phone.
     buildTypes {
@@ -44,6 +47,11 @@ android {
                 applicationIdSuffix = ".benchmark"
                 matchingFallbacks += "release"
             }
+        }
+        // The profile is generated on code R8 has not touched yet (#398: release is minified now).
+        getByName("nonMinifiedRelease") {
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

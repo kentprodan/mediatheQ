@@ -144,4 +144,17 @@ class OfflineQueriesTest {
 
             assertThat(keys).containsExactly(ItemKey("s", "al1"), ItemKey("s", "al2"), ItemKey("s", "p1"))
         }
+
+    @Test
+    fun `by id, every listed item online, only downloaded ones offline (#400)`() =
+        runTest {
+            val ids = listOf("t1", "t2", "missing")
+            assertThat(libraryDao.tracksById(ids, true, emptyList()).map { it.track.id }).containsExactly("t1", "t2")
+            assertThat(libraryDao.tracksById(ids, false, downloaded).map { it.track.id }).containsExactly("t2")
+
+            val albums = listOf("al1", "al3")
+            assertThat(libraryDao.albumsById(albums, true, emptyList()).map { it.album.id })
+                .containsExactly("al1", "al3")
+            assertThat(libraryDao.albumsById(albums, false, downloaded).map { it.album.id }).containsExactly("al1")
+        }
 }

@@ -260,7 +260,7 @@ internal fun LazyListScope.section(
     val key = content.section.name
     val settings = content.settings
     if (settings.showHeader) {
-        item(key = "$key-title") { SectionHeader(content, navigation.onOpenSection) }
+        item(key = "$key-title", contentType = "title") { SectionHeader(content, navigation.onOpenSection) }
     }
     val items = content.items
     if (items is HomeItems.Shortcuts) {
@@ -273,7 +273,10 @@ internal fun LazyListScope.section(
     }
     // Tracks have no cards: a track section always lists its rows.
     if (items is HomeItems.Tracks) {
-        itemsIndexed(items.tracks, key = { _, track -> "$key-${track.id}" }) { index, track ->
+        itemsIndexed(items.tracks, key = { _, track -> "$key-${track.id}" }, contentType = { _, _ -> "track" }) {
+            index,
+            track,
+            ->
             HomeTrackRow(
                 track,
                 onPlay = { onAction(HomeAction.PlayTracks(items.tracks, index)) },

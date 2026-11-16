@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.database
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.database.dao.ItemKey
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
@@ -197,5 +198,19 @@ class UserDataDaoTest {
                     ?.videoUser
                     ?.positionMillis,
             ).isEqualTo(600_000)
+        }
+
+    @Test
+    fun `favoriteIds lists the favorite tracks and albums by id`() =
+        runTest {
+            library()
+            assertThat(libraryDao.favoriteIds().first()).isEmpty()
+
+            userDataDao.setUserData("s", "t1", favorite)
+            userDataDao.setUserData("s", "al1", favorite)
+
+            assertThat(libraryDao.favoriteIds().first())
+                .containsExactly(ItemKey("s", "al1"), ItemKey("s", "t1"))
+                .inOrder()
         }
 }

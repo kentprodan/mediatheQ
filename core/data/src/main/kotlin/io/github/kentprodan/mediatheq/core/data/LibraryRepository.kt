@@ -96,6 +96,15 @@ interface LibraryRepository {
     /** [tracks], also in offline mode: the Downloads tab names queued and failed downloads too. */
     fun allTracks(): Flow<List<Track>>
 
+    /** The tracks of [ids] the library lists (offline: downloaded ones), in the order of [ids] (#400). */
+    suspend fun tracksById(ids: List<MediaId>): List<Track>
+
+    /** The albums of [ids] the library lists (offline: with a download), in the order of [ids] (#400). */
+    suspend fun albumsById(ids: List<MediaId>): List<Album>
+
+    /** The ids of every favorite track, album and playlist (#399), without reading the items. */
+    fun favoriteIds(): Flow<Set<MediaId>>
+
     /**
      * Diacritic-insensitive search over names, at most [limitPerKind] of each kind; the last word matches as a prefix.
      * Any typed text is safe; a blank query finds nothing.

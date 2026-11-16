@@ -53,7 +53,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 14,
+    version = 15,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -121,6 +121,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 12, to = 13),
         // 14: the audio and subtitle tracks chosen per movie, episode or season (#274); no resync.
         AutoMigration(from = 13, to = 14),
+        // 15: album_artist and track_artist indexed by artist (#401); no resync.
+        AutoMigration(from = 14, to = 15),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

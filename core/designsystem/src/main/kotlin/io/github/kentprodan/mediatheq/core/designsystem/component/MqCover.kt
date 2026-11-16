@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.designsystem.component
 
 import android.graphics.Bitmap
+import androidx.collection.LruCache
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.Image
@@ -95,7 +96,19 @@ fun MqCover(
 private const val PLACEHOLDER_ICON_FRACTION = 0.4f
 private const val BLUR_HASH_SIZE = 32
 
-private fun blurHashBitmap(hash: String): ImageBitmap? =
-    decodeBlurHash(hash, BLUR_HASH_SIZE, BLUR_HASH_SIZE)?.let {
-        Bitmap.createBitmap(it, BLUR_HASH_SIZE, BLUR_HASH_SIZE, Bitmap.Config.ARGB_8888).asImageBitmap()
-    }
+/**
+ * The placeholder of [hash], decoded once (#402): a cover scrolled back into view (or shown in another list) reuses it
+ * instead of decoding 32x32 pixels on the main thread again. 4 KB each, so a few hundred cost about a megabyte.
+ */
+internal fun blurHashBitmap(hash: String): ImageBitmap? {
+    blurHashes[hash]?.let { return it }
+    val bitmap =
+        decodeBlurHash(hash, BLUR_HASH_SIZE, BLUR_HASH_SIZE)?.let {
+            Bitmap.createBitmap(it, BLUR_HASH_SIZE, BLUR_HASH_SIZE, Bitmap.Config.ARGB_8888).asImageBitmap()
+        } ?: return null
+    blurHashes.put(hash, bitmap)
+    return bitmap
+}
+
+private val blurHashes = LruCache<String, ImageBitmap>(BLUR_HASH_CACHE)
+private const val BLUR_HASH_CACHE = 300

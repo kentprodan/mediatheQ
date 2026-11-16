@@ -15,6 +15,24 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 configureAndroid(this)
                 configureCompose(this)
                 defaultConfig.targetSdk = libs.intVersion("targetSdk")
+                buildTypes {
+                    // R8 (#398): Compose and the app run optimized; names stay, so logs and crashes read as written.
+                    getByName("release") {
+                        isMinifyEnabled = true
+                        isShrinkResources = true
+                        proguardFiles(
+                            getDefaultProguardFile("proguard-android-optimize.txt"),
+                            rootProject.file("proguard-rules.pro"),
+                        )
+                    }
+                    // The build to use every day: release, signed with the debug key and with the debug build's id, so
+                    // it installs over a debug build and keeps its data.
+                    create("daily") {
+                        initWith(getByName("release"))
+                        signingConfig = signingConfigs.getByName("debug")
+                        matchingFallbacks += "release"
+                    }
+                }
             }
         }
 }

@@ -93,6 +93,27 @@ class DefaultLibraryRepository
         override fun allTracks(): Flow<List<Track>> =
             libraryDao.tracks(all = true, downloaded = emptyList()).map { rows -> rows.map { it.toDomain() } }
 
+        override suspend fun tracksById(ids: List<MediaId>): List<Track> {
+            val found =
+                filter
+                    .once { all, downloaded -> libraryDao.tracksById(ids.map { it.itemId }, all, downloaded) }
+                    .map { it.toDomain() }
+                    .associateBy { it.id }
+            return ids.mapNotNull { found[it] }
+        }
+
+        override suspend fun albumsById(ids: List<MediaId>): List<Album> {
+            val found =
+                filter
+                    .once { all, downloaded -> libraryDao.albumsById(ids.map { it.itemId }, all, downloaded) }
+                    .map { it.toDomain() }
+                    .associateBy { it.id }
+            return ids.mapNotNull { found[it] }
+        }
+
+        override fun favoriteIds(): Flow<Set<MediaId>> =
+            libraryDao.favoriteIds().map { keys -> keys.map { MediaId(ServerId(it.serverId), it.id) }.toSet() }
+
         override fun allPlaylists(): Flow<List<Playlist>> =
             libraryDao.playlists(all = true, downloaded = emptyList()).map { rows -> rows.map { it.toDomain() } }
 

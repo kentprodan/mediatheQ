@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -127,22 +129,17 @@ class FavoriteDownloads
         /** For the app's lifetime; call once from the Application. */
         fun start() {
             scope.launch(ioDispatcher) {
-                combine(
-                    preferences.preferences.map { it.autoDownloads to it.removeUnfavorited }.distinctUntilChanged(),
-                    library
-                        .allTracks()
-                        .map { tracks -> tracks.filter { it.userData.isFavorite }.map { it.id } }
-                        .distinctUntilChanged(),
-                    library
-                        .allAlbums()
-                        .map { albums -> albums.filter { it.userData.isFavorite }.map { it.id } }
-                        .distinctUntilChanged(),
-                    library
-                        .allPlaylists()
-                        .map { lists -> lists.filter { it.userData.isFavorite }.map { it.id } }
-                        .distinctUntilChanged(),
-                ) { settings, _, _, _ -> settings }
-                    .debounce(PASS_DELAY)
+                preferences.preferences
+                    .map { it.autoDownloads to it.removeUnfavorited }
+                    .distinctUntilChanged()
+                    // Off: nothing of the library is read (#399). On: only the favorites' ids are watched.
+                    .flatMapLatest { settings ->
+                        if (settings.first == AutoDownloads.Disabled) {
+                            flowOf(settings)
+                        } else {
+                            library.favoriteIds().distinctUntilChanged().map { settings }
+                        }
+                    }.debounce(PASS_DELAY)
                     .collectLatest { (mode, remove) -> pass(mode, remove) }
             }
         }

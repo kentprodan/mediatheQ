@@ -41,12 +41,22 @@ class TabNavigator(
     val visibleTabs: List<TopLevelTab>
         get() = currentTab.let { if (it == TopLevelTab.Home) listOf(it) else listOf(TopLevelTab.Home, it) }
 
+    /**
+     * Whether the last change of what shows was a change of tab, not a push or a pop (#405): tabs fade, depth slides.
+     * A plain field, read when the transition starts (after the composition that made the change).
+     */
+    var lastWasTabSwitch: Boolean = false
+        private set
+
     /** The back stack of [tab]. */
     fun stack(tab: TopLevelTab): List<NavKey> = stacks.getValue(tab)
 
     /** After [tabs] changed: a selected tab that was removed is forgotten, so re-adding it later does not open it. */
     fun forgetRemovedTab() {
-        if (selectedTab !in tabs) selectedTab = TopLevelTab.Home
+        if (selectedTab !in tabs) {
+            selectedTab = TopLevelTab.Home
+            lastWasTabSwitch = true
+        }
     }
 
     /** Navigation click: switch to [tab], or pop it to its root when it is already selected. */
@@ -54,12 +64,15 @@ class TabNavigator(
         if (tab == currentTab) {
             val stack = stacks.getValue(tab)
             while (stack.size > 1) stack.removeAt(stack.lastIndex)
+            lastWasTabSwitch = false
         } else {
             selectedTab = tab
+            lastWasTabSwitch = true
         }
     }
 
     override fun navigateTo(key: NavKey) {
+        lastWasTabSwitch = false
         stacks.getValue(currentTab).add(key)
     }
 
@@ -67,11 +80,13 @@ class TabNavigator(
         val stack = stacks.getValue(currentTab)
         return when {
             stack.size > 1 -> {
+                lastWasTabSwitch = false
                 stack.removeAt(stack.lastIndex)
                 true
             }
 
             currentTab != TopLevelTab.Home -> {
+                lastWasTabSwitch = true
                 selectedTab = TopLevelTab.Home
                 true
             }

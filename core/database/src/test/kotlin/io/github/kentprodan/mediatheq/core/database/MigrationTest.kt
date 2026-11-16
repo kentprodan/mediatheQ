@@ -420,4 +420,34 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `14 to 15 indexes the artist links by artist and keeps them`() =
+        runTest {
+            helper.createDatabase(14).apply {
+                execSQL(
+                    "INSERT INTO album_artist (server_id, album_id, position, artist_id) VALUES ('s', 'al1', 0, 'ar1')",
+                )
+                execSQL(
+                    "INSERT INTO track_artist (server_id, track_id, position, artist_id) VALUES ('s', 't1', 0, 'ar1')",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(15)
+
+            connection
+                .prepare(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND " +
+                        "name IN ('index_album_artist_server_id_artist_id', 'index_track_artist_server_id_artist_id')",
+                ).use {
+                    it.step()
+                    assertThat(it.getLong(0)).isEqualTo(2)
+                }
+            connection.prepare("SELECT COUNT(*) FROM album_artist").use {
+                it.step()
+                assertThat(it.getLong(0)).isEqualTo(1)
+            }
+            connection.close()
+        }
 }

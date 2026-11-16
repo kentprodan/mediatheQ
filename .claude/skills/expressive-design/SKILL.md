@@ -228,7 +228,7 @@ If an element is not in this table, pick the closest M3 component, then add a ro
   `motionScheme.defaultEffectsSpec()`, `fastEffectsSpec()`, `slowEffectsSpec()`
 - Picking speed: small elements (buttons, toggles) = fast; containers and nav = default; full-screen (mini player -> Now Playing) = slow.
 - Mixing rule: never use a spatial spec on color/alpha (overshoot causes flicker).
-- Screen transitions: navigation transitions use the theme specs; shared element for album art between grid -> Album screen and mini player -> Now Playing (`SharedTransitionLayout`).
+- Screen transitions (#405, `NavMotion` in `:app`): shared axis X with the theme specs: forward the new screen slides in a fifth of the width from the end edge while the old one slides to the start, back is the mirror, both fade (effects spec); a tab switch only fades; the predictive back gesture scales the leaving screen to 0.9 and fades the one below in. Shared element for album art between grid -> Album screen and mini player -> Now Playing (`SharedTransitionLayout`).
 - Respect "Remove animations": if system animator scale is 0, skip non-essential motion.
 
 ## 5. mediatheQ-specific patterns

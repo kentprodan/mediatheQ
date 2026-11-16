@@ -284,7 +284,7 @@ private fun RecentSearches(
                 TextButton(onClick = onClear) { Text(stringResource(R.string.search_clear_recent)) }
             }
         }
-        items(searches, key = { "recent-$it" }) { search ->
+        items(searches, key = { "recent-$it" }, contentType = { "recent" }) { search ->
             ListItem(
                 onClick = { onSelect(search) },
                 leadingContent = { Icon(MqIcons.Search, contentDescription = null) },
@@ -475,7 +475,7 @@ private fun <T : Any> LazyListScope.section(
     row: @Composable (T) -> Unit,
 ) {
     if (items.isEmpty()) return
-    item(key = "$key-title") {
+    item(key = "$key-title", contentType = "title") {
         Text(
             stringResource(title),
             Modifier
@@ -484,5 +484,5 @@ private fun <T : Any> LazyListScope.section(
             style = MaterialTheme.typography.titleMedium,
         )
     }
-    items(items, key = { "$key-${id(it)}" }) { row(it) }
+    items(items, key = { "$key-${id(it)}" }, contentType = { key }) { row(it) }
 }
