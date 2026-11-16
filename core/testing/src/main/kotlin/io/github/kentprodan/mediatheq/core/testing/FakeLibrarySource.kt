@@ -223,6 +223,18 @@ class FakeLibrarySource : LibrarySource {
         return mixAnswer
     }
 
+    /** What [similarAlbums] answers; every call is recorded as `similar:<album>@<limit>`. */
+    var similarAnswer: MqResult<List<MediaId>> = MqResult.Success(emptyList())
+
+    override suspend fun similarAlbums(
+        server: SignedInServer,
+        albumId: MediaId,
+        limit: Int,
+    ): MqResult<List<MediaId>> {
+        calls += "similar:${albumId.itemId}@$limit"
+        return similarAnswer
+    }
+
     override suspend fun resumeVideos(
         server: SignedInServer,
         limit: Int,

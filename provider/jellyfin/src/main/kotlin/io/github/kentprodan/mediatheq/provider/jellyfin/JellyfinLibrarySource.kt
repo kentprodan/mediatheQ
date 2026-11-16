@@ -173,6 +173,19 @@ class JellyfinLibrarySource internal constructor(
             ),
         ) { result -> result.items.mapNotNull { item -> item.id?.let { MediaId(server.serverId, it) } } }
 
+    // #380: ids only, the albums are in Room.
+    override suspend fun similarAlbums(
+        server: SignedInServer,
+        albumId: MediaId,
+        limit: Int,
+    ): MqResult<List<MediaId>> =
+        http.get(
+            server.connection,
+            "Albums/${albumId.itemId}/Similar",
+            QueryResultDto.serializer(),
+            listOf("userId" to server.userId, "limit" to limit.toString()),
+        ) { result -> result.items.mapNotNull { item -> item.id?.let { MediaId(server.serverId, it) } } }
+
     // R27 (#277): chapters and trickplay come with the item, one request; the tile width closest to 320 px.
     override suspend fun playerExtras(
         server: SignedInServer,

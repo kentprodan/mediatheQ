@@ -3,9 +3,11 @@ package io.github.kentprodan.mediatheq.core.data
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
+import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
+import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -19,29 +21,46 @@ class DefaultSimilarRepository
         private val sessionRepository: SessionRepository,
         private val library: LibraryRepository,
     ) : SimilarRepository {
-        override suspend fun instantMix(seed: MediaId): MqResult<List<Track>> {
-            val server = accountStore.signedInServer() ?: return MqResult.Failure(MqError.Unauthorized)
-            val ids =
-                when (val answer = source.instantMix(server, seed, MIX_SIZE)) {
-                    is MqResult.Success -> {
-                        answer.value
-                    }
-
-                    is MqResult.Failure -> {
-                        if (answer.error == MqError.Unauthorized) {
-                            withContext(NonCancellable) { sessionRepository.onUnauthorized() }
-                        }
-                        return answer
-                    }
+        override suspend fun instantMix(seed: MediaId): MqResult<List<Track>> =
+            when (val ids = ask { source.instantMix(it, seed, MIX_SIZE) }) {
+                is MqResult.Failure -> {
+                    ids
                 }
-            // The library's tracks, filtered like every list (offline: only downloads).
-            val tracks = library.tracks().first().associateBy { it.id }
-            val mix = (listOf(seed) + ids).distinct().mapNotNull { tracks[it] }
-            return MqResult.Success(mix)
+
+                is MqResult.Success -> {
+                    // The library's tracks, filtered like every list (offline: only downloads).
+                    val tracks = library.tracks().first().associateBy { it.id }
+                    MqResult.Success((listOf(seed) + ids.value).distinct().mapNotNull { tracks[it] })
+                }
+            }
+
+        override suspend fun similarAlbums(albumId: MediaId): MqResult<List<Album>> =
+            when (val ids = ask { source.similarAlbums(it, albumId, SIMILAR_ALBUMS) }) {
+                is MqResult.Failure -> {
+                    ids
+                }
+
+                is MqResult.Success -> {
+                    val albums = library.albums().first().associateBy { it.id }
+                    MqResult.Success(ids.value.filter { it != albumId }.mapNotNull { albums[it] })
+                }
+            }
+
+        /** [request] on the signed-in server; a 401 signs out. Signed out: Unauthorized, nothing asked. */
+        private suspend fun ask(request: suspend (SignedInServer) -> MqResult<List<MediaId>>): MqResult<List<MediaId>> {
+            val server = accountStore.signedInServer() ?: return MqResult.Failure(MqError.Unauthorized)
+            return request(server).also {
+                if ((it as? MqResult.Failure)?.error == MqError.Unauthorized) {
+                    withContext(NonCancellable) { sessionRepository.onUnauthorized() }
+                }
+            }
         }
 
         private companion object {
             /** About five hours of music: the queue a radio starts with. */
             const val MIX_SIZE = 100
+
+            /** One row of cards on the album page. */
+            const val SIMILAR_ALBUMS = 12
         }
     }

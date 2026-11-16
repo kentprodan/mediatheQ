@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.testing
 
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.SimilarRepository
+import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 
@@ -18,4 +19,9 @@ class FakeSimilarRepository : SimilarRepository {
         beforeAnswer()
         return mixAnswer
     }
+
+    /** What [similarAlbums] answers. */
+    var similarAnswer: MqResult<List<Album>> = MqResult.Success(emptyList())
+
+    override suspend fun similarAlbums(albumId: MediaId): MqResult<List<Album>> = similarAnswer
 }

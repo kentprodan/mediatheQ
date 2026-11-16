@@ -23,4 +23,5 @@
         <item quantity="one">%1$d time</item>
         <item quantity="other">%1$d times</item>
     </plurals>
+    <string name="album_more_like_this">More like this</string>
 </resources>

@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 
@@ -11,4 +12,10 @@ interface SimilarRepository {
      * library has (only downloads in offline mode, ADR 0021); a track seed comes first. Fails without the server.
      */
     suspend fun instantMix(seed: MediaId): MqResult<List<Track>>
+
+    /**
+     * Albums like [albumId] (#380): the server's, kept to the library's albums (offline: downloaded ones) without
+     * [albumId] itself, at most 12. Fails without the server.
+     */
+    suspend fun similarAlbums(albumId: MediaId): MqResult<List<Album>>
 }
