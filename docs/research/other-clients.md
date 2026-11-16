@@ -158,3 +158,9 @@ never hit.
   7. Remote control: answer Playstate commands over the WebSocket, then let the phone control the TV.
   8. Servers 1: `reportPlayback` with `scrobble` fallback (JellyBox). Auto & Wear 1: the Auto tree (JellyBox + the
      official letter split), Cast with a profile per output. Later: ListenBrainz / Last.fm (JellyBox).
+
+Follow-up issues (opened 2026-11-16): #377 (TV 1 passthrough robustness); Mobile 2 · Polish #378 sleep timer, #379 Start
+radio, #380 similar albums, #381 LRCLIB lyrics, #382 several server addresses, #383 smart downloads; TV 2 · Video #384
+display mode switching, #385 Dolby Vision 7 and unsupported video, #386 Watch Next / channel / global search, #387 now
+playing screensaver, #388 pass-out protection, #389 remote control; Auto & Wear 1 #390 Android Auto, #391 Cast; Servers
+2 #392 scrobbling. Comments with the findings on #353, #355 and #252.
