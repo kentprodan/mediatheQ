@@ -68,13 +68,10 @@ class SmartDownloadPlanTest {
     }
 
     @Test
-    fun `an unfollowed series lets its episodes go, a manual download is not the series' own`() {
-        val downloads = listOf(downloaded(1, followed, DownloadOrigin.Single), downloaded(2, DownloadOrigin.Single))
+    fun `a series missing from the followed ones (signed out, another account) keeps its episodes`() {
+        val downloads = listOf(downloaded(1, followed, DownloadOrigin.Single), downloaded(2, followed))
 
-        val plan = smartDownloadPlan(emptyMap(), downloads)
-
-        assertThat(plan.unfollowed).containsExactly(series)
-        assertThat(plan.download).isEmpty()
+        assertThat(smartDownloadPlan(emptyMap(), downloads)).isEqualTo(SmartDownloadPlan())
     }
 
     @Test

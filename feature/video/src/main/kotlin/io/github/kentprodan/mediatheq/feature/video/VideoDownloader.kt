@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.VideoDownload
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.toDownload
+import io.github.kentprodan.mediatheq.core.data.unfollow
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Video
 import kotlinx.coroutines.flow.Flow
@@ -31,6 +32,9 @@ class VideoDownloader
             items: List<Video>,
             origin: DownloadOrigin,
         ) = downloads.downloadVideos(items.map { videos.toDownload(it) }, origin)
+
+        /** Stops following [seriesId] (#383): its kept episodes go, unless downloaded otherwise. */
+        suspend fun unfollow(seriesId: MediaId) = unfollow(videos, downloads, seriesId)
 
         /** A movie's or season's [origin] goes as a collection; an episode on its own only loses its single origin. */
         fun remove(

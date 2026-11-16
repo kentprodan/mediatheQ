@@ -11,6 +11,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -26,8 +27,6 @@ data class SmartDownloadPlan(
     val download: Map<MediaId, List<Video>> = emptyMap(),
     /** Series -> its episodes no longer among the next ones (watched): they lose the series' origin. */
     val release: Map<MediaId, List<MediaId>> = emptyMap(),
-    /** Series no longer followed: every episode they kept loses the origin. */
-    val unfollowed: Set<MediaId> = emptySet(),
 )
 
 /** How many next episodes of a followed series stay downloaded (#383). */
@@ -48,7 +47,8 @@ fun nextEpisodes(
 
 /**
  * The pass (#383): each followed series keeps its [nextEpisodes] with its own origin; the ones it no longer needs lose
- * it (deleted unless the user downloaded them too); an unfollowed series lets all of them go.
+ * it (deleted unless the user downloaded them too). Only followed series are touched: a series missing from [followed]
+ * (signed out, another account) keeps its episodes; unfollowing removes them itself.
  */
 fun smartDownloadPlan(
     followed: Map<MediaId, List<Video>>,
@@ -68,7 +68,17 @@ fun smartDownloadPlan(
         wanted.filter { it.id !in has }.takeIf { it.isNotEmpty() }?.let { download[series] = it }
         (has - wanted.map { it.id }.toSet()).takeIf { it.isNotEmpty() }?.let { release[series] = it.toList() }
     }
-    return SmartDownloadPlan(download, release, kept.keys - followed.keys)
+    return SmartDownloadPlan(download, release)
+}
+
+/** Stops following [seriesId] (#383) and lets go of the episodes it kept (deleted unless kept otherwise). */
+suspend fun unfollow(
+    videos: VideoRepository,
+    downloads: DownloadRepository,
+    seriesId: MediaId,
+) {
+    videos.setFollowed(seriesId, false)
+    downloads.removeCollection(DownloadOrigin.FollowedSeries(seriesId))
 }
 
 /**
@@ -88,6 +98,8 @@ class SmartDownloads
         /** For the app's lifetime; call once from the Application. */
         fun start() {
             scope.launch(ioDispatcher) {
+                // The download index first: before it is read, every finished episode would look missing.
+                downloads.completedIds.first()
                 videos.followedSeries
                     .flatMapLatest { ids ->
                         if (ids.isEmpty()) {
@@ -96,7 +108,8 @@ class SmartDownloads
                             combine(ids.map { id -> videos.allSeriesEpisodes(id).map { id to it } }) { it.toMap() }
                         }
                     }.combine(downloads.videoDownloads) { followed, list -> smartDownloadPlan(followed, list) }
-                    // A sync or a burst of progress makes one pass.
+                    // Progress ticks give the same plan: only a change of plan waits, and a sync makes one pass.
+                    .distinctUntilChanged()
                     .debounce(PASS_DELAY)
                     .collect(::apply)
             }
@@ -107,7 +120,6 @@ class SmartDownloads
                 downloads.downloadVideos(episodes.map { videos.toDownload(it) }, DownloadOrigin.FollowedSeries(series))
             }
             plan.release.forEach { (series, ids) -> downloads.removeOrigin(ids, DownloadOrigin.FollowedSeries(series)) }
-            plan.unfollowed.forEach { downloads.removeCollection(DownloadOrigin.FollowedSeries(it)) }
         }
 
         private companion object {

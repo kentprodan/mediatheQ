@@ -200,7 +200,9 @@ class SeriesViewModel
 
                 SeriesAction.ToggleFollow -> {
                     val followed = (uiState.value as? SeriesUiState.Content)?.followed ?: return
-                    viewModelScope.launch { videos.setFollowed(id, !followed) }
+                    viewModelScope.launch {
+                        if (followed) downloader.unfollow(id) else videos.setFollowed(id, true)
+                    }
                 }
 
                 SeriesAction.ToggleFavorite -> {
