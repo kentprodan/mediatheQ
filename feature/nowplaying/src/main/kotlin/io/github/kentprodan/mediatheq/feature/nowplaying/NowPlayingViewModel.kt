@@ -294,9 +294,10 @@ class NowPlayingViewModel
                 }
 
                 NowPlayingAction.StartRadio -> {
+                    // The playing track goes on where it is, the mix after it.
                     playback.state.value.item
                         ?.id
-                        ?.let(radio::start)
+                        ?.let { radio.start(it, playback.position.value) }
                 }
 
                 NowPlayingAction.CancelSleepTimer -> {

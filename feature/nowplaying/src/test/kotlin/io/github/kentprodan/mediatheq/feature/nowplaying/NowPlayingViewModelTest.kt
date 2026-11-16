@@ -954,7 +954,8 @@ class NowPlayingViewModelTest {
     fun `Start radio from the track menu asks for a mix like the playing track`() =
         runTest {
             val track = Track(MediaId(ServerId("s"), "t1"), "Strobe", emptyList(), 10.minutes)
-            similar.mixAnswer = MqResult.Success(listOf(track))
+            val other = Track(MediaId(ServerId("s"), "t2"), "Ghosts", emptyList(), 5.minutes)
+            similar.mixAnswer = MqResult.Success(listOf(track, other))
             val viewModel =
                 NowPlayingViewModel(
                     playback,
@@ -967,10 +968,13 @@ class NowPlayingViewModelTest {
                     radio,
                 )
             playback.state.value = playing
+            playback.position.value = 3.minutes
 
             viewModel.onAction(NowPlayingAction.StartRadio)
 
             assertThat(similar.mixSeeds).containsExactly(MediaId(ServerId("s"), "t1"))
-            assertThat(playback.plays.last().queue).containsExactly(track)
+            assertThat(playback.plays.last().queue).containsExactly(track, other).inOrder()
+            // The playing track goes on where it was.
+            assertThat(playback.plays.last().startPosition).isEqualTo(3.minutes)
         }
 }

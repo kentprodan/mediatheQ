@@ -78,4 +78,18 @@ class DefaultSimilarRepositoryTest {
             assertThat(repository.instantMix(id("a"))).isEqualTo(MqResult.Failure(MqError.Unauthorized))
             assertThat(source.calls).isEmpty()
         }
+
+    @Test
+    fun `offline the mix keeps only what the library lists, the downloads`() =
+        runTest {
+            signIn()
+            // In offline mode the library's track list is the downloaded tracks (ADR 0021).
+            library.offline.value = true
+            library.tracks.value = listOf(track("downloaded"))
+            source.mixAnswer = MqResult.Success(listOf(id("streamed"), id("downloaded")))
+
+            val mix = (repository.instantMix(id("x")) as MqResult.Success).value
+
+            assertThat(mix.map { it.id.itemId }).containsExactly("downloaded")
+        }
 }

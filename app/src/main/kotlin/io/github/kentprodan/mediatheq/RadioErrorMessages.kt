@@ -6,14 +6,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalResources
-import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.playback.RadioFailure
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterNotNull
 
 /** Start radio did not start (#379): one app-wide message, then [onShown] clears it. */
 @Composable
 internal fun RadioErrorMessages(
-    errors: Flow<MqError?>,
+    errors: Flow<RadioFailure?>,
     onShown: () -> Unit,
     snackbar: SnackbarHostState,
 ) {
@@ -24,9 +24,9 @@ internal fun RadioErrorMessages(
             currentOnShown()
             val message =
                 when (error) {
-                    MqError.NotFound -> R.string.radio_nothing_in_library
-                    MqError.Network -> R.string.radio_no_server
-                    else -> R.string.radio_failed
+                    RadioFailure.NothingSimilar -> R.string.radio_nothing_similar
+                    RadioFailure.NoServer -> R.string.radio_no_server
+                    RadioFailure.Failed -> R.string.radio_failed
                 }
             snackbar.showSnackbar(resources.getString(message))
         }
