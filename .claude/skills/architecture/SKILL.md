@@ -44,6 +44,7 @@ Any change to this table = ADR in `docs/decisions/`.
 :core:network            OkHttp client factory, interceptors, Json config, connectivity monitor
 :core:server             MediaServer provider INTERFACES + capabilities (no implementation)
 :provider:jellyfin       Jellyfin implementation of :core:server (DTOs, mappers, auth, websocket)
+:provider:lrclib         LRCLIB (lrclib.net) lyrics for tracks the server has none for (#381), behind :core:server's OnlineLyricsSource
 :core:database           Room 3 database, entities, DAOs, FTS, migrations
 :core:datastore          DataStore: settings, server accounts (token stored encrypted)
 :core:data               repositories: combine server + database + datastore; offline-first

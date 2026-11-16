@@ -300,7 +300,7 @@
     <string name="settings_privacy_connections">Connections</string>
     <string name="settings_privacy_connections_text">Unencrypted (HTTP) connections are allowed only to local addresses: this phone, your home network and Tailscale. Every other server must use HTTPS.</string>
     <string name="settings_privacy_other">Other services</string>
-    <string name="settings_privacy_other_text">A font you pick in Settings is downloaded through Google Play services. Source code and Contact support open GitHub in your browser; a support issue carries only the app version, the Android version and the device model.</string>
+    <string name="settings_privacy_other_text">A font you pick in Settings is downloaded through Google Play services. With Lyrics from LRCLIB on (Settings -&gt; Playback -&gt; Playback, off by default), a track the server has no lyrics for has its title, artist, album and length sent to lrclib.net. Source code and Contact support open GitHub in your browser; a support issue carries only the app version, the Android version and the device model.</string>
     <string name="settings_contact">Contact support</string>
     <string name="settings_contact_text">Opens a new issue on GitHub in your browser. It carries the app version, the Android version and the device model, nothing else.</string>
     <string name="settings_contact_feature">Make a feature request</string>
@@ -667,4 +667,6 @@
     <string name="settings_video_skip_button">Show a button</string>
     <string name="settings_video_skip_auto">Skip automatically</string>
     <string name="settings_st_download_quality_videos">%1$s · Videos download as originals</string>
+    <string name="settings_pb_online_lyrics">Lyrics from LRCLIB</string>
+    <string name="settings_pb_online_lyrics_summary">When the server has no lyrics for a track, look them up on lrclib.net. The track title, artist, album and length are sent there.</string>
 </resources>

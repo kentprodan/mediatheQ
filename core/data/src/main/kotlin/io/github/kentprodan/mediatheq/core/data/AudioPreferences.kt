@@ -35,6 +35,7 @@ enum class BehaviorSwitch {
     RetainPlayerState,
     WeightedShuffle,
     BluetoothLyrics,
+    OnlineLyrics,
 }
 
 /**
@@ -58,6 +59,8 @@ data class PlaybackBehavior(
     val weightedShuffle: Boolean = true,
     /** Bluetooth displays show the current synced lyrics line as the title (#143, ADR 0034). */
     val bluetoothLyrics: Boolean = false,
+    /** Lyrics from LRCLIB when the server has none (#381); off: the track's title and artist leave the device. */
+    val onlineLyrics: Boolean = false,
 ) {
     fun isOn(switch: BehaviorSwitch): Boolean =
         when (switch) {
@@ -69,6 +72,7 @@ data class PlaybackBehavior(
             BehaviorSwitch.RetainPlayerState -> retainPlayerState
             BehaviorSwitch.WeightedShuffle -> weightedShuffle
             BehaviorSwitch.BluetoothLyrics -> bluetoothLyrics
+            BehaviorSwitch.OnlineLyrics -> onlineLyrics
         }
 
     fun with(
@@ -84,6 +88,7 @@ data class PlaybackBehavior(
             BehaviorSwitch.RetainPlayerState -> copy(retainPlayerState = on)
             BehaviorSwitch.WeightedShuffle -> copy(weightedShuffle = on)
             BehaviorSwitch.BluetoothLyrics -> copy(bluetoothLyrics = on)
+            BehaviorSwitch.OnlineLyrics -> copy(onlineLyrics = on)
         }
 }
 

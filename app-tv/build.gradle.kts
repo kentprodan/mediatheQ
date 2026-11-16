@@ -51,6 +51,7 @@ dependencies {
     // The download cache the player and the sync need (ADR 0038); no Downloads screen on TV 1.
     implementation(projects.core.download)
     implementation(projects.provider.jellyfin)
+    implementation(projects.provider.lrclib)
     implementation(projects.featureTv.onboarding)
     implementation(projects.featureTv.home)
     implementation(projects.featureTv.library)
