@@ -122,3 +122,32 @@ fun TvCollectionsScreenshot() {
         ),
     )
 }
+
+/** A started movie's page: Resume, From the start, the facts and the format. No backdrop: layoutlib loads no image. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvMovieScreenshot() =
+    MediatheqTvTheme {
+        Surface {
+            TvMovieScreen(
+                TvMovieUiState.Content(
+                    io.github.kentprodan.mediatheq.core.model.Video(
+                        MediaId(ServerId("s"), "m1"),
+                        io.github.kentprodan.mediatheq.core.model.VideoKind.Movie,
+                        "Blade Runner",
+                        overview = "A blade runner must pursue and terminate four replicants who stole a ship in space.",
+                        year = 1982,
+                        duration = kotlin.time.Duration.parse("1h57m"),
+                        genres = listOf("Science Fiction", "Drama"),
+                        officialRating = "R",
+                        communityRating = 7.9,
+                    ),
+                    format = "4K · HEVC · HDR10 · 5.1",
+                    resumeAt = kotlin.time.Duration.parse("42m10s"),
+                ),
+                {},
+                { _, _ -> },
+            )
+        }
+    }
