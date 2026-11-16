@@ -28,7 +28,8 @@ jobs:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Check
-        run: ./gradlew spotlessCheck assembleDebug :baselineprofile:assembleBenchmarkRelease :app:assembleDaily :app-tv:assembleDaily testDebugUnitTest validateDebugScreenshotTest lint --continue
+        # Two workers: a private repository runner has about 7 GB; R8 plus Robolectric ran out of memory (exit 143).
+        run: ./gradlew --max-workers=2 spotlessCheck assembleDebug :baselineprofile:assembleBenchmarkRelease :app:assembleDaily :app-tv:assembleDaily testDebugUnitTest validateDebugScreenshotTest lint --continue
 
       - name: Upload reports
         if: failure()
