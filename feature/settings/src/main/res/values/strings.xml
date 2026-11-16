@@ -669,4 +669,7 @@
     <string name="settings_st_download_quality_videos">%1$s · Videos download as originals</string>
     <string name="settings_pb_online_lyrics">Lyrics from LRCLIB</string>
     <string name="settings_pb_online_lyrics_summary">When the server has no lyrics for a track, look them up on lrclib.net. The track title, artist, album and length are sent there.</string>
+    <string name="settings_providers_other_addresses">Other addresses</string>
+    <string name="settings_providers_other_addresses_hint">One per line, e.g. the Tailscale address. The app uses the first one that answers, the server address above first.</string>
+    <string name="settings_providers_error_other_addresses">Each line must be an address starting with http:// or https://</string>
 </resources>

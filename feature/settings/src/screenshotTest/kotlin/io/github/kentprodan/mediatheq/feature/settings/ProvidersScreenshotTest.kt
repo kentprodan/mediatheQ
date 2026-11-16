@@ -97,7 +97,12 @@ fun RemoveAccountScreenshot() {
 fun EditAddressErrorScreenshot() {
     MediatheqTheme {
         MqDialogContent("Edit address", "Save", {}, "Cancel", {}) {
-            EditAddressBody("http://100.100.41.27:8096", AddressEdit(home.id, error = AddressError.OtherServer)) {}
+            EditAddressBody(
+                "http://100.100.41.27:8096",
+                AddressEdit(home.id, error = AddressError.OtherServer),
+                onChange = {},
+                others = "http://192.168.178.20:8096",
+            )
         }
     }
 }

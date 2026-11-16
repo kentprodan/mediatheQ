@@ -11,4 +11,6 @@ data class SavedAccount(
     val userId: String,
     val userName: String,
     val signedIn: Boolean = false,
+    /** Other addresses of the same server (#382), tried when [baseUrl] does not answer. */
+    val alternateUrls: List<String> = emptyList(),
 )

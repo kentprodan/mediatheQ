@@ -26,6 +26,15 @@ interface AccountRepository {
     ): ServerCheck
 
     /**
+     * Sets the other addresses of [id] (#382), one per line of [text]: each must be an http(s) address; the account's
+     * own address is left out. False when one is not an address (nothing is saved) or the disk fails.
+     */
+    suspend fun setAlternateAddresses(
+        id: String,
+        text: String,
+    ): Boolean
+
+    /**
      * Signs out of [id] and forgets it with its library, queue and waiting changes; [deleteDownloads] also deletes its
      * downloads unless another account uses the same server. The active one: another becomes active (restart), or the
      * app returns to onboarding when it was the last.
@@ -50,4 +59,6 @@ data class Account(
     val lastSync: SyncRecord? = null,
     /** False for an account restored from a backup or whose token was lost (#150): it needs a sign-in first. */
     val signedIn: Boolean = true,
+    /** Other addresses of the same server (#382), tried when [baseUrl] does not answer. */
+    val alternateUrls: List<String> = emptyList(),
 )

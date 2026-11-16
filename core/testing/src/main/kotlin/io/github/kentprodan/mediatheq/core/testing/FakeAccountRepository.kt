@@ -30,6 +30,15 @@ class FakeAccountRepository(
         address: String,
     ): ServerCheck = editResult.also { edited += id to address }
 
+    /** Every call of [setAlternateAddresses]; [alternatesResult] is the answer. */
+    val alternates = mutableListOf<Pair<String, String>>()
+    var alternatesResult = true
+
+    override suspend fun setAlternateAddresses(
+        id: String,
+        text: String,
+    ): Boolean = alternatesResult.also { alternates += id to text }
+
     override suspend fun remove(
         id: String,
         deleteDownloads: Boolean,

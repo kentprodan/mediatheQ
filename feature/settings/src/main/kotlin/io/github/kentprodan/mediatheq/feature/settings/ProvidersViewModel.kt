@@ -62,8 +62,25 @@ class ProvidersViewModel
 
                     is ProvidersAction.EditAddress -> {
                         edit.value = AddressEdit(action.id, checking = true)
-                        val check = accounts.editAddress(action.id, action.address)
-                        edit.value = check.toAddressError()?.let { AddressEdit(action.id, error = it) }
+                        val current =
+                            accounts.accounts
+                                .first()
+                                .firstOrNull { it.id == action.id }
+                                ?.baseUrl
+                        // The address is checked against the server only when it changed (#382: others need no check).
+                        if (action.address.trim().trimEnd('/') != current?.trimEnd('/')) {
+                            val error = accounts.editAddress(action.id, action.address).toAddressError()
+                            if (error != null) {
+                                edit.value = AddressEdit(action.id, error = error)
+                                return@launch
+                            }
+                        }
+                        edit.value =
+                            if (accounts.setAlternateAddresses(action.id, action.others)) {
+                                null
+                            } else {
+                                AddressEdit(action.id, error = AddressError.InvalidOthers)
+                            }
                     }
 
                     ProvidersAction.DismissEdit -> {

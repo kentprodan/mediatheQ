@@ -141,7 +141,12 @@ fun ProvidersScreen(
     }
     content?.edit?.let { edit ->
         accounts.firstOrNull { it.id == edit.id }?.let { account ->
-            EditAddressDialog(account.baseUrl, edit, { onAction(ProvidersAction.EditAddress(account.id, it)) }) {
+            EditAddressDialog(
+                account.baseUrl,
+                account.alternateUrls,
+                edit,
+                { address, others -> onAction(ProvidersAction.EditAddress(account.id, address, others)) },
+            ) {
                 onAction(ProvidersAction.DismissEdit)
             }
         }
@@ -339,19 +344,21 @@ internal fun ProviderPickerBody(onPick: () -> Unit) {
 @Composable
 private fun EditAddressDialog(
     current: String,
+    alternates: List<String>,
     edit: AddressEdit,
-    onSave: (String) -> Unit,
+    onSave: (address: String, others: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var address by rememberSaveable { mutableStateOf(current) }
+    var others by rememberSaveable { mutableStateOf(alternates.joinToString("\n")) }
     MqDialog(
         title = stringResource(R.string.settings_providers_edit_address),
         confirmLabel = stringResource(R.string.settings_providers_save),
-        onConfirm = { onSave(address) },
+        onConfirm = { onSave(address, others) },
         dismissLabel = stringResource(R.string.settings_cancel),
         onDismiss = onDismiss,
         confirmEnabled = !edit.checking && address.isNotBlank(),
-    ) { EditAddressBody(address, edit) { address = it } }
+    ) { EditAddressBody(address, edit, { address = it }, others) { others = it } }
 }
 
 /** The address field; the error under it says why the address was not saved. */
@@ -360,16 +367,36 @@ internal fun EditAddressBody(
     address: String,
     edit: AddressEdit,
     onChange: (String) -> Unit,
+    others: String = "",
+    onOthersChange: (String) -> Unit = {},
 ) {
-    OutlinedTextField(
-        value = address,
-        onValueChange = onChange,
-        label = { Text(stringResource(R.string.settings_providers_address)) },
-        singleLine = true,
-        isError = edit.error != null,
-        supportingText = edit.error?.let { error -> { Text(stringResource(error.message)) } },
-        modifier = Modifier.fillMaxWidth(),
-    )
+    val othersError = edit.error == AddressError.InvalidOthers
+    Column(verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s)) {
+        OutlinedTextField(
+            value = address,
+            onValueChange = onChange,
+            label = { Text(stringResource(R.string.settings_providers_address)) },
+            singleLine = true,
+            isError = edit.error != null && !othersError,
+            supportingText =
+                edit.error?.takeIf { !othersError }?.let { error ->
+                    { Text(stringResource(error.message)) }
+                },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        // #382: the same server elsewhere (home LAN, Tailscale, the internet); the app uses whichever answers.
+        OutlinedTextField(
+            value = others,
+            onValueChange = onOthersChange,
+            label = { Text(stringResource(R.string.settings_providers_other_addresses)) },
+            isError = othersError,
+            supportingText = {
+                Text(stringResource(if (othersError) AddressError.InvalidOthers.message else OTHERS_HINT))
+            },
+            minLines = 2,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 private val AddressError.message: Int
@@ -378,7 +405,10 @@ private val AddressError.message: Int
             AddressError.InvalidAddress -> R.string.settings_providers_error_invalid
             AddressError.CleartextNotAllowed -> R.string.settings_providers_error_cleartext
             AddressError.Unreachable -> R.string.settings_providers_error_unreachable
+            AddressError.InvalidOthers -> R.string.settings_providers_error_other_addresses
             AddressError.OtherServer -> R.string.settings_providers_error_other_server
             AddressError.Unsupported -> R.string.settings_providers_error_unsupported
             AddressError.Other -> R.string.settings_providers_error_other
         }
+
+private val OTHERS_HINT = R.string.settings_providers_other_addresses_hint

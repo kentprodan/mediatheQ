@@ -101,6 +101,31 @@ class AccountStore
                 .catch { if (it is IOException) emit(null) else throw it }
 
         /**
+         * The active account's addresses (#382): its address first, then its other addresses; empty when signed out.
+         */
+        val activeAddresses: Flow<List<String>> =
+            dataStore.data
+                .map { prefs ->
+                    val base = prefs[key(BASE_URL, activeId)]?.takeIf { activeId in prefs.ids() }
+                    if (base == null) emptyList() else listOf(base) + prefs.alternates(activeId)
+                }.catch { if (it is IOException) emit(emptyList()) else throw it }
+
+        /** Sets the other addresses of account [id] (#382), kept apart from [save]. Throws `IOException` on disk failure. */
+        suspend fun setAlternateUrls(
+            id: String,
+            urls: List<String>,
+        ) {
+            dataStore.edit { prefs ->
+                if (id !in prefs.ids()) return@edit
+                if (urls.isEmpty()) {
+                    prefs.remove(key(ALTERNATES, id))
+                } else {
+                    prefs[key(ALTERNATES, id)] = urls.joinToString(SEPARATOR)
+                }
+            }
+        }
+
+        /**
          * Writes [account] under its id: replaces a saved one (R9: one token per server, the newest wins) or adds it at
          * the end. Throws on IO or crypto failure.
          */
@@ -186,6 +211,7 @@ class AccountStore
                 userId = this[key(USER_ID, id)].orEmpty(),
                 userName = this[key(USER_NAME, id)].orEmpty(),
                 signedIn = readOrNull(id) != null,
+                alternateUrls = alternates(id),
             )
 
         private fun Preferences.readOrNull(id: String): StoredAccount? =
@@ -219,7 +245,8 @@ class AccountStore
             private const val USER_NAME = "user_name"
             private const val TOKEN = "access_token_encrypted"
             private const val SYNC = "sync_record"
-            private val FIELDS = listOf(BASE_URL, SERVER_ID, SERVER_NAME, USER_ID, USER_NAME, TOKEN, SYNC)
+            private const val ALTERNATES = "alternate_urls"
+            private val FIELDS = listOf(BASE_URL, SERVER_ID, SERVER_NAME, USER_ID, USER_NAME, TOKEN, SYNC, ALTERNATES)
             private val IDS = stringPreferencesKey("account_ids")
 
             /** A ServerId cannot be empty; a broken entry still lists, so it can be removed. */
@@ -230,6 +257,12 @@ class AccountStore
                 field: String,
                 id: String,
             ) = stringPreferencesKey("$field@$id")
+
+            private fun Preferences.alternates(id: String): List<String> =
+                this[key(ALTERNATES, id)]?.split(SEPARATOR)?.filter { it.isNotBlank() }.orEmpty()
+
+            /** Between the other addresses of an account: a space never appears in a URL. */
+            private const val SEPARATOR = " "
 
             private fun Preferences.ids(): List<String> = this[IDS]?.split(',')?.filter { it.isNotEmpty() }.orEmpty()
 
