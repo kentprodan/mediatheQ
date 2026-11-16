@@ -45,6 +45,9 @@ class FakeLibrarySource : LibrarySource {
     var collections: List<VideoCollection> = emptyList()
     var collectionItems: Map<MediaId, List<MediaId>> = emptyMap()
 
+    /** Collection item id -> error its items request answers with. */
+    var collectionErrors: Map<String, MqError> = emptyMap()
+
     val calls = mutableListOf<String>()
     var failAt: Int? = null
     var failure: MqError = MqError.Network
@@ -123,7 +126,15 @@ class FakeLibrarySource : LibrarySource {
         collectionId: MediaId,
         startIndex: Int,
         limit: Int,
-    ) = page("collection:${collectionId.itemId}", collectionItems[collectionId].orEmpty(), startIndex, limit)
+    ): MqResult<LibraryPage<MediaId>> {
+        val error = collectionErrors[collectionId.itemId]
+        if (error !=
+            null
+        ) {
+            return MqResult.Failure(error).also { calls += "collection:${collectionId.itemId}@$startIndex" }
+        }
+        return page("collection:${collectionId.itemId}", collectionItems[collectionId].orEmpty(), startIndex, limit)
+    }
 
     /** Answers from [playlists]; a missing one is `NotFound`. Recorded as "playlist:<id>". */
     override suspend fun playlist(

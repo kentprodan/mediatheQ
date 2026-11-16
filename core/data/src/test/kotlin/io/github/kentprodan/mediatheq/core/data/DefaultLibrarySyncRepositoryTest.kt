@@ -903,6 +903,7 @@ class DefaultLibrarySyncRepositoryTest {
             source.collections =
                 listOf(VideoCollection(id("c1"), "Alien Collection"), VideoCollection(id("c2"), "Gone"))
             source.collectionItems = mapOf(id("c1") to listOf(id("m1"), id("sr1")))
+            source.collectionErrors = mapOf("c2" to MqError.NotFound)
             capabilities = ServerCapabilities(video = true)
             signIn()
 
