@@ -35,6 +35,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
+import io.github.kentprodan.mediatheq.core.model.AppMode
 
 @Composable
 fun TvSettingsRoute(
@@ -104,6 +105,16 @@ fun TvSettingsScreen(
                 )
             }
             section(R.string.tv_settings_library)
+            state.appMode?.let { mode ->
+                item {
+                    MqTvListItem(
+                        stringResource(R.string.tv_settings_app_mode),
+                        { onAction(TvSettingsAction.ChooseAppMode) },
+                        Modifier.focusMemory(focus, "appMode"),
+                        supporting = stringResource(mode.label),
+                    )
+                }
+            }
             item {
                 MqTvListItem(
                     stringResource(R.string.tv_settings_sync),
@@ -153,6 +164,7 @@ fun TvSettingsScreen(
         when (state.dialog) {
             TvSettingsDialog.Quality -> QualityDialog(state.quality, onAction)
             TvSettingsDialog.SignOut -> SignOutDialog(state, onAction)
+            TvSettingsDialog.AppMode -> AppModeDialog(state.appMode, onAction)
             null -> Unit
         }
     }
@@ -186,6 +198,33 @@ private fun QualityDialog(
         onDismiss = { onAction(TvSettingsAction.Dismiss) },
     )
 }
+
+@Composable
+private fun AppModeDialog(
+    current: AppMode?,
+    onAction: (TvSettingsAction) -> Unit,
+) {
+    val currentMark = stringResource(R.string.tv_settings_quality_current)
+    MqTvMenu(
+        title = stringResource(R.string.tv_settings_app_mode),
+        entries =
+            AppMode.entries.map { mode ->
+                val label = stringResource(mode.label)
+                MqTvMenuEntry(if (mode == current) "$label · $currentMark" else label, null) {
+                    onAction(TvSettingsAction.SetAppMode(mode))
+                }
+            },
+        onDismiss = { onAction(TvSettingsAction.Dismiss) },
+    )
+}
+
+private val AppMode.label: Int
+    get() =
+        when (this) {
+            AppMode.Music -> R.string.tv_settings_app_mode_music
+            AppMode.Video -> R.string.tv_settings_app_mode_video
+            AppMode.Both -> R.string.tv_settings_app_mode_both
+        }
 
 @Composable
 private fun SignOutDialog(

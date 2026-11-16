@@ -19,10 +19,12 @@ import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAccountRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioOutputRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
@@ -62,9 +64,10 @@ class TvSettingsTest {
             ),
         )
     private val playback = FakePlaybackConnection()
+    private val appMode = FakeAppModeRepository(initial = AppMode.Both)
 
     private fun TestScope.viewModel(): TvSettingsViewModel {
-        val viewModel = TvSettingsViewModel(outputs, preferences, sync, accounts, playback)
+        val viewModel = TvSettingsViewModel(outputs, preferences, sync, accounts, playback, appMode)
         backgroundScope.launch { viewModel.uiState.collect() }
         runCurrent()
         return viewModel
@@ -96,6 +99,35 @@ class TvSettingsTest {
             assertThat(state.sync).isEqualTo(SyncStatus.Running(SyncStep.Albums, 120, 800))
             assertThat(state.serverName).isEqualTo("Home server")
             assertThat(state.userName).isEqualTo("kent")
+        }
+
+    @Test
+    fun `the app mode is shown and changed from its dialog, hidden without video on the server`() =
+        test {
+            val viewModel = viewModel()
+            assertThat(viewModel.content().appMode).isEqualTo(AppMode.Both)
+
+            viewModel.onAction(TvSettingsAction.ChooseAppMode)
+            assertThat(viewModel.content().dialog).isEqualTo(TvSettingsDialog.AppMode)
+            viewModel.onAction(TvSettingsAction.SetAppMode(AppMode.Music))
+            runCurrent()
+
+            assertThat(appMode.stored.value).isEqualTo(AppMode.Music)
+            assertThat(viewModel.content().appMode).isEqualTo(AppMode.Music)
+            assertThat(viewModel.content().dialog).isNull()
+
+            val noVideo =
+                TvSettingsViewModel(
+                    outputs,
+                    preferences,
+                    sync,
+                    accounts,
+                    playback,
+                    FakeAppModeRepository(videoAvailable = false),
+                )
+            backgroundScope.launch { noVideo.uiState.collect() }
+            runCurrent()
+            assertThat(noVideo.content().appMode).isNull()
         }
 
     @Test

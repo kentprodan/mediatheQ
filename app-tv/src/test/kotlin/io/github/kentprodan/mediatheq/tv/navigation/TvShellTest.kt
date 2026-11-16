@@ -142,11 +142,11 @@ class TvShellTest {
         show()
         composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
 
-        // Into the drawer, down to Library without selecting it, back to the content, into the drawer again.
+        // Into the drawer, down to Search without selecting it, back to the content, into the drawer again.
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
         composeRule.onNodeWithText("Home").assertIsFocused()
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
-        composeRule.onNodeWithText("Library").assertIsFocused()
+        composeRule.onNodeWithText("Search").assertIsFocused()
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
 

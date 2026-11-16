@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_video_movies">Movies</string>
+    <string name="tv_video_series">Series</string>
+    <plurals name="tv_video_movies_count">
+        <item quantity="one">%d movie</item>
+        <item quantity="other">%d movies</item>
+    </plurals>
+    <plurals name="tv_video_series_count">
+        <item quantity="one">%d series</item>
+        <item quantity="other">%d series</item>
+    </plurals>
+    <!-- 12 of 340 movies -->
+    <string name="tv_video_count_filtered">%1$d of %2$s</string>
+    <string name="tv_video_sort">Sort: %s</string>
+    <string name="tv_video_sort_title">Sort by</string>
+    <string name="tv_video_sort_name">Name</string>
+    <string name="tv_video_sort_date_added">Date added</string>
+    <string name="tv_video_sort_year">Year</string>
+    <string name="tv_video_sort_runtime">Runtime</string>
+    <string name="tv_video_sort_random">Random</string>
+    <string name="tv_video_filter">Filter</string>
+    <string name="tv_video_filter_active">Filter (%d)</string>
+    <string name="tv_video_filter_title">Filter</string>
+    <string name="tv_video_filter_all">All</string>
+    <string name="tv_video_filter_unwatched">Unwatched</string>
+    <string name="tv_video_filter_watched">Watched</string>
+    <string name="tv_video_filter_favorites">Favorites only</string>
+    <string name="tv_video_filter_genre">Genre</string>
+    <string name="tv_video_filter_decade">Decade</string>
+    <string name="tv_video_filter_any">Any</string>
+    <!-- 1990s -->
+    <string name="tv_video_decade">%ds</string>
+    <string name="tv_video_clear_filters">Clear filters</string>
+    <string name="tv_video_nothing_matches">Nothing matches</string>
+    <string name="tv_video_nothing_matches_body">No title fits these filters.</string>
+    <string name="tv_video_no_movies">No movies yet</string>
+    <string name="tv_video_no_series">No series yet</string>
+    <string name="tv_video_empty_body">They show here once the library is synced.</string>
+    <string name="tv_video_error_title">Couldn\'t read the library</string>
+    <string name="tv_video_error_body">Try syncing again.</string>
+    <string name="tv_video_sync_now">Sync now</string>
+</resources>

@@ -32,4 +32,9 @@ object MqTvIcons {
     /** The sleep timer (#393), filled while one runs. */
     val Bedtime: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_bedtime)
     val BedtimeFilled: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_bedtime_filled)
+
+    /** Video (#426): Movies, Series, and the watched mark on a poster. */
+    val Movie: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_movie)
+    val Series: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_tv)
+    val Watched: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_check_circle_filled)
 }

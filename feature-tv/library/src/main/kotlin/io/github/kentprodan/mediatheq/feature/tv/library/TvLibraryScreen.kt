@@ -66,6 +66,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.navigation.YearKey
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvLetterStrip
 import kotlinx.coroutines.launch
 
 /** Where a card leads. */
@@ -293,7 +294,7 @@ private fun Grid(
             }) { item -> Card(item, navigation, Modifier.focusMemory(focus, item.id.toString())) }
         }
         if (content.letters.size > 1) {
-            Strip(content.letters) { letter ->
+            MqTvLetterStrip(content.letters) { letter ->
                 scope.launch {
                     grid.scrollToItem(letter.index)
                     withFrameNanos {}
@@ -334,33 +335,6 @@ private fun Card(
         subtitle = subtitle,
         placeholder = if (item.kind == TvLibraryItem.Kind.Artist) MqTvIcons.Person else MqTvIcons.MusicNote,
     )
-}
-
-/** The A-Z strip: one round key per letter; selecting one jumps to the letter's first card and focuses it. */
-@Composable
-private fun Strip(
-    letters: List<Letter>,
-    onJump: (Letter) -> Unit,
-) {
-    LazyColumn(
-        // Back to the strip: the letter used last.
-        Modifier.width(56.dp).fillMaxHeight().focusRestorer(),
-        contentPadding = PaddingValues(vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        items(letters, key = { it.letter }) { letter ->
-            Surface(
-                onClick = { onJump(letter) },
-                modifier = Modifier.size(32.dp),
-                shape = ClickableSurfaceDefaults.shape(CircleShape),
-            ) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(letter.letter.toString(), style = MaterialTheme.typography.labelMedium)
-                }
-            }
-        }
-    }
 }
 
 @Composable

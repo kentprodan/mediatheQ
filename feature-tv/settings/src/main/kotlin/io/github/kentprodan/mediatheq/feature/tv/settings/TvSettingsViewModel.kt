@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.AccountRepository
+import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.AudioOutputRepository
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
@@ -31,6 +32,7 @@ class TvSettingsViewModel
         private val sync: LibrarySyncRepository,
         private val accounts: AccountRepository,
         private val playback: PlaybackConnection,
+        private val appMode: AppModeRepository,
     ) : ViewModel() {
         private val dialog = MutableStateFlow<TvSettingsDialog?>(null)
 
@@ -40,8 +42,8 @@ class TvSettingsViewModel
                 audioPreferences.preferences,
                 sync.status,
                 accounts.accounts,
-                dialog,
-            ) { remembered, preferences, status, list, open ->
+                combine(dialog, appMode.mode) { open, mode -> open to mode },
+            ) { remembered, preferences, status, list, (open, mode) ->
                 val active = list.firstOrNull { it.active }
                 TvSettingsUiState.Content(
                     hdmi = hdmiOutput(remembered),
@@ -50,6 +52,7 @@ class TvSettingsViewModel
                     serverName = active?.serverName,
                     userName = active?.userName,
                     dialog = open,
+                    appMode = mode.takeIf { appMode.videoAvailable },
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvSettingsUiState.Loading)
 
@@ -74,6 +77,16 @@ class TvSettingsViewModel
                 // The sync runs in its own job: leaving the screen does not stop it.
                 TvSettingsAction.SyncNow -> {
                     viewModelScope.launch { sync.sync() }
+                }
+
+                TvSettingsAction.ChooseAppMode -> {
+                    dialog.value = TvSettingsDialog.AppMode
+                }
+
+                // A kind turned on syncs by itself (LibrarySyncRepository watches the mode).
+                is TvSettingsAction.SetAppMode -> {
+                    dialog.value = null
+                    viewModelScope.launch { appMode.setMode(action.mode) }
                 }
 
                 TvSettingsAction.AskSignOut -> {

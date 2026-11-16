@@ -59,6 +59,7 @@ import io.github.kentprodan.mediatheq.feature.tv.library.tvLibraryEntries
 import io.github.kentprodan.mediatheq.feature.tv.nowplaying.tvNowPlayingEntry
 import io.github.kentprodan.mediatheq.feature.tv.search.tvSearchEntry
 import io.github.kentprodan.mediatheq.feature.tv.settings.tvSettingsEntries
+import io.github.kentprodan.mediatheq.feature.tv.video.tvVideoEntries
 import io.github.kentprodan.mediatheq.tv.R
 
 @Composable
@@ -68,6 +69,7 @@ internal fun TvShellRoute(
     viewModel: TvShellViewModel = hiltViewModel(),
 ) {
     val player by viewModel.player.collectAsStateWithLifecycle()
+    val destinations by viewModel.destinations.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(HomeKey)
     val context = LocalContext.current
     val versionName =
@@ -95,6 +97,7 @@ internal fun TvShellRoute(
     TvShell(
         backStack,
         player,
+        destinations = destinations,
         onUnknown = viewModel::unknownDestination,
         onClose = {
             viewModel.stopMusic()
@@ -110,6 +113,7 @@ internal fun TvShellRoute(
             raw(R.raw.aboutlibraries)
         }, notices = { raw(R.raw.license_notices) })
         tvSearchEntry(navigator)
+        tvVideoEntries(navigator)
     }
 }
 
@@ -123,6 +127,7 @@ internal fun TvShellRoute(
 fun TvShell(
     backStack: MutableList<NavKey>,
     player: PlayerUiModel,
+    destinations: List<TvDestination> = TvDestination.entries,
     onUnknown: (NavKey) -> Unit = {},
     initialDrawer: DrawerValue = DrawerValue.Closed,
     onClose: () -> Unit = {},
@@ -142,7 +147,7 @@ fun TvShell(
         )
     }
     val selected = backStack.lastOrNull { TvDestination.of(it) != null }?.let(TvDestination::of) ?: TvDestination.Home
-    TvFrame(selected, player, navigator::navigateTo, initialDrawer) {
+    TvFrame(selected, player, navigator::navigateTo, initialDrawer, destinations) {
         // Each screen requests its own initial focus once, the item it had before when it comes back (FocusMemory).
         NavDisplay(
             backStack = backStack,
@@ -173,10 +178,11 @@ fun TvFrame(
     player: PlayerUiModel,
     onNavigate: (NavKey) -> Unit,
     initialDrawer: DrawerValue = DrawerValue.Closed,
+    destinations: List<TvDestination> = TvDestination.entries,
     content: @Composable () -> Unit,
 ) {
     NavigationDrawer(
-        drawerContent = { drawer -> Drawer(drawer, selected, player, onNavigate) },
+        drawerContent = { drawer -> Drawer(drawer, selected, player, onNavigate, destinations) },
         drawerState = rememberDrawerState(initialDrawer),
     ) { content() }
 }
@@ -187,6 +193,7 @@ private fun NavigationDrawerScope.Drawer(
     selected: TvDestination,
     player: PlayerUiModel,
     onNavigate: (NavKey) -> Unit,
+    destinations: List<TvDestination>,
 ) {
     // Focus coming back from the content lands on the selected entry, not on the one focused last (ADR 0041).
     val requesters = remember { TvDestination.entries.associateWith { FocusRequester() } }
@@ -199,11 +206,19 @@ private fun NavigationDrawerScope.Drawer(
             .focusProperties {
                 // Only the D-pad's way in; a focus asked for in code (an entry itself) is left alone.
                 onEnter =
-                    { if (requestedFocusDirection == FocusDirection.Left) requesters.getValue(selected).requestFocus() }
+                    {
+                        if (requestedFocusDirection == FocusDirection.Left) {
+                            // The selected entry, or Home when the mode just hid it.
+                            requesters
+                                .getValue(
+                                    selected.takeIf { it in destinations } ?: TvDestination.Home,
+                                ).requestFocus()
+                        }
+                    }
             }.focusGroup(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TvDestination.entries.forEach { destination ->
+        destinations.forEach { destination ->
             NavigationDrawerItem(
                 selected = destination == selected,
                 onClick = { onNavigate(destination.key) },
