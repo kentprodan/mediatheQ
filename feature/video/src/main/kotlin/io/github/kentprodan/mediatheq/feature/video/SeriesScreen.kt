@@ -16,6 +16,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
+import io.github.kentprodan.mediatheq.core.data.SMART_EPISODES
 import io.github.kentprodan.mediatheq.core.data.VideoDownload
 import io.github.kentprodan.mediatheq.core.data.resumePosition
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
@@ -139,6 +141,18 @@ private fun SeriesContent(
                 }
                 MqFavoriteToggle(series.userData.isFavorite, { onAction(SeriesAction.ToggleFavorite) })
             }
+        }
+        item(key = "follow") {
+            // Smart downloads (#383): the next episodes stay on the phone while the series is followed.
+            FilterChip(
+                selected = state.followed,
+                onClick = { onAction(SeriesAction.ToggleFollow) },
+                label = { Text(stringResource(R.string.video_follow, SMART_EPISODES)) },
+                leadingIcon = {
+                    Icon(if (state.followed) MqIcons.Check else MqIcons.Download, contentDescription = null)
+                },
+                modifier = Modifier.padding(horizontal = MediatheqSpacing.l),
+            )
         }
         series.overview?.let { overview ->
             item(key = "overview") {

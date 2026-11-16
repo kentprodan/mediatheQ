@@ -251,6 +251,7 @@ interface SyncDao {
         clearAlbumResume()
         clearPlaylistResume()
         clearTrackChoices()
+        clearFollowedSeries()
         clearQueueEntries()
         clearQueueState()
         clearWaveforms()
@@ -264,6 +265,9 @@ interface SyncDao {
 
     @Query("DELETE FROM video_track_choice")
     suspend fun clearTrackChoices()
+
+    @Query("DELETE FROM followed_series")
+    suspend fun clearFollowedSeries()
 
     @Query("DELETE FROM playlist_resume")
     suspend fun clearPlaylistResume()

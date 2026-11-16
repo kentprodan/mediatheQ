@@ -36,6 +36,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Lyrics on the TV's Now Playing: the line being sung large in the queue's place, or the whole text for plain lyrics.
 - Movies and Series in the Library: after a sync they show as poster grids with how many there are, sorted by name, date added or year, with an Unwatched filter. Playing them comes in a later update.
 - Download a movie, an episode or a whole season (as the original file, with its subtitle files) and watch it offline; the Downloads tab lists Movies and Seasons.
+- Follow a series (its page: Keep the next 3 episodes downloaded): the next unwatched episodes download by themselves, and the ones you watched make room for the next.
 - Several addresses for one server (Settings -> Manage media providers -> Edit address -> Other addresses): at home the app uses the LAN address, away the Tailscale one, by itself.
 - Lyrics from LRCLIB (Settings -> Playback -> Playback, off by default): synced lyrics for tracks your server has none for.
 - More like this at the bottom of an album page: albums from your library the server finds similar.

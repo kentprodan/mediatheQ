@@ -11,6 +11,8 @@ import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadStorageRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.data.unfollow
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.Job
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -37,7 +40,7 @@ class DownloadsViewModel
         storage: DownloadStorageRepository,
         audioPreferences: AudioPreferencesRepository,
         appMode: AppModeRepository,
-        videos: VideoRepository,
+        private val videos: VideoRepository,
     ) : ViewModel() {
         private val filter = MutableStateFlow("")
         private val cleanup = MutableStateFlow<CleanupPreview?>(null)
@@ -148,16 +151,22 @@ class DownloadsViewModel
                 }
 
                 is DownloadsAction.RemoveVideos -> {
-                    if (action.origin == DownloadOrigin.Single) {
-                        downloadRepository.removeOrigin(action.ids, action.origin)
-                    } else {
-                        downloadRepository.removeCollection(action.origin)
+                    viewModelScope.launch {
+                        unfollowSeriesOf(action.ids)
+                        if (action.origin == DownloadOrigin.Single) {
+                            downloadRepository.removeOrigin(action.ids, action.origin)
+                        } else {
+                            downloadRepository.removeCollection(action.origin)
+                        }
                     }
                 }
 
                 // From the queue: an unfinished or failed video goes, whatever it was asked through.
                 is DownloadsAction.CancelVideo -> {
-                    downloadRepository.remove(listOf(action.id))
+                    viewModelScope.launch {
+                        unfollowSeriesOf(listOf(action.id))
+                        downloadRepository.remove(listOf(action.id))
+                    }
                 }
 
                 DownloadsAction.PauseAll -> {
@@ -198,5 +207,18 @@ class DownloadsViewModel
             viewModelScope.launch {
                 if (index >= 0) trackTaps.tap(songs, index) else trackTaps.tap(listOf(action.track), 0)
             }
+        }
+
+        /**
+         * A followed series' episode removed or cancelled by hand (#383) stops following that series: otherwise smart
+         * downloads would fetch it again a moment later.
+         */
+        private suspend fun unfollowSeriesOf(ids: List<MediaId>) {
+            downloadRepository.videoDownloads
+                .first()
+                .filter { it.id in ids }
+                .flatMap { it.origins.filterIsInstance<DownloadOrigin.FollowedSeries>() }
+                .toSet()
+                .forEach { unfollow(videos, downloadRepository, it.id) }
         }
     }

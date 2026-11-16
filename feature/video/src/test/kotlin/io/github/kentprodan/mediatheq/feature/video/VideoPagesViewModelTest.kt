@@ -191,6 +191,23 @@ class VideoPagesViewModelTest {
         }
 
     @Test
+    fun `following a series shows on its page and turns off again (#383)`() =
+        test {
+            videos.series.value = listOf(series)
+            val viewModel = seriesViewModel()
+            assertThat((viewModel.uiState.value as SeriesUiState.Content).followed).isFalse()
+
+            viewModel.onAction(SeriesAction.ToggleFollow)
+            runCurrent()
+            assertThat(videos.followedSeries.value).containsExactly(series.id)
+            assertThat((viewModel.uiState.value as SeriesUiState.Content).followed).isTrue()
+
+            viewModel.onAction(SeriesAction.ToggleFollow)
+            runCurrent()
+            assertThat(videos.followedSeries.value).isEmpty()
+        }
+
+    @Test
     fun `an episode's watched mark and the series' favorite toggle`() =
         test {
             videos.series.value = listOf(series)

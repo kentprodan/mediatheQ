@@ -28,8 +28,9 @@ jobs:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Check
-        # Two workers: a private repository runner has about 7 GB; R8 plus Robolectric ran out of memory (exit 143).
-        run: ./gradlew --max-workers=2 spotlessCheck assembleDebug :baselineprofile:assembleBenchmarkRelease :app:assembleDaily :app-tv:assembleDaily testDebugUnitTest validateDebugScreenshotTest lint --continue
+        # A private repository runner has about 7 GB: two workers, and Kotlin compiles inside the Gradle daemon
+        # (a separate Kotlin daemon takes its own 4 GB heap; the runner was starved and lost).
+        run: ./gradlew --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process spotlessCheck assembleDebug :baselineprofile:assembleBenchmarkRelease :app:assembleDaily :app-tv:assembleDaily testDebugUnitTest validateDebugScreenshotTest lint --continue
 
       - name: Upload reports
         if: failure()

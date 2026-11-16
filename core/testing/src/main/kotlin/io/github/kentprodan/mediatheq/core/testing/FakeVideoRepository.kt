@@ -90,6 +90,19 @@ class FakeVideoRepository(
     override fun nextUp(seriesId: MediaId): Flow<Video?> =
         seasonEpisodes.map { all -> nextUp(all.values.flatten().filter { it.seriesId == seriesId }) }
 
+    override fun allSeriesEpisodes(seriesId: MediaId): Flow<List<Video>> =
+        seasonEpisodes.map { all -> all.values.flatten().filter { it.seriesId == seriesId } }
+
+    /** The followed series (#383). */
+    override val followedSeries = MutableStateFlow<Set<MediaId>>(emptySet())
+
+    override suspend fun setFollowed(
+        seriesId: MediaId,
+        followed: Boolean,
+    ) {
+        followedSeries.value = if (followed) followedSeries.value + seriesId else followedSeries.value - seriesId
+    }
+
     /** What Home's video sections list (#275). */
     val watching = MutableStateFlow<List<Video>>(emptyList())
     val upNext = MutableStateFlow<List<Video>>(emptyList())

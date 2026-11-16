@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.database.dao.VideoDao.Companion.SORT_ADDED
 import io.github.kentprodan.mediatheq.core.database.dao.VideoDao.Companion.SORT_NAME
 import io.github.kentprodan.mediatheq.core.database.dao.VideoDao.Companion.SORT_YEAR
+import io.github.kentprodan.mediatheq.core.database.entity.FollowedSeriesEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SeasonEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SeasonStaging
 import io.github.kentprodan.mediatheq.core.database.entity.SeriesEntity
@@ -271,5 +272,19 @@ class VideoQueriesTest {
 
             syncDao.clearAll()
             assertThat(dao.trackChoice("s", "se1").first()).isNull()
+        }
+
+    @Test
+    fun `followed series are kept until unfollowed, and cleared with the account (#383)`() =
+        runTest {
+            val videoDao = database.videoDao()
+            videoDao.follow(FollowedSeriesEntity("s", "sr1"))
+            videoDao.follow(FollowedSeriesEntity("s", "sr2"))
+            videoDao.unfollow("s", "sr2")
+            assertThat(videoDao.followedSeries().first()).containsExactly(FollowedSeriesEntity("s", "sr1"))
+
+            database.syncDao().clearAll()
+
+            assertThat(videoDao.followedSeries().first()).isEmpty()
         }
 }

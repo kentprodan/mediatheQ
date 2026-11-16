@@ -24,6 +24,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.DownloadOriginEntity
+import io.github.kentprodan.mediatheq.core.database.entity.FollowedSeriesEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PendingUserDataEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
@@ -53,7 +54,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 15,
+    version = 16,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -84,6 +85,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AlbumLabelStaging::class,
         AlbumResumeEntity::class,
         VideoTrackChoiceEntity::class,
+        FollowedSeriesEntity::class,
         PlaylistResumeEntity::class,
         SeriesEntity::class,
         SeasonEntity::class,
@@ -123,6 +125,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 13, to = 14),
         // 15: album_artist and track_artist indexed by artist (#401); no resync.
         AutoMigration(from = 14, to = 15),
+        // 16: the series followed for smart downloads (#383); no resync.
+        AutoMigration(from = 15, to = 16),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

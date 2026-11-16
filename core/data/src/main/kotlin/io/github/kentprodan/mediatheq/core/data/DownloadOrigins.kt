@@ -35,6 +35,13 @@ sealed interface DownloadOrigin {
         val id: MediaId,
     ) : DownloadOrigin
 
+    /** The next episodes of a followed series (#383), kept and removed by smart downloads, never by hand. */
+    data class FollowedSeries(
+        val id: MediaId,
+    ) : DownloadOrigin {
+        override val auto: Boolean get() = true
+    }
+
     /** The track (or episode, #279) on its own (a track menu, the Songs tab). */
     data object Single : DownloadOrigin
 
@@ -94,6 +101,7 @@ internal class DefaultDownloadOrigins
                     is DownloadOrigin.Playlist -> origin.id.serverId
                     is DownloadOrigin.Movie -> origin.id.serverId
                     is DownloadOrigin.Season -> origin.id.serverId
+                    is DownloadOrigin.FollowedSeries -> origin.id.serverId
                     else -> null
                 }
             // Single and Favorite origins belong to their tracks: they are removed per track.
@@ -117,6 +125,7 @@ internal class DefaultDownloadOrigins
                     is DownloadOrigin.Playlist -> if (auto) AUTO_PLAYLIST else PLAYLIST
                     is DownloadOrigin.Movie -> MOVIE
                     is DownloadOrigin.Season -> SEASON
+                    is DownloadOrigin.FollowedSeries -> FOLLOWED
                     DownloadOrigin.Single -> SINGLE
                     DownloadOrigin.Favorite -> FAVORITE
                 }
@@ -128,6 +137,7 @@ internal class DefaultDownloadOrigins
                     is DownloadOrigin.Playlist -> id.itemId
                     is DownloadOrigin.Movie -> id.itemId
                     is DownloadOrigin.Season -> id.itemId
+                    is DownloadOrigin.FollowedSeries -> id.itemId
                     DownloadOrigin.Single, DownloadOrigin.Favorite -> ""
                 }
 
@@ -142,6 +152,7 @@ internal class DefaultDownloadOrigins
                 FAVORITE -> DownloadOrigin.Favorite
                 MOVIE -> DownloadOrigin.Movie(MediaId(ServerId(serverId), collectionId))
                 SEASON -> DownloadOrigin.Season(MediaId(ServerId(serverId), collectionId))
+                FOLLOWED -> DownloadOrigin.FollowedSeries(MediaId(ServerId(serverId), collectionId))
                 else -> null
             }
 
@@ -158,5 +169,8 @@ internal class DefaultDownloadOrigins
             // Video downloads (#279); an older app skips these kinds.
             const val MOVIE = "Movie"
             const val SEASON = "Season"
+
+            // Smart downloads of followed series (#383); an older app skips this kind.
+            const val FOLLOWED = "FollowedSeries"
         }
     }

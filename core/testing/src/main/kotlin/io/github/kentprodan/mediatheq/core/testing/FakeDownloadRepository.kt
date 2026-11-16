@@ -91,6 +91,11 @@ class FakeDownloadRepository(
                 .filterNot { it.origins == setOf(origin) }
                 .map { it.copy(origins = it.origins - origin) }
         }
+        videoDownloads.update { current ->
+            current
+                .filterNot { it.origins == setOf(origin) }
+                .map { it.copy(origins = it.origins - origin) }
+        }
     }
 
     override fun remove(ids: List<MediaId>) {

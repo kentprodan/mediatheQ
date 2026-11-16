@@ -4,12 +4,11 @@ import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.VideoDownload
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
-import io.github.kentprodan.mediatheq.core.data.VideoToDownload
+import io.github.kentprodan.mediatheq.core.data.toDownload
+import io.github.kentprodan.mediatheq.core.data.unfollow
 import io.github.kentprodan.mediatheq.core.model.MediaId
-import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.Video
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -32,20 +31,10 @@ class VideoDownloader
         suspend fun download(
             items: List<Video>,
             origin: DownloadOrigin,
-        ) = downloads.downloadVideos(
-            items.map { video ->
-                val subtitles =
-                    videos
-                        .streams(video.id)
-                        .first()
-                        .filter {
-                            it.type == StreamType.Subtitle && it.isExternal &&
-                                it.codec?.lowercase() in TEXT_SUBTITLES
-                        }.map { it.index }
-                VideoToDownload(video.id, video.title, subtitles)
-            },
-            origin,
-        )
+        ) = downloads.downloadVideos(items.map { videos.toDownload(it) }, origin)
+
+        /** Stops following [seriesId] (#383): its kept episodes go, unless downloaded otherwise. */
+        suspend fun unfollow(seriesId: MediaId) = unfollow(videos, downloads, seriesId)
 
         /** A movie's or season's [origin] goes as a collection; an episode on its own only loses its single origin. */
         fun remove(
@@ -57,10 +46,5 @@ class VideoDownloader
             downloads.removeOrigin(ids, origin)
         } else {
             downloads.removeCollection(origin)
-        }
-
-        private companion object {
-            /** External subtitle files kept beside a downloaded video; picture formats are never external files. */
-            val TEXT_SUBTITLES = setOf("subrip", "srt", "webvtt", "vtt", "ass", "ssa", "mov_text")
         }
     }

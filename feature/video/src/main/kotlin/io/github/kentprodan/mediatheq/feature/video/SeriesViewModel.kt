@@ -46,6 +46,8 @@ sealed interface SeriesUiState {
         val tracksOf: Pair<Video, VideoTracks>? = null,
         /** Video downloads by id (#279): the episodes' states and the season's. */
         val downloads: Map<MediaId, VideoDownload> = emptyMap(),
+        /** Followed for smart downloads (#383): its next episodes stay downloaded. */
+        val followed: Boolean = false,
     ) : SeriesUiState {
         /** The selected season is downloaded through its own origin (#279). */
         val seasonDownloaded: Boolean
@@ -77,6 +79,9 @@ sealed interface SeriesAction {
     ) : SeriesAction
 
     data object ToggleFavorite : SeriesAction
+
+    /** Follows the series, or stops (#383): its next episodes stay downloaded while followed. */
+    data object ToggleFollow : SeriesAction
 
     /** An episode's menu: Audio and subtitles (#274). */
     data class OpenTracks(
@@ -155,6 +160,8 @@ class SeriesViewModel
                 } else {
                     SeriesUiState.Content(series, seasons, season, episodes, next, tracks, downloads)
                 }
+            }.combine(videos.followedSeries) { state, followed ->
+                (state as? SeriesUiState.Content)?.copy(followed = id in followed) ?: state
             }.catch { emit(SeriesUiState.Error(MqError.Storage)) }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SeriesUiState.Loading)
 
@@ -189,6 +196,13 @@ class SeriesViewModel
 
                 is SeriesAction.ToggleWatched -> {
                     viewModelScope.launch { userData.setPlayed(action.episode.id, !action.episode.userData.played) }
+                }
+
+                SeriesAction.ToggleFollow -> {
+                    val followed = (uiState.value as? SeriesUiState.Content)?.followed ?: return
+                    viewModelScope.launch {
+                        if (followed) downloader.unfollow(id) else videos.setFollowed(id, true)
+                    }
                 }
 
                 SeriesAction.ToggleFavorite -> {
