@@ -34,8 +34,11 @@ fun MqTvPosterCard(
     watched: Boolean = false,
     progress: Float? = null,
     placeholder: androidx.compose.ui.graphics.vector.ImageVector = MqTvIcons.Movie,
+    /** 16:9 for an episode's still. */
+    aspectRatio: Float = POSTER_RATIO,
+    onLongClick: (() -> Unit)? = null,
 ) {
-    MqTvCard(title, onClick, modifier, subtitle, imageAspectRatio = POSTER_RATIO) {
+    MqTvCard(title, onClick, modifier, subtitle, onLongClick, imageAspectRatio = aspectRatio) {
         Box(Modifier.fillMaxSize()) {
             MqTvCover(artwork, placeholder)
             if (watched) {

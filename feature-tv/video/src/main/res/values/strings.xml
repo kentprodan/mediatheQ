@@ -66,4 +66,23 @@
     <string name="tv_movie_runtime_minutes">%d min</string>
     <string name="tv_movie_missing">Movie not found</string>
     <string name="tv_movie_missing_body">It may have been removed from the server.</string>
+    <string name="tv_series_missing">Series not found</string>
+    <!-- Play S2 · E5 -->
+    <string name="tv_series_play">Play %s</string>
+    <string name="tv_series_resume">Resume %s</string>
+    <string name="tv_series_more">More</string>
+    <string name="tv_series_specials">Specials</string>
+    <string name="tv_series_season_watched">Mark %s watched</string>
+    <string name="tv_series_season_unwatched">Mark %s unwatched</string>
+    <string name="tv_series_series_watched">Mark the whole series watched</string>
+    <string name="tv_series_series_unwatched">Mark the whole series unwatched</string>
+    <string name="tv_series_hide_overviews">Hide overviews of unwatched episodes</string>
+    <string name="tv_series_show_overviews">Show overviews of unwatched episodes</string>
+    <string name="tv_series_overview_hidden">Overview hidden until you watch it.</string>
+    <string name="tv_series_confirm_season_watched">Mark every episode of %s watched?</string>
+    <string name="tv_series_confirm_season_unwatched">Mark every episode of %s unwatched?</string>
+    <string name="tv_series_confirm_series_watched">Mark every episode of the series watched?</string>
+    <string name="tv_series_confirm_series_unwatched">Mark every episode of the series unwatched?</string>
+    <string name="tv_series_confirm_yes">Yes</string>
+    <string name="tv_series_confirm_cancel">Cancel</string>
 </resources>

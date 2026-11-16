@@ -81,6 +81,7 @@ class AudioPreferencesStore
                         autoPlayNext = prefs[VIDEO_AUTO_PLAY_NEXT],
                         pictureInPicture = prefs[VIDEO_PICTURE_IN_PICTURE],
                         keepAudio = prefs[VIDEO_KEEP_AUDIO],
+                        hideUnwatchedOverviews = prefs[VIDEO_HIDE_UNWATCHED_OVERVIEWS],
                         skipIntro = prefs[VIDEO_SKIP_INTRO],
                         skipCredits = prefs[VIDEO_SKIP_CREDITS],
                         skipRecapPreview = prefs[VIDEO_SKIP_RECAP_PREVIEW],
@@ -252,6 +253,7 @@ class AudioPreferencesStore
                 it.put(VIDEO_AUTO_PLAY_NEXT, video.autoPlayNext)
                 it.put(VIDEO_PICTURE_IN_PICTURE, video.pictureInPicture)
                 it.put(VIDEO_KEEP_AUDIO, video.keepAudio)
+                it.put(VIDEO_HIDE_UNWATCHED_OVERVIEWS, video.hideUnwatchedOverviews)
                 it.put(VIDEO_SKIP_INTRO, video.skipIntro)
                 it.put(VIDEO_SKIP_CREDITS, video.skipCredits)
                 it.put(VIDEO_SKIP_RECAP_PREVIEW, video.skipRecapPreview)
@@ -313,6 +315,7 @@ class AudioPreferencesStore
             val VIDEO_AUTO_PLAY_NEXT = booleanPreferencesKey("video_auto_play_next")
             val VIDEO_PICTURE_IN_PICTURE = booleanPreferencesKey("video_picture_in_picture")
             val VIDEO_KEEP_AUDIO = booleanPreferencesKey("video_keep_audio")
+            val VIDEO_HIDE_UNWATCHED_OVERVIEWS = booleanPreferencesKey("video_hide_unwatched_overviews")
             val VIDEO_SKIP_INTRO = stringPreferencesKey("video_skip_intro")
             val VIDEO_SKIP_CREDITS = stringPreferencesKey("video_skip_credits")
             val VIDEO_SKIP_RECAP_PREVIEW = stringPreferencesKey("video_skip_recap_preview")
@@ -350,6 +353,8 @@ data class StoredVideoPreferences(
     val pictureInPicture: Boolean? = null,
     val keepAudio: Boolean? = null,
     val skipIntro: String? = null,
+    /** No spoilers (#428): unwatched episodes show no overview. */
+    val hideUnwatchedOverviews: Boolean? = null,
     val skipCredits: String? = null,
     val skipRecapPreview: String? = null,
 )
