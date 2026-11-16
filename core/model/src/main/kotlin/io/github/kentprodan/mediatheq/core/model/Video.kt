@@ -77,6 +77,18 @@ data class Series(
     val userData: UserData = UserData(),
 )
 
+/** A collection of movies (a Jellyfin BoxSet, #426), e.g. a film series. */
+data class VideoCollection(
+    val id: MediaId,
+    val title: String,
+    val sortName: String = title,
+    val overview: String? = null,
+    val year: Int? = null,
+    val dateAdded: Instant? = null,
+    val artwork: Artwork? = null,
+    val backdrop: Artwork? = null,
+)
+
 data class Season(
     val id: MediaId,
     val seriesId: MediaId,

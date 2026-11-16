@@ -20,6 +20,7 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.TrickplayInfo
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoCollection
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.server.ClientInfo
 import io.github.kentprodan.mediatheq.core.server.LibraryPage
@@ -31,6 +32,7 @@ import io.github.kentprodan.mediatheq.provider.jellyfin.dto.QueryResultDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.ticksToDuration
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toAlbum
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toArtist
+import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toCollection
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toDomain
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toPlaylist
 import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toPlaylistEntry
@@ -131,6 +133,35 @@ class JellyfinLibrarySource internal constructor(
         limit: Int,
     ): MqResult<LibraryPage<Video>> =
         video(server, "Episode", startIndex, limit) { it.toVideo(server.serverId, VideoKind.Episode) }
+
+    /** BoxSets (#426): `GET /Items?includeItemTypes=BoxSet&recursive=true`, by name, with poster and backdrop. */
+    override suspend fun collections(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<VideoCollection>> =
+        video(server, "BoxSet", startIndex, limit) { it.toCollection(server.serverId) }
+
+    /** A BoxSet's children (`parentId`), ids only, in the collection's own order (its sort set on the server). */
+    override suspend fun collectionItems(
+        server: SignedInServer,
+        collectionId: MediaId,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<MediaId>> =
+        page(
+            server,
+            "Items",
+            listOf(
+                "userId" to server.userId,
+                "parentId" to collectionId.itemId,
+                "includeItemTypes" to "Movie,Series",
+                "startIndex" to startIndex.toString(),
+                "limit" to limit.toString(),
+                "enableUserData" to "false",
+                "enableImages" to "false",
+            ),
+        ) { dto -> dto.id?.takeIf { it.isNotEmpty() }?.let { MediaId(server.serverId, it) } }
 
     /** R26: `GET /UserItems/Resume` with the video types; only the user data is read (the rows come from the sync). */
     override suspend fun resumeVideos(

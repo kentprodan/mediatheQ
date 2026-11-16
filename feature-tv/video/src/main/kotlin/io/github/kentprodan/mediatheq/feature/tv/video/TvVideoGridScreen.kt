@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.tv.video
 
+import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
@@ -57,10 +58,13 @@ import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterCard
 import kotlinx.coroutines.launch
 
 @Composable
-fun TvMoviesRoute(onOpen: (MediaId) -> Unit) {
+fun TvMoviesRoute(
+    onOpen: (MediaId) -> Unit,
+    onOpenCollections: () -> Unit,
+) {
     val viewModel = hiltViewModel<TvMoviesViewModel>()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    TvVideoGridScreen(TvVideoKind.Movies, state, viewModel::onAction, onOpen)
+    TvVideoGridScreen(TvVideoKind.Movies, state, viewModel::onAction, onOpen, onOpenCollections = onOpenCollections)
 }
 
 @Composable
@@ -68,6 +72,24 @@ fun TvSeriesRoute(onOpen: (MediaId) -> Unit) {
     val viewModel = hiltViewModel<TvSeriesViewModel>()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     TvVideoGridScreen(TvVideoKind.Series, state, viewModel::onAction, onOpen)
+}
+
+@Composable
+fun TvCollectionsRoute(onOpen: (MediaId) -> Unit) {
+    val viewModel = hiltViewModel<TvCollectionsViewModel>()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    TvVideoGridScreen(TvVideoKind.Collections, state, viewModel::onAction, onOpen)
+}
+
+@Composable
+fun TvCollectionRoute(
+    id: MediaId,
+    onOpen: (MediaId) -> Unit,
+) {
+    val viewModel =
+        hiltViewModel<TvCollectionViewModel, TvCollectionViewModel.Factory>(key = id.toString()) { it.create(id) }
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    TvVideoGridScreen(TvVideoKind.Collection, state, viewModel::onAction, onOpen)
 }
 
 /**
@@ -81,6 +103,8 @@ fun TvVideoGridScreen(
     onAction: (TvVideoGridAction) -> Unit,
     onOpen: (MediaId) -> Unit,
     modifier: Modifier = Modifier,
+    /** Movies' Collections button (#426). */
+    onOpenCollections: (() -> Unit)? = null,
 ) {
     var menu by remember { mutableStateOf<GridMenu?>(null) }
     Column(modifier.fillMaxSize()) {
@@ -90,7 +114,7 @@ fun TvVideoGridScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                stringResource(if (kind == TvVideoKind.Movies) R.string.tv_video_movies else R.string.tv_video_series),
+                (state as? TvVideoGridUiState.Content)?.title ?: stringResource(kind.title),
                 Modifier.semantics { heading() },
                 style = MaterialTheme.typography.headlineMedium,
             )
@@ -101,18 +125,21 @@ fun TvVideoGridScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.weight(1f))
+                onOpenCollections?.let { MqTvButton(stringResource(R.string.tv_video_collections), it) }
                 MqTvButton(
                     stringResource(R.string.tv_video_sort, stringResource(state.sort.label)),
                     { menu = GridMenu.Sort },
                 )
-                MqTvButton(
-                    if (state.filter.active == 0) {
-                        stringResource(R.string.tv_video_filter)
-                    } else {
-                        stringResource(R.string.tv_video_filter_active, state.filter.active)
-                    },
-                    { menu = GridMenu.Filter },
-                )
+                if (kind.filters) {
+                    MqTvButton(
+                        if (state.filter.active == 0) {
+                            stringResource(R.string.tv_video_filter)
+                        } else {
+                            stringResource(R.string.tv_video_filter_active, state.filter.active)
+                        },
+                        { menu = GridMenu.Filter },
+                    )
+                }
             }
         }
         when (state) {
@@ -122,15 +149,7 @@ fun TvVideoGridScreen(
 
             TvVideoGridUiState.Empty -> {
                 MqTvMessage(
-                    stringResource(
-                        if (kind ==
-                            TvVideoKind.Movies
-                        ) {
-                            R.string.tv_video_no_movies
-                        } else {
-                            R.string.tv_video_no_series
-                        },
-                    ),
+                    stringResource(kind.empty),
                     stringResource(R.string.tv_video_empty_body),
                     action = stringResource(R.string.tv_video_sync_now),
                     onAction = { onAction(TvVideoGridAction.Sync) },
@@ -188,7 +207,7 @@ private fun count(
     val shown = state.posters.size
     val all =
         pluralStringResource(
-            if (kind == TvVideoKind.Movies) R.plurals.tv_video_movies_count else R.plurals.tv_video_series_count,
+            kind.count,
             state.total,
             state.total,
         )
@@ -240,7 +259,7 @@ private fun Grid(
                     subtitle = poster.year?.toString(),
                     watched = poster.watched,
                     progress = poster.progress,
-                    placeholder = if (kind == TvVideoKind.Movies) MqTvIcons.Movie else MqTvIcons.Series,
+                    placeholder = if (kind == TvVideoKind.Series) MqTvIcons.Series else MqTvIcons.Movie,
                 )
             }
         }
@@ -270,7 +289,7 @@ private fun SortMenu(
     onDismiss: () -> Unit,
     onSort: (TvVideoSort) -> Unit,
 ) {
-    val sorts = TvVideoSort.entries.filter { it != TvVideoSort.Runtime || kind == TvVideoKind.Movies }
+    val sorts = kind.sorts
     MenuDialog(stringResource(R.string.tv_video_sort_title), onDismiss) { selected ->
         items(sorts) { sort ->
             MqTvListItem(
@@ -434,12 +453,40 @@ private fun MenuDialog(
 private val TvVideoSort.label: Int
     get() =
         when (this) {
+            TvVideoSort.Collection -> R.string.tv_video_sort_collection
             TvVideoSort.Name -> R.string.tv_video_sort_name
             TvVideoSort.DateAdded -> R.string.tv_video_sort_date_added
             TvVideoSort.Year -> R.string.tv_video_sort_year
             TvVideoSort.Rating -> R.string.tv_video_sort_rating
             TvVideoSort.Runtime -> R.string.tv_video_sort_runtime
             TvVideoSort.Random -> R.string.tv_video_sort_random
+        }
+
+@get:StringRes
+private val TvVideoKind.title: Int
+    get() =
+        when (this) {
+            TvVideoKind.Movies -> R.string.tv_video_movies
+            TvVideoKind.Series -> R.string.tv_video_series
+            TvVideoKind.Collections, TvVideoKind.Collection -> R.string.tv_video_collections
+        }
+
+@get:StringRes
+private val TvVideoKind.empty: Int
+    get() =
+        when (this) {
+            TvVideoKind.Movies, TvVideoKind.Collection -> R.string.tv_video_no_movies
+            TvVideoKind.Series -> R.string.tv_video_no_series
+            TvVideoKind.Collections -> R.string.tv_video_no_collections
+        }
+
+@get:PluralsRes
+private val TvVideoKind.count: Int
+    get() =
+        when (this) {
+            TvVideoKind.Movies, TvVideoKind.Collection -> R.plurals.tv_video_movies_count
+            TvVideoKind.Series -> R.plurals.tv_video_series_count
+            TvVideoKind.Collections -> R.plurals.tv_video_collections_count
         }
 
 @get:StringRes

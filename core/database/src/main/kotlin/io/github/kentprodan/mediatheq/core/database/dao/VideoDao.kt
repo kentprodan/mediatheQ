@@ -7,6 +7,7 @@ import androidx.room3.Query
 import io.github.kentprodan.mediatheq.core.database.entity.FollowedSeriesEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SeasonEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SeriesEntity
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoTrackChoiceEntity
@@ -19,6 +20,37 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface VideoDao {
+    /** Collections with at least one item in the library (offline: one downloaded movie), by name (#426). */
+    @Query(
+        """
+        SELECT * FROM video_collection c WHERE EXISTS (
+            SELECT 1 FROM video_collection_item i JOIN video v ON v.server_id = i.server_id AND v.id = i.item_id
+            WHERE i.server_id = c.server_id AND i.collection_id = c.id AND (:all OR v.id IN (:downloaded)))
+        ORDER BY sort_name, id
+        """,
+    )
+    fun collections(
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<VideoCollectionEntity>>
+
+    @Query("SELECT * FROM video_collection WHERE id = :id")
+    fun collection(id: String): Flow<VideoCollectionEntity?>
+
+    /** The movies of collection [id] in its order (series in a collection are left out: the grid is of movies). */
+    @Query(
+        """
+        SELECT v.* FROM video_collection_item i JOIN video v ON v.server_id = i.server_id AND v.id = i.item_id
+        WHERE i.collection_id = :id AND v.kind = 'Movie' AND (:all OR v.id IN (:downloaded))
+        ORDER BY i.position, v.sort_name, v.id
+        """,
+    )
+    fun collectionMovies(
+        id: String,
+        all: Boolean,
+        downloaded: List<String>,
+    ): Flow<List<VideoEntity>>
+
     @Query(
         """
         SELECT * FROM video WHERE kind = 'Movie' AND (:all OR id IN (:downloaded)) AND (NOT :unwatched OR NOT played)

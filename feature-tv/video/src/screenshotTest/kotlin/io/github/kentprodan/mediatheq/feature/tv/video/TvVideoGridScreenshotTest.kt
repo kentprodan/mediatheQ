@@ -32,7 +32,11 @@ private val posters =
 private fun Grid(
     kind: TvVideoKind,
     state: TvVideoGridUiState,
-) = MediatheqTvTheme { Surface { TvVideoGridScreen(kind, state, {}, {}) } }
+) = MediatheqTvTheme {
+    Surface {
+        TvVideoGridScreen(kind, state, {}, {}, onOpenCollections = { }.takeIf { kind == TvVideoKind.Movies })
+    }
+}
 
 /** Movies by name with the A-Z strip; a watched poster and a started one. No posters: layoutlib loads no image. */
 @PreviewTest
@@ -98,3 +102,23 @@ fun TvMoviesNothingMatchesScreenshot() =
 @MqTvPreviews
 @Composable
 fun TvSeriesEmptyScreenshot() = Grid(TvVideoKind.Series, TvVideoGridUiState.Empty)
+
+/** Collections: no Filter button. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvCollectionsScreenshot() {
+    val arranged = arrange(posters.take(3), TvVideoSort.Name, TvVideoFilter(), 0)
+    Grid(
+        TvVideoKind.Collections,
+        TvVideoGridUiState.Content(
+            arranged.posters,
+            arranged.letters,
+            TvVideoSort.Name,
+            TvVideoFilter(),
+            emptyList(),
+            emptyList(),
+            3,
+        ),
+    )
+}

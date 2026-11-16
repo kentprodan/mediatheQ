@@ -280,6 +280,7 @@ private fun stepLabel(step: SyncStep): String =
             SyncStep.Movies -> R.string.tv_settings_step_movies
             SyncStep.Series, SyncStep.Seasons -> R.string.tv_settings_step_series
             SyncStep.Episodes -> R.string.tv_settings_step_episodes
+            SyncStep.Collections, SyncStep.CollectionItems -> R.string.tv_settings_step_collections
         },
     )
 

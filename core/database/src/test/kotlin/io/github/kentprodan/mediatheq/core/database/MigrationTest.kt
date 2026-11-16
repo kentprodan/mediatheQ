@@ -497,9 +497,11 @@ class MigrationTest {
                 assertThat(it.getText(0)).isEqualTo("Alien")
                 assertThat(it.isNull(1)).isTrue()
             }
-            connection.prepare("SELECT COUNT(*) FROM video_staging").use {
-                it.step()
-                assertThat(it.getLong(0)).isEqualTo(0)
+            for (table in listOf("video_staging", "video_collection", "video_collection_item")) {
+                connection.prepare("SELECT COUNT(*) FROM $table").use {
+                    it.step()
+                    assertThat(it.getLong(0)).isEqualTo(0)
+                }
             }
             connection.close()
         }

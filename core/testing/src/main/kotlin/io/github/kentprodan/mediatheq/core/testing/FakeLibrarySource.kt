@@ -18,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.TrickplayInfo
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoCollection
 import io.github.kentprodan.mediatheq.core.server.LibraryPage
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
@@ -41,6 +42,8 @@ class FakeLibrarySource : LibrarySource {
     var series: List<Series> = emptyList()
     var seasons: List<Season> = emptyList()
     var episodes: List<Video> = emptyList()
+    var collections: List<VideoCollection> = emptyList()
+    var collectionItems: Map<MediaId, List<MediaId>> = emptyMap()
 
     val calls = mutableListOf<String>()
     var failAt: Int? = null
@@ -108,6 +111,19 @@ class FakeLibrarySource : LibrarySource {
         startIndex: Int,
         limit: Int,
     ) = page("episodes", episodes, startIndex, limit)
+
+    override suspend fun collections(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ) = page("collections", collections, startIndex, limit)
+
+    override suspend fun collectionItems(
+        server: SignedInServer,
+        collectionId: MediaId,
+        startIndex: Int,
+        limit: Int,
+    ) = page("collection:${collectionId.itemId}", collectionItems[collectionId].orEmpty(), startIndex, limit)
 
     /** Answers from [playlists]; a missing one is `NotFound`. Recorded as "playlist:<id>". */
     override suspend fun playlist(

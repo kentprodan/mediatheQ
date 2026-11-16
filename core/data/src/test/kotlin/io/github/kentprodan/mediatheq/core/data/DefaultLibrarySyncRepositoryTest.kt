@@ -30,6 +30,7 @@ import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoCollection
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.server.ServerCapabilities
 import io.github.kentprodan.mediatheq.core.testing.FakeAppLog
@@ -895,6 +896,27 @@ class DefaultLibrarySyncRepositoryTest {
     }
 
     @Test
+    fun `collections and their items are synced after the episodes, a gone collection keeps no items`() =
+        runTest(dispatcher) {
+            fillSource(trackCount = 3)
+            fillVideos()
+            source.collections =
+                listOf(VideoCollection(id("c1"), "Alien Collection"), VideoCollection(id("c2"), "Gone"))
+            source.collectionItems = mapOf(id("c1") to listOf(id("m1"), id("sr1")))
+            capabilities = ServerCapabilities(video = true)
+            signIn()
+
+            assertThat(repository().sync()).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(source.calls.dropWhile { !it.startsWith("collections") })
+                .containsExactly("collections@0", "collection:c1@0", "collection:c2@0")
+                .inOrder()
+            assertThat(count("video_collection")).isEqualTo(2)
+            assertThat(count("video_collection_item")).isEqualTo(2)
+            assertThat(count("video_collection_staging")).isEqualTo(0)
+        }
+
+    @Test
     fun `with video the sync fetches movies, series, seasons and episodes after the music and swaps them in`() =
         runTest(dispatcher) {
             fillSource(trackCount = 3)
@@ -905,7 +927,7 @@ class DefaultLibrarySyncRepositoryTest {
             assertThat(repository().sync()).isEqualTo(MqResult.Success(Unit))
 
             assertThat(source.calls.dropWhile { !it.startsWith("movies") })
-                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500")
+                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500", "collections@0")
                 .inOrder()
             assertThat(count("video")).isEqualTo(601)
             assertThat(count("series")).isEqualTo(1)
@@ -944,7 +966,7 @@ class DefaultLibrarySyncRepositoryTest {
             source.failAt = null
             assertThat(repository.sync()).isEqualTo(MqResult.Success(Unit))
 
-            assertThat(source.calls).containsExactly("episodes@500")
+            assertThat(source.calls).containsExactly("episodes@500", "collections@0")
             assertThat(count("video")).isEqualTo(601)
             val before = database.rows("SELECT id, title FROM video ORDER BY id")
             assertThat(repository.sync()).isEqualTo(MqResult.Success(Unit))
@@ -967,7 +989,7 @@ class DefaultLibrarySyncRepositoryTest {
             assertThat(repository.sync()).isEqualTo(MqResult.Success(Unit))
 
             assertThat(source.calls)
-                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500")
+                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500", "collections@0")
                 .inOrder()
             assertThat(count("playlist_entry")).isEqualTo(3)
         }
@@ -1004,7 +1026,7 @@ class DefaultLibrarySyncRepositoryTest {
             assertThat(repository.sync()).isEqualTo(MqResult.Success(Unit))
 
             assertThat(source.calls)
-                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500")
+                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500", "collections@0")
                 .inOrder()
             assertThat(count("track")).isEqualTo(3)
             assertThat(count("playlist_entry")).isEqualTo(3)
@@ -1126,7 +1148,7 @@ class DefaultLibrarySyncRepositoryTest {
 
             assertThat(first.await()).isInstanceOf(MqResult.Failure::class.java)
             assertThat(source.calls.drop(2))
-                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500")
+                .containsExactly("movies@0", "series@0", "seasons@0", "episodes@0", "episodes@500", "collections@0")
                 .inOrder()
             assertThat(count("track")).isEqualTo(0)
             assertThat(count("video")).isEqualTo(601)

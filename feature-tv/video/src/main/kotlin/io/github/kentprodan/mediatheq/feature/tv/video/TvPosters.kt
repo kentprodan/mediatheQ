@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoCollection
 import io.github.kentprodan.mediatheq.core.ui.tv.Letter
 import io.github.kentprodan.mediatheq.core.ui.tv.alphabetIndex
 import kotlin.random.Random
@@ -30,8 +31,8 @@ data class TvPoster(
     val rating: Double? = null,
 )
 
-/** The sorts of a TV video grid; [Runtime] only for movies. */
-enum class TvVideoSort { Name, DateAdded, Year, Rating, Runtime, Random }
+/** The sorts of a TV video grid; [Collection] keeps a collection's own order. */
+enum class TvVideoSort { Collection, Name, DateAdded, Year, Rating, Runtime, Random }
 
 enum class TvWatched { All, Unwatched, Watched }
 
@@ -84,6 +85,8 @@ fun arrange(
     val sorted =
         when (sort) {
             // The music's name order (case and accents ignored), which the A-Z strip expects; SQLite's is bytewise.
+            TvVideoSort.Collection -> kept
+
             TvVideoSort.Name -> kept.sortedWith(compareBy(nameComparator()) { it.sortName })
 
             TvVideoSort.DateAdded -> kept.sortedWith(newestFirst<Instant> { it.dateAdded })
@@ -140,6 +143,9 @@ internal fun Video.toPoster() =
         runtime = duration.takeIf { it.isPositive() },
         rating = communityRating,
     )
+
+internal fun VideoCollection.toPoster() =
+    TvPoster(id = id, title = title, sortName = sortName, year = year, artwork = artwork, dateAdded = dateAdded)
 
 internal fun Series.toPoster() =
     TvPoster(

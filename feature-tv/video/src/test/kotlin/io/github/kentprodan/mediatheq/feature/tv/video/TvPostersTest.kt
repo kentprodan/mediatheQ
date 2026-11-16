@@ -83,6 +83,13 @@ class TvPostersTest {
     }
 
     @Test
+    fun `collection order keeps the given order`() {
+        assertThat(
+            arrange(all.reversed(), TvVideoSort.Collection, TvVideoFilter(), 0).posters,
+        ).isEqualTo(all.reversed())
+    }
+
+    @Test
     fun `random keeps its order for the same seed`() {
         assertThat(titles(TvVideoSort.Random, seed = 7)).isEqualTo(titles(TvVideoSort.Random, seed = 7))
         assertThat(titles(TvVideoSort.Random, seed = 7)).containsExactlyElementsIn(all.map { it.title })

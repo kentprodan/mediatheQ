@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoCollection
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
 import io.github.kentprodan.mediatheq.core.server.PlaybackSource
@@ -69,6 +70,14 @@ interface VideoRepository {
     ): MqResult<VideoSearchResults>
 
     fun series(id: MediaId): Flow<Series?>
+
+    /** Collections of movies with something in the library (#426), by name; offline those with a download. */
+    fun collections(): Flow<List<VideoCollection>>
+
+    fun collection(id: MediaId): Flow<VideoCollection?>
+
+    /** The movies of collection [id] in its order. */
+    fun collectionMovies(id: MediaId): Flow<List<Video>>
 
     fun seasons(seriesId: MediaId): Flow<List<Season>>
 
@@ -179,6 +188,15 @@ class DefaultVideoRepository
         }
 
         override fun series(id: MediaId): Flow<Series?> = dao.seriesById(id.itemId).map { it?.toDomain() }
+
+        override fun collections(): Flow<List<VideoCollection>> =
+            offlineAware(dao::collections).map { rows -> rows.map { it.toDomain() } }
+
+        override fun collection(id: MediaId): Flow<VideoCollection?> = dao.collection(id.itemId).map { it?.toDomain() }
+
+        override fun collectionMovies(id: MediaId): Flow<List<Video>> =
+            offlineAware { all, downloaded -> dao.collectionMovies(id.itemId, all, downloaded) }
+                .map { rows -> rows.map { it.toDomain() } }
 
         override fun seasons(seriesId: MediaId): Flow<List<Season>> =
             offlineAware { all, downloaded -> dao.seasons(seriesId.itemId, all, downloaded) }

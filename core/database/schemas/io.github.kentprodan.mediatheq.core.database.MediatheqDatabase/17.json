@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 17,
-    "identityHash": "3f10750001a88dc94ede812874d17307",
+    "identityHash": "ef783aa98be7b2bc1c9680306df6d56f",
     "entities": [
       {
         "tableName": "artist",
@@ -3095,11 +3095,263 @@
             "stream_index"
           ]
         }
+      },
+      {
+        "tableName": "video_collection",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `id` TEXT NOT NULL, `title` TEXT NOT NULL, `sort_name` TEXT NOT NULL, `overview` TEXT, `year` INTEGER, `date_added` INTEGER, `image_item_id` TEXT, `image_tag` TEXT, `blur_hash` TEXT, `backdrop_image_item_id` TEXT, `backdrop_image_tag` TEXT, `backdrop_blur_hash` TEXT, PRIMARY KEY(`server_id`, `id`))",
+        "fields": [
+          {
+            "fieldPath": "serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortName",
+            "columnName": "sort_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "overview",
+            "columnName": "overview",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "year",
+            "columnName": "year",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dateAddedMillis",
+            "columnName": "date_added",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "image.itemId",
+            "columnName": "image_item_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "image.tag",
+            "columnName": "image_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "image.blurHash",
+            "columnName": "blur_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "backdrop.itemId",
+            "columnName": "backdrop_image_item_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "backdrop.tag",
+            "columnName": "backdrop_image_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "backdrop.blurHash",
+            "columnName": "backdrop_blur_hash",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "video_collection_item",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `collection_id` TEXT NOT NULL, `item_id` TEXT NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`server_id`, `collection_id`, `item_id`))",
+        "fields": [
+          {
+            "fieldPath": "serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "collectionId",
+            "columnName": "collection_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "itemId",
+            "columnName": "item_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "collection_id",
+            "item_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_video_collection_item_server_id_item_id",
+            "unique": false,
+            "columnNames": [
+              "server_id",
+              "item_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_video_collection_item_server_id_item_id` ON `${TABLE_NAME}` (`server_id`, `item_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "video_collection_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `id` TEXT NOT NULL, `title` TEXT NOT NULL, `sort_name` TEXT NOT NULL, `overview` TEXT, `year` INTEGER, `date_added` INTEGER, `image_item_id` TEXT, `image_tag` TEXT, `blur_hash` TEXT, `backdrop_image_item_id` TEXT, `backdrop_image_tag` TEXT, `backdrop_blur_hash` TEXT, PRIMARY KEY(`server_id`, `id`))",
+        "fields": [
+          {
+            "fieldPath": "row.serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.sortName",
+            "columnName": "sort_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.overview",
+            "columnName": "overview",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.year",
+            "columnName": "year",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.dateAddedMillis",
+            "columnName": "date_added",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "row.image.itemId",
+            "columnName": "image_item_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.image.tag",
+            "columnName": "image_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.image.blurHash",
+            "columnName": "blur_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.backdrop.itemId",
+            "columnName": "backdrop_image_item_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.backdrop.tag",
+            "columnName": "backdrop_image_tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "row.backdrop.blurHash",
+            "columnName": "backdrop_blur_hash",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "video_collection_item_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`server_id` TEXT NOT NULL, `collection_id` TEXT NOT NULL, `item_id` TEXT NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`server_id`, `collection_id`, `item_id`))",
+        "fields": [
+          {
+            "fieldPath": "row.serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.collectionId",
+            "columnName": "collection_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.itemId",
+            "columnName": "item_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "row.position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "server_id",
+            "collection_id",
+            "item_id"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3f10750001a88dc94ede812874d17307')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ef783aa98be7b2bc1c9680306df6d56f')"
     ]
   }
 }

@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoCollection
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,6 +60,23 @@ class FakeVideoRepository(
     override fun video(id: MediaId): Flow<Video?> = movies.map { all -> all.firstOrNull { it.id == id } }
 
     override fun series(id: MediaId): Flow<Series?> = series.map { all -> all.firstOrNull { it.id == id } }
+
+    val collections = MutableStateFlow<List<VideoCollection>>(emptyList())
+
+    /** Collection id -> its movies, in order. */
+    val collectionMovies = MutableStateFlow<Map<MediaId, List<Video>>>(emptyMap())
+
+    override fun collections(): Flow<List<VideoCollection>> = collections
+
+    override fun collection(id: MediaId): Flow<VideoCollection?> =
+        collections.map { all ->
+            all.firstOrNull {
+                it.id ==
+                    id
+            }
+        }
+
+    override fun collectionMovies(id: MediaId): Flow<List<Video>> = collectionMovies.map { it[id].orEmpty() }
 
     /** What [search] answers; [searches] records each query. */
     var searchResult: MqResult<VideoSearchResults> = MqResult.Success(VideoSearchResults())

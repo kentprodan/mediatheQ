@@ -18,6 +18,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.SyncStateEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionItemStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
 
@@ -81,6 +83,36 @@ interface SyncDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun stageSeasons(rows: List<SeasonStaging>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun stageCollections(rows: List<VideoCollectionStaging>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun stageCollectionItems(rows: List<VideoCollectionItemStaging>)
+
+    @Query("SELECT id FROM video_collection_staging ORDER BY sort_name, id")
+    suspend fun stagedCollectionIds(): List<String>
+
+    @Query("SELECT COUNT(*) FROM video_collection_staging")
+    suspend fun stagedCollectionCount(): Int
+
+    @Query("DELETE FROM video_collection_staging")
+    suspend fun clearCollectionStaging()
+
+    @Query("DELETE FROM video_collection_item_staging")
+    suspend fun clearCollectionItemStaging()
+
+    @Query("DELETE FROM video_collection")
+    suspend fun replaceCollections()
+
+    @Query("INSERT INTO video_collection SELECT * FROM video_collection_staging")
+    suspend fun copyCollections()
+
+    @Query("DELETE FROM video_collection_item")
+    suspend fun replaceCollectionItems()
+
+    @Query("INSERT INTO video_collection_item SELECT * FROM video_collection_item_staging")
+    suspend fun copyCollectionItems()
 
     @Query("SELECT id FROM playlist_staging ORDER BY sort_name, id")
     suspend fun stagedPlaylistIds(): List<String>
@@ -300,6 +332,8 @@ interface SyncDao {
         clearVideoStreamStaging()
         clearSeriesStaging()
         clearSeasonStaging()
+        clearCollectionStaging()
+        clearCollectionItemStaging()
     }
 
     @Transaction
@@ -308,6 +342,8 @@ interface SyncDao {
         replaceVideoStreams()
         replaceSeries()
         replaceSeasons()
+        replaceCollections()
+        replaceCollectionItems()
     }
 
     @Transaction
@@ -316,6 +352,8 @@ interface SyncDao {
         copyVideoStreams()
         copySeries()
         copySeasons()
+        copyCollections()
+        copyCollectionItems()
     }
 
     @Query("DELETE FROM video")
