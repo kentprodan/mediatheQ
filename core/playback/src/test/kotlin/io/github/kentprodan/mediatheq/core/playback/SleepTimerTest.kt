@@ -35,6 +35,7 @@ class SleepTimerTest {
     // 2026-11-16 22:00 UTC.
     private var now = Instant.parse("2026-11-16T22:00:00Z")
     private val alarms = mutableListOf<Pair<Instant, () -> Unit>>()
+    private val delays = mutableListOf<kotlin.time.Duration>()
     private var stored: String? = null
     private val timer = SleepTimer({ stored }, { stored = it }, now = { now }, zone = { ZoneId.of("UTC") })
     private var detach: (() -> Unit)? = null
@@ -48,6 +49,7 @@ class SleepTimerTest {
     private fun attach() {
         detach =
             timer.attach(player, pauseAtEnd = { player.pauseAtEndOfMediaItems = it }) { delay, block ->
+                delays += delay.milliseconds
                 val alarm = (now + delay.milliseconds) to block
                 alarms += alarm
                 ({ alarms.remove(alarm) })
@@ -167,5 +169,55 @@ class SleepTimerTest {
         assertThat(nextOccurrence(now, SleepTimerChoice.At(23, 30), utc)).isEqualTo(now + 1.5.hours)
         assertThat(nextOccurrence(now, SleepTimerChoice.At(22, 0), utc)).isEqualTo(now + 24.hours)
         assertThat(nextOccurrence(now, SleepTimerChoice.At(6, 0), utc)).isEqualTo(now + 8.hours)
+    }
+
+    @Test
+    fun `playing again measures the time left from the clock, not from a delay that slept`() {
+        attach()
+        play(1)
+        player.pause()
+        timer.start(SleepTimerChoice.Minutes(30))
+        assertThat(delays.last()).isEqualTo(30.minutes)
+
+        // The phone slept 20 minutes while paused: a handler delay would still wait 30.
+        now += 20.minutes
+        player.play()
+        advance(player).untilPendingCommandsAreFullyHandled()
+
+        assertThat(delays.last()).isEqualTo(10.minutes)
+    }
+
+    @Test
+    fun `a new queue is not a track played`() {
+        attach()
+        play(3)
+        timer.start(SleepTimerChoice.Tracks(2))
+
+        play(2)
+
+        assertThat(timer.state.value?.tracksLeft).isEqualTo(2)
+    }
+
+    @Test
+    fun `the queue running out first ends a track timer`() {
+        attach()
+        play(1)
+        timer.start(SleepTimerChoice.Tracks(5))
+
+        advance(player).untilState(Player.STATE_ENDED)
+
+        assertThat(timer.state.value).isNull()
+    }
+
+    @Test
+    fun `the service stopping ends the timer`() {
+        attach()
+        timer.start(SleepTimerChoice.Minutes(15))
+
+        detach!!.invoke()
+        detach = null
+
+        assertThat(timer.state.value).isNull()
+        assertThat(alarms).isEmpty()
     }
 }
