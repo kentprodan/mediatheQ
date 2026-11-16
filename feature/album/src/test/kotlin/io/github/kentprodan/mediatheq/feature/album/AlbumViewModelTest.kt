@@ -1,6 +1,8 @@
 package io.github.kentprodan.mediatheq.feature.album
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.MoreAlbumsSort
@@ -79,7 +81,18 @@ class AlbumViewModelTest {
 
     private fun TestScope.viewModel(): AlbumViewModel {
         val viewModel =
-            AlbumViewModel(albumId, library, playback, trackTaps, commands, userData, downloads, preferences, resumes)
+            AlbumViewModel(
+                albumId,
+                library,
+                playback,
+                trackTaps,
+                commands,
+                userData,
+                downloads,
+                preferences,
+                resumes,
+                similar,
+            )
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -97,6 +110,7 @@ class AlbumViewModelTest {
                 downloads,
                 preferences,
                 resumes,
+                similar,
             ).uiState.value,
         ).isEqualTo(AlbumUiState.Loading)
     }
@@ -345,6 +359,23 @@ class AlbumViewModelTest {
 
             resumes.resumes.value = mapOf(albumId to ResumePoint(disc2[0].id, 3.minutes))
             assertThat((viewModel.uiState.value as AlbumUiState.Content).resume).isNull()
+        }
+
+    @Test
+    fun `more like this shows the server's similar albums, and nothing when it fails`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val like = Album(MediaId(ServerId("s"), "like"), "Alike", emptyList())
+            similar.similarAnswer = MqResult.Success(listOf(like))
+
+            assertThat(content().similarAlbums).containsExactly(like)
+        }
+
+    @Test
+    fun `more like this stays empty when the server is out of reach`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            similar.similarAnswer = MqResult.Failure(MqError.Network)
+
+            assertThat(content().similarAlbums).isEmpty()
         }
 
     @Test

@@ -208,6 +208,15 @@ fun AlbumScreen(
                                 }
                             }
                         }
+                        if (state.similarAlbums.isNotEmpty()) {
+                            item(key = "similar") {
+                                AlbumCardRow(
+                                    stringResource(R.string.album_more_like_this),
+                                    state.similarAlbums,
+                                    onOpenAlbum,
+                                )
+                            }
+                        }
                     }
                 }
             }

@@ -551,6 +551,20 @@ class JellyfinLibrarySourceTest {
                 ).inOrder()
         }
 
+    @Test
+    fun `similar albums ask the album route for ids`() =
+        runTest {
+            enqueueFixture("items_instant_mix/mix.json")
+
+            val ids = (source.similarAlbums(server, MediaId(serverId, "al1"), 12) as MqResult.Success).value
+
+            val request = mockServer.takeRequest()
+            assertThat(request.url.encodedPath).isEqualTo("/Albums/al1/Similar")
+            assertThat(request.url.queryParameter("limit")).isEqualTo("12")
+            assertThat(request.url.queryParameter("userId")).isNotNull()
+            assertThat(ids).hasSize(2)
+        }
+
     private fun enqueueFixture(path: String) =
         mockServer.enqueue(MockResponse(body = javaClass.getResource("/jellyfin/$path")!!.readText()))
 

@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
+import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -91,5 +92,20 @@ class DefaultSimilarRepositoryTest {
             val mix = (repository.instantMix(id("x")) as MqResult.Success).value
 
             assertThat(mix.map { it.id.itemId }).containsExactly("downloaded")
+        }
+
+    @Test
+    fun `similar albums keep the library's albums in the server's order, never the album itself`() =
+        runTest {
+            signIn()
+            val a = Album(id("a"), "A", emptyList())
+            val b = Album(id("b"), "B", emptyList())
+            library.albums.value = listOf(a, b)
+            source.similarAnswer = MqResult.Success(listOf(id("b"), id("self"), id("gone"), id("a")))
+
+            val albums = (repository.similarAlbums(id("self")) as MqResult.Success).value
+
+            assertThat(albums).containsExactly(b, a).inOrder()
+            assertThat(source.calls).contains("similar:self@12")
         }
 }

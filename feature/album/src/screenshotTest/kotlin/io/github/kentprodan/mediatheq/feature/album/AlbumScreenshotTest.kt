@@ -190,6 +190,16 @@ fun AlbumSectionsScreenshot() =
         }
     }
 
+/** More like this (#380): the server's similar albums, last on the page. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun AlbumMoreLikeThisScreenshot() =
+    MediatheqTheme {
+        val like = List(3) { i -> album.copy(id = MediaId(album.id.serverId, "like-$i"), title = "Alike ${i + 1}") }
+        Surface { AlbumCardRow("More like this", like) {} }
+    }
+
 @PreviewTest
 @MqPreviews
 @Composable

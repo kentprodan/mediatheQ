@@ -40,6 +40,8 @@ sealed interface AlbumUiState {
         val moreAlbums: List<Album> = emptyList(),
         val genres: List<String> = emptyList(),
         val labels: List<RecordLabel> = emptyList(),
+        /** More like this (#380): albums of the library the server finds similar, last on the page. */
+        val similarAlbums: List<Album> = emptyList(),
     ) : AlbumUiState {
         /** All tracks in play order, the queue Play and Shuffle start. */
         val tracks: List<Track> get() = discs.flatMap { it.tracks }

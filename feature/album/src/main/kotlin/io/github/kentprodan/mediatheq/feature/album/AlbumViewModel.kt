@@ -6,18 +6,22 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.MoreAlbumsSort
 import io.github.kentprodan.mediatheq.core.data.ResumeRepository
+import io.github.kentprodan.mediatheq.core.data.SimilarRepository
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.resumeTarget
 import io.github.kentprodan.mediatheq.core.data.sortedFor
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RecordLabel
+import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.TrackCommands
@@ -31,6 +35,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -51,6 +56,7 @@ class AlbumViewModel
         private val downloads: DownloadRepository,
         preferences: LibraryPreferencesRepository,
         private val resumes: ResumeRepository,
+        private val similar: SimilarRepository,
     ) : ViewModel() {
         private val selection = MutableStateFlow(ListSelection<MediaId>())
 
@@ -73,6 +79,13 @@ class AlbumViewModel
                 pagePreferences.map { it.second.moreAlbumsSort }.distinctUntilChanged(),
             ) { albums, sort -> albums.filter { it.id != albumId }.sortedFor(sort) }
 
+        // More like this (#380): asked once, after the page; nothing shows when the server is out of reach.
+        private val similarAlbums =
+            flow {
+                emit(emptyList())
+                (similar.similarAlbums(albumId) as? MqResult.Success)?.let { emit(it.value) }
+            }
+
         private val about =
             combine(libraryRepository.albumGenres(albumId), libraryRepository.albumLabels(albumId)) { genres, labels ->
                 genres to labels
@@ -84,8 +97,10 @@ class AlbumViewModel
                 // Only the track id: position ticks and play/pause must not rebuild the list.
                 playback.state.map { it.item?.id }.distinctUntilChanged(),
                 pagePreferences,
-                combine(moreAlbums, about, resumes.resume(albumId), ::Triple),
-            ) { (album, tracks), currentTrackId, (ratingMode, albumPage), (more, about, resume) ->
+                combine(moreAlbums, about, resumes.resume(albumId), similarAlbums) { more, about, resume, like ->
+                    Extras(more, about, resume, like)
+                },
+            ) { (album, tracks), currentTrackId, (ratingMode, albumPage), (more, about, resume, like) ->
                 if (album == null) {
                     AlbumUiState.NotFound
                 } else {
@@ -103,6 +118,7 @@ class AlbumViewModel
                         moreAlbums = more,
                         genres = about.first,
                         labels = about.second,
+                        similarAlbums = like,
                     )
                 }
             }
@@ -232,3 +248,11 @@ class AlbumViewModel
             fun create(albumId: MediaId): AlbumViewModel
         }
     }
+
+/** What the album page shows beside its tracks. */
+private data class Extras(
+    val more: List<Album>,
+    val about: Pair<List<String>, List<RecordLabel>>,
+    val resume: ResumePoint?,
+    val like: List<Album>,
+)

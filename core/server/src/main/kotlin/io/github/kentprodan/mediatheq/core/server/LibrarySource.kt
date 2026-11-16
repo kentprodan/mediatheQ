@@ -91,6 +91,13 @@ interface LibrarySource {
         limit: Int,
     ): MqResult<List<MediaId>>
 
+    /** Albums like [albumId] (#380), at most [limit], ids only, in the server's order. */
+    suspend fun similarAlbums(
+        server: SignedInServer,
+        albumId: MediaId,
+        limit: Int,
+    ): MqResult<List<MediaId>>
+
     /** A video's chapters and trickplay previews (#277): one item query with `Chapters,Trickplay`. */
     suspend fun playerExtras(
         server: SignedInServer,

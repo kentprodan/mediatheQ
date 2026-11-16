@@ -62,9 +62,17 @@ internal fun MoreFromArtist(
     artistName: String,
     albums: List<Album>,
     onOpenAlbum: (MediaId) -> Unit,
+) = AlbumCardRow(stringResource(R.string.album_more_from, artistName), albums, onOpenAlbum)
+
+/** A section [title] over a row of album cards (More from, More like this). */
+@Composable
+internal fun AlbumCardRow(
+    title: String,
+    albums: List<Album>,
+    onOpenAlbum: (MediaId) -> Unit,
 ) {
     Column {
-        SectionTitle(stringResource(R.string.album_more_from, artistName))
+        SectionTitle(title)
         LazyRow(
             contentPadding = PaddingValues(horizontal = MediatheqSpacing.l),
             horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
