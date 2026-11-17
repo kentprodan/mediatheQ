@@ -6,6 +6,8 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumStaging
+import io.github.kentprodan.mediatheq.core.database.entity.SeriesEntity
+import io.github.kentprodan.mediatheq.core.database.entity.SeriesStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
@@ -599,6 +601,20 @@ class DefaultUserDataRepositoryTest {
             assertThat(stored(episode)?.played).isTrue()
             assertThat(position()).isEqualTo(0)
             assertThat(sink.calls).containsExactly("played:e1:true")
+        }
+
+    @Test
+    fun `a series marked watched marks its episodes at once and clears their resume points`() =
+        runTest(dispatcher) {
+            // Staged with the episode: a swap replaces the whole video library.
+            database.syncDao().stageSeries(listOf(SeriesStaging(SeriesEntity("s", "sr1", "Show", "show"))))
+            storeEpisode()
+
+            assertThat(repository().setPlayed(MediaId(server, "sr1"), true)).isEqualTo(MqResult.Success(Unit))
+
+            assertThat(stored(episode)?.played).isTrue()
+            assertThat(position()).isEqualTo(0)
+            assertThat(sink.calls).containsExactly("played:sr1:true")
         }
 
     @Test

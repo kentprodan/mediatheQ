@@ -37,6 +37,8 @@ data class VideoPreferences(
     val skipIntro: SkipMode = SkipMode.Button,
     val skipCredits: SkipMode = SkipMode.Button,
     val skipRecapPreview: SkipMode = SkipMode.Button,
+    /** No spoilers (#428, #440): an unwatched episode shows no overview. */
+    val hideUnwatchedOverviews: Boolean = false,
 ) {
     /** The setting for a segment of [type]. */
     fun skipFor(type: SegmentType): SkipMode =
@@ -102,6 +104,7 @@ internal fun StoredVideoPreferences.toPreferences(): VideoPreferences {
         skipIntro = enumOrNull<SkipMode>(skipIntro) ?: defaults.skipIntro,
         skipCredits = enumOrNull<SkipMode>(skipCredits) ?: defaults.skipCredits,
         skipRecapPreview = enumOrNull<SkipMode>(skipRecapPreview) ?: defaults.skipRecapPreview,
+        hideUnwatchedOverviews = hideUnwatchedOverviews ?: defaults.hideUnwatchedOverviews,
     )
 }
 
@@ -123,5 +126,6 @@ internal fun VideoPreferences.toStored(): StoredVideoPreferences {
         skipIntro = skipIntro.unlessDefault(defaults.skipIntro)?.name,
         skipCredits = skipCredits.unlessDefault(defaults.skipCredits)?.name,
         skipRecapPreview = skipRecapPreview.unlessDefault(defaults.skipRecapPreview)?.name,
+        hideUnwatchedOverviews = hideUnwatchedOverviews.unlessDefault(defaults.hideUnwatchedOverviews),
     )
 }

@@ -48,4 +48,52 @@
     <string name="tv_video_error_title">Couldn\'t read the library</string>
     <string name="tv_video_error_body">Try syncing again.</string>
     <string name="tv_video_sync_now">Sync now</string>
+    <string name="tv_movie_play">Play</string>
+    <string name="tv_movie_resume">Resume from %s</string>
+    <string name="tv_movie_from_start">From the start</string>
+    <string name="tv_movie_favorite">Favorite</string>
+    <string name="tv_movie_favorite_remove">Unfavorite</string>
+    <string name="tv_movie_watched">Mark watched</string>
+    <string name="tv_movie_unwatched">Mark unwatched</string>
+    <string name="tv_movie_tracks">Audio &amp; subtitles</string>
+    <string name="tv_movie_audio">Audio</string>
+    <string name="tv_movie_subtitles">Subtitles</string>
+    <string name="tv_movie_subtitles_off">Off</string>
+    <string name="tv_movie_track">Track %d</string>
+    <string name="tv_movie_track_current">current</string>
+    <!-- 1 h 40 min -->
+    <string name="tv_movie_runtime_hours">%1$d h %2$d min</string>
+    <string name="tv_movie_runtime_minutes">%d min</string>
+    <string name="tv_movie_missing">Movie not found</string>
+    <string name="tv_movie_missing_body">It may have been removed from the server.</string>
+    <string name="tv_series_missing">Series not found</string>
+    <!-- Play S2 · E5 -->
+    <string name="tv_series_play">Play %s</string>
+    <string name="tv_series_resume">Resume %s</string>
+    <string name="tv_series_more">More</string>
+    <string name="tv_series_specials">Specials</string>
+    <string name="tv_series_season_watched">Mark %s watched</string>
+    <string name="tv_series_season_unwatched">Mark %s unwatched</string>
+    <string name="tv_series_series_watched">Mark the whole series watched</string>
+    <string name="tv_series_series_unwatched">Mark the whole series unwatched</string>
+    <string name="tv_series_hide_overviews">Hide overviews of unwatched episodes</string>
+    <string name="tv_series_show_overviews">Show overviews of unwatched episodes</string>
+    <string name="tv_series_overview_hidden">Overview hidden until you watch it.</string>
+    <string name="tv_series_confirm_season_watched">Mark every episode of %s watched?</string>
+    <string name="tv_series_confirm_season_unwatched">Mark every episode of %s unwatched?</string>
+    <string name="tv_series_confirm_series_watched">Mark every episode of the series watched?</string>
+    <string name="tv_series_confirm_series_unwatched">Mark every episode of the series unwatched?</string>
+    <string name="tv_series_confirm_yes">Yes</string>
+    <string name="tv_series_confirm_cancel">Cancel</string>
+    <string name="tv_player_play">Play</string>
+    <string name="tv_player_pause">Pause</string>
+    <string name="tv_player_back_10">−10 s</string>
+    <string name="tv_player_forward_30">+30 s</string>
+    <string name="tv_player_next">Next episode</string>
+    <!-- 1:57:12 · ends at 22:41 -->
+    <string name="tv_player_ends_at">%1$s · ends at %2$s</string>
+    <string name="tv_player_next_in">Next episode in %d s</string>
+    <string name="tv_player_play_now">Play now</string>
+    <string name="tv_player_error">This video did not play</string>
+    <string name="tv_player_error_body">The server or the network stopped answering. Try again from the page.</string>
 </resources>

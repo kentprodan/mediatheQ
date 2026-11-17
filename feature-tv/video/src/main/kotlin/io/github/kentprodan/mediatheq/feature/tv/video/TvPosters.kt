@@ -61,9 +61,9 @@ data class TvArranged(
 )
 
 /**
- * Filters and sorts [posters]. Name ignores case and accents, like the music lists; the highest come first for
- * Date added, Year and Rating, the longest for Runtime, items without the value last. Random shuffles with [seed], so the
- * order stays put until Random is chosen again.
+ * Filters and sorts [posters]. Name ignores case and accents, like the music lists; the highest come first for Date
+ * added, Year and Rating, the longest for Runtime, items without the value last. Random shuffles with [seed], so the order
+ * stays put until Random is chosen again.
  */
 fun arrange(
     posters: List<TvPoster>,

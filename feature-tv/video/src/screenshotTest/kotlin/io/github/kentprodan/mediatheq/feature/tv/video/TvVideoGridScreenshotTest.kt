@@ -122,3 +122,79 @@ fun TvCollectionsScreenshot() {
         ),
     )
 }
+
+/** A started movie's page: Resume, From the start, the facts and the format. No backdrop: layoutlib loads no image. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvMovieScreenshot() =
+    MediatheqTvTheme {
+        Surface {
+            TvMovieScreen(
+                TvMovieUiState.Content(
+                    io.github.kentprodan.mediatheq.core.model.Video(
+                        MediaId(ServerId("s"), "m1"),
+                        io.github.kentprodan.mediatheq.core.model.VideoKind.Movie,
+                        "Blade Runner",
+                        overview = "A blade runner must pursue and terminate four replicants.",
+                        year = 1982,
+                        duration = kotlin.time.Duration.parse("1h57m"),
+                        genres = listOf("Science Fiction", "Drama"),
+                        officialRating = "R",
+                        communityRating = 7.9,
+                    ),
+                    format = "4K · HEVC · HDR10 · 5.1",
+                    resumeAt = kotlin.time.Duration.parse("42m10s"),
+                ),
+                {},
+                { _, _ -> },
+            )
+        }
+    }
+
+/** A series page: Resume S2 · E1, season tabs with Specials last, the episodes; no images in layoutlib. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSeriesPageScreenshot() {
+    fun id(value: String) = MediaId(ServerId("s"), value)
+    val show =
+        io.github.kentprodan.mediatheq.core.model.Series(
+            id("sr"),
+            "Severance",
+            year = 2022,
+            communityRating = 8.7,
+        )
+    val one =
+        io.github.kentprodan.mediatheq.core.model
+            .Season(id("s1"), show.id, "Season 1", 1)
+    val two =
+        io.github.kentprodan.mediatheq.core.model
+            .Season(id("s2"), show.id, "Season 2", 2)
+    val specials =
+        io.github.kentprodan.mediatheq.core.model
+            .Season(id("s0"), show.id, "Specials", 0)
+    val episodes =
+        (1..4).map {
+            io.github.kentprodan.mediatheq.core.model.Video(
+                id("e$it"),
+                io.github.kentprodan.mediatheq.core.model.VideoKind.Episode,
+                "Episode $it",
+                duration = kotlin.time.Duration.parse("52m"),
+                seasonNumber = 2,
+                episodeNumber = it,
+                userData =
+                    io.github.kentprodan.mediatheq.core.model
+                        .UserData(played = it == 1),
+            )
+        }
+    MediatheqTvTheme {
+        Surface {
+            TvSeriesPageScreen(
+                TvSeriesPageUiState.Content(show, listOf(one, two, specials), two, episodes, episodes[1], episodes[0]),
+                {},
+                { _, _ -> },
+            )
+        }
+    }
+}

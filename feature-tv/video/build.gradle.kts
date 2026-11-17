@@ -7,3 +7,8 @@ plugins {
 android {
     namespace = "io.github.kentprodan.mediatheq.feature.tv.video"
 }
+
+dependencies {
+    // Back in the player hides the bar first (BackHandler).
+    implementation(libs.androidx.activity.compose)
+}

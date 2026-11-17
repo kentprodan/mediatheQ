@@ -1,16 +1,9 @@
-package io.github.kentprodan.mediatheq.feature.video
+package io.github.kentprodan.mediatheq.core.data
 
-import io.github.kentprodan.mediatheq.core.data.TrackChoiceRepository
-import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
-import io.github.kentprodan.mediatheq.core.data.VideoRepository
-import io.github.kentprodan.mediatheq.core.data.resolveChoice
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.ResolvedTracks
-import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.TrackChoice
 import io.github.kentprodan.mediatheq.core.model.Video
-import io.github.kentprodan.mediatheq.core.ui.TrackOption
-import io.github.kentprodan.mediatheq.core.ui.TracksSheetState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -28,7 +21,7 @@ data class VideoTracks(
 
 /**
  * Reads and saves the tracks chosen for a video (ADR 0050, #274), shared by the movie page, the series page and the
- * player: the choice resolves as the player's will (item, then season, then the defaults).
+ * player, on the phone and the TV (#427): the choice resolves as the player's will (item, then season, then the defaults).
  */
 class TrackPicker
     @Inject
@@ -81,26 +74,3 @@ class TrackPicker
             }
         }
     }
-
-/** The sheet's rows for [tracks]: audio streams, then Off and the subtitles; labels as the server names them. */
-internal fun VideoTracks.sheet(
-    offLabel: String,
-    /** "Track %1${'$'}d" for a stream without a name. */
-    trackFormat: String,
-): TracksSheetState {
-    fun MediaStreamInfo.label() = displayTitle ?: title ?: language ?: trackFormat.format(index)
-    val audio = streams.filter { it.type == StreamType.Audio }
-    val subtitles = streams.filter { it.type == StreamType.Subtitle }
-    return TracksSheetState(
-        // No choice: the server plays its default audio stream.
-        audio =
-            (resolved.audioIndex ?: audio.firstOrNull { it.isDefault }?.index ?: audio.firstOrNull()?.index)
-                .let { playing -> audio.map { TrackOption(it.index, it.label(), it.index == playing) } },
-        subtitles =
-            listOf(TrackOption(null, offLabel, resolved.subtitleIndex == null)) +
-                subtitles.map {
-                    TrackOption(it.index, it.label(), it.index == resolved.subtitleIndex)
-                },
-        wholeSeason = wholeSeason,
-    )
-}
