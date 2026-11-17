@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
+import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
@@ -27,7 +29,13 @@ class TvShellViewModel
         private val log: AppLog,
         appMode: AppModeRepository,
         remoteControl: RemoteControl? = null,
+        preferences: LibraryPreferencesRepository? = null,
     ) : ViewModel() {
+        /** TV Settings -> Transitions (#444). */
+        val simpleTransitions: StateFlow<Boolean> =
+            (preferences?.preferences?.map { it.navigation.simpleTransitions } ?: flowOf(false))
+                .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
         /** A video another client started here (#389): the shell opens the player on it. */
         val remoteVideo: Flow<MediaId> = remoteControl?.videoStarted ?: emptyFlow()
 
