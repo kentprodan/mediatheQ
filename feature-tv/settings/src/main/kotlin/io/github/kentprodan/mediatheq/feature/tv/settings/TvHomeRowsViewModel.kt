@@ -5,11 +5,19 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.data.VideoSort
 import io.github.kentprodan.mediatheq.core.model.HomeSection
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -20,7 +28,18 @@ data class TvHomeRow(
     val shown: Boolean,
 )
 
+/** Settings -> Home rows: the sections, then the library's genres (#431) with whether each has a row. */
+data class TvHomeRowsState(
+    val rows: List<TvHomeRow>,
+    val genres: List<Pair<String, Boolean>> = emptyList(),
+)
+
 sealed interface TvHomeRowsAction {
+    /** A genre's row on or off; a new one goes last. */
+    data class ToggleGenre(
+        val genre: String,
+    ) : TvHomeRowsAction
+
     data class Toggle(
         val section: HomeSection,
     ) : TvHomeRowsAction
@@ -35,12 +54,14 @@ sealed interface TvHomeRowsAction {
  * Settings -> Home rows on TV (#431): the Home sections of the TV's mode (music and video together) in their order,
  * each shown or hidden; the same stored order and hidden set as the phone's Home page settings.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TvHomeRowsViewModel
     @Inject
     constructor(
         private val preferences: LibraryPreferencesRepository,
         appMode: AppModeRepository,
+        videos: VideoRepository? = null,
     ) : ViewModel() {
         private val visible =
             combine(preferences.preferences, appMode.mode) { prefs, mode ->
@@ -49,9 +70,27 @@ class TvHomeRowsViewModel
                     .map { TvHomeRow(it, it !in prefs.home.hidden) }
             }
 
+        /** The library's genres, the most common first; none without video. */
+        private val libraryGenres: Flow<List<String>> =
+            appMode.mode
+                .map { it.video }
+                .distinctUntilChanged()
+                .flatMapLatest { video ->
+                    if (!video || videos == null) {
+                        flowOf(emptyList())
+                    } else {
+                        combine(
+                            videos.movies(VideoSort.Name, unwatched = false),
+                            videos.series(VideoSort.Name, unwatched = false),
+                        ) { movies, series -> commonGenres(movies.map { it.genres } + series.map { it.genres }) }
+                    }
+                }
+
         /** `null` until the settings are read. */
-        val rows: StateFlow<List<TvHomeRow>?> =
-            visible.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        val state: StateFlow<TvHomeRowsState?> =
+            combine(visible, libraryGenres, preferences.homeGenres) { rows, genres, picked ->
+                TvHomeRowsState(rows, genres.map { it to (it in picked) })
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
         fun onAction(action: TvHomeRowsAction) {
             viewModelScope.launch {
@@ -61,6 +100,13 @@ class TvHomeRowsViewModel
                         val hidden = home.hidden
                         preferences.setHomeHidden(
                             if (action.section in hidden) hidden - action.section else hidden + action.section,
+                        )
+                    }
+
+                    is TvHomeRowsAction.ToggleGenre -> {
+                        val picked = preferences.homeGenres.first()
+                        preferences.setHomeGenres(
+                            if (action.genre in picked) picked - action.genre else picked + action.genre,
                         )
                     }
 
@@ -92,3 +138,13 @@ internal fun moveSection(
         this[b] = section
     }
 }
+
+/** Every genre of [genreLists], the most common first, then by name. */
+internal fun commonGenres(genreLists: List<List<String>>): List<String> =
+    genreLists
+        .flatten()
+        .groupingBy { it }
+        .eachCount()
+        .entries
+        .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+        .map { it.key }

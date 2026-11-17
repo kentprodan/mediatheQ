@@ -24,6 +24,13 @@ class TvHomeRowsTest {
     }
 
     @Test
+    fun `genres are listed the most common first, then by name`() {
+        assertThat(commonGenres(listOf(listOf("Drama", "Comedy"), listOf("Drama"), listOf("Action"))))
+            .containsExactly("Drama", "Action", "Comedy")
+            .inOrder()
+    }
+
+    @Test
     fun `at an end, or for a row not listed, nothing moves`() {
         assertThat(moveSection(order, order, Shortcuts, up = true)).isEqualTo(order)
         assertThat(moveSection(order, order, NextUp, up = false)).isEqualTo(order)

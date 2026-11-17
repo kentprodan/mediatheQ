@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
@@ -259,4 +260,17 @@ class TvHomeViewModelTest {
 
             assertThat(playback.plays.single().queue).containsExactlyElementsIn(tracks)
         }
+
+    @Test
+    fun `genre rows mix movies and series of each picked genre, newest first, in the order picked (#431)`() {
+        fun at(n: Long) = Instant.fromEpochSeconds(n)
+        val heat = Video(id("m1"), VideoKind.Movie, "Heat", genres = listOf("Crime", "Drama"), dateAdded = at(1))
+        val up = Video(id("m2"), VideoKind.Movie, "Up", genres = listOf("Animation"), dateAdded = at(3))
+        val wire = Series(id("s1"), "The Wire", genres = listOf("Crime"), dateAdded = at(2))
+
+        val rows = genreRows(listOf("Crime", "Western", "Animation"), listOf(heat, up), listOf(wire), 20)
+
+        assertThat(rows.map { it.genre }).containsExactly("Crime", "Animation").inOrder()
+        assertThat(rows.first().items.map { it.id }).containsExactly(wire.id, heat.id).inOrder()
+    }
 }

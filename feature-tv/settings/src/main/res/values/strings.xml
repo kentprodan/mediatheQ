@@ -58,4 +58,5 @@
     <string name="tv_settings_home_rows_hint">Select shows or hides a row. Hold Select to move it.</string>
     <string name="tv_settings_move_up">Move up</string>
     <string name="tv_settings_move_down">Move down</string>
+    <string name="tv_settings_genre_rows">Genre rows (this account)</string>
 </resources>

@@ -138,7 +138,7 @@ fun TvHomeScreen(
         }
 
         is TvHomeUiState.Content -> {
-            Rows(state.rows, onAction, navigation, modifier)
+            Rows(state.rows, state.genreRows, onAction, navigation, modifier)
         }
     }
 }
@@ -154,6 +154,7 @@ private data class Menu(
 @Composable
 private fun Rows(
     rows: List<TvHomeRow>,
+    genreRows: List<TvGenreRow>,
     onAction: (TvHomeAction) -> Unit,
     navigation: TvHomeNavigation,
     modifier: Modifier,
@@ -172,7 +173,9 @@ private fun Rows(
         Cards(focus, onAction, navigation, onVideoFocused = { focusedVideo = it }, openVideoMenu = { videoMenu = it }) {
             menu = it
         }
-    val hasVideo = rows.any { it.items is HomeItems.Videos }
+    val hasVideo = rows.any { it.items is HomeItems.Videos } || genreRows.isNotEmpty()
+    // Genre rows (#431) follow the last video row.
+    val split = rows.indexOfLast { it.items is HomeItems.Videos } + 1
     MqTvBackdrop(hero?.backdrop, modifier.fillMaxSize()) {
         LazyColumn(
             Modifier.fillMaxSize(),
@@ -180,18 +183,14 @@ private fun Rows(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             if (hasVideo) item(key = "hero", contentType = "hero") { Hero(hero) }
-            items(rows, key = { it.section.name }) { row ->
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MqTvRowHeader(stringResource(row.section.title), Modifier.padding(horizontal = EDGE))
-                    // Focus coming back into a row lands on the card it left (the column position is kept).
-                    CompositionLocalProvider(LocalBringIntoViewSpec provides Pivot) {
-                        LazyRow(
-                            Modifier.fillMaxWidth().focusRestorer(),
-                            contentPadding = PaddingValues(horizontal = EDGE, vertical = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(24.dp),
-                        ) { with(cards) { row(row) } }
-                    }
-                }
+            items(rows.take(split), key = { it.section.name }) { row ->
+                CardRow(stringResource(row.section.title)) { with(cards) { row(row) } }
+            }
+            items(genreRows, key = { "genre/${it.genre}" }) { row ->
+                CardRow(row.genre) { with(cards) { genre(row) } }
+            }
+            items(rows.drop(split), key = { it.section.name }) { row ->
+                CardRow(stringResource(row.section.title)) { with(cards) { row(row) } }
             }
         }
     }
@@ -203,6 +202,27 @@ private fun Rows(
     }
     menu?.let { shown -> CoverMenu(shown, onAction, navigation.onOpenArtist) { menu = null } }
     videoMenu?.let { video -> ResumeMenu(video, onAction, navigation) { videoMenu = null } }
+}
+
+/** A titled row of cards. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun CardRow(
+    title: String,
+    content: LazyListScope.() -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        MqTvRowHeader(title, Modifier.padding(horizontal = EDGE))
+        // Focus coming back into a row lands on the card it left (the column position is kept).
+        CompositionLocalProvider(LocalBringIntoViewSpec provides Pivot) {
+            LazyRow(
+                Modifier.fillMaxWidth().focusRestorer(),
+                contentPadding = PaddingValues(horizontal = EDGE, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                content = content,
+            )
+        }
+    }
 }
 
 /** A card's key in the focus memory: by item, so a row that changes while a detail page is open still finds it. */
@@ -309,6 +329,27 @@ private class Cards(
                     VideoCard(row, video, items.wide, plays)
                 }
             }
+        }
+    }
+
+    /** A genre row (#431): posters; Select opens the movie or the series. */
+    fun LazyListScope.genre(row: TvGenreRow) {
+        itemsIndexed(row.items, key = { _, it -> it.id.toString() }) { _, item ->
+            val movie = (item as? TvGenreItem.Movie)?.video
+            val series = (item as? TvGenreItem.Show)?.series
+            MqTvPosterCard(
+                movie?.title ?: series?.title.orEmpty(),
+                movie?.artwork ?: series?.artwork,
+                onClick = { if (movie != null) navigation.onOpenMovie(movie.id) else navigation.onOpenSeries(item.id) },
+                modifier =
+                    Modifier
+                        .width(POSTER_CARD)
+                        .focusMemory(focus, "genre/${row.genre}/${item.id}")
+                        .onFocusChanged { if (it.isFocused) onVideoFocused(movie) },
+                subtitle = (movie?.year ?: series?.year)?.toString(),
+                watched = (movie?.userData ?: series?.userData)?.played == true,
+                placeholder = if (movie != null) MqTvIcons.Movie else MqTvIcons.Series,
+            )
         }
     }
 

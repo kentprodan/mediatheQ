@@ -43,8 +43,8 @@ import io.github.kentprodan.mediatheq.core.ui.tv.title
 
 @Composable
 fun TvHomeRowsRoute(viewModel: TvHomeRowsViewModel = hiltViewModel()) {
-    val rows by viewModel.rows.collectAsStateWithLifecycle()
-    rows?.let { TvHomeRowsScreen(it, viewModel::onAction) }
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    state?.let { TvHomeRowsScreen(it, viewModel::onAction) }
 }
 
 /**
@@ -53,9 +53,10 @@ fun TvHomeRowsRoute(viewModel: TvHomeRowsViewModel = hiltViewModel()) {
  */
 @Composable
 fun TvHomeRowsScreen(
-    rows: List<TvHomeRow>,
+    state: TvHomeRowsState,
     onAction: (TvHomeRowsAction) -> Unit,
 ) {
+    val rows = state.rows
     var moving by remember { mutableStateOf<HomeSection?>(null) }
     val focus = rememberFocusMemory()
     Surface(Modifier.fillMaxSize()) {
@@ -91,6 +92,25 @@ fun TvHomeRowsScreen(
                     onLongClick = { moving = row.section },
                     trailing = { Switch(checked = row.shown, onCheckedChange = null) },
                 )
+            }
+            // Genre rows (#431): per account, after the video rows.
+            if (state.genres.isNotEmpty()) {
+                item {
+                    Text(
+                        stringResource(R.string.tv_settings_genre_rows),
+                        Modifier.padding(top = 24.dp, bottom = 4.dp, start = 12.dp).semantics { heading() },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                items(state.genres, key = { "genre/${it.first}" }) { (genre, on) ->
+                    MqTvListItem(
+                        genre,
+                        { onAction(TvHomeRowsAction.ToggleGenre(genre)) },
+                        Modifier.focusMemory(focus, "genre/$genre"),
+                        trailing = { Switch(checked = on, onCheckedChange = null) },
+                    )
+                }
             }
         }
     }

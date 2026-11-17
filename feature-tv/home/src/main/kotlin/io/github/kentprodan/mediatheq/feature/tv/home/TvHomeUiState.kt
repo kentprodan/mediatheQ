@@ -5,7 +5,9 @@ import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
 
 /** What Home on TV shows (#236). */
 sealed interface TvHomeUiState {
@@ -21,6 +23,8 @@ sealed interface TvHomeUiState {
     /** The phone's Home sections in its order, each a row; empty ones left out when their settings say so. */
     data class Content(
         val rows: List<TvHomeRow>,
+        /** The genres picked in Settings -> Home rows (#431), shown after the video rows. */
+        val genreRows: List<TvGenreRow> = emptyList(),
     ) : TvHomeUiState
 
     /** Synced, but the server has no music. */
@@ -38,6 +42,28 @@ data class TvHomeRow(
     /** Recently added episodes (#431): how many new episodes each series has. */
     val newEpisodes: Map<MediaId, Int> = emptyMap(),
 )
+
+/** A genre row of TV Home (#431): the library's movies and series of [genre], the newest added first. */
+data class TvGenreRow(
+    val genre: String,
+    val items: List<TvGenreItem>,
+)
+
+sealed interface TvGenreItem {
+    val id: MediaId
+
+    data class Movie(
+        val video: Video,
+    ) : TvGenreItem {
+        override val id: MediaId get() = video.id
+    }
+
+    data class Show(
+        val series: Series,
+    ) : TvGenreItem {
+        override val id: MediaId get() = series.id
+    }
+}
 
 /** What a cover's menu acts on. */
 sealed interface TvHomeTarget {
