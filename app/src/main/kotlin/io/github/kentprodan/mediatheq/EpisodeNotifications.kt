@@ -65,7 +65,8 @@ class EpisodeNotifications
         ) {
             val code = listOfNotNull(episode.seasonNumber?.let { "S$it" }, episode.episodeNumber?.let { "E$it" })
             val title = listOfNotNull(episode.seriesName, code.joinToString(" · ").ifEmpty { null }).joinToString(": ")
-            val line = if (downloaded) R.string.notification_episode_downloaded else R.string.notification_episode_available
+            val line =
+                if (downloaded) R.string.notification_episode_downloaded else R.string.notification_episode_available
             val text = context.getString(line, episode.title)
             val open =
                 Intent(context, MainActivity::class.java)
