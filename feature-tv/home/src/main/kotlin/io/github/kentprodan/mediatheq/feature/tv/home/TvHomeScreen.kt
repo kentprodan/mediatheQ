@@ -21,10 +21,14 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +65,7 @@ import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
@@ -69,7 +74,9 @@ import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvRowHeader
 import io.github.kentprodan.mediatheq.core.ui.tv.POSTER_RATIO
 import io.github.kentprodan.mediatheq.core.ui.tv.title
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.debounce
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -165,35 +172,44 @@ private fun Rows(
     val focus = rememberFocusMemory()
     var menu by remember { mutableStateOf<Menu?>(null) }
     var videoMenu by remember { mutableStateOf<Video?>(null) }
-    // The hero (#431): the focused video's backdrop and facts, after a short pause so moving along a row never flickers.
-    var focusedVideo by remember { mutableStateOf<Video?>(null) }
-    var hero by remember { mutableStateOf<Video?>(null) }
-    LaunchedEffect(focusedVideo) {
-        delay(HERO_DELAY)
-        hero = focusedVideo
-    }
+    // The hero (#431, #504): the focused video is written here by the cards but read only by the hero (after a pause,
+    // so moving along a row never flickers), never by the rows: a D-pad move recomposes the cards it touches only.
+    val focused = remember { HeroFocus() }
+    val hero = rememberHero(focused)
     val cards =
-        Cards(focus, onAction, navigation, onVideoFocused = { focusedVideo = it }, openVideoMenu = { videoMenu = it }) {
-            menu = it
+        remember(focus, onAction, navigation) {
+            Cards(
+                focus,
+                onAction,
+                navigation,
+                onFocused = { focused.info = it },
+                openVideoMenu = { videoMenu = it },
+            ) { menu = it }
         }
     val hasVideo = rows.any { it.items is HomeItems.Videos } || genreRows.isNotEmpty()
     // Genre rows (#431) follow the last video row.
     val split = rows.indexOfLast { it.items is HomeItems.Videos } + 1
-    MqTvBackdrop(hero?.backdrop, modifier.fillMaxSize()) {
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-        ) {
-            if (hasVideo) item(key = "hero", contentType = "hero") { Hero(hero) }
-            items(rows.take(split), key = { it.section.name }) { row ->
-                CardRow(stringResource(row.section.title)) { with(cards) { row(row) } }
-            }
-            items(genreRows, key = { "genre/${it.genre}" }) { row ->
-                CardRow(row.genre) { with(cards) { genre(row) } }
-            }
-            items(rows.drop(split), key = { it.section.name }) { row ->
-                CardRow(stringResource(row.section.title)) { with(cards) { row(row) } }
+    Box(modifier.fillMaxSize()) {
+        if (hasVideo) HeroBackdrop(hero, Modifier.matchParentSize())
+        Column(Modifier.fillMaxSize()) {
+            // Fixed at the top (#504): the rows scroll under it, the focused row always lands just below it.
+            if (hasVideo) HeroText(hero)
+            CompositionLocalProvider(LocalBringIntoViewSpec provides RowsToTop) {
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(top = if (hasVideo) 8.dp else 32.dp, bottom = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
+                    items(rows.take(split), key = { it.section.name }, contentType = { "row" }) { row ->
+                        CardRow(stringResource(row.section.title)) { with(cards) { row(row) } }
+                    }
+                    items(genreRows, key = { "genre/${it.genre}" }, contentType = { "row" }) { row ->
+                        CardRow(row.genre) { with(cards) { genre(row) } }
+                    }
+                    items(rows.drop(split), key = { it.section.name }, contentType = { "row" }) { row ->
+                        CardRow(stringResource(row.section.title)) { with(cards) { row(row) } }
+                    }
+                }
             }
         }
     }
@@ -249,7 +265,7 @@ private class Cards(
     val focus: FocusMemory,
     val onAction: (TvHomeAction) -> Unit,
     val navigation: TvHomeNavigation,
-    val onVideoFocused: (Video?) -> Unit,
+    val onFocused: (HeroInfo?) -> Unit,
     val openVideoMenu: (Video) -> Unit,
     val openMenu: (Menu) -> Unit,
 ) {
@@ -348,7 +364,9 @@ private class Cards(
                     Modifier
                         .width(POSTER_CARD)
                         .focusMemory(focus, "genre/${row.genre}/${item.id}")
-                        .onFocusChanged { if (it.isFocused) onVideoFocused(movie) },
+                        .onFocusChanged {
+                            if (it.isFocused) onFocused(movie?.let(::heroInfo) ?: series?.let(::heroInfo))
+                        },
                 subtitle = (movie?.year ?: series?.year)?.toString(),
                 watched = (movie?.userData ?: series?.userData)?.played == true,
                 placeholder = if (movie != null) MqTvIcons.Movie else MqTvIcons.Series,
@@ -373,7 +391,7 @@ private class Cards(
             onClick,
             Modifier
                 .focusMemory(focus, key)
-                .onFocusChanged { if (it.isFocused) onVideoFocused(null) }
+                .onFocusChanged { if (it.isFocused) onFocused(HeroInfo(title, subtitle, null, artwork)) }
                 .onPreviewKeyEvent { event ->
                     // The remote's menu key does what a long-press does.
                     val isMenu = event.key == Key.Menu && open != null
@@ -443,7 +461,7 @@ private class Cards(
                 Modifier
                     .width(if (wide) WIDE_CARD else POSTER_CARD)
                     .focusMemory(focus, focusKey(row, video.id))
-                    .onFocusChanged { if (it.isFocused) onVideoFocused(video) }
+                    .onFocusChanged { if (it.isFocused) onFocused(heroInfo(video)) }
                     .onPreviewKeyEvent { event ->
                         val isMenu = event.key == Key.Menu && open != null
                         if (isMenu && event.type == KeyEventType.KeyUp) open?.invoke()
@@ -547,43 +565,109 @@ private val Pivot =
 
 private const val PIVOT = 0.3f
 
+/** What the hero shows for a card (#504): any card, so the top of Home is never empty. */
+private data class HeroInfo(
+    val title: String,
+    val facts: String?,
+    val overview: String?,
+    /** A video's backdrop, else the card's own picture. */
+    val backdrop: Artwork?,
+)
+
+private fun heroInfo(video: Video): HeroInfo {
+    val episode = video.kind == VideoKind.Episode
+    val facts =
+        listOfNotNull(
+            if (episode) episodeLabel(video) + " · " + video.title else video.year?.toString(),
+            video.officialRating,
+            video.genres
+                .take(2)
+                .joinToString(", ")
+                .ifEmpty { null },
+        ).joinToString(" · ").ifEmpty { null }
+    return HeroInfo(
+        if (episode) video.seriesName ?: video.title else video.title,
+        facts,
+        video.overview,
+        video.backdrop ?: video.artwork,
+    )
+}
+
+private fun heroInfo(series: Series): HeroInfo =
+    HeroInfo(
+        series.title,
+        listOfNotNull(
+            series.year?.toString(),
+            series.genres
+                .take(2)
+                .joinToString(", ")
+                .ifEmpty { null },
+        ).joinToString(" · ")
+            .ifEmpty { null },
+        series.overview,
+        series.backdrop ?: series.artwork,
+    )
+
+/** The card the rows last focused (#504); only the hero reads it. */
+@Stable
+private class HeroFocus {
+    var info by mutableStateOf<HeroInfo?>(null)
+}
+
+/** What the hero shows: [focus] once it rested for [HERO_DELAY]; the state is read only by the hero's parts. */
+@OptIn(FlowPreview::class)
+@Composable
+private fun rememberHero(focus: HeroFocus): State<HeroInfo?> =
+    produceState<HeroInfo?>(null, focus) {
+        snapshotFlow { focus.info }.debounce(HERO_DELAY).collect { value = it }
+    }
+
+@Composable
+private fun HeroBackdrop(
+    hero: State<HeroInfo?>,
+    modifier: Modifier,
+) = MqTvBackdrop(hero.value?.backdrop, modifier) {}
+
+@Composable
+private fun HeroText(hero: State<HeroInfo?>) = Hero(hero.value)
+
+/** The focused row lands just below the hero (#504), at the same place every time, like Google TV. */
+private val RowsToTop =
+    object : BringIntoViewSpec {
+        override fun calculateScrollDistance(
+            offset: Float,
+            size: Float,
+            containerSize: Float,
+        ): Float = offset - ROW_HEADER_PX
+    }
+
+// The row title and its padding above the cards, so the title stays in view.
+private const val ROW_HEADER_PX = 140f
+
 /** The top of Home with video (#431): the focused video's title, facts and overview over its backdrop. */
 @Composable
-private fun Hero(video: Video?) {
+private fun Hero(info: HeroInfo?) {
     Column(
         Modifier.fillMaxWidth().height(HERO_HEIGHT).padding(horizontal = EDGE),
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
     ) {
-        if (video == null) return@Column
+        if (info == null) return@Column
         Text(
-            if (video.kind == VideoKind.Episode) video.seriesName ?: video.title else video.title,
+            info.title,
             style = MaterialTheme.typography.displaySmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        val facts =
-            listOfNotNull(
-                if (video.kind ==
-                    VideoKind.Episode
-                ) {
-                    episodeLabel(video) + " · " + video.title
-                } else {
-                    video.year?.toString()
-                },
-                video.officialRating,
-                video.genres
-                    .take(2)
-                    .joinToString(", ")
-                    .ifEmpty { null },
-            ).joinToString(" · ")
-        if (facts.isNotEmpty()) {
+        info.facts?.let {
             Text(
-                facts,
+                it,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
-        video.overview?.let {
+        info.overview?.let {
             Text(
                 it,
                 Modifier.widthIn(max = 760.dp),
@@ -602,4 +686,4 @@ private fun episodeLabel(video: Video): String =
 private val HERO_HEIGHT = 260.dp
 private val WIDE_CARD = 300.dp
 private val POSTER_CARD = 150.dp
-private val HERO_DELAY = 300.milliseconds
+private val HERO_DELAY = 500.milliseconds
