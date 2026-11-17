@@ -110,6 +110,8 @@ data class VideoDownload(
     val origins: Set<DownloadOrigin> = emptySet(),
     /** Failed because the phone cannot play the original, and videos are never converted (ADR 0024). */
     val cannotDownload: Boolean = false,
+    /** When it finished (#413); `null` while it is not complete. */
+    val completedAt: kotlin.time.Instant? = null,
 )
 
 /** One download: its track and where it is. */

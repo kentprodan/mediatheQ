@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation3.runtime.NavKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
@@ -11,11 +12,18 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
+import io.github.kentprodan.mediatheq.core.data.ParentalControls
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
+import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.data.needsPin
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
 import io.github.kentprodan.mediatheq.core.model.AppMode
+import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.navigation.MovieKey
+import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
+import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlaybackError
@@ -24,6 +32,7 @@ import io.github.kentprodan.mediatheq.core.ui.MediaListStyle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -46,7 +55,72 @@ class MainViewModel
         libraryRepository: LibraryRepository,
         downloads: DownloadRepository,
         private val appModeRepository: AppModeRepository,
+        private val parental: ParentalControls? = null,
+        private val videos: VideoRepository? = null,
     ) : ViewModel() {
+        /** A page or player waiting for the PIN (#443), with whether the last try was wrong. */
+        data class PinRequest(
+            val proceed: () -> Unit,
+            val unlocks: MediaId,
+            val wrong: Boolean = false,
+        )
+
+        private val mutablePin = MutableStateFlow<PinRequest?>(null)
+        val pinRequest: StateFlow<PinRequest?> = mutablePin.asStateFlow()
+
+        // Opened with the PIN this session: its page and its player do not ask again.
+        private val unlocked = mutableSetOf<MediaId>()
+
+        /**
+         * The age gate (#443, like the TV's #434): a movie, series or player above this profile's limit waits for the
+         * PIN; anything else opens at once.
+         * shortcut: a video sent from another client (#389) opens without the gate.
+         */
+        fun guard(
+            key: NavKey,
+            proceed: () -> Unit,
+        ) {
+            val gate = parental
+            val repo = videos
+            val (id, series) =
+                when (key) {
+                    is MovieKey -> key.id to false
+                    is SeriesKey -> key.id to true
+                    is VideoPlayerKey -> key.id to false
+                    else -> return proceed()
+                }
+            if (gate == null || repo == null || id in unlocked) return proceed()
+            viewModelScope.launch {
+                val seriesId = if (series) null else repo.video(id).first()?.seriesId
+                when {
+                    seriesId != null && seriesId in unlocked -> proceed()
+                    gate.needsPin(repo, id, series) -> mutablePin.value = PinRequest(proceed, id)
+                    else -> proceed()
+                }
+            }
+        }
+
+        fun submitPin(pin: String) {
+            val request = mutablePin.value ?: return
+            viewModelScope.launch {
+                if (parental?.checkPin(pin) != false) {
+                    unlocked += request.unlocks
+                    mutablePin.value = null
+                    request.proceed()
+                } else {
+                    mutablePin.value = request.copy(wrong = true)
+                }
+            }
+        }
+
+        fun pinEdited() {
+            mutablePin.value = mutablePin.value?.copy(wrong = false)
+        }
+
+        fun cancelPin() {
+            mutablePin.value = null
+        }
+
         /**
          * Theme, font, colors and corners (#137, read with the theme so the first frame never changes shape); `null`
          * while they are read, so the first frame never shows the wrong colors.

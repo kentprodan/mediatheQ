@@ -30,4 +30,12 @@
     <string name="radio_nothing_similar">The server found no music like this in your library</string>
     <string name="radio_no_server">Start radio needs the server: check the connection</string>
     <string name="radio_failed">Could not start the radio</string>
+    <string name="pin_title">Enter the PIN</string>
+    <string name="pin_label">PIN</string>
+    <string name="pin_ok">OK</string>
+    <string name="pin_cancel">Cancel</string>
+    <string name="pin_wrong">Wrong PIN</string>
+    <string name="notification_new_episodes">New episodes</string>
+    <string name="notification_episode_available">%1$s is available</string>
+    <string name="notification_episode_downloaded">%1$s is available and downloaded</string>
 </resources>
