@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
+import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -16,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -35,6 +39,8 @@ class TvSearchViewModel
         private val library: LibraryRepository,
         private val preferences: LibraryPreferencesRepository,
         private val trackTaps: TrackTaps,
+        private val videos: VideoRepository? = null,
+        private val appMode: AppModeRepository? = null,
     ) : ViewModel() {
         private val text = MutableStateFlow("")
 
@@ -97,16 +103,31 @@ class TvSearchViewModel
 
                 is MqResult.Success -> {
                     val found = result.value
+                    val mode = appMode?.mode?.first() ?: AppMode.Music
+                    val repo = videos.takeIf { mode.video }
+                    val video = (repo?.search(query, VIDEO_LIMIT) as? MqResult.Success)?.value
+                    // People come from the server (#432): a person may be in the library under no matching title.
+                    val people = repo?.searchPeople(query, VIDEO_LIMIT).orEmpty()
+                    val music = mode.music
                     TvSearchUiState
-                        .Results(found.albums, found.artists, found.tracks, found.playlists)
-                        .takeUnless {
-                            it.albums.isEmpty() && it.artists.isEmpty() && it.tracks.isEmpty() && it.playlists.isEmpty()
-                        } ?: TvSearchUiState.NoResults
+                        .Results(
+                            if (music) found.albums else emptyList(),
+                            if (music) found.artists else emptyList(),
+                            if (music) found.tracks else emptyList(),
+                            if (music) found.playlists else emptyList(),
+                            movies = video?.movies.orEmpty(),
+                            series = video?.series.orEmpty(),
+                            episodes = video?.episodes.orEmpty(),
+                            people = people,
+                        ).takeUnless { it.isEmpty } ?: TvSearchUiState.NoResults
                 }
             }
 
         private companion object {
             /** As on the phone: the local FTS answers in milliseconds, so results follow the typing. */
             const val DEBOUNCE_MILLIS = 50L
+
+            /** A row of video results. */
+            const val VIDEO_LIMIT = 20
         }
     }

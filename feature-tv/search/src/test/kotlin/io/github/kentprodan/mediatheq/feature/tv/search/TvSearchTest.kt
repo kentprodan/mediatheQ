@@ -16,23 +16,32 @@ import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.data.VideoSearchResults
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Genre
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -78,6 +87,31 @@ class TvSearchTest {
     }
 
     private fun test(block: suspend TestScope.() -> Unit) = runTest(mainDispatcherRule.testDispatcher) { block() }
+
+    @Test
+    fun `with video the movies, series, episodes and people come too, people from the server (#432)`() =
+        test {
+            val videos = FakeVideoRepository()
+            val movie = Video(MediaId(ServerId("s"), "m1"), VideoKind.Movie, "Alien")
+            val ripley = Person(MediaId(ServerId("s"), "p1"), "Sigourney Weaver")
+            videos.searchResult = MqResult.Success(VideoSearchResults(movies = listOf(movie)))
+            videos.peopleSearch = mapOf("alien" to listOf(ripley))
+            val viewModel =
+                TvSearchViewModel(
+                    library,
+                    preferences,
+                    TrackTaps(playback, preferences),
+                    videos,
+                    FakeAppModeRepository(AppMode.Both),
+                )
+            backgroundScope.launch { viewModel.uiState.collect() }
+            viewModel.onAction(TvSearchAction.QueryChanged("alien"))
+            advanceUntilIdle()
+
+            val results = viewModel.uiState.value as TvSearchUiState.Results
+            assertThat(results.movies).containsExactly(movie)
+            assertThat(results.people).containsExactly(ripley)
+        }
 
     @Test
     fun `an empty field lists the recent searches`() =

@@ -35,6 +35,8 @@ sealed interface TvHomeUiState {
 data class TvHomeRow(
     val section: HomeSection,
     val items: HomeItems,
+    /** Recently added episodes (#431): how many new episodes each series has. */
+    val newEpisodes: Map<MediaId, Int> = emptyMap(),
 )
 
 /** What a cover's menu acts on. */

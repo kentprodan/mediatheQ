@@ -114,6 +114,19 @@ interface LibrarySource {
         itemId: MediaId,
     ): MqResult<List<Person>>
 
+    /** People whose name matches [query] (#432), at most [limit]. */
+    suspend fun searchPeople(
+        server: SignedInServer,
+        query: String,
+        limit: Int,
+    ): MqResult<List<Person>>
+
+    /** The movies and series [personId] is in (#432), ids only. */
+    suspend fun personItems(
+        server: SignedInServer,
+        personId: MediaId,
+    ): MqResult<List<MediaId>>
+
     /** Movies or series like [itemId] (#427), at most [limit], ids only, in the server's order. */
     suspend fun similarVideos(
         server: SignedInServer,
