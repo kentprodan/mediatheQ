@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.designsystem.tv.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -8,9 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.tv.material3.Border
 import androidx.tv.material3.Card
+import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 
@@ -29,7 +33,17 @@ fun MqTvCard(
     imageAspectRatio: Float = 1f,
     image: @Composable () -> Unit,
 ) {
-    Card(onClick, modifier.width(CARD_WIDTH), onLongClick = onLongClick) {
+    Card(
+        onClick,
+        modifier.width(CARD_WIDTH),
+        onLongClick = onLongClick,
+        // Focus (#517, the guideline's card focus): a slight scale and a thin white outline, no brand color.
+        scale = CardDefaults.scale(focusedScale = FOCUSED_SCALE),
+        border =
+            CardDefaults.border(
+                focusedBorder = Border(BorderStroke(FOCUS_BORDER, Color.White), shape = MaterialTheme.shapes.medium),
+            ),
+    ) {
         Column {
             Box(Modifier.fillMaxWidth().aspectRatio(imageAspectRatio)) { image() }
             Column(Modifier.padding(TEXT_PADDING)) {
@@ -51,3 +65,5 @@ fun MqTvCard(
 // The guideline width for five cards per screen (#507).
 private val CARD_WIDTH = 124.dp
 private val TEXT_PADDING = 12.dp
+private const val FOCUSED_SCALE = 1.05f
+private val FOCUS_BORDER = 2.dp
