@@ -175,7 +175,8 @@ private fun PlaylistPage(
                 scrollBehavior = scrollBehavior,
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        // Above the mini player and the navigation bar: the screen draws under them (#416: the message was hidden).
+        snackbarHost = { SnackbarHost(snackbarHostState, Modifier.bottomBarsPadding()) },
         // The app shell already pads for the navigation bar.
         contentWindowInsets = WindowInsets(0),
     ) { padding ->

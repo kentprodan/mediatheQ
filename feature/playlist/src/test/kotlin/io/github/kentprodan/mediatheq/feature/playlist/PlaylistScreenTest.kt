@@ -2,21 +2,27 @@ package io.github.kentprodan.mediatheq.feature.playlist
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.PlaylistButton
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.PlaylistPagePreferences
+import io.github.kentprodan.mediatheq.core.designsystem.component.LocalBottomBarsPadding
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
@@ -48,6 +54,23 @@ class PlaylistScreenTest {
         state: PlaylistUiState,
         actions: MutableList<PlaylistAction>,
     ) = composeRule.setContent { MediatheqTheme { PlaylistScreen(state, { actions += it }, onBack = {}) } }
+
+    @Test
+    fun `a failed edit says so above the mini player and the navigation bar`() {
+        // #416: the screen draws under the bottom bars, which hid its snackbar.
+        val bars = 200.dp
+        composeRule.setContent {
+            MediatheqTheme {
+                CompositionLocalProvider(LocalBottomBarsPadding provides bars) {
+                    PlaylistScreen(content.copy(error = MqError.Network), {}, onBack = {})
+                }
+            }
+        }
+
+        val message = composeRule.onNodeWithText("The change could not be saved and was undone.").getBoundsInRoot()
+        val root = composeRule.onRoot().getBoundsInRoot()
+        assertThat(message.bottom.value).isAtMost((root.bottom - bars).value)
+    }
 
     @Test
     fun `a long press starts selecting`() {
