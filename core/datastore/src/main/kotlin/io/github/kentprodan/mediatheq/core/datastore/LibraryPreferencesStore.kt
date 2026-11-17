@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import io.github.kentprodan.mediatheq.core.common.ActiveDatabase
 import io.github.kentprodan.mediatheq.core.common.DEFAULT_DATABASE
 import kotlinx.coroutines.flow.Flow
@@ -541,6 +542,13 @@ class LibraryPreferencesStore
         /** Recent searches in stored order; `:core:data` decides the order and the limit. */
         val recentSearches: Flow<List<String>> = data.map { it[RECENT_SEARCHES].toList() }
 
+        /** The episodes (and followed series) already told about (#446); `null` before the first record. */
+        val seenEpisodes: Flow<Set<String>?> = data.map { it[SEEN_EPISODES] }
+
+        suspend fun setSeenEpisodes(ids: Set<String>) {
+            dataStore.edit { it[SEEN_EPISODES] = ids }
+        }
+
         /**
          * Replaces the recent searches with [transform] of the stored ones, atomically. Best effort: a failed write is
          * dropped, since a lost recent search is not worth crashing a tap.
@@ -667,6 +675,7 @@ class LibraryPreferencesStore
             val NP_COVER_SWIPE = booleanPreferencesKey("np_cover_swipe")
             val NP_PLAY_BUTTON = booleanPreferencesKey("np_play_button_when_paused")
             const val LIST_SEPARATOR = ","
+            val SEEN_EPISODES = stringSetPreferencesKey("seen_episodes")
             val PARENTAL_PIN = stringPreferencesKey("parental_pin")
             const val AGE_LIMIT_PREFIX = "age_limit_"
 

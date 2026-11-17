@@ -83,6 +83,7 @@ class AudioPreferencesStore
                         pictureInPicture = prefs[VIDEO_PICTURE_IN_PICTURE],
                         keepAudio = prefs[VIDEO_KEEP_AUDIO],
                         hideUnwatchedOverviews = prefs[VIDEO_HIDE_UNWATCHED_OVERVIEWS],
+                        newEpisodeNotifications = prefs[VIDEO_NEW_EPISODE_NOTIFICATIONS],
                         watchedRemoval = prefs[VIDEO_WATCHED_REMOVAL],
                         watchedRemovalSince = prefs[VIDEO_WATCHED_REMOVAL_SINCE],
                         subtitleSize = prefs[VIDEO_SUBTITLE_SIZE],
@@ -261,6 +262,7 @@ class AudioPreferencesStore
                 it.put(VIDEO_PICTURE_IN_PICTURE, video.pictureInPicture)
                 it.put(VIDEO_KEEP_AUDIO, video.keepAudio)
                 it.put(VIDEO_HIDE_UNWATCHED_OVERVIEWS, video.hideUnwatchedOverviews)
+                it.put(VIDEO_NEW_EPISODE_NOTIFICATIONS, video.newEpisodeNotifications)
                 it.put(VIDEO_WATCHED_REMOVAL, video.watchedRemoval)
                 it.put(VIDEO_WATCHED_REMOVAL_SINCE, video.watchedRemovalSince)
                 it.put(VIDEO_SUBTITLE_SIZE, video.subtitleSize)
@@ -329,6 +331,7 @@ class AudioPreferencesStore
             val VIDEO_PICTURE_IN_PICTURE = booleanPreferencesKey("video_picture_in_picture")
             val VIDEO_KEEP_AUDIO = booleanPreferencesKey("video_keep_audio")
             val VIDEO_HIDE_UNWATCHED_OVERVIEWS = booleanPreferencesKey("video_hide_unwatched_overviews")
+            val VIDEO_NEW_EPISODE_NOTIFICATIONS = booleanPreferencesKey("video_new_episode_notifications")
             val VIDEO_WATCHED_REMOVAL = stringPreferencesKey("video_watched_removal")
             val VIDEO_WATCHED_REMOVAL_SINCE = longPreferencesKey("video_watched_removal_since")
             val VIDEO_SUBTITLE_SIZE = stringPreferencesKey("video_subtitle_size")
@@ -374,6 +377,7 @@ data class StoredVideoPreferences(
     val skipIntro: String? = null,
     /** No spoilers (#428): unwatched episodes show no overview. */
     val hideUnwatchedOverviews: Boolean? = null,
+    val newEpisodeNotifications: Boolean? = null,
     /** `WatchedRemoval` name (#413). */
     val watchedRemoval: String? = null,
     /** Epoch milliseconds (#413). */
