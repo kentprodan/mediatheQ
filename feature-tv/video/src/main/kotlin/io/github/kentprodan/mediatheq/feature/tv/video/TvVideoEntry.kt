@@ -23,7 +23,9 @@ fun EntryProviderScope<NavKey>.tvVideoEntries(navigator: Navigator) {
         TvSeriesPageRoute(key.id) { id, start -> navigator.navigateTo(VideoPlayerKey(id, start.inWholeMilliseconds)) }
     }
     entry<MovieKey> { key ->
-        TvMovieRoute(key.id) { id, start -> navigator.navigateTo(VideoPlayerKey(id, start.inWholeMilliseconds)) }
+        TvMovieRoute(key.id, onOpenMovie = { navigator.navigateTo(MovieKey(it)) }) { id, start ->
+            navigator.navigateTo(VideoPlayerKey(id, start.inWholeMilliseconds))
+        }
     }
     entry<VideoPlayerKey> { key -> TvPlayerRoute(key) { navigator.back() } }
 }
