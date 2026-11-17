@@ -73,4 +73,7 @@
     <string name="video_remove_season_download">Remove season download</string>
     <string name="video_cannot_download">This video cannot be downloaded on this phone: it can only be played as it is, and videos are never converted for downloads.</string>
     <string name="video_follow">Keep the next %d episodes downloaded</string>
+    <string name="video_play_on_tv">Play on TV</string>
+    <string name="video_sent_to_tv">Playing on %s</string>
+    <string name="video_send_to_tv_failed">%s did not answer. Is mediatheQ open on it?</string>
 </resources>
