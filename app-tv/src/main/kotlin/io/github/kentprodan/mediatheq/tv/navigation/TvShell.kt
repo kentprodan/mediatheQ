@@ -89,7 +89,7 @@ internal fun TvShellRoute(
             .use { it.readText() }
     // A movie sent from the phone or Jellyfin web (#389) plays already: its player opens on it.
     LaunchedEffect(Unit) {
-        viewModel.remoteVideo.collect { TvNavigator.navigate(backStack, VideoPlayerKey(it, attach = true)) }
+        viewModel.remoteVideo.collect { id -> openRemoteVideo(backStack, id) }
     }
     // The launcher's Now Playing card (#240).
     LaunchedEffect(openPlayer) {
@@ -261,4 +261,13 @@ private fun NavigationDrawerScope.Drawer(
             ) { Text(item.title, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
     }
+}
+
+/** A movie sent from another client (#389): its player opens, in place of a player already on top (never two). */
+internal fun openRemoteVideo(
+    backStack: MutableList<NavKey>,
+    id: io.github.kentprodan.mediatheq.core.model.MediaId,
+) {
+    if (backStack.lastOrNull() is VideoPlayerKey) backStack.removeAt(backStack.lastIndex)
+    TvNavigator.navigate(backStack, VideoPlayerKey(id, attach = true))
 }

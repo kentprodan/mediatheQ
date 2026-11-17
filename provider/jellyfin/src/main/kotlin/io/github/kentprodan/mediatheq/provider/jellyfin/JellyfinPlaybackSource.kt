@@ -153,7 +153,10 @@ class JellyfinPlaybackSource internal constructor(
         http.post(
             server.connection,
             "Sessions/Capabilities/Full",
-            http.jsonBody(CapabilitiesDto.serializer(), CapabilitiesDto()),
+            http.jsonBody(
+                CapabilitiesDto.serializer(),
+                CapabilitiesDto(listOf("Audio", "Video"), emptyList(), supportsMediaControl = true),
+            ),
         )
 
     override suspend fun reportStart(

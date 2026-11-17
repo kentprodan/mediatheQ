@@ -256,6 +256,22 @@ class JellyfinPlaybackSourceTest {
         }
 
     @Test
+    fun `capabilities say the session plays audio and video and takes remote commands (#389)`() =
+        runTest {
+            mockServer.enqueue(MockResponse(code = 204))
+
+            source.reportCapabilities(server())
+
+            val request = mockServer.takeRequest()
+            assertThat(request.url.encodedPath).isEqualTo("/Sessions/Capabilities/Full")
+            assertThat(Json.parseToJsonElement(request.body!!.utf8())).isEqualTo(
+                Json.parseToJsonElement(
+                    """{"PlayableMediaTypes":["Audio","Video"],"SupportedCommands":[],"SupportsMediaControl":true}""",
+                ),
+            )
+        }
+
+    @Test
     fun `reports carry the play session, position in ticks and play method`() =
         runTest {
             repeat(3) { mockServer.enqueue(MockResponse(code = 204)) }
