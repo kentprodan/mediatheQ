@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -22,9 +23,12 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.OnboardingServerKey
 import io.github.kentprodan.mediatheq.core.playback.EXTRA_OPEN_PLAYER
+import io.github.kentprodan.mediatheq.core.playback.RemoteControl
 import io.github.kentprodan.mediatheq.feature.tv.onboarding.tvOnboardingEntries
 import io.github.kentprodan.mediatheq.tv.navigation.TvShellRoute
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * The TV app's one activity (ADR 0038): onboarding while signed out (ADR 0040), the shell once signed in (ADR 0041). A 401 signs out in the repository (ADR 0036), and the onboarding starts again at the server.
@@ -33,13 +37,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
  */
 @AndroidEntryPoint
 class TvActivity : ComponentActivity() {
+    @Inject lateinit var remoteControl: RemoteControl
+
     // The launcher's Now Playing card (the session activity) asks for the player; single task, so a running app
     // gets it in onNewIntent (#240).
     private val openPlayer = MutableStateFlow(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) openPlayer.value = intent.wantsPlayer()
+        if (savedInstanceState == null) {
+            openPlayer.value = intent.wantsPlayer()
+            openWatchNext(intent)
+        }
         setContent {
             val player by openPlayer.collectAsStateWithLifecycle()
             MediatheqTvTheme { TvApp(player, onPlayerOpened = { openPlayer.value = false }) }
@@ -49,6 +58,14 @@ class TvActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (intent.wantsPlayer()) openPlayer.value = true
+        openWatchNext(intent)
+    }
+
+    /** A Continue watching card of the Google TV home (#386): it plays from its position and the player opens. */
+    private fun openWatchNext(intent: Intent) {
+        if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return
+        val (id, position) = parseWatchNextUri(intent.data) ?: return
+        lifecycleScope.launch { remoteControl.play(id, position) }
     }
 
     // Recents relaunches with the intent that first started the app: not a new request for the player.
