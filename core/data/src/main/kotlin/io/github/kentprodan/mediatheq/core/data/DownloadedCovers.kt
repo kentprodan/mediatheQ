@@ -14,7 +14,9 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
@@ -60,7 +62,14 @@ class DownloadedCovers
         fun start() {
             started = true
             scope.launch(ioDispatcher) {
-                combine(downloads.completedIds, library.albums()) { ids, _ -> ids }
+                // Only the album covers matter (#425): a play count or a favorite changes the albums but runs no pass.
+                val covers =
+                    library
+                        .albums()
+                        .map { albums ->
+                            albums.associate { it.id to it.artwork }
+                        }.distinctUntilChanged()
+                combine(downloads.completedIds, covers) { ids, _ -> ids }
                     // A change while fetching restarts the pass, and that pass removes what is no longer needed.
                     .collectLatest(::keep)
             }
@@ -80,10 +89,12 @@ class DownloadedCovers
         internal suspend fun keep(ids: Set<MediaId>) {
             val wanted = mutableMapOf<String, Artwork>() // file name -> cover to keep
             val names = mutableMapOf<String, String>() // artwork item id -> file name
-            ids.forEach { id ->
-                val track = library.track(id).first() ?: return@forEach
-                val cover = track.albumId?.let { library.album(it).first()?.artwork } ?: track.artwork ?: return@forEach
-                val name = fileName(id.serverId.value, cover)
+            // Two batched reads (#425), not two per downloaded track; a downloaded video has no track row and is skipped.
+            val tracks = library.tracksById(ids.toList())
+            val albums = library.albumsById(tracks.mapNotNull { it.albumId }.distinct()).associateBy { it.id }
+            tracks.forEach { track ->
+                val cover = track.albumId?.let { albums[it]?.artwork } ?: track.artwork ?: return@forEach
+                val name = fileName(track.id.serverId.value, cover)
                 wanted[name] = cover
                 names[cover.itemId] = name
                 track.artwork?.let { names[it.itemId] = name }

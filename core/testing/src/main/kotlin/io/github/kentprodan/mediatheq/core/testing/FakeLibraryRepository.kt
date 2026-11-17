@@ -70,8 +70,14 @@ class FakeLibraryRepository : LibraryRepository {
 
     override fun allTracks() = tracks
 
+    /** How many times [tracksById] was called. */
+    var tracksByIdCalls = 0
+
     override suspend fun tracksById(ids: List<MediaId>) =
-        tracks.value.associateBy { it.id }.let { ids.mapNotNull(it::get) }
+        tracks.value
+            .associateBy { it.id }
+            .let { ids.mapNotNull(it::get) }
+            .also { tracksByIdCalls++ }
 
     override suspend fun albumsById(ids: List<MediaId>) =
         albums.value.associateBy { it.id }.let { ids.mapNotNull(it::get) }
