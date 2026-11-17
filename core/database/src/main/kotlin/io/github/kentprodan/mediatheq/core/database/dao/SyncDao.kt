@@ -266,6 +266,7 @@ interface SyncDao {
     @Transaction
     suspend fun clearAll() {
         clearPendingUserData()
+        clearPendingPlaylistEdits()
         clearStaging()
         replaceArtists()
         replaceAlbums()
@@ -306,6 +307,10 @@ interface SyncDao {
 
     @Query("DELETE FROM pending_user_data")
     suspend fun clearPendingUserData()
+
+    /** Sign-out drops the playlist edits still waiting (#417), as it does favorites (#56). */
+    @Query("DELETE FROM pending_playlist_edit")
+    suspend fun clearPendingPlaylistEdits()
 
     @Query("DELETE FROM queue_entry")
     suspend fun clearQueueEntries()

@@ -1,4 +1,5 @@
 [versions]
+tvprovider = "1.0.0"
 # The apps' version, shared by the phone and the TV app (ADR 0038).
 mediatheqVersionName = "0.1.0"
 # SDK levels (ADR 0010)
@@ -49,6 +50,7 @@ spotless = "8.10.4"
 ktlint = "1.8.0"
 
 [libraries]
+androidx-tvprovider = { module = "androidx.tvprovider:tvprovider", version.ref = "tvprovider" }
 androidx-benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "benchmark" }
 androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
 androidx-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }

@@ -26,7 +26,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.time.Duration
@@ -77,6 +79,8 @@ class MovieViewModel
                         sentToTv = last,
                     )
                 }
+            }.combine(flow { emit(videos.people(id)) }.onStart { emit(emptyList()) }) { state, people ->
+                (state as? MovieUiState.Content)?.copy(people = people) ?: state
             }.catch { emit(MovieUiState.Error(MqError.Storage)) }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MovieUiState.Loading)
 

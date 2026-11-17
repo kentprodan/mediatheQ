@@ -30,6 +30,7 @@ data class SeriesEntity(
     @Embedded(prefix = "backdrop_") val backdrop: ImageColumns = ImageColumns(),
     @Embedded val userData: UserDataColumns = UserDataColumns(),
     @Embedded val videoUser: VideoUserColumns = VideoUserColumns(),
+    @ColumnInfo(name = "official_rating") val officialRating: String? = null,
 )
 
 @Entity(tableName = "season", primaryKeys = ["server_id", "id"], indices = [Index("server_id", "series_id")])

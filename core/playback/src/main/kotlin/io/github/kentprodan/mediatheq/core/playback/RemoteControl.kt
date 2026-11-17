@@ -54,6 +54,12 @@ class RemoteControl
             }
         }
 
+        /** Plays [id] from [position] as a command would (#386: a Continue watching card of the Google TV home). */
+        suspend fun play(
+            id: MediaId,
+            position: kotlin.time.Duration,
+        ) = play(RemoteCommand.Play(listOf(id), startPosition = position))
+
         /** A movie or an episode plays as a video from the position; anything else as music from the library. */
         private suspend fun play(command: RemoteCommand.Play) {
             val first = command.items.getOrNull(command.startIndex) ?: return
