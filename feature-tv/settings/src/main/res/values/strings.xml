@@ -59,4 +59,9 @@
     <string name="tv_settings_move_up">Move up</string>
     <string name="tv_settings_move_down">Move down</string>
     <string name="tv_settings_genre_rows">Genre rows (this account)</string>
+    <string name="tv_settings_video">Video</string>
+    <string name="tv_settings_display_match">Match the display to the video</string>
+    <string name="tv_settings_display_match_off">Off</string>
+    <string name="tv_settings_display_match_rate">Frame rate</string>
+    <string name="tv_settings_display_match_resolution">Frame rate and resolution</string>
 </resources>
