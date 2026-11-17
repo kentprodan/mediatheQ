@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.model.Chapter
 import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
+import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -213,6 +214,43 @@ class JellyfinLibrarySource internal constructor(
         http.get(
             server.connection,
             "Albums/${albumId.itemId}/Similar",
+            QueryResultDto.serializer(),
+            listOf("userId" to server.userId, "limit" to limit.toString()),
+        ) { result -> result.items.mapNotNull { item -> item.id?.let { MediaId(server.serverId, it) } } }
+
+    /** One item query with `fields=People` (#427); a person without an id or a name is left out. */
+    override suspend fun people(
+        server: SignedInServer,
+        itemId: MediaId,
+    ): MqResult<List<Person>> =
+        http.get(
+            server.connection,
+            "Items",
+            QueryResultDto.serializer(),
+            listOf("userId" to server.userId, "ids" to itemId.itemId, "fields" to "People"),
+        ) { result ->
+            result.items.firstOrNull()?.people.orEmpty().mapNotNull { person ->
+                val id = person.id?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                val name = person.name?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                Person(
+                    MediaId(server.serverId, id),
+                    name,
+                    person.role?.takeIf { it.isNotBlank() },
+                    person.type ?: "Actor",
+                    person.primaryImageTag?.let { Artwork(id, it) },
+                )
+            }
+        }
+
+    /** `GET /Items/{id}/Similar` (#427), ids only. */
+    override suspend fun similarVideos(
+        server: SignedInServer,
+        itemId: MediaId,
+        limit: Int,
+    ): MqResult<List<MediaId>> =
+        http.get(
+            server.connection,
+            "Items/${itemId.itemId}/Similar",
             QueryResultDto.serializer(),
             listOf("userId" to server.userId, "limit" to limit.toString()),
         ) { result -> result.items.mapNotNull { item -> item.id?.let { MediaId(server.serverId, it) } } }

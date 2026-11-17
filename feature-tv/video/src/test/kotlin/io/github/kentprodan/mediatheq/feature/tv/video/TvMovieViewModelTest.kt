@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.TrackPicker
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.UserData
@@ -80,5 +81,19 @@ class TvMovieViewModelTest {
     fun `a movie not in the library is not found`() =
         test {
             assertThat(viewModel().uiState.value).isEqualTo(TvMovieUiState.Error(MqError.NotFound))
+        }
+
+    @Test
+    fun `the cast and the similar movies in the library come with the page`() =
+        test {
+            val other = Video(MediaId(ServerId("s"), "m2"), VideoKind.Movie, "Aliens")
+            videos.movies.value = listOf(Video(id, VideoKind.Movie, "Alien"), other)
+            videos.peopleOf = mapOf(id to listOf(Person(MediaId(ServerId("s"), "p1"), "Sigourney Weaver", "Ripley")))
+            videos.similarOf = mapOf(id to listOf(other))
+
+            val content = viewModel().uiState.value as TvMovieUiState.Content
+
+            assertThat(content.people.map { it.name }).containsExactly("Sigourney Weaver")
+            assertThat(content.similar).containsExactly(other)
         }
 }

@@ -96,4 +96,6 @@
     <string name="tv_player_play_now">Play now</string>
     <string name="tv_player_error">This video did not play</string>
     <string name="tv_player_error_body">The server or the network stopped answering. Try again from the page.</string>
+    <string name="tv_movie_cast">Cast &amp; crew</string>
+    <string name="tv_movie_similar">More like this</string>
 </resources>

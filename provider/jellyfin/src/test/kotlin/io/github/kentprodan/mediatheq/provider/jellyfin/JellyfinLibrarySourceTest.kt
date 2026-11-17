@@ -407,6 +407,28 @@ class JellyfinLibrarySourceTest {
             )
 
     @Test
+    fun `people come with the item, nameless ones dropped, and similar videos are ids in the server order`() =
+        runTest {
+            enqueue("items_people/movie.json")
+            enqueue("items_people/similar.json")
+            val movie = MediaId(serverId, "m1")
+
+            val people = (source.people(server, movie) as MqResult.Success).value
+            assertThat(mockServer.takeRequest().query()).containsAtLeast("ids", "m1", "fields", "People")
+            assertThat(people.map { it.name }).containsExactly("Sigourney Weaver", "Ridley Scott").inOrder()
+            assertThat(people[0].role).isEqualTo("Ripley")
+            assertThat(people[0].artwork?.tag).isEqualTo("t1")
+            assertThat(people[1].role).isNull()
+            assertThat(people[1].kind).isEqualTo("Director")
+
+            val similar = (source.similarVideos(server, movie, 24) as MqResult.Success).value
+            val request = mockServer.takeRequest()
+            assertThat(request.url.encodedPath).endsWith("/Items/m1/Similar")
+            assertThat(request.query()).containsAtLeast("limit", "24")
+            assertThat(similar.map { it.itemId }).containsExactly("m2", "m3").inOrder()
+        }
+
+    @Test
     fun `collections are BoxSets by name, and a collection's items come unsorted in its own order`() =
         runTest {
             enqueue("items_boxset/page.json")

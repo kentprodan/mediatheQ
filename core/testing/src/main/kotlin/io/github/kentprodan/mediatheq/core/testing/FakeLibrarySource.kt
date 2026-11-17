@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.model.Chapter
 import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
+import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -252,6 +253,22 @@ class FakeLibrarySource : LibrarySource {
 
     /** What [similarAlbums] answers; every call is recorded as `similar:<album>@<limit>`. */
     var similarAnswer: MqResult<List<MediaId>> = MqResult.Success(emptyList())
+
+    /** Item -> its cast and crew; similar videos by item. */
+    var people: Map<MediaId, List<Person>> = emptyMap()
+    var similarVideos: Map<MediaId, List<MediaId>> = emptyMap()
+
+    override suspend fun people(
+        server: SignedInServer,
+        itemId: MediaId,
+    ): MqResult<List<Person>> = MqResult.Success(people[itemId].orEmpty()).also { calls += "people:${itemId.itemId}" }
+
+    override suspend fun similarVideos(
+        server: SignedInServer,
+        itemId: MediaId,
+        limit: Int,
+    ): MqResult<List<MediaId>> =
+        MqResult.Success(similarVideos[itemId].orEmpty().take(limit)).also { calls += "similarVideos:${itemId.itemId}" }
 
     override suspend fun similarAlbums(
         server: SignedInServer,
