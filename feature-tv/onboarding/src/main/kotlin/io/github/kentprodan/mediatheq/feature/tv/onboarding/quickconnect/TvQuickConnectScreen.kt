@@ -27,6 +27,7 @@ import io.github.kentprodan.mediatheq.feature.tv.onboarding.TvOnboardingLayout
 internal fun TvQuickConnectRoute(
     key: OnboardingQuickConnectKey,
     onUsePassword: () -> Unit,
+    onDone: () -> Unit = {},
     viewModel: TvQuickConnectViewModel =
         hiltViewModel<TvQuickConnectViewModel, TvQuickConnectViewModel.Factory>(
             key = key.toString(),
@@ -34,6 +35,8 @@ internal fun TvQuickConnectRoute(
         ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val done by viewModel.done.collectAsStateWithLifecycle()
+    LaunchedEffect(done) { if (done) onDone() }
     TvQuickConnectScreen(state, viewModel::onAction, onUsePassword)
 }
 

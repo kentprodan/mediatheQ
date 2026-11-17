@@ -10,8 +10,12 @@ import io.github.kentprodan.mediatheq.core.navigation.Navigator
  */
 class TvNavigator(
     private val backStack: MutableList<NavKey>,
+    /** Decides whether [NavKey] may open (#434: the age gate); it calls the continuation when it may. */
+    private val guard: ((NavKey, () -> Unit) -> Unit)? = null,
 ) : Navigator {
-    override fun navigateTo(key: NavKey) = navigate(backStack, key)
+    override fun navigateTo(key: NavKey) {
+        guard?.invoke(key) { navigate(backStack, key) } ?: navigate(backStack, key)
+    }
 
     override fun back(): Boolean = back(backStack)
 

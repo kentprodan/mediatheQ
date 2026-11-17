@@ -147,6 +147,7 @@ internal fun BaseItemDto.toSeries(serverId: ServerId): Series? {
         dateAdded = instant(dateCreated),
         genres = genreNames(),
         communityRating = communityRating,
+        officialRating = officialRating?.takeIf { it.isNotBlank() },
         artwork = artwork(),
         backdrop = backdrop(),
         userData = userData.toDomain(),

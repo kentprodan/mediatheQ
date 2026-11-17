@@ -506,4 +506,25 @@ class HomeViewModelTest {
             assertThat(viewModel.sections()).doesNotContain(HomeSection.ContinueWatching)
             assertThat(videos.resumeRefreshes).isEqualTo(0)
         }
+
+    @Test
+    fun `picked genres become rows of their movies and series, none in music mode (#441)`() =
+        test {
+            val heat =
+                io.github.kentprodan.mediatheq.core.model.Video(
+                    id("m1"),
+                    io.github.kentprodan.mediatheq.core.model.VideoKind.Movie,
+                    "Heat",
+                    genres = listOf("Crime"),
+                )
+            videos.movies.value = listOf(heat)
+            preferences.setHomeGenres(listOf("Crime"))
+            val viewModel = withLibrary()
+            runCurrent()
+            assertThat(viewModel.content().genreRows).isEmpty()
+
+            appMode.stored.value = AppMode.Both
+            runCurrent()
+            assertThat(viewModel.content().genreRows.map { it.genre }).containsExactly("Crime")
+        }
 }

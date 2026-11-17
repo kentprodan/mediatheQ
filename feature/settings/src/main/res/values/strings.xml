@@ -676,4 +676,12 @@
     <string name="settings_providers_other_addresses">Other addresses</string>
     <string name="settings_providers_other_addresses_hint">One per line, e.g. the Tailscale address. The app uses the first one that answers, the server address above first.</string>
     <string name="settings_providers_error_other_addresses">Each line must be an address starting with http:// or https://</string>
+    <string name="settings_home_genres">Genre rows</string>
+    <string name="settings_home_genres_group">Genres</string>
+    <string name="settings_home_genres_summary">A row on Home for each genre you pick, for this account</string>
+    <string name="settings_home_genres_intro">Each genre you turn on gets a row of its movies and series after the video sections, in the order you pick them. Kept for this account.</string>
+    <plurals name="settings_home_genre_count">
+        <item quantity="one">%d movie or series</item>
+        <item quantity="other">%d movies and series</item>
+    </plurals>
 </resources>

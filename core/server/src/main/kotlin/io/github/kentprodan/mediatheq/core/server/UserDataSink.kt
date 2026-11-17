@@ -21,6 +21,12 @@ interface UserDataSink {
         played: Boolean,
     ): MqResult<Unit>
 
+    /** Takes a movie or an episode out of Continue watching (#431): its resume point goes, watched stays as it is. */
+    suspend fun clearResume(
+        server: SignedInServer,
+        itemId: MediaId,
+    ): MqResult<Unit>
+
     /** Sets the rating, 0-10 as in `UserData.rating`; `null` clears it. */
     suspend fun setRating(
         server: SignedInServer,
