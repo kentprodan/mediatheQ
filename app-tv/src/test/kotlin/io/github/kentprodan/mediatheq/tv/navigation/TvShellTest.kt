@@ -23,7 +23,6 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
-import androidx.tv.material3.DrawerValue
 import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -60,14 +59,13 @@ class TvShellTest {
 
     private data object NoScreenKey : NavKey
 
-    private fun show(drawer: DrawerValue = DrawerValue.Closed) {
+    private fun show() {
         composeRule.setContent {
             MediatheqTvTheme {
                 TvShell(
                     backStack,
                     PlayerUiModel(),
                     onUnknown = { unknown += it },
-                    initialDrawer = drawer,
                     onClose = { closed++ },
                 ) { navigator ->
                     entry(HomeKey) {
@@ -93,9 +91,8 @@ class TvShellTest {
     private fun pressBack() = composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
 
     @Test
-    fun `a drawer entry shows its screen, Back from it lands on Home, Back on Home asks to close`() {
-        // The drawer as it is with focus in it: open, its entries named.
-        show(DrawerValue.Open)
+    fun `a tab shows its screen, Back from it lands on Home, Back on Home asks to close`() {
+        show()
 
         composeRule.onNodeWithText("Library").performSemanticsAction(SemanticsActions.RequestFocus)
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
@@ -143,41 +140,30 @@ class TvShellTest {
     }
 
     @Test
-    fun `focus entering the drawer lands on the selected entry, not the one focused last`() {
+    fun `focus coming up into the tab bar lands on the selected tab, not the one focused last (#508)`() {
         show()
         composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
 
-        // Into the drawer, down to Search without selecting it, back to the content, into the drawer again.
-        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+        // Up into the bar, right to Search without selecting it, back down to the content, up again.
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionUp) }
         composeRule.onNodeWithText("Home").assertIsFocused()
-        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
-        composeRule.onNodeWithText("Search").assertIsFocused()
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
-        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+        composeRule.onNodeWithText("Search").assertIsFocused()
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionUp) }
 
         composeRule.onNodeWithText("Home").assertIsFocused()
     }
 
     @Test
-    fun `the first Left from content far down the screen lands on the selected entry too`() {
-        // #342: content level with a lower entry (Now playing, Settings) took the focus there on the first entry.
-        composeRule.setContent {
-            MediatheqTvTheme {
-                TvShell(backStack, PlayerUiModel(), onUnknown = {}) { _ ->
-                    entry(HomeKey) {
-                        Column {
-                            Spacer(Modifier.height(360.dp))
-                            MqTvButton("Low album", {})
-                        }
-                    }
-                }
-            }
-        }
-        composeRule.onNodeWithText("Low album").performSemanticsAction(SemanticsActions.RequestFocus)
+    fun `a detail page has the whole screen, without the tabs (#515)`() {
+        show()
+        composeRule.onNodeWithText("Search").assertExists()
+        composeRule.onNodeWithText("Second album").performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
 
-        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
-
-        composeRule.onNodeWithText("Home").assertIsFocused()
+        composeRule.onNodeWithText("Album page").assertExists()
+        composeRule.onNodeWithText("Search").assertDoesNotExist()
     }
 
     @Test

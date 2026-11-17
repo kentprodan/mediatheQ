@@ -4,25 +4,35 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,14 +47,12 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import androidx.tv.material3.DrawerValue
+import androidx.tv.material3.ClickableSurfaceColors
+import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.NavigationDrawer
-import androidx.tv.material3.NavigationDrawerItem
-import androidx.tv.material3.NavigationDrawerScope
+import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
-import androidx.tv.material3.rememberDrawerState
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
@@ -153,8 +161,8 @@ internal fun TvShellRoute(
 }
 
 /**
- * The TV frame (ADR 0041): the drawer on the left (collapsed to icons until focused, the now-playing strip in its
- * footer), the top of the one back stack on the right. [entries] registers the screens; a key without a screen shows
+ * The TV frame (ADR 0041, #508): a tab bar at the top on the top-level screens (the now-playing chip at its end), the
+ * top of the one back stack under it. [entries] registers the screens; a key without a screen shows
  * a placeholder and is logged once. Back pops; on Home it asks whether to close the app (#343): [onClose] stops the music
  * and leaves. The remote's Home button leaves with the music going on.
  */
@@ -165,7 +173,6 @@ fun TvShell(
     destinations: List<TvDestination> = TvDestination.entries,
     simpleTransitions: Boolean = false,
     onUnknown: (NavKey) -> Unit = {},
-    initialDrawer: DrawerValue = DrawerValue.Closed,
     onClose: () -> Unit = {},
     guard: ((NavKey, () -> Unit) -> Unit)? = null,
     entries: EntryProviderScope<NavKey>.(TvNavigator) -> Unit,
@@ -189,7 +196,9 @@ fun TvShell(
         if (hidden > 0) repeat(backStack.size - hidden) { backStack.removeAt(backStack.lastIndex) }
     }
     val selected = backStack.lastOrNull { TvDestination.of(it) != null }?.let(TvDestination::of) ?: TvDestination.Home
-    TvFrame(selected, player, navigator::navigateTo, initialDrawer, destinations) {
+    // The tabs show on the top level only (#508): a detail page and the players have the whole screen (#515).
+    val topLevel = backStack.lastOrNull()?.let(TvDestination::of) != null
+    TvFrame(selected, player, navigator::navigateTo, destinations, showTabs = topLevel) {
         // Each screen requests its own initial focus once, the item it had before when it comes back (FocusMemory).
         NavDisplay(
             backStack = backStack,
@@ -213,88 +222,130 @@ fun TvShell(
 }
 
 /**
- * The drawer around [content]: the entries with [selected] marked, the strip when [player] has something queued.
- * [initialDrawer] is for previews (the app starts closed; the drawer opens when focus enters it).
+ * The tab bar over [content] (#508, owner decision: Google TV / Netflix style instead of a side drawer): the
+ * destinations with [selected] marked, then what plays. Shown only when [showTabs]; a tab opens on Select, not on
+ * focus, so moving along the bar loads nothing.
  */
 @Composable
 fun TvFrame(
     selected: TvDestination,
     player: PlayerUiModel,
     onNavigate: (NavKey) -> Unit,
-    initialDrawer: DrawerValue = DrawerValue.Closed,
     destinations: List<TvDestination> = TvDestination.entries,
+    showTabs: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    NavigationDrawer(
-        drawerContent = { drawer -> Drawer(drawer, selected, player, onNavigate, destinations) },
-        drawerState = rememberDrawerState(initialDrawer),
-    ) { content() }
+    Column(Modifier.fillMaxSize()) {
+        if (showTabs) TabBar(selected, player, onNavigate, destinations)
+        Box(Modifier.fillMaxWidth().weight(1f)) { content() }
+    }
 }
 
 @Composable
-private fun NavigationDrawerScope.Drawer(
-    drawer: DrawerValue,
+private fun TabBar(
     selected: TvDestination,
     player: PlayerUiModel,
     onNavigate: (NavKey) -> Unit,
     destinations: List<TvDestination>,
 ) {
-    // Focus coming back from the content lands on the selected entry, not on the one focused last (ADR 0041).
+    // Focus coming up from the content lands on the selected tab, not on the one focused last (ADR 0041).
     val requesters = remember { TvDestination.entries.associateWith { FocusRequester() } }
-    Column(
+    Row(
         Modifier
-            .fillMaxHeight()
-            .padding(12.dp)
-            // A focus group of its own: without it onEnter never ran, and the first Left went to the entry level
-            // with the content (often Now playing, #342).
+            .fillMaxWidth()
+            .padding(horizontal = 48.dp, vertical = 16.dp)
             .focusProperties {
-                // Only the D-pad's way in; a focus asked for in code (an entry itself) is left alone.
-                onEnter =
-                    {
-                        if (requestedFocusDirection == FocusDirection.Left) {
-                            // The selected entry, or Home when the mode just hid it.
-                            requesters
-                                .getValue(
-                                    selected.takeIf { it in destinations } ?: TvDestination.Home,
-                                ).requestFocus()
-                        }
+                onEnter = {
+                    if (requestedFocusDirection == FocusDirection.Up) {
+                        requesters.getValue(selected.takeIf { it in destinations } ?: TvDestination.Home).requestFocus()
                     }
+                }
             }.focusGroup(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         destinations.forEach { destination ->
-            NavigationDrawerItem(
-                selected = destination == selected,
-                onClick = { onNavigate(destination.key) },
-                modifier = Modifier.focusRequester(requesters.getValue(destination)),
-                leadingContent = { Icon(destination.icon, contentDescription = null) },
-            ) { Text(stringResource(destination.label)) }
+            Tab(
+                stringResource(destination.label),
+                destination.icon,
+                destination == selected,
+                Modifier.focusRequester(requesters.getValue(destination)),
+            ) { onNavigate(destination.key) }
         }
         Spacer(Modifier.weight(1f))
         player.item?.let { item ->
             val playState = stringResource(if (player.isPlaying) R.string.tv_playing else R.string.tv_paused)
-            // The strip: the cover (collapsed, the only part shown), what plays and its play state; selecting it opens
-            // Now playing.
-            NavigationDrawerItem(
-                selected = false,
+            // What plays: its cover, title and state; Select opens Now playing.
+            Surface(
                 onClick = { onNavigate(TvDestination.NowPlaying.key) },
-                modifier = Modifier.semantics { stateDescription = playState },
-                leadingContent = {
+                modifier = Modifier.widthIn(max = 320.dp).semantics { stateDescription = playState },
+                shape = ClickableSurfaceDefaults.shape(CircleShape),
+                colors = tabColors(selected = false),
+                scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     MqTvCover(
                         item.artwork,
                         MqTvIcons.MusicNote,
                         Modifier.size(24.dp).clip(MaterialTheme.shapes.extraSmall),
                     )
-                },
-                trailingContent = {
-                    Icon(if (player.isPlaying) MqTvIcons.Pause else MqTvIcons.Play, contentDescription = null)
-                },
-                supportingContent = {
-                    if (drawer == DrawerValue.Open) Text(item.artist, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                },
-            ) { Text(item.title, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    Text(
+                        item.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    Icon(
+                        if (player.isPlaying) MqTvIcons.Pause else MqTvIcons.Play,
+                        contentDescription = null,
+                        Modifier.size(20.dp),
+                    )
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun Tab(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.semantics { this.selected = selected },
+        shape = ClickableSurfaceDefaults.shape(CircleShape),
+        colors = tabColors(selected),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(icon, contentDescription = null, Modifier.size(20.dp))
+            Text(label, style = MaterialTheme.typography.labelLarge)
+        }
+    }
+}
+
+@Composable
+private fun tabColors(selected: Boolean): ClickableSurfaceColors {
+    val scheme = MaterialTheme.colorScheme
+    return ClickableSurfaceDefaults.colors(
+        containerColor = if (selected) scheme.secondaryContainer else Color.Transparent,
+        contentColor = if (selected) scheme.onSecondaryContainer else scheme.onSurfaceVariant,
+        focusedContainerColor = MaterialTheme.colorScheme.inverseSurface,
+        focusedContentColor = MaterialTheme.colorScheme.inverseOnSurface,
+    )
 }
 
 /** A movie sent from another client (#389): its player opens, in place of a player already on top (never two). */
