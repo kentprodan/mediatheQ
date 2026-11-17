@@ -6,10 +6,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.model.AppMode
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.playback.RemoteControl
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
@@ -22,7 +26,11 @@ class TvShellViewModel
         private val playback: PlaybackConnection,
         private val log: AppLog,
         appMode: AppModeRepository,
+        remoteControl: RemoteControl? = null,
     ) : ViewModel() {
+        /** A video another client started here (#389): the shell opens the player on it. */
+        val remoteVideo: Flow<MediaId> = remoteControl?.videoStarted ?: emptyFlow()
+
         val player: StateFlow<PlayerUiModel> = playback.state
 
         /** The drawer's entries for the TV's app mode (#426); music only until the mode is read. */

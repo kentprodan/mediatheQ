@@ -25,6 +25,7 @@ import io.github.kentprodan.mediatheq.core.data.ImagePreferences
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LiveSync
 import io.github.kentprodan.mediatheq.core.data.SmartDownloads
+import io.github.kentprodan.mediatheq.core.playback.RemoteControl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -82,6 +83,9 @@ class MediatheqApplication :
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
+    @Inject
+    lateinit var remoteControl: RemoteControl
+
     // Images settings (#144), kept in memory: the image loader asks on every request.
     private lateinit var images: StateFlow<ImagePreferences?>
     private lateinit var metered: StateFlow<Boolean>
@@ -99,6 +103,8 @@ class MediatheqApplication :
         librarySync.start()
         // Live updates while the app is visible (or music plays, told by the playback service), issue #18.
         liveSync.start()
+        // Commands from other clients (#389): Jellyfin web pauses or skips the phone too.
+        remoteControl.start()
         // Keeps the covers of downloaded albums on the device, so they show offline (#154).
         downloadedCovers.start()
         // Downloads the favorites by themselves, per Settings -> Offline, cache, and download -> Media (#145).

@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.provider.jellyfin.mapper
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RemoteCommand
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.network.MediatheqJson
@@ -9,6 +10,8 @@ import io.github.kentprodan.mediatheq.core.server.LiveEvent
 import io.github.kentprodan.mediatheq.core.server.ServerConnection
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import org.junit.Test
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 
 class SocketMappersTest {
     private val serverId = ServerId("0f1e2d3c4b5a69788796a5b4c3d2e1f0")
@@ -25,6 +28,19 @@ class SocketMappersTest {
     private fun String.parse() = toSocketMessage(MediatheqJson, server)
 
     private fun String.userDataEvent() = ((parse() as SocketMessage.Event).event as LiveEvent.UserDataChanged)
+
+    @Test
+    fun `remote control messages become commands (#389)`() {
+        assertThat((fixture("playstate_seek").parse() as SocketMessage.Event).event)
+            .isEqualTo(LiveEvent.Remote(RemoteCommand.Seek(123_456.milliseconds)))
+        assertThat((fixture("play_now").parse() as SocketMessage.Event).event)
+            .isEqualTo(LiveEvent.Remote(RemoteCommand.Play(listOf(MediaId(serverId, trackId)), 0, 30.minutes)))
+        val pause = """{"MessageType":"Playstate","Data":{"Command":"Pause"}}"""
+        assertThat((pause.parse() as SocketMessage.Event).event).isEqualTo(LiveEvent.Remote(RemoteCommand.Pause))
+        // Queue additions are not handled yet; unknown commands are ignored.
+        assertThat(fixture("play_now").replace("PlayNow", "PlayNext").parse()).isNull()
+        assertThat("""{"MessageType":"Playstate","Data":{"Command":"Rewind"}}""".parse()).isNull()
+    }
 
     @Test
     fun `ForceKeepAlive gives the server timeout`() {

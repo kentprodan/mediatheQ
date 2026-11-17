@@ -50,6 +50,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.NowPlayingKey
+import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
 import io.github.kentprodan.mediatheq.feature.tv.album.tvAlbumEntries
@@ -86,6 +87,10 @@ internal fun TvShellRoute(
             .openRawResource(id)
             .bufferedReader()
             .use { it.readText() }
+    // A movie sent from the phone or Jellyfin web (#389) plays already: its player opens on it.
+    LaunchedEffect(Unit) {
+        viewModel.remoteVideo.collect { TvNavigator.navigate(backStack, VideoPlayerKey(it, attach = true)) }
+    }
     // The launcher's Now Playing card (#240).
     LaunchedEffect(openPlayer) {
         if (openPlayer) {
