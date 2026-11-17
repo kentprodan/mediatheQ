@@ -5,6 +5,7 @@ import androidx.navigation3.runtime.NavKey
 import io.github.kentprodan.mediatheq.core.navigation.MovieKey
 import io.github.kentprodan.mediatheq.core.navigation.MoviesKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
+import io.github.kentprodan.mediatheq.core.navigation.PersonKey
 import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
 import io.github.kentprodan.mediatheq.core.navigation.SeriesListKey
 import io.github.kentprodan.mediatheq.core.navigation.VideoCollectionKey
@@ -23,9 +24,16 @@ fun EntryProviderScope<NavKey>.tvVideoEntries(navigator: Navigator) {
         TvSeriesPageRoute(key.id) { id, start -> navigator.navigateTo(VideoPlayerKey(id, start.inWholeMilliseconds)) }
     }
     entry<MovieKey> { key ->
-        TvMovieRoute(key.id, onOpenMovie = { navigator.navigateTo(MovieKey(it)) }) { id, start ->
+        TvMovieRoute(
+            key.id,
+            onOpenMovie = { navigator.navigateTo(MovieKey(it)) },
+            onOpenPerson = { id, name -> navigator.navigateTo(PersonKey(id, name)) },
+        ) { id, start ->
             navigator.navigateTo(VideoPlayerKey(id, start.inWholeMilliseconds))
         }
+    }
+    entry<PersonKey> { key ->
+        TvPersonRoute(key, { navigator.navigateTo(MovieKey(it)) }) { navigator.navigateTo(SeriesKey(it)) }
     }
     entry<VideoPlayerKey> { key -> TvPlayerRoute(key) { navigator.back() } }
 }

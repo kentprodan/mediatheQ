@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
@@ -30,6 +32,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,6 +59,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RemoteSession
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.MqTracksSheet
 import kotlin.time.Duration
@@ -223,6 +227,19 @@ private fun MovieContent(
                 MqFavoriteToggle(movie.userData.isFavorite, { onAction(MovieAction.ToggleFavorite) })
                 WatchedToggle(movie.userData.played) { onAction(MovieAction.ToggleWatched) }
                 DownloadToggle(state.download) { onAction(MovieAction.ToggleDownload) }
+                if (state.tvs.isNotEmpty()) PlayOnTvButton(state.tvs) { onAction(MovieAction.PlayOnTv(it)) }
+            }
+            state.sentToTv?.let { sent ->
+                Text(
+                    stringResource(
+                        if (sent.ok) R.string.video_sent_to_tv else R.string.video_send_to_tv_failed,
+                        sent.deviceName,
+                    ),
+                    Modifier.padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color =
+                        if (sent.ok) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                )
             }
             state.download?.takeIf { it.cannotDownload }?.let {
                 Text(
@@ -288,6 +305,32 @@ internal fun TracksRow(
     )
     if (open) {
         MqTracksSheet(sheet, onAudio, onSubtitle, onWholeSeason = {}, onDismiss = { open = false })
+    }
+}
+
+/** Play on TV (#389): one TV sends at once, several open a list of their names. */
+@Composable
+internal fun PlayOnTvButton(
+    tvs: List<RemoteSession>,
+    onSend: (RemoteSession) -> Unit,
+) {
+    var choosing by remember { mutableStateOf(false) }
+    Box {
+        FilledTonalButton(onClick = { if (tvs.size == 1) onSend(tvs.single()) else choosing = true }) {
+            Icon(MqIcons.Tv, contentDescription = null)
+            Text(stringResource(R.string.video_play_on_tv))
+        }
+        DropdownMenu(expanded = choosing, onDismissRequest = { choosing = false }) {
+            tvs.forEach { tv ->
+                DropdownMenuItem(
+                    text = { Text(tv.deviceName) },
+                    onClick = {
+                        choosing = false
+                        onSend(tv)
+                    },
+                )
+            }
+        }
     }
 }
 
