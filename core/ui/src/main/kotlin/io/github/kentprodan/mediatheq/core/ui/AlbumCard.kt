@@ -38,6 +38,8 @@ fun AlbumCard(
     coverModel: Any? = album.artwork,
     coverBlurHash: String? = album.artwork?.blurHash,
     sharedCover: Boolean = true,
+    /** Tells this card's shared cover from other cards of the same album (#418). */
+    coverOrigin: String? = null,
     /** Long press, e.g. to start selecting; `null` for none. */
     onLongClick: (() -> Unit)? = null,
     /** In a multi-select list: whether this card is selected (a check on the cover). `null` outside selection. */
@@ -62,7 +64,7 @@ fun AlbumCard(
                 model = coverModel,
                 contentDescription = null,
                 // Flies into the album page's header cover.
-                modifier = if (sharedCover) Modifier.mqSharedCover(sharedCoverKey(album.id)) else Modifier,
+                modifier = if (sharedCover) Modifier.mqSharedCover(sharedCoverKey(album.id, coverOrigin)) else Modifier,
                 blurHash = coverBlurHash,
             )
             CoverOverlays(album.userData.isFavorite, album.id in style.downloaded)

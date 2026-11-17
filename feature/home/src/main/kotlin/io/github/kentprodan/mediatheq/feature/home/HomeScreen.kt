@@ -73,6 +73,8 @@ import kotlin.time.Duration
 /** Where Home opens things. */
 data class HomeNavigation(
     val onOpenAlbum: (MediaId) -> Unit = {},
+    /** An album opened from a section's card (#418): the card is named so its cover flies back to it. */
+    val onOpenAlbumFrom: (MediaId, String) -> Unit = { id, _ -> onOpenAlbum(id) },
     val onOpenArtist: (MediaId) -> Unit = {},
     val onOpenPlaylist: (MediaId) -> Unit = {},
     val onOpenSettings: () -> Unit = {},
@@ -296,7 +298,7 @@ internal fun LazyListScope.section(
                     favoriteOverlay = settings.favoriteOverlay ?: style.favoriteOverlay,
                     offlineOverlay = settings.offlineOverlay ?: style.offlineOverlay,
                 ),
-        ) { SectionItems(items, settings, flying, onAction, navigation) }
+        ) { SectionItems(items, settings, flying, onAction, navigation, origin = key) }
     }
 }
 
@@ -307,6 +309,8 @@ private fun SectionItems(
     flying: Set<MediaId>,
     onAction: (HomeAction) -> Unit,
     navigation: HomeNavigation,
+    /** The section, named in its cards' shared cover keys (#418). */
+    origin: String,
 ) {
     run {
         when (settings.display) {
@@ -318,12 +322,12 @@ private fun SectionItems(
             }
 
             HomeDisplay.Grid -> {
-                CardRow(items, flying, navigation, settings, onAction, rows = settings.gridRows)
+                CardRow(items, flying, navigation, settings, onAction, rows = settings.gridRows, origin = origin)
             }
 
             // A list of albums, artists or playlists is a row of cards (List is for tracks).
             HomeDisplay.Row, HomeDisplay.List -> {
-                CardRow(items, flying, navigation, settings, onAction, rows = 1)
+                CardRow(items, flying, navigation, settings, onAction, rows = 1, origin = origin)
             }
         }
     }
@@ -374,6 +378,7 @@ private fun CardRow(
     settings: HomeSectionSettings,
     onAction: (HomeAction) -> Unit,
     rows: Int,
+    origin: String,
 ) {
     val subtitles = !settings.hideSubtitles
     val cards: List<@Composable (Modifier) -> Unit> =
@@ -383,9 +388,10 @@ private fun CardRow(
                     { modifier: Modifier ->
                         AlbumCard(
                             album,
-                            { navigation.onOpenAlbum(album.id) },
+                            { navigation.onOpenAlbumFrom(album.id, origin) },
                             modifier,
                             sharedCover = album.id in flying,
+                            coverOrigin = origin,
                             showSubtitle = subtitles,
                             onPlay = { onAction(HomeAction.PlayAlbum(album.id)) }.takeIf { settings.playButton },
                         )
@@ -501,10 +507,8 @@ private fun open(
 }
 
 /**
- * For each row, the albums whose cover flies into the album page: an album can be in several rows, and only its first
- * card may carry the shared cover (two visible covers with one key break the transition).
+ * For each row, the albums whose cover flies into the album page: every card of a card row (#418). Each card names its
+ * section in the shared key, so an album in several rows never has two visible covers with one key.
  */
-internal fun flyingCovers(rows: List<List<Album>>): List<Set<MediaId>> {
-    val seen = mutableSetOf<MediaId>()
-    return rows.map { row -> row.filter { seen.add(it.id) }.mapTo(HashSet()) { it.id } }
-}
+internal fun flyingCovers(rows: List<List<Album>>): List<Set<MediaId>> =
+    rows.map { row -> row.mapTo(HashSet()) { it.id } }

@@ -64,6 +64,7 @@ import io.github.kentprodan.mediatheq.core.ui.text
 internal fun AlbumHeader(
     albumId: MediaId,
     state: AlbumUiState.Content,
+    coverOrigin: String? = null,
     topPadding: Dp,
     coverColor: Color?,
     onAction: (AlbumAction) -> Unit,
@@ -75,7 +76,7 @@ internal fun AlbumHeader(
         MqCover(
             model = state.album.artwork,
             contentDescription = null,
-            modifier = modifier.mqSharedCover(sharedCoverKey(albumId)),
+            modifier = modifier.mqSharedCover(sharedCoverKey(albumId, coverOrigin)),
             blurHash = state.album.artwork?.blurHash,
             shape =
                 if (state.page.headerBackground == AlbumHeaderBackground.CoverImage) {

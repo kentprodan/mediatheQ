@@ -10,6 +10,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AlbumKey(
     @Serializable(with = MediaIdSerializer::class) val id: MediaId,
+    /** Which card opened it (#418): the cover flies back to that card, not to another one of the same album. */
+    val coverOrigin: String? = null,
 ) : NavKey
 
 /** An artist's page (#15). */
