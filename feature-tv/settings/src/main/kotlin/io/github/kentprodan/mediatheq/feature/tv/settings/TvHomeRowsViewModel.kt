@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoSort
+import io.github.kentprodan.mediatheq.core.data.genreCounts
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -82,7 +83,11 @@ class TvHomeRowsViewModel
                         combine(
                             videos.movies(VideoSort.Name, unwatched = false),
                             videos.series(VideoSort.Name, unwatched = false),
-                        ) { movies, series -> commonGenres(movies.map { it.genres } + series.map { it.genres }) }
+                        ) { movies, series ->
+                            genreCounts(
+                                movies.map { it.genres } + series.map { it.genres },
+                            ).map { it.first }
+                        }
                     }
                 }
 
@@ -138,13 +143,3 @@ internal fun moveSection(
         this[b] = section
     }
 }
-
-/** Every genre of [genreLists], the most common first, then by name. */
-internal fun commonGenres(genreLists: List<List<String>>): List<String> =
-    genreLists
-        .flatten()
-        .groupingBy { it }
-        .eachCount()
-        .entries
-        .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-        .map { it.key }

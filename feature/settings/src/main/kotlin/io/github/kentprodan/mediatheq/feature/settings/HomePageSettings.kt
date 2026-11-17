@@ -46,6 +46,7 @@ internal fun LazyListScope.homePageGroups(
     reorder: MqReorderState,
     onAction: (SettingsAction) -> Unit,
     onOpenSection: (HomeSection) -> Unit,
+    onOpenGenres: (() -> Unit)?,
     onOpenDialog: (HomePageDialog) -> Unit,
 ) {
     itemsIndexed(rows, key = { _, section -> section }) { index, section ->
@@ -66,6 +67,13 @@ internal fun LazyListScope.homePageGroups(
             modifier = Modifier.mqReorderItem(reorder, section),
             handle = Modifier.mqReorderHandle(reorder, section),
         )
+    }
+    onOpenGenres?.let { open ->
+        item(key = "home_genres") {
+            Group(R.string.settings_home_genres_group) {
+                pageRow(R.string.settings_home_genres, R.string.settings_home_genres_summary, { MqIcons.Movie }, open)
+            }
+        }
     }
     item(key = "home_reset") {
         Group(R.string.settings_home_rows_group) {

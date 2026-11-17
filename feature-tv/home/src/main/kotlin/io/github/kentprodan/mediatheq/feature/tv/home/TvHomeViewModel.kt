@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
+import io.github.kentprodan.mediatheq.core.data.GenreItem
+import io.github.kentprodan.mediatheq.core.data.GenreRow
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.HomeShuffle
 import io.github.kentprodan.mediatheq.core.data.HomeVideos
@@ -16,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoSort
+import io.github.kentprodan.mediatheq.core.data.genreRows
 import io.github.kentprodan.mediatheq.core.data.homeItems
 import io.github.kentprodan.mediatheq.core.data.homeLibrary
 import io.github.kentprodan.mediatheq.core.data.mixTracks
@@ -121,7 +124,7 @@ class TvHomeViewModel
             }.flowOn(defaultDispatcher)
 
         /** The genre rows (#431): read only with video and genres picked. */
-        private val genreRows: Flow<List<TvGenreRow>> =
+        private val genreRows: Flow<List<GenreRow>> =
             combine(mode.map { it.video }.distinctUntilChanged(), preferences.homeGenres) { video, genres ->
                 genres.takeIf { video }.orEmpty()
             }.distinctUntilChanged()
@@ -242,21 +245,3 @@ internal fun tvItems(
 /** How many of [episodes] each series has, for "5 new episodes". */
 internal fun newEpisodeCounts(episodes: List<Video>): Map<MediaId, Int> =
     episodes.mapNotNull { it.seriesId }.groupingBy { it }.eachCount()
-
-/** One row per picked genre, in the order picked (#431): its movies and series, newest added first; empty ones left out. */
-internal fun genreRows(
-    genres: List<String>,
-    movies: List<Video>,
-    series: List<Series>,
-    limit: Int,
-): List<TvGenreRow> =
-    genres.mapNotNull { genre ->
-        val items =
-            (
-                movies.filter { genre in it.genres }.map { TvGenreItem.Movie(it) to it.dateAdded } +
-                    series.filter { genre in it.genres }.map { TvGenreItem.Show(it) to it.dateAdded }
-            ).sortedByDescending { it.second }
-                .take(limit)
-                .map { it.first }
-        items.takeIf { it.isNotEmpty() }?.let { TvGenreRow(genre, it) }
-    }
