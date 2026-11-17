@@ -13,7 +13,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -22,11 +26,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -49,16 +55,22 @@ import io.github.kentprodan.mediatheq.core.common.formatDuration
 import io.github.kentprodan.mediatheq.core.data.VideoTracks
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
+import io.github.kentprodan.mediatheq.core.model.Chapter
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
+import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvSubtitles
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTrickplayPreview
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvVideoSurface
 import kotlinx.coroutines.delay
 import java.time.LocalTime
@@ -80,6 +92,8 @@ fun TvPlayerRoute(
     val nextIn by viewModel.nextIn.collectAsStateWithLifecycle()
     val style by viewModel.subtitleStyle.collectAsStateWithLifecycle()
     val quality by viewModel.quality.collectAsStateWithLifecycle()
+    val extras by viewModel.extras.collectAsStateWithLifecycle()
+    val skip by viewModel.skipButton.collectAsStateWithLifecycle()
     LaunchedEffect(state) { if (state == TvPlayerUiState.Ended) onBack() }
     TvPlayerScreen(
         state,
@@ -87,6 +101,8 @@ fun TvPlayerRoute(
         nextIn,
         viewModel::onAction,
         quality = quality,
+        extras = extras,
+        skip = skip,
         onLeave = {
             viewModel.onAction(TvPlayerAction.Leave)
             onBack()
@@ -111,6 +127,9 @@ fun TvPlayerScreen(
     onAction: (TvPlayerAction) -> Unit,
     onLeave: () -> Unit,
     quality: VideoQuality = VideoQuality.Original,
+    extras: PlayerExtras = PlayerExtras(),
+    /** The segment whose Skip button shows (#430); `null` for none. */
+    skip: MediaSegment? = null,
     surface: @Composable (ContentScale) -> Unit,
 ) {
     // Fit each time a video opens; Fill and Stretch from the bar (owner, #429).
@@ -151,6 +170,11 @@ fun TvPlayerScreen(
                 keys++
                 // The bar's buttons and the next-episode card take their own keys.
                 if (bar || nextIn != null) return@onPreviewKeyEvent false
+                // Select on the Skip button while it shows (left and right still seek).
+                if (skip != null && (event.key == Key.DirectionCenter || event.key == Key.Enter)) {
+                    if (event.type == KeyEventType.KeyDown) onAction(TvPlayerAction.SkipSegment)
+                    return@onPreviewKeyEvent true
+                }
                 val down = event.type == KeyEventType.KeyDown
                 when (event.key) {
                     Key.DirectionLeft, Key.DirectionRight -> {
@@ -190,10 +214,14 @@ fun TvPlayerScreen(
             is TvPlayerUiState.Playing -> {
                 if (!state.isPlaying && !state.isBuffering && !bar) PauseInfo(state.video)
                 if (bar) {
-                    Bar(state, position, onAction, onMenu = { menu = it }) { tracks = true }
+                    Bar(state, position, onAction, extras.chapters, onMenu = { menu = it }) { tracks = true }
                 } else if (seeking > 0) {
-                    Box(Modifier.align(Alignment.BottomCenter).padding(EDGE)) { Progress(position, state.duration) }
+                    Column(Modifier.align(Alignment.BottomCenter).padding(EDGE)) {
+                        extras.trickplay?.let { MqTvTrickplayPreview(it, position, Modifier.padding(bottom = 12.dp)) }
+                        Progress(position, state.duration, extras.chapters.map { it.start })
+                    }
                 }
+                skip?.takeIf { !bar }?.let { segment -> SkipButton(segment, Modifier.align(Alignment.BottomEnd)) }
                 nextIn?.let { NextCard(it, onAction, Modifier.align(Alignment.BottomEnd)) }
             }
 
@@ -214,6 +242,14 @@ fun TvPlayerScreen(
                         onAction(TvPlayerAction.SetQuality(q))
                     }
                 },
+            ) { menu = null }
+        }
+
+        PlayerMenu.Chapters -> {
+            ChaptersDialog(
+                extras.chapters,
+                position,
+                onChoose = { onAction(TvPlayerAction.SeekTo(it)) },
             ) { menu = null }
         }
 
@@ -267,6 +303,7 @@ private fun Bar(
     state: TvPlayerUiState.Playing,
     position: Duration,
     onAction: (TvPlayerAction) -> Unit,
+    chapters: List<Chapter>,
     onMenu: (PlayerMenu) -> Unit,
     onTracks: () -> Unit,
 ) {
@@ -278,7 +315,7 @@ private fun Bar(
     ) {
         Column(Modifier.align(Alignment.BottomStart).padding(EDGE), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(titleOf(state.video), style = MaterialTheme.typography.headlineSmall, color = Color.White)
-            Progress(position, state.duration)
+            Progress(position, state.duration, chapters.map { it.start })
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 MqTvButton(
                     stringResource(if (state.isPlaying) R.string.tv_player_pause else R.string.tv_player_play),
@@ -296,6 +333,9 @@ private fun Bar(
                 )
                 if (state.tracks?.streams?.isNotEmpty() == true) {
                     MqTvButton(stringResource(R.string.tv_movie_tracks), onTracks)
+                }
+                if (chapters.isNotEmpty()) {
+                    MqTvButton(stringResource(R.string.tv_player_chapters), { onMenu(PlayerMenu.Chapters) })
                 }
                 MqTvButton(stringResource(R.string.tv_player_quality), { onMenu(PlayerMenu.Quality) })
                 MqTvButton(stringResource(R.string.tv_player_zoom), { onMenu(PlayerMenu.Zoom) })
@@ -317,6 +357,8 @@ private fun Bar(
 private fun Progress(
     position: Duration,
     duration: Duration,
+    /** Chapter starts, marked on the bar (#430). */
+    marks: List<Duration> = emptyList(),
 ) {
     val fraction = if (duration > Duration.ZERO) (position / duration).toFloat().coerceIn(0f, 1f) else 0f
     val left = (duration - position).coerceAtLeast(Duration.ZERO)
@@ -332,6 +374,16 @@ private fun Progress(
             Modifier.fillMaxWidth().height(6.dp).drawBehind {
                 drawRect(track)
                 drawRect(bar, size = Size(size.width * fraction, size.height))
+                if (duration > Duration.ZERO) {
+                    marks.forEach { start ->
+                        val x = size.width * (start / duration).toFloat()
+                        drawRect(
+                            Color.Black.copy(alpha = 0.7f),
+                            topLeft = Offset(x, 0f),
+                            size = Size(MARK_WIDTH, size.height),
+                        )
+                    }
+                }
             },
         )
         Row {
@@ -416,7 +468,90 @@ private fun titleOf(video: Video): String =
         video.title
     }
 
-internal enum class PlayerMenu { Quality, Zoom }
+internal enum class PlayerMenu { Chapters, Quality, Zoom }
+
+/** "Skip intro" or "Skip credits" (#430): Select skips while it shows; it goes after a few seconds by itself. */
+@Composable
+private fun SkipButton(
+    segment: MediaSegment,
+    modifier: Modifier,
+) {
+    Surface(modifier.padding(EDGE), shape = MaterialTheme.shapes.extraLarge) {
+        Text(
+            stringResource(
+                if (segment.type ==
+                    SegmentType.Outro
+                ) {
+                    R.string.tv_player_skip_credits
+                } else {
+                    R.string.tv_player_skip_intro
+                },
+            ),
+            Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+            style = MaterialTheme.typography.titleMedium,
+        )
+    }
+}
+
+/** The chapters with their pictures (#430); the one playing is focused first. */
+@Composable
+private fun ChaptersDialog(
+    chapters: List<Chapter>,
+    position: Duration,
+    onChoose: (Duration) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val current = chapters.indexOfLast { it.start <= position }.coerceAtLeast(0)
+    val focus = remember { FocusRequester() }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = MaterialTheme.shapes.large) {
+            Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(stringResource(R.string.tv_player_chapters), style = MaterialTheme.typography.titleLarge)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    state = rememberLazyListState(current),
+                ) {
+                    itemsIndexed(chapters, key = { _, c -> c.index }) { i, chapter ->
+                        MqTvCard(
+                            chapter.name ?: stringResource(R.string.tv_player_chapter, chapter.index + 1),
+                            {
+                                onChoose(chapter.start)
+                                onDismiss()
+                            },
+                            Modifier.width(CHAPTER_WIDTH).then(
+                                if (i ==
+                                    current
+                                ) {
+                                    Modifier.focusRequester(focus)
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                            subtitle = formatDuration(chapter.start),
+                            imageAspectRatio = 16f / 9f,
+                        ) {
+                            chapter.imageUrl?.let {
+                                coil3.compose.AsyncImage(
+                                    it,
+                                    null,
+                                    Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        withFrameNanos {}
+        runCatching { focus.requestFocus() }
+    }
+}
+
+private val CHAPTER_WIDTH = 200.dp
+private const val MARK_WIDTH = 3f
 
 /** Fit shows the whole picture, Fill crops it to the screen, Stretch fills it out of shape. */
 internal enum class TvZoom(
