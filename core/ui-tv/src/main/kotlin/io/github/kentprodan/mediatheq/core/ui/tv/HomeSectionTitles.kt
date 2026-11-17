@@ -50,8 +50,11 @@ val HomeSection.title: Int
 
             HomeSection.FiveStarTracks -> R.string.core_ui_tv_home_five_star_tracks
 
-            // The TV lists no video sections yet (TV 2); the music title is never shown for them.
-            HomeSection.ContinueWatching, HomeSection.NextUp, HomeSection.RecentlyAddedMovies,
-            HomeSection.RecentlyAddedEpisodes,
-            -> R.string.core_ui_tv_home_five_star_tracks
+            HomeSection.ContinueWatching -> R.string.core_ui_tv_home_continue_watching
+
+            HomeSection.NextUp -> R.string.core_ui_tv_home_next_up
+
+            HomeSection.RecentlyAddedMovies -> R.string.core_ui_tv_home_recently_added_movies
+
+            HomeSection.RecentlyAddedEpisodes -> R.string.core_ui_tv_home_recently_added_episodes
         }
