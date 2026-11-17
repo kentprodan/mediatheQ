@@ -113,4 +113,7 @@
     <string name="tv_player_chapter">Chapter %d</string>
     <string name="tv_player_skip_intro">Skip intro</string>
     <string name="tv_player_skip_credits">Skip credits</string>
+    <string name="tv_player_still_watching">Still watching?</string>
+    <string name="tv_player_keep_watching">Keep watching</string>
+    <string name="tv_player_stop_watching">Stop</string>
 </resources>

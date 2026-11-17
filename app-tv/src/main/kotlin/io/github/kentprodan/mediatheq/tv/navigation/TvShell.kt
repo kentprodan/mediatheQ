@@ -68,6 +68,8 @@ import io.github.kentprodan.mediatheq.tv.R
 internal fun TvShellRoute(
     openPlayer: Boolean = false,
     onPlayerOpened: () -> Unit = {},
+    openPage: NavKey? = null,
+    onPageOpened: () -> Unit = {},
     viewModel: TvShellViewModel = hiltViewModel(),
 ) {
     val player by viewModel.player.collectAsStateWithLifecycle()
@@ -93,6 +95,13 @@ internal fun TvShellRoute(
     // A movie sent from the phone or Jellyfin web (#389) plays already: its player opens on it.
     LaunchedEffect(Unit) {
         viewModel.remoteVideo.collect { id -> openRemoteVideo(backStack, id) }
+    }
+    // A system search suggestion (#386): its page over what is open.
+    LaunchedEffect(openPage) {
+        openPage?.let {
+            TvNavigator.navigate(backStack, it)
+            onPageOpened()
+        }
     }
     // The launcher's Now Playing card (#240).
     LaunchedEffect(openPlayer) {

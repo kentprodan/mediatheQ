@@ -50,9 +50,9 @@ class TvSettingsViewModel
                 sync.status,
                 accounts.accounts,
                 combine(dialog, appMode.mode, videoPreferences.preferences, simple) { open, mode, video, plain ->
-                    TvSettingsExtras(open, mode, video.subtitleStyle, plain)
+                    TvSettingsExtras(open, mode, video, plain)
                 },
-            ) { remembered, preferences, status, list, (open, mode, subtitles, plain) ->
+            ) { remembered, preferences, status, list, (open, mode, video, plain) ->
                 val active = list.firstOrNull { it.active }
                 TvSettingsUiState.Content(
                     hdmi = hdmiOutput(remembered),
@@ -62,7 +62,8 @@ class TvSettingsViewModel
                     userName = active?.userName,
                     dialog = open,
                     appMode = mode.takeIf { appMode.videoAvailable },
-                    subtitleStyle = subtitles,
+                    subtitleStyle = video.subtitleStyle,
+                    displayMatch = video.displayMatch,
                     simpleTransitions = plain,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvSettingsUiState.Loading)
@@ -110,6 +111,11 @@ class TvSettingsViewModel
 
                 is TvSettingsAction.ChooseSubtitle -> {
                     dialog.value = action.dialog
+                }
+
+                is TvSettingsAction.SetDisplayMatch -> {
+                    dialog.value = null
+                    viewModelScope.launch { videoPreferences.update { it.copy(displayMatch = action.match) } }
                 }
 
                 is TvSettingsAction.SetSubtitleStyle -> {
@@ -165,6 +171,6 @@ internal fun hdmiOutput(remembered: RememberedOutputs): TvHdmiOutput? {
 private data class TvSettingsExtras(
     val dialog: TvSettingsDialog?,
     val mode: io.github.kentprodan.mediatheq.core.model.AppMode,
-    val subtitles: io.github.kentprodan.mediatheq.core.model.SubtitleStyle,
+    val video: io.github.kentprodan.mediatheq.core.data.VideoPreferences,
     val simpleTransitions: Boolean,
 )
