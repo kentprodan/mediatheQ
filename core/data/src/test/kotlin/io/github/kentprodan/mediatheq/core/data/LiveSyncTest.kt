@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RemoteCommand
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.server.LiveEvent
@@ -18,6 +19,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySource
 import io.github.kentprodan.mediatheq.core.testing.FakeLiveEvents
 import io.github.kentprodan.mediatheq.core.testing.FakeNetworkMonitor
+import io.github.kentprodan.mediatheq.core.testing.FakePlaybackSource
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataSink
@@ -25,6 +27,7 @@ import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
 import io.github.kentprodan.mediatheq.core.testing.TestClock
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -60,6 +63,7 @@ class LiveSyncTest {
         }
 
     private val log = FakeAppLog()
+    private val playbackSource = FakePlaybackSource()
 
     private fun TestScope.liveSync(): LiveSync {
         userData =
@@ -84,7 +88,17 @@ class LiveSyncTest {
                 ServerCapabilities(video = false),
                 FakeAppModeRepository(),
             )
-        return LiveSync(events, accountStore, session, userData, librarySync, network, backgroundScope, log).apply {
+        return LiveSync(
+            events,
+            accountStore,
+            session,
+            userData,
+            librarySync,
+            network,
+            backgroundScope,
+            log,
+            playbackSource,
+        ).apply {
             random = noJitter
             setForeground(true)
             start()
@@ -111,6 +125,22 @@ class LiveSyncTest {
             runCurrent()
 
             assertThat(events.open.value).isEqualTo(1)
+        }
+
+    @Test
+    fun `each connection says the session takes remote commands, and commands are passed on`() =
+        runTest(dispatcher) {
+            val sync = liveSync()
+            val received = mutableListOf<RemoteCommand>()
+            backgroundScope.launch { sync.remoteCommands.collect { received += it } }
+            runCurrent()
+
+            events.send(LiveEvent.Connected)
+            events.send(LiveEvent.Remote(RemoteCommand.Pause))
+            runCurrent()
+
+            assertThat(playbackSource.capabilitiesReports).isEqualTo(1)
+            assertThat(received).containsExactly(RemoteCommand.Pause)
         }
 
     @Test

@@ -6,8 +6,10 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.common.NetworkMonitor
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
+import io.github.kentprodan.mediatheq.core.model.RemoteCommand
 import io.github.kentprodan.mediatheq.core.server.LiveEvent
 import io.github.kentprodan.mediatheq.core.server.LiveEvents
+import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,7 +18,10 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -49,7 +54,13 @@ class LiveSync
         private val networkMonitor: NetworkMonitor,
         @param:ApplicationScope private val scope: CoroutineScope,
         private val log: AppLog,
+        private val playbackSource: PlaybackSource? = null,
     ) {
+        private val remote = MutableSharedFlow<RemoteCommand>(extraBufferCapacity = REMOTE_BUFFER)
+
+        /** Commands other clients send to this session (#389): play, pause, seek, skip. */
+        val remoteCommands: SharedFlow<RemoteCommand> = remote.asSharedFlow()
+
         private val foreground = MutableStateFlow(false)
         private val playing = MutableStateFlow(false)
         private val libraryChanges = Channel<Unit>(Channel.CONFLATED)
@@ -100,6 +111,10 @@ class LiveSync
                                 // The server is reachable: send what waited for it (#56). In the app scope, so slow
                                 // writes neither hold up events nor stop when the socket closes.
                                 scope.launch { userData.flushPending() }
+                                // Each connection is a new session on the server: it learns again that we take commands.
+                                scope.launch {
+                                    accountStore.signedInServer()?.let { playbackSource?.reportCapabilities(it) }
+                                }
                                 stable =
                                     launch {
                                         delay(STABLE_AFTER)
@@ -113,6 +128,10 @@ class LiveSync
 
                             LiveEvent.LibraryChanged -> {
                                 libraryChanges.trySend(Unit)
+                            }
+
+                            is LiveEvent.Remote -> {
+                                remote.tryEmit(event.command)
                             }
 
                             is LiveEvent.Closed -> {
@@ -157,6 +176,7 @@ class LiveSync
             val MAX_RETRY = 60.seconds
             const val MAX_DOUBLINGS = 6
             const val JITTER = 0.2
+            const val REMOTE_BUFFER = 8
             val STABLE_AFTER = 30.seconds
             val QUIET = 5.seconds
             val MAX_WAIT = 30.seconds

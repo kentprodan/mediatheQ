@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
 import io.github.kentprodan.mediatheq.core.navigation.NowPlayingKey
 import io.github.kentprodan.mediatheq.core.navigation.SearchKey
+import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import org.junit.Test
 
 class TvNavigatorTest {
@@ -64,4 +65,26 @@ class TvNavigatorTest {
     }
 
     private data object NoScreenKey : NavKey
+
+    @Test
+    fun `a movie sent from another client replaces a player on top instead of stacking one`() {
+        val stack = mutableListOf<NavKey>(HomeKey)
+        val a =
+            io.github.kentprodan.mediatheq.core.model.MediaId(
+                io.github.kentprodan.mediatheq.core.model
+                    .ServerId("s"),
+                "a",
+            )
+        val b =
+            io.github.kentprodan.mediatheq.core.model.MediaId(
+                io.github.kentprodan.mediatheq.core.model
+                    .ServerId("s"),
+                "b",
+            )
+
+        openRemoteVideo(stack, a)
+        openRemoteVideo(stack, b)
+
+        assertThat(stack).containsExactly(HomeKey, VideoPlayerKey(b, attach = true)).inOrder()
+    }
 }
