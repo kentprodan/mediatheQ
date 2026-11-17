@@ -87,6 +87,8 @@ fun MqVideoControls(
     onScrub: (Duration?) -> Unit = {},
     /** Shown above the seek bar while dragging (#277): the trickplay preview of [Duration]. */
     preview: @Composable (Duration) -> Unit = {},
+    /** The picture-in-picture button (#445); `null` hides it. */
+    onPip: (() -> Unit)? = null,
 ) {
     val skipBack = stringResource(R.string.core_ui_video_back_10)
     val skipForward = stringResource(R.string.core_ui_video_forward_10)
@@ -114,6 +116,7 @@ fun MqVideoControls(
             onChapters,
             onScrub,
             preview,
+            onPip,
         )
     }
 }
@@ -141,6 +144,7 @@ private fun VideoControlsContent(
     onChapters: (() -> Unit)?,
     onScrub: (Duration?) -> Unit,
     preview: @Composable (Duration) -> Unit,
+    onPip: (() -> Unit)?,
 ) {
     var scrubbing by remember { mutableStateOf<Duration?>(null) }
     Box(
@@ -176,6 +180,11 @@ private fun VideoControlsContent(
                 onTracks?.let {
                     IconButton(onClick = it) {
                         Icon(MqIcons.Subtitles, stringResource(R.string.core_ui_tracks_open), tint = Color.White)
+                    }
+                }
+                onPip?.let {
+                    IconButton(onClick = it) {
+                        Icon(MqIcons.PictureInPicture, stringResource(R.string.core_ui_video_pip), tint = Color.White)
                     }
                 }
             }
