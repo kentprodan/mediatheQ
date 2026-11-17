@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.data.AccountRepository
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.AudioOutputRepository
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.RememberedOutputs
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
@@ -18,6 +19,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -35,7 +38,9 @@ class TvSettingsViewModel
         private val playback: PlaybackConnection,
         private val appMode: AppModeRepository,
         private val videoPreferences: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
+        private val libraryPreferences: LibraryPreferencesRepository? = null,
     ) : ViewModel() {
+        private val simple = libraryPreferences?.preferences?.map { it.navigation.simpleTransitions } ?: flowOf(false)
         private val dialog = MutableStateFlow<TvSettingsDialog?>(null)
 
         val uiState: StateFlow<TvSettingsUiState> =
@@ -44,10 +49,10 @@ class TvSettingsViewModel
                 audioPreferences.preferences,
                 sync.status,
                 accounts.accounts,
-                combine(dialog, appMode.mode, videoPreferences.preferences) { open, mode, video ->
-                    Triple(open, mode, video)
+                combine(dialog, appMode.mode, videoPreferences.preferences, simple) { open, mode, video, plain ->
+                    TvSettingsExtras(open, mode, video, plain)
                 },
-            ) { remembered, preferences, status, list, (open, mode, video) ->
+            ) { remembered, preferences, status, list, (open, mode, video, plain) ->
                 val active = list.firstOrNull { it.active }
                 TvSettingsUiState.Content(
                     hdmi = hdmiOutput(remembered),
@@ -59,6 +64,7 @@ class TvSettingsViewModel
                     appMode = mode.takeIf { appMode.videoAvailable },
                     subtitleStyle = video.subtitleStyle,
                     displayMatch = video.displayMatch,
+                    simpleTransitions = plain,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvSettingsUiState.Loading)
 
@@ -93,6 +99,14 @@ class TvSettingsViewModel
                 is TvSettingsAction.SetAppMode -> {
                     dialog.value = null
                     viewModelScope.launch { appMode.setMode(action.mode) }
+                }
+
+                TvSettingsAction.ToggleSimpleTransitions -> {
+                    val repo = libraryPreferences ?: return
+                    viewModelScope.launch {
+                        val navigation = repo.preferences.first().navigation
+                        repo.setNavigation(navigation.copy(simpleTransitions = !navigation.simpleTransitions))
+                    }
                 }
 
                 is TvSettingsAction.ChooseSubtitle -> {
@@ -152,3 +166,11 @@ internal fun hdmiOutput(remembered: RememberedOutputs): TvHdmiOutput? {
     val output = hdmi.firstOrNull { it.id == remembered.current } ?: hdmi.lastOrNull() ?: return null
     return TvHdmiOutput(output.id, output.name, output.profile.atmosPassthrough)
 }
+
+/** The settings read beside the main ones (combine takes five flows). */
+private data class TvSettingsExtras(
+    val dialog: TvSettingsDialog?,
+    val mode: io.github.kentprodan.mediatheq.core.model.AppMode,
+    val video: io.github.kentprodan.mediatheq.core.data.VideoPreferences,
+    val simpleTransitions: Boolean,
+)

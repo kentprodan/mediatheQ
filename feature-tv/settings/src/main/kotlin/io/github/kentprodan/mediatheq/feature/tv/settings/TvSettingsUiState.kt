@@ -39,6 +39,8 @@ sealed interface TvSettingsUiState {
         /** How the display follows a video (#384). */
         val displayMatch: io.github.kentprodan.mediatheq.core.data.DisplayMatch =
             io.github.kentprodan.mediatheq.core.data.DisplayMatch.Rate,
+        /** Transitions between pages (#444): Simple when on. */
+        val simpleTransitions: Boolean = false,
     ) : TvSettingsUiState
 }
 
@@ -55,6 +57,8 @@ sealed interface TvSettingsAction {
     data object SyncNow : TvSettingsAction
 
     data object ChooseAppMode : TvSettingsAction
+
+    data object ToggleSimpleTransitions : TvSettingsAction
 
     /** Opens the dialog of one part of the subtitle style. */
     data class ChooseSubtitle(

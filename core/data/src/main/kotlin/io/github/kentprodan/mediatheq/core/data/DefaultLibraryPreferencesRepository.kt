@@ -116,6 +116,7 @@ class DefaultLibraryPreferencesRepository
                     slowStartMessages = navigation.slowStartMessages,
                     trackAction = navigation.trackAction.name,
                     expandPlayer = navigation.expandPlayer,
+                    simpleTransitions = navigation.simpleTransitions,
                 ),
             )
 
@@ -135,6 +136,7 @@ class DefaultLibraryPreferencesRepository
                 slowStartMessages = stored.slowStartMessages ?: defaults.slowStartMessages,
                 trackAction = enumOrNull<TrackAction>(stored.trackAction) ?: defaults.trackAction,
                 expandPlayer = stored.expandPlayer ?: defaults.expandPlayer,
+                simpleTransitions = stored.simpleTransitions ?: defaults.simpleTransitions,
             )
         }
 

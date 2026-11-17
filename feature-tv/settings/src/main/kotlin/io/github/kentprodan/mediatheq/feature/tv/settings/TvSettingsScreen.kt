@@ -141,6 +141,16 @@ fun TvSettingsScreen(
                     )
                 }
             }
+            section(R.string.tv_settings_display)
+            item {
+                MqTvListItem(
+                    stringResource(R.string.tv_settings_simple_transitions),
+                    { onAction(TvSettingsAction.ToggleSimpleTransitions) },
+                    Modifier.focusMemory(focus, "transitions"),
+                    supporting = stringResource(R.string.tv_settings_simple_transitions_detail),
+                    trailing = { Switch(checked = state.simpleTransitions, onCheckedChange = null) },
+                )
+            }
             section(R.string.tv_settings_library)
             state.appMode?.let { mode ->
                 item {

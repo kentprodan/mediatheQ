@@ -36,7 +36,9 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
+import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -55,7 +57,16 @@ class TvPlayerViewModel
         private val playback: PlaybackConnection,
         private val picker: TrackPicker,
         private val preferences: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
+        private val clock: Clock = Clock.System,
     ) : ViewModel() {
+        // "Still watching?" (#388): episodes that started by themselves and when a key was last pressed.
+        private var autoStarted = 0
+        private var lastKey = clock.now()
+        private val asking = MutableStateFlow(false)
+
+        /** The player asks whether anyone still watches; playback is paused until the answer. */
+        val stillWatching: StateFlow<Boolean> = asking
+
         /** How subtitles look (TV Settings, #429). */
         val subtitleStyle: StateFlow<SubtitleStyle> =
             preferences.preferences
@@ -198,7 +209,10 @@ class TvPlayerViewModel
                     val id = player.item?.takeIf { it.isVideo }?.id ?: return@collect
                     if (id == key.id) started.value = true
                     // The next episode took over: the screen follows it.
-                    if (started.value) videoId.value = id
+                    if (started.value && id != videoId.value) {
+                        videoId.value = id
+                        onEpisodeStartedByItself()
+                    }
                 }
             }
         }
@@ -231,6 +245,19 @@ class TvPlayerViewModel
                     playback.cancelNext()
                 }
 
+                // Any key on the remote: someone is watching.
+                TvPlayerAction.KeyPressed -> {
+                    lastKey = clock.now()
+                    autoStarted = 0
+                }
+
+                TvPlayerAction.KeepWatching -> {
+                    asking.value = false
+                    lastKey = clock.now()
+                    autoStarted = 0
+                    if (!playback.state.value.isPlaying) playback.togglePlayPause()
+                }
+
                 TvPlayerAction.SkipSegment -> {
                     button.value?.let(::skip)
                 }
@@ -259,6 +286,15 @@ class TvPlayerViewModel
                 TvPlayerAction.Leave -> {
                     playback.pause()
                 }
+            }
+        }
+
+        /** After [STILL_WATCHING_EPISODES] episodes or [STILL_WATCHING_TIME] without a key, the player asks first. */
+        private fun onEpisodeStartedByItself() {
+            autoStarted++
+            if (stillWatchingDue(autoStarted, clock.now() - lastKey)) {
+                playback.pause()
+                asking.value = true
             }
         }
 
@@ -336,6 +372,12 @@ sealed interface TvPlayerAction {
 
     data object CancelNext : TvPlayerAction
 
+    /** A key of the remote was pressed (#388). */
+    data object KeyPressed : TvPlayerAction
+
+    /** "Still watching?" answered yes. */
+    data object KeepWatching : TvPlayerAction
+
     /** The Skip intro / Skip credits button (#430). */
     data object SkipSegment : TvPlayerAction
 
@@ -352,3 +394,12 @@ sealed interface TvPlayerAction {
 
     data object Leave : TvPlayerAction
 }
+
+/** Owner, #388: ask after 3 episodes in a row or 3 hours without a key, whichever comes first. */
+internal fun stillWatchingDue(
+    episodesStartedByThemselves: Int,
+    sinceLastKey: Duration,
+): Boolean = episodesStartedByThemselves >= STILL_WATCHING_EPISODES || sinceLastKey >= STILL_WATCHING_TIME
+
+private const val STILL_WATCHING_EPISODES = 3
+private val STILL_WATCHING_TIME = 3.hours

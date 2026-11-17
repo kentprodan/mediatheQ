@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.testing
 
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.data.PersonVideos
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoSearchResults
 import io.github.kentprodan.mediatheq.core.data.VideoSort
@@ -67,6 +68,16 @@ class FakeVideoRepository(
     var similarOf: Map<MediaId, List<Video>> = emptyMap()
 
     override suspend fun people(itemId: MediaId): List<Person> = peopleOf[itemId].orEmpty()
+
+    var peopleSearch: Map<String, List<Person>> = emptyMap()
+    var videosOfPerson: Map<MediaId, PersonVideos> = emptyMap()
+
+    override suspend fun searchPeople(
+        query: String,
+        limit: Int,
+    ): List<Person> = peopleSearch[query].orEmpty().take(limit)
+
+    override suspend fun personVideos(personId: MediaId): PersonVideos = videosOfPerson[personId] ?: PersonVideos()
 
     override suspend fun similarMovies(
         itemId: MediaId,

@@ -71,6 +71,7 @@ internal fun TvShellRoute(
 ) {
     val player by viewModel.player.collectAsStateWithLifecycle()
     val destinations by viewModel.destinations.collectAsStateWithLifecycle()
+    val simpleTransitions by viewModel.simpleTransitions.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(HomeKey)
     val context = LocalContext.current
     val versionName =
@@ -103,6 +104,7 @@ internal fun TvShellRoute(
         backStack,
         player,
         destinations = destinations,
+        simpleTransitions = simpleTransitions,
         onUnknown = viewModel::unknownDestination,
         onClose = {
             viewModel.stopMusic()
@@ -133,6 +135,7 @@ fun TvShell(
     backStack: MutableList<NavKey>,
     player: PlayerUiModel,
     destinations: List<TvDestination> = TvDestination.entries,
+    simpleTransitions: Boolean = false,
     onUnknown: (NavKey) -> Unit = {},
     initialDrawer: DrawerValue = DrawerValue.Closed,
     onClose: () -> Unit = {},
@@ -162,6 +165,8 @@ fun TvShell(
         NavDisplay(
             backStack = backStack,
             onBack = { navigator.back() },
+            transitionSpec = { TvMotion.forward(simpleTransitions) },
+            popTransitionSpec = { TvMotion.back(simpleTransitions) },
             entryDecorators =
                 listOf(rememberSaveableStateHolderNavEntryDecorator(), rememberViewModelStoreNavEntryDecorator()),
             entryProvider =

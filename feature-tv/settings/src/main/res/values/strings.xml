@@ -55,4 +55,7 @@
     <string name="tv_settings_display_match_off">Off</string>
     <string name="tv_settings_display_match_rate">Frame rate</string>
     <string name="tv_settings_display_match_resolution">Frame rate and resolution</string>
+    <string name="tv_settings_display">Display</string>
+    <string name="tv_settings_simple_transitions">Simple transitions</string>
+    <string name="tv_settings_simple_transitions_detail">A plain fast fade between pages, without the scale</string>
 </resources>

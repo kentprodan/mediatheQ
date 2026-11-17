@@ -6,9 +6,11 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
+import io.github.kentprodan.mediatheq.core.model.RemoteSession
 import io.github.kentprodan.mediatheq.core.model.StreamChoice
 import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
+import kotlin.time.Duration
 
 /**
  * [PlaybackSource] that answers with a direct stream per item; [failure] makes every call fail. [onReport] runs on each
@@ -35,6 +37,24 @@ class FakePlaybackSource : PlaybackSource {
 
     /** How many times [reportCapabilities] was called. */
     var capabilitiesReports = 0
+
+    var sessions: List<RemoteSession> = emptyList()
+
+    /** Each [playOn], as "<session>:<item>@<position>". */
+    val sentPlays = mutableListOf<String>()
+
+    override suspend fun remoteSessions(server: SignedInServer): MqResult<List<RemoteSession>> =
+        MqResult.Success(sessions)
+
+    override suspend fun playOn(
+        server: SignedInServer,
+        session: RemoteSession,
+        itemId: MediaId,
+        startPosition: Duration,
+    ): MqResult<Unit> {
+        sentPlays += "${session.id}:${itemId.itemId}@$startPosition"
+        return MqResult.Success(Unit)
+    }
 
     override suspend fun reportCapabilities(server: SignedInServer): MqResult<Unit> {
         capabilitiesReports++

@@ -3,6 +3,12 @@ package io.github.kentprodan.mediatheq.feature.tv.video
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.annotation.StringRes
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +43,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -79,6 +86,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
@@ -99,6 +107,21 @@ fun TvPlayerRoute(
     val displayMatch by viewModel.displayMatch.collectAsStateWithLifecycle()
     val format by viewModel.videoFormat.collectAsStateWithLifecycle()
     MatchDisplay(format, displayMatch)
+    val stillWatching by viewModel.stillWatching.collectAsStateWithLifecycle()
+    if (stillWatching) {
+        MqTvMenu(
+            stringResource(R.string.tv_player_still_watching),
+            listOf(
+                MqTvMenuEntry(stringResource(R.string.tv_player_keep_watching), null) {
+                    viewModel.onAction(TvPlayerAction.KeepWatching)
+                },
+                MqTvMenuEntry(stringResource(R.string.tv_player_stop_watching), null) {
+                    viewModel.onAction(TvPlayerAction.Leave)
+                    onBack()
+                },
+            ),
+        ) { viewModel.onAction(TvPlayerAction.KeepWatching) }
+    }
     LaunchedEffect(state) { if (state == TvPlayerUiState.Ended) onBack() }
     TvPlayerScreen(
         state,
@@ -164,7 +187,21 @@ fun TvPlayerScreen(
     // Back on the picture when the bar or the next-episode card goes, so the D-pad seeks again.
     LaunchedEffect(bar, nextIn == null) { if (!bar && nextIn == null) runCatching { root.requestFocus() } }
     // A movie never meets the screensaver; paused, the screen may sleep.
-    KeepScreenOn((state as? TvPlayerUiState.Playing)?.isPlaying == true)
+    // Paused (#435): after a few minutes the movie's own screensaver; the screen may sleep only after a long pause.
+    val paused = (state as? TvPlayerUiState.Playing)?.let { !it.isPlaying && !it.isBuffering } == true
+    var saver by remember { mutableStateOf(false) }
+    var sleepAllowed by remember { mutableStateOf(false) }
+    LaunchedEffect(paused, keys) {
+        saver = false
+        sleepAllowed = false
+        if (paused) {
+            delay(SAVER_AFTER)
+            saver = true
+            delay(SLEEP_AFTER)
+            sleepAllowed = true
+        }
+    }
+    KeepScreenOn((state as? TvPlayerUiState.Playing)?.isPlaying == true || (paused && !sleepAllowed))
     val playing = state as? TvPlayerUiState.Playing
     Box(
         Modifier
@@ -173,6 +210,11 @@ fun TvPlayerScreen(
             .focusRequester(root)
             .onPreviewKeyEvent { event ->
                 keys++
+                if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) {
+                    onAction(TvPlayerAction.KeyPressed)
+                }
+                // A key on the screensaver only wakes the player (the count above closes it).
+                if (saver) return@onPreviewKeyEvent true
                 // The bar's buttons and the next-episode card take their own keys.
                 if (bar || nextIn != null) return@onPreviewKeyEvent false
                 // Select on the Skip button while it shows (left and right still seek).
@@ -218,6 +260,8 @@ fun TvPlayerScreen(
 
             is TvPlayerUiState.Playing -> {
                 if (!state.isPlaying && !state.isBuffering && !bar) PauseInfo(state.video)
+                // Any key (counted above) brings the paused player back.
+                if (saver && !bar) PauseScreensaver(state.video)
                 if (bar) {
                     Bar(state, position, onAction, extras.chapters, onMenu = { menu = it }) { tracks = true }
                 } else if (seeking > 0) {
@@ -281,6 +325,56 @@ private fun KeepScreenOn(on: Boolean) {
     DisposableEffect(view, on) {
         view.keepScreenOn = on
         onDispose { view.keepScreenOn = false }
+    }
+}
+
+/**
+ * The pause screensaver (#435): the video's backdrop drifting slowly, its title and the clock, so a long pause never
+ * shows a still frame.
+ */
+@Composable
+private fun PauseScreensaver(video: Video) {
+    val drift = rememberInfiniteTransition(label = "drift")
+    val scale by drift.animateFloat(
+        1f,
+        DRIFT_SCALE,
+        infiniteRepeatable(tween(DRIFT_MS, easing = LinearEasing), RepeatMode.Reverse),
+        label = "scale",
+    )
+    var now by remember { mutableStateOf(LocalTime.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = LocalTime.now()
+            delay(CLOCK_TICK)
+        }
+    }
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        (video.backdrop ?: video.artwork)?.let { art ->
+            coil3.compose.AsyncImage(
+                art,
+                contentDescription = null,
+                modifier =
+                    Modifier.fillMaxSize().graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    },
+                contentScale = ContentScale.Crop,
+            )
+        }
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))),
+            ),
+        )
+        Column(Modifier.align(Alignment.BottomStart).padding(EDGE)) {
+            Text(titleOf(video), style = MaterialTheme.typography.headlineMedium, color = Color.White)
+        }
+        Text(
+            now.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)),
+            Modifier.align(Alignment.TopEnd).padding(EDGE),
+            style = MaterialTheme.typography.displaySmall,
+            color = Color.White,
+        )
     }
 }
 
@@ -582,6 +676,11 @@ private val VideoQuality.label: Int
         }
 
 private val EDGE = 48.dp
+private val SAVER_AFTER = 5.minutes
+private val SLEEP_AFTER = 30.minutes
+private val CLOCK_TICK = 15.seconds
+private const val DRIFT_MS = 30_000
+private const val DRIFT_SCALE = 1.1f
 private val BAR_TIME = 5.seconds
 private val SEEK_TIME = 2.seconds
 
