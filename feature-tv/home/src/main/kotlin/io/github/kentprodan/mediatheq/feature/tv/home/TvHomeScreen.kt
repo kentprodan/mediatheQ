@@ -44,8 +44,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import io.github.kentprodan.mediatheq.core.data.GenreItem
+import io.github.kentprodan.mediatheq.core.data.GenreRow
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
+import io.github.kentprodan.mediatheq.core.data.genreRows
 import io.github.kentprodan.mediatheq.core.data.resumePosition
 import io.github.kentprodan.mediatheq.core.designsystem.tv.FocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
@@ -154,7 +157,7 @@ private data class Menu(
 @Composable
 private fun Rows(
     rows: List<TvHomeRow>,
-    genreRows: List<TvGenreRow>,
+    genreRows: List<GenreRow>,
     onAction: (TvHomeAction) -> Unit,
     navigation: TvHomeNavigation,
     modifier: Modifier,
@@ -333,10 +336,10 @@ private class Cards(
     }
 
     /** A genre row (#431): posters; Select opens the movie or the series. */
-    fun LazyListScope.genre(row: TvGenreRow) {
+    fun LazyListScope.genre(row: GenreRow) {
         itemsIndexed(row.items, key = { _, it -> it.id.toString() }) { _, item ->
-            val movie = (item as? TvGenreItem.Movie)?.video
-            val series = (item as? TvGenreItem.Show)?.series
+            val movie = (item as? GenreItem.Movie)?.video
+            val series = (item as? GenreItem.Show)?.series
             MqTvPosterCard(
                 movie?.title ?: series?.title.orEmpty(),
                 movie?.artwork ?: series?.artwork,

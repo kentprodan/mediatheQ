@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.tv.settings
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.genreCounts
 import io.github.kentprodan.mediatheq.core.model.HomeSection.ContinueWatching
 import io.github.kentprodan.mediatheq.core.model.HomeSection.FavoriteAlbums
 import io.github.kentprodan.mediatheq.core.model.HomeSection.NextUp
@@ -25,7 +26,7 @@ class TvHomeRowsTest {
 
     @Test
     fun `genres are listed the most common first, then by name`() {
-        assertThat(commonGenres(listOf(listOf("Drama", "Comedy"), listOf("Drama"), listOf("Action"))))
+        assertThat(genreCounts(listOf(listOf("Drama", "Comedy"), listOf("Drama"), listOf("Action"))).map { it.first })
             .containsExactly("Drama", "Action", "Comedy")
             .inOrder()
     }

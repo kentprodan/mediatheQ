@@ -151,6 +151,10 @@ data class OutputKey(
 @Serializable
 data object LicensesKey : NavKey
 
+/** Settings -> Home page -> Genre rows (#441). */
+@Serializable
+data object HomeGenresSettingsKey : NavKey
+
 /** One entry's license text, on TV (#243), where a long text gets its own page; [id] is the entry's id. */
 @Serializable
 data class LicenseTextKey(

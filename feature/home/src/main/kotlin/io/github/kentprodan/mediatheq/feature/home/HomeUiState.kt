@@ -27,6 +27,8 @@ sealed interface HomeUiState {
         val refreshing: Boolean = false,
         /** Shuffle all is music: hidden in Video mode (#275). */
         val showShuffle: Boolean = true,
+        /** The genres picked in Settings -> Home page -> Genre rows (#441), after the video sections. */
+        val genreRows: List<io.github.kentprodan.mediatheq.core.data.GenreRow> = emptyList(),
     ) : HomeUiState
 
     /** Synced, but the server has no music. */
