@@ -7,6 +7,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.DisplayMatch
 import io.github.kentprodan.mediatheq.core.data.SegmentAction
 import io.github.kentprodan.mediatheq.core.data.TrackPicker
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
@@ -60,6 +61,17 @@ class TvPlayerViewModel
             preferences.preferences
                 .map { it.subtitleStyle }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SubtitleStyle())
+
+        /** How the display follows the video (#384) and the stream's frame rate and height once known. */
+        val displayMatch: StateFlow<DisplayMatch> =
+            preferences.preferences
+                .map { it.displayMatch }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DisplayMatch.Off)
+        val videoFormat: StateFlow<Pair<Float, Int>?> =
+            playback.state
+                .map { player -> player.output.video?.let { v -> v.frameRate?.let { it to v.height } } }
+                .distinctUntilChanged()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
         /** The streaming quality the TV asks for (its network is unmetered); the Quality menu changes it. */
         val quality: StateFlow<VideoQuality> =

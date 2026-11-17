@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.tv.video
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -52,6 +53,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.common.formatDuration
+import io.github.kentprodan.mediatheq.core.data.DisplayMatch
 import io.github.kentprodan.mediatheq.core.data.VideoTracks
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
@@ -94,6 +96,9 @@ fun TvPlayerRoute(
     val quality by viewModel.quality.collectAsStateWithLifecycle()
     val extras by viewModel.extras.collectAsStateWithLifecycle()
     val skip by viewModel.skipButton.collectAsStateWithLifecycle()
+    val displayMatch by viewModel.displayMatch.collectAsStateWithLifecycle()
+    val format by viewModel.videoFormat.collectAsStateWithLifecycle()
+    MatchDisplay(format, displayMatch)
     LaunchedEffect(state) { if (state == TvPlayerUiState.Ended) onBack() }
     TvPlayerScreen(
         state,
@@ -579,3 +584,34 @@ private val VideoQuality.label: Int
 private val EDGE = 48.dp
 private val BAR_TIME = 5.seconds
 private val SEEK_TIME = 2.seconds
+
+/**
+ * Switches the TV to the video's frame rate (and resolution) while the player shows (#384) and back to the TV's own
+ * mode when it closes; the display's modes come from Android, the choice from [chooseDisplayMode].
+ */
+@Composable
+private fun MatchDisplay(
+    format: Pair<Float, Int>?,
+    match: DisplayMatch,
+) {
+    val activity = LocalActivity.current ?: return
+    LaunchedEffect(format, match) {
+        val (rate, height) = format ?: return@LaunchedEffect
+        val display = activity.display ?: return@LaunchedEffect
+        val modes =
+            display.supportedModes.map {
+                TvDisplayMode(
+                    it.modeId,
+                    it.physicalWidth,
+                    it.physicalHeight,
+                    it.refreshRate,
+                )
+            }
+        val current = display.mode.let { TvDisplayMode(it.modeId, it.physicalWidth, it.physicalHeight, it.refreshRate) }
+        val chosen = chooseDisplayMode(rate, height, modes, current, match) ?: return@LaunchedEffect
+        activity.window.attributes = activity.window.attributes.apply { preferredDisplayModeId = chosen.id }
+    }
+    DisposableEffect(activity) {
+        onDispose { activity.window.attributes = activity.window.attributes.apply { preferredDisplayModeId = 0 } }
+    }
+}

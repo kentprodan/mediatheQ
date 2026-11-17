@@ -45,9 +45,9 @@ class TvSettingsViewModel
                 sync.status,
                 accounts.accounts,
                 combine(dialog, appMode.mode, videoPreferences.preferences) { open, mode, video ->
-                    Triple(open, mode, video.subtitleStyle)
+                    Triple(open, mode, video)
                 },
-            ) { remembered, preferences, status, list, (open, mode, subtitles) ->
+            ) { remembered, preferences, status, list, (open, mode, video) ->
                 val active = list.firstOrNull { it.active }
                 TvSettingsUiState.Content(
                     hdmi = hdmiOutput(remembered),
@@ -57,7 +57,8 @@ class TvSettingsViewModel
                     userName = active?.userName,
                     dialog = open,
                     appMode = mode.takeIf { appMode.videoAvailable },
-                    subtitleStyle = subtitles,
+                    subtitleStyle = video.subtitleStyle,
+                    displayMatch = video.displayMatch,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvSettingsUiState.Loading)
 
@@ -96,6 +97,11 @@ class TvSettingsViewModel
 
                 is TvSettingsAction.ChooseSubtitle -> {
                     dialog.value = action.dialog
+                }
+
+                is TvSettingsAction.SetDisplayMatch -> {
+                    dialog.value = null
+                    viewModelScope.launch { videoPreferences.update { it.copy(displayMatch = action.match) } }
                 }
 
                 is TvSettingsAction.SetSubtitleStyle -> {

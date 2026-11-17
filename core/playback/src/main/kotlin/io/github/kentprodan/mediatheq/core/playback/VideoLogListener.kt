@@ -55,6 +55,7 @@ internal class VideoLogListener(
                 width = format.width,
                 height = format.height,
                 range = videoRangeOf(format.sampleMimeType, format.colorInfo?.colorTransfer ?: Format.NO_VALUE),
+                frameRate = format.frameRate.takeIf { it > 0f },
             )
         }
         log.info(
