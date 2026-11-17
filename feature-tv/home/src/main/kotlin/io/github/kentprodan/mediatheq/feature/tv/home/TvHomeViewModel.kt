@@ -13,12 +13,12 @@ import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
+import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.homeItems
 import io.github.kentprodan.mediatheq.core.data.homeLibrary
 import io.github.kentprodan.mediatheq.core.data.mixTracks
 import io.github.kentprodan.mediatheq.core.model.AppMode
-import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
@@ -65,6 +65,7 @@ class TvHomeViewModel
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
         private val videos: VideoRepository? = null,
         private val appMode: AppModeRepository? = null,
+        private val userData: UserDataRepository? = null,
     ) : ViewModel() {
         private val mode = appMode?.mode ?: flowOf(AppMode.Music)
 
@@ -96,12 +97,9 @@ class TvHomeViewModel
                 val noMusic = library.albums.isEmpty() && library.tracks.isEmpty()
                 if (noMusic && (!mode.video || library.videos == HomeVideos())) return@combine null
                 val now = clock.now()
-                // On TV all four video rows come first (#431: the TV has no Home settings page yet), then the music
-                // sections in the Home order.
-                (
-                    HomeSection.entries.filter { it.kind == HomeKind.Videos } +
-                        home.shown.filter { it.kind != HomeKind.Videos }
-                ).filter { it.allowed(mode) }
+                // The order and the shown sections from Settings -> Home rows (#431), music and video together.
+                home.shown
+                    .filter { it.allowed(mode) }
                     .mapNotNull { section ->
                         val settings = home.settingsOf(section)
                         val items =
@@ -167,6 +165,10 @@ class TvHomeViewModel
                                 )
                             }
                         if (queue.isNotEmpty()) playback.play(queue)
+                    }
+
+                    is TvHomeAction.RemoveFromResume -> {
+                        userData?.removeFromResume(action.id)
                     }
 
                     TvHomeAction.Sync -> {

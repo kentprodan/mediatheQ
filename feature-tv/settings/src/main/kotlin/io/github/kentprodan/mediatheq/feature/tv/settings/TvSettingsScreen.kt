@@ -42,10 +42,11 @@ import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 fun TvSettingsRoute(
     versionName: String,
     onOpenLicenses: () -> Unit,
+    onOpenHomeRows: () -> Unit = {},
     viewModel: TvSettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    TvSettingsScreen(state, versionName, viewModel::onAction, onOpenLicenses)
+    TvSettingsScreen(state, versionName, viewModel::onAction, onOpenLicenses, onOpenHomeRows)
 }
 
 /**
@@ -58,6 +59,7 @@ fun TvSettingsScreen(
     versionName: String,
     onAction: (TvSettingsAction) -> Unit,
     onOpenLicenses: () -> Unit,
+    onOpenHomeRows: () -> Unit = {},
 ) {
     Surface(Modifier.fillMaxSize()) {
         if (state !is TvSettingsUiState.Content) return@Surface
@@ -161,6 +163,14 @@ fun TvSettingsScreen(
                         supporting = stringResource(mode.label),
                     )
                 }
+            }
+            item {
+                MqTvListItem(
+                    stringResource(R.string.tv_settings_home_rows),
+                    onOpenHomeRows,
+                    Modifier.focusMemory(focus, "homeRows"),
+                    supporting = stringResource(R.string.tv_settings_home_rows_detail),
+                )
             }
             item {
                 MqTvListItem(

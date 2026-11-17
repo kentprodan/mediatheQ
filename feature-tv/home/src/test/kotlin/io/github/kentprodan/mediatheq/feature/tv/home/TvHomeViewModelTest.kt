@@ -11,7 +11,6 @@ import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.Artist
-import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -49,6 +48,9 @@ class TvHomeViewModelTest {
     private val playback = FakePlaybackConnection()
     private val preferences = FakeLibraryPreferencesRepository()
     private val playlists = FakePlaylistRepository()
+    private val userData =
+        io.github.kentprodan.mediatheq.core.testing
+            .FakeUserDataRepository()
 
     private fun id(value: String) = MediaId(ServerId("s"), value)
 
@@ -104,7 +106,7 @@ class TvHomeViewModelTest {
         }
 
     @Test
-    fun `with video the video rows come first, and new episodes are one card per series with their count (#431)`() =
+    fun `rows follow the Home rows order with video and music together, new episodes one card per series (#431)`() =
         test {
             library.albums.value = listOf(alpha, beta)
             library.tracks.value = tracks
@@ -122,6 +124,13 @@ class TvHomeViewModelTest {
                     dateAdded = kotlin.time.Instant.fromEpochSeconds(n.toLong()),
                 )
             videos.movies.value = listOf(episode(3), episode(2), episode(1))
+            preferences.setHomeOrder(
+                listOf(HomeSection.FavoriteAlbums, HomeSection.RecentlyAddedEpisodes) +
+                    HomeSection.entries.filterNot {
+                        it == HomeSection.FavoriteAlbums || it == HomeSection.RecentlyAddedEpisodes
+                    },
+            )
+            preferences.setHomeHidden(emptySet())
             sync.status.value = SyncStatus.Idle(day(10))
             val viewModel =
                 TvHomeViewModel(
@@ -136,13 +145,18 @@ class TvHomeViewModelTest {
                     mainDispatcherRule.testDispatcher,
                     videos,
                     FakeAppModeRepository(AppMode.Both),
+                    userData,
                 )
             backgroundScope.launch { viewModel.uiState.collect() }
             runCurrent()
 
             val rows = (viewModel.uiState.value as TvHomeUiState.Content).rows
-            val firstMusic = rows.indexOfFirst { it.section.kind != HomeKind.Videos }
-            assertThat(rows.take(firstMusic).all { it.section.kind == HomeKind.Videos }).isTrue()
+            assertThat(rows.take(2).map { it.section })
+                .containsExactly(HomeSection.FavoriteAlbums, HomeSection.RecentlyAddedEpisodes)
+                .inOrder()
+            viewModel.onAction(TvHomeAction.RemoveFromResume(id("e1")))
+            runCurrent()
+            assertThat(userData.calls).containsExactly("removeFromResume:e1")
             val episodes = rows.single { it.section == HomeSection.RecentlyAddedEpisodes }
             assertThat((episodes.items as HomeItems.Videos).videos.map { it.id }).containsExactly(id("e3"))
             assertThat(episodes.newEpisodes).containsExactly(show, 3)
