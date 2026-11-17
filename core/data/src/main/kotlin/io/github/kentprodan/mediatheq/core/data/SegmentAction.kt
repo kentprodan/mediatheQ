@@ -1,12 +1,11 @@
-package io.github.kentprodan.mediatheq.feature.video
+package io.github.kentprodan.mediatheq.core.data
 
-import io.github.kentprodan.mediatheq.core.data.VideoPreferences
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.SkipMode
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-/** What the player does at a position (#277). */
+/** What the player does at a position (#277), shared by the phone and the TV player (#430). */
 sealed interface SegmentAction {
     data object None : SegmentAction
 
