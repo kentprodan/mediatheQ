@@ -158,6 +158,14 @@ fun TvSettingsScreen(
             section(R.string.tv_settings_display)
             item {
                 MqTvListItem(
+                    stringResource(R.string.tv_settings_home_hero),
+                    { onAction(TvSettingsAction.NextHomeHero) },
+                    Modifier.focusMemory(focus, "homeHero"),
+                    supporting = stringResource(state.homeHero.label),
+                )
+            }
+            item {
+                MqTvListItem(
                     stringResource(R.string.tv_settings_simple_transitions),
                     { onAction(TvSettingsAction.ToggleSimpleTransitions) },
                     Modifier.focusMemory(focus, "transitions"),
@@ -492,4 +500,12 @@ private val io.github.kentprodan.mediatheq.core.data.DisplayMatch.label: Int
             io.github.kentprodan.mediatheq.core.data.DisplayMatch.RateAndResolution -> {
                 R.string.tv_settings_display_match_resolution
             }
+        }
+
+private val io.github.kentprodan.mediatheq.core.data.TvHomeHero.label: Int
+    get() =
+        when (this) {
+            io.github.kentprodan.mediatheq.core.data.TvHomeHero.None -> R.string.tv_settings_home_hero_none
+            io.github.kentprodan.mediatheq.core.data.TvHomeHero.Compact -> R.string.tv_settings_home_hero_compact
+            io.github.kentprodan.mediatheq.core.data.TvHomeHero.Large -> R.string.tv_settings_home_hero_large
         }

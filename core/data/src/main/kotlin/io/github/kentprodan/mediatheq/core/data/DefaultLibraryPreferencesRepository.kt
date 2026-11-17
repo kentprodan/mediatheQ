@@ -117,6 +117,7 @@ class DefaultLibraryPreferencesRepository
                     trackAction = navigation.trackAction.name,
                     expandPlayer = navigation.expandPlayer,
                     simpleTransitions = navigation.simpleTransitions,
+                    tvHomeHero = navigation.tvHomeHero.name,
                 ),
             )
 
@@ -137,6 +138,7 @@ class DefaultLibraryPreferencesRepository
                 trackAction = enumOrNull<TrackAction>(stored.trackAction) ?: defaults.trackAction,
                 expandPlayer = stored.expandPlayer ?: defaults.expandPlayer,
                 simpleTransitions = stored.simpleTransitions ?: defaults.simpleTransitions,
+                tvHomeHero = enumOrNull<TvHomeHero>(stored.tvHomeHero) ?: defaults.tvHomeHero,
             )
         }
 

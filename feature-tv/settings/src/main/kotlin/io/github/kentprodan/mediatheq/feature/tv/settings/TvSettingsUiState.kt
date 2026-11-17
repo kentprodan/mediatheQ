@@ -41,6 +41,9 @@ sealed interface TvSettingsUiState {
             io.github.kentprodan.mediatheq.core.data.DisplayMatch.Rate,
         /** Transitions between pages (#444): Simple when on. */
         val simpleTransitions: Boolean = false,
+        /** Home's hero (#504). */
+        val homeHero: io.github.kentprodan.mediatheq.core.data.TvHomeHero =
+            io.github.kentprodan.mediatheq.core.data.TvHomeHero.None,
     ) : TvSettingsUiState
 }
 
@@ -59,6 +62,9 @@ sealed interface TvSettingsAction {
     data object ChooseAppMode : TvSettingsAction
 
     data object ToggleSimpleTransitions : TvSettingsAction
+
+    /** Settings -> Display -> Home hero (#504): None, Compact, Large in turn. */
+    data object NextHomeHero : TvSettingsAction
 
     /** Opens the dialog of one part of the subtitle style. */
     data class ChooseSubtitle(

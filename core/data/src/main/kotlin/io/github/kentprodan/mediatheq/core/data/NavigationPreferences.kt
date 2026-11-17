@@ -60,6 +60,8 @@ data class NavigationPreferences(
     val expandPlayer: Boolean = false,
     /** TV (#444): a plain fast fade between pages instead of the standard fade and slight scale. */
     val simpleTransitions: Boolean = false,
+    /** TV (#504): the hero at the top of Home; none by default (owner: backdrops belong to the detail pages). */
+    val tvHomeHero: TvHomeHero = TvHomeHero.None,
 ) {
     companion object {
         const val MAX_ENTRIES = 6
@@ -92,3 +94,6 @@ fun validTransparency(percent: Int): Int {
     val step = NavigationPreferences.TRANSPARENCY_STEP
     return (percent.coerceIn(0, 100) + step / 2) / step * step
 }
+
+/** How TV Home shows the focused card at its top (#504). */
+enum class TvHomeHero { None, Compact, Large }
