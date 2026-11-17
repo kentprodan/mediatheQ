@@ -16,6 +16,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
@@ -88,13 +89,16 @@ class TvShellTest {
         }
     }
 
-    private fun pressBack() = composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+    private fun pressBack() {
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+    }
 
     @Test
-    fun `a tab shows its screen, Back from it lands on Home, Back on Home asks to close`() {
+    fun `an entry shows its screen, Back from it lands on Home, Back on Home asks to close`() {
         show()
 
-        composeRule.onNodeWithText("Library").performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.onNodeWithContentDescription("Library").performSemanticsAction(SemanticsActions.RequestFocus)
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
         composeRule.onNodeWithText("Library screen").assertExists()
 
@@ -102,7 +106,8 @@ class TvShellTest {
         composeRule.onNodeWithText("First album").assertExists()
         assertThat(backStack).containsExactly(HomeKey)
 
-        // On Home Back asks first (#343); Close stops the music and leaves.
+        // On Home Back opens the menu (#508), then asks (#343); Close stops the music and leaves.
+        pressBack()
         pressBack()
         composeRule.onNodeWithText("Close mediatheQ?").assertExists()
         composeRule.onNodeWithText("Close").assertIsFocused().performKeyInput { pressKey(Key.DirectionCenter) }
@@ -114,6 +119,8 @@ class TvShellTest {
     fun `Cancel or Back in the close question keeps the app on Home`() {
         show()
 
+        // The first Back opens the menu (#508), the next one asks.
+        pressBack()
         pressBack()
         // Close is focused; the key goes to the dialog's window.
         composeRule.onNodeWithText("Close").performKeyInput {
@@ -140,30 +147,41 @@ class TvShellTest {
     }
 
     @Test
-    fun `focus coming up into the tab bar lands on the selected tab, not the one focused last (#508)`() {
+    fun `focus coming left into the menu lands on the selected entry, not the one focused last (#508)`() {
         show()
         composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
 
-        // Up into the bar, right to Search without selecting it, back down to the content, up again.
-        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionUp) }
+        // Into the menu, down to Movies without selecting it, back to the screen, into the menu again.
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
         composeRule.onNodeWithText("Home").assertIsFocused()
-        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
-        composeRule.onNodeWithText("Search").assertIsFocused()
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
-        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionUp) }
+        composeRule.onNodeWithText("Movies").assertIsFocused()
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
 
         composeRule.onNodeWithText("Home").assertIsFocused()
     }
 
     @Test
+    fun `Back from the screen opens the menu on the selected entry (#508)`() {
+        show()
+        composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
+
+        pressBack()
+
+        composeRule.onNodeWithText("Home").assertIsFocused()
+        assertThat(backStack).containsExactly(HomeKey)
+    }
+
+    @Test
     fun `a detail page has the whole screen, without the tabs (#515)`() {
         show()
-        composeRule.onNodeWithText("Search").assertExists()
+        composeRule.onNodeWithContentDescription("Search").assertExists()
         composeRule.onNodeWithText("Second album").performSemanticsAction(SemanticsActions.RequestFocus)
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
 
         composeRule.onNodeWithText("Album page").assertExists()
-        composeRule.onNodeWithText("Search").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Search").assertDoesNotExist()
     }
 
     @Test
