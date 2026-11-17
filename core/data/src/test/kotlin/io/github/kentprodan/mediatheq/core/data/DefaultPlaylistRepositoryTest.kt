@@ -165,17 +165,50 @@ class DefaultPlaylistRepositoryTest {
         }
 
     @Test
-    fun `a failed add is undone when the server cannot be read either`() =
+    fun `an add that cannot reach the server stays here and waits for it (#417)`() =
         runTest(dispatcher) {
             editor.failure = MqError.Network
-            source.playlistErrors = mapOf("p1" to MqError.Network)
 
             val result = repository().add(playlistId, listOf(id("t4")))
 
-            assertThat(result).isEqualTo(MqResult.Failure(MqError.Network))
-            assertThat(entryIds()).containsExactly("e-t1", "e-hidden", "e-t2", "e-t3").inOrder()
-            assertThat(dao.playlistRow("s", "p1")?.trackCount).isEqualTo(4)
-            assertThat(source.calls).containsExactly("playlist:p1")
+            assertThat(result).isEqualTo(MqResult.Success(Unit))
+            assertThat(dao.playlistRow("s", "p1")?.trackCount).isEqualTo(5)
+            assertThat(dao.pendingEdits("s", "user-1").map { it.kind }).containsExactly("Add")
+        }
+
+    @Test
+    fun `waiting edits go in order once the server is back, a remove of an entry gone there is dropped (#417)`() =
+        runTest(dispatcher) {
+            editor.failure = MqError.Network
+            val repository = repository()
+            repository.add(playlistId, listOf(id("t4")))
+            // Queued behind the add without asking the server.
+            repository.remove(playlistId, setOf("e-t1"))
+            assertThat(dao.pendingEdits("s", "user-1").map { it.kind }).containsExactly("Add", "Remove").inOrder()
+
+            editor.failure = null
+            editor.calls.clear()
+            source.entries = mapOf(playlistId to listOf(PlaylistEntry("e-t2", id("t2"))))
+            repository.flushPending()
+
+            assertThat(editor.calls).containsExactly("add:p1:t4")
+            assertThat(dao.pendingEdits("s", "user-1")).isEmpty()
+        }
+
+    @Test
+    fun `a playlist deleted on the server drops its waiting edits (#417)`() =
+        runTest(dispatcher) {
+            editor.failure = MqError.Network
+            val repository = repository()
+            repository.rename(playlistId, "Offline name")
+
+            editor.failure = null
+            editor.calls.clear()
+            source.playlistErrors = mapOf("p1" to MqError.NotFound)
+            repository.flushPending()
+
+            assertThat(editor.calls).isEmpty()
+            assertThat(dao.pendingEdits("s", "user-1")).isEmpty()
         }
 
     @Test

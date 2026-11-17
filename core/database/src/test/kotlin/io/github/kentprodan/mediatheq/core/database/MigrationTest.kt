@@ -534,4 +534,18 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `18 to 19 adds an empty queue of offline playlist edits`() =
+        runTest {
+            helper.createDatabase(18).close()
+
+            val connection = helper.runMigrationsAndValidate(19)
+
+            connection.prepare("SELECT COUNT(*) FROM pending_playlist_edit").use {
+                it.step()
+                assertThat(it.getLong(0)).isEqualTo(0)
+            }
+            connection.close()
+        }
 }
