@@ -9,6 +9,7 @@ import androidx.room3.Query
 import androidx.room3.Relation
 import androidx.room3.Transaction
 import io.github.kentprodan.mediatheq.core.database.entity.AlbumEntity
+import io.github.kentprodan.mediatheq.core.database.entity.PendingPlaylistEditEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SearchEntity
@@ -135,6 +136,40 @@ interface PlaylistDao {
     @Query("DELETE FROM search WHERE kind = 'playlist' AND server_id = :serverId AND item_id = :playlistId")
     suspend fun deleteSearch(
         serverId: String,
+        playlistId: String,
+    )
+
+    // Offline edits (#417).
+    @Insert
+    suspend fun insertPendingEdit(edit: PendingPlaylistEditEntity)
+
+    @Query("SELECT * FROM pending_playlist_edit WHERE server_id = :serverId AND user_id = :userId ORDER BY seq")
+    suspend fun pendingEdits(
+        serverId: String,
+        userId: String,
+    ): List<PendingPlaylistEditEntity>
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM pending_playlist_edit
+        WHERE server_id = :serverId AND user_id = :userId AND playlist_id = :playlistId
+        """,
+    )
+    suspend fun pendingEditCount(
+        serverId: String,
+        userId: String,
+        playlistId: String,
+    ): Int
+
+    @Query("DELETE FROM pending_playlist_edit WHERE seq = :seq")
+    suspend fun deletePendingEdit(seq: Long)
+
+    @Query(
+        "DELETE FROM pending_playlist_edit WHERE server_id = :serverId AND user_id = :userId AND playlist_id = :playlistId",
+    )
+    suspend fun deletePendingEdits(
+        serverId: String,
+        userId: String,
         playlistId: String,
     )
 }

@@ -41,6 +41,12 @@ class JellyfinUserDataSink internal constructor(
         rating: Double?,
     ) = update(server, itemId, UpdateUserItemDataDto(rating = rating ?: UNRATED))
 
+    /** As Jellyfin web's Remove from Continue watching: the resume point set to 0 (the server has no hide call). */
+    override suspend fun clearResume(
+        server: SignedInServer,
+        itemId: MediaId,
+    ) = update(server, itemId, UpdateUserItemDataDto(playbackPositionTicks = 0))
+
     /** R24: `POST` / `DELETE /UserPlayedItems/{itemId}`; marking it watched also clears its resume point. */
     override suspend fun setPlayed(
         server: SignedInServer,

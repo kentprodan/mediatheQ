@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
+import io.github.kentprodan.mediatheq.core.data.GenreRow
 import io.github.kentprodan.mediatheq.core.data.HomeLibrary
 import io.github.kentprodan.mediatheq.core.data.HomeShuffle
 import io.github.kentprodan.mediatheq.core.data.HomeVideos
@@ -16,6 +17,8 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.data.VideoSort
+import io.github.kentprodan.mediatheq.core.data.genreRows
 import io.github.kentprodan.mediatheq.core.data.homeItems
 import io.github.kentprodan.mediatheq.core.data.homeLibrary
 import io.github.kentprodan.mediatheq.core.data.mixTracks
@@ -98,6 +101,22 @@ class HomeViewModel
             (if (appMode.videoAvailable) appMode.mode else flowOf(null))
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+        /** The genre rows (#441): read only with video and genres picked. */
+        private val genreRows: Flow<List<GenreRow>> =
+            combine(appMode.mode.map { it.video }.distinctUntilChanged(), preferences.homeGenres) { video, genres ->
+                genres.takeIf { video }.orEmpty()
+            }.distinctUntilChanged()
+                .flatMapLatest { genres ->
+                    if (genres.isEmpty()) {
+                        flowOf(emptyList())
+                    } else {
+                        combine(
+                            videos.movies(VideoSort.DateAdded, unwatched = false),
+                            videos.series(VideoSort.DateAdded, unwatched = false),
+                        ) { movies, series -> genreRows(genres, movies, series, VIDEO_SECTION_LIMIT) }
+                    }
+                }.flowOn(defaultDispatcher)
+
         /** `null` while the library is empty (the empty and sync states decide what shows). */
         private val sections: Flow<List<HomeSectionContent>?> =
             combine(
@@ -156,6 +175,8 @@ class HomeViewModel
                         HomeUiState.FirstSync
                     }
                 }
+            }.combine(genreRows) { state, rows ->
+                (state as? HomeUiState.Content)?.copy(genreRows = rows) ?: state
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState.Loading)
 
         init {
