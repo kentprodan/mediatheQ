@@ -58,7 +58,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 17,
+    version = 18,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -137,6 +137,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 15, to = 16),
         // 17: the community rating of movies, episodes and series, and the collections (#426); the next start syncs them.
         AutoMigration(from = 16, to = 17, spec = SyncVideoRatingMigration::class),
+        // 18: the official rating of series, for the age gate (#434); the next start syncs it.
+        AutoMigration(from = 17, to = 18, spec = SyncSeriesRatingMigration::class),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

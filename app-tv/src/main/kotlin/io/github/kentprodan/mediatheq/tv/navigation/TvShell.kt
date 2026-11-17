@@ -48,6 +48,7 @@ import androidx.tv.material3.rememberDrawerState
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvPinDialog
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.NowPlayingKey
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
@@ -74,6 +75,7 @@ internal fun TvShellRoute(
     val player by viewModel.player.collectAsStateWithLifecycle()
     val destinations by viewModel.destinations.collectAsStateWithLifecycle()
     val simpleTransitions by viewModel.simpleTransitions.collectAsStateWithLifecycle()
+    val pin by viewModel.pinRequest.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(HomeKey)
     val context = LocalContext.current
     val versionName =
@@ -119,6 +121,7 @@ internal fun TvShellRoute(
             viewModel.stopMusic()
             activity?.finish()
         },
+        guard = viewModel::guard,
     ) { navigator ->
         tvHomeEntry(navigator)
         tvLibraryEntries(navigator)
@@ -130,6 +133,17 @@ internal fun TvShellRoute(
         }, notices = { raw(R.raw.license_notices) })
         tvSearchEntry(navigator)
         tvVideoEntries(navigator)
+    }
+    // The age gate (#434): content above this profile's limit, and Parental controls, ask for the PIN.
+    pin?.let { request ->
+        MqTvPinDialog(
+            stringResource(R.string.tv_pin_title),
+            stringResource(R.string.tv_pin_label),
+            onSubmit = viewModel::submitPin,
+            onDismiss = viewModel::cancelPin,
+            error = if (request.wrong) stringResource(R.string.tv_pin_wrong) else null,
+            onEdit = viewModel::pinEdited,
+        )
     }
 }
 
@@ -148,9 +162,10 @@ fun TvShell(
     onUnknown: (NavKey) -> Unit = {},
     initialDrawer: DrawerValue = DrawerValue.Closed,
     onClose: () -> Unit = {},
+    guard: ((NavKey, () -> Unit) -> Unit)? = null,
     entries: EntryProviderScope<NavKey>.(TvNavigator) -> Unit,
 ) {
-    val navigator = remember(backStack) { TvNavigator(backStack) }
+    val navigator = remember(backStack) { TvNavigator(backStack, guard) }
     var closing by remember { mutableStateOf(false) }
     BackHandler(enabled = backStack.size <= 1) { closing = true }
     if (closing) {

@@ -505,4 +505,33 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `17 to 18 adds the series rating, keeps the series and makes the next start sync`() =
+        runTest {
+            helper.createDatabase(17).apply {
+                execSQL(
+                    "INSERT INTO sync_state (id, last_full_sync_at, owner_server_id, owner_user_id, " +
+                        "checkpoint_index) VALUES (0, 1760000000000, 's', 'u', 0)",
+                )
+                execSQL(
+                    "INSERT INTO series (server_id, id, title, sort_name, is_favorite, play_count, played, " +
+                        "position_ms) VALUES ('s', 'sr1', 'Show', 'Show', 0, 0, 0, 0)",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(18)
+
+            connection.prepare("SELECT last_full_sync_at FROM sync_state").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(0)
+            }
+            connection.prepare("SELECT title, official_rating FROM series").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getText(0)).isEqualTo("Show")
+                assertThat(it.isNull(1)).isTrue()
+            }
+            connection.close()
+        }
 }

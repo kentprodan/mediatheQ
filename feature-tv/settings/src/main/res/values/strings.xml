@@ -59,6 +59,17 @@
     <string name="tv_settings_move_up">Move up</string>
     <string name="tv_settings_move_down">Move down</string>
     <string name="tv_settings_genre_rows">Genre rows (this account)</string>
+    <string name="tv_settings_parental">Parental controls</string>
+    <string name="tv_settings_parental_detail">A PIN and an age limit for each profile</string>
+    <string name="tv_parental_hint">Movies and series rated above a profile\'s age limit ask for the PIN. Limits apply once a PIN is set.</string>
+    <string name="tv_parental_main_only">Only %1$s can change these.</string>
+    <string name="tv_parental_set_pin">Set a PIN</string>
+    <string name="tv_parental_change_pin">Change the PIN</string>
+    <string name="tv_parental_remove_pin">Remove the PIN</string>
+    <string name="tv_parental_new_pin">New PIN (4 to 8 digits)</string>
+    <string name="tv_parental_pin_label">PIN</string>
+    <string name="tv_parental_no_limit">No limit</string>
+    <string name="tv_parental_limit">Up to %1$d</string>
     <string name="tv_settings_video">Video</string>
     <string name="tv_settings_display_match">Match the display to the video</string>
     <string name="tv_settings_display_match_off">Off</string>
