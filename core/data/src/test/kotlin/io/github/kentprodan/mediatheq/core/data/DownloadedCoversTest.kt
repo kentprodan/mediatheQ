@@ -202,6 +202,23 @@ class DownloadedCoversTest {
         }
 
     @Test
+    fun `a play count or a favorite on an album runs no new pass, only a cover change does`() =
+        runTest(dispatcher) {
+            signIn()
+            setUpAlbum()
+            covers()
+            download(track(1))
+            runCurrent()
+            val passes = library.tracksByIdCalls
+
+            library.albums.value =
+                library.albums.value.map { it.copy(userData = it.userData.copy(playCount = 7, isFavorite = true)) }
+            runCurrent()
+
+            assertThat(library.tracksByIdCalls).isEqualTo(passes)
+        }
+
+    @Test
     fun `covers of another account's server stay for when it is active again`() =
         runTest(dispatcher) {
             signIn()
