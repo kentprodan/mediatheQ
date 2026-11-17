@@ -3,8 +3,11 @@ package io.github.kentprodan.mediatheq.feature.tv.search
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
 
 /** Search on TV (#244). */
 sealed interface TvSearchUiState {
@@ -21,7 +24,17 @@ sealed interface TvSearchUiState {
         val artists: List<Artist>,
         val tracks: List<Track>,
         val playlists: List<Playlist>,
-    ) : TvSearchUiState
+        /** Video (#432), with video in the TV's mode: movies, series, episodes and people. */
+        val movies: List<Video> = emptyList(),
+        val series: List<Series> = emptyList(),
+        val episodes: List<Video> = emptyList(),
+        val people: List<Person> = emptyList(),
+    ) : TvSearchUiState {
+        val isEmpty: Boolean
+            get() =
+                albums.isEmpty() && artists.isEmpty() && tracks.isEmpty() && playlists.isEmpty() &&
+                    movies.isEmpty() && series.isEmpty() && episodes.isEmpty() && people.isEmpty()
+    }
 
     /** Nothing in the four rows matches (a genre or label alone does not count: the TV does not show them). */
     data object NoResults : TvSearchUiState

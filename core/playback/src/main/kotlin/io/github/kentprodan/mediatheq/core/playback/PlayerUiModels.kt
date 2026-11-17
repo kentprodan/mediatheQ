@@ -79,6 +79,7 @@ internal fun AudioOutputInfo.toBundle(): Bundle =
             putString(EXTRA_VIDEO_RANGE, video.range.name)
             video.playMethod?.let { putString(EXTRA_VIDEO_METHOD, it.name) }
             putString(EXTRA_VIDEO_DECODER, video.decoder)
+            video.frameRate?.let { putFloat(EXTRA_VIDEO_FRAME_RATE, it) }
         }
     }
 
@@ -106,6 +107,7 @@ internal fun Bundle.toAudioOutputInfo(): AudioOutputInfo =
                             EXTRA_VIDEO_METHOD,
                         )?.let { runCatching { PlayMethod.valueOf(it) }.getOrNull() },
                     decoder = getString(EXTRA_VIDEO_DECODER),
+                    frameRate = if (containsKey(EXTRA_VIDEO_FRAME_RATE)) getFloat(EXTRA_VIDEO_FRAME_RATE) else null,
                 )
             },
     )
@@ -127,6 +129,7 @@ internal fun Bundle.toPlaybackError(): PlaybackError? {
 private const val EXTRA_VIDEO_MIME = "io.github.kentprodan.mediatheq.VIDEO_MIME"
 private const val EXTRA_VIDEO_WIDTH = "io.github.kentprodan.mediatheq.VIDEO_WIDTH"
 private const val EXTRA_VIDEO_HEIGHT = "io.github.kentprodan.mediatheq.VIDEO_HEIGHT"
+private const val EXTRA_VIDEO_FRAME_RATE = "io.github.kentprodan.mediatheq.VIDEO_FRAME_RATE"
 private const val EXTRA_VIDEO_RANGE = "io.github.kentprodan.mediatheq.VIDEO_RANGE"
 private const val EXTRA_VIDEO_METHOD = "io.github.kentprodan.mediatheq.VIDEO_METHOD"
 private const val EXTRA_VIDEO_DECODER = "io.github.kentprodan.mediatheq.VIDEO_DECODER"

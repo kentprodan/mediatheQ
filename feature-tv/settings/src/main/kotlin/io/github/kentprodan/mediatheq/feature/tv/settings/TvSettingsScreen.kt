@@ -106,6 +106,15 @@ fun TvSettingsScreen(
                 )
             }
             if (state.appMode?.video == true) {
+                section(R.string.tv_settings_video)
+                item {
+                    MqTvListItem(
+                        stringResource(R.string.tv_settings_display_match),
+                        { onAction(TvSettingsAction.ChooseSubtitle(TvSettingsDialog.DisplayMatch)) },
+                        Modifier.focusMemory(focus, "displayMatch"),
+                        supporting = stringResource(state.displayMatch.label),
+                    )
+                }
                 section(R.string.tv_settings_subtitles)
                 item {
                     MqTvListItem(
@@ -131,6 +140,16 @@ fun TvSettingsScreen(
                         supporting = stringResource(state.subtitleStyle.color.label),
                     )
                 }
+            }
+            section(R.string.tv_settings_display)
+            item {
+                MqTvListItem(
+                    stringResource(R.string.tv_settings_simple_transitions),
+                    { onAction(TvSettingsAction.ToggleSimpleTransitions) },
+                    Modifier.focusMemory(focus, "transitions"),
+                    supporting = stringResource(R.string.tv_settings_simple_transitions_detail),
+                    trailing = { Switch(checked = state.simpleTransitions, onCheckedChange = null) },
+                )
             }
             section(R.string.tv_settings_library)
             state.appMode?.let { mode ->
@@ -200,6 +219,21 @@ fun TvSettingsScreen(
 
             TvSettingsDialog.AppMode -> {
                 AppModeDialog(state.appMode, onAction)
+            }
+
+            TvSettingsDialog.DisplayMatch -> {
+                val currentMark = stringResource(R.string.tv_settings_quality_current)
+                MqTvMenu(
+                    title = stringResource(R.string.tv_settings_display_match),
+                    entries =
+                        io.github.kentprodan.mediatheq.core.data.DisplayMatch.entries.map { match ->
+                            val text = stringResource(match.label)
+                            MqTvMenuEntry(if (match == state.displayMatch) "$text · $currentMark" else text, null) {
+                                onAction(TvSettingsAction.SetDisplayMatch(match))
+                            }
+                        },
+                    onDismiss = { onAction(TvSettingsAction.Dismiss) },
+                )
             }
 
             TvSettingsDialog.SubtitleSize -> {
@@ -406,3 +440,19 @@ private fun stepLabel(step: SyncStep): String =
 private const val BITS_PER_KBIT = 1000
 private const val PASSTHROUGH = "passthrough"
 private const val QUALITY = "quality"
+
+private val io.github.kentprodan.mediatheq.core.data.DisplayMatch.label: Int
+    get() =
+        when (this) {
+            io.github.kentprodan.mediatheq.core.data.DisplayMatch.Off -> {
+                R.string.tv_settings_display_match_off
+            }
+
+            io.github.kentprodan.mediatheq.core.data.DisplayMatch.Rate -> {
+                R.string.tv_settings_display_match_rate
+            }
+
+            io.github.kentprodan.mediatheq.core.data.DisplayMatch.RateAndResolution -> {
+                R.string.tv_settings_display_match_resolution
+            }
+        }

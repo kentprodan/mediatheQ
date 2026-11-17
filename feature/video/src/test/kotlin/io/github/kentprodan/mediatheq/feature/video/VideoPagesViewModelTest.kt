@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.data.externalSubtitles
 import io.github.kentprodan.mediatheq.core.data.formatLine
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.RemoteSession
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -17,7 +18,11 @@ import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoFormat
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.model.VideoRange
+import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
+import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
+import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakeRemotePlaybackRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTrackChoiceRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
@@ -85,6 +90,33 @@ class VideoPagesViewModelTest {
         SeriesViewModel(series.id, videos, userData, picker, VideoDownloader(downloads, videos)).also { vm ->
             backgroundScope.launch { vm.uiState.collect() }
             runCurrent()
+        }
+
+    @Test
+    fun `Play on TV sends the movie from where the phone plays it and pauses the phone (#389)`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val movieId = movie.id
+            val tv = RemoteSession("session-tv", "Living Room TV")
+            val remote = FakeRemotePlaybackRepository(listOf(tv))
+            val playback = FakePlaybackConnection()
+            videos.movies.value = listOf(movie)
+            playback.state.value =
+                PlayerUiModel(NowPlayingItem(movieId, "Alien", "", isVideo = true), isPlaying = true)
+            playback.position.value = 42.minutes
+            val viewModel =
+                MovieViewModel(movieId, videos, userData, picker, VideoDownloader(downloads, videos), remote, playback)
+            backgroundScope.launch { viewModel.uiState.collect {} }
+            runCurrent()
+            assertThat((viewModel.uiState.value as MovieUiState.Content).tvs).containsExactly(tv)
+
+            viewModel.onAction(MovieAction.PlayOnTv(tv))
+            runCurrent()
+
+            assertThat(remote.sent.single()).isEqualTo(Triple(tv, movieId, 42.minutes))
+            assertThat(playback.commands).contains("pause")
+            assertThat(
+                (viewModel.uiState.value as MovieUiState.Content).sentToTv,
+            ).isEqualTo(SentToTv("Living Room TV", true))
         }
 
     @Test

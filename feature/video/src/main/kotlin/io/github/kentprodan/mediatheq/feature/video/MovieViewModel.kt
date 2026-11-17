@@ -7,7 +7,9 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
+import io.github.kentprodan.mediatheq.core.data.RemotePlaybackRepository
 import io.github.kentprodan.mediatheq.core.data.TrackPicker
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
@@ -15,7 +17,10 @@ import io.github.kentprodan.mediatheq.core.data.externalSubtitles
 import io.github.kentprodan.mediatheq.core.data.formatLine
 import io.github.kentprodan.mediatheq.core.data.resumePosition
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RemoteSession
+import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -37,7 +42,17 @@ class MovieViewModel
         private val userData: UserDataRepository,
         private val picker: TrackPicker,
         private val downloader: VideoDownloader,
+        private val remote: RemotePlaybackRepository? = null,
+        private val playback: PlaybackConnection? = null,
     ) : ViewModel() {
+        /** The TVs running mediatheQ (#389), read when the page opens; the result of the last send. */
+        private val tvs = MutableStateFlow<List<RemoteSession>>(emptyList())
+        private val sent = MutableStateFlow<SentToTv?>(null)
+
+        init {
+            viewModelScope.launch { tvs.value = remote?.devices().orEmpty() }
+        }
+
         private val tracks = videos.video(id).flatMapLatest { it?.let(picker::tracks) ?: flowOf(null) }
 
         val uiState: StateFlow<MovieUiState> =
@@ -46,7 +61,8 @@ class MovieViewModel
                 videos.streams(id),
                 tracks,
                 downloader.states,
-            ) { movie, streams, tracks, downloads ->
+                combine(tvs, sent) { list, last -> list to last },
+            ) { movie, streams, tracks, downloads, (tvList, last) ->
                 if (movie == null) {
                     MovieUiState.Error(MqError.NotFound)
                 } else {
@@ -57,6 +73,8 @@ class MovieViewModel
                         resumeAt = movie.resumePosition().takeIf { it > Duration.ZERO },
                         tracks = tracks,
                         download = downloads[movie.id],
+                        tvs = tvList,
+                        sentToTv = last,
                     )
                 }
             }.catch { emit(MovieUiState.Error(MqError.Storage)) }
@@ -74,6 +92,22 @@ class MovieViewModel
 
                     MovieAction.ToggleWatched -> {
                         userData.setPlayed(id, !movie.userData.played)
+                    }
+
+                    // #389: from where the phone is if it plays this movie (and the phone then pauses), else the resume
+                    // point; the TV opens it in mediatheQ.
+                    is MovieAction.PlayOnTv -> {
+                        val here =
+                            playback
+                                ?.state
+                                ?.value
+                                ?.item
+                                ?.id == id
+                        val position =
+                            if (here) playback?.position?.value ?: Duration.ZERO else content.resumeAt ?: Duration.ZERO
+                        val result = remote?.playOn(action.tv, id, position) ?: return@launch
+                        if (result is MqResult.Success && here) playback?.pause()
+                        sent.value = SentToTv(action.tv.deviceName, result is MqResult.Success)
                     }
 
                     MovieAction.ToggleDownload -> {
