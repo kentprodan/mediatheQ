@@ -43,15 +43,25 @@ class TvActivity : ComponentActivity() {
     // gets it in onNewIntent (#240).
     private val openPlayer = MutableStateFlow(false)
 
+    // A system search suggestion (#386): the page it names.
+    private val openPage = MutableStateFlow<NavKey?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) {
             openPlayer.value = intent.wantsPlayer()
             openWatchNext(intent)
+            openPage.value = intent.page()
         }
         setContent {
             val player by openPlayer.collectAsStateWithLifecycle()
-            MediatheqTvTheme { TvApp(player, onPlayerOpened = { openPlayer.value = false }) }
+            val page by openPage.collectAsStateWithLifecycle()
+            MediatheqTvTheme {
+                TvApp(player, onPlayerOpened = { openPlayer.value = false }, page, onPageOpened = {
+                    openPage.value =
+                        null
+                })
+            }
         }
     }
 
@@ -59,7 +69,11 @@ class TvActivity : ComponentActivity() {
         super.onNewIntent(intent)
         if (intent.wantsPlayer()) openPlayer.value = true
         openWatchNext(intent)
+        intent.page()?.let { openPage.value = it }
     }
+
+    private fun Intent.page(): NavKey? =
+        if (flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) null else parseOpenUri(data)
 
     /** A Continue watching card of the Google TV home (#386): it plays from its position and the player opens. */
     private fun openWatchNext(intent: Intent) {
@@ -77,13 +91,15 @@ class TvActivity : ComponentActivity() {
 private fun TvApp(
     openPlayer: Boolean,
     onPlayerOpened: () -> Unit,
+    openPage: NavKey? = null,
+    onPageOpened: () -> Unit = {},
     viewModel: TvMainViewModel = hiltViewModel(),
 ) {
     val session by viewModel.session.collectAsStateWithLifecycle()
     when (session) {
         null -> Unit
         is SessionState.LoggedOut -> TvOnboardingHost()
-        is SessionState.LoggedIn -> TvShellRoute(openPlayer, onPlayerOpened)
+        is SessionState.LoggedIn -> TvShellRoute(openPlayer, onPlayerOpened, openPage, onPageOpened)
     }
 }
 
