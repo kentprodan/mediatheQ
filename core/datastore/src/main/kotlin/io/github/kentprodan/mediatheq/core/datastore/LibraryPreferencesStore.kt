@@ -8,6 +8,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import io.github.kentprodan.mediatheq.core.common.ActiveDatabase
+import io.github.kentprodan.mediatheq.core.common.DEFAULT_DATABASE
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -24,6 +26,7 @@ class LibraryPreferencesStore
     @Inject
     constructor(
         @param:LibraryPrefs private val dataStore: DataStore<Preferences>,
+        @param:ActiveDatabase private val activeId: String = DEFAULT_DATABASE,
     ) {
         private val data = dataStore.data.catch { if (it is IOException) emit(emptyPreferences()) else throw it }
 
@@ -269,6 +272,16 @@ class LibraryPreferencesStore
         suspend fun setHomeOrder(names: List<String>) {
             dataStore.edit { it[HOME_ORDER] = names.joinToString(LIST_SEPARATOR) }
         }
+
+        /** TV Home's genre rows (#431), of the active account (one key per account id), in the order picked. */
+        val homeGenres: Flow<List<String>> =
+            data.map { prefs -> prefs[homeGenresKey()]?.split(GENRE_SEPARATOR)?.filter { it.isNotEmpty() }.orEmpty() }
+
+        suspend fun setHomeGenres(genres: List<String>) {
+            dataStore.edit { it[homeGenresKey()] = genres.joinToString(GENRE_SEPARATOR) }
+        }
+
+        private fun homeGenresKey() = stringPreferencesKey("home_genres_$activeId")
 
         /** Nothing hidden is stored as an empty string, not removed: it is a choice, like any other. */
         suspend fun setHomeHidden(names: List<String>) {
@@ -623,6 +636,9 @@ class LibraryPreferencesStore
             val NP_COVER_SWIPE = booleanPreferencesKey("np_cover_swipe")
             val NP_PLAY_BUTTON = booleanPreferencesKey("np_play_button_when_paused")
             const val LIST_SEPARATOR = ","
+
+            /** Genre names may hold commas. */
+            const val GENRE_SEPARATOR = "\n"
             const val SORT_PREFIX = "sort_"
             val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
             const val SEPARATOR = "\n"

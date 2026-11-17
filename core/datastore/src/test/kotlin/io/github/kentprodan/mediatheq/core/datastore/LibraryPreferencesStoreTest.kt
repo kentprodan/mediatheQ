@@ -19,6 +19,17 @@ class LibraryPreferencesStoreTest {
         }
 
     @Test
+    fun `genre rows are kept per account, names with commas intact (#431)`() =
+        runTest {
+            val other = LibraryPreferencesStore(dataStore, activeId = "account-2")
+
+            store.setHomeGenres(listOf("Action, Adventure", "Drama"))
+
+            assertThat(store.homeGenres.first()).containsExactly("Action, Adventure", "Drama").inOrder()
+            assertThat(other.homeGenres.first()).isEmpty()
+        }
+
+    @Test
     fun `a failed recent search write is dropped instead of crashing`() =
         runTest {
             dataStore.failing = true
