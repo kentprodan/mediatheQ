@@ -9,18 +9,24 @@ import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
+import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.playback.TrackTaps
+import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import io.github.kentprodan.mediatheq.core.testing.TestClock
 import kotlinx.coroutines.flow.collect
@@ -95,6 +101,51 @@ class TvHomeViewModelTest {
             val viewModel =
                 newViewModel()
             assertThat(viewModel.uiState.value).isEqualTo(TvHomeUiState.Loading)
+        }
+
+    @Test
+    fun `with video the video rows come first, and new episodes are one card per series with their count (#431)`() =
+        test {
+            library.albums.value = listOf(alpha, beta)
+            library.tracks.value = tracks
+            val videos = FakeVideoRepository()
+            val show = id("show")
+
+            fun episode(n: Int) =
+                Video(
+                    id("e$n"),
+                    VideoKind.Episode,
+                    "E$n",
+                    seriesId = show,
+                    seriesName = "Show",
+                    episodeNumber = n,
+                    dateAdded = kotlin.time.Instant.fromEpochSeconds(n.toLong()),
+                )
+            videos.movies.value = listOf(episode(3), episode(2), episode(1))
+            sync.status.value = SyncStatus.Idle(day(10))
+            val viewModel =
+                TvHomeViewModel(
+                    library,
+                    sync,
+                    playback,
+                    TrackTaps(playback, preferences),
+                    playlists,
+                    preferences,
+                    HomeShuffle(1),
+                    TestClock(day(20)),
+                    mainDispatcherRule.testDispatcher,
+                    videos,
+                    FakeAppModeRepository(AppMode.Both),
+                )
+            backgroundScope.launch { viewModel.uiState.collect() }
+            runCurrent()
+
+            val rows = (viewModel.uiState.value as TvHomeUiState.Content).rows
+            val firstMusic = rows.indexOfFirst { it.section.kind != HomeKind.Videos }
+            assertThat(rows.take(firstMusic).all { it.section.kind == HomeKind.Videos }).isTrue()
+            val episodes = rows.single { it.section == HomeSection.RecentlyAddedEpisodes }
+            assertThat((episodes.items as HomeItems.Videos).videos.map { it.id }).containsExactly(id("e3"))
+            assertThat(episodes.newEpisodes).containsExactly(show, 3)
         }
 
     @Test
