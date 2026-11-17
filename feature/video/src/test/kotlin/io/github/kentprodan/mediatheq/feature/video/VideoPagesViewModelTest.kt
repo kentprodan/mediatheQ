@@ -339,6 +339,38 @@ class VideoPagesViewModelTest {
         }
 
     @Test
+    fun `the movie page lists its cast, and a person's page what of the library they are in (#442)`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            videos.movies.value = listOf(movie)
+            val ada =
+                io.github.kentprodan.mediatheq.core.model.Person(
+                    MediaId(movie.id.serverId, "p1"),
+                    "Ada",
+                    role = "Lead",
+                )
+            videos.peopleOf = mapOf(movie.id to listOf(ada))
+            videos.videosOfPerson =
+                mapOf(
+                    ada.id to
+                        io.github.kentprodan.mediatheq.core.data
+                            .PersonVideos(movies = listOf(movie)),
+                )
+
+            val content = movieViewModel().uiState.value as MovieUiState.Content
+            assertThat(content.people).containsExactly(ada)
+
+            val person =
+                PersonViewModel(
+                    io.github.kentprodan.mediatheq.core.navigation
+                        .PersonKey(ada.id, ada.name),
+                    videos,
+                )
+            backgroundScope.launch { person.videos.collect() }
+            runCurrent()
+            assertThat(person.videos.value?.movies).containsExactly(movie)
+        }
+
+    @Test
     fun `with the no-spoiler setting an unwatched episode's overview is hidden, a watched one's shows (#440)`() =
         runTest(mainDispatcherRule.testDispatcher) {
             videos.series.value = listOf(series)

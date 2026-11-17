@@ -171,3 +171,21 @@ fun MovieTracksRowScreenshot() =
                 ),
         ),
     )
+
+/** A person's page (#442): the movies and series of the library they are in. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun PersonPageScreenshot() =
+    MediatheqTheme {
+        PersonScreen(
+            "Ada Lovelace",
+            io.github.kentprodan.mediatheq.core.data.PersonVideos(
+                movies = listOf(Video(id("m1"), VideoKind.Movie, "The Engine", year = 2019)),
+                series = listOf(Series(id("sr1"), "Show", year = 2021)),
+            ),
+            {},
+            {},
+            {},
+        )
+    }
