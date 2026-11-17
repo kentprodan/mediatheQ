@@ -86,8 +86,19 @@ class VideoPagesViewModelTest {
             runCurrent()
         }
 
+    private val videoPreferences =
+        io.github.kentprodan.mediatheq.core.testing
+            .FakeVideoPreferencesRepository()
+
     private fun TestScope.seriesViewModel() =
-        SeriesViewModel(series.id, videos, userData, picker, VideoDownloader(downloads, videos)).also { vm ->
+        SeriesViewModel(
+            series.id,
+            videos,
+            userData,
+            picker,
+            VideoDownloader(downloads, videos),
+            videoPreferences,
+        ).also { vm ->
             backgroundScope.launch { vm.uiState.collect() }
             runCurrent()
         }
@@ -325,5 +336,21 @@ class VideoPagesViewModelTest {
             assertThat(content.seasonDownloaded).isTrue()
             assertThat(content.downloads.getValue(one.id).origins)
                 .containsExactly(DownloadOrigin.Season(season1.id), DownloadOrigin.Single)
+        }
+
+    @Test
+    fun `with the no-spoiler setting an unwatched episode's overview is hidden, a watched one's shows (#440)`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            videos.series.value = listOf(series)
+            val viewModel = seriesViewModel()
+            val unwatched = Video(MediaId(series.id.serverId, "x1"), VideoKind.Episode, "E", overview = "Spoiler")
+            val watched = unwatched.copy(userData = UserData(played = true))
+
+            assertThat((viewModel.uiState.value as SeriesUiState.Content).overviewOf(unwatched)).isEqualTo("Spoiler")
+            videoPreferences.update { it.copy(hideUnwatchedOverviews = true) }
+            runCurrent()
+            val state = viewModel.uiState.value as SeriesUiState.Content
+            assertThat(state.overviewOf(unwatched)).isNull()
+            assertThat(state.overviewOf(watched)).isEqualTo("Spoiler")
         }
 }

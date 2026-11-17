@@ -643,6 +643,9 @@
     <string name="settings_video_quality_original">Original</string>
     <string name="settings_video_quality_height">%1$dp</string>
     <string name="settings_video_tracks">Audio and subtitles</string>
+    <string name="settings_video_series">Series pages</string>
+    <string name="settings_video_hide_overviews">Hide overviews of unwatched episodes</string>
+    <string name="settings_video_hide_overviews_summary">No spoilers: an episode\'s overview shows once it is watched</string>
     <string name="settings_video_audio_language">Audio language</string>
     <string name="settings_video_phone_language">Phone language</string>
     <string name="settings_video_subtitles">Subtitles</string>

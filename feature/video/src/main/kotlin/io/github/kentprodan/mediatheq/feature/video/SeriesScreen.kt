@@ -225,6 +225,7 @@ private fun SeriesContent(
                     onPlay = { play(episode) },
                     onPlayFromStart = { onPlay(episode.id, Duration.ZERO) },
                     onTracks = { onAction(SeriesAction.OpenTracks(episode)) },
+                    overview = state.overviewOf(episode),
                 ) {
                     onAction(SeriesAction.ToggleWatched(episode))
                 }
@@ -242,12 +243,14 @@ private fun EpisodeWithMenu(
     onPlay: () -> Unit,
     onPlayFromStart: () -> Unit,
     onTracks: () -> Unit,
+    overview: String?,
     onToggleWatched: () -> Unit,
 ) {
     var menu by rememberSaveable { mutableStateOf(false) }
     MqEpisodeRow(
         episode,
         onClick = onPlay,
+        overview = overview,
         onLongClick = { menu = true },
         downloaded = download?.state == DownloadState.Completed,
     ) {
