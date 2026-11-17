@@ -48,5 +48,6 @@ fun MqTvCard(
     }
 }
 
-private val CARD_WIDTH = 160.dp
+// The guideline width for five cards per screen (#507).
+private val CARD_WIDTH = 124.dp
 private val TEXT_PADDING = 12.dp
