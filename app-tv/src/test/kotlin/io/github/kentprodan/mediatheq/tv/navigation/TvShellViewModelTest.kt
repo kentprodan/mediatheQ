@@ -79,7 +79,7 @@ class TvShellViewModelTest {
     }
 
     @Test
-    fun `a movie above the profile's limit waits for the PIN, a wrong PIN keeps it waiting, then it opens once (#434)`() =
+    fun `a movie above the limit waits for the PIN, a wrong one keeps waiting, then it opens once (#434)`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val store =
                 io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore(
