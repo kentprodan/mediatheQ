@@ -102,7 +102,7 @@ class WatchNextPublisher
         @param:IoDispatcher private val io: CoroutineDispatcher,
         private val log: AppLog,
     ) {
-        private val prefs by lazy { context.getSharedPreferences(FILE, Context.MODE_PRIVATE) }
+        private val prefs by lazy { context.getSharedPreferences(WATCH_NEXT_FILE, Context.MODE_PRIVATE) }
 
         fun start() {
             scope.launch(io) {
@@ -177,7 +177,7 @@ class WatchNextPublisher
             const val TAG = "WatchNext"
             const val CONTINUE = WatchNextPrograms.WATCH_NEXT_TYPE_CONTINUE
             const val NEXT = WatchNextPrograms.WATCH_NEXT_TYPE_NEXT
-            const val FILE = "watch_next"
+            const val WATCH_NEXT_FILE = "watch_next"
             const val LIMIT = 10
             const val POSTER_WIDTH = 640
             val QUIET = 5.seconds
