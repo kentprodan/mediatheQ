@@ -52,6 +52,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Watch movies: Play or Resume on a movie opens it full screen with play and pause, the seek bar and 10-second jumps; Back pauses it and the mini player brings it back. The music queue comes back paused when the movie ends.
 - App mode: choose Music, Video or Both after signing in, at the top of Home or in Settings -> Interface -> App mode. Video hides the music, Music stays as before, and the sync only fetches what the mode shows.
 - Movies and Series on the TV: poster grids in the side menu, sorted by name, date added, year, runtime or at random, filtered by watched, favorites, genre or decade, with an A to Z strip; Settings -> Show chooses music, video or both.
+- Movie and series pages on the TV: the backdrop, facts and format, Play or Resume, Favorite and Watched, audio and subtitles kept per movie; series with Next up, season tabs, episodes and watched for a season or the whole series; and the TV video player with fast seeking, a bar that hides itself, the next episode countdown and the screen kept on while playing.
 
 ### Changed
 - Moving between screens now slides in the direction you go (forward or back) instead of a plain fade; the back gesture shrinks the screen as you drag.
