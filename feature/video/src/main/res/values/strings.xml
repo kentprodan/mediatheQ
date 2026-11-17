@@ -76,4 +76,6 @@
     <string name="video_play_on_tv">Play on TV</string>
     <string name="video_sent_to_tv">Playing on %s</string>
     <string name="video_send_to_tv_failed">%s did not answer. Is mediatheQ open on it?</string>
+    <string name="video_cast">Cast and crew</string>
+    <string name="video_person_nothing">Nothing of the library</string>
 </resources>

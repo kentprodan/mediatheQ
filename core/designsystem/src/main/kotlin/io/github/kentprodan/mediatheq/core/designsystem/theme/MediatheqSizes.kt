@@ -7,6 +7,9 @@ object MediatheqSizes {
     /** Width of an album card in a horizontal row (Home): about two and a half cards on a phone hint at scrolling. */
     val albumCardInRow = 144.dp
 
+    /** A person of a movie's cast row (#442). */
+    val personInRow = 88.dp
+
     /** An audio format badge (stereo, Dolby Atmos, ...) before a track's artists. */
     val formatBadge = 18.dp
 

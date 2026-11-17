@@ -26,6 +26,8 @@ sealed interface MovieUiState {
         /** TVs running mediatheQ that can play it (#389); empty hides Play on TV. */
         val tvs: List<RemoteSession> = emptyList(),
         val sentToTv: SentToTv? = null,
+        /** Cast and crew from the server (#442), leads first; empty offline or while read. */
+        val people: List<io.github.kentprodan.mediatheq.core.model.Person> = emptyList(),
     ) : MovieUiState
 
     data class Error(
