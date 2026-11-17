@@ -28,11 +28,13 @@ import io.github.kentprodan.mediatheq.core.testing.FakeAccountRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioOutputRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -130,6 +132,36 @@ class TvSettingsTest {
             backgroundScope.launch { noVideo.uiState.collect() }
             runCurrent()
             assertThat(noVideo.content().appMode).isNull()
+        }
+
+    @Test
+    fun `Simple transitions switches and is stored with the navigation settings (#444)`() =
+        test {
+            val library = FakeLibraryPreferencesRepository()
+            val viewModel =
+                TvSettingsViewModel(
+                    outputs,
+                    preferences,
+                    sync,
+                    accounts,
+                    playback,
+                    appMode,
+                    FakeVideoPreferencesRepository(),
+                    library,
+                )
+            backgroundScope.launch { viewModel.uiState.collect() }
+            runCurrent()
+            assertThat(viewModel.content().simpleTransitions).isFalse()
+
+            viewModel.onAction(TvSettingsAction.ToggleSimpleTransitions)
+            runCurrent()
+
+            assertThat(
+                library.preferences
+                    .first()
+                    .navigation.simpleTransitions,
+            ).isTrue()
+            assertThat(viewModel.content().simpleTransitions).isTrue()
         }
 
     @Test

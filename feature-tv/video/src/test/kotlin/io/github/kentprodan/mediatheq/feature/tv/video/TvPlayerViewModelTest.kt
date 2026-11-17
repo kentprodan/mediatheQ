@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -137,4 +138,11 @@ class TvPlayerViewModelTest {
             assertThat(playback.commands).containsAtLeast("seekTo ${2.minutes}", "seekTo ${10.minutes}").inOrder()
             assertThat(viewModel.skipButton.value).isNull()
         }
+
+    @Test
+    fun `still watching is due after 3 episodes in a row or 3 hours without a key (#388)`() {
+        assertThat(stillWatchingDue(2, 2.hours)).isFalse()
+        assertThat(stillWatchingDue(3, 0.minutes)).isTrue()
+        assertThat(stillWatchingDue(1, 3.hours)).isTrue()
+    }
 }

@@ -58,6 +58,8 @@ data class NavigationPreferences(
     val slowStartMessages: Boolean = true,
     val trackAction: TrackAction = TrackAction.Play,
     val expandPlayer: Boolean = false,
+    /** TV (#444): a plain fast fade between pages instead of the standard fade and slight scale. */
+    val simpleTransitions: Boolean = false,
 ) {
     companion object {
         const val MAX_ENTRIES = 6

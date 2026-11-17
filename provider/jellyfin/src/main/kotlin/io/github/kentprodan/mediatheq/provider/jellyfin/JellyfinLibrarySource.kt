@@ -242,6 +242,51 @@ class JellyfinLibrarySource internal constructor(
             }
         }
 
+    /** `GET /Persons?searchTerm=` (#432): actors and crew by name, with their photo. */
+    override suspend fun searchPeople(
+        server: SignedInServer,
+        query: String,
+        limit: Int,
+    ): MqResult<List<Person>> =
+        http.get(
+            server.connection,
+            "Persons",
+            QueryResultDto.serializer(),
+            listOf(
+                "userId" to server.userId,
+                "searchTerm" to query,
+                "limit" to limit.toString(),
+                "enableImageTypes" to "Primary",
+            ),
+        ) { result ->
+            result.items.mapNotNull { item ->
+                val id = item.id?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                val name = item.name?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                Person(MediaId(server.serverId, id), name, artwork = item.imageTags["Primary"]?.let { Artwork(id, it) })
+            }
+        }
+
+    /** `GET /Items?personIds=&includeItemTypes=Movie,Series&recursive=true` (#432), ids only. */
+    override suspend fun personItems(
+        server: SignedInServer,
+        personId: MediaId,
+    ): MqResult<List<MediaId>> =
+        http.get(
+            server.connection,
+            "Items",
+            QueryResultDto.serializer(),
+            listOf(
+                "userId" to server.userId,
+                "personIds" to personId.itemId,
+                "includeItemTypes" to "Movie,Series",
+                "recursive" to "true",
+                "sortBy" to "ProductionYear,SortName",
+                "sortOrder" to "Descending",
+                "enableImages" to "false",
+                "enableUserData" to "false",
+            ),
+        ) { result -> result.items.mapNotNull { item -> item.id?.let { MediaId(server.serverId, it) } } }
+
     /** `GET /Items/{id}/Similar` (#427), ids only. */
     override suspend fun similarVideos(
         server: SignedInServer,

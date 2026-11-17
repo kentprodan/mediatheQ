@@ -97,6 +97,8 @@ data class VideoPlayback(
     val range: VideoRange = VideoRange.Sdr,
     val playMethod: PlayMethod? = null,
     val decoder: String? = null,
+    /** Frames per second as the stream states it (#384); `null` when unknown. */
+    val frameRate: Float? = null,
 )
 
 /** The range a decoded format carries (#276): Dolby Vision by its decoder, else HDR10 (PQ) or HLG by its transfer. */
