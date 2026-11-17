@@ -3,6 +3,10 @@ package io.github.kentprodan.mediatheq.core.navigation
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
+/** "Who's watching?" on TV (#433): the profiles (saved accounts) to pick from, or add one. */
+@Serializable
+data object ProfilesKey : NavKey
+
 /** Onboarding start: enter the server address. */
 @Serializable
 data object OnboardingServerKey : NavKey

@@ -24,6 +24,7 @@ import io.github.kentprodan.mediatheq.core.navigation.MovieKey
 import io.github.kentprodan.mediatheq.core.navigation.MoviesKey
 import io.github.kentprodan.mediatheq.core.navigation.MoviesTabKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
+import io.github.kentprodan.mediatheq.core.navigation.PersonKey
 import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
 import io.github.kentprodan.mediatheq.core.navigation.SeriesListKey
 import io.github.kentprodan.mediatheq.core.navigation.SeriesTabKey
@@ -62,6 +63,15 @@ fun EntryProviderScope<NavKey>.videoEntry(navigator: Navigator) {
         MovieRoute(
             key.id,
             onPlay = { navigator.navigateTo(VideoPlayerKey(key.id, it.inWholeMilliseconds)) },
+            onBack = navigator::back,
+            onOpenPerson = { navigator.navigateTo(PersonKey(it.id, it.name)) },
+        )
+    }
+    entry<PersonKey> { key ->
+        PersonRoute(
+            key,
+            onOpenMovie = { navigator.navigateTo(MovieKey(it)) },
+            onOpenSeries = { navigator.navigateTo(SeriesKey(it)) },
             onBack = navigator::back,
         )
     }

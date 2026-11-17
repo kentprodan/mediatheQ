@@ -21,6 +21,7 @@ import io.github.kentprodan.mediatheq.feature.tv.onboarding.TvOnboardingLayout
 @Composable
 internal fun TvLoginRoute(
     key: OnboardingLoginKey,
+    onDone: () -> Unit = {},
     viewModel: TvLoginViewModel =
         hiltViewModel<TvLoginViewModel, TvLoginViewModel.Factory>(
             key = key.toString(),
@@ -28,6 +29,8 @@ internal fun TvLoginRoute(
         ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val done by viewModel.done.collectAsStateWithLifecycle()
+    LaunchedEffect(done) { if (done) onDone() }
     TvLoginScreen(state, viewModel::onAction)
 }
 

@@ -42,6 +42,8 @@ fun MqEpisodeRow(
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
     downloaded: Boolean = false,
+    /** Two lines under the title (#440): the episode's overview, or the hidden-overview note; `null` shows none. */
+    overview: String? = null,
     trailing: @Composable () -> Unit = {},
 ) {
     val watched = episode.userData.played
@@ -102,6 +104,15 @@ fun MqEpisodeRow(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+            overview?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
         trailing()

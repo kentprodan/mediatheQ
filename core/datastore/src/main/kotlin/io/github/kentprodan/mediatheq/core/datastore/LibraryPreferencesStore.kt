@@ -9,6 +9,8 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import io.github.kentprodan.mediatheq.core.common.ActiveDatabase
+import io.github.kentprodan.mediatheq.core.common.DEFAULT_DATABASE
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -25,6 +27,7 @@ class LibraryPreferencesStore
     @Inject
     constructor(
         @param:LibraryPrefs private val dataStore: DataStore<Preferences>,
+        @param:ActiveDatabase private val activeId: String = DEFAULT_DATABASE,
     ) {
         private val data = dataStore.data.catch { if (it is IOException) emit(emptyPreferences()) else throw it }
 
@@ -270,6 +273,47 @@ class LibraryPreferencesStore
         suspend fun setHomeOrder(names: List<String>) {
             dataStore.edit { it[HOME_ORDER] = names.joinToString(LIST_SEPARATOR) }
         }
+
+        /** TV Home's genre rows (#431), of the active account (one key per account id), in the order picked. */
+        val homeGenres: Flow<List<String>> =
+            data.map { prefs -> prefs[homeGenresKey()]?.split(GENRE_SEPARATOR)?.filter { it.isNotEmpty() }.orEmpty() }
+
+        suspend fun setHomeGenres(genres: List<String>) {
+            dataStore.edit { it[homeGenresKey()] = genres.joinToString(GENRE_SEPARATOR) }
+        }
+
+        private fun homeGenresKey() = stringPreferencesKey("home_genres_$activeId")
+
+        /** The parental PIN (#434), salted and hashed by the caller; device-wide, set by the main profile. */
+        val parentalPin: Flow<String?> = data.map { it[PARENTAL_PIN] }
+
+        suspend fun setParentalPin(hash: String?) {
+            dataStore.edit { if (hash == null) it.remove(PARENTAL_PIN) else it[PARENTAL_PIN] = hash }
+        }
+
+        /** Each profile's age limit (#434), by account id; a missing one has no limit. */
+        val ageLimits: Flow<Map<String, Int>> =
+            data.map { prefs ->
+                prefs
+                    .asMap()
+                    .mapNotNull { (key, value) ->
+                        key.name
+                            .removePrefix(AGE_LIMIT_PREFIX)
+                            .takeIf { key.name.startsWith(AGE_LIMIT_PREFIX) }
+                            ?.let { id -> (value as? Int)?.let { id to it } }
+                    }.toMap()
+            }
+
+        suspend fun setAgeLimit(
+            accountId: String,
+            limit: Int?,
+        ) {
+            val key = intPreferencesKey(AGE_LIMIT_PREFIX + accountId)
+            dataStore.edit { if (limit == null) it.remove(key) else it[key] = limit }
+        }
+
+        /** This account's id ([ActiveDatabase]). */
+        val activeAccount: String get() = activeId
 
         /** Nothing hidden is stored as an empty string, not removed: it is a choice, like any other. */
         suspend fun setHomeHidden(names: List<String>) {
@@ -632,6 +676,11 @@ class LibraryPreferencesStore
             val NP_PLAY_BUTTON = booleanPreferencesKey("np_play_button_when_paused")
             const val LIST_SEPARATOR = ","
             val SEEN_EPISODES = stringSetPreferencesKey("seen_episodes")
+            val PARENTAL_PIN = stringPreferencesKey("parental_pin")
+            const val AGE_LIMIT_PREFIX = "age_limit_"
+
+            /** Genre names may hold commas. */
+            const val GENRE_SEPARATOR = "\n"
             const val SORT_PREFIX = "sort_"
             val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
             const val SEPARATOR = "\n"

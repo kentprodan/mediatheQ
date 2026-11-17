@@ -113,6 +113,22 @@ fun SeriesTwoSeasonsScreenshot() =
         ),
     )
 
+/** No spoilers (#440): the watched episode's overview shows, the unwatched ones' stay hidden. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SeriesHiddenOverviewsScreenshot() =
+    SeriesPage(
+        SeriesUiState.Content(
+            Series(id("sr1"), "Show", year = 2021),
+            listOf(season1, season2),
+            season2,
+            episodes.map { it.copy(overview = "The van breaks down in the mountains and the friends split up.") },
+            nextUp = null,
+            hideUnwatchedOverviews = true,
+        ),
+    )
+
 /** A series with no episodes yet. */
 @PreviewTest
 @MqPreviews
@@ -155,3 +171,21 @@ fun MovieTracksRowScreenshot() =
                 ),
         ),
     )
+
+/** A person's page (#442): the movies and series of the library they are in. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun PersonPageScreenshot() =
+    MediatheqTheme {
+        PersonScreen(
+            "Ada Lovelace",
+            io.github.kentprodan.mediatheq.core.data.PersonVideos(
+                movies = listOf(Video(id("m1"), VideoKind.Movie, "The Engine", year = 2019)),
+                series = listOf(Series(id("sr1"), "Show", year = 2021)),
+            ),
+            {},
+            {},
+            {},
+        )
+    }

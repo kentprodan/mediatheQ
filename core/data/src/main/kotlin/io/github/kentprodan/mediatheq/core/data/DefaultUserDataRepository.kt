@@ -73,6 +73,17 @@ class DefaultUserDataRepository
             played: Boolean,
         ) = write(id, Change(played = played))
 
+        override suspend fun removeFromResume(id: MediaId): MqResult<Unit> =
+            scope
+                .async {
+                    val server =
+                        accountStore.signedInServer() ?: return@async MqResult.Failure(MqError.Unauthorized)
+                    when (val sent = writeLock.withLock { sink.clearResume(server, id) }) {
+                        is MqResult.Failure -> sent.also { surface(it.error) }
+                        is MqResult.Success -> clearVideoProgress(id)
+                    }
+                }.await()
+
         override suspend fun setRating(
             id: MediaId,
             halfStars: Int?,

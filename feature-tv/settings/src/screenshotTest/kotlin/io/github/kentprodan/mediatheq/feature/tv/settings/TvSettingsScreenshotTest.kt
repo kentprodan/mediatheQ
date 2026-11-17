@@ -75,3 +75,19 @@ fun TvLicensesScreenshot() =
 @MqTvPreviews
 @Composable
 fun TvLicenseTextScreenshot() = MediatheqTvTheme { TvLicenseScreen(okhttp.copy(notice = "okhttp notice")) }
+
+/** The PIN entry (#434), its content in place (popups render blank in screenshots). */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvPinEntryScreenshot() =
+    MediatheqTvTheme {
+        androidx.tv.material3.Surface {
+            io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvPinContent(
+                "Enter the PIN",
+                "PIN",
+                "12",
+                "Wrong PIN",
+            )
+        }
+    }

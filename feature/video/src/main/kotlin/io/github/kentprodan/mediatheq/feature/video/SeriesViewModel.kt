@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.TrackPicker
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.VideoDownload
+import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoTracks
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -50,7 +51,16 @@ sealed interface SeriesUiState {
         val downloads: Map<MediaId, VideoDownload> = emptyMap(),
         /** Followed for smart downloads (#383): its next episodes stay downloaded. */
         val followed: Boolean = false,
+        /** Settings -> Video (#440): an unwatched episode's overview stays hidden. */
+        val hideUnwatchedOverviews: Boolean = false,
     ) : SeriesUiState {
+        /** What an episode row shows under its title (#440): the overview, or `null` while it is a spoiler. */
+        fun overviewOf(episode: Video): String? =
+            episode.overview.takeUnless {
+                hideUnwatchedOverviews &&
+                    !episode.userData.played
+            }
+
         /** The selected season is downloaded through its own origin (#279). */
         val seasonDownloaded: Boolean
             get() =
@@ -121,6 +131,7 @@ class SeriesViewModel
         private val userData: UserDataRepository,
         private val picker: TrackPicker,
         private val downloader: VideoDownloader,
+        private val videoPreferences: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
     ) : ViewModel() {
         private val chosenSeason = MutableStateFlow<MediaId?>(null)
         private val tracksEpisode = MutableStateFlow<Video?>(null)
@@ -164,6 +175,10 @@ class SeriesViewModel
                 }
             }.combine(videos.followedSeries) { state, followed ->
                 (state as? SeriesUiState.Content)?.copy(followed = id in followed) ?: state
+            }.combine(
+                videoPreferences.preferences.map { it.hideUnwatchedOverviews }.distinctUntilChanged(),
+            ) { state, hide ->
+                (state as? SeriesUiState.Content)?.copy(hideUnwatchedOverviews = hide) ?: state
             }.catch { emit(SeriesUiState.Error(MqError.Storage)) }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SeriesUiState.Loading)
 
