@@ -293,3 +293,33 @@ fun HomeVideoSectionsScreenshot() =
             mode = AppMode.Video,
         )
     }
+
+/** The profiles sheet (#443), its content in place. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun ProfilesScreenshot() =
+    MediatheqTheme {
+        androidx.compose.material3.Surface {
+            ProfilesContent(
+                listOf(
+                    io.github.kentprodan.mediatheq.core.data.Account(
+                        "a",
+                        "Home",
+                        "Cristian",
+                        "http://nas:8096",
+                        active = true,
+                    ),
+                    io.github.kentprodan.mediatheq.core.data.Account(
+                        "b",
+                        "Home",
+                        "Ana",
+                        "http://nas:8096",
+                        active = false,
+                    ),
+                ),
+                {},
+                {},
+            )
+        }
+    }
