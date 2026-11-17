@@ -41,6 +41,12 @@ data class VideoSearchResults(
     fun isEmpty(): Boolean = movies.isEmpty() && series.isEmpty() && episodes.isEmpty()
 }
 
+/** What a person is in (#432), from the library only. */
+data class PersonVideos(
+    val movies: List<Video> = emptyList(),
+    val series: List<Series> = emptyList(),
+)
+
 /** The video grids, each with its own saved [VideoSort] (#325). */
 enum class VideoList { Movies, Series }
 
@@ -118,6 +124,15 @@ interface VideoRepository {
 
     /** Brings the resume points of what is halfway from the server into the rows when Home opens (R26). */
     suspend fun refreshResume()
+
+    /** People whose name matches [query] (#432), from the server; offline or failed: none. */
+    suspend fun searchPeople(
+        query: String,
+        limit: Int,
+    ): List<Person>
+
+    /** The movies and series in the library that [personId] is in (#432), newest first; offline or failed: none. */
+    suspend fun personVideos(personId: MediaId): PersonVideos
 
     /** The cast and crew of [itemId] (#427), kept for the session; offline or failed: none. */
     suspend fun people(itemId: MediaId): List<Person>
@@ -260,6 +275,22 @@ class DefaultVideoRepository
 
         private val extras = ConcurrentHashMap<MediaId, PlayerExtras>()
         private val segmentCache = ConcurrentHashMap<MediaId, List<MediaSegment>>()
+
+        override suspend fun searchPeople(
+            query: String,
+            limit: Int,
+        ): List<Person> = fromServer { server -> source.searchPeople(server, query, limit) } ?: emptyList()
+
+        override suspend fun personVideos(personId: MediaId): PersonVideos {
+            val ids = fromServer { server -> source.personItems(server, personId) } ?: return PersonVideos()
+            val keys = ids.map { it.itemId }
+            val movies = dao.moviesByIds(keys).associateBy { it.id }
+            val series = dao.seriesByIds(keys).associateBy { it.id }
+            return PersonVideos(
+                movies = ids.mapNotNull { movies[it.itemId]?.toDomain() },
+                series = ids.mapNotNull { series[it.itemId]?.toDomain() },
+            )
+        }
 
         private val people = ConcurrentHashMap<MediaId, List<Person>>()
 

@@ -37,6 +37,9 @@ interface VideoDao {
     @Query("SELECT * FROM video WHERE kind = 'Movie' AND id IN (:ids)")
     suspend fun moviesByIds(ids: List<String>): List<VideoEntity>
 
+    @Query("SELECT * FROM series WHERE id IN (:ids)")
+    suspend fun seriesByIds(ids: List<String>): List<SeriesEntity>
+
     @Query("SELECT * FROM video_collection WHERE id = :id")
     fun collection(id: String): Flow<VideoCollectionEntity?>
 
