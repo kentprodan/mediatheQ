@@ -57,6 +57,7 @@ import io.github.kentprodan.mediatheq.core.data.genreRows
 import io.github.kentprodan.mediatheq.core.data.resumePosition
 import io.github.kentprodan.mediatheq.core.designsystem.tv.FocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCardStyle
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
@@ -341,7 +342,15 @@ private class Cards(
                                     MqTvIcons.Radio
                             }
                         }
-                    Card(focusKey(row, mix), title, null, null, null, icon) { onAction(TvHomeAction.PlayMix(mix)) }
+                    Card(
+                        focusKey(row, mix),
+                        title,
+                        null,
+                        null,
+                        null,
+                        icon,
+                        MqTvCardStyle.Compact,
+                    ) { onAction(TvHomeAction.PlayMix(mix)) }
                 }
             }
 
@@ -373,6 +382,7 @@ private class Cards(
                 subtitle = (movie?.year ?: series?.year)?.toString(),
                 watched = (movie?.userData ?: series?.userData)?.played == true,
                 placeholder = if (movie != null) MqTvIcons.Movie else MqTvIcons.Series,
+                style = MqTvCardStyle.Standard,
             )
         }
     }
@@ -385,6 +395,7 @@ private class Cards(
         subtitle: String?,
         menu: Menu?,
         placeholder: ImageVector = MqTvIcons.MusicNote,
+        style: MqTvCardStyle = MqTvCardStyle.Standard,
         onClick: () -> Unit,
     ) {
         val open = menu?.let { { openMenu(it) } }
@@ -404,6 +415,7 @@ private class Cards(
             subtitle = subtitle,
             placeholder = placeholder,
             onLongClick = open,
+            style = style,
         )
     }
 
@@ -462,7 +474,7 @@ private class Cards(
             },
             modifier =
                 Modifier
-                    .width(if (wide) WIDE_CARD else POSTER_CARD)
+                    // The guideline variants (#518): 16:9 stills as Wide classic, posters as Standard.
                     .focusMemory(focus, focusKey(row, video.id))
                     .onFocusChanged { if (it.isFocused) onFocused(heroInfo(video)) }
                     .onPreviewKeyEvent { event ->
@@ -475,6 +487,7 @@ private class Cards(
             placeholder = if (episode) MqTvIcons.Series else MqTvIcons.Movie,
             aspectRatio = if (wide) 16f / 9f else POSTER_RATIO,
             onLongClick = open,
+            style = if (wide) MqTvCardStyle.WideClassic else MqTvCardStyle.Standard,
         )
     }
 }
@@ -695,7 +708,6 @@ private fun episodeLabel(video: Video): String =
 private val HERO_HEIGHT = 260.dp
 private val COMPACT_HERO_HEIGHT = 96.dp
 
-// Guideline card widths (#507): 4 wide cards or 5 posters per screen, 20 dp apart.
-private val WIDE_CARD = 196.dp
+// Guideline card width (#507): 5 posters per screen, 20 dp apart; the wide variants size themselves (#518).
 private val POSTER_CARD = 124.dp
 private val HERO_DELAY = 500.milliseconds

@@ -8,6 +8,7 @@ import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
@@ -69,9 +70,9 @@ class TvHomeScreenTest {
     fun `Home opens on the first card, D-pad right moves to the next, select opens the album`() {
         show()
 
-        composeRule.onNodeWithText("Album 1").assertIsFocused()
+        composeRule.onNodeWithContentDescription("Album 1", substring = true).assertIsFocused()
         press(listOf(Key.DirectionRight))
-        composeRule.onNodeWithText("Album 2").assertIsFocused()
+        composeRule.onNodeWithContentDescription("Album 2", substring = true).assertIsFocused()
 
         press(listOf(Key.DirectionCenter))
         assertThat(opened).containsExactly(id("al2"))
@@ -82,12 +83,12 @@ class TvHomeScreenTest {
         show()
 
         press(listOf(Key.DirectionRight, Key.DirectionRight))
-        composeRule.onNodeWithText("Album 3").assertIsFocused()
+        composeRule.onNodeWithContentDescription("Album 3", substring = true).assertIsFocused()
         press(listOf(Key.DirectionDown))
-        composeRule.onNodeWithText("Album 3").assertIsNotFocused()
+        composeRule.onNodeWithContentDescription("Album 3", substring = true).assertIsNotFocused()
         press(listOf(Key.DirectionUp))
 
-        composeRule.onNodeWithText("Album 3").assertIsFocused()
+        composeRule.onNodeWithContentDescription("Album 3", substring = true).assertIsFocused()
     }
 
     @Test
@@ -146,7 +147,13 @@ class TvHomeScreenTest {
             composeRule.mainClock.advanceTimeBy(1_000)
         }
 
-        val card = composeRule.onNodeWithText("Album 5").assertIsFocused().fetchSemanticsNode()
+        val card =
+            composeRule
+                .onNodeWithContentDescription(
+                    "Album 5",
+                    substring = true,
+                ).assertIsFocused()
+                .fetchSemanticsNode()
         val width =
             composeRule
                 .onRoot()

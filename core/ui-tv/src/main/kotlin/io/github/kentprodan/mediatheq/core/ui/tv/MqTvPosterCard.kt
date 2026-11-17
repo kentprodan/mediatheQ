@@ -18,6 +18,7 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCardStyle
 import io.github.kentprodan.mediatheq.core.model.Artwork
 
 /**
@@ -37,8 +38,10 @@ fun MqTvPosterCard(
     /** 16:9 for an episode's still. */
     aspectRatio: Float = POSTER_RATIO,
     onLongClick: (() -> Unit)? = null,
+    /** The guideline card variant (#518). */
+    style: MqTvCardStyle = MqTvCardStyle.Classic,
 ) {
-    MqTvCard(title, onClick, modifier, subtitle, onLongClick, imageAspectRatio = aspectRatio) {
+    MqTvCard(title, onClick, modifier, subtitle, onLongClick, imageAspectRatio = aspectRatio, style = style) {
         Box(Modifier.fillMaxSize()) {
             MqTvCover(artwork, placeholder)
             if (watched) {

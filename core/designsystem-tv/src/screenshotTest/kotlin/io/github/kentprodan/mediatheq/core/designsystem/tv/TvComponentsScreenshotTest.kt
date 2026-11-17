@@ -105,3 +105,39 @@ fun TvTextFieldScreenshot() =
             }
         }
     }
+
+/** The guideline's five card variants (#518), unfocused. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvCardVariantsScreenshot() =
+    MediatheqTvTheme {
+        androidx.tv.material3.Surface {
+            androidx.compose.foundation.layout.Row(
+                androidx.compose.ui.Modifier
+                    .padding(24.dp),
+                horizontalArrangement =
+                    androidx.compose.foundation.layout.Arrangement
+                        .spacedBy(20.dp),
+            ) {
+                io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCardStyle.entries.forEach { style ->
+                    io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard(
+                        style.name,
+                        {},
+                        subtitle = "2024",
+                        imageAspectRatio = if (style.wide) 16f / 9f else 2f / 3f,
+                        style = style,
+                    ) {
+                        androidx.compose.foundation.layout.Box(
+                            androidx.compose.ui.Modifier
+                                .fillMaxSize()
+                                .background(
+                                    androidx.compose.ui.graphics
+                                        .Color(0xFF3A4A5A),
+                                ),
+                        )
+                    }
+                }
+            }
+        }
+    }

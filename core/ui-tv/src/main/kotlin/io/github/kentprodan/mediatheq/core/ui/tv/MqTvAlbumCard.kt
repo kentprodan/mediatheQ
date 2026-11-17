@@ -15,6 +15,7 @@ import androidx.tv.material3.MaterialTheme
 import coil3.compose.AsyncImage
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCardStyle
 import io.github.kentprodan.mediatheq.core.model.Artwork
 
 /**
@@ -30,8 +31,10 @@ fun MqTvAlbumCard(
     subtitle: String? = null,
     placeholder: ImageVector = MqTvIcons.MusicNote,
     onLongClick: (() -> Unit)? = null,
+    /** The guideline card variant (#518). */
+    style: MqTvCardStyle = MqTvCardStyle.Classic,
 ) {
-    MqTvCard(title, onClick, modifier, subtitle, onLongClick) { MqTvCover(artwork, placeholder) }
+    MqTvCard(title, onClick, modifier, subtitle, onLongClick, style = style) { MqTvCover(artwork, placeholder) }
 }
 
 /** The [artwork] filling its box, over a tinted [placeholder] icon that shows until (or instead of) the image. */
