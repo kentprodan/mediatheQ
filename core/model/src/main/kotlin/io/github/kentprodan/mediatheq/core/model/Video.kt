@@ -75,6 +75,8 @@ data class Series(
     val artwork: Artwork? = null,
     val backdrop: Artwork? = null,
     val userData: UserData = UserData(),
+    /** "TV-14", "16"; the age gate (#434) reads it for the series' episodes too. */
+    val officialRating: String? = null,
 )
 
 /** A collection of movies (a Jellyfin BoxSet, #426), e.g. a film series. */

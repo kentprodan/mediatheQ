@@ -2,22 +2,34 @@ package io.github.kentprodan.mediatheq.tv.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation3.runtime.NavKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.ParentalControls
+import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.data.aboveLimit
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.navigation.MovieKey
+import io.github.kentprodan.mediatheq.core.navigation.ParentalControlsKey
+import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
+import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.RemoteControl
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** The TV shell (ADR 0041): what plays, for the drawer's strip; navigation itself lives in the composition. */
@@ -30,7 +42,94 @@ class TvShellViewModel
         appMode: AppModeRepository,
         remoteControl: RemoteControl? = null,
         preferences: LibraryPreferencesRepository? = null,
+        private val parental: ParentalControls? = null,
+        private val videos: VideoRepository? = null,
     ) : ViewModel() {
+        /** A key waiting for the PIN (#434), with whether the last try was wrong. */
+        data class PinRequest(
+            val proceed: () -> Unit,
+            val unlocks: Set<MediaId>,
+            val wrong: Boolean = false,
+        )
+
+        private val mutablePin = MutableStateFlow<PinRequest?>(null)
+        val pinRequest: StateFlow<PinRequest?> = mutablePin.asStateFlow()
+
+        // Opened with the PIN this session: its page and its player do not ask again.
+        private val unlocked = mutableSetOf<MediaId>()
+
+        /**
+         * The age gate (#434): a movie, series or player above this profile's limit, and Parental controls while a PIN
+         * is set, wait for the PIN; anything else opens at once.
+         * shortcut: videos started by another client (#389) or a Google TV card (#386) are not gated; gate them when a
+         * child profile uses those.
+         */
+        fun guard(
+            key: NavKey,
+            proceed: () -> Unit,
+        ) {
+            val gate = parental ?: return proceed()
+            viewModelScope.launch {
+                val ids = gatedIds(key, gate)
+                if (ids == null) proceed() else mutablePin.value = PinRequest(proceed, ids)
+            }
+        }
+
+        /** The ids a PIN would unlock for [key], `null` when it may open. */
+        private suspend fun gatedIds(
+            key: NavKey,
+            gate: ParentalControls,
+        ): Set<MediaId>? {
+            if (key == ParentalControlsKey) return if (gate.hasPin.first()) emptySet() else null
+            val limit = gate.limit.first() ?: return null
+            if (!gate.hasPin.first()) return null
+            val repo = videos ?: return null
+            val (id, ratings) =
+                when (key) {
+                    is MovieKey -> {
+                        key.id to listOf(repo.video(key.id).first()?.officialRating)
+                    }
+
+                    is SeriesKey -> {
+                        key.id to listOf(repo.series(key.id).first()?.officialRating)
+                    }
+
+                    is VideoPlayerKey -> {
+                        val video = repo.video(key.id).first()
+                        val series = video?.seriesId?.let { repo.series(it).first() }
+                        key.id to listOf(video?.officialRating, series?.officialRating)
+                    }
+
+                    else -> {
+                        return null
+                    }
+                }
+            val seriesId = (key as? VideoPlayerKey)?.let { repo.video(it.id).first()?.seriesId }
+            if (id in unlocked || seriesId in unlocked) return null
+            return if (ratings.any { aboveLimit(it, limit) }) setOfNotNull(id) else null
+        }
+
+        fun submitPin(pin: String) {
+            val request = mutablePin.value ?: return
+            viewModelScope.launch {
+                if (parental?.checkPin(pin) != false) {
+                    unlocked += request.unlocks
+                    mutablePin.value = null
+                    request.proceed()
+                } else {
+                    mutablePin.value = request.copy(wrong = true)
+                }
+            }
+        }
+
+        fun pinEdited() {
+            mutablePin.value = mutablePin.value?.copy(wrong = false)
+        }
+
+        fun cancelPin() {
+            mutablePin.value = null
+        }
+
         /** TV Settings -> Transitions (#444). */
         val simpleTransitions: StateFlow<Boolean> =
             (preferences?.preferences?.map { it.navigation.simpleTransitions } ?: flowOf(false))

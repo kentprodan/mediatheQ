@@ -43,10 +43,11 @@ fun TvSettingsRoute(
     versionName: String,
     onOpenLicenses: () -> Unit,
     onOpenHomeRows: () -> Unit = {},
+    onOpenParental: () -> Unit = {},
     viewModel: TvSettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    TvSettingsScreen(state, versionName, viewModel::onAction, onOpenLicenses, onOpenHomeRows)
+    TvSettingsScreen(state, versionName, viewModel::onAction, onOpenLicenses, onOpenHomeRows, onOpenParental)
 }
 
 /**
@@ -60,6 +61,7 @@ fun TvSettingsScreen(
     onAction: (TvSettingsAction) -> Unit,
     onOpenLicenses: () -> Unit,
     onOpenHomeRows: () -> Unit = {},
+    onOpenParental: () -> Unit = {},
 ) {
     Surface(Modifier.fillMaxSize()) {
         if (state !is TvSettingsUiState.Content) return@Surface
@@ -179,6 +181,16 @@ fun TvSettingsScreen(
                     Modifier.focusMemory(focus, "account"),
                     supporting = state.userName,
                 )
+            }
+            if (state.appMode?.video == true) {
+                item {
+                    MqTvListItem(
+                        stringResource(R.string.tv_settings_parental),
+                        onOpenParental,
+                        Modifier.focusMemory(focus, "parental"),
+                        supporting = stringResource(R.string.tv_settings_parental_detail),
+                    )
+                }
             }
             item {
                 MqTvListItem(
