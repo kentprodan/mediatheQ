@@ -141,7 +141,10 @@ class TvHomeViewModel
                 }.flowOn(defaultDispatcher)
 
         /** Settings -> Display -> Home header (#504). */
-        private val heroMode = preferences.preferences.map { it.navigation.tvHomeHero }.distinctUntilChanged()
+        private val heroMode =
+            preferences.preferences
+                .map { it.navigation.tvHomeHero to it.navigation.tvCardStyles }
+                .distinctUntilChanged()
 
         /** The status, and whether a full sync ever completed (then an empty library is really empty). */
         private val status =
@@ -153,7 +156,7 @@ class TvHomeViewModel
             combine(rows, genreRows, status, heroMode) { rows, genreRows, status, hero ->
                 val (current, everSynced) = status ?: return@combine TvHomeUiState.Loading
                 when {
-                    rows != null -> TvHomeUiState.Content(rows, genreRows, hero)
+                    rows != null -> TvHomeUiState.Content(rows, genreRows, hero.first, hero.second)
                     everSynced -> TvHomeUiState.Empty
                     current is SyncStatus.Failed -> TvHomeUiState.Error(current.error)
                     current is SyncStatus.Running -> TvHomeUiState.Syncing(current.fetched, current.total)

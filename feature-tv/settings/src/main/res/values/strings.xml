@@ -56,7 +56,13 @@
     <string name="tv_settings_switch_profile">Switch profile</string>
     <string name="tv_settings_home_rows">Home rows</string>
     <string name="tv_settings_home_rows_detail">Which rows Home shows, and their order</string>
-    <string name="tv_settings_home_rows_hint">Select shows or hides a row. Hold Select to move it.</string>
+    <string name="tv_settings_home_rows_hint">Select shows or hides a row. Hold Select to move it or pick its cards.</string>
+    <string name="tv_settings_cards_default">Cards: default</string>
+    <string name="tv_settings_cards_standard">Cards: standard</string>
+    <string name="tv_settings_cards_classic">Cards: classic</string>
+    <string name="tv_settings_cards_compact">Cards: compact</string>
+    <string name="tv_settings_cards_wide_standard">Cards: wide standard</string>
+    <string name="tv_settings_cards_wide_classic">Cards: wide classic</string>
     <string name="tv_settings_move_up">Move up</string>
     <string name="tv_settings_move_down">Move down</string>
     <string name="tv_settings_genre_rows">Genre rows (this account)</string>
