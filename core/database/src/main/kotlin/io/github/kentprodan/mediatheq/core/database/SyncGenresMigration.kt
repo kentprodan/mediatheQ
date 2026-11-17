@@ -57,3 +57,6 @@ class SyncVideoMigration : ResyncMigration(STAGING_12)
 
 /** 16 -> 17 (#426): movies, episodes and series have no community rating, and there are no collections yet. */
 class SyncVideoRatingMigration : ResyncMigration(STAGING_12)
+
+/** 17 -> 18 (#434): series have no official rating yet. */
+class SyncSeriesRatingMigration : ResyncMigration(STAGING_12)
