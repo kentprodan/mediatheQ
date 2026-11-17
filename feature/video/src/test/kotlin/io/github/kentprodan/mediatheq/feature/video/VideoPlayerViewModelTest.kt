@@ -79,11 +79,11 @@ class VideoPlayerViewModelTest {
     private fun test(block: suspend TestScope.() -> Unit) = runTest(mainDispatcherRule.testDispatcher) { block() }
 
     @Test
-    fun `it starts the video at the key's position and shows loading until the player has it`() =
+    fun `it resumes 10 s before the key's position (#439) and shows loading until the player has it`() =
         test {
             val viewModel = viewModel()
 
-            assertThat(playback.videoCalls).containsExactly(movie to 1.minutes)
+            assertThat(playback.videoCalls).containsExactly(movie to 50.seconds)
             assertThat(viewModel.uiState.value).isEqualTo(VideoPlayerUiState.Loading)
         }
 
