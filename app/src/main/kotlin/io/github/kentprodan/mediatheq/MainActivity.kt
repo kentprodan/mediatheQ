@@ -15,9 +15,11 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -26,6 +28,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.common.FileAppLog
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.entriesFor
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqPinDialog
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.download.resumeDownloads
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
@@ -164,6 +167,21 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
                                 }
+                            // The age gate (#443): pages and players above the profile's limit wait for the PIN.
+                            SideEffect { navigator.guard = viewModel::guard }
+                            val pin by viewModel.pinRequest.collectAsStateWithLifecycle()
+                            pin?.let { request ->
+                                MqPinDialog(
+                                    title = stringResource(R.string.pin_title),
+                                    label = stringResource(R.string.pin_label),
+                                    confirmLabel = stringResource(R.string.pin_ok),
+                                    dismissLabel = stringResource(R.string.pin_cancel),
+                                    onSubmit = viewModel::submitPin,
+                                    onDismiss = viewModel::cancelPin,
+                                    error = if (request.wrong) stringResource(R.string.pin_wrong) else null,
+                                    onEdit = viewModel::pinEdited,
+                                )
+                            }
                             // A movie sent from another client (#389) plays already: its player opens on the tab shown.
                             LaunchedEffect(navigator) {
                                 remoteControl.videoStarted.collect { id ->

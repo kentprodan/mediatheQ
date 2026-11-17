@@ -111,6 +111,7 @@ internal fun SettingsPageRoute(
     onOpenHomeSection: (HomeSection) -> Unit = {},
     onOpenAppMode: () -> Unit = {},
     onOpenVideo: () -> Unit = {},
+    onOpenParental: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -143,6 +144,7 @@ internal fun SettingsPageRoute(
         onOpenHomeSection,
         onOpenAppMode,
         onOpenVideo,
+        onOpenParental = onOpenParental,
     )
 }
 
@@ -180,6 +182,7 @@ fun SettingsPageScreen(
     onOpenHomeSection: (HomeSection) -> Unit = {},
     onOpenAppMode: () -> Unit = {},
     onOpenVideo: () -> Unit = {},
+    onOpenParental: () -> Unit = {},
 ) {
     var storageDialog by rememberSaveable { mutableStateOf<StorageDialog?>(null) }
     // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
@@ -380,7 +383,7 @@ fun SettingsPageScreen(
             }
 
             SettingsPage.Video -> {
-                videoGroups(content.video, onAction) { restoring = true }
+                videoGroups(content.video, onAction, onOpenParental) { restoring = true }
             }
 
             SettingsPage.PlaybackBehavior -> {

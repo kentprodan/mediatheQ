@@ -673,4 +673,19 @@
     <string name="settings_providers_other_addresses">Other addresses</string>
     <string name="settings_providers_other_addresses_hint">One per line, e.g. the Tailscale address. The app uses the first one that answers, the server address above first.</string>
     <string name="settings_providers_error_other_addresses">Each line must be an address starting with http:// or https://</string>
+    <string name="settings_parental_group">Parental controls</string>
+    <string name="settings_parental">Parental controls</string>
+    <string name="settings_parental_summary">A PIN and an age limit for each profile</string>
+    <string name="settings_parental_intro">Movies and series rated above the age limit of a profile ask for the PIN on that profile. Limits apply once a PIN is set.</string>
+    <string name="settings_parental_main_only">Only %1$s can change these.</string>
+    <string name="settings_parental_pin">PIN</string>
+    <string name="settings_parental_enter_pin">Enter the PIN</string>
+    <string name="settings_parental_wrong_pin">Wrong PIN</string>
+    <string name="settings_parental_set_pin">Set a PIN</string>
+    <string name="settings_parental_change_pin">Change the PIN</string>
+    <string name="settings_parental_remove_pin">Remove the PIN</string>
+    <string name="settings_parental_new_pin">New PIN (4 to 8 digits)</string>
+    <string name="settings_parental_limits">Age limits</string>
+    <string name="settings_parental_no_limit">No limit</string>
+    <string name="settings_parental_up_to">Up to %1$d</string>
 </resources>
