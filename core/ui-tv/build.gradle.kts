@@ -16,6 +16,8 @@ dependencies {
     api(projects.core.common)
     // Covers: an Artwork is the request's data; the app's image loader turns it into a URL (ArtworkInterceptor).
     implementation(libs.coil.compose)
+    // The seek previews' tile images need the auth header (#430).
+    implementation(libs.coil.network.okhttp)
     // The video picture (#429): Media3's Compose surface, as the phone's MqVideoSurface.
     implementation(libs.androidx.media3.ui.compose)
     // Subtitles (#429): Media3's SubtitleView draws text and bitmap (PGS) cues with the system caption style.
