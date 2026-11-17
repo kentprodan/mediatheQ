@@ -52,6 +52,7 @@ import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvRowHeader
 
 /** Where a selected result goes. */
@@ -59,6 +60,10 @@ data class TvSearchNavigation(
     val onOpenAlbum: (MediaId) -> Unit = {},
     val onOpenArtist: (MediaId) -> Unit = {},
     val onOpenPlaylist: (MediaId) -> Unit = {},
+    /** Video (#432). */
+    val onOpenMovie: (MediaId) -> Unit = {},
+    val onOpenSeries: (MediaId) -> Unit = {},
+    val onOpenPerson: (MediaId, String) -> Unit = { _, _ -> },
 )
 
 @Composable
@@ -203,6 +208,55 @@ private fun Rows(
         contentPadding = PaddingValues(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        row(R.string.tv_search_movies, state.movies.isNotEmpty()) {
+            items(state.movies, key = { it.id.toString() }) { movie ->
+                MqTvPosterCard(
+                    movie.title,
+                    movie.artwork,
+                    onClick = { opened { navigation.onOpenMovie(movie.id) } },
+                    modifier = Modifier.width(POSTER_WIDTH).focusMemory(focus, "movie/${movie.id}"),
+                    subtitle = movie.year?.toString(),
+                    watched = movie.userData.played,
+                )
+            }
+        }
+        row(R.string.tv_search_series, state.series.isNotEmpty()) {
+            items(state.series, key = { it.id.toString() }) { series ->
+                MqTvPosterCard(
+                    series.title,
+                    series.artwork,
+                    onClick = { opened { navigation.onOpenSeries(series.id) } },
+                    modifier = Modifier.width(POSTER_WIDTH).focusMemory(focus, "series/${series.id}"),
+                    subtitle = series.year?.toString(),
+                    placeholder = MqTvIcons.Series,
+                )
+            }
+        }
+        row(R.string.tv_search_episodes, state.episodes.isNotEmpty()) {
+            items(state.episodes, key = { it.id.toString() }) { episode ->
+                MqTvPosterCard(
+                    episode.title,
+                    episode.backdrop ?: episode.artwork,
+                    onClick = { opened { episode.seriesId?.let(navigation.onOpenSeries) } },
+                    modifier = Modifier.width(EPISODE_WIDTH).focusMemory(focus, "episode/${episode.id}"),
+                    subtitle =
+                        listOfNotNull(
+                            episode.seriesName,
+                            episode.seasonNumber?.let { "S$it" },
+                            episode.episodeNumber?.let { "E$it" },
+                        ).joinToString(" · "),
+                    placeholder = MqTvIcons.Series,
+                    aspectRatio = 16f / 9f,
+                )
+            }
+        }
+        row(R.string.tv_search_people, state.people.isNotEmpty()) {
+            items(state.people, key = { it.id.toString() }) { person ->
+                Card("person/${person.id}", person.name, person.artwork, null, focus, MqTvIcons.Person) {
+                    opened { navigation.onOpenPerson(person.id, person.name) }
+                }
+            }
+        }
         row(R.string.tv_search_albums, state.albums.isNotEmpty()) {
             items(state.albums, key = { it.id.toString() }) { album ->
                 Card("album/${album.id}", album.title, album.artwork, names(album.albumArtists), focus) {
@@ -284,3 +338,5 @@ private fun Message(text: String) =
 private fun names(artists: List<Artist>): String? = artists.joinToString { it.name }.ifEmpty { null }
 
 private val EDGE = 48.dp
+private val POSTER_WIDTH = 150.dp
+private val EPISODE_WIDTH = 260.dp
