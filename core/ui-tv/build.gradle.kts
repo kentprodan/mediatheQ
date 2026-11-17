@@ -18,4 +18,6 @@ dependencies {
     implementation(libs.coil.compose)
     // The video picture (#429): Media3's Compose surface, as the phone's MqVideoSurface.
     implementation(libs.androidx.media3.ui.compose)
+    // Subtitles (#429): Media3's SubtitleView draws text and bitmap (PGS) cues with the system caption style.
+    implementation(libs.androidx.media3.ui)
 }

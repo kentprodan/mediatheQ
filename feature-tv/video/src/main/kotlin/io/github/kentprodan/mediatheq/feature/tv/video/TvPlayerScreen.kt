@@ -55,6 +55,7 @@ import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvSubtitles
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvVideoSurface
 import kotlinx.coroutines.delay
 import java.time.LocalTime
@@ -84,7 +85,10 @@ fun TvPlayerRoute(
             viewModel.onAction(TvPlayerAction.Leave)
             onBack()
         },
-    ) { MqTvVideoSurface(player, Modifier.fillMaxSize()) }
+    ) {
+        MqTvVideoSurface(player, Modifier.fillMaxSize())
+        MqTvSubtitles(player, Modifier.fillMaxSize())
+    }
 }
 
 /**
