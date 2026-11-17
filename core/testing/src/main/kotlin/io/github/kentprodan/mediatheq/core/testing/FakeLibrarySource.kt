@@ -258,6 +258,21 @@ class FakeLibrarySource : LibrarySource {
     var people: Map<MediaId, List<Person>> = emptyMap()
     var similarVideos: Map<MediaId, List<MediaId>> = emptyMap()
 
+    /** Search answers by query; a person's items by person. */
+    var peopleFound: Map<String, List<Person>> = emptyMap()
+    var itemsOfPerson: Map<MediaId, List<MediaId>> = emptyMap()
+
+    override suspend fun searchPeople(
+        server: SignedInServer,
+        query: String,
+        limit: Int,
+    ): MqResult<List<Person>> = MqResult.Success(peopleFound[query].orEmpty().take(limit))
+
+    override suspend fun personItems(
+        server: SignedInServer,
+        personId: MediaId,
+    ): MqResult<List<MediaId>> = MqResult.Success(itemsOfPerson[personId].orEmpty())
+
     override suspend fun people(
         server: SignedInServer,
         itemId: MediaId,

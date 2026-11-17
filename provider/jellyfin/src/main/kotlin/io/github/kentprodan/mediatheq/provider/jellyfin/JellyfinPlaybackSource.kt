@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
+import io.github.kentprodan.mediatheq.core.model.RemoteSession
 import io.github.kentprodan.mediatheq.core.model.StreamChoice
 import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.SubtitleDelivery
@@ -25,13 +26,16 @@ import io.github.kentprodan.mediatheq.provider.jellyfin.dto.PlaybackInfoDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.PlaybackInfoResponseDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.PlaybackReportDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.ProfileConditionDto
+import io.github.kentprodan.mediatheq.provider.jellyfin.dto.SessionDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.SubtitleProfileDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.TranscodingProfileDto
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import javax.inject.Inject
+import kotlin.time.Duration
 
 /** [PlaybackSource] for Jellyfin 12: `PlaybackInfo` with our device profile, and the `/Sessions/Playing` reports. */
 class JellyfinPlaybackSource internal constructor(
@@ -159,6 +163,46 @@ class JellyfinPlaybackSource internal constructor(
             ),
         )
 
+    /**
+     * `GET /Sessions?controllableByUserId=` (#389), kept to other mediatheQ devices that play video: the phone sends
+     * a movie to the TV app, never to another client (owner decision).
+     */
+    override suspend fun remoteSessions(server: SignedInServer): MqResult<List<RemoteSession>> =
+        http.get(
+            server.connection,
+            "Sessions",
+            ListSerializer(SessionDto.serializer()),
+            listOf("controllableByUserId" to server.userId),
+        ) { sessions ->
+            sessions
+                .filter { session ->
+                    session.client == CLIENT &&
+                        session.supportsRemoteControl &&
+                        "Video" in session.playableMediaTypes &&
+                        session.deviceId != server.connection.deviceId
+                }.mapNotNull { session ->
+                    session.id?.takeIf { it.isNotEmpty() }?.let { RemoteSession(it, session.deviceName ?: CLIENT) }
+                }
+        }
+
+    /** `POST /Sessions/{id}/Playing?playCommand=PlayNow&itemIds=&startPositionTicks=` (#389). */
+    override suspend fun playOn(
+        server: SignedInServer,
+        session: RemoteSession,
+        itemId: MediaId,
+        startPosition: Duration,
+    ): MqResult<Unit> =
+        http.post(
+            server.connection,
+            "Sessions/${session.id}/Playing",
+            query =
+                listOf(
+                    "playCommand" to "PlayNow",
+                    "itemIds" to itemId.itemId,
+                    "startPositionTicks" to (startPosition.inWholeMilliseconds * TICKS_PER_MS).toString(),
+                ),
+        )
+
     override suspend fun reportStart(
         server: SignedInServer,
         report: PlaybackReport,
@@ -190,6 +234,9 @@ class JellyfinPlaybackSource internal constructor(
         /** "No cap" for Jellyfin, which treats a missing value as its own (lower) default. */
         const val UNLIMITED = 1_000_000_000
         const val TICKS_PER_MS = 10_000L
+
+        /** The name both apps introduce themselves with (ClientInfo). */
+        const val CLIENT = "mediatheQ"
     }
 }
 

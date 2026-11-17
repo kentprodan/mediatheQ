@@ -52,11 +52,12 @@ import kotlin.time.Duration
 fun TvMovieRoute(
     id: MediaId,
     onOpenMovie: (MediaId) -> Unit = {},
+    onOpenPerson: (MediaId, String) -> Unit = { _, _ -> },
     onPlay: (MediaId, Duration) -> Unit,
 ) {
     val viewModel = hiltViewModel<TvMovieViewModel, TvMovieViewModel.Factory>(key = id.toString()) { it.create(id) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    TvMovieScreen(state, viewModel::onAction, onPlay, onOpenMovie)
+    TvMovieScreen(state, viewModel::onAction, onPlay, onOpenMovie, onOpenPerson)
 }
 
 /**
@@ -70,6 +71,7 @@ fun TvMovieScreen(
     onAction: (TvMovieAction) -> Unit,
     onPlay: (MediaId, Duration) -> Unit,
     onOpenMovie: (MediaId) -> Unit = {},
+    onOpenPerson: (MediaId, String) -> Unit = { _, _ -> },
 ) {
     when (state) {
         TvMovieUiState.Loading -> {
@@ -118,7 +120,7 @@ fun TvMovieScreen(
                         )
                     }
                     Buttons(state, onAction, onPlay, Modifier.padding(top = 12.dp))
-                    if (state.people.isNotEmpty()) PeopleRow(state.people)
+                    if (state.people.isNotEmpty()) PeopleRow(state.people, onOpenPerson)
                     if (state.similar.isNotEmpty()) SimilarRow(state.similar, onOpenMovie)
                 }
             }
@@ -236,16 +238,19 @@ private fun facts(movie: Video): String {
     return listOfNotNull(movie.year?.toString(), runtime, rating, movie.officialRating, genres).joinToString(" · ")
 }
 
-/** Cast and crew (#427): actors with their character, then the crew with their job. A person page comes with #432. */
+/** Cast and crew (#427): actors with their character, then the crew with their job; each opens their page (#432). */
 @Composable
-private fun PeopleRow(people: List<Person>) {
+private fun PeopleRow(
+    people: List<Person>,
+    onOpen: (MediaId, String) -> Unit,
+) {
     RowTitle(stringResource(R.string.tv_movie_cast))
     LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
         items(people, key = { it.id.toString() + it.kind + it.role }, contentType = { "person" }) { person ->
             MqTvAlbumCard(
                 person.name,
                 person.artwork,
-                onClick = {},
+                onClick = { onOpen(person.id, person.name) },
                 modifier = Modifier.width(PERSON_WIDTH),
                 subtitle = person.role ?: person.kind,
                 placeholder = MqTvIcons.Person,

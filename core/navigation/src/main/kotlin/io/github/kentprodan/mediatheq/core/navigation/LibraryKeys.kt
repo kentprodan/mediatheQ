@@ -89,6 +89,13 @@ data object MoviesKey : NavKey
 @Serializable
 data object SeriesListKey : NavKey
 
+/** A person's page (#432, TV): the movies and series of the library they are in. */
+@Serializable
+data class PersonKey(
+    @Serializable(with = MediaIdSerializer::class) val id: MediaId,
+    val name: String,
+) : NavKey
+
 /** The collections of movies (#426, TV). */
 @Serializable
 data object VideoCollectionsKey : NavKey
