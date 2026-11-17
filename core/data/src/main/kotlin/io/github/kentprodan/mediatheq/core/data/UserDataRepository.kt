@@ -29,6 +29,12 @@ interface UserDataRepository {
         played: Boolean,
     ): MqResult<Unit>
 
+    /**
+     * Takes a movie or an episode out of Continue watching (#431): on the server first (a resume point is not queued
+     * offline), then here; a failure is surfaced like a refused change.
+     */
+    suspend fun removeFromResume(id: MediaId): MqResult<Unit>
+
     /** Rates [id] with [halfStars], 1-10 (whole stars are even); `null` clears the rating. */
     suspend fun setRating(
         id: MediaId,

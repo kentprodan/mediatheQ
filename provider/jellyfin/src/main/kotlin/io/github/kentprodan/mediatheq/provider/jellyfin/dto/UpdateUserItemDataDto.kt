@@ -8,4 +8,5 @@ import kotlinx.serialization.Serializable
 internal data class UpdateUserItemDataDto(
     @SerialName("IsFavorite") val isFavorite: Boolean? = null,
     @SerialName("Rating") val rating: Double? = null,
+    @SerialName("PlaybackPositionTicks") val playbackPositionTicks: Long? = null,
 )

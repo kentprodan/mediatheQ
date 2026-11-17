@@ -160,6 +160,7 @@ private fun Rows(
 ) {
     val focus = rememberFocusMemory()
     var menu by remember { mutableStateOf<Menu?>(null) }
+    var videoMenu by remember { mutableStateOf<Video?>(null) }
     // The hero (#431): the focused video's backdrop and facts, after a short pause so moving along a row never flickers.
     var focusedVideo by remember { mutableStateOf<Video?>(null) }
     var hero by remember { mutableStateOf<Video?>(null) }
@@ -167,7 +168,10 @@ private fun Rows(
         delay(HERO_DELAY)
         hero = focusedVideo
     }
-    val cards = Cards(focus, onAction, navigation, onVideoFocused = { focusedVideo = it }) { menu = it }
+    val cards =
+        Cards(focus, onAction, navigation, onVideoFocused = { focusedVideo = it }, openVideoMenu = { videoMenu = it }) {
+            menu = it
+        }
     val hasVideo = rows.any { it.items is HomeItems.Videos }
     MqTvBackdrop(hero?.backdrop, modifier.fillMaxSize()) {
         LazyColumn(
@@ -198,6 +202,7 @@ private fun Rows(
         rows.firstNotNullOfOrNull(::firstKey)?.let(focus::restore)
     }
     menu?.let { shown -> CoverMenu(shown, onAction, navigation.onOpenArtist) { menu = null } }
+    videoMenu?.let { video -> ResumeMenu(video, onAction, navigation) { videoMenu = null } }
 }
 
 /** A card's key in the focus memory: by item, so a row that changes while a detail page is open still finds it. */
@@ -222,6 +227,7 @@ private class Cards(
     val onAction: (TvHomeAction) -> Unit,
     val navigation: TvHomeNavigation,
     val onVideoFocused: (Video?) -> Unit,
+    val openVideoMenu: (Video) -> Unit,
     val openMenu: (Menu) -> Unit,
 ) {
     fun LazyListScope.row(row: TvHomeRow) {
@@ -375,6 +381,8 @@ private class Cards(
                     video.year?.toString()
                 }
             }
+        // Continue watching cards have a menu (#431): long-press or the remote's menu key.
+        val open = { openVideoMenu(video) }.takeIf { row.section == HomeSection.ContinueWatching }
         MqTvPosterCard(
             title,
             if (wide) video.backdrop ?: video.artwork else video.artwork,
@@ -389,11 +397,17 @@ private class Cards(
                 Modifier
                     .width(if (wide) WIDE_CARD else POSTER_CARD)
                     .focusMemory(focus, focusKey(row, video.id))
-                    .onFocusChanged { if (it.isFocused) onVideoFocused(video) },
+                    .onFocusChanged { if (it.isFocused) onVideoFocused(video) }
+                    .onPreviewKeyEvent { event ->
+                        val isMenu = event.key == Key.Menu && open != null
+                        if (isMenu && event.type == KeyEventType.KeyUp) open?.invoke()
+                        isMenu
+                    },
             subtitle = subtitle,
             progress = video.userData.playedPercentage?.let { (it / 100).toFloat() },
             placeholder = if (episode) MqTvIcons.Series else MqTvIcons.Movie,
             aspectRatio = if (wide) 16f / 9f else POSTER_RATIO,
+            onLongClick = open,
         )
     }
 }
@@ -423,6 +437,37 @@ private fun CoverMenu(
     ),
     onDismiss,
 )
+
+/** A Continue watching card's menu (#431): its page, or out of the row. */
+@Composable
+private fun ResumeMenu(
+    video: Video,
+    onAction: (TvHomeAction) -> Unit,
+    navigation: TvHomeNavigation,
+    onDismiss: () -> Unit,
+) {
+    val episode = video.kind == VideoKind.Episode
+    MqTvMenu(
+        if (episode) video.seriesName ?: video.title else video.title,
+        listOfNotNull(
+            if (episode) {
+                video.seriesId?.let { series ->
+                    MqTvMenuEntry(stringResource(R.string.tv_home_go_to_series), MqTvIcons.Series) {
+                        navigation.onOpenSeries(series)
+                    }
+                }
+            } else {
+                MqTvMenuEntry(stringResource(R.string.tv_home_go_to_movie), MqTvIcons.Movie) {
+                    navigation.onOpenMovie(video.id)
+                }
+            },
+            MqTvMenuEntry(stringResource(R.string.tv_home_remove_from_resume), null) {
+                onAction(TvHomeAction.RemoveFromResume(video.id))
+            },
+        ),
+        onDismiss,
+    )
+}
 
 /** A state without rows: a title, a line, the sync progress or a Sync now button. */
 @Composable

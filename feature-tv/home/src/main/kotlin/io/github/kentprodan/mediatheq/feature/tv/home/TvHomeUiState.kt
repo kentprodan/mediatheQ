@@ -80,6 +80,11 @@ sealed interface TvHomeAction {
         val mix: Mix,
     ) : TvHomeAction
 
+    /** A Continue watching card's menu (#431): the video leaves the row, on the server too. */
+    data class RemoveFromResume(
+        val id: MediaId,
+    ) : TvHomeAction
+
     /** Retry from the error and empty states. */
     data object Sync : TvHomeAction
 }

@@ -38,6 +38,11 @@ class FakeUserDataSink : UserDataSink {
         played: Boolean,
     ) = call("played:${itemId.itemId}:$played", itemId) { it.copy(played = played) }
 
+    override suspend fun clearResume(
+        server: SignedInServer,
+        itemId: MediaId,
+    ) = call("clearResume:${itemId.itemId}", itemId) { it.copy(playbackPosition = kotlin.time.Duration.ZERO) }
+
     private suspend fun call(
         name: String,
         itemId: MediaId,
