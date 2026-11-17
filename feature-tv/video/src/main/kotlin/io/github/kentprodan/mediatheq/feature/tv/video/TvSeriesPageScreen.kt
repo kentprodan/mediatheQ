@@ -23,6 +23,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -45,7 +46,6 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterCard
-import java.util.Locale
 import kotlin.time.Duration
 
 @Composable
@@ -108,7 +108,10 @@ private fun Content(
                 val facts =
                     listOfNotNull(
                         series.year?.toString(),
-                        series.communityRating?.let { "★ " + String.format(Locale.getDefault(), "%.1f", it) },
+                        series.communityRating?.let {
+                            "★ " +
+                                String.format(LocalConfiguration.current.locales[0], "%.1f", it)
+                        },
                         series.genres
                             .take(3)
                             .joinToString(", ")

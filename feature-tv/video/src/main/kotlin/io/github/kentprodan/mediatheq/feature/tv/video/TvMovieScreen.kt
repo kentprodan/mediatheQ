@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -36,7 +37,6 @@ import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
-import java.util.Locale
 import kotlin.time.Duration
 
 @Composable
@@ -210,7 +210,7 @@ private fun facts(movie: Video): String {
                 stringResource(R.string.tv_movie_runtime_minutes, minutes)
             }
         }
-    val rating = movie.communityRating?.let { "★ " + String.format(Locale.getDefault(), "%.1f", it) }
+    val rating = movie.communityRating?.let { "★ " + String.format(LocalConfiguration.current.locales[0], "%.1f", it) }
     val genres =
         movie.genres
             .take(3)
