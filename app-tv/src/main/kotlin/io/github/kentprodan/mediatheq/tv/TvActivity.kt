@@ -21,8 +21,10 @@ import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.OnboardingServerKey
+import io.github.kentprodan.mediatheq.core.navigation.ProfilesKey
 import io.github.kentprodan.mediatheq.core.playback.EXTRA_OPEN_PLAYER
 import io.github.kentprodan.mediatheq.feature.tv.onboarding.tvOnboardingEntries
+import io.github.kentprodan.mediatheq.feature.tv.onboarding.tvProfilesEntries
 import io.github.kentprodan.mediatheq.tv.navigation.TvShellRoute
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -63,11 +65,41 @@ private fun TvApp(
     viewModel: TvMainViewModel = hiltViewModel(),
 ) {
     val session by viewModel.session.collectAsStateWithLifecycle()
+    val profiles by viewModel.showProfiles.collectAsStateWithLifecycle()
     when (session) {
-        null -> Unit
-        is SessionState.LoggedOut -> TvOnboardingHost()
-        is SessionState.LoggedIn -> TvShellRoute(openPlayer, onPlayerOpened)
+        null -> {
+            Unit
+        }
+
+        is SessionState.LoggedOut -> {
+            TvOnboardingHost()
+        }
+
+        is SessionState.LoggedIn -> {
+            if (profiles) {
+                TvProfilesHost(viewModel::profileUsed, viewModel::closeProfiles)
+            } else {
+                TvShellRoute(openPlayer, onPlayerOpened, onSwitchProfile = viewModel::openProfiles)
+            }
+        }
     }
+}
+
+/** "Who's watching?" (#433) with its own back stack for adding a profile; Back on the picker keeps the profile. */
+@Composable
+private fun TvProfilesHost(
+    onUse: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val backStack = rememberNavBackStack(ProfilesKey)
+    val navigator = remember(backStack) { StackNavigator(backStack) }
+    NavDisplay(
+        backStack = backStack,
+        onBack = { if (!navigator.back()) onClose() },
+        entryDecorators =
+            listOf(rememberSaveableStateHolderNavEntryDecorator(), rememberViewModelStoreNavEntryDecorator()),
+        entryProvider = entryProvider { tvProfilesEntries(navigator, onUse, onClose) },
+    )
 }
 
 /** Signed-out flow with its own back stack: server -> Quick Connect -> password. Back goes one screen back. */

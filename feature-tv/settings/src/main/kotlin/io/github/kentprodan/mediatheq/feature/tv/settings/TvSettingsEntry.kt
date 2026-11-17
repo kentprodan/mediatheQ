@@ -16,8 +16,15 @@ fun EntryProviderScope<NavKey>.tvSettingsEntries(
     versionName: String,
     report: () -> String,
     notices: () -> String,
+    onSwitchProfile: () -> Unit = {},
 ) {
-    entry<SettingsKey> { TvSettingsRoute(versionName, onOpenLicenses = { navigator.navigateTo(LicensesKey) }) }
+    entry<SettingsKey> {
+        TvSettingsRoute(
+            versionName,
+            onOpenLicenses = { navigator.navigateTo(LicensesKey) },
+            onSwitchProfile = onSwitchProfile,
+        )
+    }
     entry<LicensesKey> { TvLicensesRoute(report, notices, onOpen = { navigator.navigateTo(LicenseTextKey(it)) }) }
     entry<LicenseTextKey> { TvLicenseRoute(it.id, report, notices) }
 }

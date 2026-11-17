@@ -67,6 +67,7 @@ import io.github.kentprodan.mediatheq.tv.R
 internal fun TvShellRoute(
     openPlayer: Boolean = false,
     onPlayerOpened: () -> Unit = {},
+    onSwitchProfile: () -> Unit = {},
     viewModel: TvShellViewModel = hiltViewModel(),
 ) {
     val player by viewModel.player.collectAsStateWithLifecycle()
@@ -116,9 +117,13 @@ internal fun TvShellRoute(
         tvAlbumEntries()
         tvArtistEntry(navigator)
         tvNowPlayingEntry()
-        tvSettingsEntries(navigator, versionName, report = {
-            raw(R.raw.aboutlibraries)
-        }, notices = { raw(R.raw.license_notices) })
+        tvSettingsEntries(
+            navigator,
+            versionName,
+            report = { raw(R.raw.aboutlibraries) },
+            notices = { raw(R.raw.license_notices) },
+            onSwitchProfile = onSwitchProfile,
+        )
         tvSearchEntry(navigator)
         tvVideoEntries(navigator)
     }

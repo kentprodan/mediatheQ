@@ -53,4 +53,5 @@
     <string name="tv_settings_display">Display</string>
     <string name="tv_settings_simple_transitions">Simple transitions</string>
     <string name="tv_settings_simple_transitions_detail">A plain fast fade between pages, without the scale</string>
+    <string name="tv_settings_switch_profile">Switch profile</string>
 </resources>

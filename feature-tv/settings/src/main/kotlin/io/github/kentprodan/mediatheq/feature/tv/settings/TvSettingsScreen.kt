@@ -42,10 +42,11 @@ import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 fun TvSettingsRoute(
     versionName: String,
     onOpenLicenses: () -> Unit,
+    onSwitchProfile: () -> Unit = {},
     viewModel: TvSettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    TvSettingsScreen(state, versionName, viewModel::onAction, onOpenLicenses)
+    TvSettingsScreen(state, versionName, viewModel::onAction, onOpenLicenses, onSwitchProfile)
 }
 
 /**
@@ -58,6 +59,7 @@ fun TvSettingsScreen(
     versionName: String,
     onAction: (TvSettingsAction) -> Unit,
     onOpenLicenses: () -> Unit,
+    onSwitchProfile: () -> Unit = {},
 ) {
     Surface(Modifier.fillMaxSize()) {
         if (state !is TvSettingsUiState.Content) return@Surface
@@ -163,11 +165,16 @@ fun TvSettingsScreen(
             }
             section(R.string.tv_settings_account)
             item {
+                // "Who's watching?" (#433): switch to or add a profile.
                 MqTvListItem(
                     state.serverName.orEmpty(),
-                    {},
+                    onSwitchProfile,
                     Modifier.focusMemory(focus, "account"),
-                    supporting = state.userName,
+                    supporting =
+                        listOfNotNull(
+                            state.userName,
+                            stringResource(R.string.tv_settings_switch_profile),
+                        ).joinToString(" · "),
                 )
             }
             item {

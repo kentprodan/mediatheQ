@@ -57,6 +57,9 @@ class MediatheqTvApplication :
     lateinit var remoteControl: RemoteControl
 
     @Inject
+    lateinit var profileGate: ProfileGate
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -76,9 +79,15 @@ class MediatheqTvApplication :
         remoteControl.start()
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
-                override fun onStart(owner: LifecycleOwner) = liveSync.setForeground(true)
+                override fun onStart(owner: LifecycleOwner) {
+                    liveSync.setForeground(true)
+                    profileGate.onForeground()
+                }
 
-                override fun onStop(owner: LifecycleOwner) = liveSync.setForeground(false)
+                override fun onStop(owner: LifecycleOwner) {
+                    liveSync.setForeground(false)
+                    profileGate.onBackground()
+                }
             },
         )
         // A TV with no mode chosen shows music and video when the server has video (#426); Settings changes it.
