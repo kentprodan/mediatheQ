@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import io.github.kentprodan.mediatheq.core.data.VideoPreferences
 import io.github.kentprodan.mediatheq.core.data.WatchedRemoval
+import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.model.SkipMode
 import io.github.kentprodan.mediatheq.core.model.SubtitleMode
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
@@ -17,6 +18,7 @@ import java.util.Locale
 internal fun LazyListScope.videoGroups(
     video: VideoPreferences,
     onAction: (SettingsAction) -> Unit,
+    onOpenParental: () -> Unit = {},
     onRestore: () -> Unit,
 ) {
     fun set(change: VideoPreferences.() -> VideoPreferences) = onAction(SettingsAction.SetVideo { it.change() })
@@ -149,6 +151,16 @@ internal fun LazyListScope.videoGroups(
                     video.keepAudio,
                 ) { set { copy(keepAudio = it) } }
             }
+        }
+    }
+    item(key = "video_parental") {
+        Group(R.string.settings_parental_group) {
+            pageRow(
+                R.string.settings_parental,
+                R.string.settings_parental_summary,
+                { MqIcons.PrivacyTip },
+                onOpenParental,
+            )
         }
     }
     item(key = "video_notifications") {

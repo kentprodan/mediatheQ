@@ -33,6 +33,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -224,5 +225,71 @@ class MainViewModelTest {
                 repository.session.value = SessionState.LoggedIn("Home", "Ana")
                 expectNoEvents()
             }
+        }
+
+    @Test
+    fun `a series above the profile's limit waits for the PIN, a PG movie opens at once (#443)`() =
+        runTest {
+            val parental =
+                io.github.kentprodan.mediatheq.core.data.ParentalControls(
+                    io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore(
+                        io.github.kentprodan.mediatheq.core.testing
+                            .InMemoryPreferencesDataStore(),
+                        activeId = "kid",
+                    ),
+                )
+            parental.setPin("2580")
+            parental.setLimit("kid", 12)
+            val videos =
+                io.github.kentprodan.mediatheq.core.testing
+                    .FakeVideoRepository()
+            val show = MediaId(ServerId("s"), "sr1")
+            val pg = MediaId(ServerId("s"), "m1")
+            videos.series.value =
+                listOf(
+                    io.github.kentprodan.mediatheq.core.model
+                        .Series(show, "Show", officialRating = "TV-MA"),
+                )
+            videos.movies.value =
+                listOf(
+                    io.github.kentprodan.mediatheq.core.model.Video(
+                        pg,
+                        io.github.kentprodan.mediatheq.core.model.VideoKind.Movie,
+                        "Up",
+                        officialRating = "PG",
+                    ),
+                )
+            val gated =
+                MainViewModel(
+                    repository,
+                    userData,
+                    sync,
+                    libraryPreferences,
+                    playback,
+                    library,
+                    downloads,
+                    appMode,
+                    parental,
+                    videos,
+                )
+            val opened = mutableListOf<String>()
+
+            gated.guard(
+                io.github.kentprodan.mediatheq.core.navigation
+                    .MovieKey(pg),
+            ) { opened += "movie" }
+            gated.guard(
+                io.github.kentprodan.mediatheq.core.navigation
+                    .SeriesKey(show),
+            ) { opened += "series" }
+            advanceUntilIdle()
+            assertThat(opened).containsExactly("movie")
+
+            gated.submitPin("1111")
+            advanceUntilIdle()
+            assertThat(gated.pinRequest.value?.wrong).isTrue()
+            gated.submitPin("2580")
+            advanceUntilIdle()
+            assertThat(opened).containsExactly("movie", "series").inOrder()
         }
 }
