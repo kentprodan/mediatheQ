@@ -643,6 +643,19 @@
     <string name="settings_video_quality_original">Original</string>
     <string name="settings_video_quality_height">%1$dp</string>
     <string name="settings_video_tracks">Audio and subtitles</string>
+    <string name="settings_video_notifications">Notifications</string>
+    <string name="settings_video_new_episodes">New episodes</string>
+    <string name="settings_video_new_episodes_summary">A notification when a followed series gets a new episode</string>
+    <string name="settings_video_downloads">Downloads</string>
+    <string name="settings_video_watched_removal">Remove watched downloads</string>
+    <string name="settings_video_watched_removal_summary">Movies and episodes you downloaded, once watched. Never favorites, what plays now, or what you had watched before downloading it</string>
+    <string name="settings_video_watched_removal_off">Off</string>
+    <string name="settings_video_watched_removal_now">Right away</string>
+    <string name="settings_video_watched_removal_day">After 1 day</string>
+    <string name="settings_video_watched_removal_week">After 7 days</string>
+    <string name="settings_video_series">Series pages</string>
+    <string name="settings_video_hide_overviews">Hide overviews of unwatched episodes</string>
+    <string name="settings_video_hide_overviews_summary">No spoilers: an episode\'s overview shows once it is watched</string>
     <string name="settings_video_audio_language">Audio language</string>
     <string name="settings_video_phone_language">Phone language</string>
     <string name="settings_video_subtitles">Subtitles</string>
@@ -688,4 +701,12 @@
     <string name="settings_parental_limits">Age limits</string>
     <string name="settings_parental_no_limit">No limit</string>
     <string name="settings_parental_up_to">Up to %1$d</string>
+    <string name="settings_home_genres">Genre rows</string>
+    <string name="settings_home_genres_group">Genres</string>
+    <string name="settings_home_genres_summary">A row on Home for each genre you pick, for this account</string>
+    <string name="settings_home_genres_intro">Each genre you turn on gets a row of its movies and series after the video sections, in the order you pick them. Kept for this account.</string>
+    <plurals name="settings_home_genre_count">
+        <item quantity="one">%d movie or series</item>
+        <item quantity="other">%d movies and series</item>
+    </plurals>
 </resources>

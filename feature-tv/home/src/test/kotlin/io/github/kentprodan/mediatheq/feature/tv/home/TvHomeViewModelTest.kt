@@ -2,12 +2,15 @@ package io.github.kentprodan.mediatheq.feature.tv.home
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.GenreItem
+import io.github.kentprodan.mediatheq.core.data.GenreRow
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.HomeShuffle
 import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
+import io.github.kentprodan.mediatheq.core.data.genreRows
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.Artist

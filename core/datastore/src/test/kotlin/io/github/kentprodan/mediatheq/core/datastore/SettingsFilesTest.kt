@@ -31,12 +31,14 @@ class SettingsFilesTest {
                 "\"library_prefs\"",
                 "\"audio_prefs\"",
                 // Left out: tokens and the DeviceId; which database is open; whether a queue was saved; the SD card;
-                // the sleep timer's last choice (#378); the TV's Watch Next program ids (#386).
+                // the sleep timer's last choice (#378); the TV's Watch Next program ids (#386); when the TV was
+                // last used, for Who's watching (#433).
                 "\"account\"",
                 "\"accounts\"",
                 "\"saved_queue\"",
                 "\"sleep_timer\"",
                 "DownloadStorage.PREFERENCES",
+                "PROFILES_FILE",
                 "WATCH_NEXT_FILE",
             )
     }

@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.navigation.DecodingSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.GenrePageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.HeadsetSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.HomeGenresSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.HomePageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeSectionSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.InterfaceSettingsKey
@@ -96,8 +97,10 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             openOutputs,
             back,
             onOpenHomeSection = { navigator.navigateTo(HomeSectionSettingsKey(it)) },
+            onOpenHomeGenres = { navigator.navigateTo(HomeGenresSettingsKey) },
         )
     }
+    entry<HomeGenresSettingsKey> { HomeGenresRoute(back) }
     entry<LibraryPageSettingsKey> { SettingsPageRoute(SettingsPage.Library, openOutputs, back) }
     entry<AlbumPageSettingsKey> { SettingsPageRoute(SettingsPage.Album, openOutputs, back) }
     entry<ArtistPageSettingsKey> { SettingsPageRoute(SettingsPage.Artist, openOutputs, back) }

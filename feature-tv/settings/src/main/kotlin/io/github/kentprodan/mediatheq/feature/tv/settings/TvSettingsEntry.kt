@@ -18,6 +18,7 @@ fun EntryProviderScope<NavKey>.tvSettingsEntries(
     versionName: String,
     report: () -> String,
     notices: () -> String,
+    onSwitchProfile: () -> Unit = {},
 ) {
     entry<SettingsKey> {
         TvSettingsRoute(
@@ -25,6 +26,7 @@ fun EntryProviderScope<NavKey>.tvSettingsEntries(
             onOpenLicenses = { navigator.navigateTo(LicensesKey) },
             onOpenHomeRows = { navigator.navigateTo(HomePageSettingsKey) },
             onOpenParental = { navigator.navigateTo(ParentalControlsKey) },
+            onSwitchProfile = onSwitchProfile,
         )
     }
     entry<ParentalControlsKey> { TvParentalRoute() }

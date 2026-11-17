@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- New episodes of followed series (#446); asked when a series is followed. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Backup off (R9) and cleartext allowed here, restricted to local networks by CleartextPolicyInterceptor (ADR 0013). -->
     <application

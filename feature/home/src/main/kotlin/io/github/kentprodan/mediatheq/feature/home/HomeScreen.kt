@@ -30,7 +30,10 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -85,16 +88,38 @@ data class HomeNavigation(
     val onPlayVideo: (MediaId, Duration) -> Unit = { _, _ -> },
     val onOpenMovie: (MediaId) -> Unit = {},
     val onOpenSeries: (MediaId) -> Unit = {},
+    /** Add profile (#443): signs in another user, as Settings -> Manage media providers does. */
+    val onAddProfile: () -> Unit = {},
 )
 
 @Composable
 internal fun HomeRoute(
     navigation: HomeNavigation,
     viewModel: HomeViewModel = hiltViewModel(),
+    profilesViewModel: ProfilesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val mode by viewModel.modeToggle.collectAsStateWithLifecycle()
-    HomeScreen(state, viewModel::onAction, navigation, mode = mode)
+    val profiles by profilesViewModel.profiles.collectAsStateWithLifecycle()
+    var profilesOpen by rememberSaveable { mutableStateOf(false) }
+    HomeScreen(
+        state,
+        viewModel::onAction,
+        navigation,
+        mode = mode,
+        profile = profiles.firstOrNull { it.active }?.userName,
+        onOpenProfiles = { profilesOpen = true },
+    )
+    if (profilesOpen) {
+        ProfilesSheet(
+            profiles,
+            onSwitch = { profilesViewModel.switchTo(it.id) },
+            onAdd = {
+                profilesOpen = false
+                navigation.onAddProfile()
+            },
+        ) { profilesOpen = false }
+    }
 }
 
 /** Stateless Home tab: Shuffle all, then the chosen sections (#127) in their order and display. */
@@ -106,10 +131,13 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     /** The mode toggle at the top (ADR 0051); `null` hides it. */
     mode: AppMode? = null,
+    /** The active profile's name for its avatar (#443); `null` hides it. */
+    profile: String? = null,
+    onOpenProfiles: () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
-        topBar = { HomeTopBar(navigation.onOpenSettings) },
+        topBar = { HomeTopBar(navigation.onOpenSettings, profile, onOpenProfiles) },
         // The app shell already pads for the navigation bar.
         contentWindowInsets = WindowInsets(0),
     ) { padding ->
@@ -198,13 +226,18 @@ private fun HomeBody(
 }
 
 @Composable
-private fun HomeTopBar(onOpenSettings: () -> Unit) {
+private fun HomeTopBar(
+    onOpenSettings: () -> Unit,
+    profile: String?,
+    onOpenProfiles: () -> Unit,
+) {
     TopAppBar(
         title = { Text(stringResource(R.string.home_title)) },
         actions = {
             IconButton(onClick = onOpenSettings) {
                 Icon(MqIcons.Settings, contentDescription = stringResource(R.string.home_settings))
             }
+            profile?.let { ProfileAvatar(it, onOpenProfiles) }
         },
     )
 }
@@ -243,9 +276,13 @@ private fun HomeContent(
                 }
             }
         }
+        // Genre rows (#441) follow the last video section.
+        val split = content.sections.indexOfLast { it.items is HomeItems.Videos } + 1
         content.sections.forEachIndexed { index, section ->
+            if (index == split) genreRows(content.genreRows, navigation)
             section(section, flying[index], onAction, navigation)
         }
+        if (split >= content.sections.size) genreRows(content.genreRows, navigation)
     }
 }
 

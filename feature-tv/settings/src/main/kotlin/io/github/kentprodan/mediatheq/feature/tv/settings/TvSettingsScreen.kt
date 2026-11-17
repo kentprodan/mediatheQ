@@ -44,10 +44,19 @@ fun TvSettingsRoute(
     onOpenLicenses: () -> Unit,
     onOpenHomeRows: () -> Unit = {},
     onOpenParental: () -> Unit = {},
+    onSwitchProfile: () -> Unit = {},
     viewModel: TvSettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    TvSettingsScreen(state, versionName, viewModel::onAction, onOpenLicenses, onOpenHomeRows, onOpenParental)
+    TvSettingsScreen(
+        state,
+        versionName,
+        viewModel::onAction,
+        onOpenLicenses,
+        onOpenHomeRows,
+        onOpenParental,
+        onSwitchProfile,
+    )
 }
 
 /**
@@ -62,6 +71,7 @@ fun TvSettingsScreen(
     onOpenLicenses: () -> Unit,
     onOpenHomeRows: () -> Unit = {},
     onOpenParental: () -> Unit = {},
+    onSwitchProfile: () -> Unit = {},
 ) {
     Surface(Modifier.fillMaxSize()) {
         if (state !is TvSettingsUiState.Content) return@Surface
@@ -184,11 +194,16 @@ fun TvSettingsScreen(
             }
             section(R.string.tv_settings_account)
             item {
+                // "Who's watching?" (#433): switch to or add a profile.
                 MqTvListItem(
                     state.serverName.orEmpty(),
-                    {},
+                    onSwitchProfile,
                     Modifier.focusMemory(focus, "account"),
-                    supporting = state.userName,
+                    supporting =
+                        listOfNotNull(
+                            state.userName,
+                            stringResource(R.string.tv_settings_switch_profile),
+                        ).joinToString(" · "),
                 )
             }
             if (state.appMode?.video == true) {

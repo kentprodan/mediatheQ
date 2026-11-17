@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.video
 
+import android.app.Activity
 import android.app.PictureInPictureParams
 import android.app.RemoteAction
 import android.graphics.Rect
@@ -129,3 +130,10 @@ internal fun rememberIsInPipMode(): Boolean {
     }
     return inPip
 }
+
+/**
+ * The player's PiP button (#445): enters the same window auto-enter would. The empty params combine with the ones
+ * [PipParams] set (ratio, actions); false when the system refuses (PiP off for the app).
+ */
+fun enterPip(activity: Activity): Boolean =
+    runCatching { activity.enterPictureInPictureMode(PictureInPictureParams.Builder().build()) }.getOrDefault(false)

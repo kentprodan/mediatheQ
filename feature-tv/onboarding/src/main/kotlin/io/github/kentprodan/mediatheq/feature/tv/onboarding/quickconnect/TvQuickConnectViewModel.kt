@@ -32,6 +32,10 @@ class TvQuickConnectViewModel
         private val state = MutableStateFlow<TvQuickConnectUiState>(TvQuickConnectUiState.Starting(key.serverName))
         val uiState: StateFlow<TvQuickConnectUiState> = state.asStateFlow()
 
+        /** Adding a profile (#433, `returnSteps` > 0): signed in, the flow can go back. */
+        private val signedIn = MutableStateFlow(false)
+        val done: StateFlow<Boolean> = signedIn.asStateFlow()
+
         private var job: Job? = null
 
         init {
@@ -82,7 +86,7 @@ class TvQuickConnectViewModel
                         if (approved.value) {
                             // Success switches the app to Home through the session; only a failure stays here.
                             val login = sessionRepository.loginWithQuickConnect(key.baseUrl, key.serverName, code)
-                            if (login is MqResult.Failure) fail(login.error)
+                            if (login is MqResult.Failure) fail(login.error) else signedIn.value = key.returnSteps > 0
                             return
                         }
                     }

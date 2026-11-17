@@ -109,6 +109,7 @@ internal fun SettingsPageRoute(
     onOpenTransitions: () -> Unit = {},
     onOpenStoragePage: (SettingsPage) -> Unit = {},
     onOpenHomeSection: (HomeSection) -> Unit = {},
+    onOpenHomeGenres: () -> Unit = {},
     onOpenAppMode: () -> Unit = {},
     onOpenVideo: () -> Unit = {},
     onOpenParental: () -> Unit = {},
@@ -144,6 +145,7 @@ internal fun SettingsPageRoute(
         onOpenHomeSection,
         onOpenAppMode,
         onOpenVideo,
+        onOpenHomeGenres = onOpenHomeGenres,
         onOpenParental = onOpenParental,
     )
 }
@@ -183,6 +185,7 @@ fun SettingsPageScreen(
     onOpenAppMode: () -> Unit = {},
     onOpenVideo: () -> Unit = {},
     onOpenParental: () -> Unit = {},
+    onOpenHomeGenres: () -> Unit = {},
 ) {
     var storageDialog by rememberSaveable { mutableStateOf<StorageDialog?>(null) }
     // Survive rotation; only the Theme, Navigation, Media lists, Now playing, Home and Library pages open dialogs.
@@ -333,7 +336,14 @@ fun SettingsPageScreen(
             }
 
             SettingsPage.Home -> {
-                homePageGroups(content.library.home, homeRows, reorder, onAction, onOpenHomeSection) { homeDialog = it }
+                homePageGroups(
+                    content.library.home,
+                    homeRows,
+                    reorder,
+                    onAction,
+                    onOpenHomeSection,
+                    onOpenHomeGenres.takeIf { content.appMode.video },
+                ) { homeDialog = it }
             }
 
             SettingsPage.Library -> {

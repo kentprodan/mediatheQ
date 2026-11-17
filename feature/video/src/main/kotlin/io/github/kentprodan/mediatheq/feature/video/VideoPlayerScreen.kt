@@ -116,6 +116,7 @@ internal fun VideoPlayerRoute(
         skip = skip?.type,
         skipped = skipped,
         extras = extras,
+        onPip = LocalActivity.current?.let { activity -> { enterPip(activity) } },
     ) {
         Box(Modifier.fillMaxSize()) {
             MqVideoSurface(player, Modifier.fillMaxSize())
@@ -161,6 +162,8 @@ fun VideoPlayerScreen(
     skipped: SegmentType? = null,
     /** Chapters and seek previews (#277). */
     extras: PlayerExtras = PlayerExtras(),
+    /** The PiP button (#445); `null` hides it. */
+    onPip: (() -> Unit)? = null,
     surface: @Composable () -> Unit,
 ) {
     val toggleLabel = stringResource(R.string.video_player_toggle_controls)
@@ -225,6 +228,7 @@ fun VideoPlayerScreen(
                         chapters = extras.chapters.map { it.start },
                         onChapters = extras.chapters.takeIf { it.isNotEmpty() }?.let { { chaptersOpen = true } },
                         preview = { at -> extras.trickplay?.let { TrickplayPreview(it, at) } },
+                        onPip = onPip,
                     )
                 }
                 // The countdown takes the corner when both would show.
