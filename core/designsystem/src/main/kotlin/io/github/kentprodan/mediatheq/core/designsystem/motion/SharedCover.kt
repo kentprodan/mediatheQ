@@ -35,4 +35,8 @@ fun Modifier.mqSharedCover(key: Any): Modifier {
 }
 
 /** The shared-element key of a cover, the same on every screen showing that item. */
-fun sharedCoverKey(itemId: Any): String = "cover-$itemId"
+fun sharedCoverKey(
+    itemId: Any,
+    /** The card it was opened from when the same item shows twice (#418: Home sections); `null` for the only one. */
+    origin: String? = null,
+): String = if (origin == null) "cover-$itemId" else "cover-$itemId@$origin"

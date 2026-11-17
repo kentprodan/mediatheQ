@@ -23,6 +23,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
         HomeRoute(
             HomeNavigation(
                 onOpenAlbum = { navigator.navigateTo(AlbumKey(it)) },
+                onOpenAlbumFrom = { id, origin -> navigator.navigateTo(AlbumKey(id, origin)) },
                 onOpenArtist = { navigator.navigateTo(ArtistKey(it)) },
                 onOpenPlaylist = { navigator.navigateTo(PlaylistKey(it)) },
                 onOpenSettings = { navigator.navigateTo(SettingsKey) },

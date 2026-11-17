@@ -51,6 +51,7 @@ import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 @Composable
 internal fun AlbumRoute(
     albumId: MediaId,
+    coverOrigin: String? = null,
     onBack: () -> Unit,
     onAddToPlaylist: (List<MediaId>) -> Unit,
     onOpenArtist: (MediaId) -> Unit,
@@ -69,6 +70,7 @@ internal fun AlbumRoute(
         onAddToPlaylist = onAddToPlaylist,
         onOpenArtist = onOpenArtist,
         onOpenAlbum = onOpenAlbum,
+        coverOrigin = coverOrigin,
     )
 }
 
@@ -86,6 +88,8 @@ fun AlbumScreen(
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
     onOpenArtist: (MediaId) -> Unit = {},
     onOpenAlbum: (MediaId) -> Unit = {},
+    /** The card that opened the page (#418), for the shared cover's key. */
+    coverOrigin: String? = null,
 ) {
     val longPress = rememberSelectLongPress<MediaId> { onAction(AlbumAction.ToggleSelection(it)) }
     val swipe =
@@ -178,6 +182,7 @@ fun AlbumScreen(
                             AlbumHeader(
                                 albumId,
                                 state,
+                                coverOrigin = coverOrigin,
                                 topPadding = if (drawsUnderBar) padding.calculateTopPadding() else 0.dp,
                                 coverColor = coverColor,
                                 onAction = onAction,
