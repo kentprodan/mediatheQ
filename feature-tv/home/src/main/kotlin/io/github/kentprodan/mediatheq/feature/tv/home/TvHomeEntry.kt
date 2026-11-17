@@ -5,8 +5,11 @@ import androidx.navigation3.runtime.NavKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
+import io.github.kentprodan.mediatheq.core.navigation.MovieKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistKey
+import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
+import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 
 /** Registers Home on TV (#236); album, artist and playlist pages are their own entries. */
 fun EntryProviderScope<NavKey>.tvHomeEntry(navigator: Navigator) {
@@ -16,6 +19,9 @@ fun EntryProviderScope<NavKey>.tvHomeEntry(navigator: Navigator) {
                 onOpenAlbum = { navigator.navigateTo(AlbumKey(it)) },
                 onOpenArtist = { navigator.navigateTo(ArtistKey(it)) },
                 onOpenPlaylist = { navigator.navigateTo(PlaylistKey(it)) },
+                onOpenMovie = { navigator.navigateTo(MovieKey(it)) },
+                onOpenSeries = { navigator.navigateTo(SeriesKey(it)) },
+                onPlayVideo = { id, at -> navigator.navigateTo(VideoPlayerKey(id, at.inWholeMilliseconds)) },
             ),
         )
     }

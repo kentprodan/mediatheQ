@@ -15,4 +15,10 @@
     <string name="tv_home_shuffle">Shuffle</string>
     <string name="tv_home_add_to_queue">Add to queue</string>
     <string name="tv_home_go_to_artist">Go to artist</string>
+    <!-- Continue watching: 34 min left -->
+    <string name="tv_home_time_left">%d min left</string>
+    <plurals name="tv_home_new_episodes">
+        <item quantity="one">%d new episode</item>
+        <item quantity="other">%d new episodes</item>
+    </plurals>
 </resources>
