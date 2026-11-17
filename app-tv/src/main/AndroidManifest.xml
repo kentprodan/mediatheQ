@@ -32,6 +32,12 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- A Continue watching card of the Google TV home (#386). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="mediatheq" android:host="video" />
+            </intent-filter>
         </activity>
     </application>
 
