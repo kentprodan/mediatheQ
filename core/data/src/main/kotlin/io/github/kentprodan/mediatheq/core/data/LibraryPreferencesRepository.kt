@@ -41,6 +41,11 @@ interface LibraryPreferencesRepository {
 
     suspend fun setHomeHidden(hidden: Set<HomeSection>)
 
+    /** TV Home's genre rows (#431): of the active account, in the order they were picked. */
+    val homeGenres: Flow<List<String>>
+
+    suspend fun setHomeGenres(genres: List<String>)
+
     /** Home page -> Reset active rows: order and visibility back to default (section settings, #182, kept). */
     suspend fun resetHomeRows()
 

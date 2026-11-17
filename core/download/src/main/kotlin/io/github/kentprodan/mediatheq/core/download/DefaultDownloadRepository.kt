@@ -302,6 +302,10 @@ internal class DefaultDownloadRepository
                                             download.request.id,
                                         ).get(DownloadKey.CANNOT_DOWNLOAD_METADATA, 0L) ==
                                     1L,
+                            completedAt =
+                                live.updateTimeMs
+                                    .takeIf { live.state == Download.STATE_COMPLETED }
+                                    ?.let(kotlin.time.Instant::fromEpochMilliseconds),
                         )
                     }.sortedBy { it.title }
             }.distinctUntilChanged()

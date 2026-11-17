@@ -10,6 +10,9 @@ object MediatheqSizes {
     /** A profile's initial (#443): the Home avatar and the profiles sheet. */
     val profileAvatar = 36.dp
 
+    /** A person of a movie's cast row (#442). */
+    val personInRow = 88.dp
+
     /** An audio format badge (stereo, Dolby Atmos, ...) before a track's artists. */
     val formatBadge = 18.dp
 

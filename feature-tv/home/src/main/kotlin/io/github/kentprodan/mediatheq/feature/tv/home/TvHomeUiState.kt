@@ -1,11 +1,16 @@
 package io.github.kentprodan.mediatheq.feature.tv.home
 
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.GenreItem
+import io.github.kentprodan.mediatheq.core.data.GenreRow
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
+import io.github.kentprodan.mediatheq.core.data.genreRows
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
+import io.github.kentprodan.mediatheq.core.model.Video
 
 /** What Home on TV shows (#236). */
 sealed interface TvHomeUiState {
@@ -21,6 +26,8 @@ sealed interface TvHomeUiState {
     /** The phone's Home sections in its order, each a row; empty ones left out when their settings say so. */
     data class Content(
         val rows: List<TvHomeRow>,
+        /** The genres picked in Settings -> Home rows (#431), shown after the video rows. */
+        val genreRows: List<GenreRow> = emptyList(),
     ) : TvHomeUiState
 
     /** Synced, but the server has no music. */
@@ -78,6 +85,11 @@ sealed interface TvHomeAction {
     /** A mix card (#128). */
     data class PlayMix(
         val mix: Mix,
+    ) : TvHomeAction
+
+    /** A Continue watching card's menu (#431): the video leaves the row, on the server too. */
+    data class RemoveFromResume(
+        val id: MediaId,
     ) : TvHomeAction
 
     /** Retry from the error and empty states. */

@@ -42,10 +42,21 @@ import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 fun TvSettingsRoute(
     versionName: String,
     onOpenLicenses: () -> Unit,
+    onOpenHomeRows: () -> Unit = {},
+    onOpenParental: () -> Unit = {},
+    onSwitchProfile: () -> Unit = {},
     viewModel: TvSettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    TvSettingsScreen(state, versionName, viewModel::onAction, onOpenLicenses)
+    TvSettingsScreen(
+        state,
+        versionName,
+        viewModel::onAction,
+        onOpenLicenses,
+        onOpenHomeRows,
+        onOpenParental,
+        onSwitchProfile,
+    )
 }
 
 /**
@@ -58,6 +69,9 @@ fun TvSettingsScreen(
     versionName: String,
     onAction: (TvSettingsAction) -> Unit,
     onOpenLicenses: () -> Unit,
+    onOpenHomeRows: () -> Unit = {},
+    onOpenParental: () -> Unit = {},
+    onSwitchProfile: () -> Unit = {},
 ) {
     Surface(Modifier.fillMaxSize()) {
         if (state !is TvSettingsUiState.Content) return@Surface
@@ -164,6 +178,14 @@ fun TvSettingsScreen(
             }
             item {
                 MqTvListItem(
+                    stringResource(R.string.tv_settings_home_rows),
+                    onOpenHomeRows,
+                    Modifier.focusMemory(focus, "homeRows"),
+                    supporting = stringResource(R.string.tv_settings_home_rows_detail),
+                )
+            }
+            item {
+                MqTvListItem(
                     stringResource(R.string.tv_settings_sync),
                     { onAction(TvSettingsAction.SyncNow) },
                     Modifier.focusMemory(focus, "sync"),
@@ -172,12 +194,27 @@ fun TvSettingsScreen(
             }
             section(R.string.tv_settings_account)
             item {
+                // "Who's watching?" (#433): switch to or add a profile.
                 MqTvListItem(
                     state.serverName.orEmpty(),
-                    {},
+                    onSwitchProfile,
                     Modifier.focusMemory(focus, "account"),
-                    supporting = state.userName,
+                    supporting =
+                        listOfNotNull(
+                            state.userName,
+                            stringResource(R.string.tv_settings_switch_profile),
+                        ).joinToString(" · "),
                 )
+            }
+            if (state.appMode?.video == true) {
+                item {
+                    MqTvListItem(
+                        stringResource(R.string.tv_settings_parental),
+                        onOpenParental,
+                        Modifier.focusMemory(focus, "parental"),
+                        supporting = stringResource(R.string.tv_settings_parental_detail),
+                    )
+                }
             }
             item {
                 MqTvListItem(

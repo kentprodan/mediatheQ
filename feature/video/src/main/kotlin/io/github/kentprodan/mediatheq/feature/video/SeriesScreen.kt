@@ -1,5 +1,9 @@
 package io.github.kentprodan.mediatheq.feature.video
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -143,10 +147,18 @@ private fun SeriesContent(
             }
         }
         item(key = "follow") {
+            // Following also tells about new episodes (#446): Android 13+ asks once for notifications.
+            val askNotifications =
+                rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
             // Smart downloads (#383): the next episodes stay on the phone while the series is followed.
             FilterChip(
                 selected = state.followed,
-                onClick = { onAction(SeriesAction.ToggleFollow) },
+                onClick = {
+                    if (!state.followed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    onAction(SeriesAction.ToggleFollow)
+                },
                 label = { Text(stringResource(R.string.video_follow, SMART_EPISODES)) },
                 leadingIcon = {
                     Icon(if (state.followed) MqIcons.Check else MqIcons.Download, contentDescription = null)
@@ -225,6 +237,7 @@ private fun SeriesContent(
                     onPlay = { play(episode) },
                     onPlayFromStart = { onPlay(episode.id, Duration.ZERO) },
                     onTracks = { onAction(SeriesAction.OpenTracks(episode)) },
+                    overview = state.overviewOf(episode),
                 ) {
                     onAction(SeriesAction.ToggleWatched(episode))
                 }
@@ -242,12 +255,14 @@ private fun EpisodeWithMenu(
     onPlay: () -> Unit,
     onPlayFromStart: () -> Unit,
     onTracks: () -> Unit,
+    overview: String?,
     onToggleWatched: () -> Unit,
 ) {
     var menu by rememberSaveable { mutableStateOf(false) }
     MqEpisodeRow(
         episode,
         onClick = onPlay,
+        overview = overview,
         onLongClick = { menu = true },
         downloaded = download?.state == DownloadState.Completed,
     ) {

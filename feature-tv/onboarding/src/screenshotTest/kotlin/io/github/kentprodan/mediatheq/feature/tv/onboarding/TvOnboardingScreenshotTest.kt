@@ -85,3 +85,26 @@ fun TvQuickConnectErrorScreenshot() =
 @Composable
 fun TvLoginSubmittingScreenshot() =
     MediatheqTvTheme { TvLoginScreen(TvLoginUiState("Home", userName = "ana", password = "x", submitting = true), {}) }
+
+/** "Who's watching?" (#433). */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvProfilesScreenshot() =
+    MediatheqTvTheme {
+        io.github.kentprodan.mediatheq.feature.tv.onboarding.profiles.TvProfilesScreen(
+            listOf(
+                io.github.kentprodan.mediatheq.core.data.Account(
+                    "a",
+                    "Home",
+                    "Cristian",
+                    "http://nas:8096",
+                    active = true,
+                ),
+                io.github.kentprodan.mediatheq.core.data
+                    .Account("b", "Home", "Ana", "http://nas:8096", active = false),
+            ),
+            {},
+            {},
+        )
+    }

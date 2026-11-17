@@ -276,9 +276,13 @@ private fun HomeContent(
                 }
             }
         }
+        // Genre rows (#441) follow the last video section.
+        val split = content.sections.indexOfLast { it.items is HomeItems.Videos } + 1
         content.sections.forEachIndexed { index, section ->
+            if (index == split) genreRows(content.genreRows, navigation)
             section(section, flying[index], onAction, navigation)
         }
+        if (split >= content.sections.size) genreRows(content.genreRows, navigation)
     }
 }
 

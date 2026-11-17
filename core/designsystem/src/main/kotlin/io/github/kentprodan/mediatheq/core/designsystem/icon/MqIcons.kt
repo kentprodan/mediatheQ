@@ -79,6 +79,9 @@ object MqIcons {
     val Subtitles: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_subtitles)
 
+    val PictureInPicture: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_picture_in_picture)
+
     // Audio format badges: drawn for mediatheQ (dots, 20 wide like the Dolby mark), not Material Symbols. The Dolby
     // double-D is a Dolby Laboratories trademark (THIRD_PARTY.md).
 

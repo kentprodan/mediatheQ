@@ -151,6 +151,14 @@ data class OutputKey(
 @Serializable
 data object LicensesKey : NavKey
 
+/** Settings -> Home page -> Genre rows (#441). */
+@Serializable
+data object HomeGenresSettingsKey : NavKey
+
+/** TV Settings -> Parental controls (#434): the PIN and each profile's age limit; behind the PIN. */
+@Serializable
+data object ParentalControlsKey : NavKey
+
 /** One entry's license text, on TV (#243), where a long text gets its own page; [id] is the entry's id. */
 @Serializable
 data class LicenseTextKey(

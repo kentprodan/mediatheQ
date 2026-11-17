@@ -22,9 +22,11 @@ import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.OnboardingServerKey
+import io.github.kentprodan.mediatheq.core.navigation.ProfilesKey
 import io.github.kentprodan.mediatheq.core.playback.EXTRA_OPEN_PLAYER
 import io.github.kentprodan.mediatheq.core.playback.RemoteControl
 import io.github.kentprodan.mediatheq.feature.tv.onboarding.tvOnboardingEntries
+import io.github.kentprodan.mediatheq.feature.tv.onboarding.tvProfilesEntries
 import io.github.kentprodan.mediatheq.tv.navigation.TvShellRoute
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -43,15 +45,25 @@ class TvActivity : ComponentActivity() {
     // gets it in onNewIntent (#240).
     private val openPlayer = MutableStateFlow(false)
 
+    // A system search suggestion (#386): the page it names.
+    private val openPage = MutableStateFlow<NavKey?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) {
             openPlayer.value = intent.wantsPlayer()
             openWatchNext(intent)
+            openPage.value = intent.page()
         }
         setContent {
             val player by openPlayer.collectAsStateWithLifecycle()
-            MediatheqTvTheme { TvApp(player, onPlayerOpened = { openPlayer.value = false }) }
+            val page by openPage.collectAsStateWithLifecycle()
+            MediatheqTvTheme {
+                TvApp(player, onPlayerOpened = { openPlayer.value = false }, page, onPageOpened = {
+                    openPage.value =
+                        null
+                })
+            }
         }
     }
 
@@ -59,7 +71,11 @@ class TvActivity : ComponentActivity() {
         super.onNewIntent(intent)
         if (intent.wantsPlayer()) openPlayer.value = true
         openWatchNext(intent)
+        intent.page()?.let { openPage.value = it }
     }
+
+    private fun Intent.page(): NavKey? =
+        if (flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) null else parseOpenUri(data)
 
     /** A Continue watching card of the Google TV home (#386): it plays from its position and the player opens. */
     private fun openWatchNext(intent: Intent) {
@@ -77,14 +93,52 @@ class TvActivity : ComponentActivity() {
 private fun TvApp(
     openPlayer: Boolean,
     onPlayerOpened: () -> Unit,
+    openPage: NavKey? = null,
+    onPageOpened: () -> Unit = {},
     viewModel: TvMainViewModel = hiltViewModel(),
 ) {
     val session by viewModel.session.collectAsStateWithLifecycle()
+    val profiles by viewModel.showProfiles.collectAsStateWithLifecycle()
     when (session) {
-        null -> Unit
-        is SessionState.LoggedOut -> TvOnboardingHost()
-        is SessionState.LoggedIn -> TvShellRoute(openPlayer, onPlayerOpened)
+        null -> {
+            Unit
+        }
+
+        is SessionState.LoggedOut -> {
+            TvOnboardingHost()
+        }
+
+        is SessionState.LoggedIn -> {
+            if (profiles) {
+                TvProfilesHost(viewModel::profileUsed, viewModel::closeProfiles)
+            } else {
+                TvShellRoute(
+                    openPlayer,
+                    onPlayerOpened,
+                    openPage,
+                    onPageOpened,
+                    onSwitchProfile = viewModel::openProfiles,
+                )
+            }
+        }
     }
+}
+
+/** "Who's watching?" (#433) with its own back stack for adding a profile; Back on the picker keeps the profile. */
+@Composable
+private fun TvProfilesHost(
+    onUse: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val backStack = rememberNavBackStack(ProfilesKey)
+    val navigator = remember(backStack) { StackNavigator(backStack) }
+    NavDisplay(
+        backStack = backStack,
+        onBack = { if (!navigator.back()) onClose() },
+        entryDecorators =
+            listOf(rememberSaveableStateHolderNavEntryDecorator(), rememberViewModelStoreNavEntryDecorator()),
+        entryProvider = entryProvider { tvProfilesEntries(navigator, onUse, onClose) },
+    )
 }
 
 /** Signed-out flow with its own back stack: server -> Quick Connect -> password. Back goes one screen back. */

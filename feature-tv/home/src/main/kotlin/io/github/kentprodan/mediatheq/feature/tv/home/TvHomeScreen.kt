@@ -44,8 +44,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import io.github.kentprodan.mediatheq.core.data.GenreItem
+import io.github.kentprodan.mediatheq.core.data.GenreRow
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
+import io.github.kentprodan.mediatheq.core.data.genreRows
 import io.github.kentprodan.mediatheq.core.data.resumePosition
 import io.github.kentprodan.mediatheq.core.designsystem.tv.FocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
@@ -138,7 +141,7 @@ fun TvHomeScreen(
         }
 
         is TvHomeUiState.Content -> {
-            Rows(state.rows, onAction, navigation, modifier)
+            Rows(state.rows, state.genreRows, onAction, navigation, modifier)
         }
     }
 }
@@ -154,12 +157,14 @@ private data class Menu(
 @Composable
 private fun Rows(
     rows: List<TvHomeRow>,
+    genreRows: List<GenreRow>,
     onAction: (TvHomeAction) -> Unit,
     navigation: TvHomeNavigation,
     modifier: Modifier,
 ) {
     val focus = rememberFocusMemory()
     var menu by remember { mutableStateOf<Menu?>(null) }
+    var videoMenu by remember { mutableStateOf<Video?>(null) }
     // The hero (#431): the focused video's backdrop and facts, after a short pause so moving along a row never flickers.
     var focusedVideo by remember { mutableStateOf<Video?>(null) }
     var hero by remember { mutableStateOf<Video?>(null) }
@@ -167,8 +172,13 @@ private fun Rows(
         delay(HERO_DELAY)
         hero = focusedVideo
     }
-    val cards = Cards(focus, onAction, navigation, onVideoFocused = { focusedVideo = it }) { menu = it }
-    val hasVideo = rows.any { it.items is HomeItems.Videos }
+    val cards =
+        Cards(focus, onAction, navigation, onVideoFocused = { focusedVideo = it }, openVideoMenu = { videoMenu = it }) {
+            menu = it
+        }
+    val hasVideo = rows.any { it.items is HomeItems.Videos } || genreRows.isNotEmpty()
+    // Genre rows (#431) follow the last video row.
+    val split = rows.indexOfLast { it.items is HomeItems.Videos } + 1
     MqTvBackdrop(hero?.backdrop, modifier.fillMaxSize()) {
         LazyColumn(
             Modifier.fillMaxSize(),
@@ -176,18 +186,14 @@ private fun Rows(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             if (hasVideo) item(key = "hero", contentType = "hero") { Hero(hero) }
-            items(rows, key = { it.section.name }) { row ->
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MqTvRowHeader(stringResource(row.section.title), Modifier.padding(horizontal = EDGE))
-                    // Focus coming back into a row lands on the card it left (the column position is kept).
-                    CompositionLocalProvider(LocalBringIntoViewSpec provides Pivot) {
-                        LazyRow(
-                            Modifier.fillMaxWidth().focusRestorer(),
-                            contentPadding = PaddingValues(horizontal = EDGE, vertical = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(24.dp),
-                        ) { with(cards) { row(row) } }
-                    }
-                }
+            items(rows.take(split), key = { it.section.name }) { row ->
+                CardRow(stringResource(row.section.title)) { with(cards) { row(row) } }
+            }
+            items(genreRows, key = { "genre/${it.genre}" }) { row ->
+                CardRow(row.genre) { with(cards) { genre(row) } }
+            }
+            items(rows.drop(split), key = { it.section.name }) { row ->
+                CardRow(stringResource(row.section.title)) { with(cards) { row(row) } }
             }
         }
     }
@@ -198,6 +204,28 @@ private fun Rows(
         rows.firstNotNullOfOrNull(::firstKey)?.let(focus::restore)
     }
     menu?.let { shown -> CoverMenu(shown, onAction, navigation.onOpenArtist) { menu = null } }
+    videoMenu?.let { video -> ResumeMenu(video, onAction, navigation) { videoMenu = null } }
+}
+
+/** A titled row of cards. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun CardRow(
+    title: String,
+    content: LazyListScope.() -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        MqTvRowHeader(title, Modifier.padding(horizontal = EDGE))
+        // Focus coming back into a row lands on the card it left (the column position is kept).
+        CompositionLocalProvider(LocalBringIntoViewSpec provides Pivot) {
+            LazyRow(
+                Modifier.fillMaxWidth().focusRestorer(),
+                contentPadding = PaddingValues(horizontal = EDGE, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                content = content,
+            )
+        }
+    }
 }
 
 /** A card's key in the focus memory: by item, so a row that changes while a detail page is open still finds it. */
@@ -222,6 +250,7 @@ private class Cards(
     val onAction: (TvHomeAction) -> Unit,
     val navigation: TvHomeNavigation,
     val onVideoFocused: (Video?) -> Unit,
+    val openVideoMenu: (Video) -> Unit,
     val openMenu: (Menu) -> Unit,
 ) {
     fun LazyListScope.row(row: TvHomeRow) {
@@ -306,6 +335,27 @@ private class Cards(
         }
     }
 
+    /** A genre row (#431): posters; Select opens the movie or the series. */
+    fun LazyListScope.genre(row: GenreRow) {
+        itemsIndexed(row.items, key = { _, it -> it.id.toString() }) { _, item ->
+            val movie = (item as? GenreItem.Movie)?.video
+            val series = (item as? GenreItem.Show)?.series
+            MqTvPosterCard(
+                movie?.title ?: series?.title.orEmpty(),
+                movie?.artwork ?: series?.artwork,
+                onClick = { if (movie != null) navigation.onOpenMovie(movie.id) else navigation.onOpenSeries(item.id) },
+                modifier =
+                    Modifier
+                        .width(POSTER_CARD)
+                        .focusMemory(focus, "genre/${row.genre}/${item.id}")
+                        .onFocusChanged { if (it.isFocused) onVideoFocused(movie) },
+                subtitle = (movie?.year ?: series?.year)?.toString(),
+                watched = (movie?.userData ?: series?.userData)?.played == true,
+                placeholder = if (movie != null) MqTvIcons.Movie else MqTvIcons.Series,
+            )
+        }
+    }
+
     @Composable
     private fun Card(
         key: String,
@@ -375,6 +425,8 @@ private class Cards(
                     video.year?.toString()
                 }
             }
+        // Continue watching cards have a menu (#431): long-press or the remote's menu key.
+        val open = { openVideoMenu(video) }.takeIf { row.section == HomeSection.ContinueWatching }
         MqTvPosterCard(
             title,
             if (wide) video.backdrop ?: video.artwork else video.artwork,
@@ -389,11 +441,17 @@ private class Cards(
                 Modifier
                     .width(if (wide) WIDE_CARD else POSTER_CARD)
                     .focusMemory(focus, focusKey(row, video.id))
-                    .onFocusChanged { if (it.isFocused) onVideoFocused(video) },
+                    .onFocusChanged { if (it.isFocused) onVideoFocused(video) }
+                    .onPreviewKeyEvent { event ->
+                        val isMenu = event.key == Key.Menu && open != null
+                        if (isMenu && event.type == KeyEventType.KeyUp) open?.invoke()
+                        isMenu
+                    },
             subtitle = subtitle,
             progress = video.userData.playedPercentage?.let { (it / 100).toFloat() },
             placeholder = if (episode) MqTvIcons.Series else MqTvIcons.Movie,
             aspectRatio = if (wide) 16f / 9f else POSTER_RATIO,
+            onLongClick = open,
         )
     }
 }
@@ -423,6 +481,37 @@ private fun CoverMenu(
     ),
     onDismiss,
 )
+
+/** A Continue watching card's menu (#431): its page, or out of the row. */
+@Composable
+private fun ResumeMenu(
+    video: Video,
+    onAction: (TvHomeAction) -> Unit,
+    navigation: TvHomeNavigation,
+    onDismiss: () -> Unit,
+) {
+    val episode = video.kind == VideoKind.Episode
+    MqTvMenu(
+        if (episode) video.seriesName ?: video.title else video.title,
+        listOfNotNull(
+            if (episode) {
+                video.seriesId?.let { series ->
+                    MqTvMenuEntry(stringResource(R.string.tv_home_go_to_series), MqTvIcons.Series) {
+                        navigation.onOpenSeries(series)
+                    }
+                }
+            } else {
+                MqTvMenuEntry(stringResource(R.string.tv_home_go_to_movie), MqTvIcons.Movie) {
+                    navigation.onOpenMovie(video.id)
+                }
+            },
+            MqTvMenuEntry(stringResource(R.string.tv_home_remove_from_resume), null) {
+                onAction(TvHomeAction.RemoveFromResume(video.id))
+            },
+        ),
+        onDismiss,
+    )
+}
 
 /** A state without rows: a title, a line, the sync progress or a Sync now button. */
 @Composable
