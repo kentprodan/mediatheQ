@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.data.VideoTracks
 import io.github.kentprodan.mediatheq.core.data.formatLine
 import io.github.kentprodan.mediatheq.core.data.resumePosition
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.Video
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,7 +22,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.time.Duration
@@ -40,12 +43,18 @@ class TvMovieViewModel
         private val userData: UserDataRepository,
         private val picker: TrackPicker,
     ) : ViewModel() {
+        // From the server once per page (#427): who is in it, and what in the library is like it.
+        private val related =
+            flow { emit(videos.people(id) to videos.similarMovies(id, SIMILAR_LIMIT)) }
+                .onStart { emit(emptyList<Person>() to emptyList()) }
+
         val uiState: StateFlow<TvMovieUiState> =
             combine(
                 videos.video(id),
                 videos.streams(id),
                 videos.video(id).flatMapLatest { it?.let(picker::tracks) ?: flowOf(null) },
-            ) { movie, streams, tracks ->
+                related,
+            ) { movie, streams, tracks, (people, similar) ->
                 if (movie == null) {
                     TvMovieUiState.Error(MqError.NotFound)
                 } else {
@@ -54,6 +63,8 @@ class TvMovieViewModel
                         format = formatLine(movie, streams),
                         resumeAt = movie.resumePosition().takeIf { it > Duration.ZERO },
                         tracks = tracks,
+                        people = people,
+                        similar = similar,
                     )
                 }
             }.catch { emit(TvMovieUiState.Error(MqError.Storage)) }
@@ -94,6 +105,10 @@ class TvMovieViewModel
         interface Factory {
             fun create(id: MediaId): TvMovieViewModel
         }
+
+        private companion object {
+            const val SIMILAR_LIMIT = 12
+        }
     }
 
 sealed interface TvMovieUiState {
@@ -107,6 +122,10 @@ sealed interface TvMovieUiState {
         val resumeAt: Duration?,
         /** Its audio and subtitle streams and what will play; `null` while read. */
         val tracks: VideoTracks? = null,
+        /** Cast and crew, leads first; empty offline or while read. */
+        val people: List<Person> = emptyList(),
+        /** Movies in the library like this one. */
+        val similar: List<Video> = emptyList(),
     ) : TvMovieUiState
 
     data class Error(

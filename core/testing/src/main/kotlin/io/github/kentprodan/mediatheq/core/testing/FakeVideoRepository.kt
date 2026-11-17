@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.data.nextUp
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
@@ -60,6 +61,17 @@ class FakeVideoRepository(
     override fun video(id: MediaId): Flow<Video?> = movies.map { all -> all.firstOrNull { it.id == id } }
 
     override fun series(id: MediaId): Flow<Series?> = series.map { all -> all.firstOrNull { it.id == id } }
+
+    /** What [people] and [similarMovies] answer, by item. */
+    var peopleOf: Map<MediaId, List<Person>> = emptyMap()
+    var similarOf: Map<MediaId, List<Video>> = emptyMap()
+
+    override suspend fun people(itemId: MediaId): List<Person> = peopleOf[itemId].orEmpty()
+
+    override suspend fun similarMovies(
+        itemId: MediaId,
+        limit: Int,
+    ): List<Video> = similarOf[itemId].orEmpty().take(limit)
 
     val collections = MutableStateFlow<List<VideoCollection>>(emptyList())
 

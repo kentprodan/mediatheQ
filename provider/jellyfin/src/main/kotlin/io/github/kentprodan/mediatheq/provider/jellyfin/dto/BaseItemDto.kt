@@ -49,4 +49,6 @@ internal data class BaseItemDto(
     @SerialName("OfficialRating") val officialRating: String? = null,
     /** The public rating, 0-10 (TMDB's for most movies); a default field of every item. */
     @SerialName("CommunityRating") val communityRating: Double? = null,
+    /** Cast and crew, only with `Fields=People` (#427). */
+    @SerialName("People") val people: List<PersonDto> = emptyList(),
 )

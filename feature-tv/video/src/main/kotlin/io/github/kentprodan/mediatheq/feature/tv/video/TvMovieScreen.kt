@@ -2,10 +2,16 @@ package io.github.kentprodan.mediatheq.feature.tv.video
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,19 +40,23 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEnt
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterCard
 import kotlin.time.Duration
 
 @Composable
 fun TvMovieRoute(
     id: MediaId,
+    onOpenMovie: (MediaId) -> Unit = {},
     onPlay: (MediaId, Duration) -> Unit,
 ) {
     val viewModel = hiltViewModel<TvMovieViewModel, TvMovieViewModel.Factory>(key = id.toString()) { it.create(id) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    TvMovieScreen(state, viewModel::onAction, onPlay)
+    TvMovieScreen(state, viewModel::onAction, onPlay, onOpenMovie)
 }
 
 /**
@@ -59,6 +69,7 @@ fun TvMovieScreen(
     state: TvMovieUiState,
     onAction: (TvMovieAction) -> Unit,
     onPlay: (MediaId, Duration) -> Unit,
+    onOpenMovie: (MediaId) -> Unit = {},
 ) {
     when (state) {
         TvMovieUiState.Loading -> {
@@ -72,8 +83,12 @@ fun TvMovieScreen(
         is TvMovieUiState.Content -> {
             val movie = state.movie
             MqTvBackdrop(movie.backdrop, Modifier.fillMaxSize()) {
+                // Scrolls down to the rows below the buttons; D-pad focus brings each into view.
                 Column(
-                    Modifier.fillMaxSize().padding(start = 48.dp, end = 48.dp, top = 96.dp),
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(start = 48.dp, end = 48.dp, top = 96.dp, bottom = 48.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
@@ -103,6 +118,8 @@ fun TvMovieScreen(
                         )
                     }
                     Buttons(state, onAction, onPlay, Modifier.padding(top = 12.dp))
+                    if (state.people.isNotEmpty()) PeopleRow(state.people)
+                    if (state.similar.isNotEmpty()) SimilarRow(state.similar, onOpenMovie)
                 }
             }
         }
@@ -218,3 +235,53 @@ private fun facts(movie: Video): String {
             .ifEmpty { null }
     return listOfNotNull(movie.year?.toString(), runtime, rating, movie.officialRating, genres).joinToString(" · ")
 }
+
+/** Cast and crew (#427): actors with their character, then the crew with their job. A person page comes with #432. */
+@Composable
+private fun PeopleRow(people: List<Person>) {
+    RowTitle(stringResource(R.string.tv_movie_cast))
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+        items(people, key = { it.id.toString() + it.kind + it.role }, contentType = { "person" }) { person ->
+            MqTvAlbumCard(
+                person.name,
+                person.artwork,
+                onClick = {},
+                modifier = Modifier.width(PERSON_WIDTH),
+                subtitle = person.role ?: person.kind,
+                placeholder = MqTvIcons.Person,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SimilarRow(
+    movies: List<Video>,
+    onOpen: (MediaId) -> Unit,
+) {
+    RowTitle(stringResource(R.string.tv_movie_similar))
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+        items(movies, key = { it.id.toString() }, contentType = { "poster" }) { movie ->
+            MqTvPosterCard(
+                movie.title,
+                movie.artwork,
+                onClick = { onOpen(movie.id) },
+                modifier = Modifier.width(POSTER_WIDTH),
+                subtitle = movie.year?.toString(),
+                watched = movie.userData.played,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RowTitle(text: String) {
+    Text(
+        text,
+        Modifier.padding(top = 24.dp).semantics { heading() },
+        style = MaterialTheme.typography.titleLarge,
+    )
+}
+
+private val PERSON_WIDTH = 140.dp
+private val POSTER_WIDTH = 150.dp

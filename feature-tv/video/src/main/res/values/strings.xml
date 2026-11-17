@@ -105,4 +105,6 @@
     <string name="tv_player_zoom_fit">Fit</string>
     <string name="tv_player_zoom_fill">Fill</string>
     <string name="tv_player_zoom_stretch">Stretch</string>
+    <string name="tv_movie_cast">Cast &amp; crew</string>
+    <string name="tv_movie_similar">More like this</string>
 </resources>

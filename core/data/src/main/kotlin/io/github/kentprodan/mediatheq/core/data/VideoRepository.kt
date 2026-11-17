@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
+import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.Season
 import io.github.kentprodan.mediatheq.core.model.Series
@@ -117,6 +118,15 @@ interface VideoRepository {
 
     /** Brings the resume points of what is halfway from the server into the rows when Home opens (R26). */
     suspend fun refreshResume()
+
+    /** The cast and crew of [itemId] (#427), kept for the session; offline or failed: none. */
+    suspend fun people(itemId: MediaId): List<Person>
+
+    /** Movies in the library like [itemId] (#427), in the server's order; offline or failed: none. */
+    suspend fun similarMovies(
+        itemId: MediaId,
+        limit: Int,
+    ): List<Video>
 
     /** [videoId]'s chapters and seek previews (#277), kept for the session; offline or failed: none. */
     suspend fun playerExtras(videoId: MediaId): PlayerExtras
@@ -250,6 +260,22 @@ class DefaultVideoRepository
 
         private val extras = ConcurrentHashMap<MediaId, PlayerExtras>()
         private val segmentCache = ConcurrentHashMap<MediaId, List<MediaSegment>>()
+
+        private val people = ConcurrentHashMap<MediaId, List<Person>>()
+
+        override suspend fun people(itemId: MediaId): List<Person> =
+            people[itemId] ?: fromServer { server -> source.people(server, itemId) }?.also { people[itemId] = it }
+                ?: emptyList()
+
+        override suspend fun similarMovies(
+            itemId: MediaId,
+            limit: Int,
+        ): List<Video> {
+            // More than shown: the server also suggests items the library has no row for.
+            val ids = fromServer { server -> source.similarVideos(server, itemId, limit * 2) } ?: return emptyList()
+            val rows = dao.moviesByIds(ids.map { it.itemId }).associateBy { it.id }
+            return ids.mapNotNull { rows[it.itemId]?.toDomain() }.take(limit)
+        }
 
         override suspend fun playerExtras(videoId: MediaId): PlayerExtras =
             extras[videoId] ?: fromServer { server ->

@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.Chapter
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
+import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
@@ -104,6 +105,19 @@ interface LibrarySource {
     suspend fun instantMix(
         server: SignedInServer,
         seed: MediaId,
+        limit: Int,
+    ): MqResult<List<MediaId>>
+
+    /** The cast and crew of a movie or series (#427), in the server's order (leads first). */
+    suspend fun people(
+        server: SignedInServer,
+        itemId: MediaId,
+    ): MqResult<List<Person>>
+
+    /** Movies or series like [itemId] (#427), at most [limit], ids only, in the server's order. */
+    suspend fun similarVideos(
+        server: SignedInServer,
+        itemId: MediaId,
         limit: Int,
     ): MqResult<List<MediaId>>
 
