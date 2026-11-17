@@ -7,10 +7,14 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.SegmentAction
 import io.github.kentprodan.mediatheq.core.data.TrackPicker
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoTracks
+import io.github.kentprodan.mediatheq.core.data.segmentAction
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
+import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
@@ -20,12 +24,14 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
@@ -105,6 +111,18 @@ class TvPlayerViewModel
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvPlayerUiState.Loading)
 
+        /** The playing video's chapters and seek previews (#430); none while loading, offline or without. */
+        val extras: StateFlow<PlayerExtras> =
+            videoId
+                .mapLatest { videos.playerExtras(it) }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayerExtras())
+
+        /** The segment whose Skip button shows now (#430, the phone's rule): never automatic unless set so. */
+        val skipButton: StateFlow<MediaSegment?> get() = button
+        private val button = MutableStateFlow<MediaSegment?>(null)
+        private val skipped = mutableSetOf<MediaSegment>()
+        private val buttonShownAt = mutableMapOf<MediaSegment, Duration>()
+
         /** Seconds until the next episode starts, in the last [NEXT_COUNTDOWN] with one queued; `null` otherwise. */
         val nextIn: StateFlow<Int?> =
             combine(playback.state, playback.position) { player, at ->
@@ -117,6 +135,44 @@ class TvPlayerViewModel
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
         init {
+            viewModelScope.launch {
+                videoId.collectLatest { id ->
+                    skipped.clear()
+                    buttonShownAt.clear()
+                    button.value = null
+                    val segments = videos.segments(id)
+                    if (segments.isEmpty()) return@collectLatest
+                    combine(playback.position, playback.state, preferences.preferences) { at, player, settings ->
+                        if (player.item?.id != id) {
+                            SegmentAction.None
+                        } else {
+                            segmentAction(
+                                at,
+                                segments,
+                                settings,
+                                skipped,
+                                buttonShownAt,
+                                controlsShown = !player.isPlaying,
+                            )
+                        }
+                    }.collect { action ->
+                        when (action) {
+                            SegmentAction.None -> {
+                                button.value = null
+                            }
+
+                            is SegmentAction.Button -> {
+                                buttonShownAt.putIfAbsent(action.segment, playback.position.value)
+                                button.value = action.segment
+                            }
+
+                            is SegmentAction.Skip -> {
+                                skip(action.segment)
+                            }
+                        }
+                    }
+                }
+            }
             if (!key.attach) {
                 viewModelScope.launch {
                     videos.video(key.id).first()?.let {
@@ -163,6 +219,14 @@ class TvPlayerViewModel
                     playback.cancelNext()
                 }
 
+                TvPlayerAction.SkipSegment -> {
+                    button.value?.let(::skip)
+                }
+
+                is TvPlayerAction.SeekTo -> {
+                    playback.seekTo(action.position)
+                }
+
                 TvPlayerAction.PlayNextNow -> {
                     playback.next()
                 }
@@ -184,6 +248,13 @@ class TvPlayerViewModel
                     playback.pause()
                 }
             }
+        }
+
+        /** Skips [segment] once, to its end (#430). */
+        private fun skip(segment: MediaSegment) {
+            skipped += segment
+            button.value = null
+            playback.seekTo(segment.end)
         }
 
         /** Saves the choice, then opens the stream again with it (the server converts with the chosen tracks). */
@@ -252,6 +323,14 @@ sealed interface TvPlayerAction {
     ) : TvPlayerAction
 
     data object CancelNext : TvPlayerAction
+
+    /** The Skip intro / Skip credits button (#430). */
+    data object SkipSegment : TvPlayerAction
+
+    /** A chapter chosen from the list (#430). */
+    data class SeekTo(
+        val position: Duration,
+    ) : TvPlayerAction
 
     data class SetQuality(
         val quality: VideoQuality,

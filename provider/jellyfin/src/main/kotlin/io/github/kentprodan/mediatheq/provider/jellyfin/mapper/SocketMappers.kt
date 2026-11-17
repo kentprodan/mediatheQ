@@ -1,14 +1,19 @@
 package io.github.kentprodan.mediatheq.provider.jellyfin.mapper
 
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.RemoteCommand
 import io.github.kentprodan.mediatheq.core.server.LiveEvent
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
+import io.github.kentprodan.mediatheq.provider.jellyfin.dto.PlayRequestDto
+import io.github.kentprodan.mediatheq.provider.jellyfin.dto.PlaystateRequestDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.UserDataChangeInfoDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.WebSocketMessageDto
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 /** What a `/socket` message asks of us. */
 internal sealed interface SocketMessage {
@@ -45,6 +50,28 @@ internal fun String.toSocketMessage(
                 SocketMessage.Event(LiveEvent.LibraryChanged)
             }
 
+            // #389: another client controls this one.
+            "Playstate" -> {
+                message.data
+                    ?.let { json.decodeFromJsonElement(PlaystateRequestDto.serializer(), it) }
+                    ?.toCommand()
+                    ?.let { SocketMessage.Event(LiveEvent.Remote(it)) }
+            }
+
+            "Play" -> {
+                message.data
+                    ?.let { json.decodeFromJsonElement(PlayRequestDto.serializer(), it) }
+                    // PlayNext and PlayLast (queue additions) are left for later: only Play now.
+                    ?.takeIf { (it.playCommand ?: "PlayNow") == "PlayNow" && it.itemIds.isNotEmpty() }
+                    ?.let { request ->
+                        RemoteCommand.Play(
+                            request.itemIds.map { MediaId(server.serverId, it.toItemId()) },
+                            request.startIndex ?: 0,
+                            (request.startPositionTicks ?: 0L).ticks(),
+                        )
+                    }?.let { SocketMessage.Event(LiveEvent.Remote(it)) }
+            }
+
             "UserDataChanged" -> {
                 message.data
                     ?.let { json.decodeFromJsonElement(UserDataChangeInfoDto.serializer(), it) }
@@ -72,3 +99,20 @@ internal fun String.toSocketMessage(
 private fun String.toItemId(): String = replace("-", "").lowercase()
 
 private fun String.sameId(other: String): Boolean = toItemId() == other.toItemId()
+
+private fun PlaystateRequestDto.toCommand(): RemoteCommand? =
+    when (command) {
+        "Pause" -> RemoteCommand.Pause
+        "Unpause" -> RemoteCommand.Unpause
+        "PlayPause" -> RemoteCommand.PlayPause
+        "Stop" -> RemoteCommand.Stop
+        "NextTrack" -> RemoteCommand.Next
+        "PreviousTrack" -> RemoteCommand.Previous
+        "Seek" -> seekPositionTicks?.let { RemoteCommand.Seek(it.ticks()) }
+        else -> null
+    }
+
+/** Jellyfin ticks are 100 ns. */
+private fun Long.ticks(): Duration = (this / TICKS_PER_MS).milliseconds
+
+private const val TICKS_PER_MS = 10_000L

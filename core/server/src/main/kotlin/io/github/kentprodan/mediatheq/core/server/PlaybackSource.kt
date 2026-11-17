@@ -20,6 +20,12 @@ interface PlaybackSource {
     /** HTTP headers a stream request needs (authentication). Built fresh from [server]; never cache them. */
     fun streamHeaders(server: SignedInServer): Map<String, String>
 
+    /**
+     * Tells the server this session plays audio and video and takes remote commands (#389), so other clients can
+     * control it; sent on each live connection.
+     */
+    suspend fun reportCapabilities(server: SignedInServer): MqResult<Unit>
+
     suspend fun reportStart(
         server: SignedInServer,
         report: PlaybackReport,

@@ -1,7 +1,6 @@
-package io.github.kentprodan.mediatheq.feature.video
+package io.github.kentprodan.mediatheq.core.data
 
 import com.google.common.truth.Truth.assertThat
-import io.github.kentprodan.mediatheq.core.data.VideoPreferences
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.SkipMode

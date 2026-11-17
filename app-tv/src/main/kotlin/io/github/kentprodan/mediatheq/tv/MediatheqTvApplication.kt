@@ -1,6 +1,9 @@
 package io.github.kentprodan.mediatheq.tv
 
 import android.app.Application
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -14,7 +17,9 @@ import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.ArtworkInterceptor
 import io.github.kentprodan.mediatheq.core.data.ArtworkUrlResolver
 import io.github.kentprodan.mediatheq.core.data.DefaultLibrarySyncRepository
+import io.github.kentprodan.mediatheq.core.data.LiveSync
 import io.github.kentprodan.mediatheq.core.model.AppMode
+import io.github.kentprodan.mediatheq.core.playback.RemoteControl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -46,6 +51,12 @@ class MediatheqTvApplication :
     lateinit var appMode: AppModeRepository
 
     @Inject
+    lateinit var liveSync: LiveSync
+
+    @Inject
+    lateinit var remoteControl: RemoteControl
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -59,6 +70,17 @@ class MediatheqTvApplication :
         }
         log.info("App", "Started (TV)")
         librarySync.start()
+        // Live updates and remote commands (#389) while the TV app is open or plays: Jellyfin web and the phone can
+        // then control it.
+        liveSync.start()
+        remoteControl.start()
+        ProcessLifecycleOwner.get().lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) = liveSync.setForeground(true)
+
+                override fun onStop(owner: LifecycleOwner) = liveSync.setForeground(false)
+            },
+        )
         // A TV with no mode chosen shows music and video when the server has video (#426); Settings changes it.
         applicationScope.launch {
             if (appMode.videoAvailable && !appMode.chosen.first()) appMode.setMode(AppMode.Both)

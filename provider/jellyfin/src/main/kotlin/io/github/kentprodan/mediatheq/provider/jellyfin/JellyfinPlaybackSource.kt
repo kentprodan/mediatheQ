@@ -16,6 +16,7 @@ import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
 import io.github.kentprodan.mediatheq.core.server.ClientInfo
 import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
+import io.github.kentprodan.mediatheq.provider.jellyfin.dto.CapabilitiesDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.CodecProfileDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.DeviceProfileDto
 import io.github.kentprodan.mediatheq.provider.jellyfin.dto.DirectPlayProfileDto
@@ -147,6 +148,16 @@ class JellyfinPlaybackSource internal constructor(
 
     override fun streamHeaders(server: SignedInServer): Map<String, String> =
         mapOf("Authorization" to authorizationHeader(clientInfo, server.connection))
+
+    override suspend fun reportCapabilities(server: SignedInServer): MqResult<Unit> =
+        http.post(
+            server.connection,
+            "Sessions/Capabilities/Full",
+            http.jsonBody(
+                CapabilitiesDto.serializer(),
+                CapabilitiesDto(listOf("Audio", "Video"), emptyList(), supportsMediaControl = true),
+            ),
+        )
 
     override suspend fun reportStart(
         server: SignedInServer,

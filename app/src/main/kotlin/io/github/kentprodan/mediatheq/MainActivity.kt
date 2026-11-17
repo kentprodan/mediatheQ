@@ -14,6 +14,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -28,7 +29,9 @@ import io.github.kentprodan.mediatheq.core.data.entriesFor
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.download.resumeDownloads
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
+import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.RadioStarter
+import io.github.kentprodan.mediatheq.core.playback.RemoteControl
 import io.github.kentprodan.mediatheq.core.ui.LocalMediaListStyle
 import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.artist.artistEntry
@@ -63,6 +66,8 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var log: FileAppLog
 
     @Inject lateinit var radio: RadioStarter
+
+    @Inject lateinit var remoteControl: RemoteControl
 
     private val viewModel: MainViewModel by viewModels()
 
@@ -159,6 +164,17 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
                                 }
+                            // A movie sent from another client (#389) plays already: its player opens on the tab shown.
+                            LaunchedEffect(navigator) {
+                                remoteControl.videoStarted.collect { id ->
+                                    val stack = navigator.stack(navigator.currentTab)
+                                    if (stack.lastOrNull() !is VideoPlayerKey) {
+                                        navigator.navigateTo(
+                                            VideoPlayerKey(id, attach = true),
+                                        )
+                                    }
+                                }
+                            }
                             val mediaListStyle by viewModel.mediaListStyle.collectAsStateWithLifecycle()
                             CompositionLocalProvider(LocalMediaListStyle provides mediaListStyle) {
                                 NowPlayingHost(

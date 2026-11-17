@@ -33,6 +33,14 @@ class FakePlaybackSource : PlaybackSource {
     override fun streamHeaders(server: SignedInServer) =
         mapOf("Authorization" to "token=${server.connection.accessToken}")
 
+    /** How many times [reportCapabilities] was called. */
+    var capabilitiesReports = 0
+
+    override suspend fun reportCapabilities(server: SignedInServer): MqResult<Unit> {
+        capabilitiesReports++
+        return MqResult.Success(Unit)
+    }
+
     override suspend fun reportStart(
         server: SignedInServer,
         report: PlaybackReport,
