@@ -7,6 +7,9 @@ object MediatheqSizes {
     /** Width of an album card in a horizontal row (Home): about two and a half cards on a phone hint at scrolling. */
     val albumCardInRow = 144.dp
 
+    /** A profile's initial (#443): the Home avatar and the profiles sheet. */
+    val profileAvatar = 36.dp
+
     /** An audio format badge (stereo, Dolby Atmos, ...) before a track's artists. */
     val formatBadge = 18.dp
 
