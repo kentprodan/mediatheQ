@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.tv.video
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.resumeStart
 import org.junit.Test
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes

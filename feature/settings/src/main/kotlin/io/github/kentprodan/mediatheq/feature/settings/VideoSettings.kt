@@ -166,6 +166,18 @@ internal fun LazyListScope.videoGroups(
             }
         }
     }
+    item(key = "video_series") {
+        Group(R.string.settings_video_series) {
+            item { shapes ->
+                SwitchItem(
+                    shapes,
+                    stringResource(R.string.settings_video_hide_overviews),
+                    stringResource(R.string.settings_video_hide_overviews_summary),
+                    video.hideUnwatchedOverviews,
+                ) { on -> set { copy(hideUnwatchedOverviews = on) } }
+            }
+        }
+    }
     restoreDefaultsGroup(onRestore)
 }
 

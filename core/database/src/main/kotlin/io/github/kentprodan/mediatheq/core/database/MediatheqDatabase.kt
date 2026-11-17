@@ -25,6 +25,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.ArtistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.ArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.DownloadOriginEntity
 import io.github.kentprodan.mediatheq.core.database.entity.FollowedSeriesEntity
+import io.github.kentprodan.mediatheq.core.database.entity.PendingPlaylistEditEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PendingUserDataEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntity
 import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
@@ -58,7 +59,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 17,
+    version = 19,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -79,6 +80,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         QueueEntryEntity::class,
         QueueStateEntity::class,
         PendingUserDataEntity::class,
+        PendingPlaylistEditEntity::class,
         DownloadOriginEntity::class,
         WaveformEntity::class,
         AlbumGenreEntity::class,
@@ -137,6 +139,10 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 15, to = 16),
         // 17: the community rating of movies, episodes and series, and the collections (#426); the next start syncs them.
         AutoMigration(from = 16, to = 17, spec = SyncVideoRatingMigration::class),
+        // 18: the official rating of series, for the age gate (#434); the next start syncs it.
+        AutoMigration(from = 17, to = 18, spec = SyncSeriesRatingMigration::class),
+        // 19: playlist edits made offline, waiting for the server (#417); no resync.
+        AutoMigration(from = 18, to = 19),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

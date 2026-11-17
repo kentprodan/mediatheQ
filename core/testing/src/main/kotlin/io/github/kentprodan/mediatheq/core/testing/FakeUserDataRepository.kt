@@ -29,6 +29,8 @@ class FakeUserDataRepository : UserDataRepository {
         played: Boolean,
     ) = record("played:${id.itemId}:$played")
 
+    override suspend fun removeFromResume(id: MediaId) = record("removeFromResume:${id.itemId}")
+
     override suspend fun setRating(
         id: MediaId,
         halfStars: Int?,

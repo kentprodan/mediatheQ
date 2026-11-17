@@ -86,6 +86,7 @@ class AudioPreferencesStore
                         watchedRemoval = prefs[VIDEO_WATCHED_REMOVAL],
                         watchedRemovalSince = prefs[VIDEO_WATCHED_REMOVAL_SINCE],
                         subtitleSize = prefs[VIDEO_SUBTITLE_SIZE],
+                        displayMatch = prefs[VIDEO_DISPLAY_MATCH],
                         subtitleBackground = prefs[VIDEO_SUBTITLE_BACKGROUND],
                         subtitleColor = prefs[VIDEO_SUBTITLE_COLOR],
                         skipIntro = prefs[VIDEO_SKIP_INTRO],
@@ -263,6 +264,7 @@ class AudioPreferencesStore
                 it.put(VIDEO_WATCHED_REMOVAL, video.watchedRemoval)
                 it.put(VIDEO_WATCHED_REMOVAL_SINCE, video.watchedRemovalSince)
                 it.put(VIDEO_SUBTITLE_SIZE, video.subtitleSize)
+                it.put(VIDEO_DISPLAY_MATCH, video.displayMatch)
                 it.put(VIDEO_SUBTITLE_BACKGROUND, video.subtitleBackground)
                 it.put(VIDEO_SUBTITLE_COLOR, video.subtitleColor)
                 it.put(VIDEO_SKIP_INTRO, video.skipIntro)
@@ -330,6 +332,7 @@ class AudioPreferencesStore
             val VIDEO_WATCHED_REMOVAL = stringPreferencesKey("video_watched_removal")
             val VIDEO_WATCHED_REMOVAL_SINCE = longPreferencesKey("video_watched_removal_since")
             val VIDEO_SUBTITLE_SIZE = stringPreferencesKey("video_subtitle_size")
+            val VIDEO_DISPLAY_MATCH = stringPreferencesKey("video_display_match")
             val VIDEO_SUBTITLE_BACKGROUND = stringPreferencesKey("video_subtitle_background")
             val VIDEO_SUBTITLE_COLOR = stringPreferencesKey("video_subtitle_color")
             val VIDEO_SKIP_INTRO = stringPreferencesKey("video_skip_intro")
@@ -379,6 +382,8 @@ data class StoredVideoPreferences(
     val subtitleSize: String? = null,
     val subtitleBackground: String? = null,
     val subtitleColor: String? = null,
+    /** `DisplayMatch` name (#384). */
+    val displayMatch: String? = null,
     val skipCredits: String? = null,
     val skipRecapPreview: String? = null,
 )

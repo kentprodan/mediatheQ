@@ -27,6 +27,10 @@ class TvLoginViewModel
         private val state = MutableStateFlow(TvLoginUiState(serverName = key.serverName))
         val uiState: StateFlow<TvLoginUiState> = state.asStateFlow()
 
+        /** Adding a profile (#433, `returnSteps` > 0): signed in, the flow can go back. */
+        private val signedIn = MutableStateFlow(false)
+        val done: StateFlow<Boolean> = signedIn.asStateFlow()
+
         fun onAction(action: TvLoginAction) {
             when (action) {
                 is TvLoginAction.UserNameChanged -> state.update { it.copy(userName = action.userName, error = null) }
@@ -47,6 +51,7 @@ class TvLoginViewModel
                         error = (result as? MqResult.Failure)?.error?.toLoginError(),
                     )
                 }
+                if (result is MqResult.Success && key.returnSteps > 0) signedIn.value = true
             }
         }
 

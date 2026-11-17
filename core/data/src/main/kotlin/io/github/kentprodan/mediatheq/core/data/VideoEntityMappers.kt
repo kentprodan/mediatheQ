@@ -159,6 +159,7 @@ internal fun Series.toEntity() =
         backdrop = backdrop.toColumns(),
         userData = userData.toColumns(),
         videoUser = userData.toVideoColumns(),
+        officialRating = officialRating,
     )
 
 internal fun SeriesEntity.toDomain() =
@@ -174,6 +175,7 @@ internal fun SeriesEntity.toDomain() =
         artwork = image.toDomain(),
         backdrop = backdrop.toDomain(ImageType.Backdrop),
         userData = userData(userData, videoUser),
+        officialRating = officialRating,
     )
 
 internal fun Season.toEntity() =

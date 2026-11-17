@@ -55,6 +55,7 @@ class LiveSync
         @param:ApplicationScope private val scope: CoroutineScope,
         private val log: AppLog,
         private val playbackSource: PlaybackSource? = null,
+        private val playlists: DefaultPlaylistRepository? = null,
     ) {
         private val remote = MutableSharedFlow<RemoteCommand>(extraBufferCapacity = REMOTE_BUFFER)
 
@@ -111,6 +112,8 @@ class LiveSync
                                 // The server is reachable: send what waited for it (#56). In the app scope, so slow
                                 // writes neither hold up events nor stop when the socket closes.
                                 scope.launch { userData.flushPending() }
+                                // And the playlist edits made offline (#417).
+                                scope.launch { playlists?.flushPending() }
                                 // Each connection is a new session on the server: it learns again that we take commands.
                                 scope.launch {
                                     accountStore.signedInServer()?.let { playbackSource?.reportCapabilities(it) }

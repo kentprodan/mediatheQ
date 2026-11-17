@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -42,6 +45,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -56,9 +61,11 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteTogg
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.RemoteSession
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.MqTracksSheet
@@ -69,6 +76,7 @@ internal fun MovieRoute(
     id: MediaId,
     onPlay: (Duration) -> Unit,
     onBack: () -> Unit,
+    onOpenPerson: (Person) -> Unit = {},
     viewModel: MovieViewModel =
         hiltViewModel<MovieViewModel, MovieViewModel.Factory>(
             key = id.toString(),
@@ -76,7 +84,7 @@ internal fun MovieRoute(
         ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    MovieScreen(state, viewModel::onAction, onPlay, onBack)
+    MovieScreen(state, viewModel::onAction, onPlay, onBack, onOpenPerson)
 }
 
 /**
@@ -90,6 +98,7 @@ fun MovieScreen(
     onAction: (MovieAction) -> Unit,
     onPlay: (Duration) -> Unit,
     onBack: () -> Unit,
+    onOpenPerson: (Person) -> Unit = {},
 ) {
     VideoPageScaffold(onBack) { padding ->
         when (state) {
@@ -102,7 +111,7 @@ fun MovieScreen(
             }
 
             is MovieUiState.Content -> {
-                MovieContent(state, onAction, onPlay)
+                MovieContent(state, onAction, onPlay, onOpenPerson)
             }
         }
     }
@@ -164,6 +173,7 @@ private fun MovieContent(
     state: MovieUiState.Content,
     onAction: (MovieAction) -> Unit,
     onPlay: (Duration) -> Unit,
+    onOpenPerson: (Person) -> Unit,
 ) {
     val movie = state.movie
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.xl)) {
@@ -271,6 +281,57 @@ private fun MovieContent(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+        }
+        if (state.people.isNotEmpty()) {
+            item(key = "people") { PeopleRow(state.people, onOpenPerson) }
+        }
+    }
+}
+
+/** Cast and crew (#442): a round photo, the name and the role; a tap opens the person's page. */
+@Composable
+private fun PeopleRow(
+    people: List<Person>,
+    onOpen: (Person) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s)) {
+        Text(
+            stringResource(R.string.video_cast),
+            Modifier.padding(horizontal = MediatheqSpacing.l).semantics { heading() },
+            style = MaterialTheme.typography.titleMedium,
+        )
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = MediatheqSpacing.l),
+            horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
+        ) {
+            items(people, key = { "${it.id}/${it.kind}/${it.role}" }) { person ->
+                Column(
+                    Modifier
+                        .width(MediatheqSizes.personInRow)
+                        .clickable(onClickLabel = person.name) { onOpen(person) },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.xs),
+                ) {
+                    MqCover(person.artwork, contentDescription = null, shape = CircleShape)
+                    Text(
+                        person.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                    (person.role ?: person.kind).takeIf { it.isNotBlank() }?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
         }

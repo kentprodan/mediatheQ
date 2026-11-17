@@ -154,6 +154,12 @@ class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
         preferences.value = preferences.value.copy(home = preferences.value.home.copy(hidden = hidden))
     }
 
+    override val homeGenres = MutableStateFlow<List<String>>(emptyList())
+
+    override suspend fun setHomeGenres(genres: List<String>) {
+        homeGenres.value = genres.distinct()
+    }
+
     override suspend fun resetHomeRows() {
         preferences.value = preferences.value.copy(home = HomePreferences(settings = preferences.value.home.settings))
     }

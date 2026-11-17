@@ -50,6 +50,8 @@ data class VideoPreferences(
     val watchedRemoval: WatchedRemoval = WatchedRemoval.Off,
     /** When [watchedRemoval] was turned on: only plays after it count, so turning it on never empties the downloads. */
     val watchedRemovalSince: Instant? = null,
+    /** TV (#384): the display follows the video's frame rate (and resolution) while it plays. */
+    val displayMatch: DisplayMatch = DisplayMatch.Rate,
 ) {
     /** The setting for a segment of [type]. */
     fun skipFor(type: SegmentType): SkipMode =
@@ -77,6 +79,9 @@ enum class WatchedRemoval(
     OneDay(1.days),
     OneWeek(7.days),
 }
+
+/** How the TV display follows a video (#384). */
+enum class DisplayMatch { Off, Rate, RateAndResolution }
 
 interface VideoPreferencesRepository {
     val preferences: Flow<VideoPreferences>
@@ -138,6 +143,7 @@ internal fun StoredVideoPreferences.toPreferences(): VideoPreferences {
         hideUnwatchedOverviews = hideUnwatchedOverviews ?: defaults.hideUnwatchedOverviews,
         watchedRemoval = enumOrNull<WatchedRemoval>(watchedRemoval) ?: defaults.watchedRemoval,
         watchedRemovalSince = watchedRemovalSince?.let(Instant::fromEpochMilliseconds),
+        displayMatch = enumOrNull<DisplayMatch>(displayMatch) ?: defaults.displayMatch,
         subtitleStyle =
             SubtitleStyle(
                 enumOrNull<SubtitleStyle.Size>(subtitleSize) ?: SubtitleStyle.Size.System,
@@ -168,6 +174,7 @@ internal fun VideoPreferences.toStored(): StoredVideoPreferences {
         hideUnwatchedOverviews = hideUnwatchedOverviews.unlessDefault(defaults.hideUnwatchedOverviews),
         watchedRemoval = watchedRemoval.unlessDefault(defaults.watchedRemoval)?.name,
         watchedRemovalSince = watchedRemovalSince?.toEpochMilliseconds(),
+        displayMatch = displayMatch.unlessDefault(defaults.displayMatch)?.name,
         subtitleSize = subtitleStyle.size.unlessDefault(SubtitleStyle.Size.System)?.name,
         subtitleBackground = subtitleStyle.background.unlessDefault(SubtitleStyle.Background.System)?.name,
         subtitleColor = subtitleStyle.color.unlessDefault(SubtitleStyle.Color.System)?.name,

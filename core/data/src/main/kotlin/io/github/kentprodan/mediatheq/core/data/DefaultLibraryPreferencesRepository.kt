@@ -180,6 +180,10 @@ class DefaultLibraryPreferencesRepository
 
         override suspend fun setHomeOrder(order: List<HomeSection>) = store.setHomeOrder(order.map { it.name })
 
+        override val homeGenres: Flow<List<String>> = store.homeGenres
+
+        override suspend fun setHomeGenres(genres: List<String>) = store.setHomeGenres(genres.distinct())
+
         override suspend fun setHomeHidden(hidden: Set<HomeSection>) = store.setHomeHidden(hidden.map { it.name })
 
         override suspend fun resetHomeRows() = store.setHome(StoredHome())
