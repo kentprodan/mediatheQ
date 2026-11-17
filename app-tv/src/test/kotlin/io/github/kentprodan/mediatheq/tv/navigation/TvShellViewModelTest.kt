@@ -83,14 +83,24 @@ class TvShellViewModelTest {
         runTest(mainDispatcherRule.testDispatcher) {
             val store =
                 io.github.kentprodan.mediatheq.core.datastore.LibraryPreferencesStore(
-                    io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore(),
+                    io.github.kentprodan.mediatheq.core.testing
+                        .InMemoryPreferencesDataStore(),
                     activeId = "kid",
                 )
-            val parental = io.github.kentprodan.mediatheq.core.data.ParentalControls(store)
+            val parental =
+                io.github.kentprodan.mediatheq.core.data
+                    .ParentalControls(store)
             parental.setPin("2580")
             parental.setLimit("kid", 12)
-            val id = io.github.kentprodan.mediatheq.core.model.MediaId(io.github.kentprodan.mediatheq.core.model.ServerId("s"), "m1")
-            val videos = io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository()
+            val id =
+                io.github.kentprodan.mediatheq.core.model.MediaId(
+                    io.github.kentprodan.mediatheq.core.model
+                        .ServerId("s"),
+                    "m1",
+                )
+            val videos =
+                io.github.kentprodan.mediatheq.core.testing
+                    .FakeVideoRepository()
             videos.movies.value =
                 listOf(
                     io.github.kentprodan.mediatheq.core.model.Video(
@@ -102,7 +112,9 @@ class TvShellViewModelTest {
                 )
             val shell = TvShellViewModel(playback, log, appMode, null, null, parental, videos)
             var opened = 0
-            val key = io.github.kentprodan.mediatheq.core.navigation.MovieKey(id)
+            val key =
+                io.github.kentprodan.mediatheq.core.navigation
+                    .MovieKey(id)
 
             shell.guard(key) { opened++ }
             runCurrent()
