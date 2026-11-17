@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -82,6 +83,8 @@ class AudioPreferencesStore
                         pictureInPicture = prefs[VIDEO_PICTURE_IN_PICTURE],
                         keepAudio = prefs[VIDEO_KEEP_AUDIO],
                         hideUnwatchedOverviews = prefs[VIDEO_HIDE_UNWATCHED_OVERVIEWS],
+                        watchedRemoval = prefs[VIDEO_WATCHED_REMOVAL],
+                        watchedRemovalSince = prefs[VIDEO_WATCHED_REMOVAL_SINCE],
                         subtitleSize = prefs[VIDEO_SUBTITLE_SIZE],
                         subtitleBackground = prefs[VIDEO_SUBTITLE_BACKGROUND],
                         subtitleColor = prefs[VIDEO_SUBTITLE_COLOR],
@@ -257,6 +260,8 @@ class AudioPreferencesStore
                 it.put(VIDEO_PICTURE_IN_PICTURE, video.pictureInPicture)
                 it.put(VIDEO_KEEP_AUDIO, video.keepAudio)
                 it.put(VIDEO_HIDE_UNWATCHED_OVERVIEWS, video.hideUnwatchedOverviews)
+                it.put(VIDEO_WATCHED_REMOVAL, video.watchedRemoval)
+                it.put(VIDEO_WATCHED_REMOVAL_SINCE, video.watchedRemovalSince)
                 it.put(VIDEO_SUBTITLE_SIZE, video.subtitleSize)
                 it.put(VIDEO_SUBTITLE_BACKGROUND, video.subtitleBackground)
                 it.put(VIDEO_SUBTITLE_COLOR, video.subtitleColor)
@@ -322,6 +327,8 @@ class AudioPreferencesStore
             val VIDEO_PICTURE_IN_PICTURE = booleanPreferencesKey("video_picture_in_picture")
             val VIDEO_KEEP_AUDIO = booleanPreferencesKey("video_keep_audio")
             val VIDEO_HIDE_UNWATCHED_OVERVIEWS = booleanPreferencesKey("video_hide_unwatched_overviews")
+            val VIDEO_WATCHED_REMOVAL = stringPreferencesKey("video_watched_removal")
+            val VIDEO_WATCHED_REMOVAL_SINCE = longPreferencesKey("video_watched_removal_since")
             val VIDEO_SUBTITLE_SIZE = stringPreferencesKey("video_subtitle_size")
             val VIDEO_SUBTITLE_BACKGROUND = stringPreferencesKey("video_subtitle_background")
             val VIDEO_SUBTITLE_COLOR = stringPreferencesKey("video_subtitle_color")
@@ -364,6 +371,10 @@ data class StoredVideoPreferences(
     val skipIntro: String? = null,
     /** No spoilers (#428): unwatched episodes show no overview. */
     val hideUnwatchedOverviews: Boolean? = null,
+    /** `WatchedRemoval` name (#413). */
+    val watchedRemoval: String? = null,
+    /** Epoch milliseconds (#413). */
+    val watchedRemovalSince: Long? = null,
     /** The subtitle style's parts (#429), `SubtitleStyle` enum names. */
     val subtitleSize: String? = null,
     val subtitleBackground: String? = null,
