@@ -5,7 +5,9 @@ import io.github.kentprodan.mediatheq.core.model.DeviceProfile
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlaybackReport
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
+import io.github.kentprodan.mediatheq.core.model.RemoteSession
 import io.github.kentprodan.mediatheq.core.model.StreamChoice
+import kotlin.time.Duration
 
 /** Streams and play-state reporting (jellyfin skill, sections 5 and 6). */
 interface PlaybackSource {
@@ -25,6 +27,17 @@ interface PlaybackSource {
      * control it; sent on each live connection.
      */
     suspend fun reportCapabilities(server: SignedInServer): MqResult<Unit>
+
+    /** The other devices running mediatheQ for this user that play video and take commands (#389). */
+    suspend fun remoteSessions(server: SignedInServer): MqResult<List<RemoteSession>>
+
+    /** Asks [session] to play [itemId] now from [startPosition] (#389: the phone sends a movie to the TV). */
+    suspend fun playOn(
+        server: SignedInServer,
+        session: RemoteSession,
+        itemId: MediaId,
+        startPosition: Duration,
+    ): MqResult<Unit>
 
     suspend fun reportStart(
         server: SignedInServer,
