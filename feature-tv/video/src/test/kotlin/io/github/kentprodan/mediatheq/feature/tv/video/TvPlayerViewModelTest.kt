@@ -84,4 +84,18 @@ class TvPlayerViewModelTest {
             runCurrent()
             assertThat(viewModel.uiState.value).isEqualTo(TvPlayerUiState.Ended)
         }
+
+    @Test
+    fun `in Video mode the ended video stays the item and the screen still ends`() =
+        test {
+            val viewModel = viewModel()
+            playback.state.value = playing()
+            runCurrent()
+            assertThat(viewModel.uiState.value).isInstanceOf(TvPlayerUiState.Playing::class.java)
+
+            playback.state.value = playing(isPlaying = false).copy(isEnded = true)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value).isEqualTo(TvPlayerUiState.Ended)
+        }
 }

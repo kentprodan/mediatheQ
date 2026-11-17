@@ -66,6 +66,11 @@ class TvPlayerViewModel
                         if (seen && player.item?.isVideo != true) TvPlayerUiState.Ended else TvPlayerUiState.Loading
                     }
 
+                    // Video mode or no music queue to hand back: the ended video stays the item.
+                    seen && player.isEnded -> {
+                        TvPlayerUiState.Ended
+                    }
+
                     player.isFailed -> {
                         TvPlayerUiState.Error(MqError.Client(0, "playback"))
                     }

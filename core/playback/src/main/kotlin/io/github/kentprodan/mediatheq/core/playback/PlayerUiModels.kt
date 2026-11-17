@@ -36,6 +36,7 @@ internal fun Player.toPlayerUiModel(output: AudioOutputInfo = AudioOutputInfo())
         isBuffering = playbackState == Player.STATE_BUFFERING,
         isReady = playbackState == Player.STATE_READY,
         isFailed = playerError != null,
+        isEnded = playbackState == Player.STATE_ENDED,
         videoAspectRatio =
             videoSize
                 .takeIf { item?.isVideo == true && it.width > 0 && it.height > 0 }

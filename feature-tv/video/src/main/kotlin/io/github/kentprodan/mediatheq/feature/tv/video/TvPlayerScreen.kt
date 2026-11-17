@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -33,6 +34,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -101,14 +103,16 @@ fun TvPlayerScreen(
     surface: @Composable () -> Unit,
 ) {
     var bar by remember { mutableStateOf(false) }
+    // Open over the bar: the bar waits for it (its keys never reach this screen's handler).
+    var tracks by remember { mutableStateOf(false) }
     var keys by remember { mutableIntStateOf(0) }
     var seeking by remember { mutableIntStateOf(0) }
     val root = remember { FocusRequester() }
     BackHandler {
         if (bar) bar = false else onLeave()
     }
-    LaunchedEffect(bar, keys) {
-        if (bar) {
+    LaunchedEffect(bar, keys, tracks) {
+        if (bar && !tracks) {
             delay(BAR_TIME)
             bar = false
         }
@@ -119,7 +123,10 @@ fun TvPlayerScreen(
             seeking = 0
         }
     }
-    LaunchedEffect(bar) { if (!bar) runCatching { root.requestFocus() } }
+    // Back on the picture when the bar or the next-episode card goes, so the D-pad seeks again.
+    LaunchedEffect(bar, nextIn == null) { if (!bar && nextIn == null) runCatching { root.requestFocus() } }
+    // A movie never meets the screensaver; paused, the screen may sleep.
+    KeepScreenOn((state as? TvPlayerUiState.Playing)?.isPlaying == true)
     val playing = state as? TvPlayerUiState.Playing
     Box(
         Modifier
@@ -128,7 +135,8 @@ fun TvPlayerScreen(
             .focusRequester(root)
             .onPreviewKeyEvent { event ->
                 keys++
-                if (bar) return@onPreviewKeyEvent false
+                // The bar's buttons and the next-episode card take their own keys.
+                if (bar || nextIn != null) return@onPreviewKeyEvent false
                 val down = event.type == KeyEventType.KeyDown
                 when (event.key) {
                     Key.DirectionLeft, Key.DirectionRight -> {
@@ -168,7 +176,7 @@ fun TvPlayerScreen(
             is TvPlayerUiState.Playing -> {
                 if (!state.isPlaying && !state.isBuffering && !bar) PauseInfo(state.video)
                 if (bar) {
-                    Bar(state, position, onAction)
+                    Bar(state, position, onAction) { tracks = true }
                 } else if (seeking > 0) {
                     Box(Modifier.align(Alignment.BottomCenter).padding(EDGE)) { Progress(position, state.duration) }
                 }
@@ -180,7 +188,17 @@ fun TvPlayerScreen(
             }
         }
     }
+    playing?.tracks?.takeIf { tracks }?.let { PlayerTracksMenu(it, onAction) { tracks = false } }
     if (playing == null) LaunchedEffect(Unit) { runCatching { root.requestFocus() } }
+}
+
+@Composable
+private fun KeepScreenOn(on: Boolean) {
+    val view = LocalView.current
+    DisposableEffect(view, on) {
+        view.keepScreenOn = on
+        onDispose { view.keepScreenOn = false }
+    }
 }
 
 @Composable
@@ -207,9 +225,9 @@ private fun Bar(
     state: TvPlayerUiState.Playing,
     position: Duration,
     onAction: (TvPlayerAction) -> Unit,
+    onTracks: () -> Unit,
 ) {
     val first = remember { FocusRequester() }
-    var tracks by remember { mutableStateOf(false) }
     Box(
         Modifier
             .fillMaxSize()
@@ -234,7 +252,7 @@ private fun Bar(
                     { onAction(TvPlayerAction.Seek(forward = true)) },
                 )
                 if (state.tracks?.streams?.isNotEmpty() == true) {
-                    MqTvButton(stringResource(R.string.tv_movie_tracks), { tracks = true })
+                    MqTvButton(stringResource(R.string.tv_movie_tracks), onTracks)
                 }
                 if (state.hasNext) {
                     MqTvButton(
@@ -246,7 +264,6 @@ private fun Bar(
             }
         }
     }
-    state.tracks?.takeIf { tracks }?.let { PlayerTracksMenu(it, onAction) { tracks = false } }
     LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
 }
 
