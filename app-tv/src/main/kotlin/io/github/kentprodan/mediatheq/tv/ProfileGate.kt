@@ -42,7 +42,7 @@ class ProfileGate
         @param:ApplicationContext private val context: Context,
         private val clock: Clock,
     ) {
-        private val prefs by lazy { context.getSharedPreferences(FILE, Context.MODE_PRIVATE) }
+        private val prefs by lazy { context.getSharedPreferences(PROFILES_FILE, Context.MODE_PRIVATE) }
         private val mutableState = MutableStateFlow(ProfilePicker.Hidden)
         val state: StateFlow<ProfilePicker> = mutableState.asStateFlow()
 
@@ -68,7 +68,7 @@ class ProfileGate
         }
 
         private companion object {
-            const val FILE = "profiles"
+            const val PROFILES_FILE = "profiles"
             const val LAST_USED = "last_used"
         }
     }
