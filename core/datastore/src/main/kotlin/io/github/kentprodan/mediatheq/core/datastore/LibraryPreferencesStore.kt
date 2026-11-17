@@ -283,6 +283,37 @@ class LibraryPreferencesStore
 
         private fun homeGenresKey() = stringPreferencesKey("home_genres_$activeId")
 
+        /** The parental PIN (#434), salted and hashed by the caller; device-wide, set by the main profile. */
+        val parentalPin: Flow<String?> = data.map { it[PARENTAL_PIN] }
+
+        suspend fun setParentalPin(hash: String?) {
+            dataStore.edit { if (hash == null) it.remove(PARENTAL_PIN) else it[PARENTAL_PIN] = hash }
+        }
+
+        /** Each profile's age limit (#434), by account id; a missing one has no limit. */
+        val ageLimits: Flow<Map<String, Int>> =
+            data.map { prefs ->
+                prefs
+                    .asMap()
+                    .mapNotNull { (key, value) ->
+                        key.name
+                            .removePrefix(AGE_LIMIT_PREFIX)
+                            .takeIf { key.name.startsWith(AGE_LIMIT_PREFIX) }
+                            ?.let { id -> (value as? Int)?.let { id to it } }
+                    }.toMap()
+            }
+
+        suspend fun setAgeLimit(
+            accountId: String,
+            limit: Int?,
+        ) {
+            val key = intPreferencesKey(AGE_LIMIT_PREFIX + accountId)
+            dataStore.edit { if (limit == null) it.remove(key) else it[key] = limit }
+        }
+
+        /** This account's id ([ActiveDatabase]). */
+        val activeAccount: String get() = activeId
+
         /** Nothing hidden is stored as an empty string, not removed: it is a choice, like any other. */
         suspend fun setHomeHidden(names: List<String>) {
             dataStore.edit { it[HOME_HIDDEN] = names.joinToString(LIST_SEPARATOR) }
@@ -636,6 +667,8 @@ class LibraryPreferencesStore
             val NP_COVER_SWIPE = booleanPreferencesKey("np_cover_swipe")
             val NP_PLAY_BUTTON = booleanPreferencesKey("np_play_button_when_paused")
             const val LIST_SEPARATOR = ","
+            val PARENTAL_PIN = stringPreferencesKey("parental_pin")
+            const val AGE_LIMIT_PREFIX = "age_limit_"
 
             /** Genre names may hold commas. */
             const val GENRE_SEPARATOR = "\n"
