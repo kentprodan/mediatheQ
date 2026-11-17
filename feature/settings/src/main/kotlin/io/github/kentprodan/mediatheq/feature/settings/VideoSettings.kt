@@ -4,6 +4,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import io.github.kentprodan.mediatheq.core.data.VideoPreferences
+import io.github.kentprodan.mediatheq.core.data.WatchedRemoval
 import io.github.kentprodan.mediatheq.core.model.SkipMode
 import io.github.kentprodan.mediatheq.core.model.SubtitleMode
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
@@ -150,6 +151,21 @@ internal fun LazyListScope.videoGroups(
             }
         }
     }
+    item(key = "video_downloads") {
+        Group(R.string.settings_video_downloads) {
+            item { shapes ->
+                ChoiceItem(
+                    shapes,
+                    stringResource(R.string.settings_video_watched_removal),
+                    stringResource(R.string.settings_video_watched_removal_summary),
+                    WatchedRemoval.entries,
+                    selected = video.watchedRemoval,
+                    label = { stringResource(it.label) },
+                    onSelect = { set { copy(watchedRemoval = it) } },
+                )
+            }
+        }
+    }
     item(key = "video_series") {
         Group(R.string.settings_video_series) {
             item { shapes ->
@@ -192,4 +208,13 @@ private val SkipMode.label: Int
             SkipMode.Off -> R.string.settings_video_skip_off
             SkipMode.Button -> R.string.settings_video_skip_button
             SkipMode.Auto -> R.string.settings_video_skip_auto
+        }
+
+private val WatchedRemoval.label: Int
+    get() =
+        when (this) {
+            WatchedRemoval.Off -> R.string.settings_video_watched_removal_off
+            WatchedRemoval.Now -> R.string.settings_video_watched_removal_now
+            WatchedRemoval.OneDay -> R.string.settings_video_watched_removal_day
+            WatchedRemoval.OneWeek -> R.string.settings_video_watched_removal_week
         }

@@ -14,6 +14,10 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 /** Settings -> Playback -> Video (#276, ADR 0050). */
 data class VideoPreferences(
@@ -42,6 +46,10 @@ data class VideoPreferences(
     val hideUnwatchedOverviews: Boolean = false,
     /** How subtitles look (#429); every part follows the system caption style by default. */
     val subtitleStyle: SubtitleStyle = SubtitleStyle(),
+    /** Downloads made by hand go once watched, after this delay (#413). */
+    val watchedRemoval: WatchedRemoval = WatchedRemoval.Off,
+    /** When [watchedRemoval] was turned on: only plays after it count, so turning it on never empties the downloads. */
+    val watchedRemovalSince: Instant? = null,
     /** TV (#384): the display follows the video's frame rate (and resolution) while it plays. */
     val displayMatch: DisplayMatch = DisplayMatch.Rate,
 ) {
@@ -60,6 +68,16 @@ data class VideoPreferences(
         val audio = audioLanguage ?: phoneLanguage
         return TrackDefaults(audio, subtitleMode, subtitleLanguage ?: audio)
     }
+}
+
+/** When a watched video download made by hand goes (#413, owner decision). */
+enum class WatchedRemoval(
+    val delay: Duration?,
+) {
+    Off(null),
+    Now(Duration.ZERO),
+    OneDay(1.days),
+    OneWeek(7.days),
 }
 
 /** How the TV display follows a video (#384). */
@@ -88,11 +106,21 @@ class DefaultVideoPreferencesRepository
     @Inject
     constructor(
         private val store: AudioPreferencesStore,
+        private val clock: Clock = Clock.System,
     ) : VideoPreferencesRepository {
         override val preferences: Flow<VideoPreferences> = store.values.map { it.video.toPreferences() }
 
         override suspend fun update(change: (VideoPreferences) -> VideoPreferences) {
-            store.setVideo(change(preferences.first()).toStored())
+            val old = preferences.first()
+            val new = change(old)
+            // Turned on (#413): from now on, so what was watched and kept stays.
+            val since =
+                when {
+                    new.watchedRemoval == WatchedRemoval.Off -> null
+                    old.watchedRemoval == WatchedRemoval.Off -> clock.now()
+                    else -> new.watchedRemovalSince
+                }
+            store.setVideo(new.copy(watchedRemovalSince = since).toStored())
         }
     }
 
@@ -113,6 +141,8 @@ internal fun StoredVideoPreferences.toPreferences(): VideoPreferences {
         skipCredits = enumOrNull<SkipMode>(skipCredits) ?: defaults.skipCredits,
         skipRecapPreview = enumOrNull<SkipMode>(skipRecapPreview) ?: defaults.skipRecapPreview,
         hideUnwatchedOverviews = hideUnwatchedOverviews ?: defaults.hideUnwatchedOverviews,
+        watchedRemoval = enumOrNull<WatchedRemoval>(watchedRemoval) ?: defaults.watchedRemoval,
+        watchedRemovalSince = watchedRemovalSince?.let(Instant::fromEpochMilliseconds),
         displayMatch = enumOrNull<DisplayMatch>(displayMatch) ?: defaults.displayMatch,
         subtitleStyle =
             SubtitleStyle(
@@ -142,6 +172,8 @@ internal fun VideoPreferences.toStored(): StoredVideoPreferences {
         skipCredits = skipCredits.unlessDefault(defaults.skipCredits)?.name,
         skipRecapPreview = skipRecapPreview.unlessDefault(defaults.skipRecapPreview)?.name,
         hideUnwatchedOverviews = hideUnwatchedOverviews.unlessDefault(defaults.hideUnwatchedOverviews),
+        watchedRemoval = watchedRemoval.unlessDefault(defaults.watchedRemoval)?.name,
+        watchedRemovalSince = watchedRemovalSince?.toEpochMilliseconds(),
         displayMatch = displayMatch.unlessDefault(defaults.displayMatch)?.name,
         subtitleSize = subtitleStyle.size.unlessDefault(SubtitleStyle.Size.System)?.name,
         subtitleBackground = subtitleStyle.background.unlessDefault(SubtitleStyle.Background.System)?.name,

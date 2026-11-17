@@ -643,6 +643,13 @@
     <string name="settings_video_quality_original">Original</string>
     <string name="settings_video_quality_height">%1$dp</string>
     <string name="settings_video_tracks">Audio and subtitles</string>
+    <string name="settings_video_downloads">Downloads</string>
+    <string name="settings_video_watched_removal">Remove watched downloads</string>
+    <string name="settings_video_watched_removal_summary">Movies and episodes you downloaded, once watched. Never favorites, what plays now, or what you had watched before downloading it</string>
+    <string name="settings_video_watched_removal_off">Off</string>
+    <string name="settings_video_watched_removal_now">Right away</string>
+    <string name="settings_video_watched_removal_day">After 1 day</string>
+    <string name="settings_video_watched_removal_week">After 7 days</string>
     <string name="settings_video_series">Series pages</string>
     <string name="settings_video_hide_overviews">Hide overviews of unwatched episodes</string>
     <string name="settings_video_hide_overviews_summary">No spoilers: an episode\'s overview shows once it is watched</string>
