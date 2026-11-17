@@ -28,10 +28,6 @@ fun videoSeekTarget(
     return target.coerceIn(Duration.ZERO, duration.takeIf { it > Duration.ZERO } ?: target)
 }
 
-/** Where Resume starts (owner, #429): 10 s before the saved point, so the scene is remembered. */
-fun resumeStart(saved: Duration): Duration = (saved - RESUME_REWIND).coerceAtLeast(Duration.ZERO)
-
 private val FORWARD = 30.seconds
 private val BACK = 10.seconds
-private val RESUME_REWIND = 10.seconds
 private const val REPEATS_PER_STEP = 3
