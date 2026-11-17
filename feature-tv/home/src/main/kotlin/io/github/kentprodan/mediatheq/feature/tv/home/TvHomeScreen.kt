@@ -414,7 +414,9 @@ private class Cards(
                 }
 
                 left != null -> {
-                    stringResource(R.string.tv_home_time_left, left.inWholeMinutes.coerceAtLeast(1))
+                    // An episode says which one, like Next up: "S2 · E5 · 34 min left".
+                    val time = stringResource(R.string.tv_home_time_left, left.inWholeMinutes.coerceAtLeast(1))
+                    if (episode) "${episodeLabel(video)} · $time" else time
                 }
 
                 episode -> {
