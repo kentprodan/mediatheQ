@@ -2,11 +2,22 @@ package io.github.kentprodan.mediatheq.buildlogic
 
 import com.android.build.api.dsl.CommonExtension
 import org.gradle.api.Project
+import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
+import org.jetbrains.kotlin.compose.compiler.gradle.ComposeCompilerGradlePluginExtension
 
 /** Compose compiler and the Compose BOM, shared by the app and Compose library modules. */
 internal fun Project.configureCompose(android: CommonExtension) {
     pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
+    // The shared models are compiled without Compose; this file lists the immutable ones as stable (#505).
+    extensions.configure<ComposeCompilerGradlePluginExtension> {
+        stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("compose-stability.conf"))
+        // `-PcomposeReports=true` writes the compiler's stability and skippability reports to build/compose.
+        if (providers.gradleProperty("composeReports").orNull == "true") {
+            reportsDestination.set(layout.buildDirectory.dir("compose/reports"))
+            metricsDestination.set(layout.buildDirectory.dir("compose/metrics"))
+        }
+    }
     android.buildFeatures.compose = true
     android.testOptions.unitTests.isIncludeAndroidResources = true
     // Robolectric reads FileDescriptor internals, closed by default on JDK 17+.
