@@ -62,6 +62,8 @@ dependencies {
     implementation(projects.featureTv.video)
     // Live updates and remote commands follow the app in the foreground (#389).
     implementation(libs.androidx.lifecycle.process)
+    // The Google TV home's Continue watching (#386).
+    implementation(libs.androidx.tvprovider)
     implementation(projects.featureTv.settings)
     // Covers through the app's OkHttp client (ADR 0013), like the phone.
     implementation(libs.coil.compose)

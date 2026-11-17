@@ -14,4 +14,7 @@
     <string name="tv_close_cancel">Cancel</string>
     <string name="tv_nav_movies">Movies</string>
     <string name="tv_nav_series">Series</string>
+    <string name="tv_pin_title">Enter the PIN</string>
+    <string name="tv_pin_label">PIN</string>
+    <string name="tv_pin_wrong">Wrong PIN</string>
 </resources>

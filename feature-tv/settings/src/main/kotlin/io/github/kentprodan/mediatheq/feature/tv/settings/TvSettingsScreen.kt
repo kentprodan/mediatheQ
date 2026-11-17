@@ -42,11 +42,21 @@ import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 fun TvSettingsRoute(
     versionName: String,
     onOpenLicenses: () -> Unit,
+    onOpenHomeRows: () -> Unit = {},
+    onOpenParental: () -> Unit = {},
     onSwitchProfile: () -> Unit = {},
     viewModel: TvSettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    TvSettingsScreen(state, versionName, viewModel::onAction, onOpenLicenses, onSwitchProfile)
+    TvSettingsScreen(
+        state,
+        versionName,
+        viewModel::onAction,
+        onOpenLicenses,
+        onOpenHomeRows,
+        onOpenParental,
+        onSwitchProfile,
+    )
 }
 
 /**
@@ -59,6 +69,8 @@ fun TvSettingsScreen(
     versionName: String,
     onAction: (TvSettingsAction) -> Unit,
     onOpenLicenses: () -> Unit,
+    onOpenHomeRows: () -> Unit = {},
+    onOpenParental: () -> Unit = {},
     onSwitchProfile: () -> Unit = {},
 ) {
     Surface(Modifier.fillMaxSize()) {
@@ -108,6 +120,15 @@ fun TvSettingsScreen(
                 )
             }
             if (state.appMode?.video == true) {
+                section(R.string.tv_settings_video)
+                item {
+                    MqTvListItem(
+                        stringResource(R.string.tv_settings_display_match),
+                        { onAction(TvSettingsAction.ChooseSubtitle(TvSettingsDialog.DisplayMatch)) },
+                        Modifier.focusMemory(focus, "displayMatch"),
+                        supporting = stringResource(state.displayMatch.label),
+                    )
+                }
                 section(R.string.tv_settings_subtitles)
                 item {
                     MqTvListItem(
@@ -157,6 +178,14 @@ fun TvSettingsScreen(
             }
             item {
                 MqTvListItem(
+                    stringResource(R.string.tv_settings_home_rows),
+                    onOpenHomeRows,
+                    Modifier.focusMemory(focus, "homeRows"),
+                    supporting = stringResource(R.string.tv_settings_home_rows_detail),
+                )
+            }
+            item {
+                MqTvListItem(
                     stringResource(R.string.tv_settings_sync),
                     { onAction(TvSettingsAction.SyncNow) },
                     Modifier.focusMemory(focus, "sync"),
@@ -176,6 +205,16 @@ fun TvSettingsScreen(
                             stringResource(R.string.tv_settings_switch_profile),
                         ).joinToString(" · "),
                 )
+            }
+            if (state.appMode?.video == true) {
+                item {
+                    MqTvListItem(
+                        stringResource(R.string.tv_settings_parental),
+                        onOpenParental,
+                        Modifier.focusMemory(focus, "parental"),
+                        supporting = stringResource(R.string.tv_settings_parental_detail),
+                    )
+                }
             }
             item {
                 MqTvListItem(
@@ -217,6 +256,21 @@ fun TvSettingsScreen(
 
             TvSettingsDialog.AppMode -> {
                 AppModeDialog(state.appMode, onAction)
+            }
+
+            TvSettingsDialog.DisplayMatch -> {
+                val currentMark = stringResource(R.string.tv_settings_quality_current)
+                MqTvMenu(
+                    title = stringResource(R.string.tv_settings_display_match),
+                    entries =
+                        io.github.kentprodan.mediatheq.core.data.DisplayMatch.entries.map { match ->
+                            val text = stringResource(match.label)
+                            MqTvMenuEntry(if (match == state.displayMatch) "$text · $currentMark" else text, null) {
+                                onAction(TvSettingsAction.SetDisplayMatch(match))
+                            }
+                        },
+                    onDismiss = { onAction(TvSettingsAction.Dismiss) },
+                )
             }
 
             TvSettingsDialog.SubtitleSize -> {
@@ -423,3 +477,19 @@ private fun stepLabel(step: SyncStep): String =
 private const val BITS_PER_KBIT = 1000
 private const val PASSTHROUGH = "passthrough"
 private const val QUALITY = "quality"
+
+private val io.github.kentprodan.mediatheq.core.data.DisplayMatch.label: Int
+    get() =
+        when (this) {
+            io.github.kentprodan.mediatheq.core.data.DisplayMatch.Off -> {
+                R.string.tv_settings_display_match_off
+            }
+
+            io.github.kentprodan.mediatheq.core.data.DisplayMatch.Rate -> {
+                R.string.tv_settings_display_match_rate
+            }
+
+            io.github.kentprodan.mediatheq.core.data.DisplayMatch.RateAndResolution -> {
+                R.string.tv_settings_display_match_resolution
+            }
+        }

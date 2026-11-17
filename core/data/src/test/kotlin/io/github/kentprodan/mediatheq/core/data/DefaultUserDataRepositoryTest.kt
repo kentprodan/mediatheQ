@@ -618,6 +618,22 @@ class DefaultUserDataRepositoryTest {
         }
 
     @Test
+    fun `removed from Continue watching clears the resume point once the server took it, not before (#431)`() =
+        runTest(dispatcher) {
+            storeEpisode()
+            sink.failure = MqError.Network
+
+            assertThat(repository().removeFromResume(episode)).isEqualTo(MqResult.Failure(MqError.Network))
+            assertThat(position()).isEqualTo(600_000)
+
+            sink.failure = null
+            assertThat(repository().removeFromResume(episode)).isEqualTo(MqResult.Success(Unit))
+            assertThat(position()).isEqualTo(0)
+            assertThat(stored(episode)?.played).isFalse()
+            assertThat(sink.calls).containsExactly("clearResume:e1", "clearResume:e1")
+        }
+
+    @Test
     fun `a refused watched change is undone`() =
         runTest(dispatcher) {
             storeEpisode()

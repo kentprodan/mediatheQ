@@ -60,6 +60,9 @@ class MediatheqTvApplication :
     lateinit var profileGate: ProfileGate
 
     @Inject
+    lateinit var watchNext: WatchNextPublisher
+
+    @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
@@ -77,6 +80,8 @@ class MediatheqTvApplication :
         // then control it.
         liveSync.start()
         remoteControl.start()
+        // The Google TV home's Continue watching row (#386).
+        watchNext.start()
         ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) {

@@ -13,14 +13,16 @@ import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
+import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.data.VideoSort
 import io.github.kentprodan.mediatheq.core.data.homeItems
 import io.github.kentprodan.mediatheq.core.data.homeLibrary
 import io.github.kentprodan.mediatheq.core.data.mixTracks
 import io.github.kentprodan.mediatheq.core.model.AppMode
-import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
@@ -65,6 +67,7 @@ class TvHomeViewModel
         @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
         private val videos: VideoRepository? = null,
         private val appMode: AppModeRepository? = null,
+        private val userData: UserDataRepository? = null,
     ) : ViewModel() {
         private val mode = appMode?.mode ?: flowOf(AppMode.Music)
 
@@ -96,12 +99,9 @@ class TvHomeViewModel
                 val noMusic = library.albums.isEmpty() && library.tracks.isEmpty()
                 if (noMusic && (!mode.video || library.videos == HomeVideos())) return@combine null
                 val now = clock.now()
-                // On TV all four video rows come first (#431: the TV has no Home settings page yet), then the music
-                // sections in the Home order.
-                (
-                    HomeSection.entries.filter { it.kind == HomeKind.Videos } +
-                        home.shown.filter { it.kind != HomeKind.Videos }
-                ).filter { it.allowed(mode) }
+                // The order and the shown sections from Settings -> Home rows (#431), music and video together.
+                home.shown
+                    .filter { it.allowed(mode) }
                     .mapNotNull { section ->
                         val settings = home.settingsOf(section)
                         val items =
@@ -120,6 +120,23 @@ class TvHomeViewModel
                     }
             }.flowOn(defaultDispatcher)
 
+        /** The genre rows (#431): read only with video and genres picked. */
+        private val genreRows: Flow<List<TvGenreRow>> =
+            combine(mode.map { it.video }.distinctUntilChanged(), preferences.homeGenres) { video, genres ->
+                genres.takeIf { video }.orEmpty()
+            }.distinctUntilChanged()
+                .flatMapLatest { genres ->
+                    val repo = videos
+                    if (genres.isEmpty() || repo == null) {
+                        flowOf(emptyList())
+                    } else {
+                        combine(
+                            repo.movies(VideoSort.DateAdded, unwatched = false),
+                            repo.series(VideoSort.DateAdded, unwatched = false),
+                        ) { movies, series -> genreRows(genres, movies, series, VIDEO_LIMIT) }
+                    }
+                }.flowOn(defaultDispatcher)
+
         /** The status, and whether a full sync ever completed (then an empty library is really empty). */
         private val status =
             sync.status.scan(null as Pair<SyncStatus, Boolean>?) { previous, status ->
@@ -127,10 +144,10 @@ class TvHomeViewModel
             }
 
         val uiState: StateFlow<TvHomeUiState> =
-            combine(rows, status) { rows, status ->
+            combine(rows, genreRows, status) { rows, genreRows, status ->
                 val (current, everSynced) = status ?: return@combine TvHomeUiState.Loading
                 when {
-                    rows != null -> TvHomeUiState.Content(rows)
+                    rows != null -> TvHomeUiState.Content(rows, genreRows)
                     everSynced -> TvHomeUiState.Empty
                     current is SyncStatus.Failed -> TvHomeUiState.Error(current.error)
                     current is SyncStatus.Running -> TvHomeUiState.Syncing(current.fetched, current.total)
@@ -167,6 +184,10 @@ class TvHomeViewModel
                                 )
                             }
                         if (queue.isNotEmpty()) playback.play(queue)
+                    }
+
+                    is TvHomeAction.RemoveFromResume -> {
+                        userData?.removeFromResume(action.id)
                     }
 
                     TvHomeAction.Sync -> {
@@ -221,3 +242,21 @@ internal fun tvItems(
 /** How many of [episodes] each series has, for "5 new episodes". */
 internal fun newEpisodeCounts(episodes: List<Video>): Map<MediaId, Int> =
     episodes.mapNotNull { it.seriesId }.groupingBy { it }.eachCount()
+
+/** One row per picked genre, in the order picked (#431): its movies and series, newest added first; empty ones left out. */
+internal fun genreRows(
+    genres: List<String>,
+    movies: List<Video>,
+    series: List<Series>,
+    limit: Int,
+): List<TvGenreRow> =
+    genres.mapNotNull { genre ->
+        val items =
+            (
+                movies.filter { genre in it.genres }.map { TvGenreItem.Movie(it) to it.dateAdded } +
+                    series.filter { genre in it.genres }.map { TvGenreItem.Show(it) to it.dateAdded }
+            ).sortedByDescending { it.second }
+                .take(limit)
+                .map { it.first }
+        items.takeIf { it.isNotEmpty() }?.let { TvGenreRow(genre, it) }
+    }
