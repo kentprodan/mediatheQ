@@ -150,6 +150,18 @@ internal fun LazyListScope.videoGroups(
             }
         }
     }
+    item(key = "video_notifications") {
+        Group(R.string.settings_video_notifications) {
+            item { shapes ->
+                SwitchItem(
+                    shapes,
+                    stringResource(R.string.settings_video_new_episodes),
+                    stringResource(R.string.settings_video_new_episodes_summary),
+                    video.newEpisodeNotifications,
+                ) { on -> set { copy(newEpisodeNotifications = on) } }
+            }
+        }
+    }
     restoreDefaultsGroup(onRestore)
 }
 

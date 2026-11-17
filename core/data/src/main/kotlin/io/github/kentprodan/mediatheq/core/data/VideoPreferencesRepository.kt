@@ -42,6 +42,8 @@ data class VideoPreferences(
     val hideUnwatchedOverviews: Boolean = false,
     /** How subtitles look (#429); every part follows the system caption style by default. */
     val subtitleStyle: SubtitleStyle = SubtitleStyle(),
+    /** A notification when a followed series gets a new episode (#446). */
+    val newEpisodeNotifications: Boolean = true,
 ) {
     /** The setting for a segment of [type]. */
     fun skipFor(type: SegmentType): SkipMode =
@@ -108,6 +110,7 @@ internal fun StoredVideoPreferences.toPreferences(): VideoPreferences {
         skipCredits = enumOrNull<SkipMode>(skipCredits) ?: defaults.skipCredits,
         skipRecapPreview = enumOrNull<SkipMode>(skipRecapPreview) ?: defaults.skipRecapPreview,
         hideUnwatchedOverviews = hideUnwatchedOverviews ?: defaults.hideUnwatchedOverviews,
+        newEpisodeNotifications = newEpisodeNotifications ?: defaults.newEpisodeNotifications,
         subtitleStyle =
             SubtitleStyle(
                 enumOrNull<SubtitleStyle.Size>(subtitleSize) ?: SubtitleStyle.Size.System,
@@ -136,6 +139,7 @@ internal fun VideoPreferences.toStored(): StoredVideoPreferences {
         skipCredits = skipCredits.unlessDefault(defaults.skipCredits)?.name,
         skipRecapPreview = skipRecapPreview.unlessDefault(defaults.skipRecapPreview)?.name,
         hideUnwatchedOverviews = hideUnwatchedOverviews.unlessDefault(defaults.hideUnwatchedOverviews),
+        newEpisodeNotifications = newEpisodeNotifications.unlessDefault(defaults.newEpisodeNotifications),
         subtitleSize = subtitleStyle.size.unlessDefault(SubtitleStyle.Size.System)?.name,
         subtitleBackground = subtitleStyle.background.unlessDefault(SubtitleStyle.Background.System)?.name,
         subtitleColor = subtitleStyle.color.unlessDefault(SubtitleStyle.Color.System)?.name,

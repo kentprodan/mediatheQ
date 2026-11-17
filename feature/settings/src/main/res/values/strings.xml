@@ -643,6 +643,9 @@
     <string name="settings_video_quality_original">Original</string>
     <string name="settings_video_quality_height">%1$dp</string>
     <string name="settings_video_tracks">Audio and subtitles</string>
+    <string name="settings_video_notifications">Notifications</string>
+    <string name="settings_video_new_episodes">New episodes</string>
+    <string name="settings_video_new_episodes_summary">A notification when a followed series gets a new episode</string>
     <string name="settings_video_audio_language">Audio language</string>
     <string name="settings_video_phone_language">Phone language</string>
     <string name="settings_video_subtitles">Subtitles</string>
