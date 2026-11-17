@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.data.TrackPicker
 import io.github.kentprodan.mediatheq.core.data.VideoPreferences
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
+import io.github.kentprodan.mediatheq.core.data.resumeStart
 import io.github.kentprodan.mediatheq.core.data.segmentAction
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.PlayerExtras
@@ -211,7 +212,12 @@ class VideoPlayerViewModel
             }
             if (!key.attach) {
                 viewModelScope.launch {
-                    videos.video(key.id).first()?.let { playback.playVideo(it, key.startPositionMs.milliseconds) }
+                    // A resume starts 10 s earlier (#439), like the TV; From the start stays at 0.
+                    videos
+                        .video(
+                            key.id,
+                        ).first()
+                        ?.let { playback.playVideo(it, resumeStart(key.startPositionMs.milliseconds)) }
                 }
             }
             viewModelScope.launch {
