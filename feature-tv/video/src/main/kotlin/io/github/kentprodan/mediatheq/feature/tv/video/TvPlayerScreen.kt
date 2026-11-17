@@ -94,6 +94,21 @@ fun TvPlayerRoute(
     val quality by viewModel.quality.collectAsStateWithLifecycle()
     val extras by viewModel.extras.collectAsStateWithLifecycle()
     val skip by viewModel.skipButton.collectAsStateWithLifecycle()
+    val stillWatching by viewModel.stillWatching.collectAsStateWithLifecycle()
+    if (stillWatching) {
+        MqTvMenu(
+            stringResource(R.string.tv_player_still_watching),
+            listOf(
+                MqTvMenuEntry(stringResource(R.string.tv_player_keep_watching), null) {
+                    viewModel.onAction(TvPlayerAction.KeepWatching)
+                },
+                MqTvMenuEntry(stringResource(R.string.tv_player_stop_watching), null) {
+                    viewModel.onAction(TvPlayerAction.Leave)
+                    onBack()
+                },
+            ),
+        ) { viewModel.onAction(TvPlayerAction.KeepWatching) }
+    }
     LaunchedEffect(state) { if (state == TvPlayerUiState.Ended) onBack() }
     TvPlayerScreen(
         state,
@@ -168,6 +183,9 @@ fun TvPlayerScreen(
             .focusRequester(root)
             .onPreviewKeyEvent { event ->
                 keys++
+                if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) {
+                    onAction(TvPlayerAction.KeyPressed)
+                }
                 // The bar's buttons and the next-episode card take their own keys.
                 if (bar || nextIn != null) return@onPreviewKeyEvent false
                 // Select on the Skip button while it shows (left and right still seek).
