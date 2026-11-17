@@ -8,9 +8,12 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.TrackPicker
+import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoTracks
+import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -22,6 +25,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
@@ -43,7 +47,20 @@ class TvPlayerViewModel
         private val videos: VideoRepository,
         private val playback: PlaybackConnection,
         private val picker: TrackPicker,
+        private val preferences: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
     ) : ViewModel() {
+        /** How subtitles look (TV Settings, #429). */
+        val subtitleStyle: StateFlow<SubtitleStyle> =
+            preferences.preferences
+                .map { it.subtitleStyle }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SubtitleStyle())
+
+        /** The streaming quality the TV asks for (its network is unmetered); the Quality menu changes it. */
+        val quality: StateFlow<VideoQuality> =
+            preferences.preferences
+                .map { it.unmeteredQuality }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), VideoQuality.Original)
+
         private val videoId = MutableStateFlow(key.id)
         private val video = videoId.flatMapLatest { videos.video(it) }
         private val tracks = video.flatMapLatest { it?.let(picker::tracks) ?: flowOf(null) }
@@ -150,6 +167,18 @@ class TvPlayerViewModel
                     playback.next()
                 }
 
+                // Kept for the next videos too (the setting of the TV); the stream opens again at once with it.
+                is TvPlayerAction.SetQuality -> {
+                    viewModelScope.launch {
+                        preferences.update { it.copy(unmeteredQuality = action.quality) }
+                        if (playback.state.value.item
+                                ?.isVideo == true
+                        ) {
+                            playback.reloadVideo()
+                        }
+                    }
+                }
+
                 // Leaving stops the picture's sound too: on a TV nothing plays a video in the background.
                 TvPlayerAction.Leave -> {
                     playback.pause()
@@ -223,6 +252,10 @@ sealed interface TvPlayerAction {
     ) : TvPlayerAction
 
     data object CancelNext : TvPlayerAction
+
+    data class SetQuality(
+        val quality: VideoQuality,
+    ) : TvPlayerAction
 
     data object PlayNextNow : TvPlayerAction
 

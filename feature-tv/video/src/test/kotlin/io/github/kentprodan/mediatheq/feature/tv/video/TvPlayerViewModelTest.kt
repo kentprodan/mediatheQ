@@ -6,11 +6,13 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
+import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeTrackChoiceRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeVideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.launch
@@ -28,6 +30,7 @@ class TvPlayerViewModelTest {
 
     private val videos = FakeVideoRepository()
     private val playback = FakePlaybackConnection()
+    private val preferences = FakeVideoPreferencesRepository()
     private val movie = Video(MediaId(ServerId("s"), "m1"), VideoKind.Movie, "Alien", duration = 100.minutes)
 
     private fun TestScope.viewModel(startMs: Long = 0): TvPlayerViewModel {
@@ -38,6 +41,7 @@ class TvPlayerViewModelTest {
                 videos,
                 playback,
                 TrackPicker(videos, FakeTrackChoiceRepository()),
+                preferences,
             )
         backgroundScope.launch { viewModel.uiState.collect {} }
         backgroundScope.launch { viewModel.nextIn.collect {} }
@@ -97,5 +101,19 @@ class TvPlayerViewModelTest {
             runCurrent()
 
             assertThat(viewModel.uiState.value).isEqualTo(TvPlayerUiState.Ended)
+        }
+
+    @Test
+    fun `a quality chosen in the player is kept and the stream opens again with it`() =
+        test {
+            val viewModel = viewModel()
+            playback.state.value = playing()
+            runCurrent()
+
+            viewModel.onAction(TvPlayerAction.SetQuality(VideoQuality.P720))
+            runCurrent()
+
+            assertThat(preferences.preferences.value.unmeteredQuality).isEqualTo(VideoQuality.P720)
+            assertThat(playback.commands).contains("reloadVideo")
         }
 }

@@ -9,6 +9,7 @@ import io.github.kentprodan.mediatheq.core.data.AudioOutputRepository
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.RememberedOutputs
+import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.delay
@@ -33,6 +34,7 @@ class TvSettingsViewModel
         private val accounts: AccountRepository,
         private val playback: PlaybackConnection,
         private val appMode: AppModeRepository,
+        private val videoPreferences: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
     ) : ViewModel() {
         private val dialog = MutableStateFlow<TvSettingsDialog?>(null)
 
@@ -42,8 +44,10 @@ class TvSettingsViewModel
                 audioPreferences.preferences,
                 sync.status,
                 accounts.accounts,
-                combine(dialog, appMode.mode) { open, mode -> open to mode },
-            ) { remembered, preferences, status, list, (open, mode) ->
+                combine(dialog, appMode.mode, videoPreferences.preferences) { open, mode, video ->
+                    Triple(open, mode, video.subtitleStyle)
+                },
+            ) { remembered, preferences, status, list, (open, mode, subtitles) ->
                 val active = list.firstOrNull { it.active }
                 TvSettingsUiState.Content(
                     hdmi = hdmiOutput(remembered),
@@ -53,6 +57,7 @@ class TvSettingsViewModel
                     userName = active?.userName,
                     dialog = open,
                     appMode = mode.takeIf { appMode.videoAvailable },
+                    subtitleStyle = subtitles,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvSettingsUiState.Loading)
 
@@ -87,6 +92,15 @@ class TvSettingsViewModel
                 is TvSettingsAction.SetAppMode -> {
                     dialog.value = null
                     viewModelScope.launch { appMode.setMode(action.mode) }
+                }
+
+                is TvSettingsAction.ChooseSubtitle -> {
+                    dialog.value = action.dialog
+                }
+
+                is TvSettingsAction.SetSubtitleStyle -> {
+                    dialog.value = null
+                    viewModelScope.launch { videoPreferences.update { it.copy(subtitleStyle = action.style) } }
                 }
 
                 TvSettingsAction.AskSignOut -> {

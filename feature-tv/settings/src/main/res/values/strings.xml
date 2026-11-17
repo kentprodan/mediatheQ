@@ -37,4 +37,17 @@
     <string name="tv_settings_app_mode_music">Music only</string>
     <string name="tv_settings_app_mode_video">Movies and series only</string>
     <string name="tv_settings_app_mode_both">Music, movies and series</string>
+    <string name="tv_settings_subtitles">Subtitles</string>
+    <string name="tv_settings_subtitle_size">Size</string>
+    <string name="tv_settings_subtitle_background">Background</string>
+    <string name="tv_settings_subtitle_color">Color</string>
+    <string name="tv_settings_subtitle_system">As in the TV caption settings</string>
+    <string name="tv_settings_subtitle_small">Small</string>
+    <string name="tv_settings_subtitle_normal">Normal</string>
+    <string name="tv_settings_subtitle_large">Large</string>
+    <string name="tv_settings_subtitle_none">None</string>
+    <string name="tv_settings_subtitle_shadow">Shadow</string>
+    <string name="tv_settings_subtitle_box">Dark box</string>
+    <string name="tv_settings_subtitle_white">White</string>
+    <string name="tv_settings_subtitle_yellow">Yellow</string>
 </resources>

@@ -22,6 +22,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.OutputKind
+import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAccountRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
@@ -29,6 +30,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeAudioOutputRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakeVideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -128,6 +130,24 @@ class TvSettingsTest {
             backgroundScope.launch { noVideo.uiState.collect() }
             runCurrent()
             assertThat(noVideo.content().appMode).isNull()
+        }
+
+    @Test
+    fun `a subtitle style part is chosen from its dialog and stored`() =
+        test {
+            val video = FakeVideoPreferencesRepository()
+            val viewModel = TvSettingsViewModel(outputs, preferences, sync, accounts, playback, appMode, video)
+            backgroundScope.launch { viewModel.uiState.collect() }
+            runCurrent()
+
+            viewModel.onAction(TvSettingsAction.ChooseSubtitle(TvSettingsDialog.SubtitleSize))
+            assertThat(viewModel.content().dialog).isEqualTo(TvSettingsDialog.SubtitleSize)
+            viewModel.onAction(TvSettingsAction.SetSubtitleStyle(SubtitleStyle(size = SubtitleStyle.Size.Large)))
+            runCurrent()
+
+            assertThat(video.preferences.value.subtitleStyle.size).isEqualTo(SubtitleStyle.Size.Large)
+            assertThat(viewModel.content().subtitleStyle.size).isEqualTo(SubtitleStyle.Size.Large)
+            assertThat(viewModel.content().dialog).isNull()
         }
 
     @Test
