@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.datastore.StoredVideoPreferences
 import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.SkipMode
 import io.github.kentprodan.mediatheq.core.model.SubtitleMode
+import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 import io.github.kentprodan.mediatheq.core.model.TrackDefaults
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
@@ -47,6 +48,12 @@ class DefaultVideoPreferencesRepositoryTest {
                     pictureInPicture = false,
                     keepAudio = true,
                     hideUnwatchedOverviews = true,
+                    subtitleStyle =
+                        SubtitleStyle(
+                            SubtitleStyle.Size.Large,
+                            SubtitleStyle.Background.Box,
+                            SubtitleStyle.Color.Yellow,
+                        ),
                     skipIntro = SkipMode.Auto,
                     skipCredits = SkipMode.Off,
                     skipRecapPreview = SkipMode.Auto,

@@ -36,6 +36,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEnt
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.AppMode
+import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 
 @Composable
 fun TvSettingsRoute(
@@ -104,6 +105,33 @@ fun TvSettingsScreen(
                     supporting = qualityLabel(state.quality),
                 )
             }
+            if (state.appMode?.video == true) {
+                section(R.string.tv_settings_subtitles)
+                item {
+                    MqTvListItem(
+                        stringResource(R.string.tv_settings_subtitle_size),
+                        { onAction(TvSettingsAction.ChooseSubtitle(TvSettingsDialog.SubtitleSize)) },
+                        Modifier.focusMemory(focus, "subtitleSize"),
+                        supporting = stringResource(state.subtitleStyle.size.label),
+                    )
+                }
+                item {
+                    MqTvListItem(
+                        stringResource(R.string.tv_settings_subtitle_background),
+                        { onAction(TvSettingsAction.ChooseSubtitle(TvSettingsDialog.SubtitleBackground)) },
+                        Modifier.focusMemory(focus, "subtitleBackground"),
+                        supporting = stringResource(state.subtitleStyle.background.label),
+                    )
+                }
+                item {
+                    MqTvListItem(
+                        stringResource(R.string.tv_settings_subtitle_color),
+                        { onAction(TvSettingsAction.ChooseSubtitle(TvSettingsDialog.SubtitleColor)) },
+                        Modifier.focusMemory(focus, "subtitleColor"),
+                        supporting = stringResource(state.subtitleStyle.color.label),
+                    )
+                }
+            }
             section(R.string.tv_settings_library)
             state.appMode?.let { mode ->
                 item {
@@ -162,10 +190,51 @@ fun TvSettingsScreen(
             focus.restore(if (state.hdmi != null) PASSTHROUGH else QUALITY)
         }
         when (state.dialog) {
-            TvSettingsDialog.Quality -> QualityDialog(state.quality, onAction)
-            TvSettingsDialog.SignOut -> SignOutDialog(state, onAction)
-            TvSettingsDialog.AppMode -> AppModeDialog(state.appMode, onAction)
-            null -> Unit
+            TvSettingsDialog.Quality -> {
+                QualityDialog(state.quality, onAction)
+            }
+
+            TvSettingsDialog.SignOut -> {
+                SignOutDialog(state, onAction)
+            }
+
+            TvSettingsDialog.AppMode -> {
+                AppModeDialog(state.appMode, onAction)
+            }
+
+            TvSettingsDialog.SubtitleSize -> {
+                StyleDialog(
+                    R.string.tv_settings_subtitle_size,
+                    SubtitleStyle.Size.entries,
+                    state.subtitleStyle.size,
+                    { it.label },
+                    onAction,
+                ) { state.subtitleStyle.copy(size = it) }
+            }
+
+            TvSettingsDialog.SubtitleBackground -> {
+                StyleDialog(
+                    R.string.tv_settings_subtitle_background,
+                    SubtitleStyle.Background.entries,
+                    state.subtitleStyle.background,
+                    { it.label },
+                    onAction,
+                ) { state.subtitleStyle.copy(background = it) }
+            }
+
+            TvSettingsDialog.SubtitleColor -> {
+                StyleDialog(
+                    R.string.tv_settings_subtitle_color,
+                    SubtitleStyle.Color.entries,
+                    state.subtitleStyle.color,
+                    { it.label },
+                    onAction,
+                ) { state.subtitleStyle.copy(color = it) }
+            }
+
+            null -> {
+                Unit
+            }
         }
     }
 }
@@ -198,6 +267,56 @@ private fun QualityDialog(
         onDismiss = { onAction(TvSettingsAction.Dismiss) },
     )
 }
+
+/** One part of the subtitle style: its choices, the current one marked. */
+@Composable
+private fun <T> StyleDialog(
+    title: Int,
+    choices: List<T>,
+    current: T,
+    label: (T) -> Int,
+    onAction: (TvSettingsAction) -> Unit,
+    style: (T) -> SubtitleStyle,
+) {
+    val currentMark = stringResource(R.string.tv_settings_quality_current)
+    MqTvMenu(
+        title = stringResource(title),
+        entries =
+            choices.map { choice ->
+                val text = stringResource(label(choice))
+                MqTvMenuEntry(if (choice == current) "$text · $currentMark" else text, null) {
+                    onAction(TvSettingsAction.SetSubtitleStyle(style(choice)))
+                }
+            },
+        onDismiss = { onAction(TvSettingsAction.Dismiss) },
+    )
+}
+
+private val SubtitleStyle.Size.label: Int
+    get() =
+        when (this) {
+            SubtitleStyle.Size.System -> R.string.tv_settings_subtitle_system
+            SubtitleStyle.Size.Small -> R.string.tv_settings_subtitle_small
+            SubtitleStyle.Size.Normal -> R.string.tv_settings_subtitle_normal
+            SubtitleStyle.Size.Large -> R.string.tv_settings_subtitle_large
+        }
+
+private val SubtitleStyle.Background.label: Int
+    get() =
+        when (this) {
+            SubtitleStyle.Background.System -> R.string.tv_settings_subtitle_system
+            SubtitleStyle.Background.None -> R.string.tv_settings_subtitle_none
+            SubtitleStyle.Background.Shadow -> R.string.tv_settings_subtitle_shadow
+            SubtitleStyle.Background.Box -> R.string.tv_settings_subtitle_box
+        }
+
+private val SubtitleStyle.Color.label: Int
+    get() =
+        when (this) {
+            SubtitleStyle.Color.System -> R.string.tv_settings_subtitle_system
+            SubtitleStyle.Color.White -> R.string.tv_settings_subtitle_white
+            SubtitleStyle.Color.Yellow -> R.string.tv_settings_subtitle_yellow
+        }
 
 @Composable
 private fun AppModeDialog(

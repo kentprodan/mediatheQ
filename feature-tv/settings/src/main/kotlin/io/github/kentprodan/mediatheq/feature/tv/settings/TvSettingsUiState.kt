@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.OutputId
+import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 
 /** The HDMI output whose Dolby Atmos passthrough switch Settings shows (ADR 0039). */
 data class TvHdmiOutput(
@@ -13,7 +14,7 @@ data class TvHdmiOutput(
 )
 
 /** The dialog open over the settings list. */
-enum class TvSettingsDialog { Quality, SignOut, AppMode }
+enum class TvSettingsDialog { Quality, SignOut, AppMode, SubtitleSize, SubtitleBackground, SubtitleColor }
 
 /** Settings on TV (#243). */
 sealed interface TvSettingsUiState {
@@ -33,6 +34,8 @@ sealed interface TvSettingsUiState {
         val dialog: TvSettingsDialog? = null,
         /** What the TV shows (#426, ADR 0051); `null` when the server has no video, so the row is hidden. */
         val appMode: AppMode? = null,
+        /** How subtitles look in the video player (#429). */
+        val subtitleStyle: SubtitleStyle = SubtitleStyle(),
     ) : TvSettingsUiState
 }
 
@@ -49,6 +52,15 @@ sealed interface TvSettingsAction {
     data object SyncNow : TvSettingsAction
 
     data object ChooseAppMode : TvSettingsAction
+
+    /** Opens the dialog of one part of the subtitle style. */
+    data class ChooseSubtitle(
+        val dialog: TvSettingsDialog,
+    ) : TvSettingsAction
+
+    data class SetSubtitleStyle(
+        val style: SubtitleStyle,
+    ) : TvSettingsAction
 
     data class SetAppMode(
         val mode: AppMode,

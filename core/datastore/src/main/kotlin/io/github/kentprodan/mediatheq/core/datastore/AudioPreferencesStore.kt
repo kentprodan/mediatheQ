@@ -82,6 +82,9 @@ class AudioPreferencesStore
                         pictureInPicture = prefs[VIDEO_PICTURE_IN_PICTURE],
                         keepAudio = prefs[VIDEO_KEEP_AUDIO],
                         hideUnwatchedOverviews = prefs[VIDEO_HIDE_UNWATCHED_OVERVIEWS],
+                        subtitleSize = prefs[VIDEO_SUBTITLE_SIZE],
+                        subtitleBackground = prefs[VIDEO_SUBTITLE_BACKGROUND],
+                        subtitleColor = prefs[VIDEO_SUBTITLE_COLOR],
                         skipIntro = prefs[VIDEO_SKIP_INTRO],
                         skipCredits = prefs[VIDEO_SKIP_CREDITS],
                         skipRecapPreview = prefs[VIDEO_SKIP_RECAP_PREVIEW],
@@ -254,6 +257,9 @@ class AudioPreferencesStore
                 it.put(VIDEO_PICTURE_IN_PICTURE, video.pictureInPicture)
                 it.put(VIDEO_KEEP_AUDIO, video.keepAudio)
                 it.put(VIDEO_HIDE_UNWATCHED_OVERVIEWS, video.hideUnwatchedOverviews)
+                it.put(VIDEO_SUBTITLE_SIZE, video.subtitleSize)
+                it.put(VIDEO_SUBTITLE_BACKGROUND, video.subtitleBackground)
+                it.put(VIDEO_SUBTITLE_COLOR, video.subtitleColor)
                 it.put(VIDEO_SKIP_INTRO, video.skipIntro)
                 it.put(VIDEO_SKIP_CREDITS, video.skipCredits)
                 it.put(VIDEO_SKIP_RECAP_PREVIEW, video.skipRecapPreview)
@@ -316,6 +322,9 @@ class AudioPreferencesStore
             val VIDEO_PICTURE_IN_PICTURE = booleanPreferencesKey("video_picture_in_picture")
             val VIDEO_KEEP_AUDIO = booleanPreferencesKey("video_keep_audio")
             val VIDEO_HIDE_UNWATCHED_OVERVIEWS = booleanPreferencesKey("video_hide_unwatched_overviews")
+            val VIDEO_SUBTITLE_SIZE = stringPreferencesKey("video_subtitle_size")
+            val VIDEO_SUBTITLE_BACKGROUND = stringPreferencesKey("video_subtitle_background")
+            val VIDEO_SUBTITLE_COLOR = stringPreferencesKey("video_subtitle_color")
             val VIDEO_SKIP_INTRO = stringPreferencesKey("video_skip_intro")
             val VIDEO_SKIP_CREDITS = stringPreferencesKey("video_skip_credits")
             val VIDEO_SKIP_RECAP_PREVIEW = stringPreferencesKey("video_skip_recap_preview")
@@ -355,6 +364,10 @@ data class StoredVideoPreferences(
     val skipIntro: String? = null,
     /** No spoilers (#428): unwatched episodes show no overview. */
     val hideUnwatchedOverviews: Boolean? = null,
+    /** The subtitle style's parts (#429), `SubtitleStyle` enum names. */
+    val subtitleSize: String? = null,
+    val subtitleBackground: String? = null,
+    val subtitleColor: String? = null,
     val skipCredits: String? = null,
     val skipRecapPreview: String? = null,
 )

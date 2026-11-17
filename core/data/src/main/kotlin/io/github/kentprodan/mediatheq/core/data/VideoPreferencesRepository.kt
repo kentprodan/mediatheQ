@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.datastore.StoredVideoPreferences
 import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.SkipMode
 import io.github.kentprodan.mediatheq.core.model.SubtitleMode
+import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 import io.github.kentprodan.mediatheq.core.model.TrackDefaults
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +40,8 @@ data class VideoPreferences(
     val skipRecapPreview: SkipMode = SkipMode.Button,
     /** No spoilers (#428, #440): an unwatched episode shows no overview. */
     val hideUnwatchedOverviews: Boolean = false,
+    /** How subtitles look (#429); every part follows the system caption style by default. */
+    val subtitleStyle: SubtitleStyle = SubtitleStyle(),
 ) {
     /** The setting for a segment of [type]. */
     fun skipFor(type: SegmentType): SkipMode =
@@ -105,6 +108,12 @@ internal fun StoredVideoPreferences.toPreferences(): VideoPreferences {
         skipCredits = enumOrNull<SkipMode>(skipCredits) ?: defaults.skipCredits,
         skipRecapPreview = enumOrNull<SkipMode>(skipRecapPreview) ?: defaults.skipRecapPreview,
         hideUnwatchedOverviews = hideUnwatchedOverviews ?: defaults.hideUnwatchedOverviews,
+        subtitleStyle =
+            SubtitleStyle(
+                enumOrNull<SubtitleStyle.Size>(subtitleSize) ?: SubtitleStyle.Size.System,
+                enumOrNull<SubtitleStyle.Background>(subtitleBackground) ?: SubtitleStyle.Background.System,
+                enumOrNull<SubtitleStyle.Color>(subtitleColor) ?: SubtitleStyle.Color.System,
+            ),
     )
 }
 
@@ -127,5 +136,8 @@ internal fun VideoPreferences.toStored(): StoredVideoPreferences {
         skipCredits = skipCredits.unlessDefault(defaults.skipCredits)?.name,
         skipRecapPreview = skipRecapPreview.unlessDefault(defaults.skipRecapPreview)?.name,
         hideUnwatchedOverviews = hideUnwatchedOverviews.unlessDefault(defaults.hideUnwatchedOverviews),
+        subtitleSize = subtitleStyle.size.unlessDefault(SubtitleStyle.Size.System)?.name,
+        subtitleBackground = subtitleStyle.background.unlessDefault(SubtitleStyle.Background.System)?.name,
+        subtitleColor = subtitleStyle.color.unlessDefault(SubtitleStyle.Color.System)?.name,
     )
 }

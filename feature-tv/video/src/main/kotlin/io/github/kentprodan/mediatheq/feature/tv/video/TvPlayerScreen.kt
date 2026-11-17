@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.tv.video
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +35,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +56,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
+import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvSubtitles
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvVideoSurface
@@ -75,19 +78,22 @@ fun TvPlayerRoute(
     val player by viewModel.videoPlayer.collectAsStateWithLifecycle()
     val position by viewModel.position.collectAsStateWithLifecycle()
     val nextIn by viewModel.nextIn.collectAsStateWithLifecycle()
+    val style by viewModel.subtitleStyle.collectAsStateWithLifecycle()
+    val quality by viewModel.quality.collectAsStateWithLifecycle()
     LaunchedEffect(state) { if (state == TvPlayerUiState.Ended) onBack() }
     TvPlayerScreen(
         state,
         position,
         nextIn,
         viewModel::onAction,
+        quality = quality,
         onLeave = {
             viewModel.onAction(TvPlayerAction.Leave)
             onBack()
         },
-    ) {
-        MqTvVideoSurface(player, Modifier.fillMaxSize())
-        MqTvSubtitles(player, Modifier.fillMaxSize())
+    ) { scale ->
+        MqTvVideoSurface(player, Modifier.fillMaxSize(), scale)
+        MqTvSubtitles(player, Modifier.fillMaxSize(), style)
     }
 }
 
@@ -104,8 +110,12 @@ fun TvPlayerScreen(
     nextIn: Int?,
     onAction: (TvPlayerAction) -> Unit,
     onLeave: () -> Unit,
-    surface: @Composable () -> Unit,
+    quality: VideoQuality = VideoQuality.Original,
+    surface: @Composable (ContentScale) -> Unit,
 ) {
+    // Fit each time a video opens; Fill and Stretch from the bar (owner, #429).
+    var zoom by remember { mutableStateOf(TvZoom.Fit) }
+    var menu by remember { mutableStateOf<PlayerMenu?>(null) }
     var bar by remember { mutableStateOf(false) }
     // Open over the bar: the bar waits for it (its keys never reach this screen's handler).
     var tracks by remember { mutableStateOf(false) }
@@ -115,8 +125,8 @@ fun TvPlayerScreen(
     BackHandler {
         if (bar) bar = false else onLeave()
     }
-    LaunchedEffect(bar, keys, tracks) {
-        if (bar && !tracks) {
+    LaunchedEffect(bar, keys, tracks, menu) {
+        if (bar && !tracks && menu == null) {
             delay(BAR_TIME)
             bar = false
         }
@@ -169,7 +179,7 @@ fun TvPlayerScreen(
                 }
             }.focusable(),
     ) {
-        surface()
+        surface(zoom.scale)
         when (state) {
             is TvPlayerUiState.Error -> {
                 Surface(Modifier.fillMaxSize()) {
@@ -180,7 +190,7 @@ fun TvPlayerScreen(
             is TvPlayerUiState.Playing -> {
                 if (!state.isPlaying && !state.isBuffering && !bar) PauseInfo(state.video)
                 if (bar) {
-                    Bar(state, position, onAction) { tracks = true }
+                    Bar(state, position, onAction, onMenu = { menu = it }) { tracks = true }
                 } else if (seeking > 0) {
                     Box(Modifier.align(Alignment.BottomCenter).padding(EDGE)) { Progress(position, state.duration) }
                 }
@@ -193,6 +203,34 @@ fun TvPlayerScreen(
         }
     }
     playing?.tracks?.takeIf { tracks }?.let { PlayerTracksMenu(it, onAction) { tracks = false } }
+    val current = stringResource(R.string.tv_movie_track_current)
+    when (menu) {
+        PlayerMenu.Quality -> {
+            MqTvMenu(
+                stringResource(R.string.tv_player_quality),
+                QUALITIES.map { q ->
+                    val label = stringResource(q.label)
+                    MqTvMenuEntry(if (q == quality) "$label · $current" else label, null) {
+                        onAction(TvPlayerAction.SetQuality(q))
+                    }
+                },
+            ) { menu = null }
+        }
+
+        PlayerMenu.Zoom -> {
+            MqTvMenu(
+                stringResource(R.string.tv_player_zoom),
+                TvZoom.entries.map { z ->
+                    val label = stringResource(z.label)
+                    MqTvMenuEntry(if (z == zoom) "$label · $current" else label, null) { zoom = z }
+                },
+            ) { menu = null }
+        }
+
+        null -> {
+            Unit
+        }
+    }
     if (playing == null) LaunchedEffect(Unit) { runCatching { root.requestFocus() } }
 }
 
@@ -229,6 +267,7 @@ private fun Bar(
     state: TvPlayerUiState.Playing,
     position: Duration,
     onAction: (TvPlayerAction) -> Unit,
+    onMenu: (PlayerMenu) -> Unit,
     onTracks: () -> Unit,
 ) {
     val first = remember { FocusRequester() }
@@ -258,6 +297,8 @@ private fun Bar(
                 if (state.tracks?.streams?.isNotEmpty() == true) {
                     MqTvButton(stringResource(R.string.tv_movie_tracks), onTracks)
                 }
+                MqTvButton(stringResource(R.string.tv_player_quality), { onMenu(PlayerMenu.Quality) })
+                MqTvButton(stringResource(R.string.tv_player_zoom), { onMenu(PlayerMenu.Zoom) })
                 if (state.hasNext) {
                     MqTvButton(
                         stringResource(R.string.tv_player_next),
@@ -374,6 +415,31 @@ private fun titleOf(video: Video): String =
     } else {
         video.title
     }
+
+internal enum class PlayerMenu { Quality, Zoom }
+
+/** Fit shows the whole picture, Fill crops it to the screen, Stretch fills it out of shape. */
+internal enum class TvZoom(
+    val scale: ContentScale,
+    @param:StringRes val label: Int,
+) {
+    Fit(ContentScale.Fit, R.string.tv_player_zoom_fit),
+    Fill(ContentScale.Crop, R.string.tv_player_zoom_fill),
+    Stretch(ContentScale.FillBounds, R.string.tv_player_zoom_stretch),
+}
+
+/** Auto is the original stream when the network allows; the others ask the server to convert. */
+private val QUALITIES = listOf(VideoQuality.Original, VideoQuality.P1080, VideoQuality.P720)
+
+@get:StringRes
+private val VideoQuality.label: Int
+    get() =
+        when (this) {
+            VideoQuality.Original -> R.string.tv_player_quality_auto
+            VideoQuality.P1080 -> R.string.tv_player_quality_1080
+            VideoQuality.P720 -> R.string.tv_player_quality_720
+            VideoQuality.P480, VideoQuality.P360 -> R.string.tv_player_quality_low
+        }
 
 private val EDGE = 48.dp
 private val BAR_TIME = 5.seconds

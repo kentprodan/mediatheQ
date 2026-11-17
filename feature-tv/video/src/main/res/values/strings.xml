@@ -96,4 +96,13 @@
     <string name="tv_player_play_now">Play now</string>
     <string name="tv_player_error">This video did not play</string>
     <string name="tv_player_error_body">The server or the network stopped answering. Try again from the page.</string>
+    <string name="tv_player_quality">Quality</string>
+    <string name="tv_player_quality_auto">Auto (original)</string>
+    <string name="tv_player_quality_1080">1080p</string>
+    <string name="tv_player_quality_720">720p</string>
+    <string name="tv_player_quality_low">Lower</string>
+    <string name="tv_player_zoom">Zoom</string>
+    <string name="tv_player_zoom_fit">Fit</string>
+    <string name="tv_player_zoom_fill">Fill</string>
+    <string name="tv_player_zoom_stretch">Stretch</string>
 </resources>
