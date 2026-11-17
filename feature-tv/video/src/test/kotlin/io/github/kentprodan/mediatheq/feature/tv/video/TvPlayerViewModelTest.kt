@@ -3,6 +3,8 @@ package io.github.kentprodan.mediatheq.feature.tv.video
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.TrackPicker
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.MediaSegment
+import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
@@ -115,5 +117,24 @@ class TvPlayerViewModelTest {
 
             assertThat(preferences.preferences.value.unmeteredQuality).isEqualTo(VideoQuality.P720)
             assertThat(playback.commands).contains("reloadVideo")
+        }
+
+    @Test
+    fun `the Skip intro button shows inside the intro and skips to its end, a chapter seeks (#430)`() =
+        test {
+            val intro = MediaSegment(SegmentType.Intro, 1.minutes, 2.minutes)
+            videos.segments[movie.id] = listOf(intro)
+            val viewModel = viewModel()
+            backgroundScope.launch { viewModel.skipButton.collect {} }
+            playback.state.value = playing()
+            playback.position.value = 90.seconds
+            runCurrent()
+
+            assertThat(viewModel.skipButton.value).isEqualTo(intro)
+            viewModel.onAction(TvPlayerAction.SkipSegment)
+            viewModel.onAction(TvPlayerAction.SeekTo(10.minutes))
+
+            assertThat(playback.commands).containsAtLeast("seekTo ${2.minutes}", "seekTo ${10.minutes}").inOrder()
+            assertThat(viewModel.skipButton.value).isNull()
         }
 }

@@ -11,4 +11,6 @@ android {
 dependencies {
     // Back in the player hides the bar first (BackHandler).
     implementation(libs.androidx.activity.compose)
+    // Chapter pictures (#430).
+    implementation(libs.coil.compose)
 }
