@@ -28,4 +28,6 @@
     <string name="tv_onboarding_signing_in">Signing in…</string>
     <string name="tv_onboarding_error_wrong_credentials">Wrong user name or password.</string>
     <string name="tv_onboarding_error_storage">Could not save the sign-in on this TV.</string>
+    <string name="tv_profiles_title">Who\'s watching?</string>
+    <string name="tv_profiles_add">Add profile</string>
 </resources>
