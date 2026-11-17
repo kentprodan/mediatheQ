@@ -10,6 +10,13 @@
         <item quantity="one">%d series</item>
         <item quantity="other">%d series</item>
     </plurals>
+    <plurals name="tv_video_collections_count">
+        <item quantity="one">%d collection</item>
+        <item quantity="other">%d collections</item>
+    </plurals>
+    <string name="tv_video_collections">Collections</string>
+    <string name="tv_video_no_collections">No collections yet</string>
+    <string name="tv_video_sort_collection">Collection order</string>
     <!-- 12 of 340 movies -->
     <string name="tv_video_count_filtered">%1$d of %2$s</string>
     <string name="tv_video_sort">Sort: %s</string>
@@ -17,6 +24,7 @@
     <string name="tv_video_sort_name">Name</string>
     <string name="tv_video_sort_date_added">Date added</string>
     <string name="tv_video_sort_year">Year</string>
+    <string name="tv_video_sort_rating">Rating</string>
     <string name="tv_video_sort_runtime">Runtime</string>
     <string name="tv_video_sort_random">Random</string>
     <string name="tv_video_filter">Filter</string>

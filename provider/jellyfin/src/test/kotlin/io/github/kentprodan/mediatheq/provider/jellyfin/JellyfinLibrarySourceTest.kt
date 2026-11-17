@@ -407,6 +407,27 @@ class JellyfinLibrarySourceTest {
             )
 
     @Test
+    fun `collections are BoxSets by name, and a collection's items come unsorted in its own order`() =
+        runTest {
+            enqueue("items_boxset/page.json")
+            enqueue("items_boxset/children.json")
+
+            val collections = (source.collections(server, 500, 500) as MqResult.Success).value
+            assertThat(mockServer.takeRequest().query()).isEqualTo(videoQuery("BoxSet"))
+            val collection = collections.items.single()
+            assertThat(collection.title).isEqualTo("Alien Collection")
+            assertThat(collection.sortName).isEqualTo("alien collection")
+            assertThat(collection.year).isEqualTo(1979)
+            assertThat(collection.artwork).isNotNull()
+
+            val items = (source.collectionItems(server, collection.id, 0, 500) as MqResult.Success).value
+            val query = mockServer.takeRequest().query()
+            assertThat(query).containsAtLeast("parentId", collection.id.itemId, "includeItemTypes", "Movie,Series")
+            assertThat(query.keys).containsNoneOf("recursive", "sortBy")
+            assertThat(items.items.map { it.itemId }).containsExactly("a1", "a2").inOrder()
+        }
+
+    @Test
     fun `R7 movies query sends type and recursive and maps streams and format`() =
         runTest {
             enqueue("items_movie/page.json")
@@ -424,6 +445,7 @@ class JellyfinLibrarySourceTest {
             assertThat(movie.sizeBytes).isEqualTo(13_130_329_521)
             assertThat(movie.tagline).isEqualTo("The tagline of Movie 1.")
             assertThat(movie.officialRating).isEqualTo("R")
+            assertThat(movie.communityRating).isEqualTo(7.197)
             assertThat(movie.genres).containsExactly("Comedy", "Drama").inOrder()
             assertThat(movie.dateAdded).isEqualTo(Instant.parse("2026-11-07T21:38:14.2409704Z"))
             assertThat(movie.format).isEqualTo(VideoFormat("h264", 1920, 1080, VideoRange.Sdr, 14_477))

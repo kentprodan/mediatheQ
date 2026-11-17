@@ -25,6 +25,7 @@ data class SeriesEntity(
     @ColumnInfo(name = "date_added") val dateAddedMillis: Long? = null,
     /** Genre names, one per line (a video genre page is later, ADR 0048). */
     val genres: String? = null,
+    @ColumnInfo(name = "community_rating") val communityRating: Double? = null,
     @Embedded val image: ImageColumns = ImageColumns(),
     @Embedded(prefix = "backdrop_") val backdrop: ImageColumns = ImageColumns(),
     @Embedded val userData: UserDataColumns = UserDataColumns(),
@@ -68,6 +69,7 @@ data class VideoEntity(
     val genres: String? = null,
     val tagline: String? = null,
     @ColumnInfo(name = "official_rating") val officialRating: String? = null,
+    @ColumnInfo(name = "community_rating") val communityRating: Double? = null,
     @ColumnInfo(name = "video_codec") val videoCodec: String? = null,
     val width: Int? = null,
     val height: Int? = null,
@@ -98,6 +100,33 @@ data class VideoStreamEntity(
     @ColumnInfo(name = "is_external") val isExternal: Boolean = false,
 )
 
+/** A collection of movies (a BoxSet, #426). */
+@Entity(tableName = "video_collection", primaryKeys = ["server_id", "id"])
+data class VideoCollectionEntity(
+    @ColumnInfo(name = "server_id") val serverId: String,
+    val id: String,
+    val title: String,
+    @ColumnInfo(name = "sort_name") val sortName: String,
+    val overview: String? = null,
+    val year: Int? = null,
+    @ColumnInfo(name = "date_added") val dateAddedMillis: Long? = null,
+    @Embedded val image: ImageColumns = ImageColumns(),
+    @Embedded(prefix = "backdrop_") val backdrop: ImageColumns = ImageColumns(),
+)
+
+/** A movie or series in a collection, at its [position] there. */
+@Entity(
+    tableName = "video_collection_item",
+    primaryKeys = ["server_id", "collection_id", "item_id"],
+    indices = [Index("server_id", "item_id")],
+)
+data class VideoCollectionItemEntity(
+    @ColumnInfo(name = "server_id") val serverId: String,
+    @ColumnInfo(name = "collection_id") val collectionId: String,
+    @ColumnInfo(name = "item_id") val itemId: String,
+    val position: Int,
+)
+
 @Entity(tableName = "series_staging", primaryKeys = ["server_id", "id"])
 data class SeriesStaging(
     @Embedded val row: SeriesEntity,
@@ -116,4 +145,14 @@ data class VideoStaging(
 @Entity(tableName = "video_stream_staging", primaryKeys = ["server_id", "video_id", "stream_index"])
 data class VideoStreamStaging(
     @Embedded val row: VideoStreamEntity,
+)
+
+@Entity(tableName = "video_collection_staging", primaryKeys = ["server_id", "id"])
+data class VideoCollectionStaging(
+    @Embedded val row: VideoCollectionEntity,
+)
+
+@Entity(tableName = "video_collection_item_staging", primaryKeys = ["server_id", "collection_id", "item_id"])
+data class VideoCollectionItemStaging(
+    @Embedded val row: VideoCollectionItemEntity,
 )

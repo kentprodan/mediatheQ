@@ -12,6 +12,10 @@ import io.github.kentprodan.mediatheq.core.database.entity.SeriesStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionEntity
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionItemEntity
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionItemStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamEntity
@@ -64,6 +68,20 @@ class VideoQueriesTest {
                     .map(::VideoStreamStaging),
             )
             syncDao.stageTracks(listOf(TrackStaging(TrackEntity("s", "t1", "Moșoi pe vale", "mosoi pe vale"))))
+            syncDao.stageCollections(
+                listOf(
+                    VideoCollectionEntity("s", "c1", "Saga", "saga"),
+                    VideoCollectionEntity("s", "c2", "Absent", "absent"),
+                ).map(::VideoCollectionStaging),
+            )
+            syncDao.stageCollectionItems(
+                listOf(
+                    VideoCollectionItemEntity("s", "c1", "m3", 0),
+                    VideoCollectionItemEntity("s", "c1", "m1", 1),
+                    VideoCollectionItemEntity("s", "c1", "sr1", 2),
+                    VideoCollectionItemEntity("s", "c2", "gone", 0),
+                ).map(::VideoCollectionItemStaging),
+            )
             syncDao.swap(1, "s", "u")
         }
 
@@ -106,6 +124,17 @@ class VideoQueriesTest {
         all: Boolean = true,
         downloaded: List<String> = emptyList(),
     ) = dao.movies(all, downloaded, unwatched, sort).first().map { it.id }
+
+    @Test
+    fun `collections with a movie in the library, their movies in the collection's order, offline the downloaded`() =
+        runTest {
+            assertThat(dao.collections(true, emptyList()).first().map { it.id }).containsExactly("c1")
+            assertThat(dao.collectionMovies("c1", true, emptyList()).first().map { it.id })
+                .containsExactly("m3", "m1")
+                .inOrder()
+            assertThat(dao.collections(false, listOf("m2")).first()).isEmpty()
+            assertThat(dao.collectionMovies("c1", false, listOf("m1")).first().map { it.id }).containsExactly("m1")
+        }
 
     @Test
     fun `movies only, by name, newest added or newest year first`() =

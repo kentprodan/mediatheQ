@@ -45,6 +45,10 @@ import io.github.kentprodan.mediatheq.core.database.entity.TrackEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionEntity
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionItemEntity
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionItemStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamEntity
@@ -54,7 +58,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 16,
+    version = 17,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -95,6 +99,10 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         SeasonStaging::class,
         VideoStaging::class,
         VideoStreamStaging::class,
+        VideoCollectionEntity::class,
+        VideoCollectionItemEntity::class,
+        VideoCollectionStaging::class,
+        VideoCollectionItemStaging::class,
     ],
     autoMigrations = [
         // 2: the saved play queue (#14) and an index on track.album_id.
@@ -127,6 +135,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 14, to = 15),
         // 16: the series followed for smart downloads (#383); no resync.
         AutoMigration(from = 15, to = 16),
+        // 17: the community rating of movies, episodes and series, and the collections (#426); the next start syncs them.
+        AutoMigration(from = 16, to = 17, spec = SyncVideoRatingMigration::class),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

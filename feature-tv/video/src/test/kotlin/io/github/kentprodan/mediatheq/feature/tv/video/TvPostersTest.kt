@@ -20,6 +20,7 @@ class TvPostersTest {
         genres: List<String> = emptyList(),
         added: Long? = null,
         minutes: Int? = null,
+        rating: Double? = null,
     ) = TvPoster(
         MediaId(ServerId("s"), title),
         title,
@@ -29,12 +30,21 @@ class TvPostersTest {
         genres = genres,
         dateAdded = added?.let(Instant::fromEpochSeconds),
         runtime = minutes?.minutes,
+        rating = rating,
     )
 
     private val alien =
-        poster("Alien", 1979, watched = true, genres = listOf("Horror", "Sci-Fi"), added = 30, minutes = 117)
+        poster(
+            "Alien",
+            1979,
+            watched = true,
+            genres = listOf("Horror", "Sci-Fi"),
+            added = 30,
+            minutes = 117,
+            rating = 8.5,
+        )
     private val brazil = poster("Brazil", 1985, favorite = true, genres = listOf("Sci-Fi"), added = 10, minutes = 142)
-    private val heat = poster("Heat", 1995, genres = listOf("Crime"), added = 20)
+    private val heat = poster("Heat", 1995, genres = listOf("Crime"), added = 20, rating = 8.3)
     private val unknown = poster("Zelig")
     private val all = listOf(alien, brazil, heat, unknown)
 
@@ -69,6 +79,14 @@ class TvPostersTest {
         assertThat(titles(TvVideoSort.DateAdded)).containsExactly("Alien", "Heat", "Brazil", "Zelig").inOrder()
         assertThat(titles(TvVideoSort.Year)).containsExactly("Heat", "Brazil", "Alien", "Zelig").inOrder()
         assertThat(titles(TvVideoSort.Runtime)).containsExactly("Brazil", "Alien", "Heat", "Zelig").inOrder()
+        assertThat(titles(TvVideoSort.Rating)).containsExactly("Alien", "Heat", "Brazil", "Zelig").inOrder()
+    }
+
+    @Test
+    fun `collection order keeps the given order`() {
+        assertThat(
+            arrange(all.reversed(), TvVideoSort.Collection, TvVideoFilter(), 0).posters,
+        ).isEqualTo(all.reversed())
     }
 
     @Test

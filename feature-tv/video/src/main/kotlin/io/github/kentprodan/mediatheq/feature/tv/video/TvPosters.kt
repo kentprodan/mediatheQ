@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoCollection
 import io.github.kentprodan.mediatheq.core.ui.tv.Letter
 import io.github.kentprodan.mediatheq.core.ui.tv.alphabetIndex
 import kotlin.random.Random
@@ -26,10 +27,12 @@ data class TvPoster(
     val dateAdded: Instant? = null,
     /** A movie's length; `null` for a series. */
     val runtime: Duration? = null,
+    /** The public rating, 0-10. */
+    val rating: Double? = null,
 )
 
-/** The sorts of a TV video grid; [Runtime] only for movies. Rating comes with the community rating's sync. */
-enum class TvVideoSort { Name, DateAdded, Year, Runtime, Random }
+/** The sorts of a TV video grid; [Collection] keeps a collection's own order. */
+enum class TvVideoSort { Collection, Name, DateAdded, Year, Rating, Runtime, Random }
 
 enum class TvWatched { All, Unwatched, Watched }
 
@@ -58,8 +61,8 @@ data class TvArranged(
 )
 
 /**
- * Filters and sorts [posters]. Name ignores case and accents, like the music lists; the newest come first for
- * Date added and Year, the longest for Runtime, items without the value last. Random shuffles with [seed], so the
+ * Filters and sorts [posters]. Name ignores case and accents, like the music lists; the highest come first for
+ * Date added, Year and Rating, the longest for Runtime, items without the value last. Random shuffles with [seed], so the
  * order stays put until Random is chosen again.
  */
 fun arrange(
@@ -82,11 +85,15 @@ fun arrange(
     val sorted =
         when (sort) {
             // The music's name order (case and accents ignored), which the A-Z strip expects; SQLite's is bytewise.
+            TvVideoSort.Collection -> kept
+
             TvVideoSort.Name -> kept.sortedWith(compareBy(nameComparator()) { it.sortName })
 
             TvVideoSort.DateAdded -> kept.sortedWith(newestFirst<Instant> { it.dateAdded })
 
             TvVideoSort.Year -> kept.sortedWith(newestFirst<Int> { it.year })
+
+            TvVideoSort.Rating -> kept.sortedWith(newestFirst<Double> { it.rating })
 
             TvVideoSort.Runtime -> kept.sortedWith(newestFirst<Duration> { it.runtime })
 
@@ -134,7 +141,11 @@ internal fun Video.toPoster() =
         genres = genres,
         dateAdded = dateAdded,
         runtime = duration.takeIf { it.isPositive() },
+        rating = communityRating,
     )
+
+internal fun VideoCollection.toPoster() =
+    TvPoster(id = id, title = title, sortName = sortName, year = year, artwork = artwork, dateAdded = dateAdded)
 
 internal fun Series.toPoster() =
     TvPoster(
@@ -147,4 +158,5 @@ internal fun Series.toPoster() =
         favorite = userData.isFavorite,
         genres = genres,
         dateAdded = dateAdded,
+        rating = communityRating,
     )

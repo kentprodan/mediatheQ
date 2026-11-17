@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.data
 import io.github.kentprodan.mediatheq.core.database.entity.SeasonEntity
 import io.github.kentprodan.mediatheq.core.database.entity.SeriesEntity
 import io.github.kentprodan.mediatheq.core.database.entity.UserDataColumns
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoUserColumns
@@ -15,6 +16,7 @@ import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoCollection
 import io.github.kentprodan.mediatheq.core.model.VideoFormat
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.model.VideoRange
@@ -59,6 +61,7 @@ internal fun Video.toEntity() =
         genres = genres.joinedGenres(),
         tagline = tagline,
         officialRating = officialRating,
+        communityRating = communityRating,
         videoCodec = format?.codec,
         width = format?.width,
         height = format?.height,
@@ -109,6 +112,7 @@ internal fun VideoEntity.toDomain(): Video {
         genres = genres.splitGenres(),
         tagline = tagline,
         officialRating = officialRating,
+        communityRating = communityRating,
         format =
             videoCodec?.let { codec ->
                 VideoFormat(
@@ -150,6 +154,7 @@ internal fun Series.toEntity() =
         year = year,
         dateAddedMillis = dateAdded?.toEpochMilliseconds(),
         genres = genres.joinedGenres(),
+        communityRating = communityRating,
         image = artwork.toColumns(),
         backdrop = backdrop.toColumns(),
         userData = userData.toColumns(),
@@ -165,6 +170,7 @@ internal fun SeriesEntity.toDomain() =
         year = year,
         dateAdded = dateAddedMillis?.let(Instant::fromEpochMilliseconds),
         genres = genres.splitGenres(),
+        communityRating = communityRating,
         artwork = image.toDomain(),
         backdrop = backdrop.toDomain(ImageType.Backdrop),
         userData = userData(userData, videoUser),
@@ -193,3 +199,28 @@ internal fun SeasonEntity.toDomain(): Season {
         userData = userData(userData, videoUser),
     )
 }
+
+internal fun VideoCollection.toEntity() =
+    VideoCollectionEntity(
+        serverId = id.serverId.value,
+        id = id.itemId,
+        title = title,
+        sortName = sortName,
+        overview = overview,
+        year = year,
+        dateAddedMillis = dateAdded?.toEpochMilliseconds(),
+        image = artwork.toColumns(),
+        backdrop = backdrop.toColumns(),
+    )
+
+internal fun VideoCollectionEntity.toDomain() =
+    VideoCollection(
+        id = MediaId(ServerId(serverId), id),
+        title = title,
+        sortName = sortName,
+        overview = overview,
+        year = year,
+        dateAdded = dateAddedMillis?.let(Instant::fromEpochMilliseconds),
+        artwork = image.toDomain(),
+        backdrop = backdrop.toDomain(ImageType.Backdrop),
+    )

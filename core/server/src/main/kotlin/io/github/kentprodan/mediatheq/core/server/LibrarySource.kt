@@ -16,6 +16,7 @@ import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.TrickplayInfo
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoCollection
 
 /**
  * Paged reads of a whole music library, in a stable order (by sort name) so offset paging works. Pages start at
@@ -71,6 +72,21 @@ interface LibrarySource {
         startIndex: Int,
         limit: Int,
     ): MqResult<LibraryPage<Video>>
+
+    /** Collections of movies (#426), by name. */
+    suspend fun collections(
+        server: SignedInServer,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<VideoCollection>>
+
+    /** The ids of the movies and series in [collectionId], in the collection's order. */
+    suspend fun collectionItems(
+        server: SignedInServer,
+        collectionId: MediaId,
+        startIndex: Int,
+        limit: Int,
+    ): MqResult<LibraryPage<MediaId>>
 
     /**
      * The user data of the movies and episodes left halfway, most recent first, at most [limit] (#275): Continue watching

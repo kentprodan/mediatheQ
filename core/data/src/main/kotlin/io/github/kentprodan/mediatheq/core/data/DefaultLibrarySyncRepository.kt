@@ -20,6 +20,9 @@ import io.github.kentprodan.mediatheq.core.database.entity.SyncStateEntity
 import io.github.kentprodan.mediatheq.core.database.entity.TrackArtistStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackGenreStaging
 import io.github.kentprodan.mediatheq.core.database.entity.TrackStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionItemEntity
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionItemStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
@@ -408,6 +411,16 @@ class DefaultLibrarySyncRepository
                 SyncStep.Episodes -> {
                     stagePage(state, step, index, librarySource.episodes(server, index, PAGE_SIZE)) { stageVideos(it) }
                 }
+
+                SyncStep.Collections -> {
+                    stagePage(state, step, index, librarySource.collections(server, index, PAGE_SIZE)) { collections ->
+                        stageCollections(collections.map { VideoCollectionStaging(it.toEntity()) })
+                    }
+                }
+
+                SyncStep.CollectionItems -> {
+                    fetchCollectionItems(server, state, index)
+                }
             }
 
         private suspend fun SyncDao.stageVideos(videos: List<Video>) {
@@ -452,6 +465,8 @@ class DefaultLibrarySyncRepository
                 SyncStep.Series -> syncDao.stagedSeriesCount()
                 SyncStep.Seasons -> syncDao.stagedSeasonCount()
                 SyncStep.Episodes -> syncDao.stagedVideoCount(VideoKind.Episode.name)
+                SyncStep.Collections -> syncDao.stagedCollectionCount()
+                SyncStep.CollectionItems -> Int.MAX_VALUE
             }
 
         private suspend fun SyncDao.clearStaging(step: SyncStep) {
@@ -493,7 +508,60 @@ class DefaultLibrarySyncRepository
                 SyncStep.Seasons -> {
                     clearSeasonStaging()
                 }
+
+                SyncStep.Collections -> {
+                    clearCollectionStaging()
+                }
+
+                SyncStep.CollectionItems -> {
+                    clearCollectionItemStaging()
+                }
             }
+        }
+
+        /**
+         * Fetches the items of the collection at [collectionIndex] and stages them as one checkpointed unit, like a
+         * playlist's entries (#426). A collection gone since the list was read keeps no items.
+         */
+        private suspend fun fetchCollectionItems(
+            server: SignedInServer,
+            state: SyncStateEntity,
+            collectionIndex: Int,
+        ): MqResult<Pair<SyncStep, Int>?> {
+            val ids = syncDao.stagedCollectionIds()
+            val collectionId = ids.getOrNull(collectionIndex)?.let { MediaId(server.serverId, it) }
+            if (collectionId == null) {
+                val next = SyncStep.CollectionItems.next()
+                if (next != null) syncDao.stagePage(state.at(next)) {}
+                return MqResult.Success(next)
+            }
+            val items = mutableListOf<VideoCollectionItemStaging>()
+            var start = 0
+            do {
+                val page = librarySource.collectionItems(server, collectionId, start, PAGE_SIZE)
+                if (page is MqResult.Failure) {
+                    if (page.error != MqError.NotFound && page.error != MqError.Forbidden) return page
+                    items.clear()
+                    break
+                }
+                val value = (page as MqResult.Success).value
+                value.items.forEachIndexed { i, item ->
+                    items +=
+                        VideoCollectionItemStaging(
+                            VideoCollectionItemEntity(
+                                server.serverId.value,
+                                collectionId.itemId,
+                                item.itemId,
+                                start + i,
+                            ),
+                        )
+                }
+                start += PAGE_SIZE
+            } while (start < value.totalCount && value.items.isNotEmpty())
+            val next = SyncStep.CollectionItems to collectionIndex + 1
+            syncDao.stagePage(state.at(next)) { stageCollectionItems(items) }
+            mutableStatus.value = SyncStatus.Running(SyncStep.CollectionItems, collectionIndex + 1, ids.size)
+            return MqResult.Success(next)
         }
 
         /** Fetches every entry of the playlist at [playlistIndex] and stages them as one checkpointed unit. */

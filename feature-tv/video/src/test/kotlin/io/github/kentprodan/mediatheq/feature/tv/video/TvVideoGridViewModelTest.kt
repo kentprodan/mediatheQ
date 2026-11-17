@@ -6,6 +6,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoCollection
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
@@ -84,5 +85,22 @@ class TvVideoGridViewModelTest {
             runCurrent()
             assertThat(viewModel.content().filter).isEqualTo(TvVideoFilter())
             assertThat(viewModel.content().posters).hasSize(3)
+        }
+
+    @Test
+    fun `a collection shows its name and its movies in its own order first`() =
+        test {
+            val saga = VideoCollection(MediaId(ServerId("s"), "c1"), "Saga")
+            videos.collections.value = listOf(saga)
+            videos.collectionMovies.value = mapOf(saga.id to listOf(movie("Zeta", 2001), movie("Alpha", 1999)))
+            val viewModel = TvCollectionViewModel(saga.id, savedState, sync, videos, mainDispatcherRule.testDispatcher)
+            backgroundScope.launch { viewModel.uiState.collect {} }
+            runCurrent()
+
+            val content = viewModel.content()
+            assertThat(content.title).isEqualTo("Saga")
+            assertThat(content.sort).isEqualTo(TvVideoSort.Collection)
+            assertThat(content.posters.map { it.title }).containsExactly("Zeta", "Alpha").inOrder()
+            assertThat(TvVideoKind.Collections.filters).isFalse()
         }
 }

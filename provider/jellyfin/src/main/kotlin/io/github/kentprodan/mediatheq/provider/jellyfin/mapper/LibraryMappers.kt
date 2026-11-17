@@ -19,6 +19,7 @@ import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoCollection
 import io.github.kentprodan.mediatheq.core.model.VideoFormat
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.model.VideoRange
@@ -125,6 +126,7 @@ internal fun BaseItemDto.toVideo(
         genres = genreNames(),
         tagline = taglines.firstOrNull { it.isNotBlank() },
         officialRating = officialRating?.takeIf { it.isNotBlank() },
+        communityRating = communityRating,
         format = streams.firstOrNull { it.type == "Video" }?.toVideoFormat(),
         sizeBytes = source?.size,
         artwork = artwork(),
@@ -144,9 +146,25 @@ internal fun BaseItemDto.toSeries(serverId: ServerId): Series? {
         year = productionYear,
         dateAdded = instant(dateCreated),
         genres = genreNames(),
+        communityRating = communityRating,
         artwork = artwork(),
         backdrop = backdrop(),
         userData = userData.toDomain(),
+    )
+}
+
+/** A BoxSet (#426): a collection of movies. */
+internal fun BaseItemDto.toCollection(serverId: ServerId): VideoCollection? {
+    val (id, name) = idAndName() ?: return null
+    return VideoCollection(
+        id = MediaId(serverId, id),
+        title = name,
+        sortName = sortName ?: name,
+        overview = overview?.trim()?.takeIf { it.isNotEmpty() },
+        year = productionYear,
+        dateAdded = instant(dateCreated),
+        artwork = artwork(),
+        backdrop = backdrop(),
     )
 }
 

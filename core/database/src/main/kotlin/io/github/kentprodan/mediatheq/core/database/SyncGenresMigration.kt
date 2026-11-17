@@ -54,3 +54,6 @@ private val STAGING_12 = STAGING_8 + listOf("series_staging", "season_staging", 
 
 /** 11 -> 12 (#270): the library has no videos yet. */
 class SyncVideoMigration : ResyncMigration(STAGING_12)
+
+/** 16 -> 17 (#426): movies, episodes and series have no community rating, and there are no collections yet. */
+class SyncVideoRatingMigration : ResyncMigration(STAGING_12)

@@ -294,6 +294,8 @@ private val SyncStep.text: Int
             SyncStep.Series, SyncStep.Seasons -> R.string.settings_sync_step_series
 
             SyncStep.Episodes -> R.string.settings_sync_step_episodes
+
+            SyncStep.Collections, SyncStep.CollectionItems -> R.string.settings_sync_step_collections
         }
 
 /** The error in words; Server and Client take their HTTP code as the argument. */

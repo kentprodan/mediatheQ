@@ -30,4 +30,16 @@ sealed interface SyncStatus {
 }
 
 /** The parts of a full sync, in order; the video steps (#270) run only with `ServerCapabilities.video`. */
-enum class SyncStep { AlbumArtists, Albums, Tracks, Playlists, PlaylistEntries, Movies, Series, Seasons, Episodes }
+enum class SyncStep {
+    AlbumArtists,
+    Albums,
+    Tracks,
+    Playlists,
+    PlaylistEntries,
+    Movies,
+    Series,
+    Seasons,
+    Episodes,
+    Collections,
+    CollectionItems,
+}

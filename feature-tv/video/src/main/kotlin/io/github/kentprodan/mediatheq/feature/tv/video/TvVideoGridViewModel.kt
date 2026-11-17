@@ -3,11 +3,15 @@ package io.github.kentprodan.mediatheq.feature.tv.video
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoSort
+import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.tv.Letter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -15,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -33,8 +38,10 @@ abstract class TvVideoGridViewModel(
     val kind: TvVideoKind,
     posters: Flow<List<TvPoster>>,
     defaultDispatcher: CoroutineDispatcher,
+    /** The page's name when it is not the kind's (a collection's). */
+    title: Flow<String?> = flowOf(null),
 ) : ViewModel() {
-    private val sort = savedState.getStateFlow(KEY_SORT, TvVideoSort.Name)
+    private val sort = savedState.getStateFlow(KEY_SORT, kind.sorts.first())
     private val watched = savedState.getStateFlow(KEY_WATCHED, TvWatched.All)
     private val favorites = savedState.getStateFlow(KEY_FAVORITES, false)
     private val genre = savedState.getStateFlow<String?>(KEY_GENRE, null)
@@ -45,7 +52,7 @@ abstract class TvVideoGridViewModel(
         combine(watched, favorites, genre, decade) { w, f, g, d -> TvVideoFilter(w, f, g, d) }
 
     val uiState: StateFlow<TvVideoGridUiState> =
-        combine(posters, sort, filter, seed) { all, s, f, r ->
+        combine(posters, sort, filter, seed, title) { all, s, f, r, name ->
             if (all.isEmpty()) {
                 TvVideoGridUiState.Empty
             } else {
@@ -59,6 +66,7 @@ abstract class TvVideoGridViewModel(
                     decades = decadesOf(all),
                     total = all.size,
                     seed = r,
+                    title = name,
                 )
             }
         }
@@ -116,8 +124,28 @@ abstract class TvVideoGridViewModel(
     }
 }
 
-/** Which grid: Movies has the Runtime sort and the movie placeholder; Series the series one. */
-enum class TvVideoKind { Movies, Series }
+/** Which grid, with the sorts it offers (the first is its default). */
+enum class TvVideoKind(
+    val sorts: List<TvVideoSort>,
+    /** Whether the Filter button shows (watched, favorites, genre, decade). */
+    val filters: Boolean = true,
+) {
+    Movies(
+        listOf(
+            TvVideoSort.Name,
+            TvVideoSort.DateAdded,
+            TvVideoSort.Year,
+            TvVideoSort.Rating,
+            TvVideoSort.Runtime,
+            TvVideoSort.Random,
+        ),
+    ),
+    Series(listOf(TvVideoSort.Name, TvVideoSort.DateAdded, TvVideoSort.Year, TvVideoSort.Rating, TvVideoSort.Random)),
+    Collections(listOf(TvVideoSort.Name, TvVideoSort.DateAdded, TvVideoSort.Year, TvVideoSort.Random), filters = false),
+    Collection(
+        listOf(TvVideoSort.Collection, TvVideoSort.Name, TvVideoSort.Year, TvVideoSort.Rating, TvVideoSort.Runtime),
+    ),
+}
 
 @HiltViewModel
 class TvMoviesViewModel
@@ -151,6 +179,46 @@ class TvSeriesViewModel
             defaultDispatcher,
         )
 
+@HiltViewModel
+class TvCollectionsViewModel
+    @Inject
+    constructor(
+        savedState: SavedStateHandle,
+        sync: LibrarySyncRepository,
+        videos: VideoRepository,
+        @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
+    ) : TvVideoGridViewModel(
+            savedState,
+            sync,
+            TvVideoKind.Collections,
+            videos.collections().map { collections -> collections.map { it.toPoster() } },
+            defaultDispatcher,
+        )
+
+/** One collection's movies (#426), in the collection's order first. */
+@HiltViewModel(assistedFactory = TvCollectionViewModel.Factory::class)
+class TvCollectionViewModel
+    @AssistedInject
+    constructor(
+        @Assisted id: MediaId,
+        savedState: SavedStateHandle,
+        sync: LibrarySyncRepository,
+        videos: VideoRepository,
+        @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
+    ) : TvVideoGridViewModel(
+            savedState,
+            sync,
+            TvVideoKind.Collection,
+            videos.collectionMovies(id).map { movies -> movies.map { it.toPoster() } },
+            defaultDispatcher,
+            videos.collection(id).map { it?.title },
+        ) {
+        @AssistedFactory
+        interface Factory {
+            fun create(id: MediaId): TvCollectionViewModel
+        }
+    }
+
 sealed interface TvVideoGridUiState {
     data object Loading : TvVideoGridUiState
 
@@ -170,6 +238,8 @@ sealed interface TvVideoGridUiState {
         val total: Int,
         /** Random's shuffle: a new one starts the grid at the top again. */
         val seed: Long = 0,
+        /** A collection's name; `null` on the kind's own grid. */
+        val title: String? = null,
     ) : TvVideoGridUiState
 }
 
