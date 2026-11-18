@@ -106,7 +106,7 @@ fun TvTextFieldScreenshot() =
         }
     }
 
-/** The guideline's five card variants (#518), unfocused. */
+/** The guideline's five card variants (#518), unfocused; MqTvCardFocusTest proves the focused look. */
 @PreviewTest
 @MqTvPreviews
 @Composable
