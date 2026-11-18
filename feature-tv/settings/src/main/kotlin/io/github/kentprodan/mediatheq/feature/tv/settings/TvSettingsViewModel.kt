@@ -9,7 +9,9 @@ import io.github.kentprodan.mediatheq.core.data.AudioOutputRepository
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.RememberedOutputs
+import io.github.kentprodan.mediatheq.core.data.TvHomeHero
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
@@ -40,7 +42,7 @@ class TvSettingsViewModel
         private val videoPreferences: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
         private val libraryPreferences: LibraryPreferencesRepository? = null,
     ) : ViewModel() {
-        private val simple = libraryPreferences?.preferences?.map { it.navigation.simpleTransitions } ?: flowOf(false)
+        private val simple = libraryPreferences?.preferences?.map { it.navigation } ?: flowOf(NavigationPreferences())
         private val dialog = MutableStateFlow<TvSettingsDialog?>(null)
 
         val uiState: StateFlow<TvSettingsUiState> =
@@ -64,7 +66,8 @@ class TvSettingsViewModel
                     appMode = mode.takeIf { appMode.videoAvailable },
                     subtitleStyle = video.subtitleStyle,
                     displayMatch = video.displayMatch,
-                    simpleTransitions = plain,
+                    simpleTransitions = plain.simpleTransitions,
+                    homeHero = plain.tvHomeHero,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvSettingsUiState.Loading)
 
@@ -99,6 +102,23 @@ class TvSettingsViewModel
                 is TvSettingsAction.SetAppMode -> {
                     dialog.value = null
                     viewModelScope.launch { appMode.setMode(action.mode) }
+                }
+
+                TvSettingsAction.NextHomeHero -> {
+                    val repo = libraryPreferences ?: return
+                    viewModelScope.launch {
+                        val navigation = repo.preferences.first().navigation
+                        val all = TvHomeHero.entries
+                        repo.setNavigation(
+                            navigation.copy(
+                                tvHomeHero =
+                                    all[
+                                        (navigation.tvHomeHero.ordinal + 1) %
+                                            all.size,
+                                    ],
+                            ),
+                        )
+                    }
                 }
 
                 TvSettingsAction.ToggleSimpleTransitions -> {
@@ -172,5 +192,5 @@ private data class TvSettingsExtras(
     val dialog: TvSettingsDialog?,
     val mode: io.github.kentprodan.mediatheq.core.model.AppMode,
     val video: io.github.kentprodan.mediatheq.core.data.VideoPreferences,
-    val simpleTransitions: Boolean,
+    val simpleTransitions: NavigationPreferences,
 )

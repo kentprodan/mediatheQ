@@ -52,6 +52,7 @@ import io.github.kentprodan.mediatheq.core.data.GenreItem
 import io.github.kentprodan.mediatheq.core.data.GenreRow
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
+import io.github.kentprodan.mediatheq.core.data.TvHomeHero
 import io.github.kentprodan.mediatheq.core.data.genreRows
 import io.github.kentprodan.mediatheq.core.data.resumePosition
 import io.github.kentprodan.mediatheq.core.designsystem.tv.FocusMemory
@@ -148,7 +149,7 @@ fun TvHomeScreen(
         }
 
         is TvHomeUiState.Content -> {
-            Rows(state.rows, state.genreRows, onAction, navigation, modifier)
+            Rows(state.rows, state.genreRows, state.hero, onAction, navigation, modifier)
         }
     }
 }
@@ -165,6 +166,7 @@ private data class Menu(
 private fun Rows(
     rows: List<TvHomeRow>,
     genreRows: List<GenreRow>,
+    heroMode: TvHomeHero,
     onAction: (TvHomeAction) -> Unit,
     navigation: TvHomeNavigation,
     modifier: Modifier,
@@ -186,14 +188,15 @@ private fun Rows(
                 openVideoMenu = { videoMenu = it },
             ) { menu = it }
         }
-    val hasVideo = rows.any { it.items is HomeItems.Videos } || genreRows.isNotEmpty()
+    // The header (#504): none by default; Compact or Large from Settings -> Display, with video in the mode.
+    val hasVideo = heroMode != TvHomeHero.None && (rows.any { it.items is HomeItems.Videos } || genreRows.isNotEmpty())
     // Genre rows (#431) follow the last video row.
     val split = rows.indexOfLast { it.items is HomeItems.Videos } + 1
     Box(modifier.fillMaxSize()) {
-        if (hasVideo) HeroBackdrop(hero, Modifier.matchParentSize())
+        if (hasVideo && heroMode == TvHomeHero.Large) HeroBackdrop(hero, Modifier.matchParentSize())
         Column(Modifier.fillMaxSize()) {
             // Fixed at the top (#504): the rows scroll under it, the focused row always lands just below it.
-            if (hasVideo) HeroText(hero)
+            if (hasVideo) HeroText(hero, compact = heroMode == TvHomeHero.Compact)
             CompositionLocalProvider(LocalBringIntoViewSpec provides RowsToTop) {
                 LazyColumn(
                     Modifier.fillMaxSize(),
@@ -629,7 +632,10 @@ private fun HeroBackdrop(
 ) = MqTvBackdrop(hero.value?.backdrop, modifier) {}
 
 @Composable
-private fun HeroText(hero: State<HeroInfo?>) = Hero(hero.value)
+private fun HeroText(
+    hero: State<HeroInfo?>,
+    compact: Boolean,
+) = Hero(hero.value, compact)
 
 /** The focused row lands just below the hero (#504), at the same place every time, like Google TV. */
 private val RowsToTop =
@@ -646,15 +652,18 @@ private const val ROW_HEADER_PX = 140f
 
 /** The top of Home with video (#431): the focused video's title, facts and overview over its backdrop. */
 @Composable
-private fun Hero(info: HeroInfo?) {
+private fun Hero(
+    info: HeroInfo?,
+    compact: Boolean = false,
+) {
     Column(
-        Modifier.fillMaxWidth().height(HERO_HEIGHT).padding(horizontal = EDGE),
-        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
+        Modifier.fillMaxWidth().height(if (compact) COMPACT_HERO_HEIGHT else HERO_HEIGHT).padding(horizontal = EDGE),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp, Alignment.Bottom),
     ) {
         if (info == null) return@Column
         Text(
             info.title,
-            style = MaterialTheme.typography.displaySmall,
+            style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.displaySmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -667,7 +676,7 @@ private fun Hero(info: HeroInfo?) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        info.overview?.let {
+        info.overview?.takeUnless { compact }?.let {
             Text(
                 it,
                 Modifier.widthIn(max = 760.dp),
@@ -684,6 +693,7 @@ private fun episodeLabel(video: Video): String =
     listOfNotNull(video.seasonNumber?.let { "S$it" }, video.episodeNumber?.let { "E$it" }).joinToString(" · ")
 
 private val HERO_HEIGHT = 260.dp
+private val COMPACT_HERO_HEIGHT = 96.dp
 
 // Guideline card widths (#507): 4 wide cards or 5 posters per screen, 20 dp apart.
 private val WIDE_CARD = 196.dp
