@@ -76,7 +76,7 @@ playlist pages (#238); `:feature-tv:artist` the artist page (#239);
 `:feature-tv:nowplaying` the full-screen player and queue (#240); `:feature-tv:search` Search with result rows and recent searches (#244); `:feature-tv:settings` Settings and the licenses (#243,
 the licenses report parsed by `:core:common`'s `licenseEntries`, shared with the phone); more `:feature-tv:*` come with TV 1.
 
-Later phases add (do not create early): `:provider:subsonic`, `:provider:plex`, `:auto`, `:wear`.
+Later phases add (do not create early): `:provider:subsonic`, `:auto`, `:wear`. No Plex provider (owner, 2026-11-18): Jellyfin and Navidrome only.
 A module is created in the issue that first needs it, never "for later".
 
 ## 2. Dependency rules (enforced, not suggested)

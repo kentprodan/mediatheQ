@@ -46,6 +46,8 @@ data class VideoPreferences(
     val hideUnwatchedOverviews: Boolean = false,
     /** How subtitles look (#429); every part follows the system caption style by default. */
     val subtitleStyle: SubtitleStyle = SubtitleStyle(),
+    /** A notification when a followed series gets a new episode (#446). */
+    val newEpisodeNotifications: Boolean = true,
     /** Downloads made by hand go once watched, after this delay (#413). */
     val watchedRemoval: WatchedRemoval = WatchedRemoval.Off,
     /** When [watchedRemoval] was turned on: only plays after it count, so turning it on never empties the downloads. */
@@ -141,6 +143,7 @@ internal fun StoredVideoPreferences.toPreferences(): VideoPreferences {
         skipCredits = enumOrNull<SkipMode>(skipCredits) ?: defaults.skipCredits,
         skipRecapPreview = enumOrNull<SkipMode>(skipRecapPreview) ?: defaults.skipRecapPreview,
         hideUnwatchedOverviews = hideUnwatchedOverviews ?: defaults.hideUnwatchedOverviews,
+        newEpisodeNotifications = newEpisodeNotifications ?: defaults.newEpisodeNotifications,
         watchedRemoval = enumOrNull<WatchedRemoval>(watchedRemoval) ?: defaults.watchedRemoval,
         watchedRemovalSince = watchedRemovalSince?.let(Instant::fromEpochMilliseconds),
         displayMatch = enumOrNull<DisplayMatch>(displayMatch) ?: defaults.displayMatch,
@@ -172,6 +175,7 @@ internal fun VideoPreferences.toStored(): StoredVideoPreferences {
         skipCredits = skipCredits.unlessDefault(defaults.skipCredits)?.name,
         skipRecapPreview = skipRecapPreview.unlessDefault(defaults.skipRecapPreview)?.name,
         hideUnwatchedOverviews = hideUnwatchedOverviews.unlessDefault(defaults.hideUnwatchedOverviews),
+        newEpisodeNotifications = newEpisodeNotifications.unlessDefault(defaults.newEpisodeNotifications),
         watchedRemoval = watchedRemoval.unlessDefault(defaults.watchedRemoval)?.name,
         watchedRemovalSince = watchedRemovalSince?.toEpochMilliseconds(),
         displayMatch = displayMatch.unlessDefault(defaults.displayMatch)?.name,

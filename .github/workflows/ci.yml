@@ -28,9 +28,8 @@ jobs:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Check
-        # A private repository runner has about 7 GB: two workers, and Kotlin compiles inside the Gradle daemon
-        # (a separate Kotlin daemon takes its own 4 GB heap; the runner was starved and lost).
-        run: ./gradlew --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process spotlessCheck assembleDebug :baselineprofile:assembleBenchmarkRelease :app:assembleDaily :app-tv:assembleDaily testDebugUnitTest validateDebugScreenshotTest lint --continue
+        # The repository is public: the runner has 4 cores and 16 GB, enough for four workers and the Kotlin daemon.
+        run: ./gradlew --max-workers=4 spotlessCheck assembleDebug :baselineprofile:assembleBenchmarkRelease :app:assembleDaily :app-tv:assembleDaily testDebugUnitTest validateDebugScreenshotTest lint --continue
 
       - name: Upload reports
         if: failure()

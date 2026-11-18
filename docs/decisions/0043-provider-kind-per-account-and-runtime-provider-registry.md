@@ -32,6 +32,6 @@ provider is chosen before an account exists.
 - No new module edge: `:app` already depends on everything; providers still see only `:core:server`,
   `:core:network`, `:core:model`, `:core:common`.
 - Fakes: `FakeMediaServer` with configurable capabilities in `:core:testing`; the existing `Fake*Source`s stay.
-- A third provider (Plex, Servers 2) is one more map entry and one more enum value.
+- A third provider would be one more map entry and one more enum value (none is planned: no Plex, owner 2026-11-18).
 - Behavior that depends on a capability (hidden Quick Connect, no live sync, 5-step ratings, no Atmos note) is
   tested once in `:core:data` / the feature with the fake, not per provider.
