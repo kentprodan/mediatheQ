@@ -16,6 +16,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
@@ -23,7 +24,6 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
-import androidx.tv.material3.DrawerValue
 import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -60,14 +60,13 @@ class TvShellTest {
 
     private data object NoScreenKey : NavKey
 
-    private fun show(drawer: DrawerValue = DrawerValue.Closed) {
+    private fun show() {
         composeRule.setContent {
             MediatheqTvTheme {
                 TvShell(
                     backStack,
                     PlayerUiModel(),
                     onUnknown = { unknown += it },
-                    initialDrawer = drawer,
                     onClose = { closed++ },
                 ) { navigator ->
                     entry(HomeKey) {
@@ -90,14 +89,16 @@ class TvShellTest {
         }
     }
 
-    private fun pressBack() = composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+    private fun pressBack() {
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+    }
 
     @Test
-    fun `a drawer entry shows its screen, Back from it lands on Home, Back on Home asks to close`() {
-        // The drawer as it is with focus in it: open, its entries named.
-        show(DrawerValue.Open)
+    fun `an entry shows its screen, Back from it lands on Home, Back on Home asks to close`() {
+        show()
 
-        composeRule.onNodeWithText("Library").performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.onNodeWithContentDescription("Library").performSemanticsAction(SemanticsActions.RequestFocus)
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
         composeRule.onNodeWithText("Library screen").assertExists()
 
@@ -105,7 +106,8 @@ class TvShellTest {
         composeRule.onNodeWithText("First album").assertExists()
         assertThat(backStack).containsExactly(HomeKey)
 
-        // On Home Back asks first (#343); Close stops the music and leaves.
+        // On Home Back opens the menu (#508), then asks (#343); Close stops the music and leaves.
+        pressBack()
         pressBack()
         composeRule.onNodeWithText("Close mediatheQ?").assertExists()
         composeRule.onNodeWithText("Close").assertIsFocused().performKeyInput { pressKey(Key.DirectionCenter) }
@@ -117,6 +119,8 @@ class TvShellTest {
     fun `Cancel or Back in the close question keeps the app on Home`() {
         show()
 
+        // The first Back opens the menu (#508), the next one asks.
+        pressBack()
         pressBack()
         // Close is focused; the key goes to the dialog's window.
         composeRule.onNodeWithText("Close").performKeyInput {
@@ -143,15 +147,15 @@ class TvShellTest {
     }
 
     @Test
-    fun `focus entering the drawer lands on the selected entry, not the one focused last`() {
+    fun `focus coming left into the menu lands on the selected entry, not the one focused last (#508)`() {
         show()
         composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
 
-        // Into the drawer, down to Search without selecting it, back to the content, into the drawer again.
+        // Into the menu, down to Movies without selecting it, back to the screen, into the menu again.
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
         composeRule.onNodeWithText("Home").assertIsFocused()
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
-        composeRule.onNodeWithText("Search").assertIsFocused()
+        composeRule.onNodeWithText("Movies").assertIsFocused()
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
 
@@ -159,25 +163,25 @@ class TvShellTest {
     }
 
     @Test
-    fun `the first Left from content far down the screen lands on the selected entry too`() {
-        // #342: content level with a lower entry (Now playing, Settings) took the focus there on the first entry.
-        composeRule.setContent {
-            MediatheqTvTheme {
-                TvShell(backStack, PlayerUiModel(), onUnknown = {}) { _ ->
-                    entry(HomeKey) {
-                        Column {
-                            Spacer(Modifier.height(360.dp))
-                            MqTvButton("Low album", {})
-                        }
-                    }
-                }
-            }
-        }
-        composeRule.onNodeWithText("Low album").performSemanticsAction(SemanticsActions.RequestFocus)
+    fun `Back from the screen opens the menu on the selected entry (#508)`() {
+        show()
+        composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
 
-        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+        pressBack()
 
         composeRule.onNodeWithText("Home").assertIsFocused()
+        assertThat(backStack).containsExactly(HomeKey)
+    }
+
+    @Test
+    fun `a detail page has the whole screen, without the tabs (#515)`() {
+        show()
+        composeRule.onNodeWithContentDescription("Search").assertExists()
+        composeRule.onNodeWithText("Second album").performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
+
+        composeRule.onNodeWithText("Album page").assertExists()
+        composeRule.onNodeWithContentDescription("Search").assertDoesNotExist()
     }
 
     @Test

@@ -237,7 +237,7 @@ private fun CardRow(
             LazyRow(
                 Modifier.fillMaxWidth().focusRestorer(),
                 contentPadding = PaddingValues(horizontal = EDGE, vertical = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
                 content = content,
             )
         }
@@ -684,6 +684,8 @@ private fun episodeLabel(video: Video): String =
     listOfNotNull(video.seasonNumber?.let { "S$it" }, video.episodeNumber?.let { "E$it" }).joinToString(" · ")
 
 private val HERO_HEIGHT = 260.dp
-private val WIDE_CARD = 300.dp
-private val POSTER_CARD = 150.dp
+
+// Guideline card widths (#507): 4 wide cards or 5 posters per screen, 20 dp apart.
+private val WIDE_CARD = 196.dp
+private val POSTER_CARD = 124.dp
 private val HERO_DELAY = 500.milliseconds
