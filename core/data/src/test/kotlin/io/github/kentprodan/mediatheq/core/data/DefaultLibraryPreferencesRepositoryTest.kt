@@ -332,13 +332,13 @@ class DefaultLibraryPreferencesRepositoryTest {
         }
 
     @Test
-    fun `the theme defaults to system mode, Iris, cover colors and the system font`() =
+    fun `the theme defaults to system mode, Material You, cover colors and the system font`() =
         runTest {
             assertThat(repository.preferences.first().theme)
                 .isEqualTo(
                     ThemePreferences(
                         mode = ThemeMode.System,
-                        colorSource = ColorSource.Iris,
+                        colorSource = ColorSource.MaterialYou,
                         customSeed = 0xFF5B45D6.toInt(),
                         nowPlayingColors = NowPlayingColors.Cover,
                         ignoreSurfaces = false,

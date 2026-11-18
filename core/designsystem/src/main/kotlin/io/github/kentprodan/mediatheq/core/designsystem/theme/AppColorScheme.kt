@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 
 /**
  * The app scheme for [options] when the theme [isDark] and [isBlack]: Iris, Material You ([dynamic] gives the
- * wallpaper scheme, Android 12+) or a scheme generated from the custom seed (`SchemeVibrant`, like Iris).
+ * wallpaper scheme, Android 12+) or the custom seed, both neutral with the seed as the accent ([neutralColorScheme], #530).
  */
 fun appColorScheme(
     options: MqThemeOptions,
@@ -17,7 +17,7 @@ fun appColorScheme(
         when (options.colorSource) {
             MqColorSource.Iris -> if (isDark) IrisDarkColorScheme else IrisLightColorScheme
             MqColorSource.MaterialYou -> dynamic(isDark)
-            MqColorSource.Custom -> coverColorScheme(options.customSeed, isDark, vibrant = true)
+            MqColorSource.Custom -> neutralColorScheme(options.customSeed, isDark)
         }
     return if (isBlack) scheme.blackened() else scheme
 }

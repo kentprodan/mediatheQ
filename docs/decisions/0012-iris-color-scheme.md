@@ -26,3 +26,15 @@ TonalSpot desaturates the seed into a greyish violet; Vibrant keeps the intended
 
 - Colors are more saturated than the Theme Builder default; screenshot references show the exact result.
 - Dynamic color (Material You) stays optional and off by default.
+
+## Amendment 2026-11-18 (#530): neutral Iris, Material You by default
+
+Owner decision after reading Android's color guidance ("an oversaturated look can result in using only the base
+roles"; surfaces neutral, accents mindful): the Vibrant neutrals tinted every background and container violet.
+
+- Iris = `neutralColorScheme(#5B45D6)`: background, surfaces, containers, secondary, outline and inverse roles from MCU
+  `SchemeNeutral`; primary, tertiary (and their fixed roles, inverse primary, surface tint) from `SchemeVibrant`, so
+  the accent keeps the Iris color. Built at run time from the seed (materialkolor), no generated table in `Color.kt`.
+- A custom seed uses the same neutral scheme.
+- Material You is the default color source for new and unset installs; Iris is the choice in Settings.
+- Cover colors (ADR 0017) are unchanged.

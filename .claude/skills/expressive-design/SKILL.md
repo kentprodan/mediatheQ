@@ -68,9 +68,9 @@ APIs that changed a lot during 1.5 alphas - always check the current signature:
 
 ### Color - Iris
 
-- Default palette: **Iris**. Seed `#5B45D6` (light), primary in dark `#A391FF`.
-- Generate the full tonal schemes once with Material Theme Builder (seed `#5B45D6`, scheme variant per ADR), export to Kotlin, store as `IrisLightColorScheme` / `IrisDarkColorScheme`. Do not hand-pick individual roles.
-- Material You (dynamic color) and a custom seed (`SchemeVibrant`, like Iris) are the other color sources (#121).
+- Default color source: **Material You** (dynamic color, #530). **Iris** (seed `#5B45D6`) and a custom seed are the other sources (#121).
+- Iris and custom colors are `neutralColorScheme(seed, isDark)` (ADR 0012 amendment): neutral background, surfaces, containers and secondary roles (MCU `SchemeNeutral`), the seed only in primary and tertiary (`SchemeVibrant`). `IrisLightColorScheme` / `IrisDarkColorScheme` are built once (lazy). Do not hand-pick individual roles.
+- Accent mindfully (Android color guidance): `primary` for the one main action, progress and the active item; everything decorative on neutral `surfaceContainer*` / `secondaryContainer`. Never a tinted container just to fill space.
 - Screens use **color roles only** (`MaterialTheme.colorScheme.primaryContainer`, etc.). No hex values outside `theme/`.
 - Contrast: keep text on its matching `on*` role. No custom alpha on text below 0.6.
 
