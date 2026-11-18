@@ -87,6 +87,39 @@ class AppColorSchemeTest {
     }
 
     @Test
+    fun `Iris is neutral with Iris as the accent, and every text pair keeps its contrast`() {
+        val chroma = { color: Color -> Hct.fromInt(color.value.shr(32).toInt()).chroma }
+        val hue = { color: Color -> Hct.fromInt(color.value.shr(32).toInt()).hue }
+
+        listOf(IrisLightColorScheme, IrisDarkColorScheme).forEach { iris ->
+            listOf(
+                iris.background,
+                iris.surface,
+                iris.surfaceContainer,
+                iris.surfaceContainerHigh,
+                iris.secondaryContainer,
+            ).forEach { assertThat(chroma(it)).isLessThan(8.0) }
+            assertThat(chroma(iris.primary)).isGreaterThan(40.0)
+            assertThat(kotlin.math.abs(hue(iris.primary) - Hct.fromInt(MqThemeOptions.IRIS_SEED).hue)).isLessThan(15.0)
+            listOf(
+                iris.onSurface to iris.surface,
+                iris.onSurfaceVariant to iris.surfaceContainerHigh,
+                iris.onPrimary to iris.primary,
+                iris.onPrimaryContainer to iris.primaryContainer,
+                iris.onSecondaryContainer to iris.secondaryContainer,
+            ).forEach { (text, back) -> assertThat(contrast(text, back)).isAtLeast(4.5) }
+        }
+    }
+
+    private fun contrast(
+        a: Color,
+        b: Color,
+    ): Double {
+        val (light, dark) = listOf(a.luminance(), b.luminance()).sortedDescending()
+        return (light + 0.05) / (dark + 0.05)
+    }
+
+    @Test
     fun `a custom seed gives a full light and dark scheme in its hue`() {
         val light = scheme(MqThemeOptions(colorSource = MqColorSource.Custom, customSeed = teal))
         val dark = scheme(MqThemeOptions(MqThemeMode.Dark, MqColorSource.Custom, customSeed = teal))

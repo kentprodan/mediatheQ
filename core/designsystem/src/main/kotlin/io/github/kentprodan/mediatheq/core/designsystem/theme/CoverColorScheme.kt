@@ -10,6 +10,7 @@ import com.materialkolor.hct.Hct
 import com.materialkolor.quantize.QuantizerCelebi
 import com.materialkolor.scheme.DynamicScheme
 import com.materialkolor.scheme.SchemeContent
+import com.materialkolor.scheme.SchemeNeutral
 import com.materialkolor.scheme.SchemeVibrant
 import com.materialkolor.score.Score
 
@@ -25,7 +26,7 @@ fun coverSeedColor(pixels: IntArray): Int? {
 
 /**
  * The full color scheme built from [seed] (spec 2025): MCU `SchemeContent` for covers (ADR 0017), or `SchemeVibrant`
- * when [vibrant], like Iris (ADR 0012) and custom colors.
+ * when [vibrant] (the vibrant cover colors, and the accents of [neutralColorScheme]).
  */
 fun coverColorScheme(
     seed: Int,
@@ -41,6 +42,53 @@ fun coverColorScheme(
         } else {
             SchemeContent(hct, isDark, contrastLevel = 0.0, specVersion = spec, platform = platform)
         }
+    return colorSchemeOf(scheme)
+}
+
+/**
+ * Iris and custom colors (#530, Android's color guidance): neutral background, surfaces, containers and secondary roles
+ * (MCU `SchemeNeutral`), [seed] only in the accent roles (primary, tertiary, from `SchemeVibrant` so Iris keeps its
+ * color, ADR 0012), so the app is not tinted by one color.
+ */
+fun neutralColorScheme(
+    seed: Int,
+    isDark: Boolean,
+): ColorScheme {
+    val accent = coverColorScheme(seed, isDark, vibrant = true)
+    val neutral =
+        colorSchemeOf(
+            SchemeNeutral(
+                Hct.fromInt(seed),
+                isDark,
+                contrastLevel = 0.0,
+                specVersion = ColorSpec.SpecVersion.SPEC_2025,
+                platform = DynamicScheme.Platform.PHONE,
+            ),
+        )
+    return neutral.copy(
+        primary = accent.primary,
+        onPrimary = accent.onPrimary,
+        primaryContainer = accent.primaryContainer,
+        onPrimaryContainer = accent.onPrimaryContainer,
+        inversePrimary = accent.inversePrimary,
+        surfaceTint = accent.surfaceTint,
+        tertiary = accent.tertiary,
+        onTertiary = accent.onTertiary,
+        tertiaryContainer = accent.tertiaryContainer,
+        onTertiaryContainer = accent.onTertiaryContainer,
+        primaryFixed = accent.primaryFixed,
+        primaryFixedDim = accent.primaryFixedDim,
+        onPrimaryFixed = accent.onPrimaryFixed,
+        onPrimaryFixedVariant = accent.onPrimaryFixedVariant,
+        tertiaryFixed = accent.tertiaryFixed,
+        tertiaryFixedDim = accent.tertiaryFixedDim,
+        onTertiaryFixed = accent.onTertiaryFixed,
+        onTertiaryFixedVariant = accent.onTertiaryFixedVariant,
+    )
+}
+
+/** Every Compose role of an MCU [scheme]. */
+private fun colorSchemeOf(scheme: DynamicScheme): ColorScheme {
     val colors = MaterialDynamicColors()
     // Every role is set, so lightColorScheme's defaults never apply (also for dark schemes).
     return lightColorScheme(

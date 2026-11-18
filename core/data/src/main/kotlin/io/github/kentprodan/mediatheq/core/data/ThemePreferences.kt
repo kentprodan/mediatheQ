@@ -26,7 +26,8 @@ enum class AppFont {
 /** Settings -> Interface -> Theme, font and colors (#121). */
 data class ThemePreferences(
     val mode: ThemeMode = ThemeMode.System,
-    val colorSource: ColorSource = ColorSource.Iris,
+    // Material You by default (#530, Android's color guidance); Iris is the choice in Settings.
+    val colorSource: ColorSource = ColorSource.MaterialYou,
     /** Seed of [ColorSource.Custom] as opaque ARGB; Iris's seed until one is picked. */
     val customSeed: Int = IRIS_SEED,
     val nowPlayingColors: NowPlayingColors = NowPlayingColors.Cover,
