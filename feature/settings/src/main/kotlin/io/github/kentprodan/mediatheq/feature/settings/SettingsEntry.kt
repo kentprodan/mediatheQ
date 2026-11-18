@@ -29,6 +29,7 @@ import io.github.kentprodan.mediatheq.core.navigation.NowPlayingSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.OnboardingLoginKey
 import io.github.kentprodan.mediatheq.core.navigation.OutputKey
 import io.github.kentprodan.mediatheq.core.navigation.OutputSettingsKey
+import io.github.kentprodan.mediatheq.core.navigation.ParentalControlsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackBehaviorSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistPageSettingsKey
@@ -122,7 +123,16 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             onOpenVideo = { navigator.navigateTo(VideoSettingsKey) },
         )
     }
-    entry<VideoSettingsKey> { SettingsPageRoute(SettingsPage.Video, openOutputs, back) }
+    entry<VideoSettingsKey> {
+        SettingsPageRoute(
+            SettingsPage.Video,
+            openOutputs,
+            back,
+            onOpenParental = { navigator.navigateTo(ParentalControlsKey) },
+        )
+    }
+    // Parental controls (#443): the TV's key, the phone's page.
+    entry<ParentalControlsKey> { ParentalRoute(back) }
     entry<PlaybackBehaviorSettingsKey> { SettingsPageRoute(SettingsPage.PlaybackBehavior, openOutputs, back) }
     entry<DecodingSettingsKey> { SettingsPageRoute(SettingsPage.Decoding, openOutputs, back) }
     entry<AudioFocusSettingsKey> { SettingsPageRoute(SettingsPage.AudioFocus, openOutputs, back) }

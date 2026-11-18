@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.home
 
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import io.github.kentprodan.mediatheq.core.navigation.AddAccountKey
 import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.ArtistKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
@@ -32,6 +33,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
                 onPlayVideo = { id, start -> navigator.navigateTo(VideoPlayerKey(id, start.inWholeMilliseconds)) },
                 onOpenMovie = { navigator.navigateTo(MovieKey(it)) },
                 onOpenSeries = { navigator.navigateTo(SeriesKey(it)) },
+                onAddProfile = { navigator.navigateTo(AddAccountKey) },
             ),
         )
     }
