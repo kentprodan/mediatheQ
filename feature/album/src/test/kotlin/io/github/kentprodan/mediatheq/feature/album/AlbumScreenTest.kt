@@ -63,7 +63,7 @@ class AlbumScreenTest {
         }
 
         composeRule.onNodeWithText("Play").performClick()
-        composeRule.onNodeWithContentDescription("Shuffle").performClick()
+        composeRule.onNodeWithText("Shuffle").performClick()
         // The big header pushes the tracks below the fold of the test screen.
         composeRule.onNode(list).performScrollToNode(hasText("Track 2"))
         composeRule.onNodeWithText("Track 2").performClick()
@@ -82,7 +82,7 @@ class AlbumScreenTest {
         }
 
         composeRule.onNodeWithText("Play").assertIsNotEnabled()
-        composeRule.onNodeWithContentDescription("Shuffle").assertIsNotEnabled()
+        composeRule.onNodeWithText("Shuffle").assertIsNotEnabled()
     }
 
     @Test
@@ -186,8 +186,12 @@ class AlbumScreenTest {
         }
 
         composeRule.onNodeWithText("Resume").performClick()
+        // One main button (#531): Play from start is in More.
+        composeRule.onNodeWithText("Play").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("More options for Satelit").performClick()
+        composeRule.onNodeWithText("Play from start").performClick()
 
-        assertThat(actions).containsExactly(AlbumAction.Resume)
+        assertThat(actions).containsExactly(AlbumAction.Resume, AlbumAction.Play).inOrder()
     }
 
     @Test
@@ -209,7 +213,7 @@ class AlbumScreenTest {
             )
         composeRule.setContent { MediatheqTheme { AlbumScreen(albumId, hidden, { actions += it }, onBack = {}) } }
 
-        composeRule.onNodeWithContentDescription("Shuffle").assertDoesNotExist()
+        composeRule.onNodeWithText("Shuffle").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("Play next").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("Add to queue").assertExists()
         composeRule.onNodeWithContentDescription("More options for Satelit").performClick()

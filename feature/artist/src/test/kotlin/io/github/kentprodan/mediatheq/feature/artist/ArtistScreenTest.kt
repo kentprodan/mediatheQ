@@ -59,7 +59,7 @@ class ArtistScreenTest {
         }
 
         composeRule.onNodeWithText("Play").performClick()
-        composeRule.onNodeWithContentDescription("Shuffle").performClick()
+        composeRule.onNodeWithText("Shuffle").performClick()
         // The big header pushes the sections below the fold of the test screen.
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Moșoi"))
         composeRule.onNodeWithText("Moșoi").performClick()

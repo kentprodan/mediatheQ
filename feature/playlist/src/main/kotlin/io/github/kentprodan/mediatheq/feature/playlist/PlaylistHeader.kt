@@ -16,8 +16,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -154,39 +154,48 @@ private fun HeaderButtons(
     val enabled = state.items.isNotEmpty()
     val favorite = state.playlist.userData.isFavorite
     val onFavorite = { it: Boolean -> onAction(PlaylistAction.SetPlaylistFavorite(it)) }
+    val resume = state.resume != null && state.shows(PlaylistButton.Resume)
     FlowRow(
         Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
         horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s, Alignment.CenterHorizontally),
         verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Button(onClick = { onAction(PlaylistAction.Play) }, enabled = enabled) {
-            Icon(MqIcons.PlayArrow, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-            Text(stringResource(R.string.playlist_play), Modifier.padding(start = ButtonDefaults.IconSpacing))
-        }
-        if (state.resume != null && state.shows(PlaylistButton.Resume)) {
-            FilledTonalButton(onClick = { onAction(PlaylistAction.Resume) }) {
+        // One main button (#531): Resume when there is a resume point, else Play; the other one is in More.
+        if (resume) {
+            Button(onClick = { onAction(PlaylistAction.Resume) }) {
                 Icon(MqIcons.Resume, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
                 Text(stringResource(R.string.playlist_resume), Modifier.padding(start = ButtonDefaults.IconSpacing))
             }
+        } else {
+            Button(onClick = { onAction(PlaylistAction.Play) }, enabled = enabled) {
+                Icon(MqIcons.PlayArrow, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                Text(stringResource(R.string.playlist_play), Modifier.padding(start = ButtonDefaults.IconSpacing))
+            }
         }
         if (state.shows(PlaylistButton.Shuffle)) {
-            FilledTonalIconButton(onClick = { onAction(PlaylistAction.Shuffle) }, enabled = enabled) {
-                Icon(MqIcons.Shuffle, stringResource(R.string.playlist_shuffle))
+            FilledTonalButton(onClick = { onAction(PlaylistAction.Shuffle) }, enabled = enabled) {
+                Icon(MqIcons.Shuffle, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                Text(stringResource(R.string.playlist_shuffle), Modifier.padding(start = ButtonDefaults.IconSpacing))
             }
         }
         if (state.shows(PlaylistButton.PlayNext)) {
-            FilledTonalIconButton(onClick = { onAction(PlaylistAction.PlayAllNext) }, enabled = enabled) {
+            IconButton(onClick = { onAction(PlaylistAction.PlayAllNext) }, enabled = enabled) {
                 Icon(MqIcons.PlayNext, stringResource(R.string.playlist_play_next))
             }
         }
         if (state.shows(PlaylistButton.AddToQueue)) {
-            FilledTonalIconButton(onClick = { onAction(PlaylistAction.AddAllToQueue) }, enabled = enabled) {
+            IconButton(onClick = { onAction(PlaylistAction.AddAllToQueue) }, enabled = enabled) {
                 Icon(MqIcons.AddToQueue, stringResource(R.string.playlist_add_to_queue))
             }
         }
         if (state.shows(PlaylistButton.Favorite)) MqFavoriteToggle(favorite, onFavorite)
         OverflowMenu(stringResource(R.string.playlist_more_options, state.playlist.name)) { close ->
+            if (resume) {
+                ActionItem(R.string.playlist_play_from_start, { onAction(PlaylistAction.Play) }, close) {
+                    Icon(MqIcons.PlayArrow, contentDescription = null)
+                }
+            }
             if (state.resume != null && !state.shows(PlaylistButton.Resume)) {
                 ActionItem(R.string.playlist_resume, { onAction(PlaylistAction.Resume) }, close) {
                     Icon(MqIcons.Resume, contentDescription = null)

@@ -30,7 +30,8 @@ enum class ArtistPlayAction {
 /** Settings -> Interface -> Page settings -> Artist page (#133). */
 data class ArtistPagePreferences(
     val headerBackground: ArtistHeaderBackground = ArtistHeaderBackground.Backdrop,
-    val hiddenButtons: Set<ArtistButton> = emptySet(),
+    /** Play next and Add to queue live in More by default (#531). */
+    val hiddenButtons: Set<ArtistButton> = setOf(ArtistButton.PlayNext, ArtistButton.AddToQueue),
     val playAction: ArtistPlayAction = ArtistPlayAction.Albums,
     /** Every section once, in order. */
     val sectionOrder: List<ArtistSection> = DEFAULT_SECTIONS,

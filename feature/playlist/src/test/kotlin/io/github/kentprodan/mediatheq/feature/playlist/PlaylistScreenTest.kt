@@ -155,7 +155,7 @@ class PlaylistScreenTest {
         show(resumed.copy(page = PlaylistPagePreferences(hiddenButtons = setOf(PlaylistButton.Shuffle))), actions)
 
         composeRule.onNodeWithText("Resume").performClick()
-        composeRule.onNodeWithContentDescription("Shuffle").assertDoesNotExist()
+        composeRule.onNodeWithText("Shuffle").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("More options for Drum").performClick()
         composeRule.onNodeWithText("Shuffle").performClick()
 
