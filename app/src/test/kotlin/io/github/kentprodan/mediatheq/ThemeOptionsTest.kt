@@ -39,8 +39,11 @@ class ThemeOptionsTest {
     }
 
     @Test
-    fun `the defaults map to the design system defaults`() {
-        assertThat(ThemePreferences().toThemeOptions()).isEqualTo(MqThemeOptions())
+    fun `the defaults map to the design system defaults, with Material You as the app's color source`() {
+        // The app starts on Material You (#530); the design system's own default stays Iris for previews.
+        assertThat(
+            ThemePreferences().toThemeOptions(),
+        ).isEqualTo(MqThemeOptions(colorSource = MqColorSource.MaterialYou))
         assertThat(
             ThemePreferences(
                 ThemeMode.SystemBlack,

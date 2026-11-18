@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.ThemeMode
 import io.github.kentprodan.mediatheq.core.data.ThemePreferences
 import io.github.kentprodan.mediatheq.core.data.TrackDownload
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MqColorSource
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqCornerScale
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeMode
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
@@ -121,9 +122,10 @@ class MainViewModelTest {
             assertThat(viewModel.theme.value).isNull()
 
             viewModel.theme.test {
-                assertThat(awaitItem()).isEqualTo(MqThemeOptions())
+                assertThat(awaitItem()).isEqualTo(MqThemeOptions(colorSource = MqColorSource.MaterialYou))
                 libraryPreferences.setTheme(ThemePreferences(ThemeMode.Black))
-                assertThat(awaitItem()).isEqualTo(MqThemeOptions(mode = MqThemeMode.Black))
+                assertThat(awaitItem())
+                    .isEqualTo(MqThemeOptions(mode = MqThemeMode.Black, colorSource = MqColorSource.MaterialYou))
                 libraryPreferences.setAdvanced(AdvancedPreferences(corners = CornerStyle.Large))
                 assertThat(awaitItem()?.cornerScale).isEqualTo(MqCornerScale.Large)
             }
