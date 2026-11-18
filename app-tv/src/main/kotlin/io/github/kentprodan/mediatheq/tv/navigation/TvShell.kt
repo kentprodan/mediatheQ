@@ -253,7 +253,8 @@ fun TvFrame(
     val screen = remember { FocusRequester() }
     var open by remember { mutableStateOf(false) }
     val active = selected.takeIf { it in destinations } ?: TvDestination.Home
-    Box(Modifier.fillMaxSize()) {
+    // The neutral background also behind the island's margin (the window's own color would show there).
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // The screen stays at the same place in the tree with or without the menu, so it keeps its state.
         Box(
             Modifier
@@ -409,8 +410,9 @@ private fun MenuEntry(
 private fun entryColors(selected: Boolean): ClickableSurfaceColors {
     val scheme = MaterialTheme.colorScheme
     return ClickableSurfaceDefaults.colors(
-        containerColor = if (selected) scheme.secondaryContainer else Color.Transparent,
-        contentColor = if (selected) scheme.onSecondaryContainer else scheme.onSurfaceVariant,
+        // The accent marks the active entry only (#517).
+        containerColor = if (selected) scheme.primaryContainer else Color.Transparent,
+        contentColor = if (selected) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
         focusedContainerColor = scheme.inverseSurface,
         focusedContentColor = scheme.inverseOnSurface,
     )
