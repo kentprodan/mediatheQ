@@ -71,9 +71,15 @@ class TabNavigator(
         }
     }
 
+    /** Decides whether a key may open (#443: the age gate); it calls the continuation when it may. */
+    var guard: ((NavKey, () -> Unit) -> Unit)? = null
+
     override fun navigateTo(key: NavKey) {
-        lastWasTabSwitch = false
-        stacks.getValue(currentTab).add(key)
+        val push: () -> Unit = {
+            lastWasTabSwitch = false
+            stacks.getValue(currentTab).add(key)
+        }
+        guard?.invoke(key, push) ?: push()
     }
 
     override fun back(): Boolean {

@@ -18,13 +18,13 @@ Milestones are named by platform (or by server provider) and run in this order:
 | Order | Milestone | Was | Content |
 |---|---|---|---|
 | 1 | Mobile 0 · Foundation | F0 | project setup, CI, design system, navigation shell, server login (done) |
-| 2 | Mobile 1 · Music | F1 | the music app on the Pixel 9; exit: a week of daily use instead of Symfonium (#72) |
+| 2 | Mobile 1 · Music | F1 | the music app on the Pixel 9; closed 2026-11-18 without the week log of #72 (the owner gives feedback continuously) |
 | 3 | Mobile 2 · Polish | new | the owner's interface changes and polish of the phone app |
 | 4 | TV 1 · Music + Atmos | F2 | Compose for TV music app with E-AC-3 JOC / TrueHD passthrough |
 | 5 | Mobile 3 · Video, TV 2 · Video | F3 | video on the phone and on the TV (split by platform) |
 | 6 | Servers 1 · Navidrome | F4 | second provider |
 | 7 | Auto & Wear 1 | F5 | Android Auto, Cast, Wear OS |
-| 8 | Servers 2 · Plex + extras | F6 | Plex provider and extras |
+| 8 | Servers 2 · Extras | F6 | extras; no Plex provider (amended 2026-11-18) |
 
 ADR 0002's other rules stay: no video code before Video, TV 1 is music only.
 
@@ -39,3 +39,4 @@ this; `/start` never picks from Tests.
 - Closed issues of a platform milestone = what that app has; open test issues = what still needs checking on hardware.
 - Interface changes for the phone go to Mobile 2 · Polish, before the TV work starts.
 - Older text may still say F1, F2, ...; read them with the table above.
+- Exit issues do not ask for a week-long usage log (owner, 2026-11-18).

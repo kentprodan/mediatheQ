@@ -51,4 +51,8 @@
     <string name="home_section_cancel">Cancel</string>
     <string name="home_video_mode_title">Movies and series are in the Library</string>
     <string name="home_video_mode_body">Continue watching and Next up come to Home in a later update.</string>
+    <string name="home_profiles">Profiles</string>
+    <string name="home_profiles_open">Profiles, %1$s</string>
+    <string name="home_profiles_active">Active</string>
+    <string name="home_profiles_add">Add profile</string>
 </resources>

@@ -48,7 +48,7 @@ Rule: push every test as low in the pyramid as it can go. Device tests only for 
 - Cover for every ViewModel: initial/loading, success, empty, error, retry, and each user action.
 - No Android framework in domain modules -> plain JVM tests, no Robolectric.
 
-## 4. Contract tests (Jellyfin, later Subsonic/Plex)
+## 4. Contract tests (Jellyfin, later Subsonic)
 
 - OkHttp `MockWebServer`. Responses come from **recorded fixtures** of a real Jellyfin 12 server, stored in `src/test/resources/jellyfin/<endpoint>/<case>.json`. Strip personal data (names, paths, tokens) before committing.
 - Every test asserts both sides: the **request** we send (path, query, headers, body) and how we **parse** the response.
