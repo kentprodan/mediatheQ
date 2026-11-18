@@ -451,6 +451,8 @@ class DefaultLibraryPreferencesRepositoryTest {
                     slowStartMessages = false,
                     trackAction = TrackAction.PlayNext,
                     expandPlayer = true,
+                    tvHomeHero = TvHomeHero.Compact,
+                    tvCardStyles = mapOf(HomeSection.ContinueWatching to TvCardStyle.Compact),
                 )
 
             repository.setNavigation(chosen)

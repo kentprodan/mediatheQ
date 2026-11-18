@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.model.AppMode
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 
 /** A destination the main navigation can show (#122). */
 enum class MainNavEntry {
@@ -62,6 +63,8 @@ data class NavigationPreferences(
     val simpleTransitions: Boolean = false,
     /** TV (#504): the hero at the top of Home; none by default (owner: backdrops belong to the detail pages). */
     val tvHomeHero: TvHomeHero = TvHomeHero.None,
+    /** TV (#518): the card variant a Home row uses; a row missing here keeps its own default. */
+    val tvCardStyles: Map<HomeSection, TvCardStyle> = emptyMap(),
 ) {
     companion object {
         const val MAX_ENTRIES = 6
@@ -94,6 +97,9 @@ fun validTransparency(percent: Int): Int {
     val step = NavigationPreferences.TRANSPARENCY_STEP
     return (percent.coerceIn(0, 100) + step / 2) / step * step
 }
+
+/** The guideline's TV card variants (#518), chosen per Home row. */
+enum class TvCardStyle { Standard, Classic, Compact, WideStandard, WideClassic }
 
 /** How TV Home shows the focused card at its top (#504). */
 enum class TvHomeHero { None, Compact, Large }

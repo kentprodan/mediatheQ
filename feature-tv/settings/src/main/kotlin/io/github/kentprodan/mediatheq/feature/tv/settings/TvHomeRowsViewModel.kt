@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.TvCardStyle
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoSort
 import io.github.kentprodan.mediatheq.core.data.genreCounts
@@ -27,6 +28,8 @@ import javax.inject.Inject
 data class TvHomeRow(
     val section: HomeSection,
     val shown: Boolean,
+    /** `null`: the row's own default (#518). */
+    val cardStyle: TvCardStyle? = null,
 )
 
 /** Settings -> Home rows: the sections, then the library's genres (#431) with whether each has a row. */
@@ -43,6 +46,12 @@ sealed interface TvHomeRowsAction {
 
     data class Toggle(
         val section: HomeSection,
+    ) : TvHomeRowsAction
+
+    /** The row's card variant (#518); `null` goes back to its default. */
+    data class SetCardStyle(
+        val section: HomeSection,
+        val style: TvCardStyle?,
     ) : TvHomeRowsAction
 
     data class Move(
@@ -68,7 +77,7 @@ class TvHomeRowsViewModel
             combine(preferences.preferences, appMode.mode) { prefs, mode ->
                 prefs.home.order
                     .filter { it.allowed(mode) }
-                    .map { TvHomeRow(it, it !in prefs.home.hidden) }
+                    .map { TvHomeRow(it, it !in prefs.home.hidden, prefs.navigation.tvCardStyles[it]) }
             }
 
         /** The library's genres, the most common first; none without video. */
@@ -112,6 +121,16 @@ class TvHomeRowsViewModel
                         val picked = preferences.homeGenres.first()
                         preferences.setHomeGenres(
                             if (action.genre in picked) picked - action.genre else picked + action.genre,
+                        )
+                    }
+
+                    is TvHomeRowsAction.SetCardStyle -> {
+                        val navigation = preferences.preferences.first().navigation
+                        val styles = navigation.tvCardStyles - action.section
+                        preferences.setNavigation(
+                            navigation.copy(
+                                tvCardStyles = action.style?.let { styles + (action.section to it) } ?: styles,
+                            ),
                         )
                     }
 

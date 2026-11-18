@@ -33,6 +33,8 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Switch
 import androidx.tv.material3.Text
+import io.github.kentprodan.mediatheq.core.data.TvCardStyle
+import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
@@ -89,6 +91,7 @@ fun TvHomeRowsScreen(
                             if (isMenu && event.type == KeyEventType.KeyUp) moving = row.section
                             isMenu
                         },
+                    supporting = stringResource(cardStyleLabel(row.cardStyle)),
                     onLongClick = { moving = row.section },
                     trailing = { Switch(checked = row.shown, onCheckedChange = null) },
                 )
@@ -119,6 +122,15 @@ fun TvHomeRowsScreen(
         rows.firstOrNull()?.let { focus.restore(it.section.name) }
     }
     moving?.let { section ->
+        val current = rows.firstOrNull { it.section == section }?.cardStyle
+        // The card variants (#518) follow Move up / Move down; the chosen one carries a check.
+        val styles =
+            (listOf(null) + TvCardStyle.entries).map { style ->
+                MqTvMenuEntry(
+                    stringResource(cardStyleLabel(style)),
+                    MqTvIcons.Watched.takeIf { style == current },
+                ) { onAction(TvHomeRowsAction.SetCardStyle(section, style)) }
+            }
         MqTvMenu(
             stringResource(section.title),
             listOf(
@@ -128,8 +140,18 @@ fun TvHomeRowsScreen(
                 MqTvMenuEntry(stringResource(R.string.tv_settings_move_down), null) {
                     onAction(TvHomeRowsAction.Move(section, up = false))
                 },
-            ),
+            ) + styles,
             onDismiss = { moving = null },
         )
     }
 }
+
+private fun cardStyleLabel(style: TvCardStyle?): Int =
+    when (style) {
+        null -> R.string.tv_settings_cards_default
+        TvCardStyle.Standard -> R.string.tv_settings_cards_standard
+        TvCardStyle.Classic -> R.string.tv_settings_cards_classic
+        TvCardStyle.Compact -> R.string.tv_settings_cards_compact
+        TvCardStyle.WideStandard -> R.string.tv_settings_cards_wide_standard
+        TvCardStyle.WideClassic -> R.string.tv_settings_cards_wide_classic
+    }

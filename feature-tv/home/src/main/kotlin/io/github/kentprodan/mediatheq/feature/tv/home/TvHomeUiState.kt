@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.data.GenreItem
 import io.github.kentprodan.mediatheq.core.data.GenreRow
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
+import io.github.kentprodan.mediatheq.core.data.TvCardStyle
 import io.github.kentprodan.mediatheq.core.data.TvHomeHero
 import io.github.kentprodan.mediatheq.core.data.genreRows
 import io.github.kentprodan.mediatheq.core.model.HomeSection
@@ -31,6 +32,8 @@ sealed interface TvHomeUiState {
         val genreRows: List<GenreRow> = emptyList(),
         /** Settings -> Display -> Home header (#504). */
         val hero: TvHomeHero = TvHomeHero.None,
+        /** Settings -> Home rows (#518): a row's card variant; the rest keep their defaults. */
+        val cardStyles: Map<HomeSection, TvCardStyle> = emptyMap(),
     ) : TvHomeUiState
 
     /** Synced, but the server has no music. */
