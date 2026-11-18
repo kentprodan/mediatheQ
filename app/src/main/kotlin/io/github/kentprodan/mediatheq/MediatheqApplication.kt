@@ -65,6 +65,9 @@ class MediatheqApplication :
     lateinit var smartDownloads: SmartDownloads
 
     @Inject
+    lateinit var episodeNotifications: EpisodeNotifications
+
+    @Inject
     lateinit var watchedDownloads: io.github.kentprodan.mediatheq.core.playback.WatchedDownloadCleaner
 
     @Inject
@@ -114,6 +117,8 @@ class MediatheqApplication :
         favoriteDownloads.start()
         // Keeps the next episodes of followed series downloaded (#383).
         smartDownloads.start()
+        // New episodes of followed series as notifications (#446).
+        episodeNotifications.start()
         // Removes watched video downloads made by hand, after the chosen delay (#413).
         watchedDownloads.start()
         // The database of an account removed while it was open goes now that another one is open (#147).
