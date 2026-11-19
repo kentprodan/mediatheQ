@@ -112,7 +112,7 @@ class HomeScreenTest {
     fun `shuffle all, an album and a track send their actions`() {
         show(HomeUiState.Content(sections))
 
-        composeRule.onNodeWithText("Shuffle all").performClick()
+        composeRule.onNodeWithContentDescription("Shuffle all").performClick()
         composeRule.onNodeWithText("Northern Lights").performClick()
         composeRule.onNodeWithText("Morning Light").performClick()
 

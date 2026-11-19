@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,6 +55,8 @@ fun MqMiniPlayer(
     docked: Boolean = false,
     progressStyle: MqMiniProgress = MqMiniProgress.Hidden,
     progress: () -> Float = { 0f },
+    /** The pill (#533): pass the app theme's container, so a cover theme around it tints only the accents. */
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
 ) {
     val openLabel = stringResource(R.string.mq_open_player)
     val shape =
@@ -72,7 +75,7 @@ fun MqMiniPlayer(
                 .clip(shape)
                 .clickable(onClickLabel = openLabel, onClick = onOpen),
         shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = containerColor,
         tonalElevation = 3.dp,
     ) {
         Row(

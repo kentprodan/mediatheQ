@@ -17,6 +17,9 @@ object MediatheqSizes {
     /** An audio format badge (stereo, Dolby Atmos, ...) before a track's artists. */
     val formatBadge = 18.dp
 
+    /** Room a list leaves at its end for an extended FAB over it (56 dp, its 16 dp margin, 16 dp air; #533). */
+    val fabClearance = 88.dp
+
     /** Now Playing's Play / Pause (#532): between M3's medium and large icon buttons, so the cover keeps its width. */
     val playerPlayButton = DpSize(112.dp, 72.dp)
 
