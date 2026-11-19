@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.video
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -80,6 +81,8 @@ class VideoPagesScreenTest {
         }
 
         composeRule.onNodeWithText("Resume · 41:00").performClick()
+        // One main button (#538): Play from start is in More.
+        composeRule.onNodeWithContentDescription("More options for Moșoi").performClick()
         composeRule.onNodeWithText("Play from start").performClick()
 
         assertThat(plays).containsExactly(movie.id to 41.minutes, movie.id to Duration.ZERO).inOrder()

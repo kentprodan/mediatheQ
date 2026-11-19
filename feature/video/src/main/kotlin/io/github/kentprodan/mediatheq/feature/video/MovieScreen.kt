@@ -69,6 +69,7 @@ import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.RemoteSession
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.MqTracksSheet
+import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import kotlin.time.Duration
 
 @Composable
@@ -210,7 +211,11 @@ private fun MovieContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     state.format?.let {
-                        Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     if (state.externalSubtitles > 0) {
                         Text(
@@ -233,11 +238,24 @@ private fun MovieContent(
                 verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
-                PlayButtons(state.resumeAt, onPlay)
+                PlayButton(state.resumeAt, onPlay)
+                if (state.tvs.isNotEmpty()) PlayOnTvButton(state.tvs) { onAction(MovieAction.PlayOnTv(it)) }
                 MqFavoriteToggle(movie.userData.isFavorite, { onAction(MovieAction.ToggleFavorite) })
                 WatchedToggle(movie.userData.played) { onAction(MovieAction.ToggleWatched) }
                 DownloadToggle(state.download) { onAction(MovieAction.ToggleDownload) }
-                if (state.tvs.isNotEmpty()) PlayOnTvButton(state.tvs) { onAction(MovieAction.PlayOnTv(it)) }
+                // Play from start sits in More while there is a resume point (#538).
+                state.resumeAt?.let {
+                    OverflowMenu(stringResource(R.string.video_more_options, movie.title)) { close ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.video_play_from_start)) },
+                            leadingIcon = { Icon(MqIcons.PlayArrow, contentDescription = null) },
+                            onClick = {
+                                close()
+                                onPlay(Duration.ZERO)
+                            },
+                        )
+                    }
+                }
             }
             state.sentToTv?.let { sent ->
                 Text(
@@ -395,18 +413,17 @@ internal fun PlayOnTvButton(
     }
 }
 
-/** Resume at [resumeAt] and Play from start, or only Play when there is nothing to resume. */
+/** The one main button (#538): Resume at [resumeAt] (Play from start is in More), else Play. */
 @Composable
-internal fun PlayButtons(
+internal fun PlayButton(
     resumeAt: Duration?,
     onPlay: (Duration) -> Unit,
 ) {
     if (resumeAt != null) {
         Button(onClick = { onPlay(resumeAt) }) {
-            Icon(MqIcons.PlayArrow, contentDescription = null)
+            Icon(MqIcons.Resume, contentDescription = null)
             Text(stringResource(R.string.video_resume_at, formatDuration(resumeAt)))
         }
-        FilledTonalButton(onClick = { onPlay(Duration.ZERO) }) { Text(stringResource(R.string.video_play_from_start)) }
     } else {
         Button(onClick = { onPlay(Duration.ZERO) }) {
             Icon(MqIcons.PlayArrow, contentDescription = null)
@@ -415,7 +432,7 @@ internal fun PlayButtons(
     }
 }
 
-/** The watched mark as a toggle: a check that fills when watched. */
+/** The download as a quiet toggle (#538): the arrow, a filled mark once downloaded. */
 @Composable
 internal fun DownloadToggle(
     download: VideoDownload?,
@@ -426,6 +443,7 @@ internal fun DownloadToggle(
         onClick = onToggle,
         icon = if (download?.state == DownloadState.Completed) MqIcons.DownloadForOffline else MqIcons.Download,
         contentDescription = stringResource(R.string.video_download),
+        standard = true,
         stateDescription =
             stringResource(
                 when {
@@ -448,6 +466,7 @@ internal fun WatchedToggle(
         onClick = onToggle,
         icon = MqIcons.Check,
         contentDescription = stringResource(R.string.video_mark_watched),
+        standard = true,
         stateDescription = stringResource(if (watched) R.string.video_watched else R.string.video_not_watched),
     )
 }
