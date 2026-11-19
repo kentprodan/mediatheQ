@@ -10,25 +10,30 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,8 +43,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.common.MqError
@@ -48,6 +55,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqCarouselItem
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCoverCarousel
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqTabButtons
+import io.github.kentprodan.mediatheq.core.designsystem.component.bottomBarsPadding
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
@@ -81,6 +89,8 @@ data class HomeNavigation(
     val onOpenArtist: (MediaId) -> Unit = {},
     val onOpenPlaylist: (MediaId) -> Unit = {},
     val onOpenSettings: () -> Unit = {},
+    /** The search app bar (#533): the Search tab when it is in the navigation, else Search over Home. */
+    val onOpenSearch: () -> Unit = {},
     val onOpenDownloads: () -> Unit = {},
     /** A section's full list (#183); `null` (the settings preview) leaves headers untappable. */
     val onOpenSection: ((HomeSection) -> Unit)? = null,
@@ -122,40 +132,35 @@ internal fun HomeRoute(
     }
 }
 
-/** Stateless Home tab: Shuffle all, then the chosen sections (#127) in their order and display. */
+/**
+ * Stateless Home tab: a search app bar (the mode and profile menus in it), the chosen sections (#127) in their order
+ * and display, and the Shuffle all / mixes FAB menu (#533).
+ */
 @Composable
 fun HomeScreen(
     state: HomeUiState,
     onAction: (HomeAction) -> Unit,
     navigation: HomeNavigation,
     modifier: Modifier = Modifier,
-    /** The mode toggle at the top (ADR 0051); `null` hides it. */
+    /** The mode menu in the search bar (ADR 0051, #533); `null` hides it. */
     mode: AppMode? = null,
-    /** The active profile's name for its avatar (#443); `null` hides it. */
+    /** The active profile's name for its initial (#443); `null` shows a person. */
     profile: String? = null,
     onOpenProfiles: () -> Unit = {},
 ) {
+    val listState = rememberLazyListState()
     Scaffold(
         modifier = modifier,
-        topBar = { HomeTopBar(navigation.onOpenSettings, profile, onOpenProfiles) },
+        topBar = {
+            HomeSearchBar(navigation, mode, { onAction(HomeAction.SetMode(it)) }, profile, onOpenProfiles)
+        },
+        floatingActionButton = {
+            if (state is HomeUiState.Content && state.showShuffle) ShuffleFabMenu(onAction)
+        },
         // The app shell already pads for the navigation bar.
         contentWindowInsets = WindowInsets(0),
     ) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize()) {
-            if (mode != null) {
-                MqTabButtons(
-                    AppMode.entries.map { stringResource(it.label) },
-                    selected = mode.ordinal,
-                    onSelect = { onAction(HomeAction.SetMode(AppMode.entries[it])) },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = MediatheqSpacing.l)
-                            .padding(bottom = MediatheqSpacing.s),
-                )
-            }
-            Box(Modifier.weight(1f).fillMaxSize()) { HomeBody(state, onAction, navigation) }
-        }
+        Box(Modifier.padding(padding).fillMaxSize()) { HomeBody(state, onAction, navigation, listState) }
     }
 }
 
@@ -164,6 +169,7 @@ private fun HomeBody(
     state: HomeUiState,
     onAction: (HomeAction) -> Unit,
     navigation: HomeNavigation,
+    listState: LazyListState,
 ) {
     Box(Modifier.fillMaxSize()) {
         when (state) {
@@ -218,7 +224,7 @@ private fun HomeBody(
                     onRefresh = { onAction(HomeAction.Refresh) },
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    HomeContent(state, onAction, navigation)
+                    HomeContent(state, onAction, navigation, listState)
                 }
             }
         }
@@ -226,27 +232,11 @@ private fun HomeBody(
 }
 
 @Composable
-private fun HomeTopBar(
-    onOpenSettings: () -> Unit,
-    profile: String?,
-    onOpenProfiles: () -> Unit,
-) {
-    TopAppBar(
-        title = { Text(stringResource(R.string.home_title)) },
-        actions = {
-            IconButton(onClick = onOpenSettings) {
-                Icon(MqIcons.Settings, contentDescription = stringResource(R.string.home_settings))
-            }
-            profile?.let { ProfileAvatar(it, onOpenProfiles) }
-        },
-    )
-}
-
-@Composable
 private fun HomeContent(
     content: HomeUiState.Content,
     onAction: (HomeAction) -> Unit,
     navigation: HomeNavigation,
+    listState: LazyListState,
 ) {
     val flying =
         remember(
@@ -263,19 +253,9 @@ private fun HomeContent(
                 },
             )
         }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = MediatheqSpacing.l).plusBottomBars()) {
-        if (content.showShuffle) {
-            item(key = "shuffle") {
-                FilledTonalButton(
-                    onClick = { onAction(HomeAction.ShuffleAll) },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l),
-                ) {
-                    Icon(MqIcons.Shuffle, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                    Text(stringResource(R.string.home_shuffle_all))
-                }
-            }
-        }
+    // The Shuffle all FAB never covers the last row.
+    val bottom = if (content.showShuffle) MediatheqSizes.fabClearance else MediatheqSpacing.l
+    LazyColumn(Modifier.fillMaxSize(), listState, PaddingValues(bottom = bottom).plusBottomBars()) {
         // Genre rows (#441) follow the last video section.
         val split = content.sections.indexOfLast { it.items is HomeItems.Videos } + 1
         content.sections.forEachIndexed { index, section ->

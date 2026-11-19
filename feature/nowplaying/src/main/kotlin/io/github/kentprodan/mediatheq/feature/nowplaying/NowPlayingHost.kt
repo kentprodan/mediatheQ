@@ -146,6 +146,8 @@ fun NowPlayingLayout(
     val motion = MaterialTheme.motionScheme
     // The Theme background style (#126) uses the app theme, not the cover's scheme.
     val themeBackground = MaterialTheme.colorScheme.let { it.surface to it.onSurface }
+    // The mini player is a neutral pill (#533): the cover tints only its progress and buttons.
+    val miniContainer = MaterialTheme.colorScheme.surfaceContainerHigh
 
     SharedTransitionLayout {
         val sharedScope = this
@@ -227,6 +229,7 @@ fun NowPlayingLayout(
                                             coverModifier = Modifier.mqSharedCover(PLAYER_COVER_KEY),
                                             docked = docked,
                                             progressStyle = miniProgress,
+                                            containerColor = miniContainer,
                                             progress = {
                                                 val duration = playing.duration
                                                 val at = position?.value ?: Duration.ZERO

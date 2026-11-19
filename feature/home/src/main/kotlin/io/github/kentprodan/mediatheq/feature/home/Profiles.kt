@@ -54,34 +54,6 @@ class ProfilesViewModel
         }
     }
 
-/** The active profile's initial in a circle (#443); a tap or a long press opens the profiles. */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-internal fun ProfileAvatar(
-    name: String,
-    onOpen: () -> Unit,
-) {
-    Box(
-        Modifier
-            .padding(horizontal = MediatheqSpacing.s)
-            .size(MediatheqSizes.profileAvatar)
-            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-            .combinedClickable(
-                onClickLabel = stringResource(R.string.home_profiles_open, name),
-                role = Role.Button,
-                onLongClick = onOpen,
-                onClick = onOpen,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            name.take(1).uppercase(),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-        )
-    }
-}
-
 /** The profiles sheet (#443). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

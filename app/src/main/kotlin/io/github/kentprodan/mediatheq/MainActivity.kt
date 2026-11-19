@@ -33,6 +33,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.download.resumeDownloads
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
+import io.github.kentprodan.mediatheq.core.navigation.SearchKey
 import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.RadioStarter
@@ -149,10 +150,18 @@ class MainActivity : ComponentActivity() {
                                     navigator.navigateTo(DownloadsKey)
                                 }
                             }
+                            // Home's search bar (#533): the Search tab, or Search over Home without it.
+                            val openSearch = {
+                                if (TopLevelTab.Search in navigator.tabs) {
+                                    navigator.select(TopLevelTab.Search)
+                                } else {
+                                    navigator.navigateTo(SearchKey)
+                                }
+                            }
                             val entries =
                                 remember(navigator) {
                                     entryProvider {
-                                        homeEntry(navigator, onOpenDownloads = openDownloads)
+                                        homeEntry(navigator, onOpenDownloads = openDownloads, onOpenSearch = openSearch)
                                         settingsEntry(
                                             navigator,
                                             about = aboutInfo(),

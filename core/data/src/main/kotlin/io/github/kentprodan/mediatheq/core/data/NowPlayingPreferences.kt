@@ -31,7 +31,8 @@ data class NowPlayingPreferences(
     /** A floating pill; off = docked full width on the bottom bar (only with the bottom bar style). */
     val floatingMiniPlayer: Boolean = true,
     val miniSwipeToSkip: Boolean = true,
-    val miniProgress: MiniProgress = MiniProgress.Background,
+    /** A thin line by default (#533); Background fills the pill. */
+    val miniProgress: MiniProgress = MiniProgress.Line,
     val background: PlayerBackground = PlayerBackground.Gradient,
     val progress: PlayerProgress = PlayerProgress.WaveformSharp,
     val fallback: ProgressFallback = ProgressFallback.Basic,

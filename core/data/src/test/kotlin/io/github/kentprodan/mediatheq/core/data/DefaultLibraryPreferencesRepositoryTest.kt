@@ -667,7 +667,7 @@ class DefaultLibraryPreferencesRepositoryTest {
                     NowPlayingPreferences(
                         floatingMiniPlayer = true,
                         miniSwipeToSkip = true,
-                        miniProgress = MiniProgress.Background,
+                        miniProgress = MiniProgress.Line,
                         background = PlayerBackground.Gradient,
                         progress = PlayerProgress.WaveformSharp,
                         fallback = ProgressFallback.Basic,

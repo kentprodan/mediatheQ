@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="home_title">Home</string>
     <string name="home_settings">Settings</string>
+    <string name="home_search">Search your library</string>
+    <string name="home_mode">Mode</string>
+    <string name="home_profile_menu">Profile and settings</string>
+    <string name="home_switch_profile">Switch profile</string>
+    <string name="home_shuffle_menu">Shuffle and mixes</string>
     <string name="home_shuffle_all">Shuffle all</string>
     <string name="home_first_sync_title">Getting your library</string>
     <string name="home_first_sync_body">The first sync can take a minute. Your music shows here when it is done.</string>
@@ -52,7 +56,6 @@
     <string name="home_video_mode_title">Movies and series are in the Library</string>
     <string name="home_video_mode_body">Continue watching and Next up come to Home in a later update.</string>
     <string name="home_profiles">Profiles</string>
-    <string name="home_profiles_open">Profiles, %1$s</string>
     <string name="home_profiles_active">Active</string>
     <string name="home_profiles_add">Add profile</string>
 </resources>

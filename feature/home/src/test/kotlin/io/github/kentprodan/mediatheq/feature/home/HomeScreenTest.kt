@@ -112,11 +112,20 @@ class HomeScreenTest {
     fun `shuffle all, an album and a track send their actions`() {
         show(HomeUiState.Content(sections))
 
+        // The FAB menu (#533): Shuffle all and the mixes unfold above it, a choice folds it.
+        composeRule.onNodeWithContentDescription("Shuffle and mixes").performClick()
         composeRule.onNodeWithText("Shuffle all").performClick()
+        composeRule.onNodeWithContentDescription("Shuffle and mixes").performClick()
+        composeRule.onNodeWithText("Track mix").performClick()
         composeRule.onNodeWithText("Northern Lights").performClick()
         composeRule.onNodeWithText("Morning Light").performClick()
 
-        assertThat(actions).containsExactly(HomeAction.ShuffleAll, HomeAction.PlayTracks(listOf(track), 0)).inOrder()
+        assertThat(actions)
+            .containsExactly(
+                HomeAction.ShuffleAll,
+                HomeAction.PlayMix(Mix.Tracks),
+                HomeAction.PlayTracks(listOf(track), 0),
+            ).inOrder()
         assertThat(opened).containsExactly(album.id)
     }
 
@@ -160,10 +169,11 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `the labelled settings button opens Settings`() {
+    fun `the profile menu opens Settings`() {
         show(HomeUiState.Loading)
 
-        composeRule.onNodeWithContentDescription("Settings").performClick()
+        composeRule.onNodeWithContentDescription("Profile and settings").performClick()
+        composeRule.onNodeWithText("Settings").performClick()
 
         assertThat(events).containsExactly("settings")
     }
@@ -187,7 +197,7 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `tapping Video on the mode toggle removes the music sections`() {
+    fun `choosing Video in the mode menu removes the music sections`() {
         var state: HomeUiState by mutableStateOf(HomeUiState.Content(sections))
         var mode by mutableStateOf(AppMode.Both)
         composeRule.setContent {
@@ -209,17 +219,19 @@ class HomeScreenTest {
         }
         composeRule.onNodeWithText("Northern Lights").assertExists()
 
+        composeRule.onNodeWithContentDescription("Mode").performClick()
         composeRule.onNodeWithText("Video").performClick()
 
         assertThat(actions).containsExactly(HomeAction.SetMode(AppMode.Video))
         composeRule.onNodeWithText("Northern Lights").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Mode").performClick()
         composeRule.onNodeWithText("Video").assertIsSelected()
     }
 
     @Test
-    fun `no mode means no toggle`() {
+    fun `no mode means no mode menu`() {
         show(HomeUiState.Content(sections))
 
-        composeRule.onNodeWithText("Both").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Mode").assertDoesNotExist()
     }
 }

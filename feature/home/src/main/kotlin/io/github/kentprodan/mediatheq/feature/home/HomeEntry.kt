@@ -15,10 +15,11 @@ import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
 import io.github.kentprodan.mediatheq.core.navigation.SettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 
-/** Registers the Home tab root; [onOpenDownloads] switches to the Downloads tab. */
+/** Registers the Home tab root; [onOpenDownloads] and [onOpenSearch] switch to their tab (or open over Home). */
 fun EntryProviderScope<NavKey>.homeEntry(
     navigator: Navigator,
     onOpenDownloads: () -> Unit,
+    onOpenSearch: () -> Unit,
 ) {
     entry<HomeKey> {
         HomeRoute(
@@ -29,6 +30,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
                 onOpenPlaylist = { navigator.navigateTo(PlaylistKey(it)) },
                 onOpenSettings = { navigator.navigateTo(SettingsKey) },
                 onOpenDownloads = onOpenDownloads,
+                onOpenSearch = onOpenSearch,
                 onOpenSection = { navigator.navigateTo(HomeSectionListKey(it)) },
                 onPlayVideo = { id, start -> navigator.navigateTo(VideoPlayerKey(id, start.inWholeMilliseconds)) },
                 onOpenMovie = { navigator.navigateTo(MovieKey(it)) },
