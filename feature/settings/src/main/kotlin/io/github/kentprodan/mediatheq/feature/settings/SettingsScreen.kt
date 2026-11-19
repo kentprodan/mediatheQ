@@ -721,8 +721,9 @@ internal fun Group(
     Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
         Text(
             stringResource(title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
+            // A quiet group title (#536): the rows carry the page, not the accent.
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = MediatheqSpacing.l, bottom = MediatheqSpacing.s).semantics { heading() },
         )
         rows.forEachIndexed { index, row -> row(ListItemDefaults.segmentedShapes(index, rows.size)) }
