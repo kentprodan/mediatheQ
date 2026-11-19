@@ -113,25 +113,6 @@ fun DownloadsQueuePausedScreenshot() =
 @Composable
 fun DownloadsQueueEmptyScreenshot() = Downloads(DownloadsUiState.Content(totals), DownloadsTab.Queue)
 
-/** Auto offline rules as set (#145), and the way to change them. */
-@PreviewTest
-@MqPreviews
-@Composable
-fun DownloadsRulesScreenshot() =
-    Downloads(
-        DownloadsUiState.Content(
-            totals,
-            rules = AutoRules(AutoDownloads.TracksAlbumsAndPlaylists, removeUnfavorited = true),
-        ),
-        DownloadsTab.Rules,
-    )
-
-/** No automatic downloads: the empty state with Change rules. */
-@PreviewTest
-@MqPreviews
-@Composable
-fun DownloadsRulesEmptyScreenshot() = Downloads(DownloadsUiState.Content(totals), DownloadsTab.Rules)
-
 /** The Cleanup confirmation, in place (dialogs render blank in screenshot tests). */
 @PreviewTest
 @MqPreviews

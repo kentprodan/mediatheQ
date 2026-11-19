@@ -11,13 +11,13 @@ import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlin.time.Duration
 
-/** Manage offline files (#149): three tabs over one state. */
+/** Downloads (#149): two tabs over one state (#537). */
 sealed interface DownloadsUiState {
     data object Loading : DownloadsUiState
 
     /**
      * Offline files: the summary and the finished downloads by collection (#168), as [filter] leaves them; Download
-     * queue: [downloading]; Auto offline rules: [rules].
+     * queue: [downloading]. The automatic downloads are in Settings (#537).
      */
     data class Content(
         val totals: DownloadTotals,
@@ -37,7 +37,6 @@ sealed interface DownloadsUiState {
         val unavailableOn: String? = null,
         /** The user paused every download (#149). */
         val paused: Boolean = false,
-        val rules: AutoRules = AutoRules(),
         /** The Offline files filter as typed. */
         val filter: String = "",
         /** Some download finished, before the filter: the Offline files tab is not empty. */
@@ -47,13 +46,7 @@ sealed interface DownloadsUiState {
     ) : DownloadsUiState
 }
 
-/** The automatic downloads of favorites (#145) as Settings -> Media has them. */
-data class AutoRules(
-    val option: AutoDownloads = AutoDownloads.Disabled,
-    val removeUnfavorited: Boolean = true,
-)
-
-enum class DownloadsTab { Files, Queue, Rules }
+enum class DownloadsTab { Files, Queue }
 
 /** How a download in the queue reads; [Paused] wins over waiting, as nothing runs anyway. */
 enum class QueueStatus { Downloading, Queued, WaitingForWifi, Paused, Failed }

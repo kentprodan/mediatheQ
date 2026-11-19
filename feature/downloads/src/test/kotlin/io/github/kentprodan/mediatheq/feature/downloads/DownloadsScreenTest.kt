@@ -14,6 +14,7 @@ import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -63,7 +64,6 @@ class DownloadsScreenTest {
         autoAlbum: Boolean = false,
         tab: DownloadsTab = DownloadsTab.Files,
         paused: Boolean = false,
-        rules: AutoRules = AutoRules(),
         cleanup: CleanupPreview? = null,
     ) {
         val state =
@@ -74,7 +74,6 @@ class DownloadsScreenTest {
                 listOf(DownloadedPlaylist(playlist, listOf(done), 500_000, 10.minutes)),
                 songs,
                 paused = paused,
-                rules = rules,
                 hasFiles = true,
                 cleanup = cleanup,
             )
@@ -88,7 +87,6 @@ class DownloadsScreenTest {
                     onTab = { current = it },
                     onOpenAlbum = { opened += "album ${it.itemId}" },
                     onOpenPlaylist = { opened += "playlist ${it.itemId}" },
-                    onOpenRules = { opened += "rules" },
                 )
             }
         }
@@ -174,17 +172,15 @@ class DownloadsScreenTest {
     }
 
     @Test
-    fun `the tabs switch between offline files, the queue and the rules`() {
+    fun `the tabs switch between the files and the queue`() {
         show(downloading = listOf(TrackDownload(done, DownloadState.WaitingForWifi)))
         composeRule.onNodeWithText("Waiting for Wi-Fi").assertDoesNotExist()
 
         composeRule.onNodeWithText("Queue").performClick()
         composeRule.onNodeWithText("Waiting for Wi-Fi").assertExists()
 
-        composeRule.onNodeWithText("Rules").performClick()
-        composeRule.onNodeWithText("No automatic downloads").assertExists()
-        composeRule.onNodeWithText("Change rules").performClick()
-        assertThat(opened).containsExactly("rules")
+        // M3 tabs (#537): tab semantics, the chosen one selected.
+        composeRule.onNode(hasText("Queue") and isSelected()).assertExists()
     }
 
     @Test
@@ -230,14 +226,6 @@ class DownloadsScreenTest {
         composeRule.onNodeWithText("Cleanup").performClick()
 
         assertThat(actions).containsExactly(DownloadsAction.AskCleanup)
-    }
-
-    @Test
-    fun `the rules tab shows the automatic downloads setting`() {
-        show(tab = DownloadsTab.Rules, rules = AutoRules(AutoDownloads.TracksAndAlbums, removeUnfavorited = false))
-
-        composeRule.onNodeWithText("Favorite tracks and albums").assertExists()
-        composeRule.onNodeWithText("Off").assertExists()
     }
 
     @Test

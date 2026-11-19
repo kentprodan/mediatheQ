@@ -60,10 +60,9 @@ class DownloadsViewModelTest {
     private val playback = FakePlaybackConnection()
     private val storage = FakeDownloadStorageRepository().apply { locationName = "SD card" }
     private val trackTaps by lazy { TrackTaps(playback, FakeLibraryPreferencesRepository()) }
-    private val audioPreferences = FakeAudioPreferencesRepository()
     private val appMode = FakeAppModeRepository()
     private val viewModel by lazy {
-        DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences, appMode, videos)
+        DownloadsViewModel(repository, library, playback, trackTaps, storage, appMode, videos)
     }
 
     private suspend fun content(): DownloadsUiState.Content {
@@ -119,24 +118,13 @@ class DownloadsViewModelTest {
         }
 
     @Test
-    fun `no downloads leaves every tab empty, the rules still shown`() =
+    fun `no downloads leaves every tab empty`() =
         runTest {
             repository.downloads.value = emptyList()
 
             val content = content()
             assertThat(content.hasFiles).isFalse()
             assertThat(content.downloading).isEmpty()
-            assertThat(content.rules).isEqualTo(AutoRules())
-        }
-
-    @Test
-    fun `the rules tab reflects the automatic downloads setting`() =
-        runTest {
-            audioPreferences.preferences.update {
-                it.copy(autoDownloads = AutoDownloads.TracksAndAlbums, removeUnfavorited = false)
-            }
-
-            assertThat(content().rules).isEqualTo(AutoRules(AutoDownloads.TracksAndAlbums, removeUnfavorited = false))
         }
 
     @Test
@@ -186,7 +174,7 @@ class DownloadsViewModelTest {
                     }
                 }
             val viewModel =
-                DownloadsViewModel(repository, library, playback, trackTaps, storage, audioPreferences, appMode, videos)
+                DownloadsViewModel(repository, library, playback, trackTaps, storage, appMode, videos)
 
             viewModel.onAction(DownloadsAction.AskCleanup)
             viewModel.onAction(DownloadsAction.DismissCleanup)

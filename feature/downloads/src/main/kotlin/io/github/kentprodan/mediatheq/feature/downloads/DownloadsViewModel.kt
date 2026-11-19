@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
-import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.CleanupPreview
 import io.github.kentprodan.mediatheq.core.data.DownloadOrigin
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
@@ -38,7 +37,6 @@ class DownloadsViewModel
         private val playback: PlaybackConnection,
         private val trackTaps: TrackTaps,
         storage: DownloadStorageRepository,
-        audioPreferences: AudioPreferencesRepository,
         appMode: AppModeRepository,
         private val videos: VideoRepository,
     ) : ViewModel() {
@@ -70,15 +68,6 @@ class DownloadsViewModel
                 }
             }
 
-        private val rules =
-            audioPreferences.preferences
-                .map {
-                    AutoRules(
-                        it.autoDownloads,
-                        it.removeUnfavorited,
-                    )
-                }.distinctUntilChanged()
-
         val uiState: StateFlow<DownloadsUiState> =
             combine(
                 // Video mode lists no music download (ADR 0051): they are kept and counted in the totals.
@@ -105,15 +94,14 @@ class DownloadsViewModel
                     }
                 },
                 downloadRepository.paused,
-                rules,
                 filter,
                 cleanup,
-            ) { content, paused, rules, filter, cleanup ->
+            ) { content, paused, filter, cleanup ->
                 val hasFiles =
                     content.albums.isNotEmpty() || content.playlists.isNotEmpty() || content.songs.isNotEmpty() ||
                         content.movies.isNotEmpty() || content.seasons.isNotEmpty()
                 filterDownloads(content, filter)
-                    .copy(paused = paused, rules = rules, filter = filter, hasFiles = hasFiles, cleanup = cleanup)
+                    .copy(paused = paused, filter = filter, hasFiles = hasFiles, cleanup = cleanup)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DownloadsUiState.Loading)
 
         fun onAction(action: DownloadsAction) {
