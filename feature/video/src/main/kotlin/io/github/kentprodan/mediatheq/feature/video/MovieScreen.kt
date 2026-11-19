@@ -234,7 +234,8 @@ private fun MovieContent(
         item(key = "buttons") {
             FlowRow(
                 Modifier.padding(horizontal = MediatheqSpacing.l),
-                horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
+                // Icon buttons carry their own padding: a small gap keeps Resume, three toggles and More on one line.
+                horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.xs),
                 verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
