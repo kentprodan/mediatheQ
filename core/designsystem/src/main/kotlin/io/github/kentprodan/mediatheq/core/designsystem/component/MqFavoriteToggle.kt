@@ -6,7 +6,10 @@ import androidx.compose.ui.res.stringResource
 import io.github.kentprodan.mediatheq.core.designsystem.R
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 
-/** The heart: an [MqIconToggle] with the filled heart when checked, so the state is not shown by color alone. */
+/**
+ * The heart: a standard [MqIconToggle] (no container, #531) with the filled heart in the accent when checked, so the
+ * state is not shown by color alone.
+ */
 @Composable
 fun MqFavoriteToggle(
     isFavorite: Boolean,
@@ -21,5 +24,6 @@ fun MqFavoriteToggle(
         icon = if (isFavorite) MqIcons.FavoriteFilled else MqIcons.Favorite,
         contentDescription = contentDescription,
         modifier = modifier,
+        standard = true,
     )
 }

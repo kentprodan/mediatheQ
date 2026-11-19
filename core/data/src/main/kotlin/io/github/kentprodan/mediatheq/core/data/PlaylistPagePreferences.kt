@@ -16,7 +16,8 @@ enum class PlaylistButton { Resume, Shuffle, PlayNext, AddToQueue, Favorite }
 /** Settings -> Interface -> Page settings -> Playlist page (#135). */
 data class PlaylistPagePreferences(
     val headerBackground: PlaylistHeaderBackground = PlaylistHeaderBackground.Image,
-    val hiddenButtons: Set<PlaylistButton> = emptySet(),
+    /** Play next and Add to queue live in More by default (#531). */
+    val hiddenButtons: Set<PlaylistButton> = setOf(PlaylistButton.PlayNext, PlaylistButton.AddToQueue),
     /** The page takes its colors from the playlist's image (ADR 0029); off by default here. */
     val dynamicColors: Boolean = false,
 )

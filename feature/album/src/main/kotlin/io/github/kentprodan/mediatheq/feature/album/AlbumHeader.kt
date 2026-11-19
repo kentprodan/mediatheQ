@@ -17,8 +17,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -207,28 +207,31 @@ private fun HeaderButtons(
         verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Button(onClick = { onAction(AlbumAction.Play) }, enabled = enabled) {
-            Icon(MqIcons.PlayArrow, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-            Text(stringResource(R.string.album_play), Modifier.padding(start = ButtonDefaults.IconSpacing))
-        }
+        // One main button (#531): Resume when there is a resume point, else Play; the other one is in More.
         if (resume) {
-            FilledTonalButton(onClick = { onAction(AlbumAction.Resume) }) {
+            Button(onClick = { onAction(AlbumAction.Resume) }) {
                 Icon(MqIcons.Resume, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
                 Text(stringResource(R.string.album_resume), Modifier.padding(start = ButtonDefaults.IconSpacing))
             }
+        } else {
+            Button(onClick = { onAction(AlbumAction.Play) }, enabled = enabled) {
+                Icon(MqIcons.PlayArrow, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                Text(stringResource(R.string.album_play), Modifier.padding(start = ButtonDefaults.IconSpacing))
+            }
         }
         if (state.shows(AlbumButton.Shuffle)) {
-            FilledTonalIconButton(onClick = { onAction(AlbumAction.Shuffle) }, enabled = enabled) {
-                Icon(MqIcons.Shuffle, stringResource(R.string.album_shuffle))
+            FilledTonalButton(onClick = { onAction(AlbumAction.Shuffle) }, enabled = enabled) {
+                Icon(MqIcons.Shuffle, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                Text(stringResource(R.string.album_shuffle), Modifier.padding(start = ButtonDefaults.IconSpacing))
             }
         }
         if (state.shows(AlbumButton.PlayNext)) {
-            FilledTonalIconButton(onClick = { onAction(AlbumAction.PlayNext()) }, enabled = enabled) {
+            IconButton(onClick = { onAction(AlbumAction.PlayNext()) }, enabled = enabled) {
                 Icon(MqIcons.PlayNext, stringResource(R.string.album_play_next))
             }
         }
         if (state.shows(AlbumButton.AddToQueue)) {
-            FilledTonalIconButton(onClick = { onAction(AlbumAction.AddToQueue()) }, enabled = enabled) {
+            IconButton(onClick = { onAction(AlbumAction.AddToQueue()) }, enabled = enabled) {
                 Icon(MqIcons.AddToQueue, stringResource(R.string.album_add_to_queue))
             }
         }
@@ -236,6 +239,11 @@ private fun HeaderButtons(
             MqFavoriteToggle(state.album.userData.isFavorite, { onAction(AlbumAction.SetFavorite(albumId, it)) })
         }
         OverflowMenu(stringResource(R.string.album_more_options, state.album.title)) { close ->
+            if (resume) {
+                ActionItem(R.string.album_play_from_start, { onAction(AlbumAction.Play) }, close) {
+                    Icon(MqIcons.PlayArrow, contentDescription = null)
+                }
+            }
             if (state.resume != null && !state.shows(AlbumButton.Resume)) {
                 ActionItem(R.string.album_resume, { onAction(AlbumAction.Resume) }, close) {
                     Icon(MqIcons.Resume, contentDescription = null)

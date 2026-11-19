@@ -19,7 +19,8 @@ enum class GenreButton { Shuffle, PlayNext, AddToQueue }
 /** Settings -> Interface -> Page settings -> Genre page (#134). */
 data class GenrePagePreferences(
     val headerBackground: GenreHeaderBackground = GenreHeaderBackground.Image,
-    val hiddenButtons: Set<GenreButton> = emptySet(),
+    /** Play next and Add to queue live in More by default (#531). */
+    val hiddenButtons: Set<GenreButton> = setOf(GenreButton.PlayNext, GenreButton.AddToQueue),
     /** Every section once, in order. */
     val sectionOrder: List<GenreSection> = GenreSection.entries,
     val showAlbums: Boolean = true,

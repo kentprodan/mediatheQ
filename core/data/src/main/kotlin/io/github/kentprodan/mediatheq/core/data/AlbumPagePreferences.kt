@@ -19,7 +19,8 @@ data class AlbumPagePreferences(
     val headerBackground: AlbumHeaderBackground = AlbumHeaderBackground.CoverImage,
     val showQuality: Boolean = true,
     val showRatingBar: Boolean = false,
-    val hiddenButtons: Set<AlbumButton> = emptySet(),
+    /** Play next and Add to queue live in More by default (#531). */
+    val hiddenButtons: Set<AlbumButton> = setOf(AlbumButton.PlayNext, AlbumButton.AddToQueue),
     /** Every section once, in order. */
     val sectionOrder: List<AlbumSection> = AlbumSection.entries,
     val showMoreFromArtist: Boolean = true,

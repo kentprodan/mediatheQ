@@ -14,8 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -157,17 +158,18 @@ private fun HeaderButtons(
             Text(stringResource(R.string.genre_play), Modifier.padding(start = ButtonDefaults.IconSpacing))
         }
         if (state.shows(GenreButton.Shuffle)) {
-            FilledTonalIconButton(onClick = { onAction(GenreAction.Shuffle) }, enabled = enabled) {
-                Icon(MqIcons.Shuffle, stringResource(R.string.genre_shuffle))
+            FilledTonalButton(onClick = { onAction(GenreAction.Shuffle) }, enabled = enabled) {
+                Icon(MqIcons.Shuffle, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                Text(stringResource(R.string.genre_shuffle), Modifier.padding(start = ButtonDefaults.IconSpacing))
             }
         }
         if (state.shows(GenreButton.PlayNext)) {
-            FilledTonalIconButton(onClick = { onAction(GenreAction.PlayNext) }, enabled = enabled) {
+            IconButton(onClick = { onAction(GenreAction.PlayNext) }, enabled = enabled) {
                 Icon(MqIcons.PlayNext, stringResource(R.string.genre_play_next))
             }
         }
         if (state.shows(GenreButton.AddToQueue)) {
-            FilledTonalIconButton(onClick = { onAction(GenreAction.AddToQueue) }, enabled = enabled) {
+            IconButton(onClick = { onAction(GenreAction.AddToQueue) }, enabled = enabled) {
                 Icon(MqIcons.AddToQueue, stringResource(R.string.genre_add_to_queue))
             }
         }

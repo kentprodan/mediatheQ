@@ -721,7 +721,10 @@ class SettingsScreenTest {
         assertThat(actions)
             .containsExactly(
                 SettingsAction.SetAlbumPage(
-                    AlbumPagePreferences(hiddenButtons = setOf(AlbumButton.Resume, AlbumButton.Favorite)),
+                    AlbumPagePreferences(
+                        hiddenButtons =
+                            AlbumPagePreferences().hiddenButtons + AlbumButton.Resume + AlbumButton.Favorite,
+                    ),
                 ),
             )
     }
@@ -785,7 +788,12 @@ class SettingsScreenTest {
                 SettingsAction.SetPlaylistPage(
                     PlaylistPagePreferences(headerBackground = PlaylistHeaderBackground.ImageColor),
                 ),
-                SettingsAction.SetPlaylistPage(PlaylistPagePreferences(hiddenButtons = setOf(PlaylistButton.Favorite))),
+                SettingsAction.SetPlaylistPage(
+                    PlaylistPagePreferences(
+                        hiddenButtons =
+                            PlaylistPagePreferences().hiddenButtons + PlaylistButton.Favorite,
+                    ),
+                ),
             ).inOrder()
     }
 
