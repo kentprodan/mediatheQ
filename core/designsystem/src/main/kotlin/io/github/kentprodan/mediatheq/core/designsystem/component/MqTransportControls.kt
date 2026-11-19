@@ -4,12 +4,13 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -24,12 +25,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import io.github.kentprodan.mediatheq.core.designsystem.R
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 
 /**
  * The Now Playing transport row (expressive-design skill, section 3): previous, play/pause, next in a `ButtonGroup`.
- * Play/pause is the largest; it is round while paused and squarish while playing, so the state is not shown by the
- * icon alone. Pressing a button widens it and narrows its neighbours. [leading] and [trailing] (repeat and shuffle,
+ * Play/pause is the largest and the only filled one (previous and next are standard icon buttons, #532); it is round
+ * while paused and squarish while playing, so the state is not shown by the icon alone. Pressing a button widens it and narrows its neighbours. [leading] and [trailing] (repeat and shuffle,
  * #125) sit at the ends; when the row is too narrow for the full sizes (a 320 dp phone, fontScale 2.0) the group
  * shrinks, so no button ever moves to the overflow menu.
  */
@@ -53,7 +55,7 @@ fun MqTransportControls(
         BoxWithConstraints(Modifier.weight(1f), contentAlignment = Alignment.Center) {
             val full =
                 IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Uniform).width * 2 +
-                    IconButtonDefaults.largeContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide).width +
+                    MediatheqSizes.playerPlayButton.width +
                     MediatheqSpacing.s * 2
             TransportGroup(
                 isPlaying,
@@ -88,7 +90,7 @@ private fun TransportGroup(
     val previousInteraction = remember { MutableInteractionSource() }
     val playInteraction = remember { MutableInteractionSource() }
     val nextInteraction = remember { MutableInteractionSource() }
-    // Medium sides and a large wide centre; one size down each when that does not fit (the group would otherwise move
+    // Medium sides and a wide centre between medium and large (#532); one size down each when that does not fit (the group would otherwise move
     // buttons to its menu).
     val sideSize =
         if (compact) {
@@ -100,7 +102,7 @@ private fun TransportGroup(
         if (compact) {
             IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide)
         } else {
-            IconButtonDefaults.largeContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide)
+            MediatheqSizes.playerPlayButton
         }
     val sideIcon = if (compact) IconButtonDefaults.smallIconSize else IconButtonDefaults.mediumIconSize
     val playIcon = if (compact) IconButtonDefaults.mediumIconSize else IconButtonDefaults.largeIconSize
@@ -117,12 +119,12 @@ private fun TransportGroup(
     ) {
         customItem(
             buttonGroupContent = {
-                FilledTonalIconButton(
+                IconButton(
                     onClick = onPrevious,
                     enabled = hasPrevious,
                     shapes = IconButtonDefaults.shapes(),
                     interactionSource = previousInteraction,
-                    modifier = Modifier.size(sideSize).animateWidth(previousInteraction),
+                    modifier = Modifier.animateWidth(previousInteraction).centeredIn(playSize.height).size(sideSize),
                 ) {
                     TransportIcon(MqIcons.SkipPreviousFilled, previousLabel, sideIcon)
                 }
@@ -165,12 +167,12 @@ private fun TransportGroup(
         )
         customItem(
             buttonGroupContent = {
-                FilledTonalIconButton(
+                IconButton(
                     onClick = onNext,
                     enabled = hasNext,
                     shapes = IconButtonDefaults.shapes(),
                     interactionSource = nextInteraction,
-                    modifier = Modifier.size(sideSize).animateWidth(nextInteraction),
+                    modifier = Modifier.animateWidth(nextInteraction).centeredIn(playSize.height).size(sideSize),
                 ) {
                     TransportIcon(MqIcons.SkipNextFilled, nextLabel, sideIcon)
                 }
@@ -188,6 +190,9 @@ private fun TransportGroup(
         )
     }
 }
+
+/** Centers a side button on Play's height: without a container a top-aligned one looks out of line (#532). */
+private fun Modifier.centeredIn(height: Dp): Modifier = height(height).wrapContentHeight(Alignment.CenterVertically)
 
 @Composable
 private fun TransportIcon(

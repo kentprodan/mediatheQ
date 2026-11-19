@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.designsystem.component
 
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -12,6 +13,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import io.github.kentprodan.mediatheq.core.designsystem.R
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import kotlin.math.roundToInt
 
 /**
@@ -25,6 +27,8 @@ fun MqStarRating(
     onRate: (Int?) -> Unit,
     modifier: Modifier = Modifier,
     allowHalf: Boolean = false,
+    /** Smaller stars (Now Playing, #532); the touch targets stay 48 dp. */
+    small: Boolean = false,
 ) {
     val shown = if (allowHalf) halfStars else wholeHalfStars(halfStars)
     val state =
@@ -54,6 +58,7 @@ fun MqStarRating(
                     },
                     contentDescription = label,
                     tint = if (fill == StarFill.Empty) emptyTint else filledTint,
+                    modifier = if (small) Modifier.size(MediatheqSizes.smallStar) else Modifier,
                 )
             }
         }
