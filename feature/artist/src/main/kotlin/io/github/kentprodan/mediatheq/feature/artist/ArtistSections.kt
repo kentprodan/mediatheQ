@@ -55,7 +55,7 @@ internal fun SectionTitle(
         Text(
             stringResource(title),
             Modifier.weight(1f).semantics { heading() },
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
         )
         action?.invoke()
     }

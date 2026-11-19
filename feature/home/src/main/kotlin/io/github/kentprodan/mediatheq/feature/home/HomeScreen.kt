@@ -378,7 +378,7 @@ private fun SectionHeader(
         Text(
             stringResource(content.section.title),
             Modifier.weight(1f).semantics { heading() },
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
         )
         if (content.settings.moreIndicator) {
             Icon(MqIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -300,7 +300,7 @@ private fun PeopleRow(
         Text(
             stringResource(R.string.video_cast),
             Modifier.padding(horizontal = MediatheqSpacing.l).semantics { heading() },
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
         )
         LazyRow(
             contentPadding = PaddingValues(horizontal = MediatheqSpacing.l),

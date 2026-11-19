@@ -29,7 +29,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import io.github.kentprodan.mediatheq.core.data.GenreButton
 import io.github.kentprodan.mediatheq.core.data.GenreHeaderBackground
@@ -109,14 +108,13 @@ internal fun GenreHeader(
 private fun HeaderText(state: GenreUiState.Content) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.xs),
     ) {
         Text(
             state.genre.name,
             Modifier.semantics { heading() },
             style = MaterialTheme.typography.headlineMediumEmphasized,
-            textAlign = TextAlign.Center,
         )
         Text(
             listOfNotNull(
@@ -133,7 +131,6 @@ private fun HeaderText(state: GenreUiState.Content) {
             ).joinToString(" · "),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
         )
     }
 }
@@ -149,7 +146,7 @@ private fun HeaderButtons(
     val enabled = state.tracks.isNotEmpty()
     FlowRow(
         Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
-        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
         verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {

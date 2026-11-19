@@ -19,7 +19,8 @@ data class MediaListStyle(
     val trackDetails: List<TrackDetail> = listOf(TrackDetail.Duration),
     /** Ratings in half stars; `null` when ratings are off (no rating detail then). */
     val halfStars: Boolean? = false,
-    val centerGridText: Boolean = true,
+    /** Off by default (#534): card text starts on the cover's edge. */
+    val centerGridText: Boolean = false,
     val favoriteOverlay: Boolean = true,
     val offlineOverlay: Boolean = false,
     /**

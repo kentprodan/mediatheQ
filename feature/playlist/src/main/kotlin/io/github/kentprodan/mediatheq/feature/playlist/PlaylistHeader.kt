@@ -29,7 +29,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import io.github.kentprodan.mediatheq.core.data.PlaylistButton
 import io.github.kentprodan.mediatheq.core.data.PlaylistHeaderBackground
@@ -109,14 +108,13 @@ internal fun PlaylistHeader(
 private fun HeaderText(state: PlaylistUiState.Content) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.xs),
     ) {
         Text(
             state.playlist.name,
             Modifier.semantics { heading() },
             style = MaterialTheme.typography.headlineMediumEmphasized,
-            textAlign = TextAlign.Center,
         )
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -137,7 +135,6 @@ private fun HeaderText(state: PlaylistUiState.Content) {
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
             )
         }
     }
@@ -157,7 +154,7 @@ private fun HeaderButtons(
     val resume = state.resume != null && state.shows(PlaylistButton.Resume)
     FlowRow(
         Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
-        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
         verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {

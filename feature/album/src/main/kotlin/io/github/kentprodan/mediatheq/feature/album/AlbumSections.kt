@@ -39,7 +39,7 @@ import java.time.format.FormatStyle
 import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 
-/** A section title (#132): `titleMedium`, heading. */
+/** A section title (#132): `titleLarge` (#534), heading. */
 @Composable
 internal fun SectionTitle(text: String) {
     Text(
@@ -52,7 +52,7 @@ internal fun SectionTitle(text: String) {
                 top = MediatheqSpacing.l,
                 bottom = MediatheqSpacing.s,
             ).semantics { heading() },
-        style = MaterialTheme.typography.titleMedium,
+        style = MaterialTheme.typography.titleLarge,
     )
 }
 
