@@ -151,9 +151,9 @@ class SettingsScreenTest {
     @Test
     fun `switches are whole rows with their state`() {
         show(SettingsPage.StorageMedia)
-        scrollTo("Download on Wi-Fi only")
+        scrollTo("Wi-Fi only")
 
-        composeRule.onNode(isToggleable() and hasText("Download on Wi-Fi only")).assertIsOn().performClick()
+        composeRule.onNode(isToggleable() and hasText("Wi-Fi only")).assertIsOn().performClick()
 
         assertThat(actions).containsExactly(SettingsAction.SetDownloadsUnmeteredOnly(false))
     }
@@ -182,7 +182,7 @@ class SettingsScreenTest {
     fun `playback opens the output settings, and back works`() {
         show(SettingsPage.Playback)
 
-        composeRule.onNode(hasText("Output settings") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Outputs") and hasClickAction()).performClick()
         composeRule.onNodeWithContentDescription("Back").performClick()
 
         assertThat(events).containsExactly("outputs", "back").inOrder()
@@ -191,20 +191,20 @@ class SettingsScreenTest {
     @Test
     fun `each page holds its own settings`() {
         show(SettingsPage.Interface)
-        assertRows("Theme, font and colors", "Album grid columns", "Star ratings")
+        assertRows("Theme", "Album grid columns", "Star ratings")
     }
 
     @Test
     fun `the playback hub holds its pages, normalization lives per output`() {
         show(SettingsPage.Playback)
-        assertRows("Decoding and transcoding", "Output settings")
+        assertRows("Quality and transcoding", "Outputs")
         composeRule.onNodeWithText("Volume normalization").assertDoesNotExist()
     }
 
     @Test
     fun `the decoding page holds both bitrates and instant transcoding`() {
         show(SettingsPage.Decoding)
-        assertRows("Mobile maximum bitrate", "Wi-Fi maximum bitrate", "Force instant transcoding")
+        assertRows("Mobile data quality", "Wi-Fi quality", "Always transcode")
     }
 
     @Test
@@ -232,7 +232,7 @@ class SettingsScreenTest {
     @Test
     fun `the media page holds the download settings`() {
         show(SettingsPage.StorageMedia)
-        assertRows("Download on Wi-Fi only", "Download quality", "Max simultaneous downloads")
+        assertRows("Wi-Fi only", "Download quality", "Parallel downloads")
     }
 
     @Test
@@ -245,7 +245,7 @@ class SettingsScreenTest {
     @Test
     fun `the images page holds the three cover switches, off by default`() {
         show(SettingsPage.StorageImages)
-        assertRows("Persistent image cache", "Wi-Fi only image downloads", "High quality images")
+        assertRows("Keep images offline", "Images on Wi-Fi only", "High quality images")
         composeRule.onNode(isToggleable() and hasText("High quality images")).assertIsOff().performClick()
 
         assertThat(actions).containsExactly(SettingsAction.SetImages(ImagePreferences(highQuality = true)))
@@ -263,10 +263,10 @@ class SettingsScreenTest {
     @Test
     fun `automatic downloads of favorites is a choice dialog, and its remove switch is off while disabled`() {
         show(SettingsPage.StorageMedia)
-        scrollTo("Remove when unfavorited")
-        composeRule.onNode(isToggleable() and hasText("Remove when unfavorited")).assertIsNotEnabled()
+        scrollTo("Remove unfavorited downloads")
+        composeRule.onNode(isToggleable() and hasText("Remove unfavorited downloads")).assertIsNotEnabled()
 
-        composeRule.onNode(hasText("Automatic downloads of favorites") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Download favorites") and hasClickAction()).performClick()
         composeRule.onNodeWithText("Favorite tracks and albums").performClick()
 
         assertThat(actions).containsExactly(SettingsAction.SetAutoDownloads(AutoDownloads.TracksAndAlbums))
@@ -278,7 +278,7 @@ class SettingsScreenTest {
         composeRule.onNode(hasText("Download quality") and hasClickAction()).performClick()
         composeRule.onNodeWithText("128 kbps").assertDoesNotExist()
         composeRule.onNodeWithText("192 kbps").performClick()
-        scrollTo("Max simultaneous downloads")
+        scrollTo("Parallel downloads")
         composeRule.onNodeWithText("4").performClick()
 
         assertThat(actions)
@@ -323,7 +323,7 @@ class SettingsScreenTest {
     fun `a page shows nothing until its settings are read`() {
         show(SettingsPage.Interface, SettingsUiState.Loading)
 
-        composeRule.onNodeWithText("Theme, font and colors").assertDoesNotExist()
+        composeRule.onNodeWithText("Theme").assertDoesNotExist()
     }
 
     @Test
@@ -340,7 +340,7 @@ class SettingsScreenTest {
     fun `the interface page opens Theme, font and colors`() {
         show(SettingsPage.Interface)
 
-        composeRule.onNodeWithText("Theme, font and colors").performClick()
+        composeRule.onNodeWithText("Theme").performClick()
 
         assertThat(events).containsExactly("theme")
     }
@@ -349,12 +349,12 @@ class SettingsScreenTest {
     fun `the theme page holds the theme, Now playing, typography and restore settings`() {
         show(SettingsPage.Theme)
         assertRows(
-            "Theme mode",
-            "Default color source",
-            "Selected theme colors",
-            "Now playing color source",
-            "Ignore background and surfaces",
-            "Instant color updates",
+            "Light and dark",
+            "Colors",
+            "Current colors",
+            "Player colors",
+            "Keep app background",
+            "Instant color changes",
             "Restore defaults",
         )
     }
@@ -390,9 +390,9 @@ class SettingsScreenTest {
     @Test
     fun `the Now playing dialog shows the current choice, and a tap applies another and closes`() {
         show(SettingsPage.Theme)
-        scrollTo("Now playing color source")
+        scrollTo("Player colors")
 
-        composeRule.onNodeWithText("Now playing color source").performClick()
+        composeRule.onNodeWithText("Player colors").performClick()
         composeRule.onNode(isSelectable() and hasText("Cover")).assertIsSelected()
         composeRule.onNodeWithText("Cover vibrant").performClick()
 
@@ -406,9 +406,9 @@ class SettingsScreenTest {
     @Test
     fun `the typography dialog sets the font`() {
         show(SettingsPage.Theme)
-        scrollTo("Typography")
+        scrollTo("Font")
 
-        composeRule.onAllNodesWithText("Typography").filterToOne(hasClickAction()).performClick()
+        composeRule.onAllNodesWithText("Font").filterToOne(hasClickAction()).performClick()
         composeRule.onNodeWithText("Lato").performClick()
 
         assertThat(actions).containsExactly(SettingsAction.SetTheme(ThemePreferences(font = AppFont.Lato)))
@@ -462,9 +462,9 @@ class SettingsScreenTest {
     fun `the navigation page opens the entries dialog and sets a switch`() {
         show(SettingsPage.Navigation)
 
-        composeRule.onNode(hasText("Main navigation entries") and hasClickAction()).performClick()
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Expand player automatically"))
-        composeRule.onNode(hasText("Expand player automatically") and isToggleable()).performClick()
+        composeRule.onNode(hasText("Tabs") and hasClickAction()).performClick()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Open player on play"))
+        composeRule.onNode(hasText("Open player on play") and isToggleable()).performClick()
 
         assertThat(actions)
             .containsExactly(
@@ -478,8 +478,8 @@ class SettingsScreenTest {
         show(SettingsPage.MediaLists)
 
         composeRule.onNode(hasText("Inverted sort arrows") and isToggleable()).performClick()
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Track swipe left action"))
-        composeRule.onNode(hasText("Track swipe left action") and hasClickAction()).performClick()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Swipe left"))
+        composeRule.onNode(hasText("Swipe left") and hasClickAction()).performClick()
         composeRule.onNode(hasText("Disabled") and isSelectable()).performClick()
 
         assertThat(actions)
@@ -516,8 +516,8 @@ class SettingsScreenTest {
     fun `now playing switches and choice dialogs apply at once`() {
         show(SettingsPage.NowPlaying)
 
-        composeRule.onNode(hasText("Floating player") and isToggleable()).performClick()
-        composeRule.onNode(hasText("Background style") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Floating mini player") and isToggleable()).performClick()
+        composeRule.onNode(hasText("Background") and hasClickAction()).performClick()
         composeRule.onNode(hasText("Theme background") and isSelectable()).performClick()
 
         assertThat(actions)
@@ -541,8 +541,8 @@ class SettingsScreenTest {
             ),
         )
 
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Show rating stars"))
-        composeRule.onNode(hasText("Show rating stars") and isToggleable()).assertIsOff().assertIsNotEnabled()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Rating stars"))
+        composeRule.onNode(hasText("Rating stars") and isToggleable()).assertIsOff().assertIsNotEnabled()
         composeRule.onNode(hasText("Ratings are off", substring = true)).assertExists()
         composeRule.onNode(hasText("Not used", substring = true)).assertExists()
     }
@@ -702,8 +702,8 @@ class SettingsScreenTest {
     fun `the album page switches apply at once and its order row opens the organize dialog`() {
         show(SettingsPage.Album)
 
-        composeRule.onNode(hasText("Show rating bar") and isToggleable()).performClick()
-        composeRule.onNode(hasText("Page content order") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Rating stars") and isToggleable()).performClick()
+        composeRule.onNode(hasText("Section order") and hasClickAction()).performClick()
 
         assertThat(actions)
             .containsExactly(
@@ -736,8 +736,8 @@ class SettingsScreenTest {
     fun `the artist page switches and columns apply at once and its order row opens the organize dialog`() {
         show(SettingsPage.Artist)
 
-        composeRule.onNode(hasText("Show \"Appears on\"") and isToggleable()).performClick()
-        composeRule.onNode(hasText("Page content order") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Appears on") and isToggleable()).performClick()
+        composeRule.onNode(hasText("Section order") and hasClickAction()).performClick()
         composeRule.onNode(hasText("2") and hasClickAction()).performClick()
 
         assertThat(actions)
@@ -752,7 +752,7 @@ class SettingsScreenTest {
     fun `the artist play action is chosen in its dialog`() {
         show(SettingsPage.Artist)
 
-        composeRule.onNode(hasText("Play button action") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Play") and hasClickAction()).performClick()
         composeRule.onNodeWithText("All tracks shuffled").performClick()
 
         assertThat(actions)
@@ -765,7 +765,7 @@ class SettingsScreenTest {
     fun `the genre page switches apply at once and its dynamic colors are chosen in a dialog`() {
         show(SettingsPage.Genre)
 
-        composeRule.onNode(hasText("Show \"Album artists\"") and isToggleable()).performClick()
+        composeRule.onNode(hasText("Album artists") and isToggleable()).performClick()
         composeRule.onNode(hasText("Dynamic colors") and hasClickAction()).performClick()
         composeRule.onNodeWithText("From header image").performClick()
 
@@ -804,8 +804,8 @@ class SettingsScreenTest {
     fun `the search page switches apply at once and the track action is chosen in a dialog`() {
         show(SettingsPage.Search)
 
-        composeRule.onNode(hasText("Show favorite button") and hasClickAction()).performClick()
-        composeRule.onNode(hasText("Default track action") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Favorite button") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Track tap") and hasClickAction()).performClick()
         composeRule.onNodeWithText("Play next").performClick()
 
         assertThat(actions)
@@ -844,9 +844,9 @@ class SettingsScreenTest {
     fun `the Playback hub opens its pages and the output settings`() {
         show(SettingsPage.Playback)
 
-        composeRule.onNode(hasText("Decoding and transcoding") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Quality and transcoding") and hasClickAction()).performClick()
         composeRule.onNode(hasText("Playback") and hasClickAction()).performClick()
-        composeRule.onNode(hasText("Output settings") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Outputs") and hasClickAction()).performClick()
 
         assertThat(events).containsExactly("decoding", "behavior", "outputs").inOrder()
     }
@@ -951,7 +951,7 @@ class SettingsScreenTest {
     @Test
     fun `decoding and behavior switches apply at once`() {
         show(SettingsPage.Decoding)
-        composeRule.onNode(hasText("Force instant transcoding") and hasClickAction()).performClick()
+        composeRule.onNode(hasText("Always transcode") and hasClickAction()).performClick()
         composeRule.onAllNodesWithText("192 kbps")[0].performClick()
 
         assertThat(actions)

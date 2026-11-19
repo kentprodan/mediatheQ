@@ -92,7 +92,7 @@ internal fun HomeSearchBar(
                 )
             }
             mode?.let { ModeMenu(it, onSetMode) }
-            ProfileMenu(profile, onOpenProfiles, navigation.onOpenSettings)
+            ProfileMenu(profile, onOpenProfiles, navigation.onOpenServers, navigation.onOpenSettings)
         }
     }
 }
@@ -132,11 +132,15 @@ private fun ModeMenu(
     }
 }
 
-/** The active profile's initial (a person without one); its menu: the name, Switch profile, Settings. */
+/**
+ * The active profile's initial (a person without one); its menu: the name, Switch profile, Servers (accounts and
+ * sync, #536), Settings.
+ */
 @Composable
 private fun ProfileMenu(
     profile: String?,
     onOpenProfiles: () -> Unit,
+    onOpenServers: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -174,8 +178,12 @@ private fun ProfileMenu(
                     open = false
                     onOpenProfiles()
                 }
-                HorizontalDivider()
             }
+            MenuEntry(MqIcons.Lan, R.string.home_servers) {
+                open = false
+                onOpenServers()
+            }
+            HorizontalDivider()
             MenuEntry(MqIcons.Settings, R.string.home_settings) {
                 open = false
                 onOpenSettings()

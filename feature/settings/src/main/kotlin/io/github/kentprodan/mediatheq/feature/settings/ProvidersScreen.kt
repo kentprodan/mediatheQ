@@ -14,6 +14,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -53,12 +54,16 @@ internal fun ProvidersRoute(
     viewModel: ProvidersViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ProvidersScreen(state, viewModel::onAction, onAdd, onSignInAgain, onBack)
+    var syncOpen by rememberSaveable { mutableStateOf(false) }
+    ProvidersScreen(state, viewModel::onAction, onAdd, onSignInAgain, onBack, onOpenSync = { syncOpen = true })
+    // The sync manager (#148) opens over the servers (#536).
+    if (syncOpen) SyncManagerSheet(onDismiss = { syncOpen = false })
 }
 
 /**
- * Settings -> Manage media providers (#147): the accounts in order (drag handle, server icon, name, user and address,
- * the active one marked, a menu), then "Add media provider". Switching and removing ask first.
+ * Servers (#147, opened from the profile menu on Home since #536): the accounts in order (drag handle, server icon,
+ * name, user and address, the active one marked, a menu), then "Add media provider"; the Sync icon in the top bar opens
+ * the sync manager. Switching and removing ask first.
  */
 @Composable
 fun ProvidersScreen(
@@ -67,6 +72,7 @@ fun ProvidersScreen(
     onAdd: () -> Unit,
     onSignInAgain: (Account) -> Unit,
     onBack: () -> Unit,
+    onOpenSync: () -> Unit = {},
 ) {
     val content = state as? ProvidersUiState.Content
     val accounts = content?.accounts.orEmpty()
@@ -85,7 +91,16 @@ fun ProvidersScreen(
     var switching by rememberSaveable { mutableStateOf<String?>(null) }
     var removing by rememberSaveable { mutableStateOf<String?>(null) }
     var picking by rememberSaveable { mutableStateOf(false) }
-    SettingsScaffold(stringResource(R.string.settings_providers), onBack, listState) {
+    SettingsScaffold(
+        stringResource(R.string.settings_providers),
+        onBack,
+        listState,
+        actions = {
+            IconButton(onClick = onOpenSync) {
+                Icon(MqIcons.Sync, contentDescription = stringResource(R.string.settings_sync_manager))
+            }
+        },
+    ) {
         content ?: return@SettingsScaffold
         itemsIndexed(rows, key = { _, account -> account.id }) { index, account ->
             ProviderRow(

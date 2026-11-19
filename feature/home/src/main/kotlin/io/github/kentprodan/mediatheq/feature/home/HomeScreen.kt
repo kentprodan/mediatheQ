@@ -89,6 +89,8 @@ data class HomeNavigation(
     val onOpenArtist: (MediaId) -> Unit = {},
     val onOpenPlaylist: (MediaId) -> Unit = {},
     val onOpenSettings: () -> Unit = {},
+    /** The servers and their sync, from the profile menu (#536). */
+    val onOpenServers: () -> Unit = {},
     /** The search app bar (#533): the Search tab when it is in the navigation, else Search over Home. */
     val onOpenSearch: () -> Unit = {},
     val onOpenDownloads: () -> Unit = {},

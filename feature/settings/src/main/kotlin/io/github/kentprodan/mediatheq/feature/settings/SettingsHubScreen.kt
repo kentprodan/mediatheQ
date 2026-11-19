@@ -5,15 +5,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 
-/** An entry of the Settings hub; each opens its own page. An entry is added when its page has content (#120). */
+/**
+ * An entry of the Settings hub; each opens its own page (#120). Settings only (#536): the servers and the sync manager
+ * live under the profile on Home, offline files in Downloads, the changelog and contact support in About.
+ */
 enum class SettingsHubEntry(
     @StringRes val title: Int,
 ) {
@@ -21,15 +20,11 @@ enum class SettingsHubEntry(
     Playback(R.string.settings_playback),
     Storage(R.string.settings_storage_page),
     Advanced(R.string.settings_advanced),
-    ManageOfflineFiles(R.string.settings_manage_offline),
-    Providers(R.string.settings_providers),
-    SyncManager(R.string.settings_sync_manager),
     Backup(R.string.settings_backup),
     About(R.string.settings_about),
-    Changelog(R.string.settings_changelog),
-    ContactSupport(R.string.settings_contact),
 }
 
+/** The settings by topic, then About on its own at the end. */
 internal val hubGroups =
     listOf(
         R.string.settings_title to
@@ -38,48 +33,20 @@ internal val hubGroups =
                 SettingsHubEntry.Playback,
                 SettingsHubEntry.Storage,
                 SettingsHubEntry.Advanced,
-            ),
-        R.string.settings_group_misc to
-            listOf(
-                SettingsHubEntry.ManageOfflineFiles,
-                SettingsHubEntry.Providers,
-                SettingsHubEntry.SyncManager,
                 SettingsHubEntry.Backup,
             ),
-        R.string.settings_about to
-            listOf(SettingsHubEntry.About, SettingsHubEntry.Changelog, SettingsHubEntry.ContactSupport),
+        R.string.settings_about to listOf(SettingsHubEntry.About),
     )
 
-/** The hub; Sync manager and Changelog open as sheets here, Contact support as a dialog. */
 @Composable
 internal fun SettingsHubRoute(
-    info: AboutInfo,
-    changelog: () -> String,
     onOpen: (SettingsHubEntry) -> Unit,
     onBack: () -> Unit,
 ) {
-    // The entry whose sheet or dialog shows over the hub.
-    var shown by rememberSaveable { mutableStateOf<SettingsHubEntry?>(null) }
-    SettingsHubScreen(
-        onOpen = { if (it in overHub) shown = it else onOpen(it) },
-        onBack = onBack,
-    )
-    val dismiss = { shown = null }
-    when (shown) {
-        SettingsHubEntry.SyncManager -> SyncManagerSheet(onDismiss = dismiss)
-        SettingsHubEntry.Changelog -> ChangelogSheet(changelog, onDismiss = dismiss)
-        SettingsHubEntry.ContactSupport -> ContactSupportDialog(info, onDismiss = dismiss)
-        else -> Unit
-    }
+    SettingsHubScreen(onOpen = onOpen, onBack = onBack)
 }
 
-/** The entries that open over the hub instead of a page of their own. */
-private val overHub = setOf(SettingsHubEntry.SyncManager, SettingsHubEntry.Changelog, SettingsHubEntry.ContactSupport)
-
-/**
- * Settings: groups of categories (segmented rows with an icon); a row opens its page. Stateless. "Manage offline files"
- * opens Downloads with a back button, also when Downloads is a navigation entry (#149).
- */
+/** Settings: groups of categories (segmented rows with an icon); a row opens its page. Stateless. */
 @Composable
 fun SettingsHubScreen(
     onOpen: (SettingsHubEntry) -> Unit,
@@ -113,11 +80,6 @@ private val SettingsHubEntry.icon: ImageVector
             SettingsHubEntry.Playback -> MqIcons.Radio
             SettingsHubEntry.Storage -> MqIcons.DownloadForOffline
             SettingsHubEntry.Advanced -> MqIcons.Tune
-            SettingsHubEntry.ManageOfflineFiles -> MqIcons.Download
-            SettingsHubEntry.Providers -> MqIcons.Devices
-            SettingsHubEntry.SyncManager -> MqIcons.Sync
             SettingsHubEntry.Backup -> MqIcons.Restore
             SettingsHubEntry.About -> MqIcons.Info
-            SettingsHubEntry.Changelog -> MqIcons.History
-            SettingsHubEntry.ContactSupport -> MqIcons.Feedback
         }

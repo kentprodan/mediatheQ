@@ -16,10 +16,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.navigation.AboutSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AdvancedSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.BackupSettingsKey
-import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.InterfaceSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.PlaybackSettingsKey
-import io.github.kentprodan.mediatheq.core.navigation.ProvidersSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.StorageSettingsKey
 import org.junit.Rule
 import org.junit.Test
@@ -54,63 +52,21 @@ class SettingsHubScreenTest {
     fun `every entry opens its page, in the hub's order`() {
         show()
 
-        listOf(
-            "Interface",
-            "Playback",
-            "Offline, cache, and download",
-            "Advanced",
-            "Manage offline files",
-            "Manage media providers",
-            "Sync manager",
-            "Backup & restore",
-        ).forEach(::open)
+        listOf("Interface", "Playback", "Downloads and storage", "Advanced", "Backup").forEach(::open)
         // "About" is both a group title and its entry: the clickable row is the entry.
         open("About")
-        open("Changelog")
-        open("Contact support")
 
         assertThat(opened).containsExactlyElementsIn(SettingsHubEntry.entries).inOrder()
     }
 
     @Test
-    fun `the About group holds About, Changelog and Contact support`() {
-        assertThat(hubGroups.last())
-            .isEqualTo(
-                R.string.settings_about to
-                    listOf(SettingsHubEntry.About, SettingsHubEntry.Changelog, SettingsHubEntry.ContactSupport),
-            )
-    }
-
-    private fun showRoute() =
-        composeRule.setContent {
-            MediatheqTheme {
-                SettingsHubRoute(
-                    AboutInfo("1.2.3", 42, "17", "Google Pixel 9"),
-                    changelog = { "## [Unreleased]\n### Added\n- A changelog line\n" },
-                    onOpen = { opened += it },
-                    onBack = {},
-                )
-            }
+    fun `the hub holds settings only, About last`() {
+        assertThat(hubGroups.last()).isEqualTo(R.string.settings_about to listOf(SettingsHubEntry.About))
+        // The servers, the sync manager and offline files live elsewhere (#536).
+        show()
+        listOf("Servers", "Sync manager", "Manage offline files", "Changelog", "Contact support").forEach {
+            composeRule.onNode(row(it)).assertDoesNotExist()
         }
-
-    @Test
-    fun `Changelog opens its sheet over the hub`() {
-        showRoute()
-
-        open("Changelog")
-
-        composeRule.onNodeWithText("A changelog line", substring = true).assertExists()
-        assertThat(opened).isEmpty()
-    }
-
-    @Test
-    fun `Contact support opens its dialog over the hub`() {
-        showRoute()
-
-        open("Contact support")
-
-        composeRule.onNodeWithText("Make a feature request").assertExists()
-        assertThat(opened).isEmpty()
     }
 
     @Test
@@ -126,13 +82,8 @@ class SettingsHubScreenTest {
                 PlaybackSettingsKey,
                 StorageSettingsKey,
                 AdvancedSettingsKey,
-                DownloadsKey,
-                ProvidersSettingsKey,
-                null,
                 BackupSettingsKey,
                 AboutSettingsKey,
-                null,
-                null,
             ).inOrder()
     }
 
@@ -143,7 +94,6 @@ class SettingsHubScreenTest {
         // Title and click on one merged node: TalkBack reads the row as one control.
         composeRule.onNode(row("Interface")).assertExists()
         composeRule.onNode(isHeading() and hasText("Settings")).assertExists()
-        composeRule.onNode(isHeading() and hasText("Miscellaneous")).assertExists()
     }
 
     @Test

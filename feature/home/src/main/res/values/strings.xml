@@ -5,6 +5,7 @@
     <string name="home_mode">Mode</string>
     <string name="home_profile_menu">Profile and settings</string>
     <string name="home_switch_profile">Switch profile</string>
+    <string name="home_servers">Servers</string>
     <string name="home_shuffle_menu">Shuffle and mixes</string>
     <string name="home_shuffle_all">Shuffle all</string>
     <string name="home_first_sync_title">Getting your library</string>

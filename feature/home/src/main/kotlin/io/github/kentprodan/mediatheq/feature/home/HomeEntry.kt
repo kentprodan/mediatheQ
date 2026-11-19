@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.navigation.HomeSectionSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.MovieKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
 import io.github.kentprodan.mediatheq.core.navigation.PlaylistKey
+import io.github.kentprodan.mediatheq.core.navigation.ProvidersSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
 import io.github.kentprodan.mediatheq.core.navigation.SettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
@@ -29,6 +30,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
                 onOpenArtist = { navigator.navigateTo(ArtistKey(it)) },
                 onOpenPlaylist = { navigator.navigateTo(PlaylistKey(it)) },
                 onOpenSettings = { navigator.navigateTo(SettingsKey) },
+                onOpenServers = { navigator.navigateTo(ProvidersSettingsKey) },
                 onOpenDownloads = onOpenDownloads,
                 onOpenSearch = onOpenSearch,
                 onOpenSection = { navigator.navigateTo(HomeSectionListKey(it)) },

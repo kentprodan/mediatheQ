@@ -33,7 +33,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import kotlinx.coroutines.launch
 
-/** Settings -> About (#151); the Changelog opens as a sheet here. */
+/** Settings -> About (#151); the Changelog opens as a sheet here, Contact support as a dialog (#536). */
 @Composable
 internal fun AboutRoute(
     info: AboutInfo,
@@ -50,6 +50,7 @@ internal fun AboutRoute(
     val context = LocalContext.current
     val copied = stringResource(R.string.settings_version_copied)
     var changelogOpen by rememberSaveable { mutableStateOf(false) }
+    var contactOpen by rememberSaveable { mutableStateOf(false) }
     AboutScreen(
         info,
         onCopyVersion = {
@@ -60,6 +61,7 @@ internal fun AboutRoute(
             }
         },
         onOpenChangelog = { changelogOpen = true },
+        onOpenContact = { contactOpen = true },
         onOpenLicenses = onOpenLicenses,
         // No app may open links (no browser): then the row does nothing rather than crash.
         onOpenSource = { runCatching { uriHandler.openUri(SOURCE_URL) } },
@@ -69,6 +71,7 @@ internal fun AboutRoute(
         onBack = onBack,
     )
     if (changelogOpen) ChangelogSheet(changelog, onDismiss = { changelogOpen = false })
+    if (contactOpen) ContactSupportDialog(info, onDismiss = { contactOpen = false })
 }
 
 /**
@@ -81,6 +84,7 @@ fun AboutScreen(
     info: AboutInfo,
     onCopyVersion: () -> Unit,
     onOpenChangelog: () -> Unit,
+    onOpenContact: () -> Unit,
     onOpenLicenses: () -> Unit,
     onOpenSource: () -> Unit,
     onOpenPrivacy: () -> Unit,
@@ -131,6 +135,15 @@ fun AboutScreen(
                         R.string.settings_changelog,
                         R.string.settings_changelog_summary,
                         onOpenChangelog,
+                    )
+                }
+                item { shapes ->
+                    AboutRow(
+                        shapes,
+                        MqIcons.Feedback,
+                        R.string.settings_contact,
+                        R.string.settings_contact_summary,
+                        onOpenContact,
                     )
                 }
                 item { shapes ->
