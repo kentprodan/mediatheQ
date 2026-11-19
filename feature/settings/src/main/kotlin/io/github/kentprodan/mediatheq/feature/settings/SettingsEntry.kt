@@ -63,7 +63,11 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     val back: () -> Unit = { navigator.back() }
     val openOutputs: () -> Unit = { navigator.navigateTo(OutputSettingsKey) }
     entry<SettingsKey> {
-        SettingsHubRoute(onOpen = { navigator.navigateTo(it.key) }, onBack = back)
+        SettingsHubRoute(
+            onOpen = { navigator.navigateTo(it.key) },
+            onOpenPage = { navigator.navigateTo(it.key) },
+            onBack = back,
+        )
     }
     entry<InterfaceSettingsKey> {
         SettingsPageRoute(
@@ -182,6 +186,40 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<LicensesKey> { LicensesRoute(licensesReport, licenseNotices, onBack = back) }
     entry<PrivacyKey> { PrivacyScreen(onBack = back) }
 }
+
+/** The key that opens a Settings page (a search hit, #536). */
+internal val SettingsPage.key: NavKey
+    get() =
+        when (this) {
+            SettingsPage.Interface -> InterfaceSettingsKey
+            SettingsPage.AppMode -> AppModeSettingsKey
+            SettingsPage.Theme -> ThemeSettingsKey
+            SettingsPage.Navigation -> NavigationSettingsKey
+            SettingsPage.MediaLists -> MediaListsSettingsKey
+            SettingsPage.NowPlaying -> NowPlayingSettingsKey
+            SettingsPage.Home -> HomePageSettingsKey
+            SettingsPage.Library -> LibraryPageSettingsKey
+            SettingsPage.Album -> AlbumPageSettingsKey
+            SettingsPage.Artist -> ArtistPageSettingsKey
+            SettingsPage.Genre -> GenrePageSettingsKey
+            SettingsPage.Playlist -> PlaylistPageSettingsKey
+            SettingsPage.Search -> SearchPageSettingsKey
+            SettingsPage.Advanced -> AdvancedSettingsKey
+            SettingsPage.Playback -> PlaybackSettingsKey
+            SettingsPage.PlaybackBehavior -> PlaybackBehaviorSettingsKey
+            SettingsPage.Decoding -> DecodingSettingsKey
+            SettingsPage.Video -> VideoSettingsKey
+            SettingsPage.AudioFocus -> AudioFocusSettingsKey
+            SettingsPage.Headset -> HeadsetSettingsKey
+            SettingsPage.NotificationButtons -> NotificationButtonsSettingsKey
+            SettingsPage.Transitions -> TransitionsSettingsKey
+            SettingsPage.AutoActions -> AutoActionsSettingsKey
+            SettingsPage.Storage -> StorageSettingsKey
+            SettingsPage.StorageGeneral -> StorageGeneralSettingsKey
+            SettingsPage.StorageMedia -> StorageMediaSettingsKey
+            SettingsPage.StoragePlayback -> StoragePlaybackSettingsKey
+            SettingsPage.StorageImages -> StorageImagesSettingsKey
+        }
 
 /** The page a hub entry opens. */
 internal val SettingsHubEntry.key: NavKey
