@@ -63,12 +63,20 @@ private val content =
         LibraryPreferences(albumColumns = 3, ratingMode = RatingMode.HalfStars),
     )
 
-/** The hub: Settings, Miscellaneous and About groups. */
+/** The hub: the search field, the settings, then About. */
 @PreviewTest
 @MqPreviews
 @Composable
 fun SettingsHubScreenshot() {
     MediatheqTheme { SettingsHubScreen(onOpen = {}, onBack = {}) }
+}
+
+/** Search in Settings (#536): the hits for "color", each with its page. */
+@PreviewTest
+@MqPreviews
+@Composable
+fun SettingsSearchScreenshot() {
+    MediatheqTheme { SettingsHubScreen(onOpen = {}, onBack = {}, query = "color") }
 }
 
 @Composable
