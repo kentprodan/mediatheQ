@@ -133,8 +133,8 @@ internal fun HomeRoute(
 }
 
 /**
- * Stateless Home tab: a search app bar (Settings and the profile in it), the chosen sections (#127) in their order and
- * display, and Shuffle all as an extended FAB that shrinks to its icon once the list scrolls (#533).
+ * Stateless Home tab: a search app bar (the mode and profile menus in it), the chosen sections (#127) in their order
+ * and display, and the Shuffle all / mixes FAB menu (#533).
  */
 @Composable
 fun HomeScreen(
@@ -142,49 +142,25 @@ fun HomeScreen(
     onAction: (HomeAction) -> Unit,
     navigation: HomeNavigation,
     modifier: Modifier = Modifier,
-    /** The mode toggle at the top (ADR 0051); `null` hides it. */
+    /** The mode menu in the search bar (ADR 0051, #533); `null` hides it. */
     mode: AppMode? = null,
-    /** The active profile's name for its avatar (#443); `null` hides it. */
+    /** The active profile's name for its initial (#443); `null` shows a person. */
     profile: String? = null,
     onOpenProfiles: () -> Unit = {},
 ) {
     val listState = rememberLazyListState()
-    val fabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     Scaffold(
         modifier = modifier,
-        topBar = { HomeSearchBar(navigation, profile, onOpenProfiles) },
+        topBar = {
+            HomeSearchBar(navigation, mode, { onAction(HomeAction.SetMode(it)) }, profile, onOpenProfiles)
+        },
         floatingActionButton = {
-            if (state is HomeUiState.Content && state.showShuffle) {
-                val shuffleAll = stringResource(R.string.home_shuffle_all)
-                ExtendedFloatingActionButton(
-                    onClick = { onAction(HomeAction.ShuffleAll) },
-                    expanded = fabExpanded,
-                    icon = { Icon(MqIcons.Shuffle, contentDescription = null) },
-                    text = { Text(shuffleAll) },
-                    // Above the mini player and the navigation, which the screen draws under. Named also while it
-                    // shows only its icon.
-                    modifier = Modifier.bottomBarsPadding().semantics { contentDescription = shuffleAll },
-                )
-            }
+            if (state is HomeUiState.Content && state.showShuffle) ShuffleFabMenu(onAction)
         },
         // The app shell already pads for the navigation bar.
         contentWindowInsets = WindowInsets(0),
     ) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize()) {
-            if (mode != null) {
-                MqTabButtons(
-                    AppMode.entries.map { stringResource(it.label) },
-                    selected = mode.ordinal,
-                    onSelect = { onAction(HomeAction.SetMode(AppMode.entries[it])) },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = MediatheqSpacing.l)
-                            .padding(bottom = MediatheqSpacing.s),
-                )
-            }
-            Box(Modifier.weight(1f).fillMaxSize()) { HomeBody(state, onAction, navigation, listState) }
-        }
+        Box(Modifier.padding(padding).fillMaxSize()) { HomeBody(state, onAction, navigation, listState) }
     }
 }
 
@@ -251,53 +227,6 @@ private fun HomeBody(
                     HomeContent(state, onAction, navigation, listState)
                 }
             }
-        }
-    }
-}
-
-/**
- * The search app bar (#533): a search-bar pill that opens Search, with Settings and the profile avatar at its end.
- * Not an input field: typing happens on the Search screen.
- */
-@Composable
-private fun HomeSearchBar(
-    navigation: HomeNavigation,
-    profile: String?,
-    onOpenProfiles: () -> Unit,
-) {
-    val label = stringResource(R.string.home_search)
-    Surface(
-        shape = SearchBarDefaults.inputFieldShape,
-        color = SearchBarDefaults.colors().containerColor,
-        modifier =
-            Modifier
-                .statusBarsPadding()
-                .fillMaxWidth()
-                .padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Row(
-                Modifier
-                    .weight(1f)
-                    .heightIn(min = SearchBarDefaults.InputFieldHeight)
-                    .clickable(onClickLabel = label, role = Role.Button, onClick = navigation.onOpenSearch)
-                    .padding(start = MediatheqSpacing.l),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.l),
-            ) {
-                Icon(MqIcons.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            IconButton(onClick = navigation.onOpenSettings) {
-                Icon(MqIcons.Settings, contentDescription = stringResource(R.string.home_settings))
-            }
-            profile?.let { ProfileAvatar(it, onOpenProfiles) }
         }
     }
 }
