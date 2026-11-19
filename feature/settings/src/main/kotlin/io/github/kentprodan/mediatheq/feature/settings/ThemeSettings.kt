@@ -1,8 +1,10 @@
 package io.github.kentprodan.mediatheq.feature.settings
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
@@ -260,7 +262,11 @@ private fun CustomColorItem(
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s)) {
                 Text(stringResource(R.string.settings_custom_color_summary))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s)) {
+                // One row that scrolls sideways (#536): a wrapped row leaves a lone swatch on some screens.
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
+                ) {
                     MqSeedPresets.forEachIndexed { index, preset ->
                         MqColorSwatch(
                             Color(preset),
@@ -304,8 +310,8 @@ private fun ThemeColorsItem(shapes: ListItemShapes) {
         shapes = shapes,
         colors = settingsColors(),
         supportingContent = {
-            FlowRow(
-                Modifier.padding(top = MediatheqSpacing.xs),
+            Row(
+                Modifier.padding(top = MediatheqSpacing.xs).horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
             ) { roles.forEach { (name, color) -> MqColorSwatch(color, stringResource(name)) } }
         },
