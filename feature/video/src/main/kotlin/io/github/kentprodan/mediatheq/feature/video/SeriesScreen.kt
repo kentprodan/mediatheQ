@@ -209,6 +209,8 @@ private fun SeriesContent(
                             selected = index == selected,
                             onClick = { onAction(SeriesAction.SelectSeason(season.id)) },
                             text = { Text(season.title) },
+                            selectedContentColor = MaterialTheme.colorScheme.primary,
+                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
