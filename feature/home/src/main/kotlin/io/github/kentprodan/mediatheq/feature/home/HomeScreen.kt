@@ -54,7 +54,6 @@ import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCarouselItem
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCoverCarousel
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
-import io.github.kentprodan.mediatheq.core.designsystem.component.MqTabButtons
 import io.github.kentprodan.mediatheq.core.designsystem.component.bottomBarsPadding
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons

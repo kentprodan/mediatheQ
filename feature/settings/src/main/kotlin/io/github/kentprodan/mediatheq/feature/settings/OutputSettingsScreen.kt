@@ -10,8 +10,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,7 +37,6 @@ import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.data.OutputProfile
 import io.github.kentprodan.mediatheq.core.data.RememberedOutput
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialog
-import io.github.kentprodan.mediatheq.core.designsystem.component.MqTabButtons
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.OutputId
@@ -184,7 +185,14 @@ fun OutputScreen(
             } else {
                 AudioOutputInfo(bitPerfectSupported = content.info.bitPerfectSupported)
             }
-        item(key = "tabs") { MqTabButtons(tabs, tab, { tab = it }, Modifier.fillMaxWidth()) }
+        // M3 primary tabs (#537): Settings and Equalizer are content, not a choice.
+        item(key = "tabs") {
+            PrimaryTabRow(selectedTabIndex = tab, Modifier.fillMaxWidth()) {
+                tabs.forEachIndexed { index, label ->
+                    Tab(selected = index == tab, onClick = { tab = index }, text = { Text(label) })
+                }
+            }
+        }
         // One setting at a time, applied to the stored profile: a quick second tap never undoes the first.
         val set = {
             change: (
