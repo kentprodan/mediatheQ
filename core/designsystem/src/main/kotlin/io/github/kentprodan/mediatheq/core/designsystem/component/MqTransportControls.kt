@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import io.github.kentprodan.mediatheq.core.designsystem.R
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 
 /**
@@ -54,7 +55,7 @@ fun MqTransportControls(
         BoxWithConstraints(Modifier.weight(1f), contentAlignment = Alignment.Center) {
             val full =
                 IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Uniform).width * 2 +
-                    IconButtonDefaults.largeContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide).width +
+                    MediatheqSizes.playerPlayButton.width +
                     MediatheqSpacing.s * 2
             TransportGroup(
                 isPlaying,
@@ -89,7 +90,7 @@ private fun TransportGroup(
     val previousInteraction = remember { MutableInteractionSource() }
     val playInteraction = remember { MutableInteractionSource() }
     val nextInteraction = remember { MutableInteractionSource() }
-    // Medium sides and a large wide centre; one size down each when that does not fit (the group would otherwise move
+    // Medium sides and a wide centre between medium and large (#532); one size down each when that does not fit (the group would otherwise move
     // buttons to its menu).
     val sideSize =
         if (compact) {
@@ -101,7 +102,7 @@ private fun TransportGroup(
         if (compact) {
             IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide)
         } else {
-            IconButtonDefaults.largeContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide)
+            MediatheqSizes.playerPlayButton
         }
     val sideIcon = if (compact) IconButtonDefaults.smallIconSize else IconButtonDefaults.mediumIconSize
     val playIcon = if (compact) IconButtonDefaults.mediumIconSize else IconButtonDefaults.largeIconSize

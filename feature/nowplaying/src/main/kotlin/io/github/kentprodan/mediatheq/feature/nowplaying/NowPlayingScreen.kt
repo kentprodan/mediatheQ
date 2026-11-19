@@ -213,7 +213,8 @@ fun NowPlayingScreen(
             } else {
                 Column(
                     Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
+                    // Tight rows (#532), so the cover is as wide as the content also with the stars.
+                    verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     CollapseButton(onCollapse)

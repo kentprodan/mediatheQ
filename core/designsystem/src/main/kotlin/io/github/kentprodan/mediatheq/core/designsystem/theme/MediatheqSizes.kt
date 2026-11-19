@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.core.designsystem.theme
 
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 
 /** Size tokens for fixed-size elements (expressive-design skill, section 2). */
@@ -15,6 +16,9 @@ object MediatheqSizes {
 
     /** An audio format badge (stereo, Dolby Atmos, ...) before a track's artists. */
     val formatBadge = 18.dp
+
+    /** Now Playing's Play / Pause (#532): between M3's medium and large icon buttons, so the cover keeps its width. */
+    val playerPlayButton = DpSize(112.dp, 72.dp)
 
     /** Now Playing's rating stars (#532). */
     val smallStar = 20.dp
