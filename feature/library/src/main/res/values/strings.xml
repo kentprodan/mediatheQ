@@ -56,4 +56,5 @@
         <item quantity="one">%1$d album</item>
         <item quantity="other">%1$d albums</item>
     </plurals>
+    <string name="library_more_actions">More actions for the list</string>
 </resources>

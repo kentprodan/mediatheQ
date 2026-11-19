@@ -198,12 +198,12 @@ class DefaultLibraryPreferencesRepositoryTest {
         }
 
     @Test
-    fun `library page defaults are every tile, a grid of 3 columns, 5 in landscape, normal spacing`() =
+    fun `library page defaults are every tile, a list, 3 grid columns, 5 in landscape, normal spacing`() =
         runTest {
             val page = repository.preferences.first().libraryPage
 
             assertThat(page.shortcuts).isEqualTo(LibraryShortcut.entries)
-            assertThat(page.style).isEqualTo(LibraryHubStyle.Grid)
+            assertThat(page.style).isEqualTo(LibraryHubStyle.List)
             assertThat(page.columns).isEqualTo(3)
             assertThat(page.landscapeColumns).isEqualTo(5)
             assertThat(page.spacing).isEqualTo(LibraryHubSpacing.Normal)
@@ -575,8 +575,8 @@ class DefaultLibraryPreferencesRepositoryTest {
             val lists = repository.preferences.first().mediaLists
 
             assertThat(lists.showItemCounts).isTrue()
-            assertThat(lists.topButtonStyle).isEqualTo(TopButtonStyle.SmallIcons)
-            assertThat(lists.hiddenTopButtons).isEmpty()
+            assertThat(lists.topButtonStyle).isEqualTo(TopButtonStyle.Normal)
+            assertThat(lists.hiddenTopButtons).containsExactly(TopButton.PlayNext, TopButton.AddToQueue)
             assertThat(lists.invertedSortArrows).isFalse()
             assertThat(lists.hideBackButton).isFalse()
             assertThat(lists.trackInfo).isEqualTo(TrackInfo.Duration)
@@ -640,7 +640,7 @@ class DefaultLibraryPreferencesRepositoryTest {
             assertThat(lists.hiddenTopButtons).containsExactly(TopButton.Shuffle)
             assertThat(lists.trackInfo).isEqualTo(TrackInfo.Duration)
             assertThat(lists.swipeLeft).isEqualTo(SwipeAction.PlayNext)
-            assertThat(lists.topButtonStyle).isEqualTo(TopButtonStyle.SmallIcons)
+            assertThat(lists.topButtonStyle).isEqualTo(TopButtonStyle.Normal)
         }
 
     @Test

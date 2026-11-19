@@ -12,7 +12,8 @@ enum class LibraryHubSpacing { Compact, Normal, Large }
 data class LibraryPagePreferences(
     /** The hub's tiles in order; never empty. */
     val shortcuts: List<LibraryShortcut> = LibraryShortcut.entries,
-    val style: LibraryHubStyle = LibraryHubStyle.Grid,
+    /** A list with icons by default (#535); the grid stays a choice. */
+    val style: LibraryHubStyle = LibraryHubStyle.List,
     val columns: Int = DEFAULT_COLUMNS,
     val landscapeColumns: Int = DEFAULT_LANDSCAPE_COLUMNS,
     val spacing: LibraryHubSpacing = LibraryHubSpacing.Normal,

@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.library
 
 import android.content.res.Configuration
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -29,8 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.data.LibraryHubSpacing
@@ -55,7 +59,7 @@ internal fun LibraryHubRoute(
 
 /**
  * Stateless Library hub (#129): the Library icon and title, then a tile per chosen list, in a grid ([LibraryHubStyle.Grid],
- * columns from Settings, landscape its own) or one row per tile ([LibraryHubStyle.List]).
+ * columns from Settings, landscape its own) or a plain list row per list ([LibraryHubStyle.List], the default, #535).
  */
 @Composable
 fun LibraryHubScreen(
@@ -69,7 +73,11 @@ fun LibraryHubScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(MqIcons.Library, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            MqIcons.Library,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         Spacer(Modifier.width(MediatheqSpacing.m))
                         Text(stringResource(R.string.library_title))
                     }
@@ -123,9 +131,10 @@ private fun TileGrid(
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(MediatheqSpacing.l).plusBottomBars(),
-        horizontalArrangement = Arrangement.spacedBy(gap),
-        verticalArrangement = Arrangement.spacedBy(gap),
+        // A list is plain rows edge to edge (#535); the grid keeps its tonal tiles and gaps.
+        contentPadding = (if (grid) PaddingValues(MediatheqSpacing.l) else PaddingValues()).plusBottomBars(),
+        horizontalArrangement = Arrangement.spacedBy(if (grid) gap else 0.dp),
+        verticalArrangement = Arrangement.spacedBy(if (grid) gap else 0.dp),
     ) {
         items(page.shortcuts, key = { it.name }) { shortcut ->
             Tile(shortcut, grid, counts[shortcut]) { onAction(LibraryHubAction.Open(shortcut)) }
@@ -133,7 +142,7 @@ private fun TileGrid(
     }
 }
 
-/** A tonal tile: icon over its label in a grid, icon then label in a row. */
+/** A tonal tile (icon over its label) in a grid; in a list a plain row: icon, label, count (#535). */
 @Composable
 private fun Tile(
     shortcut: LibraryShortcut,
@@ -141,33 +150,30 @@ private fun Tile(
     count: Int?,
     onClick: () -> Unit,
 ) {
+    if (!grid) {
+        ListItem(
+            headlineContent = { Text(stringResource(shortcut.label)) },
+            leadingContent = { Icon(shortcut.icon, contentDescription = null) },
+            trailingContent = count?.let { { Count(it) } },
+            modifier = Modifier.clickable(role = Role.Button, onClick = onClick),
+        )
+        return
+    }
     Card(
         onClick = onClick,
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
     ) {
         val label = stringResource(shortcut.label)
-        if (grid) {
-            Column(
-                Modifier.fillMaxWidth().padding(MediatheqSpacing.l),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
-            ) {
-                Icon(shortcut.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                // The column cap keeps tiles wide enough that words never break; two lines for "Album artists".
-                Text(label, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center, maxLines = 2)
-                count?.let { Count(it) }
-            }
-        } else {
-            Row(
-                Modifier.fillMaxWidth().padding(MediatheqSpacing.l),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(shortcut.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(MediatheqSpacing.l))
-                Text(label, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-                count?.let { Count(it) }
-            }
+        Column(
+            Modifier.fillMaxWidth().padding(MediatheqSpacing.l),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
+        ) {
+            Icon(shortcut.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            // The column cap keeps tiles wide enough that words never break; two lines for "Album artists".
+            Text(label, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center, maxLines = 2)
+            count?.let { Count(it) }
         }
     }
 }

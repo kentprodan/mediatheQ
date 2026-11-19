@@ -15,8 +15,9 @@ enum class SwipeAction { Disabled, AddToQueue, PlayNext, AddToPlaylist, Download
 /** Settings -> Interface -> Media lists (#123). */
 data class MediaListPreferences(
     val showItemCounts: Boolean = true,
-    val topButtonStyle: TopButtonStyle = TopButtonStyle.SmallIcons,
-    val hiddenTopButtons: Set<TopButton> = emptySet(),
+    /** Labeled by default (#535): Play filled, Shuffle tonal; Play next and Add to queue in More. */
+    val topButtonStyle: TopButtonStyle = TopButtonStyle.Normal,
+    val hiddenTopButtons: Set<TopButton> = setOf(TopButton.PlayNext, TopButton.AddToQueue),
     val invertedSortArrows: Boolean = false,
     val hideBackButton: Boolean = false,
     val trackInfo: TrackInfo = TrackInfo.Duration,
