@@ -91,14 +91,14 @@ class NowPlayingScreenTest {
     }
 
     @Test
-    fun `the cover button and the bottom bar both toggle the lyrics`() {
+    fun `only the bottom bar toggles the lyrics`() {
         show()
 
-        composeRule.onAllNodesWithContentDescription("Lyrics").fetchSemanticsNodes().also { assertThat(it).hasSize(2) }
-        composeRule.onAllNodesWithContentDescription("Lyrics")[0].performClick()
-        composeRule.onAllNodesWithContentDescription("Lyrics")[1].performClick()
+        // One Lyrics button (#532): the one on the cover is gone.
+        composeRule.onAllNodesWithContentDescription("Lyrics").fetchSemanticsNodes().also { assertThat(it).hasSize(1) }
+        composeRule.onNodeWithContentDescription("Lyrics").performClick()
 
-        assertThat(actions).containsExactly(NowPlayingAction.ToggleLyrics, NowPlayingAction.ToggleLyrics)
+        assertThat(actions).containsExactly(NowPlayingAction.ToggleLyrics)
     }
 
     @Test

@@ -51,6 +51,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -71,6 +72,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
+import io.github.kentprodan.mediatheq.core.common.QualityKind
 import io.github.kentprodan.mediatheq.core.common.QualityLabel
 import io.github.kentprodan.mediatheq.core.common.formatDuration
 import io.github.kentprodan.mediatheq.core.data.CoverTap
@@ -142,8 +144,13 @@ fun NowPlayingScreen(
             }
 
             PlayerBackground.Gradient -> {
-                Brush.verticalGradient(listOf(colors.primaryContainer, colors.surface)) to
-                    colors.onSurface
+                // A light cover tint fading into the surface (#532): the cover color is for Play and the progress.
+                Brush.verticalGradient(
+                    listOf(
+                        colors.primaryContainer.copy(alpha = COVER_TINT).compositeOver(colors.surface),
+                        colors.surface,
+                    ),
+                ) to colors.onSurface
             }
 
             PlayerBackground.Theme -> {
@@ -242,6 +249,7 @@ private fun ColumnScope.PlayerDetails(
             onRate = { onAction(NowPlayingAction.Rate(it)) },
             allowHalf = state.ratingMode == RatingMode.HalfStars,
             modifier = Modifier.align(Alignment.CenterHorizontally),
+            small = true,
         )
     }
     Controls(state, onAction, compactControls)
@@ -280,7 +288,7 @@ private fun CollapseButton(
 }
 
 /**
- * The cover, or the lyrics in its place (same square); the small round button at its bottom start switches. A
+ * The cover, or the lyrics in its place (same square); the Lyrics button in the bottom bar switches (#532). A
  * horizontal swipe changes track. Only the cover carries [coverModifier] (the shared flight to the mini player).
  */
 @Composable
@@ -350,13 +358,6 @@ private fun CoverOrLyrics(
                 LyricsContent(lyrics, position, state.isSeekable, onAction)
             }
         }
-        MqIconToggle(
-            checked = state.lyricsShown,
-            onClick = { onAction(NowPlayingAction.ToggleLyrics) },
-            icon = MqIcons.Lyrics,
-            contentDescription = stringResource(R.string.nowplaying_lyrics),
-            modifier = Modifier.align(Alignment.BottomStart).padding(MediatheqSpacing.s),
-        )
     }
 }
 
@@ -538,8 +539,14 @@ internal fun QualityLabelButton(
     ) {
         Text(
             if (detail) label.detail else stringResource(label.kind.text),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.labelMedium,
+            // The accent only where it means something (#532): Dolby Atmos.
+            color =
+                if (label.kind == QualityKind.DolbyAtmos) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -581,6 +588,7 @@ private fun Controls(
                             RepeatMode.One -> R.string.nowplaying_repeat_one
                         },
                     ),
+                standard = true,
             )
         },
         trailing = {
@@ -589,6 +597,7 @@ private fun Controls(
                 onClick = { onAction(NowPlayingAction.SetShuffle(!state.shuffle)) },
                 icon = MqIcons.Shuffle,
                 contentDescription = stringResource(R.string.nowplaying_shuffle),
+                standard = true,
             )
         },
     )
@@ -609,6 +618,7 @@ private fun BottomBarButtons(
         onClick = { onAction(NowPlayingAction.ToggleLyrics) },
         icon = MqIcons.Lyrics,
         contentDescription = stringResource(R.string.nowplaying_lyrics),
+        standard = true,
     )
     IconButton(onClick = navigation.onOpenEqualizer) {
         Icon(MqIcons.GraphicEq, contentDescription = stringResource(R.string.nowplaying_equalizer))
@@ -775,6 +785,9 @@ internal fun Modifier.swipeDownToCollapse(onCollapse: () -> Unit): Modifier {
 internal fun flingVelocityPx(): Float = FLING_DP_PER_SECOND * LocalDensity.current.density
 
 private const val FLING_DP_PER_SECOND = 600f
+
+/** How much of the cover's container color tints the top of the Gradient background. */
+private const val COVER_TINT = 0.35f
 
 /** False when the system's animator duration scale is 0 ("Remove animations"): non-essential motion stays still. */
 @Composable

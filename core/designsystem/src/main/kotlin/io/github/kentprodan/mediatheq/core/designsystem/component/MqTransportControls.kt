@@ -9,7 +9,6 @@ import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -28,8 +27,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 
 /**
  * The Now Playing transport row (expressive-design skill, section 3): previous, play/pause, next in a `ButtonGroup`.
- * Play/pause is the largest; it is round while paused and squarish while playing, so the state is not shown by the
- * icon alone. Pressing a button widens it and narrows its neighbours. [leading] and [trailing] (repeat and shuffle,
+ * Play/pause is the largest and the only filled one (previous and next are standard icon buttons, #532); it is round
+ * while paused and squarish while playing, so the state is not shown by the icon alone. Pressing a button widens it and narrows its neighbours. [leading] and [trailing] (repeat and shuffle,
  * #125) sit at the ends; when the row is too narrow for the full sizes (a 320 dp phone, fontScale 2.0) the group
  * shrinks, so no button ever moves to the overflow menu.
  */
@@ -117,7 +116,7 @@ private fun TransportGroup(
     ) {
         customItem(
             buttonGroupContent = {
-                FilledTonalIconButton(
+                IconButton(
                     onClick = onPrevious,
                     enabled = hasPrevious,
                     shapes = IconButtonDefaults.shapes(),
@@ -165,7 +164,7 @@ private fun TransportGroup(
         )
         customItem(
             buttonGroupContent = {
-                FilledTonalIconButton(
+                IconButton(
                     onClick = onNext,
                     enabled = hasNext,
                     shapes = IconButtonDefaults.shapes(),

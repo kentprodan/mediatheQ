@@ -16,6 +16,9 @@ object MediatheqSizes {
     /** An audio format badge (stereo, Dolby Atmos, ...) before a track's artists. */
     val formatBadge = 18.dp
 
+    /** Now Playing's rating stars (#532). */
+    val smallStar = 20.dp
+
     /** A color swatch (Settings -> Theme, font and colors). */
     val colorSwatch = 40.dp
 
