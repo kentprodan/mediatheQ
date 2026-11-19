@@ -5,23 +5,27 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,12 +50,14 @@ import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.title
 
 /**
- * The Library list header (#123): icon and title (with back when [onBack] is set and not hidden), the top button row
- * acting on the whole list, the tool row (sort with its direction arrow, filter, view, select, search in list) and the
- * item count.
+ * The Library list header (#123, #535): the title bar (back when [onBack] is set and not hidden, icon, title, then New
+ * playlist, view, select and search in list as icons), the top buttons acting on the whole list (Play filled, the rest
+ * tonal, hidden ones in More), and a chip row: sort (a tap opens its menu) with its direction arrow, the Favorites and
+ * Downloaded filters, and the item count.
  */
 @Composable
 internal fun LibraryHeader(
@@ -69,7 +75,7 @@ internal fun LibraryHeader(
                     Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.library_back))
                 }
             }
-            Icon(state.titleIcon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Icon(state.titleIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 state.title,
                 Modifier.weight(1f).padding(horizontal = MediatheqSpacing.m).semantics { heading() },
@@ -82,117 +88,25 @@ internal fun LibraryHeader(
                     Icon(MqIcons.Add, contentDescription = stringResource(R.string.library_new_playlist))
                 }
             }
+            BarTools(state, onAction, onSelect)
         }
-        TopButtons(header.topButtonStyle, TopButton.entries - header.hiddenTopButtons, state.itemCount > 0, onAction)
-        ToolRow(state, onAction, onSelect)
+        TopButtons(header.topButtonStyle, header.hiddenTopButtons, state.itemCount > 0, onAction)
+        ChipRow(state, onAction)
     }
 }
 
+/** Years, genres and labels are no items of their own: nothing to filter, select or search (#129-#131). */
+private val LibraryUiState.itemTools: Boolean
+    get() = filter != LibraryFilter.Years && filter != LibraryFilter.Genres && filter != LibraryFilter.RecordLabels
+
+/** View (album columns, genres grid or rows), select and search in list, in the title bar (#535). */
 @Composable
-private fun TopButtons(
-    style: TopButtonStyle,
-    buttons: List<TopButton>,
-    enabled: Boolean,
-    onAction: (LibraryAction) -> Unit,
-) {
-    if (style == TopButtonStyle.Hidden || buttons.isEmpty()) return
-    // Scrolls rather than clipping labels at large font sizes.
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = MediatheqSpacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
-    ) {
-        buttons.forEach { button ->
-            val label = stringResource(button.label)
-            val onClick = { onAction(LibraryAction.Top(button)) }
-            when (style) {
-                TopButtonStyle.Normal -> {
-                    FilledTonalButton(
-                        onClick,
-                        enabled = enabled,
-                        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                    ) {
-                        Icon(button.icon, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-                        Text(label, Modifier.padding(start = ButtonDefaults.IconSpacing))
-                    }
-                }
-
-                TopButtonStyle.LargeIcons -> {
-                    FilledTonalIconButton(
-                        onClick,
-                        Modifier.size(IconButtonDefaults.mediumContainerSize()),
-                        enabled = enabled,
-                    ) { Icon(button.icon, label, Modifier.size(IconButtonDefaults.mediumIconSize)) }
-                }
-
-                else -> {
-                    FilledTonalIconButton(onClick, enabled = enabled) { Icon(button.icon, label) }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ToolRow(
+private fun BarTools(
     state: LibraryUiState,
     onAction: (LibraryAction) -> Unit,
     onSelect: (() -> Unit)?,
 ) {
-    // Sort at the start, tools and count at the end; scrolls rather than squeezing at large font sizes.
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // A Home section's list keeps the section's order (#183): no sort.
-        Box { if (state.sectionPage == null) SortButton(state, onAction) }
-        Row(verticalAlignment = Alignment.CenterVertically) { ItemTools(state, onAction, onSelect) }
-    }
-}
-
-@Composable
-private fun ItemTools(
-    state: LibraryUiState,
-    onAction: (LibraryAction) -> Unit,
-    onSelect: (() -> Unit)?,
-) {
-    var filterMenu by rememberSaveable { mutableStateOf(false) }
     var viewMenu by rememberSaveable { mutableStateOf(false) }
-    val listFilter = state.listFilter
-    // Years, genres and labels are no items of their own: nothing to filter, select or search (#129-#131).
-    val itemTools =
-        state.filter != LibraryFilter.Years && state.filter != LibraryFilter.Genres &&
-            state.filter != LibraryFilter.RecordLabels
-    if (itemTools) {
-        Box {
-            // Downloaded only stays set across lists but does nothing on Artists, where it cannot be unticked.
-            val filterOn =
-                listFilter.favoritesOnly || (listFilter.downloadedOnly && state.filter != LibraryFilter.Artists)
-            val on = stringResource(R.string.library_filter_on)
-            IconButton(
-                onClick = { filterMenu = true },
-                colors =
-                    if (filterOn) {
-                        IconButtonDefaults.filledTonalIconButtonColors()
-                    } else {
-                        IconButtonDefaults
-                            .iconButtonColors()
-                    },
-                modifier = Modifier.semantics { if (filterOn) stateDescription = on },
-            ) { Icon(MqIcons.FilterList, contentDescription = stringResource(R.string.library_filter)) }
-            DropdownMenu(expanded = filterMenu, onDismissRequest = { filterMenu = false }) {
-                CheckMenuItem(stringResource(R.string.library_favorites_only), listFilter.favoritesOnly) {
-                    onAction(LibraryAction.SetFavoritesOnly(!listFilter.favoritesOnly))
-                }
-                // Artists have no download state of their own.
-                if (state.filter != LibraryFilter.Artists) {
-                    CheckMenuItem(stringResource(R.string.library_downloaded_only), listFilter.downloadedOnly) {
-                        onAction(LibraryAction.SetDownloadedOnly(!listFilter.downloadedOnly))
-                    }
-                }
-            }
-        }
-    }
     // Only the album grid (its columns) and the genres (grid or rows) have view options.
     if (state.filter == LibraryFilter.Albums || state.filter == LibraryFilter.Genres) {
         Box {
@@ -222,25 +136,145 @@ private fun ItemTools(
             }
         }
     }
-    if (onSelect != null && itemTools) {
+    if (onSelect != null && state.itemTools) {
         IconButton(onClick = onSelect, enabled = state.itemCount > 0) {
             Icon(MqIcons.Checklist, contentDescription = stringResource(R.string.library_select))
         }
     }
-    if (itemTools) {
-        IconButton(onClick = { onAction(LibraryAction.Search(if (listFilter.search == null) "" else null)) }) {
+    if (state.itemTools) {
+        IconButton(onClick = { onAction(LibraryAction.Search(if (state.listFilter.search == null) "" else null)) }) {
             Icon(MqIcons.Search, contentDescription = stringResource(R.string.library_search_in_list))
         }
     }
-    if (state.header.showItemCounts && state.itemCount > 0) {
-        Text(
-            pluralStringResource(R.plurals.library_items, state.itemCount, state.itemCount),
-            Modifier.padding(start = MediatheqSpacing.xs),
-            maxLines = 1,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+}
+
+/** Play (filled) and the other shown buttons (tonal), in the chosen style; hidden ones sit in More (#535). */
+@Composable
+private fun TopButtons(
+    style: TopButtonStyle,
+    hidden: Set<TopButton>,
+    enabled: Boolean,
+    onAction: (LibraryAction) -> Unit,
+) {
+    if (style == TopButtonStyle.Hidden) return
+    val shown = TopButton.entries - hidden
+    // Scrolls rather than clipping labels at large font sizes.
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = MediatheqSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        shown.forEach { button -> TopButtonView(button, style, enabled) { onAction(LibraryAction.Top(button)) } }
+        if (hidden.isNotEmpty() && enabled) {
+            OverflowMenu(stringResource(R.string.library_more_actions)) { close ->
+                hidden.sortedBy { it.ordinal }.forEach { button ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(button.label)) },
+                        leadingIcon = { Icon(button.icon, contentDescription = null) },
+                        onClick = {
+                            close()
+                            onAction(LibraryAction.Top(button))
+                        },
+                    )
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun TopButtonView(
+    button: TopButton,
+    style: TopButtonStyle,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val label = stringResource(button.label)
+    val main = button == TopButton.Play
+    when (style) {
+        TopButtonStyle.Normal -> {
+            val content: @Composable RowScope.() -> Unit = {
+                Icon(button.icon, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                Text(label, Modifier.padding(start = ButtonDefaults.IconSpacing))
+            }
+            val padding = ButtonDefaults.ButtonWithIconContentPadding
+            if (main) {
+                Button(onClick, enabled = enabled, contentPadding = padding, content = content)
+            } else {
+                FilledTonalButton(onClick, enabled = enabled, contentPadding = padding, content = content)
+            }
+        }
+
+        else -> {
+            val large = style == TopButtonStyle.LargeIcons
+            val modifier = if (large) Modifier.size(IconButtonDefaults.mediumContainerSize()) else Modifier
+            val icon: @Composable () -> Unit = {
+                Icon(button.icon, label, if (large) Modifier.size(IconButtonDefaults.mediumIconSize) else Modifier)
+            }
+            if (main) {
+                FilledIconButton(onClick, modifier, enabled = enabled, content = icon)
+            } else {
+                FilledTonalIconButton(onClick, modifier, enabled = enabled, content = icon)
+            }
+        }
+    }
+}
+
+/** Sort and its direction, the filters as chips (#535), then the item count. Scrolls at large font sizes. */
+@Composable
+private fun ChipRow(
+    state: LibraryUiState,
+    onAction: (LibraryAction) -> Unit,
+) {
+    val listFilter = state.listFilter
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // A Home section's list keeps the section's order (#183): no sort.
+        if (state.sectionPage == null) SortChip(state, onAction)
+        if (state.itemTools) {
+            FilterToggleChip(stringResource(R.string.library_favorites_only), listFilter.favoritesOnly) {
+                onAction(LibraryAction.SetFavoritesOnly(!listFilter.favoritesOnly))
+            }
+            // Artists have no download state of their own.
+            if (state.filter != LibraryFilter.Artists) {
+                FilterToggleChip(stringResource(R.string.library_downloaded_only), listFilter.downloadedOnly) {
+                    onAction(LibraryAction.SetDownloadedOnly(!listFilter.downloadedOnly))
+                }
+            }
+        }
+        if (state.header.showItemCounts && state.itemCount > 0) {
+            Text(
+                pluralStringResource(R.plurals.library_items, state.itemCount, state.itemCount),
+                Modifier.padding(start = MediatheqSpacing.xs),
+                maxLines = 1,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** An on/off filter: a check while on (not color alone). */
+@Composable
+private fun FilterToggleChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label, maxLines = 1) },
+        leadingIcon =
+            if (selected) {
+                { Icon(MqIcons.Check, contentDescription = null, Modifier.size(FilterChipDefaults.IconSize)) }
+            } else {
+                null
+            },
+    )
 }
 
 /** A menu choice with a check mark on the selected one (selection is not shown by color alone). */
@@ -263,28 +297,9 @@ internal fun CheckedMenuItem(
     )
 }
 
-/** An on/off menu item: a check while on, checkbox semantics. */
+/** The sort as a chip that opens its menu, then the separate direction arrow (#187). */
 @Composable
-private fun CheckMenuItem(
-    text: String,
-    checked: Boolean,
-    onClick: () -> Unit,
-) {
-    val on = stringResource(R.string.library_filter_on)
-    DropdownMenuItem(
-        text = { Text(text) },
-        onClick = onClick,
-        leadingIcon = { if (checked) Icon(MqIcons.Check, contentDescription = null) else Box(Modifier) },
-        modifier =
-            Modifier.semantics {
-                role = Role.Checkbox
-                if (checked) stateDescription = on
-            },
-    )
-}
-
-@Composable
-private fun SortButton(
+private fun SortChip(
     state: LibraryUiState,
     onAction: (LibraryAction) -> Unit,
 ) {
@@ -295,13 +310,24 @@ private fun SortButton(
         stringResource(if (ascending) R.string.library_sort_ascending else R.string.library_sort_descending)
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box {
-            TextButton(
+            FilterChip(
+                selected = false,
                 onClick = { sortMenu = true },
-                Modifier.semantics { stateDescription = direction },
+                label = { Text(stringResource(state.sort.label), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                trailingIcon = {
+                    Icon(
+                        MqIcons.KeyboardArrowDown,
+                        contentDescription = null,
+                        Modifier.size(FilterChipDefaults.IconSize),
+                    )
+                },
                 enabled = state.filter.sorts.size > 1,
-            ) {
-                Text(stringResource(state.sort.label), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
+                modifier =
+                    Modifier.semantics {
+                        role = Role.DropdownList
+                        stateDescription = direction
+                    },
+            )
             DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
                 state.filter.sorts.forEach { sort ->
                     // The sort already chosen turns around (owner, #187).

@@ -506,7 +506,8 @@ class SettingsScreenTest {
         assertThat(actions)
             .containsExactly(
                 SettingsAction.SetMediaLists(
-                    MediaListPreferences(hiddenTopButtons = setOf(TopButton.Shuffle, TopButton.PlayNext)),
+                    // Play next starts hidden (#535): its tap shows it again.
+                    MediaListPreferences(hiddenTopButtons = setOf(TopButton.AddToQueue, TopButton.Shuffle)),
                 ),
             )
     }
@@ -642,7 +643,9 @@ class SettingsScreenTest {
 
     @Test
     fun `the library page opens the organize dialog and applies a column choice at once`() {
-        show(SettingsPage.Library)
+        // Columns apply to the grid (the list is the default, #535).
+        val grid = LibraryPreferences(libraryPage = LibraryPagePreferences(style = LibraryHubStyle.Grid))
+        show(SettingsPage.Library, SettingsUiState.Content(library = grid))
 
         composeRule.onNode(hasText("Library shortcuts") and hasClickAction()).performClick()
         composeRule.onNode(hasText("2") and isSelectable()).performClick()
@@ -650,7 +653,7 @@ class SettingsScreenTest {
         assertThat(actions)
             .containsExactly(
                 SettingsAction.OpenLibraryShortcuts,
-                SettingsAction.SetLibraryPage(LibraryPagePreferences(columns = 2)),
+                SettingsAction.SetLibraryPage(LibraryPagePreferences(style = LibraryHubStyle.Grid, columns = 2)),
             ).inOrder()
     }
 
