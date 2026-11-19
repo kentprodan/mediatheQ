@@ -12,7 +12,6 @@ import io.github.kentprodan.mediatheq.core.navigation.AudioFocusSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.AutoActionsSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.BackupSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.DecodingSettingsKey
-import io.github.kentprodan.mediatheq.core.navigation.DownloadsKey
 import io.github.kentprodan.mediatheq.core.navigation.GenrePageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.HeadsetSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeGenresSettingsKey
@@ -64,7 +63,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     val back: () -> Unit = { navigator.back() }
     val openOutputs: () -> Unit = { navigator.navigateTo(OutputSettingsKey) }
     entry<SettingsKey> {
-        SettingsHubRoute(about, changelog, onOpen = { entry -> entry.key?.let(navigator::navigateTo) }, onBack = back)
+        SettingsHubRoute(onOpen = { navigator.navigateTo(it.key) }, onBack = back)
     }
     entry<InterfaceSettingsKey> {
         SettingsPageRoute(
@@ -184,19 +183,14 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     entry<PrivacyKey> { PrivacyScreen(onBack = back) }
 }
 
-/** The page a hub entry opens; `null` for Sync manager, Changelog and Contact support, which open over the hub. */
-internal val SettingsHubEntry.key: NavKey?
+/** The page a hub entry opens. */
+internal val SettingsHubEntry.key: NavKey
     get() =
         when (this) {
             SettingsHubEntry.Interface -> InterfaceSettingsKey
             SettingsHubEntry.Playback -> PlaybackSettingsKey
             SettingsHubEntry.Storage -> StorageSettingsKey
             SettingsHubEntry.Advanced -> AdvancedSettingsKey
-            SettingsHubEntry.ManageOfflineFiles -> DownloadsKey
-            SettingsHubEntry.Providers -> ProvidersSettingsKey
-            SettingsHubEntry.SyncManager -> null
             SettingsHubEntry.Backup -> BackupSettingsKey
             SettingsHubEntry.About -> AboutSettingsKey
-            SettingsHubEntry.Changelog -> null
-            SettingsHubEntry.ContactSupport -> null
         }

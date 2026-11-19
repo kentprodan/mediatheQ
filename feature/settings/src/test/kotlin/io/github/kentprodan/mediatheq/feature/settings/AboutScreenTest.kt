@@ -39,6 +39,7 @@ class AboutScreenTest {
                     info,
                     onCopyVersion = { events += "copy" },
                     onOpenChangelog = { events += "changelog" },
+                    onOpenContact = { events += "contact" },
                     onOpenLicenses = { events += "licenses" },
                     onOpenSource = { events += "source" },
                     onOpenPrivacy = { events += "privacy" },

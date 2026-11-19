@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -557,12 +558,13 @@ fun SettingsPageScreen(
     }
 }
 
-/** The frame of the hub and every Settings page: top bar with back, then the groups. */
+/** The frame of the hub and every Settings page: top bar with back (and [actions]), then the groups. */
 @Composable
 internal fun SettingsScaffold(
     title: String,
     onBack: () -> Unit,
     listState: LazyListState = rememberLazyListState(),
+    actions: @Composable RowScope.() -> Unit = {},
     groups: LazyListScope.() -> Unit,
 ) {
     Scaffold(
@@ -574,6 +576,7 @@ internal fun SettingsScaffold(
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.settings_back))
                     }
                 },
+                actions = actions,
             )
         },
         // The app shell already pads for the navigation bar.
