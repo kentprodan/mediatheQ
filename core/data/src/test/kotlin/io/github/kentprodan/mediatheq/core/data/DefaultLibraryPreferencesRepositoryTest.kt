@@ -581,7 +581,7 @@ class DefaultLibraryPreferencesRepositoryTest {
             assertThat(lists.hideBackButton).isFalse()
             assertThat(lists.trackInfo).isEqualTo(TrackInfo.Duration)
             assertThat(lists.secondTrackInfo).isEqualTo(TrackInfo.None)
-            assertThat(lists.centerGridText).isTrue()
+            assertThat(lists.centerGridText).isFalse()
             assertThat(lists.favoriteOverlay).isTrue()
             assertThat(lists.offlineOverlay).isFalse()
             assertThat(lists.swipeRight).isEqualTo(SwipeAction.AddToQueue)

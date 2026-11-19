@@ -279,7 +279,7 @@ private fun RecentSearches(
                 Text(
                     stringResource(R.string.search_recent),
                     Modifier.semantics { heading() },
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                 )
                 TextButton(onClick = onClear) { Text(stringResource(R.string.search_clear_recent)) }
             }
@@ -481,7 +481,7 @@ private fun <T : Any> LazyListScope.section(
             Modifier
                 .padding(start = MediatheqSpacing.l, end = MediatheqSpacing.l, top = MediatheqSpacing.l)
                 .semantics { heading() },
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
         )
     }
     items(items, key = { "$key-${id(it)}" }, contentType = { key }) { row(it) }

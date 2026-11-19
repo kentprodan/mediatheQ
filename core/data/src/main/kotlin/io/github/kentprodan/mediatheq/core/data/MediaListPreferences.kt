@@ -21,7 +21,8 @@ data class MediaListPreferences(
     val hideBackButton: Boolean = false,
     val trackInfo: TrackInfo = TrackInfo.Duration,
     val secondTrackInfo: TrackInfo = TrackInfo.None,
-    val centerGridText: Boolean = true,
+    /** Off by default (#534): card text starts on the cover's edge. */
+    val centerGridText: Boolean = false,
     val favoriteOverlay: Boolean = true,
     val offlineOverlay: Boolean = false,
     val swipeRight: SwipeAction = SwipeAction.AddToQueue,

@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
@@ -28,10 +30,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import io.github.kentprodan.mediatheq.core.common.QualityKind
 import io.github.kentprodan.mediatheq.core.common.QualityLabel
@@ -143,21 +145,19 @@ private fun HeaderText(
 ) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.xs),
     ) {
         Text(
             state.title.name,
             Modifier.semantics { heading() },
             style = MaterialTheme.typography.headlineMediumEmphasized,
-            textAlign = TextAlign.Center,
         )
         state.title.version?.let {
             Text(
                 it,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
             )
         }
         Text(
@@ -168,9 +168,13 @@ private fun HeaderText(
             ).joinToString(" · "),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
         )
-        FlowRow(horizontalArrangement = Arrangement.Center) {
+        // The first artist's text lines up with the title (#534): the button's start padding moves out.
+        FlowRow(
+            Modifier.offset(
+                x = -ButtonDefaults.TextButtonContentPadding.calculateStartPadding(LocalLayoutDirection.current),
+            ),
+        ) {
             state.album.albumArtists.forEach { artist ->
                 TextButton(onClick = { onOpenArtist(artist.id) }) { Text(artist.name) }
             }
@@ -178,11 +182,10 @@ private fun HeaderText(
     }
 }
 
-/** "Dolby Atmos", "Hi-Res Lossless (FLAC 24/96)", "Lossless", or a lossy file's "MP3 320 kb/s". */
+/** "Dolby Atmos", "Hi-Res Lossless", "Lossless", or a lossy file's "MP3 320 kb/s"; the format is in About (#534). */
 @Composable
 private fun qualityText(quality: QualityLabel): String =
     when (quality.kind) {
-        QualityKind.HiResLossless -> "${stringResource(quality.kind.text)} (${quality.detail})"
         QualityKind.HighQuality, QualityKind.HighEfficiency -> quality.detail
         else -> stringResource(quality.kind.text)
     }
@@ -203,7 +206,7 @@ private fun HeaderButtons(
     val resume = state.resume != null && state.shows(AlbumButton.Resume)
     FlowRow(
         Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
-        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
         verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
