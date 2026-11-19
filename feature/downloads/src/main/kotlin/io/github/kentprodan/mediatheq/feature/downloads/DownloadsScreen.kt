@@ -116,6 +116,8 @@ internal fun DownloadsScreen(
                         selected = entry == tab,
                         onClick = { onTab(entry) },
                         text = { Text(stringResource(entry.label)) },
+                        selectedContentColor = MaterialTheme.colorScheme.primary,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -406,8 +408,8 @@ private fun LazyListScope.section(
             Modifier
                 .padding(start = MediatheqSpacing.l, end = MediatheqSpacing.l, top = MediatheqSpacing.l)
                 .semantics { heading() },
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
+            // Section titles like the other pages (#534, #537).
+            style = MaterialTheme.typography.titleLarge,
         )
     }
     rows()

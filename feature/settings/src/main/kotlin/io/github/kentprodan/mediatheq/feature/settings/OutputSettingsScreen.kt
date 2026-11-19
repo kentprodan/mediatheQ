@@ -189,7 +189,13 @@ fun OutputScreen(
         item(key = "tabs") {
             PrimaryTabRow(selectedTabIndex = tab, Modifier.fillMaxWidth()) {
                 tabs.forEachIndexed { index, label ->
-                    Tab(selected = index == tab, onClick = { tab = index }, text = { Text(label) })
+                    Tab(
+                        selected = index == tab,
+                        onClick = { tab = index },
+                        text = { Text(label) },
+                        selectedContentColor = MaterialTheme.colorScheme.primary,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
