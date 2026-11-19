@@ -787,7 +787,7 @@ internal fun flingVelocityPx(): Float = FLING_DP_PER_SECOND * LocalDensity.curre
 private const val FLING_DP_PER_SECOND = 600f
 
 /** How much of the cover's container color tints the top of the Gradient background. */
-private const val COVER_TINT = 0.35f
+private const val COVER_TINT = 0.2f
 
 /** False when the system's animator duration scale is 0 ("Remove animations"): non-essential motion stays still. */
 @Composable

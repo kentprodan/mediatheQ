@@ -4,7 +4,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -121,7 +123,7 @@ private fun TransportGroup(
                     enabled = hasPrevious,
                     shapes = IconButtonDefaults.shapes(),
                     interactionSource = previousInteraction,
-                    modifier = Modifier.size(sideSize).animateWidth(previousInteraction),
+                    modifier = Modifier.animateWidth(previousInteraction).centeredIn(playSize.height).size(sideSize),
                 ) {
                     TransportIcon(MqIcons.SkipPreviousFilled, previousLabel, sideIcon)
                 }
@@ -169,7 +171,7 @@ private fun TransportGroup(
                     enabled = hasNext,
                     shapes = IconButtonDefaults.shapes(),
                     interactionSource = nextInteraction,
-                    modifier = Modifier.size(sideSize).animateWidth(nextInteraction),
+                    modifier = Modifier.animateWidth(nextInteraction).centeredIn(playSize.height).size(sideSize),
                 ) {
                     TransportIcon(MqIcons.SkipNextFilled, nextLabel, sideIcon)
                 }
@@ -187,6 +189,9 @@ private fun TransportGroup(
         )
     }
 }
+
+/** Centers a side button on Play's height: without a container a top-aligned one looks out of line (#532). */
+private fun Modifier.centeredIn(height: Dp): Modifier = height(height).wrapContentHeight(Alignment.CenterVertically)
 
 @Composable
 private fun TransportIcon(
