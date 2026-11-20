@@ -176,10 +176,12 @@ private fun Buttons(
             ),
             { onAction(TvMovieAction.ToggleFavorite) },
         )
+        // One check icon: watched fills the button, so the state never rests on the name alone.
         MqTvIconButton(
             MqTvIcons.Watched,
             stringResource(if (movie.userData.played) R.string.tv_movie_unwatched else R.string.tv_movie_watched),
             { onAction(TvMovieAction.ToggleWatched) },
+            outlined = !movie.userData.played,
         )
     }
     state.tracks?.takeIf { tracks }?.let { TracksMenu(it, onAction) { tracks = false } }
