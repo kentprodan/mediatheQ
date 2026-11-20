@@ -180,7 +180,7 @@ private fun SeriesContent(
                 // Not clickable itself: the row inside is the one tap target (TalkBack stops once).
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(MediatheqSpacing.l),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                 ) {
                     Text(
                         stringResource(R.string.video_next_up),
@@ -209,6 +209,8 @@ private fun SeriesContent(
                             selected = index == selected,
                             onClick = { onAction(SeriesAction.SelectSeason(season.id)) },
                             text = { Text(season.title) },
+                            selectedContentColor = MaterialTheme.colorScheme.primary,
+                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
