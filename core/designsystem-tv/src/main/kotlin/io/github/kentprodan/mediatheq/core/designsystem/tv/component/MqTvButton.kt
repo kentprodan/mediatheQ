@@ -1,6 +1,8 @@
 package io.github.kentprodan.mediatheq.core.designsystem.tv.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -94,13 +98,31 @@ fun MqTvWideButton(
     subtitle: String? = null,
     icon: ImageVector? = null,
 ) {
+    val source = remember { MutableInteractionSource() }
+    val focused by source.collectIsFocusedAsState()
+    val colors = MaterialTheme.colorScheme
     WideButton(
         onClick = onClick,
         title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         modifier = modifier,
         icon = icon?.let { { Icon(it, contentDescription = null) } },
         subtitle = subtitle?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
+        // A neutral container at rest (the default is transparent until focused), light with focus.
+        background = {
+            Box(
+                Modifier.fillMaxSize().background(
+                    if (focused) colors.onSurface else colors.surfaceVariant,
+                    BUTTON_CORNERS,
+                ),
+            )
+        },
         shape = WideButtonDefaults.shape(shape = BUTTON_CORNERS),
+        contentColor =
+            WideButtonDefaults.contentColor(
+                color = colors.onSurface,
+                focusedColor = colors.inverseOnSurface,
+            ),
+        interactionSource = source,
     )
 }
 
