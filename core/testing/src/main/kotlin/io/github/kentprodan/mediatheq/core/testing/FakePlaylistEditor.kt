@@ -14,6 +14,9 @@ import kotlinx.coroutines.CompletableDeferred
 class FakePlaylistEditor : PlaylistEditor {
     val calls = mutableListOf<String>()
     var failure: MqError? = null
+
+    /** A failure for one call by its name (e.g. a rename only), next to [failure]. */
+    var failureFor: (String) -> MqError? = { null }
     var gate: CompletableDeferred<Unit>? = null
 
     /** The id [create] returns. */
@@ -60,6 +63,6 @@ class FakePlaylistEditor : PlaylistEditor {
     ): MqResult<T> {
         calls += name
         gate?.await()
-        return failure?.let { MqResult.Failure(it) } ?: MqResult.Success(value())
+        return (failure ?: failureFor(name))?.let { MqResult.Failure(it) } ?: MqResult.Success(value())
     }
 }

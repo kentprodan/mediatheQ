@@ -59,7 +59,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 19,
+    version = 20,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -143,6 +143,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 17, to = 18, spec = SyncSeriesRatingMigration::class),
         // 19: playlist edits made offline, waiting for the server (#417); no resync.
         AutoMigration(from = 18, to = 19),
+        // 20: the server's version of a playlist with offline edits, to find conflicts (#417); no resync.
+        AutoMigration(from = 19, to = 20),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

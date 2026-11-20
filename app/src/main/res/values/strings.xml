@@ -14,6 +14,9 @@
     <string name="tab_downloads">Downloads</string>
     <string name="tab_movies">Movies</string>
     <string name="tab_series">Series</string>
+    <string name="playlist_edits_gone">Changes to “%1$s” were not sent: the playlist is no longer on the server.</string>
+    <string name="playlist_edits_forbidden">Changes to “%1$s” were not sent: you may no longer edit this playlist.</string>
+    <string name="playlist_conflict_failed">Could not reach the server. You will be asked again when it is back.</string>
     <string name="user_data_save_failed">Could not save that change. Try again.</string>
     <string name="playback_not_downloaded_skipped">“%1$s” is not downloaded, skipped</string>
     <string name="playback_not_downloaded">“%1$s” is not downloaded and cannot play offline</string>
