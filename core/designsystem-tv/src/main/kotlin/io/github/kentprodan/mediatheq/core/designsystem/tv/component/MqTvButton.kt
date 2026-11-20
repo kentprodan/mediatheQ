@@ -1,10 +1,10 @@
 package io.github.kentprodan.mediatheq.core.designsystem.tv.component
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -34,8 +32,6 @@ import androidx.tv.material3.OutlinedButton
 import androidx.tv.material3.OutlinedIconButton
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
-import androidx.tv.material3.WideButton
-import androidx.tv.material3.WideButtonDefaults
 
 /**
  * The guideline's button types (#519): [Filled] for the primary action (Play), [Outlined] for the secondary ones
@@ -89,7 +85,11 @@ fun MqTvIconButton(
     }
 }
 
-/** A wide button (#519): a settings-like action with a [subtitle] (the current value), 12 dp corners. */
+/**
+ * A wide button (#519): a settings-like action with a [subtitle] (the current value), 12 dp corners, a neutral
+ * container that turns light with focus. A clickable surface, like the image button (tv-material's WideButton draws
+ * nothing in layoutlib, so it could never be screenshot-tested).
+ */
 @Composable
 fun MqTvWideButton(
     title: String,
@@ -98,32 +98,39 @@ fun MqTvWideButton(
     subtitle: String? = null,
     icon: ImageVector? = null,
 ) {
-    val source = remember { MutableInteractionSource() }
-    val focused by source.collectIsFocusedAsState()
     val colors = MaterialTheme.colorScheme
-    WideButton(
+    Surface(
         onClick = onClick,
-        title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         modifier = modifier,
-        icon = icon?.let { { Icon(it, contentDescription = null) } },
-        subtitle = subtitle?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
-        // A neutral container at rest (the default is transparent until focused), light with focus.
-        background = {
-            Box(
-                Modifier.fillMaxSize().background(
-                    if (focused) colors.onSurface else colors.surfaceVariant,
-                    BUTTON_CORNERS,
-                ),
-            )
-        },
-        shape = WideButtonDefaults.shape(shape = BUTTON_CORNERS),
-        contentColor =
-            WideButtonDefaults.contentColor(
-                color = colors.onSurface,
-                focusedColor = colors.inverseOnSurface,
+        shape = ClickableSurfaceDefaults.shape(shape = BUTTON_CORNERS),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = FOCUSED_SCALE),
+        colors =
+            ClickableSurfaceDefaults.colors(
+                containerColor = colors.surfaceVariant,
+                contentColor = colors.onSurface,
+                focusedContainerColor = colors.onSurface,
+                focusedContentColor = colors.inverseOnSurface,
             ),
-        interactionSource = source,
-    )
+    ) {
+        Row(
+            Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            icon?.let { Icon(it, contentDescription = null) }
+            Column {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                subtitle?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+    }
 }
 
 /**
