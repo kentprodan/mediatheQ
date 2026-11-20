@@ -319,6 +319,7 @@
     <string name="settings_output_bypass_summary">No normalization and no equalizer on this output</string>
     <string name="settings_output_bypassed">Off: this output bypasses processing.</string>
     <string name="settings_eq_preset">Preset</string>
+    <string name="settings_eq_off">Off: turn on Equalizer to change.</string>
     <string name="settings_eq_bands">Bands</string>
     <string name="settings_audio_bit_perfect">Bit-perfect USB</string>
     <string name="settings_audio_bit_perfect_summary">Sends audio unchanged to a USB DAC. Phone volume and the equalizer do not apply then.</string>
