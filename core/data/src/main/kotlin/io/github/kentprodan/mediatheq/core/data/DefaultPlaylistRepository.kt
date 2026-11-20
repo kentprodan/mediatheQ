@@ -296,6 +296,8 @@ class DefaultPlaylistRepository
             lock.withLock {
                 storageSafe {
                     val found = mutableListOf<PlaylistConflict>()
+                    // Each connection asks again, also about a conflict the owner put off with Later.
+                    conflictState.value = emptyList()
                     try {
                         val edits = playlistDao.pendingEdits(server.serverId.value, server.userId)
                         edits.groupBy { it.playlistId }.forEach { (playlistId, list) ->

@@ -28,6 +28,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.github.kentprodan.mediatheq.core.common.FileAppLog
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.entriesFor
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialog
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqPinDialog
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.download.resumeDownloads
@@ -39,6 +40,8 @@ import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.RadioStarter
 import io.github.kentprodan.mediatheq.core.playback.RemoteControl
 import io.github.kentprodan.mediatheq.core.ui.LocalMediaListStyle
+import io.github.kentprodan.mediatheq.core.ui.PlaylistConflictContent
+import io.github.kentprodan.mediatheq.core.ui.playlistConflictTitle
 import io.github.kentprodan.mediatheq.feature.album.albumEntry
 import io.github.kentprodan.mediatheq.feature.artist.artistEntry
 import io.github.kentprodan.mediatheq.feature.downloads.downloadsEntry
@@ -67,6 +70,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.time.LocalDate
 import javax.inject.Inject
+import io.github.kentprodan.mediatheq.core.ui.R as CoreUiR
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -142,6 +146,25 @@ class MainActivity : ComponentActivity() {
                             PlaybackErrorMessages(viewModel.playbackError, viewModel::dismissPlaybackError, snackbar)
                             RadioErrorMessages(radio.error, radio::dismissError, snackbar)
                             SlowStartMessages(viewModel.slowStart, viewModel::dismissSlowStart, snackbar)
+                            PlaylistEditMessages(
+                                viewModel.droppedPlaylistEdits,
+                                viewModel::dismissDroppedPlaylistEdits,
+                                snackbar,
+                            )
+                            viewModel.playlistConflict.collectAsStateWithLifecycle().value?.let { conflict ->
+                                // Three answers in the body; the dialog's own button and Back only hide it (#417).
+                                MqDialog(
+                                    title = playlistConflictTitle(conflict),
+                                    confirmLabel = null,
+                                    onConfirm = {},
+                                    dismissLabel = stringResource(CoreUiR.string.core_ui_conflict_later),
+                                    onDismiss = viewModel::hidePlaylistConflict,
+                                ) {
+                                    PlaylistConflictContent(conflict, onResolve = {
+                                        viewModel.resolvePlaylistConflict(conflict.playlistId, it)
+                                    })
+                                }
+                            }
                             // Downloads is optional in the navigation (#122); without its tab it opens on the current one.
                             val openDownloads = {
                                 if (TopLevelTab.Downloads in navigator.tabs) {

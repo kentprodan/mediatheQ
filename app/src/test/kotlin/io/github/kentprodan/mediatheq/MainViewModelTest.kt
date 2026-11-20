@@ -5,6 +5,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
 import io.github.kentprodan.mediatheq.core.data.CornerStyle
+import io.github.kentprodan.mediatheq.core.data.DroppedPlaylistEdits
 import io.github.kentprodan.mediatheq.core.data.MediaListPreferences
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.SessionState
@@ -18,6 +19,9 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlaylistChange
+import io.github.kentprodan.mediatheq.core.model.PlaylistConflict
+import io.github.kentprodan.mediatheq.core.model.PlaylistResolution
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
@@ -30,6 +34,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesReposit
 import io.github.kentprodan.mediatheq.core.testing.FakeLibraryRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeLibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakePlaylistRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
@@ -293,5 +298,68 @@ class MainViewModelTest {
             gated.submitPin("2580")
             advanceUntilIdle()
             assertThat(opened).containsExactly("movie", "series").inOrder()
+        }
+
+    private val playlists = FakePlaylistRepository()
+
+    private fun conflict(id: String) =
+        PlaylistConflict(MediaId(ServerId("s"), id), "Road", since = null, PlaylistChange(added = 1), PlaylistChange())
+
+    private fun playlistViewModel() =
+        MainViewModel(
+            repository,
+            userData,
+            sync,
+            libraryPreferences,
+            playback,
+            library,
+            downloads,
+            appMode,
+            playlists = playlists,
+        )
+
+    @Test
+    fun `a playlist conflict is asked one at a time, Later hides it until the next connection (#417)`() =
+        runTest {
+            val viewModel = playlistViewModel()
+            viewModel.playlistConflict.test {
+                assertThat(awaitItem()).isNull()
+                playlists.conflicts.value = listOf(conflict("p1"), conflict("p2"))
+                assertThat(awaitItem()).isEqualTo(conflict("p1"))
+
+                viewModel.hidePlaylistConflict()
+                assertThat(awaitItem()).isNull()
+
+                // The next connection clears the list, then publishes it again.
+                playlists.conflicts.value = emptyList()
+                playlists.conflicts.value = listOf(conflict("p1"), conflict("p2"))
+                assertThat(awaitItem()).isEqualTo(conflict("p1"))
+            }
+        }
+
+    @Test
+    fun `an answer resolves the playlist and the next conflict follows (#417)`() =
+        runTest {
+            val viewModel = playlistViewModel()
+            playlists.conflicts.value = listOf(conflict("p1"), conflict("p2"))
+            viewModel.playlistConflict.test {
+                assertThat(expectMostRecentItem()).isEqualTo(conflict("p1"))
+
+                viewModel.resolvePlaylistConflict(conflict("p1").playlistId, PlaylistResolution.Replace)
+
+                assertThat(awaitItem()).isEqualTo(conflict("p2"))
+                assertThat(playlists.calls).containsExactly("resolve:p1:Replace")
+            }
+        }
+
+    @Test
+    fun `dropped playlist edits are shown once (#417)`() =
+        runTest {
+            val viewModel = playlistViewModel()
+            playlists.droppedEdits.value = DroppedPlaylistEdits("Road", MqError.NotFound)
+
+            assertThat(viewModel.droppedPlaylistEdits.value).isEqualTo(DroppedPlaylistEdits("Road", MqError.NotFound))
+            viewModel.dismissDroppedPlaylistEdits()
+            assertThat(viewModel.droppedPlaylistEdits.value).isNull()
         }
 }
