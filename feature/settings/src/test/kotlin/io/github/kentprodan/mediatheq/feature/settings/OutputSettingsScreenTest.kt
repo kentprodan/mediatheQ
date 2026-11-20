@@ -107,6 +107,8 @@ class OutputSettingsScreenTest {
         composeRule.onNodeWithText("MOMENTUM 4").assertExists()
         composeRule.onNode(hasText("Equalizer") and isSelectable()).assertIsSelected()
         composeRule.onNodeWithText("Vocal").assertIsNotEnabled()
+        // Grey under the off switch, and says why (#419).
+        composeRule.onNodeWithText("Off: turn on Equalizer to change.").assertExists()
         composeRule.onNodeWithText("Uses more battery", substring = true).performClick()
 
         assertThat(changed(headphones)).isEqualTo(OutputProfile(equalizerOn = true))

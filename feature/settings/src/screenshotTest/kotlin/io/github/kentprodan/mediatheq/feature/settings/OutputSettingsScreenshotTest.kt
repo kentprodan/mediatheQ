@@ -71,6 +71,12 @@ fun OutputEqualizerTabScreenshot() =
         EQUALIZER_TAB,
     )
 
+/** An output's Equalizer tab with the equalizer off: Preset and the bands are grey and say why (#419). */
+@PreviewTest
+@MqPreviews
+@Composable
+fun OutputEqualizerOffScreenshot() = Output(outputs(), headphones, EQUALIZER_TAB)
+
 /** The DAC playing bit-perfect: its switch says at what rate. */
 @PreviewTest
 @MqPreviews
