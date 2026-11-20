@@ -70,7 +70,7 @@ interface PlaylistRepository {
     ): MqResult<Unit>
 
     /** Waiting edits the server refused (#417): the playlist is gone or may not be edited. Shown once, then [acknowledgeDroppedEdits]. */
-    val droppedEdits: StateFlow<DroppedPlaylistEdits?>
+    val droppedEdits: StateFlow<List<DroppedPlaylistEdits>>
 
     fun acknowledgeDroppedEdits()
 }

@@ -186,7 +186,15 @@ class DefaultPlaylistRepository
         }
 
         override suspend fun refresh(id: MediaId): MqResult<Unit> =
-            inAppScope { lock.withLock { storageSafe { readBack(id) } } }
+            inAppScope {
+                lock.withLock {
+                    storageSafe {
+                        // While edits wait (#417) the phone's version stays on screen; the replay reads the server.
+                        val server = accountStore.signedInServer()
+                        if (server != null && waiting(server, id)) MqResult.Success(Unit) else readBack(id)
+                    }
+                }
+            }
 
         /**
          * Writes what [change] makes of the stored playlist (entries renumbered), then runs [call]; a `null` change
@@ -277,11 +285,11 @@ class DefaultPlaylistRepository
         private val conflictState = MutableStateFlow<List<PlaylistConflict>>(emptyList())
         override val conflicts: StateFlow<List<PlaylistConflict>> = conflictState.asStateFlow()
 
-        private val droppedState = MutableStateFlow<DroppedPlaylistEdits?>(null)
-        override val droppedEdits: StateFlow<DroppedPlaylistEdits?> = droppedState.asStateFlow()
+        private val droppedState = MutableStateFlow<List<DroppedPlaylistEdits>>(emptyList())
+        override val droppedEdits: StateFlow<List<DroppedPlaylistEdits>> = droppedState.asStateFlow()
 
         override fun acknowledgeDroppedEdits() {
-            droppedState.value = null
+            droppedState.value = emptyList()
         }
 
         /**
@@ -309,7 +317,11 @@ class DefaultPlaylistRepository
                             if (!waiting(server, id)) return@forEach
                             val conflict = conflict(id, list)
                             if (conflict == null) {
-                                sendAll(server, id, list)
+                                if (sendAll(server, id, list) is MqResult.Failure) {
+                                    // The rest waits; the phone's version stays on screen until it goes.
+                                    phone?.let { restore(it) }
+                                    return@storageSafe MqResult.Failure(MqError.Network)
+                                }
                             } else {
                                 // The server's version stays out of sight until the owner answers.
                                 phone?.let { restore(it) }
@@ -326,7 +338,8 @@ class DefaultPlaylistRepository
 
         /**
          * Reads the playlist from the server before its edits go. Deleted or forbidden there: its edits are dropped
-         * with a message. `false` only when the network failed (the rest waits).
+         * with a message. `false` when it could not be read for another reason (no network, a server error): the edits
+         * wait.
          */
         private suspend fun readServer(
             server: SignedInServer,
@@ -335,7 +348,7 @@ class DefaultPlaylistRepository
             stored: Stored?,
         ): Boolean {
             val read = readBack(id) as? MqResult.Failure ?: return true
-            if (read.error == MqError.Network) return false
+            if (!read.error.dropsEdits()) return false
             playlistDao.deletePendingEdits(server.serverId.value, server.userId, id.itemId)
             dropped(stored, edits, read.error)
             return true
@@ -346,9 +359,9 @@ class DefaultPlaylistRepository
             edits: List<PendingPlaylistEditEntity>,
             error: MqError,
         ) {
-            if (error != MqError.NotFound && error != MqError.Forbidden) return
+            if (!error.dropsEdits()) return
             val name = stored?.first?.name ?: edits.firstNotNullOfOrNull { it.baseName } ?: return
-            droppedState.value = DroppedPlaylistEdits(name, error)
+            droppedState.update { it + DroppedPlaylistEdits(name, error) }
         }
 
         /**
@@ -382,13 +395,19 @@ class DefaultPlaylistRepository
                         val server =
                             accountStore.signedInServer() ?: return@storageSafe MqResult.Failure(MqError.Unauthorized)
                         val edits = pendingEdits(server, id.itemId)
+                        val phone = snapshot(id)
                         val result =
                             if (edits.isEmpty() || resolution == PlaylistResolution.Skip) {
                                 MqResult.Success(Unit)
                             } else {
                                 resolveWith(server, id, edits, resolution)
                             }
-                        if ((result as? MqResult.Failure)?.error == MqError.Network) return@storageSafe result
+                        val error = (result as? MqResult.Failure)?.error
+                        if (error != null && !error.dropsEdits()) {
+                            // Asked again; the phone's version stays on screen meanwhile.
+                            phone?.let { restore(it) }
+                            return@storageSafe result
+                        }
                         playlistDao.deletePendingEdits(server.serverId.value, server.userId, id.itemId)
                         conflictState.update { all -> all.filterNot { it.playlistId == id } }
                         readBack(id)
@@ -455,16 +474,11 @@ class DefaultPlaylistRepository
         ): MqResult<Unit> {
             for (edit in edits) {
                 val stored = snapshot(id)
-                val entries =
-                    stored
-                        ?.second
-                        ?.map { it.entryId }
-                        ?.toSet()
-                        .orEmpty()
+                val entries = stored?.second?.map { it.entryId }.orEmpty()
                 val result = replay(server, id, edit, entries)
                 val error = (result as? MqResult.Failure)?.error
-                if (error == MqError.Network) return result
-                if (error == MqError.NotFound || error == MqError.Forbidden) {
+                if (error != null && !error.dropsEdits()) return result
+                if (error != null) {
                     playlistDao.deletePendingEdits(server.serverId.value, server.userId, id.itemId)
                     dropped(stored, edits, error)
                     return MqResult.Success(Unit)
@@ -489,7 +503,8 @@ class DefaultPlaylistRepository
             server: SignedInServer,
             id: MediaId,
             edit: PendingPlaylistEditEntity,
-            serverEntries: Set<String>,
+            /** Every entry id the server has, in order (R13: a track twice is there twice). */
+            serverEntries: List<String>,
         ): MqResult<Unit> {
             val entryIds = edit.entryIds.ids().filter { it in serverEntries }
             return when (edit.kind) {
@@ -536,6 +551,9 @@ class DefaultPlaylistRepository
         }
 
         private fun Stored.version() = PlaylistVersion(first.name, second.map { it.trackId })
+
+        /** Only a playlist deleted on the server or one the user may no longer edit drops waiting edits. */
+        private fun MqError.dropsEdits() = this == MqError.NotFound || this == MqError.Forbidden
 
         private fun PendingPlaylistEditEntity.base(): PlaylistVersion? =
             baseName?.let { PlaylistVersion(it, baseTrackIds.ids()) }

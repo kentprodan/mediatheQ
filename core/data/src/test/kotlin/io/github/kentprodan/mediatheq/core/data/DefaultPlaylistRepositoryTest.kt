@@ -350,9 +350,10 @@ class DefaultPlaylistRepositoryTest {
 
             assertThat(editor.calls).isEmpty()
             assertThat(dao.pendingEdits("s", "user-1")).isEmpty()
-            assertThat(repository.droppedEdits.value).isEqualTo(DroppedPlaylistEdits("Offline name", MqError.NotFound))
+            assertThat(repository.droppedEdits.value)
+                .containsExactly(DroppedPlaylistEdits("Offline name", MqError.NotFound))
             repository.acknowledgeDroppedEdits()
-            assertThat(repository.droppedEdits.value).isNull()
+            assertThat(repository.droppedEdits.value).isEmpty()
         }
 
     @Test
@@ -364,7 +365,7 @@ class DefaultPlaylistRepositoryTest {
             repository.flushPending()
 
             assertThat(dao.pendingEdits("s", "user-1")).isEmpty()
-            assertThat(repository.droppedEdits.value).isEqualTo(DroppedPlaylistEdits("Drum", MqError.Forbidden))
+            assertThat(repository.droppedEdits.value).containsExactly(DroppedPlaylistEdits("Drum", MqError.Forbidden))
         }
 
     @Test
@@ -376,7 +377,65 @@ class DefaultPlaylistRepositoryTest {
             repository.flushPending()
 
             assertThat(dao.pendingEdits("s", "user-1")).hasSize(1)
-            assertThat(repository.droppedEdits.value).isNull()
+            assertThat(repository.droppedEdits.value).isEmpty()
+        }
+
+    @Test
+    fun `a server error at the replay keeps the edits too (#417)`() =
+        runTest(dispatcher) {
+            val repository = offlineAdd()
+            source.playlistErrors = mapOf("p1" to MqError.Server(500))
+
+            repository.flushPending()
+
+            assertThat(dao.pendingEdits("s", "user-1")).hasSize(1)
+            assertThat(repository.droppedEdits.value).isEmpty()
+        }
+
+    @Test
+    fun `a replace the server fails half way keeps the edits, the question and the phone's version (#417)`() =
+        runTest(dispatcher) {
+            val repository = conflicted()
+            editor.failureFor = { if (it.startsWith("add")) MqError.Server(500) else null }
+
+            val failed = repository.resolve(playlistId, PlaylistResolution.Replace)
+
+            assertThat(failed).isEqualTo(MqResult.Failure(MqError.Server(500)))
+            assertThat(dao.pendingEdits("s", "user-1")).hasSize(1)
+            assertThat(repository.conflicts.value).hasSize(1)
+            assertThat(dao.entryRows("s", "p1").map { it.trackId })
+                .containsExactly("t1", "hidden", "t2", "t3", "t4")
+                .inOrder()
+        }
+
+    @Test
+    fun `a refresh while edits wait keeps the phone's version (#417)`() =
+        runTest(dispatcher) {
+            val repository = conflicted()
+
+            repository.refresh(playlistId)
+
+            assertThat(dao.entryRows("s", "p1").map { it.trackId })
+                .containsExactly("t1", "hidden", "t2", "t3", "t4")
+                .inOrder()
+        }
+
+    @Test
+    fun `merge drops a remove and a move whose entry is gone on the server (#417)`() =
+        runTest(dispatcher) {
+            val repository = offlineAdd()
+            editor.failure = MqError.Network
+            repository.remove(playlistId, setOf("e-t1"))
+            val items = repository.visible()
+            repository.move(playlistId, items.first { it.entryId == "e-t3" }, items.first { it.entryId == "e-t2" })
+            editor.failure = null
+            source.entries = mapOf(playlistId to listOf(PlaylistEntry("e-t2", id("t2"))))
+            repository.flushPending()
+
+            repository.resolve(playlistId, PlaylistResolution.Merge)
+
+            assertThat(editor.calls).containsExactly("add:p1:t4")
+            assertThat(dao.pendingEdits("s", "user-1")).isEmpty()
         }
 
     @Test

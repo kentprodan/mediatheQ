@@ -356,10 +356,27 @@ class MainViewModelTest {
     fun `dropped playlist edits are shown once (#417)`() =
         runTest {
             val viewModel = playlistViewModel()
-            playlists.droppedEdits.value = DroppedPlaylistEdits("Road", MqError.NotFound)
+            playlists.droppedEdits.value = listOf(DroppedPlaylistEdits("Road", MqError.NotFound))
 
-            assertThat(viewModel.droppedPlaylistEdits.value).isEqualTo(DroppedPlaylistEdits("Road", MqError.NotFound))
+            assertThat(viewModel.droppedPlaylistEdits.value)
+                .containsExactly(DroppedPlaylistEdits("Road", MqError.NotFound))
             viewModel.dismissDroppedPlaylistEdits()
-            assertThat(viewModel.droppedPlaylistEdits.value).isNull()
+            assertThat(viewModel.droppedPlaylistEdits.value).isEmpty()
+        }
+
+    @Test
+    fun `an answer that cannot reach the server closes the question with a message (#417)`() =
+        runTest {
+            val viewModel = playlistViewModel()
+            playlists.conflicts.value = listOf(conflict("p1"))
+            playlists.failure = MqError.Network
+            viewModel.playlistConflict.test {
+                assertThat(expectMostRecentItem()).isEqualTo(conflict("p1"))
+
+                viewModel.resolvePlaylistConflict(conflict("p1").playlistId, PlaylistResolution.Merge)
+
+                assertThat(awaitItem()).isNull()
+                assertThat(viewModel.playlistAnswerFailed.value).isTrue()
+            }
         }
 }

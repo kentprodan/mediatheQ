@@ -100,10 +100,10 @@ class FakePlaylistRepository : PlaylistRepository {
         conflicts.value = conflicts.value.filterNot { it.playlistId == id }
     }
 
-    override val droppedEdits = MutableStateFlow<DroppedPlaylistEdits?>(null)
+    override val droppedEdits = MutableStateFlow<List<DroppedPlaylistEdits>>(emptyList())
 
     override fun acknowledgeDroppedEdits() {
-        droppedEdits.value = null
+        droppedEdits.value = emptyList()
     }
 
     private fun edit(

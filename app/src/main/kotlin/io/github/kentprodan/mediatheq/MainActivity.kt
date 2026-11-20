@@ -149,6 +149,8 @@ class MainActivity : ComponentActivity() {
                             PlaylistEditMessages(
                                 viewModel.droppedPlaylistEdits,
                                 viewModel::dismissDroppedPlaylistEdits,
+                                viewModel.playlistAnswerFailed,
+                                viewModel::dismissPlaylistAnswerFailed,
                                 snackbar,
                             )
                             viewModel.playlistConflict.collectAsStateWithLifecycle().value?.let { conflict ->

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation3.runtime.NavKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
@@ -195,16 +196,31 @@ class MainViewModel
             hiddenConflicts.value = playlists?.conflicts?.value
         }
 
-        /** Merge, Replace or Skip; without a network the question stays. */
+        private val answerFailed = MutableStateFlow(false)
+
+        /** An answer that could not reach the server: the question closes, comes back at the next connection. */
+        val playlistAnswerFailed: StateFlow<Boolean> = answerFailed.asStateFlow()
+
+        fun dismissPlaylistAnswerFailed() {
+            answerFailed.value = false
+        }
+
+        /** Merge, Replace or Skip; when the server cannot take it, the question waits for the next connection. */
         fun resolvePlaylistConflict(
             id: MediaId,
             resolution: PlaylistResolution,
         ) {
-            viewModelScope.launch { playlists?.resolve(id, resolution) }
+            viewModelScope.launch {
+                if (playlists?.resolve(id, resolution) is MqResult.Failure) {
+                    hidePlaylistConflict()
+                    answerFailed.value = true
+                }
+            }
         }
 
-        /** Offline playlist edits the server refused, for one app-wide message (#417). */
-        val droppedPlaylistEdits: StateFlow<DroppedPlaylistEdits?> = playlists?.droppedEdits ?: MutableStateFlow(null)
+        /** Offline playlist edits the server refused, one app-wide message each (#417). */
+        val droppedPlaylistEdits: StateFlow<List<DroppedPlaylistEdits>> =
+            playlists?.droppedEdits ?: MutableStateFlow(emptyList())
 
         fun dismissDroppedPlaylistEdits() {
             playlists?.acknowledgeDroppedEdits()
