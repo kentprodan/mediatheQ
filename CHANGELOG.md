@@ -57,7 +57,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Playlists edited without a connection keep your changes and send them when the server is back; if the playlist also changed on the server meanwhile, you choose Merge, Replace or Skip.
 
 ### Changed
-- The equalizer's preset and bands, grey while its switch is off, now say so.
+- While an output's equalizer is off, its Preset row says why the preset and bands are grey.
 - Moving between screens now slides in the direction you go (forward or back) instead of a plain fade; the back gesture shrinks the screen as you drag.
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 

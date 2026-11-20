@@ -71,7 +71,7 @@ fun OutputEqualizerTabScreenshot() =
         EQUALIZER_TAB,
     )
 
-/** An output's Equalizer tab with the equalizer off: Preset and the bands are grey and say why (#419). */
+/** An output's Equalizer tab with the equalizer off: Preset and the bands are grey, Preset says why (#419). */
 @PreviewTest
 @MqPreviews
 @Composable

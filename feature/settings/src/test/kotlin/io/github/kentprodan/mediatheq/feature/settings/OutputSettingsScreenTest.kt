@@ -81,6 +81,8 @@ class OutputSettingsScreenTest {
         composeRule.onNode(hasText("Equalizer") and hasClickAction()).performClick()
 
         composeRule.onNodeWithText("Off: this output bypasses processing.").assertExists()
+        // The switch carries the reason; Preset adds none of its own (#419).
+        composeRule.onNodeWithText("Off: turn on Equalizer to change.").assertDoesNotExist()
     }
 
     @Test
