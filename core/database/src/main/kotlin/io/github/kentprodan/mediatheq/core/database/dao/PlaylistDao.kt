@@ -161,6 +161,21 @@ interface PlaylistDao {
         playlistId: String,
     ): Int
 
+    /** Moves the base of a playlist's waiting edits to what the server has now (#417). */
+    @Query(
+        """
+        UPDATE pending_playlist_edit SET base_name = :name, base_track_ids = :trackIds
+        WHERE server_id = :serverId AND user_id = :userId AND playlist_id = :playlistId
+        """,
+    )
+    suspend fun updatePendingBase(
+        serverId: String,
+        userId: String,
+        playlistId: String,
+        name: String,
+        trackIds: String,
+    )
+
     @Query("DELETE FROM pending_playlist_edit WHERE seq = :seq")
     suspend fun deletePendingEdit(seq: Long)
 

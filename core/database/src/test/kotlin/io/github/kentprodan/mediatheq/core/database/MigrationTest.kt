@@ -548,4 +548,29 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `19 to 20 keeps waiting playlist edits and adds their base`() =
+        runTest {
+            helper.createDatabase(19).apply {
+                execSQL(
+                    "INSERT INTO pending_playlist_edit (server_id, user_id, playlist_id, kind, track_ids) " +
+                        "VALUES ('s', 'u', 'p', 'Add', 't1')",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(20)
+
+            val query = "SELECT kind, track_ids, base_name, base_track_ids, queued_at FROM pending_playlist_edit"
+            connection.prepare(query).use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getText(0)).isEqualTo("Add")
+                assertThat(it.getText(1)).isEqualTo("t1")
+                assertThat(it.isNull(2)).isTrue()
+                assertThat(it.isNull(3)).isTrue()
+                assertThat(it.isNull(4)).isTrue()
+            }
+            connection.close()
+        }
 }
