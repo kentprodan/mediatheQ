@@ -16,7 +16,10 @@ import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.PlaylistChange
+import io.github.kentprodan.mediatheq.core.model.PlaylistConflict
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
+import io.github.kentprodan.mediatheq.core.model.PlaylistResolution
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
@@ -27,6 +30,7 @@ import io.github.kentprodan.mediatheq.core.testing.FakePlaylistEditor
 import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTokenCipher
 import io.github.kentprodan.mediatheq.core.testing.InMemoryPreferencesDataStore
+import io.github.kentprodan.mediatheq.core.testing.TestClock
 import io.github.kentprodan.mediatheq.core.testing.inMemoryDatabase
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
@@ -57,11 +61,12 @@ class DefaultPlaylistRepositoryTest {
     private val preferences = FakeLibraryPreferencesRepository()
     private val downloads = FakeDownloadRepository()
     private val filter = OfflineFilter(preferences, FakeNetworkMonitor()) { downloads }
+    private val clock = TestClock()
 
     private fun id(value: String) = MediaId(server, value)
 
     private fun TestScope.repository() =
-        DefaultPlaylistRepository(dao, source, editor, accountStore, session, backgroundScope, filter)
+        DefaultPlaylistRepository(dao, source, editor, accountStore, session, backgroundScope, filter, clock)
 
     @After
     fun close() = database.close()
@@ -176,27 +181,163 @@ class DefaultPlaylistRepositoryTest {
             assertThat(dao.pendingEdits("s", "user-1").map { it.kind }).containsExactly("Add")
         }
 
+    /** The server still has the playlist as the phone last knew it (no conflict). */
+    private fun serverUnchanged() {
+        source.playlists = listOf(Playlist(playlistId, "Drum", trackCount = 4))
+        source.entries =
+            mapOf(playlistId to listOf("t1", "hidden", "t2", "t3").map { PlaylistEntry("e-$it", id(it)) })
+    }
+
+    /** An add of t4 made offline, then the server back with [serverUnchanged] unless the test changes it. */
+    private suspend fun TestScope.offlineAdd(): DefaultPlaylistRepository {
+        editor.failure = MqError.Network
+        val repository = repository()
+        repository.add(playlistId, listOf(id("t4")))
+        editor.failure = null
+        editor.calls.clear()
+        serverUnchanged()
+        return repository
+    }
+
     @Test
-    fun `waiting edits go in order once the server is back, a remove of an entry gone there is dropped (#417)`() =
+    fun `waiting edits go in order when the server did not change the playlist (#417)`() =
         runTest(dispatcher) {
-            editor.failure = MqError.Network
-            val repository = repository()
-            repository.add(playlistId, listOf(id("t4")))
+            val repository = offlineAdd()
             // Queued behind the add without asking the server.
             repository.remove(playlistId, setOf("e-t1"))
             assertThat(dao.pendingEdits("s", "user-1").map { it.kind }).containsExactly("Add", "Remove").inOrder()
 
-            editor.failure = null
-            editor.calls.clear()
-            source.entries = mapOf(playlistId to listOf(PlaylistEntry("e-t2", id("t2"))))
             repository.flushPending()
 
-            assertThat(editor.calls).containsExactly("add:p1:t4")
+            assertThat(editor.calls).containsExactly("add:p1:t4", "remove:p1:e-t1").inOrder()
             assertThat(dao.pendingEdits("s", "user-1")).isEmpty()
+            assertThat(repository.conflicts.value).isEmpty()
         }
 
     @Test
-    fun `a playlist deleted on the server drops its waiting edits (#417)`() =
+    fun `a playlist the server changed meanwhile waits for the owner with both changes (#417)`() =
+        runTest(dispatcher) {
+            val repository = offlineAdd()
+            source.playlists = listOf(Playlist(playlistId, "Drum (server)", trackCount = 1))
+            source.entries = mapOf(playlistId to listOf(PlaylistEntry("e-t2", id("t2"))))
+
+            repository.flushPending()
+
+            assertThat(editor.calls).isEmpty()
+            assertThat(repository.conflicts.value)
+                .containsExactly(
+                    PlaylistConflict(
+                        playlistId,
+                        "Drum",
+                        since = clock.now,
+                        server = PlaylistChange(removed = 3, renamedTo = "Drum (server)"),
+                        phone = PlaylistChange(added = 1),
+                    ),
+                )
+            // The phone's version stays on screen.
+            assertThat(dao.entryRows("s", "p1").map { it.trackId })
+                .containsExactly("t1", "hidden", "t2", "t3", "t4")
+                .inOrder()
+            assertThat(dao.pendingEdits("s", "user-1")).hasSize(1)
+        }
+
+    private suspend fun TestScope.conflicted(): DefaultPlaylistRepository {
+        val repository = offlineAdd()
+        source.entries = mapOf(playlistId to listOf(PlaylistEntry("e-t2", id("t2"))))
+        repository.flushPending()
+        return repository
+    }
+
+    @Test
+    fun `merge sends the waiting edits on top of the server's version (#417)`() =
+        runTest(dispatcher) {
+            val repository = conflicted()
+
+            val result = repository.resolve(playlistId, PlaylistResolution.Merge)
+
+            assertThat(result).isEqualTo(MqResult.Success(Unit))
+            assertThat(editor.calls).containsExactly("add:p1:t4")
+            assertThat(dao.pendingEdits("s", "user-1")).isEmpty()
+            assertThat(repository.conflicts.value).isEmpty()
+        }
+
+    @Test
+    fun `replace makes the server's playlist the phone's (#417)`() =
+        runTest(dispatcher) {
+            val repository = conflicted()
+
+            repository.resolve(playlistId, PlaylistResolution.Replace)
+
+            assertThat(editor.calls).containsExactly("remove:p1:e-t2", "add:p1:t1,hidden,t2,t3,t4").inOrder()
+            assertThat(dao.pendingEdits("s", "user-1")).isEmpty()
+            assertThat(repository.conflicts.value).isEmpty()
+        }
+
+    @Test
+    fun `a replace cut off by the network keeps the conflict and does the same again (#417)`() =
+        runTest(dispatcher) {
+            val repository = conflicted()
+            editor.failureFor = { if (it.startsWith("add")) MqError.Network else null }
+
+            val failed = repository.resolve(playlistId, PlaylistResolution.Replace)
+
+            assertThat(failed).isEqualTo(MqResult.Failure(MqError.Network))
+            assertThat(repository.conflicts.value).hasSize(1)
+            assertThat(dao.pendingEdits("s", "user-1")).hasSize(1)
+            // The server now has nothing of it; the phone's version is still the target.
+            source.entries = mapOf(playlistId to emptyList())
+            editor.failureFor = { null }
+            editor.calls.clear()
+
+            repository.resolve(playlistId, PlaylistResolution.Replace)
+
+            assertThat(editor.calls).containsExactly("add:p1:t1,hidden,t2,t3,t4")
+            assertThat(repository.conflicts.value).isEmpty()
+        }
+
+    @Test
+    fun `skip drops the waiting edits and shows the server's version (#417)`() =
+        runTest(dispatcher) {
+            val repository = conflicted()
+
+            repository.resolve(playlistId, PlaylistResolution.Skip)
+
+            assertThat(editor.calls).isEmpty()
+            assertThat(dao.pendingEdits("s", "user-1")).isEmpty()
+            assertThat(repository.conflicts.value).isEmpty()
+            assertThat(entryIds()).containsExactly("e-t2")
+        }
+
+    @Test
+    fun `edits already sent before the network dropped are no conflict at the next replay (#417)`() =
+        runTest(dispatcher) {
+            val repository = offlineAdd()
+            repository.rename(playlistId, "Trip")
+            // The add goes (the server has t4 from then on), then the network drops before the rename.
+            editor.failureFor = { call ->
+                if (call.startsWith("add")) {
+                    source.entries =
+                        mapOf(
+                            playlistId to
+                                listOf("t1", "hidden", "t2", "t3", "t4").map { PlaylistEntry("e-$it", id(it)) },
+                        )
+                }
+                if (call.startsWith("rename")) MqError.Network else null
+            }
+            repository.flushPending()
+            assertThat(repository.conflicts.value).isEmpty()
+            assertThat(dao.pendingEdits("s", "user-1").map { it.kind }).containsExactly("Rename")
+            editor.failureFor = { null }
+            editor.calls.clear()
+
+            repository.flushPending()
+
+            assertThat(repository.conflicts.value).isEmpty()
+            assertThat(editor.calls).containsExactly("rename:p1:Trip")
+        }
+
+    @Test
+    fun `a playlist deleted on the server drops its waiting edits with a message (#417)`() =
         runTest(dispatcher) {
             editor.failure = MqError.Network
             val repository = repository()
@@ -209,6 +350,33 @@ class DefaultPlaylistRepositoryTest {
 
             assertThat(editor.calls).isEmpty()
             assertThat(dao.pendingEdits("s", "user-1")).isEmpty()
+            assertThat(repository.droppedEdits.value).isEqualTo(DroppedPlaylistEdits("Offline name", MqError.NotFound))
+            repository.acknowledgeDroppedEdits()
+            assertThat(repository.droppedEdits.value).isNull()
+        }
+
+    @Test
+    fun `a playlist the user may no longer edit drops its waiting edits with a message (#417)`() =
+        runTest(dispatcher) {
+            val repository = offlineAdd()
+            editor.failure = MqError.Forbidden
+
+            repository.flushPending()
+
+            assertThat(dao.pendingEdits("s", "user-1")).isEmpty()
+            assertThat(repository.droppedEdits.value).isEqualTo(DroppedPlaylistEdits("Drum", MqError.Forbidden))
+        }
+
+    @Test
+    fun `no network at the replay keeps the edits for next time (#417)`() =
+        runTest(dispatcher) {
+            val repository = offlineAdd()
+            source.playlistErrors = mapOf("p1" to MqError.Network)
+
+            repository.flushPending()
+
+            assertThat(dao.pendingEdits("s", "user-1")).hasSize(1)
+            assertThat(repository.droppedEdits.value).isNull()
         }
 
     @Test
