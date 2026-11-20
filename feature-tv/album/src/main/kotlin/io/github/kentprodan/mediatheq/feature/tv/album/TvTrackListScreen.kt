@@ -44,6 +44,8 @@ import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.common.formatDuration
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButtonStyle
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvIconButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
@@ -219,6 +221,7 @@ private fun Header(
                         { onAction(TvTrackListAction.Resume) },
                         Modifier.remembered(others[0]),
                         icon = MqTvIcons.Resume,
+                        style = MqTvButtonStyle.Outlined,
                     )
                 }
                 MqTvButton(
@@ -227,13 +230,14 @@ private fun Header(
                     if (canPlay) Modifier.remembered(others[1]) else Modifier,
                     enabled = canPlay,
                     icon = MqTvIcons.Shuffle,
+                    style = MqTvButtonStyle.Outlined,
                 )
-                MqTvButton(
+                MqTvIconButton(
+                    if (header.isFavorite) MqTvIcons.FavoriteFilled else MqTvIcons.Favorite,
                     stringResource(if (header.isFavorite) R.string.tv_album_favorited else R.string.tv_album_favorite),
                     { onAction(TvTrackListAction.ToggleFavorite) },
                     // Nothing to play (an empty playlist): the first focus goes here, a disabled button takes none.
                     Modifier.remembered(if (canPlay) others[2] else play),
-                    icon = if (header.isFavorite) MqTvIcons.FavoriteFilled else MqTvIcons.Favorite,
                 )
             }
         }

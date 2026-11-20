@@ -39,6 +39,8 @@ import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.data.resumePosition
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButtonStyle
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvIconButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
@@ -178,16 +180,18 @@ private fun Buttons(
                 stringResource(R.string.tv_movie_from_start),
                 { onPlay(first.id, Duration.ZERO) },
                 if (next == null) Modifier.focusRequester(play) else Modifier,
+                // The primary action when there is no next episode (#519).
+                style = if (next == null) MqTvButtonStyle.Filled else MqTvButtonStyle.Outlined,
             )
         }
-        MqTvButton(
+        MqTvIconButton(
+            if (state.series.userData.isFavorite) MqTvIcons.FavoriteFilled else MqTvIcons.Favorite,
             stringResource(
                 choose(state.series.userData.isFavorite, R.string.tv_movie_favorite_remove, R.string.tv_movie_favorite),
             ),
             { onAction(TvSeriesPageAction.ToggleFavorite) },
-            icon = if (state.series.userData.isFavorite) MqTvIcons.FavoriteFilled else MqTvIcons.Favorite,
         )
-        MqTvButton(stringResource(R.string.tv_series_more), { more = true })
+        MqTvIconButton(MqTvIcons.More, stringResource(R.string.tv_series_more), { more = true })
     }
     if (more) MoreMenu(state, onAction) { more = false }
     LaunchedEffect(Unit) { runCatching { play.requestFocus() } }
