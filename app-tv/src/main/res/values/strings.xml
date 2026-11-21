@@ -2,7 +2,8 @@
 <resources>
     <string name="app_name">mediatheQ</string>
     <string name="tv_nav_home">Home</string>
-    <string name="tv_nav_library">Library</string>
+    <string name="tv_nav_library">Music</string>
+    <string name="tv_nav_profile">Switch profile, %1$s</string>
     <string name="tv_nav_search">Search</string>
     <string name="tv_nav_now_playing">Now playing</string>
     <string name="tv_nav_settings">Settings</string>

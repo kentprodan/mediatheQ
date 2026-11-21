@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -28,6 +29,7 @@ import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.TvMenuStyle
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
@@ -60,12 +62,20 @@ class TvShellTest {
 
     private data object NoScreenKey : NavKey
 
-    private fun show() {
+    private var profiles = 0
+
+    private fun show(
+        menuStyle: TvMenuStyle = TvMenuStyle.Modal,
+        userName: String? = null,
+    ) {
         composeRule.setContent {
             MediatheqTvTheme {
                 TvShell(
                     backStack,
                     PlayerUiModel(),
+                    menuStyle = menuStyle,
+                    userName = userName,
+                    onProfile = { profiles++ },
                     onUnknown = { unknown += it },
                     onClose = { closed++ },
                 ) { navigator ->
@@ -98,7 +108,7 @@ class TvShellTest {
     fun `an entry shows its screen, Back from it lands on Home, Back on Home asks to close`() {
         show()
 
-        composeRule.onNodeWithContentDescription("Library").performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.onNodeWithContentDescription("Music").performSemanticsAction(SemanticsActions.RequestFocus)
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
         composeRule.onNodeWithText("Library screen").assertExists()
 
@@ -160,6 +170,66 @@ class TvShellTest {
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
 
         composeRule.onNodeWithText("Home").assertIsFocused()
+    }
+
+    @Test
+    fun `Standard pushes the screen aside while the menu is open, Modal leaves it in place (#520)`() {
+        fun firstAlbumLeft() = composeRule.onNodeWithText("First album").getBoundsInRoot().left
+
+        show(TvMenuStyle.Standard)
+        composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
+        val closed = firstAlbumLeft()
+
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+        composeRule.onNodeWithText("Home").assertIsFocused()
+        assertThat(firstAlbumLeft()).isGreaterThan(closed)
+
+        // Right goes back to the screen, which moves back.
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.onNodeWithText("First album").assertIsFocused()
+        assertThat(firstAlbumLeft()).isEqualTo(closed)
+    }
+
+    @Test
+    fun `the Modal menu opens over the screen without moving it (#520)`() {
+        show(TvMenuStyle.Modal)
+        composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
+        val closed = composeRule.onNodeWithText("First album").getBoundsInRoot().left
+
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+
+        composeRule.onNodeWithText("Home").assertIsFocused()
+        assertThat(composeRule.onNodeWithText("First album").getBoundsInRoot().left).isEqualTo(closed)
+    }
+
+    @Test
+    fun `Back in the Standard style also opens the menu on the selected entry (#520)`() {
+        show(TvMenuStyle.Standard)
+        composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
+
+        pressBack()
+
+        composeRule.onNodeWithText("Home").assertIsFocused()
+    }
+
+    @Test
+    fun `the profile entry above Search opens Who's watching (#520)`() {
+        show(userName = "Ana")
+        composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+
+        // Up from Home: Search, then the profile.
+        composeRule.onRoot().performKeyInput {
+            pressKey(Key.DirectionUp)
+            pressKey(Key.DirectionUp)
+        }
+        composeRule.onNodeWithContentDescription("Switch profile, Ana").assertIsFocused()
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
+        assertThat(profiles).isEqualTo(1)
+
+        // Right goes back to what the screen had focused.
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.onNodeWithText("First album").assertIsFocused()
     }
 
     @Test

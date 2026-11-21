@@ -83,6 +83,9 @@
     <string name="tv_settings_display_match_rate">Frame rate</string>
     <string name="tv_settings_display_match_resolution">Frame rate and resolution</string>
     <string name="tv_settings_home_hero">Home header</string>
+    <string name="tv_settings_menu_style">Menu style</string>
+    <string name="tv_settings_menu_style_modal">Modal: the menu opens over the dimmed screen</string>
+    <string name="tv_settings_menu_style_standard">Standard: the menu pushes the screen aside</string>
     <string name="tv_settings_home_hero_none">None: just the rows</string>
     <string name="tv_settings_home_hero_compact">Compact: the focused title and a line</string>
     <string name="tv_settings_home_hero_large">Large: the backdrop, title and overview</string>

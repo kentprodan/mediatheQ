@@ -63,6 +63,8 @@ data class NavigationPreferences(
     val simpleTransitions: Boolean = false,
     /** TV (#504): the hero at the top of Home; none by default (owner: backdrops belong to the detail pages). */
     val tvHomeHero: TvHomeHero = TvHomeHero.None,
+    /** TV (#520): how the side menu opens. */
+    val tvMenuStyle: TvMenuStyle = TvMenuStyle.Modal,
     /** TV (#518): the card variant a Home row uses; a row missing here keeps its own default. */
     val tvCardStyles: Map<HomeSection, TvCardStyle> = emptyMap(),
 ) {
@@ -103,3 +105,9 @@ enum class TvCardStyle { Standard, Classic, Compact, WideStandard, WideClassic }
 
 /** How TV Home shows the focused card at its top (#504). */
 enum class TvHomeHero { None, Compact, Large }
+
+/**
+ * The TV side menu's style (#520, Google TV guidelines): Modal floats over the dimmed screen (the default), Standard
+ * pushes the screen aside while open.
+ */
+enum class TvMenuStyle { Modal, Standard }

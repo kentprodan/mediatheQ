@@ -65,6 +65,7 @@ class LibraryPreferencesStore
                         expandPlayer = prefs[EXPAND_PLAYER],
                         simpleTransitions = prefs[SIMPLE_TRANSITIONS],
                         tvHomeHero = prefs[TV_HOME_HERO],
+                        tvMenuStyle = prefs[TV_MENU_STYLE],
                         tvCardStyles =
                             prefs[TV_CARD_STYLES]?.associate { it.substringBefore('=') to it.substringAfter('=') },
                     ),
@@ -252,6 +253,7 @@ class LibraryPreferencesStore
                 prefs.put(EXPAND_PLAYER, navigation.expandPlayer)
                 prefs.put(SIMPLE_TRANSITIONS, navigation.simpleTransitions)
                 prefs.put(TV_HOME_HERO, navigation.tvHomeHero)
+                prefs.put(TV_MENU_STYLE, navigation.tvMenuStyle)
                 prefs.put(TV_CARD_STYLES, navigation.tvCardStyles?.map { (k, v) -> "$k=$v" }?.toSet())
             }
         }
@@ -655,6 +657,7 @@ class LibraryPreferencesStore
             val EXPAND_PLAYER = booleanPreferencesKey("expand_player")
             val SIMPLE_TRANSITIONS = booleanPreferencesKey("simple_transitions")
             val TV_HOME_HERO = stringPreferencesKey("tv_home_hero")
+            val TV_MENU_STYLE = stringPreferencesKey("tv_menu_style")
 
             /** `Section=Style` pairs (#518). */
             val TV_CARD_STYLES = stringSetPreferencesKey("tv_card_styles")
@@ -860,6 +863,8 @@ data class StoredNavigation(
     val simpleTransitions: Boolean? = null,
     /** `TvHomeHero` name (#504). */
     val tvHomeHero: String? = null,
+    /** `TvMenuStyle` name (#520). */
+    val tvMenuStyle: String? = null,
     /** `HomeSection` name to `TvCardStyle` name (#518). */
     val tvCardStyles: Map<String, String>? = null,
 )
