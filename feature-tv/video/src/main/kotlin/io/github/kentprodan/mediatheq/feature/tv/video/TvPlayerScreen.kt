@@ -227,7 +227,7 @@ fun TvPlayerScreen(
                     Key.DirectionLeft, Key.DirectionRight -> {
                         if (down) {
                             onAction(
-                                TvPlayerAction.Seek(event.key == Key.DirectionRight, event.nativeKeyEvent.repeatCount),
+                                TvPlayerAction.Seek(event.key == Key.DirectionRight, event.nativeKeyEvent.eventTime),
                             )
                             seeking++
                         }

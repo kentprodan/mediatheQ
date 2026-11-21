@@ -325,9 +325,9 @@ class TvNowPlayingTest {
         composeRule.onNodeWithText("Ghosts").performSemanticsAction(SemanticsActions.RequestFocus)
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
 
-        assertThat(actions)
-            .containsExactly(TvNowPlayingAction.Seek(forward = true, repeat = 0), TvNowPlayingAction.SkipTo("e2"))
-            .inOrder()
+        // The key's time comes from the test clock: compare the direction.
+        assertThat((actions.first() as TvNowPlayingAction.Seek).forward).isTrue()
+        assertThat(actions.drop(1)).containsExactly(TvNowPlayingAction.SkipTo("e2"))
     }
 
     @Test
@@ -369,7 +369,7 @@ class TvNowPlayingTest {
     }
 
     @Test
-    fun `no seek while the duration is unknown, a held key seeks every few repeats from its last target`() =
+    fun `no seek while the duration is unknown, a held key seeks every 150 ms from its last target`() =
         test {
             val viewModel = viewModel()
             playback.state.value = playing().copy(duration = kotlin.time.Duration.ZERO)
@@ -380,9 +380,10 @@ class TvNowPlayingTest {
             playback.state.value = playing()
             playback.position.value = 1.minutes
             runCurrent()
-            (0..5).forEach { viewModel.onAction(TvNowPlayingAction.Seek(forward = true, repeat = it)) }
+            // Key-downs 50 ms apart: system repeats, or a remote sending separate presses (#353).
+            (0..5).forEach { viewModel.onAction(TvNowPlayingAction.Seek(forward = true, atMs = 1_000L + it * 50L)) }
 
-            // 1:00 + 10 s on the press, then + 30 s on the fifth repeat (the position has not caught up yet).
+            // 1:00 + 10 s on the press, then + 30 s 150 ms later (the position has not caught up yet).
             assertThat(playback.commands).containsExactly("seekTo 1m 10s", "seekTo 1m 40s").inOrder()
         }
 
