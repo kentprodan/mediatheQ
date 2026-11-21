@@ -2,10 +2,13 @@ package io.github.kentprodan.mediatheq.core.testing
 
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
+import io.github.kentprodan.mediatheq.core.data.DroppedPlaylistEdits
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.PlaylistConflict
+import io.github.kentprodan.mediatheq.core.model.PlaylistResolution
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -85,6 +88,22 @@ class FakePlaylistRepository : PlaylistRepository {
         val list = items.value[id].orEmpty().toMutableList()
         list.add(list.indexOf(target), list.removeAt(list.indexOf(item)))
         items.value += id to list
+    }
+
+    override val conflicts = MutableStateFlow<List<PlaylistConflict>>(emptyList())
+
+    /** A resolve drops the conflict (recorded as "resolve:p1:Merge"), unless [failure] is set. */
+    override suspend fun resolve(
+        id: MediaId,
+        resolution: PlaylistResolution,
+    ) = edit("resolve:${id.itemId}:$resolution") {
+        conflicts.value = conflicts.value.filterNot { it.playlistId == id }
+    }
+
+    override val droppedEdits = MutableStateFlow<List<DroppedPlaylistEdits>>(emptyList())
+
+    override fun acknowledgeDroppedEdits() {
+        droppedEdits.value = emptyList()
     }
 
     private fun edit(

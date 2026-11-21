@@ -54,8 +54,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Movies and Series on the TV: poster grids in the side menu, sorted by name, date added, year, runtime or at random, filtered by watched, favorites, genre or decade, with an A to Z strip; Settings -> Show chooses music, video or both.
 - Movie and series pages on the TV: the backdrop, facts and format, Play or Resume, Favorite and Watched, audio and subtitles kept per movie; series with Next up, season tabs, episodes and watched for a season or the whole series; and the TV video player with fast seeking, a bar that hides itself, the next episode countdown and the screen kept on while playing.
 - Remote control: Jellyfin web (and soon the phone) can pause, skip and seek mediatheQ on the TV and the phone, and send a movie to play from where you were; the TV opens its player on it.
+- Playlists edited without a connection keep your changes and send them when the server is back; if the playlist also changed on the server meanwhile, you choose Merge, Replace or Skip.
 
 ### Changed
+- While an output's equalizer is off, its Preset row says why the preset and bands are grey.
 - Moving between screens now slides in the direction you go (forward or back) instead of a plain fade; the back gesture shrinks the screen as you drag.
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 

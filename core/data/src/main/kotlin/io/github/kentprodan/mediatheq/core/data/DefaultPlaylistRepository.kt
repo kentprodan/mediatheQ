@@ -13,7 +13,10 @@ import io.github.kentprodan.mediatheq.core.database.entity.PlaylistEntryEntity
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.PlaylistChange
+import io.github.kentprodan.mediatheq.core.model.PlaylistConflict
 import io.github.kentprodan.mediatheq.core.model.PlaylistEntry
+import io.github.kentprodan.mediatheq.core.model.PlaylistResolution
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
 import io.github.kentprodan.mediatheq.core.server.PlaylistEditor
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
@@ -22,14 +25,20 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /** A snapshot of one playlist as stored: its row and all its entries by position. */
 private typealias Stored = Pair<PlaylistEntity, List<PlaylistEntryEntity>>
@@ -50,6 +59,7 @@ class DefaultPlaylistRepository
         private val sessionRepository: SessionRepository,
         @param:ApplicationScope private val scope: CoroutineScope,
         private val filter: OfflineFilter,
+        private val clock: Clock,
     ) : PlaylistRepository {
         private val lock = Mutex()
 
@@ -99,7 +109,7 @@ class DefaultPlaylistRepository
         ) = edit(
             id,
             { (row, entries) -> row.copy(name = name, sortName = name) to entries },
-            Pending(RENAME, name = name),
+            Pending(EDIT_RENAME, name = name),
         ) {
             editor.rename(it, id, name)
         }
@@ -132,7 +142,7 @@ class DefaultPlaylistRepository
             val result =
                 edit(id, { (row, entries) ->
                     row to entries + trackIds.map { pendingEntry(row, it) }
-                }, Pending(ADD, trackIds = trackIds.map { it.itemId })) { editor.add(it, id, trackIds) }
+                }, Pending(EDIT_ADD, trackIds = trackIds.map { it.itemId })) { editor.add(it, id, trackIds) }
             // R6: the server draws the cover collage about a second after tracks arrive; read it again then.
             // It is also a second chance for pending entries when the first read-back failed.
             scope.launch {
@@ -148,7 +158,7 @@ class DefaultPlaylistRepository
         ) = edit(
             id,
             { (row, entries) -> row to entries.filterNot { it.entryId in entryIds } },
-            Pending(REMOVE, entryIds = entryIds.toList()),
+            Pending(EDIT_REMOVE, entryIds = entryIds.toList()),
         ) {
             editor.remove(it, id, entryIds.toList())
         }
@@ -168,7 +178,7 @@ class DefaultPlaylistRepository
                 row to entries.toMutableList().apply { add(to, removeAt(from)) }
             }, {
                 Pending(
-                    MOVE,
+                    EDIT_MOVE,
                     entryIds = listOf(item.entryId),
                     position = to,
                 )
@@ -176,7 +186,15 @@ class DefaultPlaylistRepository
         }
 
         override suspend fun refresh(id: MediaId): MqResult<Unit> =
-            inAppScope { lock.withLock { storageSafe { readBack(id) } } }
+            inAppScope {
+                lock.withLock {
+                    storageSafe {
+                        // While edits wait (#417) the phone's version stays on screen; the replay reads the server.
+                        val server = accountStore.signedInServer()
+                        if (server != null && waiting(server, id)) MqResult.Success(Unit) else readBack(id)
+                    }
+                }
+            }
 
         /**
          * Writes what [change] makes of the stored playlist (entries renumbered), then runs [call]; a `null` change
@@ -211,10 +229,14 @@ class DefaultPlaylistRepository
                         val (row, entries) = change(snapshot) ?: return@storageSafe MqResult.Failure(MqError.NotFound)
                         playlistDao.replaceAndCount(row, entries.mapIndexed { i, entry -> entry.copy(position = i) })
                         val server = accountStore.signedInServer()
-                        if (server != null && waiting(server, id)) return@storageSafe queue(server, id, pending())
+                        if (server != null && waiting(server, id)) {
+                            return@storageSafe queue(server, id, pending(), snapshot.version())
+                        }
                         val result = withServer(call)
                         if (server != null && (result as? MqResult.Failure)?.error == MqError.Network) {
-                            return@storageSafe queue(server, id, pending())
+                            // shortcut: a chunked add cut off half way counts its sent part as a server change at
+                            // the replay (a conflict to answer); track the sent chunks if that shows up.
+                            return@storageSafe queue(server, id, pending(), snapshot.version())
                         }
                         if (result is MqResult.Failure) restore(snapshot)
                         if ((result as? MqResult.Failure)?.error != MqError.Unauthorized) readBack(id)
@@ -228,109 +250,280 @@ class DefaultPlaylistRepository
             id: MediaId,
         ) = playlistDao.pendingEditCount(server.serverId.value, server.userId, id.itemId) > 0
 
+        /** Queues [pending]; the first edit of a playlist records [base], the version the server had, for the rest. */
         private suspend fun queue(
             server: SignedInServer,
             id: MediaId,
             pending: Pending,
+            base: PlaylistVersion,
         ): MqResult<Unit> {
+            val earlier = pendingEdits(server, id.itemId).firstOrNull()
             playlistDao.insertPendingEdit(
                 PendingPlaylistEditEntity(
                     serverId = server.serverId.value,
                     userId = server.userId,
                     playlistId = id.itemId,
                     kind = pending.kind,
-                    trackIds = pending.trackIds?.joinToString(SEPARATOR),
-                    entryIds = pending.entryIds?.joinToString(SEPARATOR),
+                    trackIds = pending.trackIds?.joinToString(ID_SEPARATOR),
+                    entryIds = pending.entryIds?.joinToString(ID_SEPARATOR),
                     position = pending.position,
                     name = pending.name,
+                    baseName = if (earlier != null) earlier.baseName else base.name,
+                    baseTrackIds =
+                        if (earlier != null) earlier.baseTrackIds else base.trackIds.joinToString(ID_SEPARATOR),
+                    queuedAt = clock.now().toEpochMilliseconds(),
                 ),
             )
             return MqResult.Success(Unit)
         }
 
+        private suspend fun pendingEdits(
+            server: SignedInServer,
+            playlistId: String,
+        ) = playlistDao.pendingEdits(server.serverId.value, server.userId).filter { it.playlistId == playlistId }
+
+        private val conflictState = MutableStateFlow<List<PlaylistConflict>>(emptyList())
+        override val conflicts: StateFlow<List<PlaylistConflict>> = conflictState.asStateFlow()
+
+        private val droppedState = MutableStateFlow<List<DroppedPlaylistEdits>>(emptyList())
+        override val droppedEdits: StateFlow<List<DroppedPlaylistEdits>> = droppedState.asStateFlow()
+
+        override fun acknowledgeDroppedEdits() {
+            droppedState.value = emptyList()
+        }
+
         /**
          * Sends the playlist edits made offline (#417), per playlist in order: the playlist is read from the server
-         * first, then each edit is replayed; one that no longer applies (its entry is gone) is dropped quietly. A
-         * playlist deleted or forbidden on the server drops its edits (and comes back as the server has it); no
-         * network keeps the rest for next time.
-         * shortcut: the owner's conflict dialog (merge / replace / skip when the server changed meanwhile) is #417
-         * part 2; until then the edits are merged on top.
+         * first. When the server changed it since the edits' base, the phone's version stays on screen and the
+         * playlist waits in [conflicts] for the owner's answer; otherwise each edit is replayed ([sendAll]). A
+         * playlist deleted or forbidden on the server drops its edits with a [droppedEdits] message; no network keeps
+         * the rest for next time.
          */
         internal suspend fun flushPending() {
             val server = accountStore.signedInServer() ?: return
             lock.withLock {
                 storageSafe {
-                    val edits = playlistDao.pendingEdits(server.serverId.value, server.userId)
-                    edits.groupBy { it.playlistId }.forEach { (playlistId, list) ->
-                        val id = MediaId(server.serverId, playlistId)
-                        when (val read = readBack(id)) {
-                            is MqResult.Failure -> {
-                                if (read.error == MqError.Network) return@storageSafe read
-                                playlistDao.deletePendingEdits(server.serverId.value, server.userId, playlistId)
-                                return@forEach
+                    val found = mutableListOf<PlaylistConflict>()
+                    // Each connection asks again, also about a conflict the owner put off with Later.
+                    conflictState.value = emptyList()
+                    try {
+                        val edits = playlistDao.pendingEdits(server.serverId.value, server.userId)
+                        edits.groupBy { it.playlistId }.forEach { (playlistId, list) ->
+                            val id = MediaId(server.serverId, playlistId)
+                            val phone = snapshot(id)
+                            if (!readServer(server, id, list, phone)) {
+                                return@storageSafe MqResult.Failure(MqError.Network)
                             }
-
-                            is MqResult.Success -> {
-                                Unit
+                            if (!waiting(server, id)) return@forEach
+                            val conflict = conflict(id, list)
+                            if (conflict == null) {
+                                if (sendAll(server, id, list) is MqResult.Failure) {
+                                    // The rest waits; the phone's version stays on screen until it goes.
+                                    phone?.let { restore(it) }
+                                    return@storageSafe MqResult.Failure(MqError.Network)
+                                }
+                            } else {
+                                // The server's version stays out of sight until the owner answers.
+                                phone?.let { restore(it) }
+                                found += conflict
                             }
                         }
-                        for (edit in list) {
-                            val entries =
-                                playlistDao
-                                    .entryRows(
-                                        server.serverId.value,
-                                        playlistId,
-                                    ).map { it.entryId }
-                                    .toSet()
-                            val result = replay(server, id, edit, entries)
-                            val error = (result as? MqResult.Failure)?.error
-                            if (error == MqError.Network) return@storageSafe result
-                            if (error == MqError.NotFound || error == MqError.Forbidden) {
-                                playlistDao.deletePendingEdits(server.serverId.value, server.userId, playlistId)
-                                break
-                            }
-                            playlistDao.deletePendingEdit(edit.seq)
-                            if (edit.kind != RENAME) readBack(id)
-                        }
-                        readBack(id)
+                    } finally {
+                        conflictState.value = found
                     }
                     MqResult.Success(Unit)
                 }
             }
         }
 
+        /**
+         * Reads the playlist from the server before its edits go. Deleted or forbidden there: its edits are dropped
+         * with a message. `false` when it could not be read for another reason (no network, a server error): the edits
+         * wait.
+         */
+        private suspend fun readServer(
+            server: SignedInServer,
+            id: MediaId,
+            edits: List<PendingPlaylistEditEntity>,
+            stored: Stored?,
+        ): Boolean {
+            val read = readBack(id) as? MqResult.Failure ?: return true
+            if (!read.error.dropsEdits()) return false
+            playlistDao.deletePendingEdits(server.serverId.value, server.userId, id.itemId)
+            dropped(stored, edits, read.error)
+            return true
+        }
+
+        private fun dropped(
+            stored: Stored?,
+            edits: List<PendingPlaylistEditEntity>,
+            error: MqError,
+        ) {
+            if (!error.dropsEdits()) return
+            val name = stored?.first?.name ?: edits.firstNotNullOfOrNull { it.baseName } ?: return
+            droppedState.update { it + DroppedPlaylistEdits(name, error) }
+        }
+
+        /**
+         * The conflict when the server's version (as just read) differs from the edits' base; edits queued before
+         * schema 20 have no base and are merged.
+         */
+        private suspend fun conflict(
+            id: MediaId,
+            edits: List<PendingPlaylistEditEntity>,
+        ): PlaylistConflict? {
+            val base = edits.first().base() ?: return null
+            val server = snapshot(id)?.version() ?: return null
+            val serverChange = base.changeTo(server) ?: return null
+            val phone = base.applyAll(edits)
+            return PlaylistConflict(
+                playlistId = id,
+                name = phone.name,
+                since = edits.first().queuedAt?.let(Instant::fromEpochMilliseconds),
+                server = serverChange,
+                phone = base.changeTo(phone) ?: PlaylistChange(),
+            )
+        }
+
+        override suspend fun resolve(
+            id: MediaId,
+            resolution: PlaylistResolution,
+        ): MqResult<Unit> =
+            inAppScope {
+                lock.withLock {
+                    storageSafe {
+                        val server =
+                            accountStore.signedInServer() ?: return@storageSafe MqResult.Failure(MqError.Unauthorized)
+                        val edits = pendingEdits(server, id.itemId)
+                        val phone = snapshot(id)
+                        val result =
+                            if (edits.isEmpty() || resolution == PlaylistResolution.Skip) {
+                                MqResult.Success(Unit)
+                            } else {
+                                resolveWith(server, id, edits, resolution)
+                            }
+                        val error = (result as? MqResult.Failure)?.error
+                        if (error != null && !error.dropsEdits()) {
+                            // Asked again; the phone's version stays on screen meanwhile.
+                            phone?.let { restore(it) }
+                            return@storageSafe result
+                        }
+                        playlistDao.deletePendingEdits(server.serverId.value, server.userId, id.itemId)
+                        conflictState.update { all -> all.filterNot { it.playlistId == id } }
+                        readBack(id)
+                        result
+                    }
+                }
+            }
+
+        private suspend fun resolveWith(
+            server: SignedInServer,
+            id: MediaId,
+            edits: List<PendingPlaylistEditEntity>,
+            resolution: PlaylistResolution,
+        ): MqResult<Unit> {
+            if (!readServer(server, id, edits, snapshot(id))) return MqResult.Failure(MqError.Network)
+            // Dropped by the read (deleted or forbidden on the server).
+            if (!waiting(server, id)) return MqResult.Success(Unit)
+            return if (resolution ==
+                PlaylistResolution.Replace
+            ) {
+                replace(server, id, edits)
+            } else {
+                sendAll(server, id, edits)
+            }
+        }
+
+        /**
+         * The phone's version wins: every server entry goes, then the phone's tracks in order and its name. Computed
+         * from the base and the edits, never from the server, so running it again after a half done one is right.
+         */
+        private suspend fun replace(
+            server: SignedInServer,
+            id: MediaId,
+            edits: List<PendingPlaylistEditEntity>,
+        ): MqResult<Unit> {
+            val base = edits.first().base() ?: return sendAll(server, id, edits)
+            val phone = base.applyAll(edits)
+            val serverNow = snapshot(id)
+            val entries =
+                serverNow
+                    ?.second
+                    ?.map { it.entryId }
+                    ?.distinct()
+                    .orEmpty()
+            val tracks = phone.trackIds.map { MediaId(server.serverId, it) }
+            if (entries.isNotEmpty()) {
+                withServer { editor.remove(it, id, entries) }.let { if (it is MqResult.Failure) return it }
+            }
+            if (tracks.isNotEmpty()) {
+                withServer { editor.add(it, id, tracks) }.let { if (it is MqResult.Failure) return it }
+            }
+            if (serverNow?.first?.name == phone.name) return MqResult.Success(Unit)
+            return withServer { editor.rename(it, id, phone.name) }
+        }
+
+        /**
+         * Replays [edits] in order; one that no longer applies (its entry is gone) is dropped quietly. After each, the
+         * base moves to what the server then has, so a later replay never takes our own sent edits for a server change.
+         */
+        private suspend fun sendAll(
+            server: SignedInServer,
+            id: MediaId,
+            edits: List<PendingPlaylistEditEntity>,
+        ): MqResult<Unit> {
+            for (edit in edits) {
+                val stored = snapshot(id)
+                val entries = stored?.second?.map { it.entryId }.orEmpty()
+                val result = replay(server, id, edit, entries)
+                val error = (result as? MqResult.Failure)?.error
+                if (error != null && !error.dropsEdits()) return result
+                if (error != null) {
+                    playlistDao.deletePendingEdits(server.serverId.value, server.userId, id.itemId)
+                    dropped(stored, edits, error)
+                    return MqResult.Success(Unit)
+                }
+                playlistDao.deletePendingEdit(edit.seq)
+                if (readBack(id) is MqResult.Success) {
+                    snapshot(id)?.version()?.let { now ->
+                        playlistDao.updatePendingBase(
+                            server.serverId.value,
+                            server.userId,
+                            id.itemId,
+                            now.name,
+                            now.trackIds.joinToString(ID_SEPARATOR),
+                        )
+                    }
+                }
+            }
+            return MqResult.Success(Unit)
+        }
+
         private suspend fun replay(
             server: SignedInServer,
             id: MediaId,
             edit: PendingPlaylistEditEntity,
-            serverEntries: Set<String>,
+            /** Every entry id the server has, in order (R13: a track twice is there twice). */
+            serverEntries: List<String>,
         ): MqResult<Unit> {
-            val entryIds =
-                edit.entryIds
-                    ?.split(SEPARATOR)
-                    ?.filter { it in serverEntries }
-                    .orEmpty()
+            val entryIds = edit.entryIds.ids().filter { it in serverEntries }
             return when (edit.kind) {
-                ADD -> {
-                    val tracks =
-                        edit.trackIds
-                            ?.split(SEPARATOR)
-                            .orEmpty()
-                            .map { MediaId(server.serverId, it) }
+                EDIT_ADD -> {
+                    val tracks = edit.trackIds.ids().map { MediaId(server.serverId, it) }
                     if (tracks.isEmpty()) MqResult.Success(Unit) else withServer { editor.add(it, id, tracks) }
                 }
 
-                REMOVE -> {
+                EDIT_REMOVE -> {
                     if (entryIds.isEmpty()) MqResult.Success(Unit) else withServer { editor.remove(it, id, entryIds) }
                 }
 
-                MOVE -> {
+                EDIT_MOVE -> {
                     val entry = entryIds.firstOrNull()
                     val to = (edit.position ?: 0).coerceIn(0, (serverEntries.size - 1).coerceAtLeast(0))
                     if (entry == null) MqResult.Success(Unit) else withServer { editor.move(it, id, entry, to) }
                 }
 
-                RENAME -> {
+                EDIT_RENAME -> {
                     edit.name?.let { name -> withServer { editor.rename(it, id, name) } } ?: MqResult.Success(Unit)
                 }
 
@@ -356,6 +549,14 @@ class DefaultPlaylistRepository
             val row = playlistDao.playlistRow(id.serverId.value, id.itemId) ?: return null
             return row to playlistDao.entryRows(id.serverId.value, id.itemId)
         }
+
+        private fun Stored.version() = PlaylistVersion(first.name, second.map { it.trackId })
+
+        /** Only a playlist deleted on the server or one the user may no longer edit drops waiting edits. */
+        private fun MqError.dropsEdits() = this == MqError.NotFound || this == MqError.Forbidden
+
+        private fun PendingPlaylistEditEntity.base(): PlaylistVersion? =
+            baseName?.let { PlaylistVersion(it, baseTrackIds.ids()) }
 
         private suspend fun restore(snapshot: Stored) =
             withContext(NonCancellable) { playlistDao.replace(snapshot.first, snapshot.second) }
@@ -405,10 +606,5 @@ class DefaultPlaylistRepository
         private companion object {
             val COLLAGE_DELAY = 2.seconds
             const val PAGE_SIZE = 500
-            const val SEPARATOR = ","
-            const val ADD = "Add"
-            const val REMOVE = "Remove"
-            const val MOVE = "Move"
-            const val RENAME = "Rename"
         }
     }

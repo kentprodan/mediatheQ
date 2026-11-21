@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
+import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialogContent
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.preview.PREVIEW_BLUR_HASH
 import io.github.kentprodan.mediatheq.core.designsystem.preview.rememberPreviewCover
@@ -26,13 +27,17 @@ import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.AudioFormat
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlaylistChange
+import io.github.kentprodan.mediatheq.core.model.PlaylistConflict
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
 import io.github.kentprodan.mediatheq.core.model.UserData
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.ui.preview.PreviewData
+import java.time.ZoneOffset
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 /** Track rows: with number, long title and artists (ellipsized, over an hour), without number. */
 @PreviewTest
@@ -387,6 +392,25 @@ fun MqTracksContentScreenshot() {
                 onSubtitle = {},
                 onWholeSeason = {},
             )
+        }
+    }
+}
+
+@PreviewTest
+@MqPreviews
+@Composable
+fun PlaylistConflictScreenshot() {
+    val conflict =
+        PlaylistConflict(
+            MediaId(ServerId("s"), "p1"),
+            "Road Trip",
+            since = Instant.fromEpochSeconds(1_763_000_000),
+            server = PlaylistChange(added = 2, removed = 1, renamedTo = "Road Trip 2026"),
+            phone = PlaylistChange(added = 1, reordered = true),
+        )
+    MediatheqTheme {
+        MqDialogContent(playlistConflictTitle(conflict), null, {}, "Later", {}) {
+            PlaylistConflictContent(conflict, onResolve = {}, zone = ZoneOffset.UTC)
         }
     }
 }

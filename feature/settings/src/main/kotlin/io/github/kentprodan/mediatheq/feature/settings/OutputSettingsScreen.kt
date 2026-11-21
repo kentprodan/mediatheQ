@@ -311,7 +311,8 @@ private fun LazyListScope.equalizerGroups(
                 ChoiceItem(
                     shapes,
                     stringResource(R.string.settings_eq_preset),
-                    null,
+                    // Grey under an off switch: say why (#419).
+                    if (!profile.equalizerOn && reason == null) stringResource(R.string.settings_eq_off) else null,
                     EqPreset.entries,
                     selected = profile.eqPreset,
                     label = { stringResource(it.label) },

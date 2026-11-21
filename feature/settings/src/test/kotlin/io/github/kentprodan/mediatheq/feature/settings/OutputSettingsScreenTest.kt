@@ -81,6 +81,8 @@ class OutputSettingsScreenTest {
         composeRule.onNode(hasText("Equalizer") and hasClickAction()).performClick()
 
         composeRule.onNodeWithText("Off: this output bypasses processing.").assertExists()
+        // The switch carries the reason; Preset adds none of its own (#419).
+        composeRule.onNodeWithText("Off: turn on Equalizer to change.").assertDoesNotExist()
     }
 
     @Test
@@ -107,6 +109,8 @@ class OutputSettingsScreenTest {
         composeRule.onNodeWithText("MOMENTUM 4").assertExists()
         composeRule.onNode(hasText("Equalizer") and isSelectable()).assertIsSelected()
         composeRule.onNodeWithText("Vocal").assertIsNotEnabled()
+        // Grey under the off switch, and says why (#419).
+        composeRule.onNodeWithText("Off: turn on Equalizer to change.").assertExists()
         composeRule.onNodeWithText("Uses more battery", substring = true).performClick()
 
         assertThat(changed(headphones)).isEqualTo(OutputProfile(equalizerOn = true))

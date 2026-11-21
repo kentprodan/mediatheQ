@@ -127,4 +127,24 @@
     <string name="core_ui_home_recently_added_episodes">Recently added episodes</string>
     <string name="core_ui_chapters_open">Chapters</string>
     <string name="core_ui_video_pip">Picture in picture</string>
+    <string name="core_ui_conflict_title">“%1$s” changed on the server</string>
+    <string name="core_ui_conflict_server">On the server</string>
+    <string name="core_ui_conflict_server_since">On the server, since you went offline (%1$s)</string>
+    <string name="core_ui_conflict_phone">Waiting on this phone</string>
+    <string name="core_ui_conflict_choices">Merge adds your changes to the server version. Replace keeps only this phone version. Skip drops your changes.</string>
+    <string name="core_ui_conflict_merge">Merge</string>
+    <string name="core_ui_conflict_replace">Replace</string>
+    <string name="core_ui_conflict_skip">Skip</string>
+    <string name="core_ui_conflict_later">Later</string>
+    <plurals name="core_ui_conflict_added">
+        <item quantity="one">%1$d track added</item>
+        <item quantity="other">%1$d tracks added</item>
+    </plurals>
+    <plurals name="core_ui_conflict_removed">
+        <item quantity="one">%1$d track removed</item>
+        <item quantity="other">%1$d tracks removed</item>
+    </plurals>
+    <string name="core_ui_conflict_reordered">New order</string>
+    <string name="core_ui_conflict_renamed">Renamed to “%1$s”</string>
+    <string name="core_ui_conflict_nothing">No change</string>
 </resources>

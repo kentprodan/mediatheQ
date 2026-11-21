@@ -1,10 +1,14 @@
 package io.github.kentprodan.mediatheq.core.data
 
+import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Playlist
+import io.github.kentprodan.mediatheq.core.model.PlaylistConflict
+import io.github.kentprodan.mediatheq.core.model.PlaylistResolution
 import io.github.kentprodan.mediatheq.core.model.Track
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * One playlist and its edits. Edits show in Room at once, then go to the server; a failed edit is undone and returned
@@ -52,7 +56,30 @@ interface PlaylistRepository {
         item: PlaylistItem,
         target: PlaylistItem,
     ): MqResult<Unit>
+
+    /**
+     * Playlists edited offline that changed on the server meanwhile (#417): their edits wait for [resolve]. Kept in
+     * memory only; the next connection finds them again (an account switch restarts the app, ADR 0036).
+     */
+    val conflicts: StateFlow<List<PlaylistConflict>>
+
+    /** Sends, replaces or drops the waiting edits of a [conflicts] playlist; no network keeps the conflict. */
+    suspend fun resolve(
+        id: MediaId,
+        resolution: PlaylistResolution,
+    ): MqResult<Unit>
+
+    /** Waiting edits the server refused (#417): the playlist is gone or may not be edited. Shown once, then [acknowledgeDroppedEdits]. */
+    val droppedEdits: StateFlow<List<DroppedPlaylistEdits>>
+
+    fun acknowledgeDroppedEdits()
 }
+
+/** The waiting edits of playlist [name] were dropped: [error] is `NotFound` (deleted on the server) or `Forbidden`. */
+data class DroppedPlaylistEdits(
+    val name: String,
+    val error: MqError,
+)
 
 /**
  * One entry of a playlist. [position] counts every entry the server has (hidden ones too). A [isPending] entry was just

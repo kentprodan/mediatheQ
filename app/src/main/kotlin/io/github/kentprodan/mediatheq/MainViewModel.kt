@@ -5,14 +5,17 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation3.runtime.NavKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.AdvancedPreferences
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
+import io.github.kentprodan.mediatheq.core.data.DroppedPlaylistEdits
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.ParentalControls
+import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
@@ -21,6 +24,8 @@ import io.github.kentprodan.mediatheq.core.data.needsPin
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqThemeOptions
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.PlaylistConflict
+import io.github.kentprodan.mediatheq.core.model.PlaylistResolution
 import io.github.kentprodan.mediatheq.core.navigation.MovieKey
 import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
@@ -57,6 +62,7 @@ class MainViewModel
         private val appModeRepository: AppModeRepository,
         private val parental: ParentalControls? = null,
         private val videos: VideoRepository? = null,
+        private val playlists: PlaylistRepository? = null,
     ) : ViewModel() {
         /** A page or player waiting for the PIN (#443), with whether the last try was wrong. */
         data class PinRequest(
@@ -175,6 +181,50 @@ class MainViewModel
         val userDataError: StateFlow<MqError?> = userDataRepository.error
 
         fun dismissUserDataError() = userDataRepository.dismissError()
+
+        // The conflict list Later hid: shown again when the next connection publishes a new list (#417).
+        private val hiddenConflicts = MutableStateFlow<List<PlaylistConflict>?>(null)
+
+        /** A playlist edited offline that also changed on the server (#417): one app-wide question at a time. */
+        val playlistConflict: StateFlow<PlaylistConflict?> =
+            combine(playlists?.conflicts ?: MutableStateFlow(emptyList()), hiddenConflicts) { all, hidden ->
+                if (all === hidden) null else all.firstOrNull()
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        /** Later (and Back): asked again at the next connection; the edits keep waiting. */
+        fun hidePlaylistConflict() {
+            hiddenConflicts.value = playlists?.conflicts?.value
+        }
+
+        private val answerFailed = MutableStateFlow(false)
+
+        /** An answer that could not reach the server: the question closes, comes back at the next connection. */
+        val playlistAnswerFailed: StateFlow<Boolean> = answerFailed.asStateFlow()
+
+        fun dismissPlaylistAnswerFailed() {
+            answerFailed.value = false
+        }
+
+        /** Merge, Replace or Skip; when the server cannot take it, the question waits for the next connection. */
+        fun resolvePlaylistConflict(
+            id: MediaId,
+            resolution: PlaylistResolution,
+        ) {
+            viewModelScope.launch {
+                if (playlists?.resolve(id, resolution) is MqResult.Failure) {
+                    hidePlaylistConflict()
+                    answerFailed.value = true
+                }
+            }
+        }
+
+        /** Offline playlist edits the server refused, one app-wide message each (#417). */
+        val droppedPlaylistEdits: StateFlow<List<DroppedPlaylistEdits>> =
+            playlists?.droppedEdits ?: MutableStateFlow(emptyList())
+
+        fun dismissDroppedPlaylistEdits() {
+            playlists?.acknowledgeDroppedEdits()
+        }
 
         /** A track that could not play (skipped or stopped), for one app-wide message. */
         val playbackError: StateFlow<PlaybackError?> = playback.error
