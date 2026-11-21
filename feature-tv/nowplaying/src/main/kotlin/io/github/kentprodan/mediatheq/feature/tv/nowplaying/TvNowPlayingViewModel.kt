@@ -111,10 +111,13 @@ sealed interface TvNowPlayingAction {
 
     data object CancelSleepTimer : TvNowPlayingAction
 
-    /** Left or Right on the progress row, a key-down at [atMs] (uptime); held keys are told by timing ([HeldKey]). */
+    /**
+     * Left or Right on the progress row, a key-down at [atMs] (uptime); held keys are told by timing ([HeldKey]).
+     * Without a time it is a press of its own.
+     */
     data class Seek(
         val forward: Boolean,
-        val atMs: Long = 0,
+        val atMs: Long? = null,
     ) : TvNowPlayingAction
 
     data class SkipTo(
@@ -218,7 +221,7 @@ class TvNowPlayingViewModel
             entryId: String?,
         ) {
             // Throttled: one seek every so often, not a stream of re-buffers.
-            val repeat = held.press(action.forward, action.atMs, entryId) ?: return
+            val repeat = action.atMs?.let { held.press(action.forward, it, entryId) ?: return } ?: 0
             if (repeat == 0) heldTarget = null
             val target = seekTarget(heldTarget ?: position.value, duration, action.forward, repeat)
             heldTarget = target

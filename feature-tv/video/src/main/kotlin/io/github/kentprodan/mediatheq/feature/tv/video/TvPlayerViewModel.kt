@@ -232,7 +232,7 @@ class TvPlayerViewModel
 
                 is TvPlayerAction.Seek -> {
                     val duration = playing?.duration ?: return
-                    val repeat = held.press(action.forward, action.atMs, playing.video.id) ?: return
+                    val repeat = action.atMs?.let { held.press(action.forward, it, playing.video.id) ?: return } ?: 0
                     if (repeat == 0) heldTarget = null
                     // A held key steps on from its last target: the position lags a round trip behind.
                     val target = videoSeekTarget(heldTarget ?: position.value, duration, action.forward, repeat)
@@ -366,10 +366,13 @@ sealed interface TvPlayerUiState {
 sealed interface TvPlayerAction {
     data object TogglePlayPause : TvPlayerAction
 
-    /** Left or Right, a key-down at [atMs] (uptime); held keys are told by timing ([HeldKey], #353). */
+    /**
+     * Left or Right, a key-down at [atMs] (uptime); held keys are told by timing ([HeldKey], #353). Without a time
+     * (the bar's -10 s / +30 s buttons) it is a press of its own.
+     */
     data class Seek(
         val forward: Boolean,
-        val atMs: Long = 0,
+        val atMs: Long? = null,
     ) : TvPlayerAction
 
     data class ChooseAudio(

@@ -29,6 +29,17 @@ class HeldKeyTest {
     }
 
     @Test
+    fun `a press 300 ms after the last starts a new hold, 299 ms continues it`() {
+        assertThat(HeldKey().presses(listOf(0L, 300L))).containsExactly(0, 0).inOrder()
+        assertThat(HeldKey().presses(listOf(0L, 299L))).containsExactly(0, 1).inOrder()
+    }
+
+    @Test
+    fun `inside a hold a seek waits 150 ms after the last one`() {
+        assertThat(HeldKey().presses(listOf(0L, 149L, 150L))).containsExactly(0, null, 2).inOrder()
+    }
+
+    @Test
     fun `the other direction starts a new hold`() {
         val key = HeldKey()
         key.presses(listOf(0L, 50L, 100L, 150L))
