@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.feature.tv.nowplaying
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.common.HeldKey
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.common.QualityKind
 import io.github.kentprodan.mediatheq.core.common.QualityLabel
@@ -110,10 +111,10 @@ sealed interface TvNowPlayingAction {
 
     data object CancelSleepTimer : TvNowPlayingAction
 
-    /** Left or Right on the progress row; [repeat] counts the held key's repeats ([seekTarget]). */
+    /** Left or Right on the progress row, a key-down at [atMs] (uptime); held keys are told by timing ([HeldKey]). */
     data class Seek(
         val forward: Boolean,
-        val repeat: Int = 0,
+        val atMs: Long = 0,
     ) : TvNowPlayingAction
 
     data class SkipTo(
@@ -143,7 +144,6 @@ fun seekTarget(
 private val STEP = 10.seconds
 private val FAST_STEP = 30.seconds
 private const val FAST_AFTER_REPEATS = 3
-private const val SEEK_EVERY_REPEATS = 5
 
 /** The full-screen player on TV (#240): `PlaybackConnection`'s state and commands, favorite and quality from Room. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -209,14 +209,18 @@ class TvNowPlayingViewModel
         /** Where the held key's last seek went: repeats step on from it, the position lags a round trip behind. */
         private var heldTarget: Duration? = null
 
+        // Some remotes send a held key as separate presses (#353): the hold is told by timing, per track.
+        private val held = HeldKey()
+
         private fun seek(
             action: TvNowPlayingAction.Seek,
             duration: Duration,
+            entryId: String?,
         ) {
-            if (action.repeat == 0) heldTarget = null
-            // A held key repeats about every 50 ms: one seek per few repeats, not a stream of re-buffers.
-            if (action.repeat % SEEK_EVERY_REPEATS != 0) return
-            val target = seekTarget(heldTarget ?: position.value, duration, action.forward, action.repeat)
+            // Throttled: one seek every so often, not a stream of re-buffers.
+            val repeat = held.press(action.forward, action.atMs, entryId) ?: return
+            if (repeat == 0) heldTarget = null
+            val target = seekTarget(heldTarget ?: position.value, duration, action.forward, repeat)
             heldTarget = target
             playback.seekTo(target)
         }
@@ -271,7 +275,11 @@ class TvNowPlayingViewModel
 
                 // A live transcode cannot be seeked (R12); an unknown duration would clamp every seek to the start.
                 is TvNowPlayingAction.Seek -> {
-                    if (state.isSeekable && state.duration.isPositive()) seek(action, state.duration)
+                    if (state.isSeekable &&
+                        state.duration.isPositive()
+                    ) {
+                        seek(action, state.duration, state.currentEntryId)
+                    }
                 }
 
                 is TvNowPlayingAction.SkipTo -> {
