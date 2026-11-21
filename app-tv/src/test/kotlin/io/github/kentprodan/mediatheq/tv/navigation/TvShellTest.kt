@@ -223,10 +223,13 @@ class TvShellTest {
             pressKey(Key.DirectionUp)
             pressKey(Key.DirectionUp)
         }
-        composeRule.onNodeWithContentDescription("Profile Ana").assertIsFocused()
+        composeRule.onNodeWithContentDescription("Switch profile, Ana").assertIsFocused()
         composeRule.onRoot().performKeyInput { pressKey(Key.DirectionCenter) }
-
         assertThat(profiles).isEqualTo(1)
+
+        // Right goes back to what the screen had focused.
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.onNodeWithText("First album").assertIsFocused()
     }
 
     @Test

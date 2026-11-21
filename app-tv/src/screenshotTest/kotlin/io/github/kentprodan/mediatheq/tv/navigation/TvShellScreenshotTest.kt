@@ -45,12 +45,6 @@ fun TvShellModalOpenScreenshot() = Shell(playing, open = true)
 @Composable
 fun TvShellStandardOpenScreenshot() = Shell(playing, TvMenuStyle.Standard, open = true)
 
-/** Standard, collapsed (#520): the same as Modal collapsed. */
-@PreviewTest
-@MqTvPreviews
-@Composable
-fun TvShellStandardScreenshot() = Shell(PlayerUiModel(), TvMenuStyle.Standard)
-
 /** The longest menu (#520): music and video while something plays, open. */
 @PreviewTest
 @MqTvPreviews

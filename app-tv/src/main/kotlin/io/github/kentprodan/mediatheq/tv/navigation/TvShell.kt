@@ -48,6 +48,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -444,7 +445,8 @@ private fun ProfileEntry(
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
     ) {
         Row(
-            Modifier.padding(10.dp),
+            // The entry's description says it all: the initial and the name are not read again.
+            Modifier.padding(10.dp).clearAndSetSemantics {},
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
