@@ -14,7 +14,16 @@ data class TvHdmiOutput(
 )
 
 /** The dialog open over the settings list. */
-enum class TvSettingsDialog { Quality, SignOut, AppMode, SubtitleSize, SubtitleBackground, SubtitleColor, DisplayMatch }
+enum class TvSettingsDialog {
+    Quality,
+    SignOut,
+    AppMode,
+    SubtitleSize,
+    SubtitleBackground,
+    SubtitleColor,
+    DisplayMatch,
+    CarouselSource,
+}
 
 /** Settings on TV (#243). */
 sealed interface TvSettingsUiState {
@@ -41,9 +50,13 @@ sealed interface TvSettingsUiState {
             io.github.kentprodan.mediatheq.core.data.DisplayMatch.Rate,
         /** Transitions between pages (#444): Simple when on. */
         val simpleTransitions: Boolean = false,
-        /** Home's hero (#504). */
-        val homeHero: io.github.kentprodan.mediatheq.core.data.TvHomeHero =
-            io.github.kentprodan.mediatheq.core.data.TvHomeHero.None,
+        /** Home's featured carousel (#521): its style, its source (`null` = automatic) and whether it skips watched. */
+        val carousel: io.github.kentprodan.mediatheq.core.data.TvCarousel =
+            io.github.kentprodan.mediatheq.core.data.TvCarousel.Card,
+        val carouselSource: io.github.kentprodan.mediatheq.core.model.HomeSection? = null,
+        val carouselSkipWatched: Boolean = true,
+        /** The sections the carousel can show in the app mode (#521). */
+        val carouselSources: List<io.github.kentprodan.mediatheq.core.model.HomeSection> = emptyList(),
     ) : TvSettingsUiState
 }
 
@@ -63,8 +76,17 @@ sealed interface TvSettingsAction {
 
     data object ToggleSimpleTransitions : TvSettingsAction
 
-    /** Settings -> Display -> Home hero (#504): None, Compact, Large in turn. */
-    data object NextHomeHero : TvSettingsAction
+    /** Settings -> Display -> Home carousel (#521): Off, Card, Immersive in turn. */
+    data object NextCarousel : TvSettingsAction
+
+    data object ChooseCarouselSource : TvSettingsAction
+
+    /** `null` = automatic. */
+    data class SetCarouselSource(
+        val source: io.github.kentprodan.mediatheq.core.model.HomeSection?,
+    ) : TvSettingsAction
+
+    data object ToggleCarouselSkipWatched : TvSettingsAction
 
     /** Opens the dialog of one part of the subtitle style. */
     data class ChooseSubtitle(

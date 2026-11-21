@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.PlaylistRepository
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
+import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoSort
@@ -91,36 +92,49 @@ class TvHomeViewModel
                 }
             }
 
-        /** `null` while the library is empty (the sync decides what shows). */
+        /** The rows and the carousel's items; `null` while the library is empty (the sync decides what shows). */
         private val rows =
             combine(
                 combine(library.homeLibrary(), homeVideos) { music, video -> music.copy(videos = video) },
-                preferences.preferences.map { it.home }.distinctUntilChanged(),
+                preferences.preferences.map { it.home to it.navigation }.distinctUntilChanged(),
                 shuffle.seed,
                 mode,
-            ) { library, home, seed, mode ->
+            ) { library, (home, navigation), seed, mode ->
                 val noMusic = library.albums.isEmpty() && library.tracks.isEmpty()
                 if (noMusic && (!mode.video || library.videos == HomeVideos())) return@combine null
                 val now = clock.now()
-                // The order and the shown sections from Settings -> Home rows (#431), music and video together.
-                home.shown
-                    .filter { it.allowed(mode) }
-                    .mapNotNull { section ->
-                        val settings = home.settingsOf(section)
-                        val items =
-                            tvItems(
-                                section,
-                                homeItems(section, library, settings.maxItems, seed, now),
-                                settings.maxItems,
-                            )
-                        val counts =
-                            if (section == HomeSection.RecentlyAddedEpisodes) {
-                                newEpisodeCounts(library.videos.recentEpisodes)
-                            } else {
-                                emptyMap()
-                            }
-                        TvHomeRow(section, items, counts).takeUnless { items.isEmpty && settings.hideIfEmpty }
+                // The carousel (#521) reads its section whether or not that row shows.
+                val source = carouselSource(navigation.tvCarouselSource, mode)
+                val featured =
+                    if (navigation.tvCarousel == TvCarousel.Off) {
+                        emptyList()
+                    } else {
+                        featured(
+                            tvItems(source, homeItems(source, library, FEATURED_FETCH, seed, now), FEATURED_FETCH),
+                            navigation.tvCarouselSkipWatched,
+                        )
                     }
+                val shownRows =
+                    // The order and the shown sections from Settings -> Home rows (#431), music and video together.
+                    home.shown
+                        .filter { it.allowed(mode) }
+                        .mapNotNull { section ->
+                            val settings = home.settingsOf(section)
+                            val items =
+                                tvItems(
+                                    section,
+                                    homeItems(section, library, settings.maxItems, seed, now),
+                                    settings.maxItems,
+                                )
+                            val counts =
+                                if (section == HomeSection.RecentlyAddedEpisodes) {
+                                    newEpisodeCounts(library.videos.recentEpisodes)
+                                } else {
+                                    emptyMap()
+                                }
+                            TvHomeRow(section, items, counts).takeUnless { items.isEmpty && settings.hideIfEmpty }
+                        }
+                HomeData(shownRows, source, featured)
             }.flowOn(defaultDispatcher)
 
         /** The genre rows (#431): read only with video and genres picked. */
@@ -140,10 +154,10 @@ class TvHomeViewModel
                     }
                 }.flowOn(defaultDispatcher)
 
-        /** Settings -> Display -> Home header (#504). */
-        private val heroMode =
+        /** Settings -> Display and Home rows (#518, #521): how Home draws. */
+        private val looks =
             preferences.preferences
-                .map { it.navigation.tvHomeHero to it.navigation.tvCardStyles }
+                .map { Triple(it.navigation.tvCarousel, it.navigation.tvCardStyles, it.navigation.tvImmersiveRows) }
                 .distinctUntilChanged()
 
         /** The status, and whether a full sync ever completed (then an empty library is really empty). */
@@ -153,14 +167,36 @@ class TvHomeViewModel
             }
 
         val uiState: StateFlow<TvHomeUiState> =
-            combine(rows, genreRows, status, heroMode) { rows, genreRows, status, hero ->
+            combine(rows, genreRows, status, looks) { data, genreRows, status, (carousel, cards, immersive) ->
                 val (current, everSynced) = status ?: return@combine TvHomeUiState.Loading
                 when {
-                    rows != null -> TvHomeUiState.Content(rows, genreRows, hero.first, hero.second)
-                    everSynced -> TvHomeUiState.Empty
-                    current is SyncStatus.Failed -> TvHomeUiState.Error(current.error)
-                    current is SyncStatus.Running -> TvHomeUiState.Syncing(current.fetched, current.total)
-                    else -> TvHomeUiState.Syncing()
+                    data != null -> {
+                        TvHomeUiState.Content(
+                            data.rows,
+                            genreRows,
+                            cards,
+                            carousel,
+                            data.featuredSection,
+                            data.featured,
+                            immersive,
+                        )
+                    }
+
+                    everSynced -> {
+                        TvHomeUiState.Empty
+                    }
+
+                    current is SyncStatus.Failed -> {
+                        TvHomeUiState.Error(current.error)
+                    }
+
+                    current is SyncStatus.Running -> {
+                        TvHomeUiState.Syncing(current.fetched, current.total)
+                    }
+
+                    else -> {
+                        TvHomeUiState.Syncing()
+                    }
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvHomeUiState.Loading)
 
@@ -209,6 +245,9 @@ class TvHomeViewModel
         private companion object {
             const val VIDEO_LIMIT = 20
 
+            /** Read for the carousel before watched items are left out (#521). */
+            const val FEATURED_FETCH = 20
+
             /** Episodes read per series shown in Recently added episodes, so a season drop still fills the row. */
             const val EPISODES_PER_SERIES = 5
         }
@@ -247,6 +286,46 @@ internal fun tvItems(
     } else {
         items
     }
+
+private data class HomeData(
+    val rows: List<TvHomeRow>,
+    val featuredSection: HomeSection,
+    val featured: List<Featured>,
+)
+
+/** The carousel's section (#521): the chosen one while the [mode] has it, else new movies with video, new albums. */
+internal fun carouselSource(
+    chosen: HomeSection?,
+    mode: AppMode,
+): HomeSection =
+    chosen?.takeIf { it.allowed(mode) }
+        ?: if (mode.video) HomeSection.RecentlyAddedMovies else HomeSection.RecentlyAddedAlbums
+
+/** The carousel's slides (#521): up to [FEATURED_COUNT] videos, albums or playlists; watched videos left out on demand. */
+internal fun featured(
+    items: HomeItems,
+    skipWatched: Boolean,
+): List<Featured> =
+    when (items) {
+        is HomeItems.Videos -> {
+            items.videos.filterNot { skipWatched && it.userData.played }.map(Featured::Movie)
+        }
+
+        is HomeItems.Albums -> {
+            items.albums.map(Featured::AlbumItem)
+        }
+
+        is HomeItems.Playlists -> {
+            items.playlists.map(Featured::PlaylistItem)
+        }
+
+        else -> {
+            emptyList()
+        }
+    }.take(FEATURED_COUNT)
+
+/** The guideline's 5 to 8 slides. */
+internal const val FEATURED_COUNT = 6
 
 /** How many of [episodes] each series has, for "5 new episodes". */
 internal fun newEpisodeCounts(episodes: List<Video>): Map<MediaId, Int> =

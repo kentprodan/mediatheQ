@@ -37,6 +37,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
+import io.github.kentprodan.mediatheq.core.ui.tv.title
 
 @Composable
 fun TvSettingsRoute(
@@ -158,11 +159,29 @@ fun TvSettingsScreen(
             section(R.string.tv_settings_display)
             item {
                 MqTvListItem(
-                    stringResource(R.string.tv_settings_home_hero),
-                    { onAction(TvSettingsAction.NextHomeHero) },
-                    Modifier.focusMemory(focus, "homeHero"),
-                    supporting = stringResource(state.homeHero.label),
+                    stringResource(R.string.tv_settings_carousel),
+                    { onAction(TvSettingsAction.NextCarousel) },
+                    Modifier.focusMemory(focus, "carousel"),
+                    supporting = stringResource(state.carousel.label),
                 )
+            }
+            if (state.carousel != io.github.kentprodan.mediatheq.core.data.TvCarousel.Off) {
+                item {
+                    MqTvListItem(
+                        stringResource(R.string.tv_settings_carousel_source),
+                        { onAction(TvSettingsAction.ChooseCarouselSource) },
+                        Modifier.focusMemory(focus, "carouselSource"),
+                        supporting = carouselSourceLabel(state.carouselSource),
+                    )
+                }
+                item {
+                    MqTvListItem(
+                        stringResource(R.string.tv_settings_carousel_skip_watched),
+                        { onAction(TvSettingsAction.ToggleCarouselSkipWatched) },
+                        Modifier.focusMemory(focus, "carouselSkipWatched"),
+                        trailing = { Switch(checked = state.carouselSkipWatched, onCheckedChange = null) },
+                    )
+                }
             }
             item {
                 MqTvListItem(
@@ -264,6 +283,21 @@ fun TvSettingsScreen(
 
             TvSettingsDialog.AppMode -> {
                 AppModeDialog(state.appMode, onAction)
+            }
+
+            TvSettingsDialog.CarouselSource -> {
+                val currentMark = stringResource(R.string.tv_settings_quality_current)
+                MqTvMenu(
+                    title = stringResource(R.string.tv_settings_carousel_source),
+                    entries =
+                        (listOf(null) + state.carouselSources).map { source ->
+                            val text = carouselSourceLabel(source)
+                            MqTvMenuEntry(if (source == state.carouselSource) "$text · $currentMark" else text, null) {
+                                onAction(TvSettingsAction.SetCarouselSource(source))
+                            }
+                        },
+                    onDismiss = { onAction(TvSettingsAction.Dismiss) },
+                )
             }
 
             TvSettingsDialog.DisplayMatch -> {
@@ -502,10 +536,15 @@ private val io.github.kentprodan.mediatheq.core.data.DisplayMatch.label: Int
             }
         }
 
-private val io.github.kentprodan.mediatheq.core.data.TvHomeHero.label: Int
+private val io.github.kentprodan.mediatheq.core.data.TvCarousel.label: Int
     get() =
         when (this) {
-            io.github.kentprodan.mediatheq.core.data.TvHomeHero.None -> R.string.tv_settings_home_hero_none
-            io.github.kentprodan.mediatheq.core.data.TvHomeHero.Compact -> R.string.tv_settings_home_hero_compact
-            io.github.kentprodan.mediatheq.core.data.TvHomeHero.Large -> R.string.tv_settings_home_hero_large
+            io.github.kentprodan.mediatheq.core.data.TvCarousel.Off -> R.string.tv_settings_carousel_off
+            io.github.kentprodan.mediatheq.core.data.TvCarousel.Card -> R.string.tv_settings_carousel_card
+            io.github.kentprodan.mediatheq.core.data.TvCarousel.Immersive -> R.string.tv_settings_carousel_immersive
         }
+
+/** A carousel source's name: Automatic for `null`. */
+@Composable
+private fun carouselSourceLabel(source: io.github.kentprodan.mediatheq.core.model.HomeSection?): String =
+    source?.let { stringResource(it.title) } ?: stringResource(R.string.tv_settings_carousel_source_auto)

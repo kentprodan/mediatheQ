@@ -82,8 +82,11 @@
     <string name="tv_settings_display_match_off">Off</string>
     <string name="tv_settings_display_match_rate">Frame rate</string>
     <string name="tv_settings_display_match_resolution">Frame rate and resolution</string>
-    <string name="tv_settings_home_hero">Home header</string>
-    <string name="tv_settings_home_hero_none">None: just the rows</string>
-    <string name="tv_settings_home_hero_compact">Compact: the focused title and a line</string>
-    <string name="tv_settings_home_hero_large">Large: the backdrop, title and overview</string>
+    <string name="tv_settings_carousel">Home carousel</string>
+    <string name="tv_settings_carousel_off">Off: just the rows</string>
+    <string name="tv_settings_carousel_card">Card: featured items in a large card at the top</string>
+    <string name="tv_settings_carousel_immersive">Immersive: featured items across the whole top of Home</string>
+    <string name="tv_settings_carousel_source">Carousel shows</string>
+    <string name="tv_settings_carousel_source_auto">Automatic: new movies, or new albums without video</string>
+    <string name="tv_settings_carousel_skip_watched">Leave out what you watched</string>
 </resources>

@@ -11,8 +11,10 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.RememberedOutputs
-import io.github.kentprodan.mediatheq.core.data.TvHomeHero
+import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
+import io.github.kentprodan.mediatheq.core.model.HomeKind
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.delay
@@ -67,9 +69,17 @@ class TvSettingsViewModel
                     subtitleStyle = video.subtitleStyle,
                     displayMatch = video.displayMatch,
                     simpleTransitions = plain.simpleTransitions,
-                    homeHero = plain.tvHomeHero,
+                    carousel = plain.tvCarousel,
+                    carouselSource = plain.tvCarouselSource,
+                    carouselSkipWatched = plain.tvCarouselSkipWatched,
+                    carouselSources = carouselSources(mode),
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvSettingsUiState.Loading)
+
+        private fun updateNavigation(change: (NavigationPreferences) -> NavigationPreferences) {
+            val repo = libraryPreferences ?: return
+            viewModelScope.launch { repo.setNavigation(change(repo.preferences.first().navigation)) }
+        }
 
         fun onAction(action: TvSettingsAction) {
             when (action) {
@@ -104,21 +114,24 @@ class TvSettingsViewModel
                     viewModelScope.launch { appMode.setMode(action.mode) }
                 }
 
-                TvSettingsAction.NextHomeHero -> {
-                    val repo = libraryPreferences ?: return
-                    viewModelScope.launch {
-                        val navigation = repo.preferences.first().navigation
-                        val all = TvHomeHero.entries
-                        repo.setNavigation(
-                            navigation.copy(
-                                tvHomeHero =
-                                    all[
-                                        (navigation.tvHomeHero.ordinal + 1) %
-                                            all.size,
-                                    ],
-                            ),
-                        )
+                TvSettingsAction.NextCarousel -> {
+                    updateNavigation {
+                        val all = TvCarousel.entries
+                        it.copy(tvCarousel = all[(it.tvCarousel.ordinal + 1) % all.size])
                     }
+                }
+
+                TvSettingsAction.ChooseCarouselSource -> {
+                    dialog.value = TvSettingsDialog.CarouselSource
+                }
+
+                is TvSettingsAction.SetCarouselSource -> {
+                    dialog.value = null
+                    updateNavigation { it.copy(tvCarouselSource = action.source) }
+                }
+
+                TvSettingsAction.ToggleCarouselSkipWatched -> {
+                    updateNavigation { it.copy(tvCarouselSkipWatched = !it.tvCarouselSkipWatched) }
                 }
 
                 TvSettingsAction.ToggleSimpleTransitions -> {
@@ -194,3 +207,11 @@ private data class TvSettingsExtras(
     val video: io.github.kentprodan.mediatheq.core.data.VideoPreferences,
     val simpleTransitions: NavigationPreferences,
 )
+
+/** What the Home carousel can show (#521): the sections of videos, albums and playlists the [mode] has. */
+internal fun carouselSources(mode: io.github.kentprodan.mediatheq.core.model.AppMode?): List<HomeSection> =
+    HomeSection.entries.filter {
+        it.kind in CAROUSEL_KINDS && (mode == null || it.allowed(mode))
+    }
+
+private val CAROUSEL_KINDS = setOf(HomeKind.Videos, HomeKind.Albums, HomeKind.Playlists)
