@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -16,9 +17,13 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.Switch
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButtonStyle
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvIconButton
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvImageButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvTextField
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvWideButton
 
 /**
  * The `MqTv*` components in their states (enabled, disabled, selected). Layoutlib renders no focus (tv-material draws it from the real focus
@@ -39,6 +44,36 @@ private fun States(content: @Composable (Boolean) -> Unit) =
 @MqTvPreviews
 @Composable
 fun TvButtonScreenshot() = States { enabled -> MqTvButton("Play", {}, enabled = enabled) }
+
+/** The guideline's six button types (#519): filled, outlined, icon, outline icon, wide, image. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvButtonTypesScreenshot() =
+    MediatheqTvTheme {
+        Surface(Modifier.fillMaxSize()) {
+            Column(Modifier.padding(48.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    MqTvButton("Play", {}, icon = MqTvIcons.Play)
+                    MqTvButton("From the start", {}, style = MqTvButtonStyle.Outlined)
+                    MqTvIconButton(MqTvIcons.FavoriteFilled, "Favorite", {}, outlined = false)
+                    MqTvIconButton(MqTvIcons.Favorite, "Favorite", {})
+                    MqTvIconButton(MqTvIcons.More, "More", {})
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    MqTvWideButton("Audio and subtitles", {}, subtitle = "English 5.1 · Off", icon = MqTvIcons.Settings)
+                    MqTvImageButton(
+                        PreviewFixtures.ARTIST,
+                        {},
+                        Modifier.width(140.dp).height(210.dp),
+                        supporting = "Self",
+                    ) {
+                        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.secondaryContainer))
+                    }
+                }
+            }
+        }
+    }
 
 @PreviewTest
 @MqTvPreviews

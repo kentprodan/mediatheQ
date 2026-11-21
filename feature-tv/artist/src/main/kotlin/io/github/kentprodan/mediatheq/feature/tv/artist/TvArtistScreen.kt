@@ -51,6 +51,7 @@ import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.designsystem.tv.FocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButtonStyle
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
@@ -203,6 +204,7 @@ private fun Header(
                         { onAction(TvArtistAction.ShuffleAll) },
                         enabled = canPlay,
                         icon = MqTvIcons.Shuffle,
+                        style = MqTvButtonStyle.Outlined,
                     )
                 }
             }

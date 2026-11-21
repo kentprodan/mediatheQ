@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -35,6 +36,9 @@ import io.github.kentprodan.mediatheq.core.common.formatDuration
 import io.github.kentprodan.mediatheq.core.data.VideoTracks
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButtonStyle
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvIconButton
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvImageButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
@@ -45,6 +49,7 @@ import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterCard
 import kotlin.time.Duration
 
@@ -147,7 +152,11 @@ private fun Buttons(
                 Modifier.focusRequester(play),
                 icon = MqTvIcons.Resume,
             )
-            MqTvButton(stringResource(R.string.tv_movie_from_start), { onPlay(movie.id, Duration.ZERO) })
+            MqTvButton(
+                stringResource(R.string.tv_movie_from_start),
+                { onPlay(movie.id, Duration.ZERO) },
+                style = MqTvButtonStyle.Outlined,
+            )
         } else {
             MqTvButton(
                 stringResource(R.string.tv_movie_play),
@@ -156,21 +165,24 @@ private fun Buttons(
                 icon = MqTvIcons.Play,
             )
         }
-        MqTvButton(
+        if (state.tracks?.streams?.isNotEmpty() == true) {
+            MqTvButton(stringResource(R.string.tv_movie_tracks), { tracks = true }, style = MqTvButtonStyle.Outlined)
+        }
+        // Favorite and Watched as outline icon buttons (#519); the icon shows the state, the name the action.
+        MqTvIconButton(
+            if (movie.userData.isFavorite) MqTvIcons.FavoriteFilled else MqTvIcons.Favorite,
             stringResource(
                 if (movie.userData.isFavorite) R.string.tv_movie_favorite_remove else R.string.tv_movie_favorite,
             ),
             { onAction(TvMovieAction.ToggleFavorite) },
-            icon = if (movie.userData.isFavorite) MqTvIcons.FavoriteFilled else MqTvIcons.Favorite,
         )
-        MqTvButton(
+        // One check icon: watched fills the button, so the state never rests on the name alone.
+        MqTvIconButton(
+            MqTvIcons.Watched,
             stringResource(if (movie.userData.played) R.string.tv_movie_unwatched else R.string.tv_movie_watched),
             { onAction(TvMovieAction.ToggleWatched) },
-            icon = MqTvIcons.Watched,
+            outlined = !movie.userData.played,
         )
-        if (state.tracks?.streams?.isNotEmpty() == true) {
-            MqTvButton(stringResource(R.string.tv_movie_tracks), { tracks = true })
-        }
     }
     state.tracks?.takeIf { tracks }?.let { TracksMenu(it, onAction) { tracks = false } }
     LaunchedEffect(Unit) { runCatching { play.requestFocus() } }
@@ -247,14 +259,13 @@ private fun PeopleRow(
     RowTitle(stringResource(R.string.tv_movie_cast))
     LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
         items(people, key = { it.id.toString() + it.kind + it.role }, contentType = { "person" }) { person ->
-            MqTvAlbumCard(
+            // Image buttons (#519): the photo under a scrim with the name and the role.
+            MqTvImageButton(
                 person.name,
-                person.artwork,
                 onClick = { onOpen(person.id, person.name) },
-                modifier = Modifier.width(PERSON_WIDTH),
-                subtitle = person.role ?: person.kind,
-                placeholder = MqTvIcons.Person,
-            )
+                modifier = Modifier.width(PERSON_WIDTH).aspectRatio(PERSON_RATIO),
+                supporting = person.role ?: person.kind,
+            ) { MqTvCover(person.artwork, MqTvIcons.Person) }
         }
     }
 }
@@ -289,4 +300,5 @@ private fun RowTitle(text: String) {
 }
 
 private val PERSON_WIDTH = 140.dp
+private const val PERSON_RATIO = 2 / 3f
 private val POSTER_WIDTH = 150.dp

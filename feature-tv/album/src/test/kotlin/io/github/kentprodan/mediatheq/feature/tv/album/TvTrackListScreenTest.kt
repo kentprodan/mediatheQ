@@ -6,6 +6,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
@@ -69,10 +70,10 @@ class TvTrackListScreenTest {
         // From Favorite, down and back up: Favorite.
         press(Key.DirectionRight)
         press(Key.DirectionRight)
-        composeRule.onNodeWithText("Favorite").assertIsFocused()
+        composeRule.onNodeWithContentDescription("Favorite").assertIsFocused()
         press(Key.DirectionDown)
         press(Key.DirectionUp)
-        composeRule.onNodeWithText("Favorite").assertIsFocused()
+        composeRule.onNodeWithContentDescription("Favorite").assertIsFocused()
     }
 
     @Test
@@ -115,6 +116,6 @@ class TvTrackListScreenTest {
         composeRule.setContent { MediatheqTvTheme { TvTrackListScreen(state, {}) } }
         composeRule.mainClock.advanceTimeBy(1_000)
 
-        composeRule.onNodeWithText("Favorite").assertIsFocused()
+        composeRule.onNodeWithContentDescription("Favorite").assertIsFocused()
     }
 }
