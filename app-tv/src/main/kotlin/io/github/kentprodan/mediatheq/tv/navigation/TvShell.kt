@@ -18,10 +18,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -36,14 +38,17 @@ import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -66,6 +71,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
+import io.github.kentprodan.mediatheq.core.data.TvMenuStyle
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
@@ -98,6 +104,8 @@ internal fun TvShellRoute(
     val destinations by viewModel.destinations.collectAsStateWithLifecycle()
     val simpleTransitions by viewModel.simpleTransitions.collectAsStateWithLifecycle()
     val pin by viewModel.pinRequest.collectAsStateWithLifecycle()
+    val menuStyle by viewModel.menuStyle.collectAsStateWithLifecycle()
+    val userName by viewModel.userName.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(HomeKey)
     val context = LocalContext.current
     val versionName =
@@ -138,6 +146,9 @@ internal fun TvShellRoute(
         player,
         destinations = destinations,
         simpleTransitions = simpleTransitions,
+        menuStyle = menuStyle,
+        userName = userName,
+        onProfile = onSwitchProfile,
         onUnknown = viewModel::unknownDestination,
         onClose = {
             viewModel.stopMusic()
@@ -185,6 +196,9 @@ fun TvShell(
     player: PlayerUiModel,
     destinations: List<TvDestination> = TvDestination.entries,
     simpleTransitions: Boolean = false,
+    menuStyle: TvMenuStyle = TvMenuStyle.Modal,
+    userName: String? = null,
+    onProfile: () -> Unit = {},
     onUnknown: (NavKey) -> Unit = {},
     onClose: () -> Unit = {},
     guard: ((NavKey, () -> Unit) -> Unit)? = null,
@@ -211,7 +225,16 @@ fun TvShell(
     val selected = backStack.lastOrNull { TvDestination.of(it) != null }?.let(TvDestination::of) ?: TvDestination.Home
     // The menu shows on the top level only (#508): a detail page and the players have the whole screen (#515).
     val topLevel = backStack.lastOrNull()?.let(TvDestination::of) != null
-    TvFrame(selected, player, navigator::navigateTo, destinations, showMenu = topLevel) {
+    TvFrame(
+        selected,
+        player,
+        navigator::navigateTo,
+        destinations,
+        showMenu = topLevel,
+        menuStyle = menuStyle,
+        userName = userName,
+        onProfile = onProfile,
+    ) {
         // Each screen requests its own initial focus once, the item it had before when it comes back (FocusMemory).
         NavDisplay(
             backStack = backStack,
@@ -236,9 +259,10 @@ fun TvShell(
 
 /**
  * The menu over [content] (#508, owner decision: Plex's 2026 side navigation): collapsed, a small floating island of
- * icons at the left; Left from the screen or Back opens it over the screen (nothing moves) with the labels and what
- * plays, the selected entry focused (Android TV navigation guidelines). An entry opens on Select. Shown only when
- * [showMenu]; the screen keeps [MENU_SPACE] free at its left for the island.
+ * icons at the left; Left from the screen or Back opens it with the labels and what plays, the selected entry focused
+ * (Android TV navigation guidelines). An entry opens on Select. [menuStyle] (#520): Modal opens it over the dimmed
+ * screen (nothing moves), Standard pushes the screen aside. Shown only when [showMenu]; the screen keeps [MENU_SPACE]
+ * free at its left for the island. [userName] adds the profile entry at the top ([onProfile]: Who's watching).
  */
 @Composable
 fun TvFrame(
@@ -247,11 +271,20 @@ fun TvFrame(
     onNavigate: (NavKey) -> Unit,
     destinations: List<TvDestination> = TvDestination.entries,
     showMenu: Boolean = true,
+    menuStyle: TvMenuStyle = TvMenuStyle.Modal,
+    userName: String? = null,
+    onProfile: () -> Unit = {},
+    previewOpen: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val requesters = remember { TvDestination.entries.associateWith { FocusRequester() } }
     val screen = remember { FocusRequester() }
-    var open by remember { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(false) }
+    // Previews render no focus: they open the menu with [previewOpen].
+    val open = focused || previewOpen
+    // The island's right edge, read only while drawing (Standard): opening moves the screen without a new layout.
+    var islandEnd by remember { mutableIntStateOf(0) }
+    val standard = menuStyle == TvMenuStyle.Standard
     val active = selected.takeIf { it in destinations } ?: TvDestination.Home
     // The neutral background also behind the island's margin (the window's own color would show there).
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -260,13 +293,19 @@ fun TvFrame(
             Modifier
                 .fillMaxSize()
                 .padding(start = if (showMenu) MENU_SPACE else 0.dp)
-                .focusRequester(screen)
+                .graphicsLayer {
+                    if (showMenu && standard && open) {
+                        // The screen's first column starts MENU_SPACE + its own 48 dp in: it moves past the island.
+                        translationX =
+                            (islandEnd + PUSH_GAP.toPx() - (MENU_SPACE + SCREEN_MARGIN).toPx()).coerceAtLeast(0f)
+                    }
+                }.focusRequester(screen)
                 .focusRestorer()
                 .focusGroup(),
         ) { content() }
         if (!showMenu) return@Box
-        if (open) {
-            // The screen dims behind the open menu.
+        if (open && !standard) {
+            // Modal: the screen dims behind the open menu.
             Box(
                 Modifier
                     .fillMaxSize()
@@ -280,10 +319,17 @@ fun TvFrame(
             onNavigate,
             destinations,
             requesters,
+            userName,
+            onProfile,
             Modifier
                 .align(Alignment.CenterStart)
                 .padding(start = 16.dp)
-                .onFocusChanged { open = it.hasFocus }
+                // Measured while laying out, so the same frame already draws the pushed screen.
+                .layout { measurable, constraints ->
+                    val island = measurable.measure(constraints)
+                    islandEnd = 16.dp.roundToPx() + island.width
+                    layout(island.width, island.height) { island.place(0, 0) }
+                }.onFocusChanged { focused = it.hasFocus }
                 .onPreviewKeyEvent { event ->
                     // The open menu covers the screen's first column: Right goes back to what the screen had focused.
                     val right = event.key == Key.DirectionRight
@@ -311,6 +357,8 @@ private fun Island(
     onNavigate: (NavKey) -> Unit,
     destinations: List<TvDestination>,
     requesters: Map<TvDestination, FocusRequester>,
+    userName: String?,
+    onProfile: () -> Unit,
     modifier: Modifier,
 ) {
     Surface(
@@ -337,6 +385,8 @@ private fun Island(
                     Modifier.focusRequester(requesters.getValue(destination)),
                 ) { onNavigate(destination.key) }
             }
+            // Who is watching first (#520): Select opens the profile picker.
+            userName?.takeIf { it.isNotBlank() }?.let { name -> ProfileEntry(name, open, onProfile) }
             top.forEach { entry(it) }
             if (top.isNotEmpty()) Spacer(Modifier.height(12.dp))
             (destinations - (top + bottom).toSet()).forEach { entry(it) }
@@ -373,6 +423,49 @@ private fun Island(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/** The signed-in user's initial in a circle (the guideline's avatar), the name once the menu is open. */
+@Composable
+private fun ProfileEntry(
+    name: String,
+    open: Boolean,
+    onClick: () -> Unit,
+) {
+    val label = stringResource(R.string.tv_nav_profile, name)
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.semantics { contentDescription = label },
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(20.dp)),
+        colors = entryColors(selected = false),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
+    ) {
+        Row(
+            Modifier.padding(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier.size(24.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    name.take(1).uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+            if (open) {
+                Text(
+                    name,
+                    Modifier.widthIn(max = 180.dp).padding(end = 12.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -420,6 +513,12 @@ private fun entryColors(selected: Boolean): ClickableSurfaceColors {
 
 /** Added to the screens' own 48 dp margin, so the collapsed island never covers their first column. */
 private val MENU_SPACE = 32.dp
+
+/** The screens' own start margin. */
+private val SCREEN_MARGIN = 48.dp
+
+/** Between the open island and the pushed screen (Standard, #520). */
+private val PUSH_GAP = 24.dp
 
 /** A movie sent from another client (#389): its player opens, in place of a player already on top (never two). */
 internal fun openRemoteVideo(

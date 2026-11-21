@@ -452,6 +452,7 @@ class DefaultLibraryPreferencesRepositoryTest {
                     trackAction = TrackAction.PlayNext,
                     expandPlayer = true,
                     tvHomeHero = TvHomeHero.Compact,
+                    tvMenuStyle = TvMenuStyle.Standard,
                     tvCardStyles = mapOf(HomeSection.ContinueWatching to TvCardStyle.Compact),
                 )
 

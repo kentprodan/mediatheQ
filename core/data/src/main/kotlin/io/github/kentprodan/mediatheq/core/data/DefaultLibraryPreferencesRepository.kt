@@ -118,6 +118,7 @@ class DefaultLibraryPreferencesRepository
                     expandPlayer = navigation.expandPlayer,
                     simpleTransitions = navigation.simpleTransitions,
                     tvHomeHero = navigation.tvHomeHero.name,
+                    tvMenuStyle = navigation.tvMenuStyle.name,
                     tvCardStyles = navigation.tvCardStyles.entries.associate { (k, v) -> k.name to v.name },
                 ),
             )
@@ -140,6 +141,7 @@ class DefaultLibraryPreferencesRepository
                 expandPlayer = stored.expandPlayer ?: defaults.expandPlayer,
                 simpleTransitions = stored.simpleTransitions ?: defaults.simpleTransitions,
                 tvHomeHero = enumOrNull<TvHomeHero>(stored.tvHomeHero) ?: defaults.tvHomeHero,
+                tvMenuStyle = enumOrNull<TvMenuStyle>(stored.tvMenuStyle) ?: defaults.tvMenuStyle,
                 // Unknown names (a section or variant removed later) are dropped.
                 tvCardStyles =
                     stored.tvCardStyles

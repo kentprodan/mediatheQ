@@ -18,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.data.RememberedOutputs
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
+import io.github.kentprodan.mediatheq.core.data.TvMenuStyle
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.OutputId
@@ -162,6 +163,36 @@ class TvSettingsTest {
                     .navigation.simpleTransitions,
             ).isTrue()
             assertThat(viewModel.content().simpleTransitions).isTrue()
+        }
+
+    @Test
+    fun `menu style switches between Modal and Standard and is stored (#520)`() =
+        test {
+            val library = FakeLibraryPreferencesRepository()
+            val viewModel =
+                TvSettingsViewModel(
+                    outputs,
+                    preferences,
+                    sync,
+                    accounts,
+                    playback,
+                    appMode,
+                    FakeVideoPreferencesRepository(),
+                    library,
+                )
+            backgroundScope.launch { viewModel.uiState.collect() }
+            runCurrent()
+            assertThat(viewModel.content().menuStyle).isEqualTo(TvMenuStyle.Modal)
+
+            viewModel.onAction(TvSettingsAction.NextMenuStyle)
+            runCurrent()
+
+            assertThat(
+                library.preferences
+                    .first()
+                    .navigation.tvMenuStyle,
+            ).isEqualTo(TvMenuStyle.Standard)
+            assertThat(viewModel.content().menuStyle).isEqualTo(TvMenuStyle.Standard)
         }
 
     @Test
