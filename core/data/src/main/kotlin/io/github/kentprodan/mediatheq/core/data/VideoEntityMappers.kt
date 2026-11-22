@@ -71,6 +71,7 @@ internal fun Video.toEntity() =
         sizeBytes = sizeBytes,
         image = artwork.toColumns(),
         backdrop = backdrop.toColumns(),
+        logo = logo.toColumns(),
         userData = userData.toColumns(),
         videoUser = userData.toVideoColumns(),
     )
@@ -128,6 +129,7 @@ internal fun VideoEntity.toDomain(): Video {
         sizeBytes = sizeBytes,
         artwork = image.toDomain(),
         backdrop = backdrop.toDomain(ImageType.Backdrop),
+        logo = logo.toDomain(ImageType.Logo),
         userData = userData(userData, videoUser),
     )
 }
@@ -160,6 +162,7 @@ internal fun Series.toEntity() =
         communityRating = communityRating,
         image = artwork.toColumns(),
         backdrop = backdrop.toColumns(),
+        logo = logo.toColumns(),
         userData = userData.toColumns(),
         videoUser = userData.toVideoColumns(),
         officialRating = officialRating,
@@ -178,6 +181,7 @@ internal fun SeriesEntity.toDomain() =
         communityRating = communityRating,
         artwork = image.toDomain(),
         backdrop = backdrop.toDomain(ImageType.Backdrop),
+        logo = logo.toDomain(ImageType.Logo),
         userData = userData(userData, videoUser),
         officialRating = officialRating,
     )

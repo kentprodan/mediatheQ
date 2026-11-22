@@ -40,6 +40,8 @@ data class ArtistEntity(
     @Embedded(prefix = "backdrop_") val backdrop: ImageColumns = ImageColumns(),
     /** The biography (#133). */
     val overview: String? = null,
+    /** The name as an image (#523). */
+    @Embedded(prefix = "logo_") val logo: ImageColumns = ImageColumns(),
 )
 
 @Entity(tableName = "album", primaryKeys = ["server_id", "id"])

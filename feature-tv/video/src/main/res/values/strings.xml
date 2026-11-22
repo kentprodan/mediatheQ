@@ -72,7 +72,6 @@
     <string name="tv_movie_subtitles">Subtitles</string>
     <string name="tv_movie_subtitles_off">Off</string>
     <string name="tv_movie_track">Track %d</string>
-    <string name="tv_movie_track_current">current</string>
     <!-- 1 h 40 min -->
     <string name="tv_movie_runtime_hours">%1$d h %2$d min</string>
     <string name="tv_movie_runtime_minutes">%d min</string>

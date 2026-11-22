@@ -69,6 +69,7 @@ class LibraryPreferencesStore
                         tvCarouselSkipWatched = prefs[TV_CAROUSEL_SKIP_WATCHED],
                         tvImmersiveRows = prefs[TV_IMMERSIVE_ROWS]?.toList(),
                         tvMenuStyle = prefs[TV_MENU_STYLE],
+                        tvTitle = prefs[TV_TITLE],
                         tvCardStyles =
                             prefs[TV_CARD_STYLES]?.associate { it.substringBefore('=') to it.substringAfter('=') },
                     ),
@@ -260,6 +261,7 @@ class LibraryPreferencesStore
                 prefs.put(TV_CAROUSEL_SKIP_WATCHED, navigation.tvCarouselSkipWatched)
                 prefs.put(TV_IMMERSIVE_ROWS, navigation.tvImmersiveRows?.toSet())
                 prefs.put(TV_MENU_STYLE, navigation.tvMenuStyle)
+                prefs.put(TV_TITLE, navigation.tvTitle)
                 prefs.put(TV_CARD_STYLES, navigation.tvCardStyles?.map { (k, v) -> "$k=$v" }?.toSet())
             }
         }
@@ -667,6 +669,7 @@ class LibraryPreferencesStore
             val TV_CAROUSEL_SKIP_WATCHED = booleanPreferencesKey("tv_carousel_skip_watched")
             val TV_IMMERSIVE_ROWS = stringSetPreferencesKey("tv_immersive_rows")
             val TV_MENU_STYLE = stringPreferencesKey("tv_menu_style")
+            val TV_TITLE = stringPreferencesKey("tv_title")
 
             /** `Section=Style` pairs (#518). */
             val TV_CARD_STYLES = stringSetPreferencesKey("tv_card_styles")
@@ -879,6 +882,8 @@ data class StoredNavigation(
     val tvImmersiveRows: List<String>? = null,
     /** `TvMenuStyle` name (#520). */
     val tvMenuStyle: String? = null,
+    /** `TvTitleStyle` name (#523). */
+    val tvTitle: String? = null,
     /** `HomeSection` name to `TvCardStyle` name (#518). */
     val tvCardStyles: Map<String, String>? = null,
 )

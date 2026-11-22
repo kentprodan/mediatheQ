@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -81,6 +82,7 @@ import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.NowPlayingKey
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.ui.tv.LocalTvTitleStyle
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
 import io.github.kentprodan.mediatheq.feature.tv.album.tvAlbumEntries
 import io.github.kentprodan.mediatheq.feature.tv.artist.tvArtistEntry
@@ -104,6 +106,7 @@ internal fun TvShellRoute(
     val player by viewModel.player.collectAsStateWithLifecycle()
     val destinations by viewModel.destinations.collectAsStateWithLifecycle()
     val simpleTransitions by viewModel.simpleTransitions.collectAsStateWithLifecycle()
+    val titleStyle by viewModel.titleStyle.collectAsStateWithLifecycle()
     val pin by viewModel.pinRequest.collectAsStateWithLifecycle()
     val menuStyle by viewModel.menuStyle.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
@@ -142,35 +145,38 @@ internal fun TvShellRoute(
         }
     }
     val activity = LocalActivity.current
-    TvShell(
-        backStack,
-        player,
-        destinations = destinations,
-        simpleTransitions = simpleTransitions,
-        menuStyle = menuStyle,
-        userName = userName,
-        onProfile = onSwitchProfile,
-        onUnknown = viewModel::unknownDestination,
-        onClose = {
-            viewModel.stopMusic()
-            activity?.finish()
-        },
-        guard = viewModel::guard,
-    ) { navigator ->
-        tvHomeEntry(navigator)
-        tvLibraryEntries(navigator)
-        tvAlbumEntries()
-        tvArtistEntry(navigator)
-        tvNowPlayingEntry()
-        tvSettingsEntries(
-            navigator,
-            versionName,
-            report = { raw(R.raw.aboutlibraries) },
-            notices = { raw(R.raw.license_notices) },
-            onSwitchProfile = onSwitchProfile,
-        )
-        tvSearchEntry(navigator)
-        tvVideoEntries(navigator)
+    // The detail pages read the title style (#523).
+    CompositionLocalProvider(LocalTvTitleStyle provides titleStyle) {
+        TvShell(
+            backStack,
+            player,
+            destinations = destinations,
+            simpleTransitions = simpleTransitions,
+            menuStyle = menuStyle,
+            userName = userName,
+            onProfile = onSwitchProfile,
+            onUnknown = viewModel::unknownDestination,
+            onClose = {
+                viewModel.stopMusic()
+                activity?.finish()
+            },
+            guard = viewModel::guard,
+        ) { navigator ->
+            tvHomeEntry(navigator)
+            tvLibraryEntries(navigator)
+            tvAlbumEntries()
+            tvArtistEntry(navigator)
+            tvNowPlayingEntry()
+            tvSettingsEntries(
+                navigator,
+                versionName,
+                report = { raw(R.raw.aboutlibraries) },
+                notices = { raw(R.raw.license_notices) },
+                onSwitchProfile = onSwitchProfile,
+            )
+            tvSearchEntry(navigator)
+            tvVideoEntries(navigator)
+        }
     }
     // The age gate (#434): content above this profile's limit, and Parental controls, ask for the PIN.
     pin?.let { request ->
@@ -212,7 +218,7 @@ fun TvShell(
         MqTvMenu(
             stringResource(R.string.tv_close_title),
             listOf(
-                MqTvMenuEntry(stringResource(R.string.tv_close), null, onClose),
+                MqTvMenuEntry(stringResource(R.string.tv_close), null, onClick = onClose),
                 MqTvMenuEntry(stringResource(R.string.tv_close_cancel), null) {},
             ),
             onDismiss = { closing = false },

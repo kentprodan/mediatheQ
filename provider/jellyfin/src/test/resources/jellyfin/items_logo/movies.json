@@ -1,0 +1,21 @@
+{
+  "Items": [
+    {
+      "Name": "Movie with a logo",
+      "Id": "m1",
+      "Type": "Movie",
+      "ImageTags": { "Primary": "p1", "Logo": "l1" },
+      "BackdropImageTags": [],
+      "ImageBlurHashes": { "Logo": { "l1": "LOGOHASH" } }
+    },
+    {
+      "Name": "Movie without a logo",
+      "Id": "m2",
+      "Type": "Movie",
+      "ImageTags": { "Primary": "p2" },
+      "BackdropImageTags": []
+    }
+  ],
+  "TotalRecordCount": 2,
+  "StartIndex": 0
+}

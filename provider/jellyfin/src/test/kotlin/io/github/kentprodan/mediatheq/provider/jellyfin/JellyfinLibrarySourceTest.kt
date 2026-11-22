@@ -92,7 +92,7 @@ class JellyfinLibrarySourceTest {
             assertThat(request.url.encodedPath).isEqualTo("/Artists/AlbumArtists")
             // R21: without Backdrop in the image types the server sends no backdrop tags at all.
             assertThat(request.query()).isEqualTo(
-                paging + mapOf("enableImageTypes" to "Primary,Backdrop", "fields" to "SortName,Overview"),
+                paging + mapOf("enableImageTypes" to "Primary,Backdrop,Logo", "fields" to "SortName,Overview"),
             )
             assertAuthenticated(request)
             assertThat(page.totalCount).isEqualTo(582)
@@ -200,6 +200,33 @@ class JellyfinLibrarySourceTest {
                     track.genres.map { it.name }
                 },
             ).containsExactly(listOf("Hip-Hop"), listOf("R&B"))
+        }
+
+    @Test
+    fun `a movie keeps its logo, a movie without one has none (#523)`() =
+        runTest {
+            enqueue("items_logo/movies.json")
+
+            val movies = (source.movies(server, 0, 500) as MqResult.Success).value.items
+
+            assertThat(movies[0].logo).isEqualTo(Artwork("m1", "l1", "LOGOHASH", ImageType.Logo))
+            assertThat(movies[1].logo).isNull()
+        }
+
+    @Test
+    fun `series and artists keep their logo, an episode never does (#523)`() =
+        runTest {
+            enqueue("items_logo/series.json")
+            enqueue("items_logo/artists.json")
+            enqueue("items_logo/episodes.json")
+
+            val series = (source.series(server, 0, 500) as MqResult.Success).value.items
+            val artists = (source.albumArtists(server, 0, 500) as MqResult.Success).value.items
+            val episodes = (source.episodes(server, 0, 500) as MqResult.Success).value.items
+
+            assertThat(series.single().logo).isEqualTo(Artwork("s1", "sl1", null, ImageType.Logo))
+            assertThat(artists.single().logo).isEqualTo(Artwork("a1", "al1", null, ImageType.Logo))
+            assertThat(episodes.single().logo).isNull()
         }
 
     @Test
@@ -341,6 +368,8 @@ class JellyfinLibrarySourceTest {
         ).isEqualTo("http://nas:8096/jellyfin/Items/al1/Images/Primary?tag=t%20a%2Fg&fillWidth=512&quality=90")
         assertThat(source.imageUrl("http://nas:8096", Artwork("ar1", "b1", null, ImageType.Backdrop), 1024))
             .isEqualTo("http://nas:8096/Items/ar1/Images/Backdrop/0?tag=b1&fillWidth=1024&quality=90")
+        assertThat(source.imageUrl("http://nas:8096", Artwork("m1", "l1", null, ImageType.Logo), 640))
+            .isEqualTo("http://nas:8096/Items/m1/Images/Logo?tag=l1&fillWidth=640&quality=90")
         assertThat(url).doesNotContain("api_key")
         assertThat(url.lowercase()).doesNotContain("token")
     }
@@ -400,7 +429,7 @@ class JellyfinLibrarySourceTest {
     private fun videoQuery(type: String) =
         paging +
             mapOf(
-                "enableImageTypes" to "Primary,Backdrop,Thumb",
+                "enableImageTypes" to "Primary,Backdrop,Thumb,Logo",
                 "includeItemTypes" to type,
                 "recursive" to "true",
                 "fields" to "MediaSources,Overview,Genres,Studios,DateCreated,SortName,Taglines",

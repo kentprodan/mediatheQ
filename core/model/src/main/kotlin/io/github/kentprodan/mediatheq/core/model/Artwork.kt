@@ -17,4 +17,7 @@ enum class ImageType {
 
     /** A wide artist image (fanart) behind the artist page's header. */
     Backdrop,
+
+    /** The title drawn as an image (#523): a movie's, series' or artist's logo, transparent around it. */
+    Logo,
 }

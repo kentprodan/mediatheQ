@@ -14,12 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
-import androidx.tv.material3.Switch
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButtonStyle
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCarousel
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvIconButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvImageButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
@@ -120,10 +120,29 @@ fun TvListItemSwitchScreenshot() =
                         "Dolby Atmos passthrough",
                         {},
                         supporting = "Sends Dolby Atmos unchanged to the soundbar",
+                        selected = on,
                         enabled = enabled,
-                        trailing = { Switch(checked = on, onCheckedChange = null, enabled = enabled) },
+                        control = MqTvControl.Switch,
                     )
                 }
+            }
+        }
+    }
+
+/** The selection controls (#523): radios and checkboxes on and off, then disabled. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvListItemControlsScreenshot() =
+    MediatheqTvTheme {
+        Surface(Modifier.fillMaxSize()) {
+            Column(Modifier.padding(48.dp).width(480.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                MqTvListItem("Original", {}, selected = true, control = MqTvControl.Radio)
+                MqTvListItem("High", {}, control = MqTvControl.Radio)
+                MqTvListItem("Favorites", {}, selected = true, control = MqTvControl.Checkbox)
+                MqTvListItem("Reverse order", {}, control = MqTvControl.Checkbox)
+                MqTvListItem("Disabled choice", {}, selected = true, enabled = false, control = MqTvControl.Radio)
+                MqTvListItem("Disabled option", {}, selected = true, enabled = false, control = MqTvControl.Checkbox)
             }
         }
     }

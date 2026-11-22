@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.aboveLimit
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.navigation.MovieKey
 import io.github.kentprodan.mediatheq.core.navigation.ParentalControlsKey
 import io.github.kentprodan.mediatheq.core.navigation.SeriesKey
@@ -148,6 +149,11 @@ class TvShellViewModel
         val userName: StateFlow<String?> =
             (session?.session?.map { (it as? SessionState.LoggedIn)?.userName } ?: flowOf(null))
                 .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+        /** TV Settings -> Title (#523): how the detail pages show their title. */
+        val titleStyle: StateFlow<TvTitleStyle> =
+            (preferences?.preferences?.map { it.navigation.tvTitle } ?: flowOf(TvTitleStyle.Logo))
+                .stateIn(viewModelScope, SharingStarted.Eagerly, TvTitleStyle.Logo)
 
         /** A video another client started here (#389): the shell opens the player on it. */
         val remoteVideo: Flow<MediaId> = remoteControl?.videoStarted ?: emptyFlow()

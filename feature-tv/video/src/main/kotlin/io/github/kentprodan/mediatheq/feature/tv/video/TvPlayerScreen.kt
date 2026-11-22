@@ -280,14 +280,13 @@ fun TvPlayerScreen(
         }
     }
     playing?.tracks?.takeIf { tracks }?.let { PlayerTracksMenu(it, onAction) { tracks = false } }
-    val current = stringResource(R.string.tv_movie_track_current)
     when (menu) {
         PlayerMenu.Quality -> {
             MqTvMenu(
                 stringResource(R.string.tv_player_quality),
                 QUALITIES.map { q ->
                     val label = stringResource(q.label)
-                    MqTvMenuEntry(if (q == quality) "$label · $current" else label, null) {
+                    MqTvMenuEntry(label, null, q == quality) {
                         onAction(TvPlayerAction.SetQuality(q))
                     }
                 },
@@ -307,7 +306,7 @@ fun TvPlayerScreen(
                 stringResource(R.string.tv_player_zoom),
                 TvZoom.entries.map { z ->
                     val label = stringResource(z.label)
-                    MqTvMenuEntry(if (z == zoom) "$label · $current" else label, null) { zoom = z }
+                    MqTvMenuEntry(label, null, z == zoom) { zoom = z }
                 },
             ) { menu = null }
         }
@@ -525,32 +524,31 @@ private fun PlayerTracksMenu(
     onDismiss: () -> Unit,
 ) {
     val trackFormat = stringResource(R.string.tv_movie_track)
-    val current = stringResource(R.string.tv_movie_track_current)
     val audioLabel = stringResource(R.string.tv_movie_audio)
     val subtitleLabel = stringResource(R.string.tv_movie_subtitles)
     val off = stringResource(R.string.tv_movie_subtitles_off)
 
     fun MediaStreamInfo.label() = displayTitle ?: title ?: language ?: trackFormat.format(index)
-
-    fun mark(
-        label: String,
-        on: Boolean,
-    ) = if (on) "$label · $current" else label
     val audio = tracks.streams.filter { it.type == StreamType.Audio }
     val playingAudio =
         tracks.resolved.audioIndex ?: audio.firstOrNull { it.isDefault }?.index ?: audio.firstOrNull()?.index
     val entries =
         audio.map { stream ->
-            MqTvMenuEntry(mark("$audioLabel: ${stream.label()}", stream.index == playingAudio), null) {
+            MqTvMenuEntry("$audioLabel: ${stream.label()}", null, stream.index == playingAudio) {
                 onAction(TvPlayerAction.ChooseAudio(stream.index))
             }
         } +
-            MqTvMenuEntry(mark("$subtitleLabel: $off", tracks.resolved.subtitleIndex == null), null) {
+            MqTvMenuEntry("$subtitleLabel: $off", null, tracks.resolved.subtitleIndex == null) {
                 onAction(TvPlayerAction.ChooseSubtitle(null))
             } +
             tracks.streams.filter { it.type == StreamType.Subtitle }.map { stream ->
-                val label = mark("$subtitleLabel: ${stream.label()}", stream.index == tracks.resolved.subtitleIndex)
-                MqTvMenuEntry(label, null) { onAction(TvPlayerAction.ChooseSubtitle(stream.index)) }
+                MqTvMenuEntry(
+                    "$subtitleLabel: ${stream.label()}",
+                    null,
+                    stream.index == tracks.resolved.subtitleIndex,
+                ) {
+                    onAction(TvPlayerAction.ChooseSubtitle(stream.index))
+                }
             }
     MqTvMenu(stringResource(R.string.tv_movie_tracks), entries, onDismiss)
 }

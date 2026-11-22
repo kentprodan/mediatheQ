@@ -4,8 +4,16 @@ import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performSemanticsAction
@@ -26,6 +34,7 @@ import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
+import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAccountRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
@@ -244,6 +253,39 @@ class TvSettingsTest {
         }
 
     @Test
+    fun `Title on pages goes Logo, Logo and name, Name only, then Logo again and is stored (#523)`() =
+        test {
+            val library = FakeLibraryPreferencesRepository()
+            val viewModel =
+                TvSettingsViewModel(
+                    outputs,
+                    preferences,
+                    sync,
+                    accounts,
+                    playback,
+                    appMode,
+                    FakeVideoPreferencesRepository(),
+                    library,
+                )
+            backgroundScope.launch { viewModel.uiState.collect() }
+            runCurrent()
+
+            val seen =
+                (1..3).map {
+                    viewModel.onAction(TvSettingsAction.NextTitleStyle)
+                    runCurrent()
+                    viewModel.content().titleStyle
+                }
+
+            assertThat(seen).containsExactly(TvTitleStyle.LogoAndText, TvTitleStyle.Text, TvTitleStyle.Logo).inOrder()
+            assertThat(
+                library.preferences
+                    .first()
+                    .navigation.tvTitle,
+            ).isEqualTo(TvTitleStyle.Logo)
+        }
+
+    @Test
     fun `a subtitle style part is chosen from its dialog and stored`() =
         test {
             val video = FakeVideoPreferencesRepository()
@@ -388,6 +430,31 @@ class TvSettingsTest {
             )
         composeRule.setContent { MediatheqTvTheme { TvSettingsScreen(content, "1.0", {}, onOpenLicenses = {}) } }
         composeRule.onNodeWithText("Streaming quality").assertIsFocused()
+    }
+
+    @Test
+    fun `the quality dialog opens on the current choice, whose radio is on (#523)`() {
+        val content =
+            TvSettingsUiState.Content(
+                hdmi = null,
+                quality = StreamingQuality.Kbps320,
+                sync = SyncStatus.Idle(null),
+                serverName = "Home server",
+                userName = "kent",
+            )
+        var dialog by mutableStateOf<TvSettingsDialog?>(null)
+        composeRule.setContent {
+            MediatheqTvTheme { TvSettingsScreen(content.copy(dialog = dialog), "1.0", {}, onOpenLicenses = {}) }
+        }
+        composeRule.waitForIdle()
+        dialog = TvSettingsDialog.Quality
+
+        val radio = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton)
+        composeRule
+            .onNode(hasText("320", substring = true) and radio)
+            .assertIsFocused()
+            .assertIsSelected()
+        composeRule.onNode(hasText("Original") and radio).assertIsNotSelected()
     }
 
     @Test

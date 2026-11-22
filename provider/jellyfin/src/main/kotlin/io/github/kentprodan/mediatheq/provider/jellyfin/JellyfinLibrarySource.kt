@@ -72,7 +72,8 @@ class JellyfinLibrarySource internal constructor(
         page(
             server,
             "Artists/AlbumArtists",
-            pagedQuery(server, startIndex, limit, imageTypes = "Primary,Backdrop") + ("fields" to "SortName,Overview"),
+            pagedQuery(server, startIndex, limit, imageTypes = "Primary,Backdrop,Logo") +
+                ("fields" to "SortName,Overview"),
         ) { it.toArtist(server.serverId) }
 
     override suspend fun albums(
@@ -404,7 +405,7 @@ class JellyfinLibrarySource internal constructor(
         page(
             server,
             "Items",
-            pagedQuery(server, startIndex, limit, imageTypes = "Primary,Backdrop,Thumb") +
+            pagedQuery(server, startIndex, limit, imageTypes = "Primary,Backdrop,Thumb,Logo") +
                 listOf("includeItemTypes" to type, "recursive" to "true", "fields" to VIDEO_FIELDS),
             map,
         )
@@ -439,6 +440,7 @@ class JellyfinLibrarySource internal constructor(
                 when (artwork.type) {
                     ImageType.Primary -> "Images/Primary"
                     ImageType.Backdrop -> "Images/Backdrop/0"
+                    ImageType.Logo -> "Images/Logo"
                 },
             )
             // The tag versions the image, so the URL is immutable and caches forever (jellyfin skill, section 4).

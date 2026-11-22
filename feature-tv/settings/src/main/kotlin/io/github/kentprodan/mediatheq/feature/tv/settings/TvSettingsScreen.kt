@@ -24,13 +24,13 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
-import androidx.tv.material3.Switch
 import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.data.TvCarousel
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
@@ -39,6 +39,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
+import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.ui.tv.title
 
 @Composable
@@ -101,7 +102,8 @@ fun TvSettingsScreen(
                         { onAction(TvSettingsAction.TogglePassthrough) },
                         Modifier.focusMemory(focus, PASSTHROUGH),
                         supporting = stringResource(R.string.tv_settings_passthrough_detail, hdmi.name),
-                        trailing = { Switch(checked = hdmi.atmosPassthrough, onCheckedChange = null) },
+                        selected = hdmi.atmosPassthrough,
+                        control = MqTvControl.Switch,
                     )
                 } else {
                     // Nothing to switch yet: the player remembers the HDMI output on its first play there.
@@ -181,7 +183,8 @@ fun TvSettingsScreen(
                         stringResource(R.string.tv_settings_carousel_skip_watched),
                         { onAction(TvSettingsAction.ToggleCarouselSkipWatched) },
                         Modifier.focusMemory(focus, "carouselSkipWatched"),
-                        trailing = { Switch(checked = state.carouselSkipWatched, onCheckedChange = null) },
+                        selected = state.carouselSkipWatched,
+                        control = MqTvControl.Switch,
                     )
                 }
             }
@@ -195,11 +198,20 @@ fun TvSettingsScreen(
             }
             item {
                 MqTvListItem(
+                    stringResource(R.string.tv_settings_title_style),
+                    { onAction(TvSettingsAction.NextTitleStyle) },
+                    Modifier.focusMemory(focus, "titleStyle"),
+                    supporting = stringResource(state.titleStyle.label),
+                )
+            }
+            item {
+                MqTvListItem(
                     stringResource(R.string.tv_settings_simple_transitions),
                     { onAction(TvSettingsAction.ToggleSimpleTransitions) },
                     Modifier.focusMemory(focus, "transitions"),
                     supporting = stringResource(R.string.tv_settings_simple_transitions_detail),
-                    trailing = { Switch(checked = state.simpleTransitions, onCheckedChange = null) },
+                    selected = state.simpleTransitions,
+                    control = MqTvControl.Switch,
                 )
             }
             section(R.string.tv_settings_library)
@@ -296,13 +308,12 @@ fun TvSettingsScreen(
             }
 
             TvSettingsDialog.CarouselSource -> {
-                val currentMark = stringResource(R.string.tv_settings_quality_current)
                 MqTvMenu(
                     title = stringResource(R.string.tv_settings_carousel_source),
                     entries =
                         (listOf(null) + state.carouselSources).map { source ->
                             val text = carouselSourceLabel(source)
-                            MqTvMenuEntry(if (source == state.carouselSource) "$text · $currentMark" else text, null) {
+                            MqTvMenuEntry(text, null, source == state.carouselSource) {
                                 onAction(TvSettingsAction.SetCarouselSource(source))
                             }
                         },
@@ -311,13 +322,12 @@ fun TvSettingsScreen(
             }
 
             TvSettingsDialog.DisplayMatch -> {
-                val currentMark = stringResource(R.string.tv_settings_quality_current)
                 MqTvMenu(
                     title = stringResource(R.string.tv_settings_display_match),
                     entries =
                         io.github.kentprodan.mediatheq.core.data.DisplayMatch.entries.map { match ->
                             val text = stringResource(match.label)
-                            MqTvMenuEntry(if (match == state.displayMatch) "$text · $currentMark" else text, null) {
+                            MqTvMenuEntry(text, null, match == state.displayMatch) {
                                 onAction(TvSettingsAction.SetDisplayMatch(match))
                             }
                         },
@@ -377,13 +387,12 @@ private fun QualityDialog(
     current: StreamingQuality,
     onAction: (TvSettingsAction) -> Unit,
 ) {
-    val currentMark = stringResource(R.string.tv_settings_quality_current)
     MqTvMenu(
         title = stringResource(R.string.tv_settings_quality),
         entries =
             StreamingQuality.entries.map { quality ->
                 val label = qualityLabel(quality)
-                MqTvMenuEntry(if (quality == current) "$label · $currentMark" else label, null) {
+                MqTvMenuEntry(label, null, quality == current) {
                     onAction(TvSettingsAction.SetQuality(quality))
                 }
             },
@@ -401,13 +410,12 @@ private fun <T> StyleDialog(
     onAction: (TvSettingsAction) -> Unit,
     style: (T) -> SubtitleStyle,
 ) {
-    val currentMark = stringResource(R.string.tv_settings_quality_current)
     MqTvMenu(
         title = stringResource(title),
         entries =
             choices.map { choice ->
                 val text = stringResource(label(choice))
-                MqTvMenuEntry(if (choice == current) "$text · $currentMark" else text, null) {
+                MqTvMenuEntry(text, null, choice == current) {
                     onAction(TvSettingsAction.SetSubtitleStyle(style(choice)))
                 }
             },
@@ -446,13 +454,12 @@ private fun AppModeDialog(
     current: AppMode?,
     onAction: (TvSettingsAction) -> Unit,
 ) {
-    val currentMark = stringResource(R.string.tv_settings_quality_current)
     MqTvMenu(
         title = stringResource(R.string.tv_settings_app_mode),
         entries =
             AppMode.entries.map { mode ->
                 val label = stringResource(mode.label)
-                MqTvMenuEntry(if (mode == current) "$label · $currentMark" else label, null) {
+                MqTvMenuEntry(label, null, mode == current) {
                     onAction(TvSettingsAction.SetAppMode(mode))
                 }
             },
@@ -544,6 +551,14 @@ private val io.github.kentprodan.mediatheq.core.data.DisplayMatch.label: Int
             io.github.kentprodan.mediatheq.core.data.DisplayMatch.RateAndResolution -> {
                 R.string.tv_settings_display_match_resolution
             }
+        }
+
+private val TvTitleStyle.label: Int
+    get() =
+        when (this) {
+            TvTitleStyle.Logo -> R.string.tv_settings_title_logo
+            TvTitleStyle.LogoAndText -> R.string.tv_settings_title_logo_text
+            TvTitleStyle.Text -> R.string.tv_settings_title_text
         }
 
 private val io.github.kentprodan.mediatheq.core.data.TvMenuStyle.label: Int

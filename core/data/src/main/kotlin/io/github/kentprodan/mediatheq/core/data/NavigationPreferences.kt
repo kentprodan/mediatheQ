@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
+import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 
 /** A destination the main navigation can show (#122). */
 enum class MainNavEntry {
@@ -71,6 +72,8 @@ data class NavigationPreferences(
     val tvImmersiveRows: Set<HomeSection> = emptySet(),
     /** TV (#520): how the side menu opens. */
     val tvMenuStyle: TvMenuStyle = TvMenuStyle.Modal,
+    /** TV (#523): the title of the detail pages; the logo by default. */
+    val tvTitle: TvTitleStyle = TvTitleStyle.Logo,
     /** TV (#518): the card variant a Home row uses; a row missing here keeps its own default. */
     val tvCardStyles: Map<HomeSection, TvCardStyle> = emptyMap(),
 ) {

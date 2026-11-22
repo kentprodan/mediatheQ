@@ -51,6 +51,7 @@ import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterCard
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTitle
 import kotlin.time.Duration
 
 @Composable
@@ -98,13 +99,7 @@ fun TvMovieScreen(
                         .padding(start = 48.dp, end = 48.dp, top = 96.dp, bottom = 48.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(
-                        movie.title,
-                        Modifier.widthIn(max = 840.dp).semantics { heading() },
-                        style = MaterialTheme.typography.displaySmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    MqTvTitle(movie.title, movie.logo)
                     facts(movie).takeIf { it.isNotEmpty() }?.let {
                         Text(
                             it,
@@ -196,14 +191,8 @@ private fun TracksMenu(
     onDismiss: () -> Unit,
 ) {
     val trackFormat = stringResource(R.string.tv_movie_track)
-    val current = stringResource(R.string.tv_movie_track_current)
 
     fun MediaStreamInfo.label() = displayTitle ?: title ?: language ?: trackFormat.format(index)
-
-    fun mark(
-        label: String,
-        on: Boolean,
-    ) = if (on) "$label · $current" else label
     val audio = tracks.streams.filter { it.type == StreamType.Audio }
     val playingAudio =
         tracks.resolved.audioIndex ?: audio.firstOrNull { it.isDefault }?.index ?: audio.firstOrNull()?.index
@@ -212,17 +201,18 @@ private fun TracksMenu(
     val off = stringResource(R.string.tv_movie_subtitles_off)
     val entries =
         audio.map { stream ->
-            MqTvMenuEntry(mark("$audioLabel: ${stream.label()}", stream.index == playingAudio), null) {
+            MqTvMenuEntry("$audioLabel: ${stream.label()}", null, stream.index == playingAudio) {
                 onAction(TvMovieAction.ChooseAudio(stream.index))
             }
         } +
-            MqTvMenuEntry(mark("$subtitleLabel: $off", tracks.resolved.subtitleIndex == null), null) {
+            MqTvMenuEntry("$subtitleLabel: $off", null, tracks.resolved.subtitleIndex == null) {
                 onAction(TvMovieAction.ChooseSubtitle(null))
             } +
             tracks.streams.filter { it.type == StreamType.Subtitle }.map { stream ->
                 MqTvMenuEntry(
-                    mark("$subtitleLabel: ${stream.label()}", stream.index == tracks.resolved.subtitleIndex),
+                    "$subtitleLabel: ${stream.label()}",
                     null,
+                    stream.index == tracks.resolved.subtitleIndex,
                 ) {
                     onAction(TvMovieAction.ChooseSubtitle(stream.index))
                 }

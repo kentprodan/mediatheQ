@@ -47,6 +47,7 @@ import io.github.kentprodan.mediatheq.core.data.LibraryFilter
 import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvTabs
@@ -308,6 +309,7 @@ private fun SortMenu(
                         },
                         if (sort == state.sort) Modifier.focusRequester(current) else Modifier,
                         selected = sort == state.sort,
+                        control = MqTvControl.Radio,
                     )
                 }
                 // The direction of the chosen sort (#349), as the phone's Reverse order (#187).
@@ -318,6 +320,7 @@ private fun SortMenu(
                         onDismiss()
                     },
                     selected = state.reversed,
+                    control = MqTvControl.Checkbox,
                 )
             }
         }

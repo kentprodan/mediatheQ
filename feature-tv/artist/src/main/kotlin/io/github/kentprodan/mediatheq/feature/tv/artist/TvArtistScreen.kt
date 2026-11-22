@@ -61,6 +61,7 @@ import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvRowHeader
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTitle
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTrackRow
 import kotlinx.coroutines.launch
 
@@ -177,13 +178,7 @@ private fun Header(
         ) {
             MqTvCover(artist.artwork, MqTvIcons.Person, Modifier.size(PICTURE).clip(CircleShape))
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    artist.name,
-                    Modifier.semantics { heading() },
-                    style = MaterialTheme.typography.displaySmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                MqTvTitle(artist.name, artist.logo)
                 artist.overview?.takeIf { it.isNotBlank() }?.let {
                     Biography(
                         it,

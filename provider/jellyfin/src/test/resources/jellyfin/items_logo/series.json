@@ -1,0 +1,16 @@
+{
+  "Items": [
+    {
+      "Name": "Show",
+      "Id": "s1",
+      "Type": "Series",
+      "ImageTags": {
+        "Primary": "p1",
+        "Logo": "sl1"
+      },
+      "BackdropImageTags": []
+    }
+  ],
+  "TotalRecordCount": 1,
+  "StartIndex": 0
+}

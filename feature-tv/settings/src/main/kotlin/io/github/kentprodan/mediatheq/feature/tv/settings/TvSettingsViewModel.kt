@@ -18,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputKind
+import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,6 +78,7 @@ class TvSettingsViewModel
                     carouselSkipWatched = plain.tvCarouselSkipWatched,
                     carouselSources = carouselSources(mode),
                     menuStyle = plain.tvMenuStyle,
+                    titleStyle = plain.tvTitle,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvSettingsUiState.Loading)
 
@@ -133,6 +135,15 @@ class TvSettingsViewModel
                         repo.setNavigation(
                             navigation.copy(tvMenuStyle = all[(navigation.tvMenuStyle.ordinal + 1) % all.size]),
                         )
+                    }
+                }
+
+                TvSettingsAction.NextTitleStyle -> {
+                    val repo = libraryPreferences ?: return
+                    viewModelScope.launch {
+                        val navigation = repo.preferences.first().navigation
+                        val all = TvTitleStyle.entries
+                        repo.setNavigation(navigation.copy(tvTitle = all[(navigation.tvTitle.ordinal + 1) % all.size]))
                     }
                 }
 
