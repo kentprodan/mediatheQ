@@ -40,6 +40,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
+import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.ui.tv.title
 
@@ -91,7 +92,9 @@ fun TvHomeRowsScreen(
                             if (isMenu && event.type == KeyEventType.KeyUp) moving = row.section
                             isMenu
                         },
-                    supporting = stringResource(cardStyleLabel(row.cardStyle)),
+                    supporting =
+                        stringResource(cardStyleLabel(row.cardStyle)) +
+                            if (row.immersive) " · " + stringResource(R.string.tv_settings_immersive_row) else "",
                     onLongClick = { moving = row.section },
                     trailing = { Switch(checked = row.shown, onCheckedChange = null) },
                 )
@@ -122,7 +125,17 @@ fun TvHomeRowsScreen(
         rows.firstOrNull()?.let { focus.restore(it.section.name) }
     }
     moving?.let { section ->
-        val current = rows.firstOrNull { it.section == section }?.cardStyle
+        val row = rows.firstOrNull { it.section == section }
+        val current = row?.cardStyle
+        // Immersive (#521) for rows with pictures; the mixes have none.
+        val immersive =
+            listOfNotNull(
+                MqTvMenuEntry(
+                    stringResource(R.string.tv_settings_immersive_row),
+                    MqTvIcons.Watched.takeIf { row?.immersive == true },
+                ) { onAction(TvHomeRowsAction.ToggleImmersive(section)) }
+                    .takeIf { section.kind != HomeKind.Shortcuts },
+            )
         // The card variants (#518) follow Move up / Move down; the chosen one carries a check.
         val styles =
             (listOf(null) + TvCardStyle.entries).map { style ->
@@ -140,7 +153,7 @@ fun TvHomeRowsScreen(
                 MqTvMenuEntry(stringResource(R.string.tv_settings_move_down), null) {
                     onAction(TvHomeRowsAction.Move(section, up = false))
                 },
-            ) + styles,
+            ) + immersive + styles,
             onDismiss = { moving = null },
         )
     }

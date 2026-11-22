@@ -13,6 +13,7 @@ import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.RememberedOutputs
 import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputKind
@@ -70,7 +71,8 @@ class TvSettingsViewModel
                     displayMatch = video.displayMatch,
                     simpleTransitions = plain.simpleTransitions,
                     carousel = plain.tvCarousel,
-                    carouselSource = plain.tvCarouselSource,
+                    // A source the mode does not have shows as Automatic, as Home uses it (#521).
+                    carouselSource = plain.tvCarouselSource?.takeIf { it in carouselSources(mode) },
                     carouselSkipWatched = plain.tvCarouselSkipWatched,
                     carouselSources = carouselSources(mode),
                 )
@@ -203,13 +205,13 @@ internal fun hdmiOutput(remembered: RememberedOutputs): TvHdmiOutput? {
 /** The settings read beside the main ones (combine takes five flows). */
 private data class TvSettingsExtras(
     val dialog: TvSettingsDialog?,
-    val mode: io.github.kentprodan.mediatheq.core.model.AppMode,
+    val mode: AppMode,
     val video: io.github.kentprodan.mediatheq.core.data.VideoPreferences,
     val simpleTransitions: NavigationPreferences,
 )
 
 /** What the Home carousel can show (#521): the sections of videos, albums and playlists the [mode] has. */
-internal fun carouselSources(mode: io.github.kentprodan.mediatheq.core.model.AppMode?): List<HomeSection> =
+internal fun carouselSources(mode: AppMode?): List<HomeSection> =
     HomeSection.entries.filter {
         it.kind in CAROUSEL_KINDS && (mode == null || it.allowed(mode))
     }

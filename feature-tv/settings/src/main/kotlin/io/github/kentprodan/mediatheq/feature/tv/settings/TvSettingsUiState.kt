@@ -2,7 +2,9 @@ package io.github.kentprodan.mediatheq.feature.tv.settings
 
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
+import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.model.AppMode
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 
@@ -51,12 +53,12 @@ sealed interface TvSettingsUiState {
         /** Transitions between pages (#444): Simple when on. */
         val simpleTransitions: Boolean = false,
         /** Home's featured carousel (#521): its style, its source (`null` = automatic) and whether it skips watched. */
-        val carousel: io.github.kentprodan.mediatheq.core.data.TvCarousel =
-            io.github.kentprodan.mediatheq.core.data.TvCarousel.Card,
-        val carouselSource: io.github.kentprodan.mediatheq.core.model.HomeSection? = null,
+        val carousel: TvCarousel =
+            TvCarousel.Card,
+        val carouselSource: HomeSection? = null,
         val carouselSkipWatched: Boolean = true,
         /** The sections the carousel can show in the app mode (#521). */
-        val carouselSources: List<io.github.kentprodan.mediatheq.core.model.HomeSection> = emptyList(),
+        val carouselSources: List<HomeSection> = emptyList(),
     ) : TvSettingsUiState
 }
 
@@ -83,7 +85,7 @@ sealed interface TvSettingsAction {
 
     /** `null` = automatic. */
     data class SetCarouselSource(
-        val source: io.github.kentprodan.mediatheq.core.model.HomeSection?,
+        val source: HomeSection?,
     ) : TvSettingsAction
 
     data object ToggleCarouselSkipWatched : TvSettingsAction

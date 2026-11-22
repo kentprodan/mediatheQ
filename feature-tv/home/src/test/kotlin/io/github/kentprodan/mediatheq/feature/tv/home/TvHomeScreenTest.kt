@@ -178,7 +178,12 @@ class TvHomeScreenTest {
 
         val play = composeRule.onNodeWithText("Play").assertIsFocused()
         // The slide's title above Play is still on screen: focusing Play did not scroll the carousel away.
-        assertThat(composeRule.onNodeWithText("Album 1").fetchSemanticsNode().boundsInRoot.top).isAtLeast(0f)
+        assertThat(
+            composeRule
+                .onNodeWithText("Album 1")
+                .fetchSemanticsNode()
+                .boundsInRoot.top,
+        ).isAtLeast(0f)
         play.performKeyInput { pressKey(Key.DirectionCenter) }
 
         assertThat(actions).containsExactly(TvHomeAction.Play(TvHomeTarget.Album(id("al1"))))

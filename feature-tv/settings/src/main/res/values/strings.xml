@@ -82,6 +82,7 @@
     <string name="tv_settings_display_match_off">Off</string>
     <string name="tv_settings_display_match_rate">Frame rate</string>
     <string name="tv_settings_display_match_resolution">Frame rate and resolution</string>
+    <string name="tv_settings_immersive_row">Immersive list</string>
     <string name="tv_settings_carousel">Home carousel</string>
     <string name="tv_settings_carousel_off">Off: just the rows</string>
     <string name="tv_settings_carousel_card">Card: featured items in a large card at the top</string>

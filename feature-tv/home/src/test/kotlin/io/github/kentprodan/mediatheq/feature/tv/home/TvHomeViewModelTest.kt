@@ -282,7 +282,8 @@ class TvHomeViewModelTest {
     fun `the carousel shows new albums by default and the immersive rows from Settings (#521)`() =
         test {
             preferences.setNavigation(
-                preferences.preferences.value.navigation.copy(tvImmersiveRows = setOf(HomeSection.FavoriteAlbums)),
+                preferences.preferences.value.navigation
+                    .copy(tvImmersiveRows = setOf(HomeSection.FavoriteAlbums)),
             )
             val state = withLibrary().uiState.value as TvHomeUiState.Content
 
@@ -295,7 +296,10 @@ class TvHomeViewModelTest {
     @Test
     fun `a carousel turned off has no slides (#521)`() =
         test {
-            preferences.setNavigation(preferences.preferences.value.navigation.copy(tvCarousel = TvCarousel.Off))
+            preferences.setNavigation(
+                preferences.preferences.value.navigation
+                    .copy(tvCarousel = TvCarousel.Off),
+            )
 
             assertThat((withLibrary().uiState.value as TvHomeUiState.Content).featured).isEmpty()
         }
