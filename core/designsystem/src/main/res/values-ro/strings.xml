@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mq_loading">Se încarcă</string>
+    <string name="mq_play">Redă</string>
+    <string name="mq_pause">Pauză</string>
+    <string name="mq_shuffle">Amestecă</string>
+    <string name="mq_next_track">Piesa următoare</string>
+    <string name="mq_previous_track">Piesa anterioară</string>
+    <string name="mq_open_player">Deschide playerul</string>
+    <string name="mq_seek">Poziția redării</string>
+    <string name="mq_seek_position">%1$s din %2$s</string>
+    <string name="mq_more">Mai multe</string>
+    <string name="mq_favorite">Favorit</string>
+    <string name="mq_rating">Notă</string>
+    <string name="mq_not_rated">Fără notă</string>
+    <string name="mq_cancel">Anulează</string>
+    <string name="mq_clear_rating">Șterge nota</string>
+    <string name="mq_rate_half_stars">Notează cu %1$s stele</string>
+    <string name="mq_rated_half_stars">%1$s din 5 stele</string>
+    <plurals name="mq_rate_stars">
+        <item quantity="one">Notează cu %d stea</item>
+        <item quantity="few">Notează cu %d stele</item>
+        <item quantity="other">Notează cu %d de stele</item>
+    </plurals>
+    <plurals name="mq_rated_stars">
+        <item quantity="one">%d din 5 stele</item>
+        <item quantity="few">%d din 5 stele</item>
+        <item quantity="other">%d din 5 stele</item>
+    </plurals>
+</resources>

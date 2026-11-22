@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_library_albums">Albume</string>
+    <string name="tv_library_artists">Artiști</string>
+    <string name="tv_library_playlists">Playlisturi</string>
+    <string name="tv_library_genres">Genuri</string>
+    <string name="tv_library_sort">Sortare: %1$s</string>
+    <string name="tv_library_sort_title">Sortează după</string>
+    <string name="tv_library_sort_name">Nume</string>
+    <string name="tv_library_sort_recently_added">Adăugate recent</string>
+    <string name="tv_library_sort_year">An</string>
+    <string name="tv_library_sort_artist">Artist</string>
+    <string name="tv_library_sort_album">Album</string>
+    <string name="tv_library_sort_album_count">Număr de albume</string>
+    <string name="tv_library_sort_track_count">Număr de piese</string>
+    <string name="tv_library_loading_title">Se încarcă biblioteca</string>
+    <string name="tv_library_loading_body">Prima sincronizare poate dura un minut.</string>
+    <string name="tv_library_empty_title">Încă nimic aici</string>
+    <string name="tv_library_empty_body">Serverul tău nu are nimic pentru această listă.</string>
+    <string name="tv_library_error_title">Biblioteca nu a putut fi încărcată</string>
+    <string name="tv_library_error_body">Verifică dacă serverul e pornit și accesibil, apoi încearcă din nou.</string>
+    <string name="tv_library_sync_now">Sincronizează acum</string>
+    <string name="tv_library_unknown_year">An necunoscut</string>
+    <plurals name="tv_library_albums_count">
+        <item quantity="one">%1$d album</item>
+        <item quantity="few">%1$d albume</item>
+        <item quantity="other">%1$d de albume</item>
+    </plurals>
+    <string name="tv_library_sort_reverse">Ordine inversă</string>
+</resources>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_title">Bibliotecă</string>
+    <string name="library_filter_albums">Albume</string>
+    <string name="library_filter_artists">Artiștii albumelor</string>
+    <string name="library_filter_playlists">Playlisturi</string>
+    <string name="library_filter_songs">Piese</string>
+    <string name="library_sort">Sortare</string>
+    <string name="library_reverse_sort">Sortare inversă</string>
+    <string name="library_sort_ascending">Crescător</string>
+    <string name="library_sort_descending">Descrescător</string>
+    <string name="library_sort_name">Nume</string>
+    <string name="library_sort_recently_added">Adăugate recent</string>
+    <string name="library_sort_year">An</string>
+    <string name="library_sort_artist">Artist</string>
+    <string name="library_sort_album">Album</string>
+    <string name="library_view_options">Opțiuni de afișare</string>
+    <string name="library_columns">%1$d coloane</string>
+    <string name="library_empty_title">Încă nimic aici</string>
+    <string name="library_empty_body">Serverul tău nu are muzică de acest fel.</string>
+    <string name="library_sync_now">Sincronizează acum</string>
+    <string name="library_offline_title">Ești offline</string>
+    <string name="library_offline_body">Biblioteca se încarcă imediat ce serverul poate fi contactat.</string>
+    <string name="library_error_title">Biblioteca nu a putut fi încărcată</string>
+    <string name="library_error_body">Serverul a răspuns cu o eroare. Încearcă din nou peste puțin timp.</string>
+    <string name="library_retry">Încearcă din nou</string>
+    <string name="library_refresh_failed">Biblioteca nu a putut fi reîmprospătată</string>
+    <string name="library_new_playlist">Playlist nou</string>
+    <string name="library_back">Înapoi</string>
+    <string name="library_play">Redă</string>
+    <string name="library_shuffle">Amestecă</string>
+    <string name="library_play_next">Redă următoarea</string>
+    <string name="library_add_to_queue">Adaugă în coadă</string>
+    <string name="library_favorites_only">Favorite</string>
+    <string name="library_downloaded_only">Descărcate</string>
+    <string name="library_select">Selectează</string>
+    <string name="library_search_in_list">Caută în listă</string>
+    <string name="library_close_search">Închide căutarea</string>
+    <string name="library_no_matches_title">Nicio potrivire</string>
+    <string name="library_no_matches_body">Nimic din această listă nu trece de filtru sau de căutare.</string>
+    <plurals name="library_items">
+        <item quantity="one">%1$d element</item>
+        <item quantity="few">%1$d elemente</item>
+        <item quantity="other">%1$d de elemente</item>
+    </plurals>
+    <string name="library_filter_years">Ani</string>
+    <string name="library_filter_genres">Genuri</string>
+    <string name="library_filter_record_labels">Case de discuri</string>
+    <string name="library_sort_track_count">Număr de piese</string>
+    <string name="library_view_list">Listă</string>
+    <string name="library_view_grid">Grilă</string>
+    <string name="library_sort_album_count">Număr de albume</string>
+    <string name="library_unknown_year">An necunoscut</string>
+    <plurals name="library_year_albums">
+        <item quantity="one">%1$d album</item>
+        <item quantity="few">%1$d albume</item>
+        <item quantity="other">%1$d de albume</item>
+    </plurals>
+    <string name="library_more_actions">Mai multe acțiuni pentru listă</string>
+</resources>

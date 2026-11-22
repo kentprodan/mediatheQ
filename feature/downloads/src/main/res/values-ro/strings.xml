@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloads_title">Descărcări</string>
+    <string name="downloads_tab_files">Fișiere</string>
+    <string name="downloads_tab_queue">Coadă</string>
+    <string name="downloads_filter">Filtrează fișierele offline</string>
+    <string name="downloads_no_matches">Nicio potrivire</string>
+    <string name="downloads_summary_manual">Descărcări manuale: %1$s · %2$s</string>
+    <string name="downloads_summary_auto">Descărcări automate: %1$s · %2$s</string>
+    <string name="downloads_summary_total">Total: %1$s</string>
+    <plurals name="downloads_track_count">
+        <item quantity="one">%1$d piesă</item>
+        <item quantity="few">%1$d piese</item>
+        <item quantity="other">%1$d de piese</item>
+    </plurals>
+    <string name="downloads_cleanup">Curățare</string>
+    <string name="downloads_cleanup_title">Cureți fișierele offline?</string>
+    <string name="downloads_cleanup_body">Se șterg %1$s și datele rămase, în total %2$s. Descărcările terminate și cele în așteptare rămân.</string>
+    <string name="downloads_cleanup_nothing">Nimic de curățat: nicio descărcare eșuată și nicio dată rămasă.</string>
+    <string name="downloads_cleanup_confirm">Curăță</string>
+    <string name="downloads_cancel">Anulează</string>
+    <plurals name="downloads_failed_count">
+        <item quantity="one">%1$d descărcare eșuată</item>
+        <item quantity="few">%1$d descărcări eșuate</item>
+        <item quantity="other">%1$d de descărcări eșuate</item>
+    </plurals>
+    <string name="downloads_pause_all">Pune totul pe pauză</string>
+    <string name="downloads_resume_all">Reia tot</string>
+    <string name="downloads_paused">Pe pauză</string>
+    <string name="downloads_queue_empty_title">Nimic de descărcat</string>
+    <string name="downloads_queue_empty_body">Descărcările în așteptare sau în curs apar aici.</string>
+    <string name="downloads_back">Înapoi</string>
+    <string name="downloads_empty_title">Încă nu ai descărcări</string>
+    <string name="downloads_empty_body">Descarcă albume, playlisturi sau piese din meniurile lor ca să le asculți fără rețea.</string>
+    <string name="downloads_section_albums">Albume</string>
+    <string name="downloads_section_playlists">Playlisturi</string>
+    <string name="downloads_section_songs">Piese</string>
+    <string name="downloads_size_duration">%1$s · %2$s</string>
+    <string name="downloads_free_space">%1$s liberi pe acest dispozitiv</string>
+    <string name="downloads_unavailable">Descărcările sunt pe %1$s, care nu e disponibil. Nu s-a șters nimic: revin când îl pui la loc.</string>
+    <string name="downloads_sd_card">cardul SD</string>
+    <string name="downloads_play">Redă</string>
+    <string name="downloads_playlist">Playlist</string>
+    <string name="downloads_shuffle">Amestecă</string>
+    <string name="downloads_queued">În coadă</string>
+    <string name="downloads_converted">Copie convertită</string>
+    <string name="downloads_auto">Automat</string>
+    <string name="downloads_auto_details">Automat · %1$s</string>
+    <string name="downloads_waiting_for_wifi">Se așteaptă Wi-Fi</string>
+    <string name="downloads_downloading">Se descarcă</string>
+    <string name="downloads_downloading_percent">Se descarcă %1$d%%</string>
+    <string name="downloads_failed">Descărcarea a eșuat</string>
+    <string name="downloads_retry">Descarcă din nou</string>
+    <string name="downloads_section_movies">Filme</string>
+    <string name="downloads_section_seasons">Sezoane</string>
+    <string name="downloads_season_title">%1$s · Sezonul %2$d</string>
+    <plurals name="downloads_episodes">
+        <item quantity="one">%1$d episod · %2$s</item>
+        <item quantity="few">%1$d episoade · %2$s</item>
+        <item quantity="other">%1$d de episoade · %2$s</item>
+    </plurals>
+    <string name="downloads_video_cannot">Acest video nu poate fi descărcat pe acest telefon</string>
+    <string name="downloads_remove_video">Șterge descărcarea pentru %1$s</string>
+</resources>

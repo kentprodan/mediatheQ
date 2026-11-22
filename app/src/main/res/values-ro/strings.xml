@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">mediatheQ</string>
+    <string name="export_logs_failed">Jurnalul nu a putut fi exportat</string>
+    <string name="tab_home">Acasă</string>
+    <string name="tab_library">Bibliotecă</string>
+    <string name="tab_albums">Albume</string>
+    <string name="tab_album_artists">Artiști</string>
+    <string name="tab_genres">Genuri</string>
+    <string name="tab_record_labels">Case de discuri</string>
+    <string name="tab_playlists">Playlisturi</string>
+    <string name="tab_tracks">Piese</string>
+    <string name="tab_search">Căutare</string>
+    <string name="tab_downloads">Descărcări</string>
+    <string name="tab_movies">Filme</string>
+    <string name="tab_series">Seriale</string>
+    <string name="playlist_edits_gone">Modificările din „%1$s” nu au fost trimise: playlistul nu mai e pe server.</string>
+    <string name="playlist_edits_forbidden">Modificările din „%1$s” nu au fost trimise: nu mai poți modifica acest playlist.</string>
+    <string name="playlist_conflict_failed">Serverul nu a putut fi contactat. Vei fi întrebat din nou când revine.</string>
+    <string name="user_data_save_failed">Modificarea nu a putut fi salvată. Încearcă din nou.</string>
+    <string name="playback_not_downloaded_skipped">„%1$s” nu e descărcată, sărită</string>
+    <string name="playback_not_downloaded">„%1$s” nu e descărcată și nu poate fi redată offline</string>
+    <string name="playback_failed_skipped">„%1$s” nu a putut fi redată, sărită</string>
+    <string name="playback_failed">„%1$s” nu a putut fi redată</string>
+    <string name="playback_slow_start">Pregătirea „%1$s” durează mai mult ca de obicei</string>
+    <string name="local_network_title">Permite accesul la rețeaua de acasă</string>
+    <string name="local_network_body">mediatheQ ajunge la serverul tău Jellyfin prin rețeaua de acasă sau prin Tailscale. Android îți cere mai întâi permisiunea.</string>
+    <string name="local_network_allow">Permite</string>
+    <string name="local_network_denied_body">Accesul la rețeaua de acasă e oprit. Pornește Dispozitive din apropiere în setările aplicației ca să ajungi la server.</string>
+    <string name="local_network_open_settings">Deschide setările</string>
+    <string name="local_network_not_now">Nu acum</string>
+    <string name="radio_nothing_similar">Serverul nu a găsit în bibliotecă muzică asemănătoare</string>
+    <string name="radio_no_server">Radioul are nevoie de server: verifică conexiunea</string>
+    <string name="radio_failed">Radioul nu a putut porni</string>
+    <string name="pin_title">Introdu PIN-ul</string>
+    <string name="pin_label">PIN</string>
+    <string name="pin_ok">OK</string>
+    <string name="pin_cancel">Anulează</string>
+    <string name="pin_wrong">PIN greșit</string>
+    <string name="notification_new_episodes">Episoade noi</string>
+    <string name="notification_episode_available">%1$s e disponibil</string>
+    <string name="notification_episode_downloaded">%1$s e disponibil și descărcat</string>
+</resources>
