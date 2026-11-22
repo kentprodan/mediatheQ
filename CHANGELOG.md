@@ -57,13 +57,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Movie and series pages on the TV: the backdrop, facts and format, Play or Resume, Favorite and Watched, audio and subtitles kept per movie; series with Next up, season tabs, episodes and watched for a season or the whole series; and the TV video player with fast seeking, a bar that hides itself, the next episode countdown and the screen kept on while playing.
 - Remote control: Jellyfin web (and soon the phone) can pause, skip and seek mediatheQ on the TV and the phone, and send a movie to play from where you were; the TV opens its player on it.
 - Playlists edited without a connection keep your changes and send them when the server is back; if the playlist also changed on the server meanwhile, you choose Merge, Replace or Skip.
+- A featured carousel at the top of TV Home (Settings -> Display): as a card or across the whole top, showing new movies, new albums or a Home section you pick, optionally without what you watched; it moves on every 8 seconds and stops while you are on it.
+- Any TV Home row can be an immersive list (Settings -> Home rows, long press a row): the focused card's picture and details appear behind the row.
 
 ### Changed
+- The TV side menu: Settings -> Display -> Menu style chooses Modal (over the dimmed screen) or Standard (pushes the screen aside); your profile sits at the top (Select switches profile), and Library is now called Music.
 - While an output's equalizer is off, its Preset row says why the preset and bands are grey.
 - Moving between screens now slides in the direction you go (forward or back) instead of a plain fade; the back gesture shrinks the screen as you drag.
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 
 ### Fixed
+- On the TV, holding Left or Right on the progress (music and movies) seeks faster the longer you hold, also with remotes that send a held key as separate presses.
 - Now Playing on a phone held sideways shows the controls without scrolling (smaller transport buttons, the album line in the menu).
 - The waveform analysis no longer keeps the processor busy or stops making waveforms when one file never finishes decoding.
 - Typing in search in list (Library) and in the Downloads filter no longer moves the cursor back.

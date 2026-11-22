@@ -5,6 +5,7 @@ import androidx.tv.material3.Surface
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.HomeItems
+import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.tv.PreviewFixtures
@@ -65,3 +66,23 @@ fun TvHomeEmptyScreenshot() = Home(TvHomeUiState.Empty)
 @MqTvPreviews
 @Composable
 fun TvHomeErrorScreenshot() = Home(TvHomeUiState.Error(MqError.Network))
+
+private val featured =
+    content.copy(
+        featuredSection = HomeSection.RecentlyAddedAlbums,
+        featured =
+            listOf(Album(id("al1"), PreviewFixtures.ALBUM, listOf(artist))).map(Featured::AlbumItem) +
+                (2..6).map { Featured.AlbumItem(Album(id("al$it"), "Album $it", listOf(artist))) },
+    )
+
+/** The featured carousel as an inset card above the rows (#521). */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvHomeCarouselCardScreenshot() = Home(featured.copy(carousel = TvCarousel.Card))
+
+/** The featured carousel across the whole top of Home (#521). */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvHomeCarouselImmersiveScreenshot() = Home(featured.copy(carousel = TvCarousel.Immersive))

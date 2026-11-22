@@ -79,6 +79,40 @@ class TvPlayerViewModelTest {
         }
 
     @Test
+    fun `each click on the bar's +30 s button seeks (#353)`() =
+        test {
+            val viewModel = viewModel()
+            playback.state.value = playing()
+            playback.position.value = 30.minutes
+            runCurrent()
+
+            viewModel.onAction(TvPlayerAction.Seek(forward = true))
+            playback.position.value = 30.minutes + 30.seconds
+            viewModel.onAction(TvPlayerAction.Seek(forward = true))
+
+            assertThat(playback.commands.filter { it.startsWith("seekTo") })
+                .containsExactly("seekTo ${30.minutes + 30.seconds}", "seekTo ${31.minutes}")
+                .inOrder()
+        }
+
+    @Test
+    fun `a held key steps on from its last target, also when the remote sends separate presses (#353)`() =
+        test {
+            val viewModel = viewModel()
+            playback.state.value = playing()
+            playback.position.value = 30.minutes
+            runCurrent()
+
+            // Key-downs 50 ms apart, the position not caught up yet.
+            (0..3).forEach { viewModel.onAction(TvPlayerAction.Seek(forward = true, atMs = 1_000L + it * 50L)) }
+
+            // + 30 s on the press, then twice the step 150 ms later from the first target.
+            assertThat(playback.commands.filter { it.startsWith("seekTo") })
+                .containsExactly("seekTo ${30.minutes + 30.seconds}", "seekTo ${31.minutes + 30.seconds}")
+                .inOrder()
+        }
+
+    @Test
     fun `the next episode counts down in the last 10 s, and the screen ends when the video stops`() =
         test {
             val viewModel = viewModel()

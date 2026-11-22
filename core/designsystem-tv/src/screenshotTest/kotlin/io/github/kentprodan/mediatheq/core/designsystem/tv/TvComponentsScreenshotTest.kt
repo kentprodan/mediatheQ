@@ -19,6 +19,7 @@ import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButtonStyle
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCarousel
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvIconButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvImageButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
@@ -172,6 +173,21 @@ fun TvCardVariantsScreenshot() =
                                 ),
                         )
                     }
+                }
+            }
+        }
+    }
+
+/** The featured carousel (#521): a slide and the pagination dots, the first active. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvCarouselScreenshot() =
+    MediatheqTvTheme {
+        Surface(Modifier.fillMaxSize()) {
+            MqTvCarousel(3, Modifier.padding(48.dp).height(300.dp)) { index ->
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)) {
+                    MqTvButton("Slide ${index + 1}", {}, Modifier.padding(32.dp), icon = MqTvIcons.Play)
                 }
             }
         }

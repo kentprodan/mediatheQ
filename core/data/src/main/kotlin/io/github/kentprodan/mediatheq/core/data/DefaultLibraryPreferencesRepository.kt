@@ -117,7 +117,11 @@ class DefaultLibraryPreferencesRepository
                     trackAction = navigation.trackAction.name,
                     expandPlayer = navigation.expandPlayer,
                     simpleTransitions = navigation.simpleTransitions,
-                    tvHomeHero = navigation.tvHomeHero.name,
+                    tvCarousel = navigation.tvCarousel.name,
+                    tvCarouselSource = navigation.tvCarouselSource?.name.orEmpty(),
+                    tvCarouselSkipWatched = navigation.tvCarouselSkipWatched,
+                    tvImmersiveRows = navigation.tvImmersiveRows.map { it.name },
+                    tvMenuStyle = navigation.tvMenuStyle.name,
                     tvCardStyles = navigation.tvCardStyles.entries.associate { (k, v) -> k.name to v.name },
                 ),
             )
@@ -139,7 +143,14 @@ class DefaultLibraryPreferencesRepository
                 trackAction = enumOrNull<TrackAction>(stored.trackAction) ?: defaults.trackAction,
                 expandPlayer = stored.expandPlayer ?: defaults.expandPlayer,
                 simpleTransitions = stored.simpleTransitions ?: defaults.simpleTransitions,
-                tvHomeHero = enumOrNull<TvHomeHero>(stored.tvHomeHero) ?: defaults.tvHomeHero,
+                tvCarousel = enumOrNull<TvCarousel>(stored.tvCarousel) ?: defaults.tvCarousel,
+                // Empty = automatic; an unknown name (a section removed later) too.
+                tvCarouselSource = enumOrNull<HomeSection>(stored.tvCarouselSource),
+                tvCarouselSkipWatched = stored.tvCarouselSkipWatched ?: defaults.tvCarouselSkipWatched,
+                tvImmersiveRows =
+                    stored.tvImmersiveRows?.mapNotNull { enumOrNull<HomeSection>(it) }?.toSet()
+                        ?: defaults.tvImmersiveRows,
+                tvMenuStyle = enumOrNull<TvMenuStyle>(stored.tvMenuStyle) ?: defaults.tvMenuStyle,
                 // Unknown names (a section or variant removed later) are dropped.
                 tvCardStyles =
                     stored.tvCardStyles

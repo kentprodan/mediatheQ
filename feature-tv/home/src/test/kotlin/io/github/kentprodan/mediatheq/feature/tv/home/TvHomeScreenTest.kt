@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.NativeKeyEvent
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.performKeyPress
 import androidx.compose.ui.test.pressKey
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.HomeItems
+import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
@@ -45,14 +47,15 @@ class TvHomeScreenTest {
     private val actions = mutableListOf<TvHomeAction>()
     private val opened = mutableListOf<MediaId>()
 
-    private fun show() {
-        val state =
-            TvHomeUiState.Content(
-                listOf(
-                    TvHomeRow(HomeSection.RecentlyAddedAlbums, HomeItems.Albums(albums)),
-                    TvHomeRow(HomeSection.FavoriteAlbums, HomeItems.Albums(favorites)),
-                ),
-            )
+    private val twoRows =
+        TvHomeUiState.Content(
+            listOf(
+                TvHomeRow(HomeSection.RecentlyAddedAlbums, HomeItems.Albums(albums)),
+                TvHomeRow(HomeSection.FavoriteAlbums, HomeItems.Albums(favorites)),
+            ),
+        )
+
+    private fun show(state: TvHomeUiState = twoRows) {
         composeRule.setContent {
             MediatheqTvTheme {
                 TvHomeScreen(
@@ -161,6 +164,69 @@ class TvHomeScreenTest {
                 .size.width
         // The focus scale grows the card a little around its center: a tolerance of a few percent of the screen.
         assertThat(card.boundsInRoot.left / width).isWithin(0.03f).of(0.3f)
+    }
+
+    private val withCarousel =
+        twoRows.copy(
+            carousel = TvCarousel.Card,
+            featuredSection = HomeSection.RecentlyAddedAlbums,
+            featured = albums.take(3).map(Featured::AlbumItem),
+        )
+
+    @Test
+    fun `with the carousel Home opens on its Play, the carousel stays in view and Play plays the slide (#521)`() {
+        show(withCarousel)
+
+        val play = composeRule.onNodeWithText("Play").assertIsFocused()
+        // The slide's title above Play is still on screen: focusing Play did not scroll the carousel away.
+        composeRule.onNodeWithText("Album 1").assertIsDisplayed()
+        play.performKeyInput { pressKey(Key.DirectionCenter) }
+
+        assertThat(actions).containsExactly(TvHomeAction.Play(TvHomeTarget.Album(id("al1"))))
+    }
+
+    @Test
+    fun `D-pad down leaves the carousel for the first row (#521)`() {
+        show(withCarousel)
+
+        press(listOf(Key.DirectionDown))
+
+        composeRule.onNodeWithContentDescription("Album 1", substring = true).assertIsFocused()
+    }
+
+    @Test
+    fun `an immersive row shows the focused card's details only once the focus rests (#521)`() {
+        // Rows below, so the list can scroll the immersive row as far as the focus asks.
+        val below =
+            listOf(HomeSection.LastPlayedAlbums, HomeSection.MostPlayedAlbums).map {
+                TvHomeRow(it, HomeItems.Albums(albums))
+            }
+        show(twoRows.copy(rows = twoRows.rows + below, immersiveRows = setOf(HomeSection.FavoriteAlbums)))
+        composeRule.mainClock.autoAdvance = false
+
+        press(listOf(Key.DirectionDown))
+        composeRule.mainClock.advanceTimeBy(200)
+        composeRule.onNodeWithText("Favorite 1").assertDoesNotExist()
+        composeRule.mainClock.advanceTimeBy(800)
+
+        // The details at the top of the row are on screen: the row, not only its card, was brought into view.
+        composeRule.onNodeWithText("Favorite 1").assertIsDisplayed()
+    }
+
+    @Test
+    fun `an immersive row never shows the card of the row the focus came from (#521)`() {
+        show(twoRows.copy(immersiveRows = setOf(HomeSection.RecentlyAddedAlbums, HomeSection.FavoriteAlbums)))
+        composeRule.mainClock.autoAdvance = false
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.onNodeWithText("Album 1").assertExists()
+
+        press(listOf(Key.DirectionDown))
+        // The first row's details faded out, the focus has not rested on the new card yet.
+        composeRule.mainClock.advanceTimeBy(400)
+        composeRule.onNodeWithText("Album 1").assertDoesNotExist()
+        composeRule.mainClock.advanceTimeBy(600)
+
+        composeRule.onNodeWithText("Favorite 1").assertExists()
     }
 
     private fun center(

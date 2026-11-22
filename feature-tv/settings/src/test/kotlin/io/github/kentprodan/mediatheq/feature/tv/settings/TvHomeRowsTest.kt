@@ -2,10 +2,19 @@ package io.github.kentprodan.mediatheq.feature.tv.settings
 
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.genreCounts
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection.ContinueWatching
 import io.github.kentprodan.mediatheq.core.model.HomeSection.FavoriteAlbums
 import io.github.kentprodan.mediatheq.core.model.HomeSection.NextUp
 import io.github.kentprodan.mediatheq.core.model.HomeSection.Shortcuts
+import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
+import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 import org.junit.Test
 
 class TvHomeRowsTest {
@@ -37,4 +46,29 @@ class TvHomeRowsTest {
         assertThat(moveSection(order, order, NextUp, up = false)).isEqualTo(order)
         assertThat(moveSection(order, listOf(NextUp), Shortcuts, up = false)).isEqualTo(order)
     }
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    @Test
+    fun `a row is made immersive and back from its menu, and the list shows it (#521)`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val preferences = FakeLibraryPreferencesRepository()
+            val viewModel = TvHomeRowsViewModel(preferences, FakeAppModeRepository(initial = AppMode.Both))
+            backgroundScope.launch { viewModel.state.collect() }
+
+            viewModel.onAction(TvHomeRowsAction.ToggleImmersive(ContinueWatching))
+            runCurrent()
+            assertThat(preferences.preferences.value.navigation.tvImmersiveRows).containsExactly(ContinueWatching)
+            assertThat(
+                viewModel.state.value!!
+                    .rows
+                    .single { it.section == ContinueWatching }
+                    .immersive,
+            ).isTrue()
+
+            viewModel.onAction(TvHomeRowsAction.ToggleImmersive(ContinueWatching))
+            runCurrent()
+            assertThat(preferences.preferences.value.navigation.tvImmersiveRows).isEmpty()
+        }
 }

@@ -2,7 +2,9 @@ package io.github.kentprodan.mediatheq.feature.tv.settings
 
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
+import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.model.AppMode
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 
@@ -14,7 +16,16 @@ data class TvHdmiOutput(
 )
 
 /** The dialog open over the settings list. */
-enum class TvSettingsDialog { Quality, SignOut, AppMode, SubtitleSize, SubtitleBackground, SubtitleColor, DisplayMatch }
+enum class TvSettingsDialog {
+    Quality,
+    SignOut,
+    AppMode,
+    SubtitleSize,
+    SubtitleBackground,
+    SubtitleColor,
+    DisplayMatch,
+    CarouselSource,
+}
 
 /** Settings on TV (#243). */
 sealed interface TvSettingsUiState {
@@ -41,9 +52,16 @@ sealed interface TvSettingsUiState {
             io.github.kentprodan.mediatheq.core.data.DisplayMatch.Rate,
         /** Transitions between pages (#444): Simple when on. */
         val simpleTransitions: Boolean = false,
-        /** Home's hero (#504). */
-        val homeHero: io.github.kentprodan.mediatheq.core.data.TvHomeHero =
-            io.github.kentprodan.mediatheq.core.data.TvHomeHero.None,
+        /** Home's featured carousel (#521): its style, its source (`null` = automatic) and whether it skips watched. */
+        val carousel: TvCarousel =
+            TvCarousel.Card,
+        val carouselSource: HomeSection? = null,
+        val carouselSkipWatched: Boolean = true,
+        /** The sections the carousel can show in the app mode (#521). */
+        val carouselSources: List<HomeSection> = emptyList(),
+        /** The side menu's style (#520). */
+        val menuStyle: io.github.kentprodan.mediatheq.core.data.TvMenuStyle =
+            io.github.kentprodan.mediatheq.core.data.TvMenuStyle.Modal,
     ) : TvSettingsUiState
 }
 
@@ -63,8 +81,20 @@ sealed interface TvSettingsAction {
 
     data object ToggleSimpleTransitions : TvSettingsAction
 
-    /** Settings -> Display -> Home hero (#504): None, Compact, Large in turn. */
-    data object NextHomeHero : TvSettingsAction
+    /** Settings -> Display -> Home carousel (#521): Off, Card, Immersive in turn. */
+    data object NextCarousel : TvSettingsAction
+
+    data object ChooseCarouselSource : TvSettingsAction
+
+    /** `null` = automatic. */
+    data class SetCarouselSource(
+        val source: HomeSection?,
+    ) : TvSettingsAction
+
+    data object ToggleCarouselSkipWatched : TvSettingsAction
+
+    /** Settings -> Display -> Menu style (#520): Modal, Standard in turn. */
+    data object NextMenuStyle : TvSettingsAction
 
     /** Opens the dialog of one part of the subtitle style. */
     data class ChooseSubtitle(

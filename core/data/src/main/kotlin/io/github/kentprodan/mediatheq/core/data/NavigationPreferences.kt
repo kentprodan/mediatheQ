@@ -61,8 +61,16 @@ data class NavigationPreferences(
     val expandPlayer: Boolean = false,
     /** TV (#444): a plain fast fade between pages instead of the standard fade and slight scale. */
     val simpleTransitions: Boolean = false,
-    /** TV (#504): the hero at the top of Home; none by default (owner: backdrops belong to the detail pages). */
-    val tvHomeHero: TvHomeHero = TvHomeHero.None,
+    /** TV (#521): the featured carousel at the top of Home. */
+    val tvCarousel: TvCarousel = TvCarousel.Card,
+    /** TV (#521): the Home section the carousel shows; `null` = automatic (new movies with video, else new albums). */
+    val tvCarouselSource: HomeSection? = null,
+    /** TV (#521): the carousel leaves out watched movies and episodes. */
+    val tvCarouselSkipWatched: Boolean = true,
+    /** TV (#521): Home rows shown as immersive lists (the focused card's backdrop and details behind the row). */
+    val tvImmersiveRows: Set<HomeSection> = emptySet(),
+    /** TV (#520): how the side menu opens. */
+    val tvMenuStyle: TvMenuStyle = TvMenuStyle.Modal,
     /** TV (#518): the card variant a Home row uses; a row missing here keeps its own default. */
     val tvCardStyles: Map<HomeSection, TvCardStyle> = emptyMap(),
 ) {
@@ -101,5 +109,11 @@ fun validTransparency(percent: Int): Int {
 /** The guideline's TV card variants (#518), chosen per Home row. */
 enum class TvCardStyle { Standard, Classic, Compact, WideStandard, WideClassic }
 
-/** How TV Home shows the focused card at its top (#504). */
-enum class TvHomeHero { None, Compact, Large }
+/** TV Home's featured carousel (#521, Google TV guidelines): off, an inset card, or immersive (full width). */
+enum class TvCarousel { Off, Card, Immersive }
+
+/**
+ * The TV side menu's style (#520, Google TV guidelines): Modal floats over the dimmed screen (the default), Standard
+ * pushes the screen aside while open.
+ */
+enum class TvMenuStyle { Modal, Standard }

@@ -260,7 +260,7 @@ private fun Progress(
                             else -> return@onPreviewKeyEvent false
                         }
                     if (event.type == KeyEventType.KeyDown) {
-                        onAction(TvNowPlayingAction.Seek(forward, event.nativeKeyEvent.repeatCount))
+                        onAction(TvNowPlayingAction.Seek(forward, event.nativeKeyEvent.eventTime))
                     }
                     true
                 },

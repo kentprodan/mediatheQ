@@ -64,7 +64,11 @@ class LibraryPreferencesStore
                         trackAction = prefs[TRACK_ACTION],
                         expandPlayer = prefs[EXPAND_PLAYER],
                         simpleTransitions = prefs[SIMPLE_TRANSITIONS],
-                        tvHomeHero = prefs[TV_HOME_HERO],
+                        tvCarousel = prefs[TV_CAROUSEL],
+                        tvCarouselSource = prefs[TV_CAROUSEL_SOURCE],
+                        tvCarouselSkipWatched = prefs[TV_CAROUSEL_SKIP_WATCHED],
+                        tvImmersiveRows = prefs[TV_IMMERSIVE_ROWS]?.toList(),
+                        tvMenuStyle = prefs[TV_MENU_STYLE],
                         tvCardStyles =
                             prefs[TV_CARD_STYLES]?.associate { it.substringBefore('=') to it.substringAfter('=') },
                     ),
@@ -251,7 +255,11 @@ class LibraryPreferencesStore
                 prefs.put(TRACK_ACTION, navigation.trackAction)
                 prefs.put(EXPAND_PLAYER, navigation.expandPlayer)
                 prefs.put(SIMPLE_TRANSITIONS, navigation.simpleTransitions)
-                prefs.put(TV_HOME_HERO, navigation.tvHomeHero)
+                prefs.put(TV_CAROUSEL, navigation.tvCarousel)
+                prefs.put(TV_CAROUSEL_SOURCE, navigation.tvCarouselSource)
+                prefs.put(TV_CAROUSEL_SKIP_WATCHED, navigation.tvCarouselSkipWatched)
+                prefs.put(TV_IMMERSIVE_ROWS, navigation.tvImmersiveRows?.toSet())
+                prefs.put(TV_MENU_STYLE, navigation.tvMenuStyle)
                 prefs.put(TV_CARD_STYLES, navigation.tvCardStyles?.map { (k, v) -> "$k=$v" }?.toSet())
             }
         }
@@ -654,7 +662,11 @@ class LibraryPreferencesStore
             val TRACK_ACTION = stringPreferencesKey("track_action")
             val EXPAND_PLAYER = booleanPreferencesKey("expand_player")
             val SIMPLE_TRANSITIONS = booleanPreferencesKey("simple_transitions")
-            val TV_HOME_HERO = stringPreferencesKey("tv_home_hero")
+            val TV_CAROUSEL = stringPreferencesKey("tv_carousel")
+            val TV_CAROUSEL_SOURCE = stringPreferencesKey("tv_carousel_source")
+            val TV_CAROUSEL_SKIP_WATCHED = booleanPreferencesKey("tv_carousel_skip_watched")
+            val TV_IMMERSIVE_ROWS = stringSetPreferencesKey("tv_immersive_rows")
+            val TV_MENU_STYLE = stringPreferencesKey("tv_menu_style")
 
             /** `Section=Style` pairs (#518). */
             val TV_CARD_STYLES = stringSetPreferencesKey("tv_card_styles")
@@ -858,8 +870,15 @@ data class StoredNavigation(
     val expandPlayer: Boolean? = null,
     /** TV (#444): plain fades between pages instead of the standard motion. */
     val simpleTransitions: Boolean? = null,
-    /** `TvHomeHero` name (#504). */
-    val tvHomeHero: String? = null,
+    /** `TvCarousel` name (#521). */
+    val tvCarousel: String? = null,
+    /** `HomeSection` name, empty for automatic (#521). */
+    val tvCarouselSource: String? = null,
+    val tvCarouselSkipWatched: Boolean? = null,
+    /** `HomeSection` names of the immersive rows (#521). */
+    val tvImmersiveRows: List<String>? = null,
+    /** `TvMenuStyle` name (#520). */
+    val tvMenuStyle: String? = null,
     /** `HomeSection` name to `TvCardStyle` name (#518). */
     val tvCardStyles: Map<String, String>? = null,
 )

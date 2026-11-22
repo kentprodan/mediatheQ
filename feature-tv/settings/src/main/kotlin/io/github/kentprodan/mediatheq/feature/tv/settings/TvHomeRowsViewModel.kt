@@ -30,6 +30,8 @@ data class TvHomeRow(
     val shown: Boolean,
     /** `null`: the row's own default (#518). */
     val cardStyle: TvCardStyle? = null,
+    /** Shown as an immersive list (#521). */
+    val immersive: Boolean = false,
 )
 
 /** Settings -> Home rows: the sections, then the library's genres (#431) with whether each has a row. */
@@ -52,6 +54,11 @@ sealed interface TvHomeRowsAction {
     data class SetCardStyle(
         val section: HomeSection,
         val style: TvCardStyle?,
+    ) : TvHomeRowsAction
+
+    /** The row as an immersive list on or off (#521). */
+    data class ToggleImmersive(
+        val section: HomeSection,
     ) : TvHomeRowsAction
 
     data class Move(
@@ -77,7 +84,14 @@ class TvHomeRowsViewModel
             combine(preferences.preferences, appMode.mode) { prefs, mode ->
                 prefs.home.order
                     .filter { it.allowed(mode) }
-                    .map { TvHomeRow(it, it !in prefs.home.hidden, prefs.navigation.tvCardStyles[it]) }
+                    .map {
+                        TvHomeRow(
+                            it,
+                            it !in prefs.home.hidden,
+                            prefs.navigation.tvCardStyles[it],
+                            it in prefs.navigation.tvImmersiveRows,
+                        )
+                    }
             }
 
         /** The library's genres, the most common first; none without video. */
@@ -130,6 +144,17 @@ class TvHomeRowsViewModel
                         preferences.setNavigation(
                             navigation.copy(
                                 tvCardStyles = action.style?.let { styles + (action.section to it) } ?: styles,
+                            ),
+                        )
+                    }
+
+                    is TvHomeRowsAction.ToggleImmersive -> {
+                        val navigation = preferences.preferences.first().navigation
+                        val rows = navigation.tvImmersiveRows
+                        preferences.setNavigation(
+                            navigation.copy(
+                                tvImmersiveRows =
+                                    if (action.section in rows) rows - action.section else rows + action.section,
                             ),
                         )
                     }
