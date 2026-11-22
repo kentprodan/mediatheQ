@@ -39,8 +39,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
-import io.github.kentprodan.mediatheq.core.ui.tv.title
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
+import io.github.kentprodan.mediatheq.core.ui.tv.title
 
 @Composable
 fun TvSettingsRoute(
@@ -183,7 +183,8 @@ fun TvSettingsScreen(
                         stringResource(R.string.tv_settings_carousel_skip_watched),
                         { onAction(TvSettingsAction.ToggleCarouselSkipWatched) },
                         Modifier.focusMemory(focus, "carouselSkipWatched"),
-                        trailing = { Switch(checked = state.carouselSkipWatched, onCheckedChange = null) },
+                        selected = state.carouselSkipWatched,
+                        control = MqTvControl.Switch,
                     )
                 }
             }
@@ -307,13 +308,12 @@ fun TvSettingsScreen(
             }
 
             TvSettingsDialog.CarouselSource -> {
-                val currentMark = stringResource(R.string.tv_settings_quality_current)
                 MqTvMenu(
                     title = stringResource(R.string.tv_settings_carousel_source),
                     entries =
                         (listOf(null) + state.carouselSources).map { source ->
                             val text = carouselSourceLabel(source)
-                            MqTvMenuEntry(if (source == state.carouselSource) "$text · $currentMark" else text, null) {
+                            MqTvMenuEntry(text, null, source == state.carouselSource) {
                                 onAction(TvSettingsAction.SetCarouselSource(source))
                             }
                         },
