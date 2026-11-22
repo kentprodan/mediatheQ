@@ -65,6 +65,8 @@ sealed interface TvSettingsUiState {
             io.github.kentprodan.mediatheq.core.data.TvMenuStyle.Modal,
         /** Display -> Title (#523). */
         val titleStyle: TvTitleStyle = TvTitleStyle.Logo,
+        /** Display -> Accent from the poster (#517). */
+        val posterAccent: Boolean = false,
     ) : TvSettingsUiState
 }
 
@@ -101,6 +103,9 @@ sealed interface TvSettingsAction {
 
     /** Display -> Title (#523): Logo, Logo and text, Text, then round again. */
     data object NextTitleStyle : TvSettingsAction
+
+    /** Display -> Accent from the poster (#517). */
+    data object TogglePosterAccent : TvSettingsAction
 
     /** Opens the dialog of one part of the subtitle style. */
     data class ChooseSubtitle(

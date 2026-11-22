@@ -150,6 +150,11 @@ class TvShellViewModel
             (session?.session?.map { (it as? SessionState.LoggedIn)?.userName } ?: flowOf(null))
                 .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+        /** TV Settings -> Accent from the poster (#517). */
+        val posterAccent: StateFlow<Boolean> =
+            (preferences?.preferences?.map { it.navigation.tvPosterAccent } ?: flowOf(false))
+                .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
         /** TV Settings -> Title (#523): how the detail pages show their title. */
         val titleStyle: StateFlow<TvTitleStyle> =
             (preferences?.preferences?.map { it.navigation.tvTitle } ?: flowOf(TvTitleStyle.Logo))

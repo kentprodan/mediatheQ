@@ -47,6 +47,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterAccent
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTitle
 import kotlin.time.Duration
@@ -73,17 +74,20 @@ fun TvSeriesPageScreen(
     onAction: (TvSeriesPageAction) -> Unit,
     onPlay: (MediaId, Duration) -> Unit,
 ) {
-    when (state) {
-        TvSeriesPageUiState.Loading -> {
-            Unit
-        }
+    // Accent from the poster (#517): the page in its poster's colors.
+    MqTvPosterAccent((state as? TvSeriesPageUiState.Content)?.series?.artwork) {
+        when (state) {
+            TvSeriesPageUiState.Loading -> {
+                Unit
+            }
 
-        is TvSeriesPageUiState.Error -> {
-            MqTvMessage(stringResource(R.string.tv_series_missing), stringResource(R.string.tv_movie_missing_body))
-        }
+            is TvSeriesPageUiState.Error -> {
+                MqTvMessage(stringResource(R.string.tv_series_missing), stringResource(R.string.tv_movie_missing_body))
+            }
 
-        is TvSeriesPageUiState.Content -> {
-            Content(state, onAction, onPlay)
+            is TvSeriesPageUiState.Content -> {
+                Content(state, onAction, onPlay)
+            }
         }
     }
 }

@@ -79,6 +79,7 @@ class TvSettingsViewModel
                     carouselSources = carouselSources(mode),
                     menuStyle = plain.tvMenuStyle,
                     titleStyle = plain.tvTitle,
+                    posterAccent = plain.tvPosterAccent,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvSettingsUiState.Loading)
 
@@ -136,6 +137,10 @@ class TvSettingsViewModel
                             navigation.copy(tvMenuStyle = all[(navigation.tvMenuStyle.ordinal + 1) % all.size]),
                         )
                     }
+                }
+
+                TvSettingsAction.TogglePosterAccent -> {
+                    updateNavigation { it.copy(tvPosterAccent = !it.tvPosterAccent) }
                 }
 
                 TvSettingsAction.NextTitleStyle -> {

@@ -97,4 +97,6 @@
     <string name="tv_settings_title_logo">Logo (the name when there is none)</string>
     <string name="tv_settings_title_logo_text">Logo and name</string>
     <string name="tv_settings_title_text">Name only</string>
+    <string name="tv_settings_poster_accent">Accent from the poster</string>
+    <string name="tv_settings_poster_accent_detail">Movie, series, artist, album and playlist pages take their colors from the picture</string>
 </resources>

@@ -2,6 +2,11 @@ package io.github.kentprodan.mediatheq.feature.tv.video
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -9,7 +14,11 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performSemanticsAction
+import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
+import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvAccentTheme
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.model.Artwork
@@ -74,5 +83,26 @@ class TvTitleAndMenuTest {
         }
 
         composeRule.onNodeWithText("Move up").assertIsFocused()
+    }
+
+    @Test
+    fun `the poster's accent arriving keeps the page, its focus and its state (#517)`() {
+        var seed by mutableStateOf<Int?>(null)
+        var created = 0
+        composeRule.setContent {
+            MediatheqTvTheme {
+                MqTvAccentTheme(seed) {
+                    remember { created++ }
+                    MqTvButton("Play", {})
+                }
+            }
+        }
+        composeRule.onNodeWithText("Play").performSemanticsAction(SemanticsActions.RequestFocus)
+
+        seed = 0xFFD9822B.toInt()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Play").assertIsFocused()
+        assertThat(created).isEqualTo(1)
     }
 }

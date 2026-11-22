@@ -82,6 +82,7 @@ import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.NowPlayingKey
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.ui.tv.LocalTvPosterAccent
 import io.github.kentprodan.mediatheq.core.ui.tv.LocalTvTitleStyle
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
 import io.github.kentprodan.mediatheq.feature.tv.album.tvAlbumEntries
@@ -107,6 +108,7 @@ internal fun TvShellRoute(
     val destinations by viewModel.destinations.collectAsStateWithLifecycle()
     val simpleTransitions by viewModel.simpleTransitions.collectAsStateWithLifecycle()
     val titleStyle by viewModel.titleStyle.collectAsStateWithLifecycle()
+    val posterAccent by viewModel.posterAccent.collectAsStateWithLifecycle()
     val pin by viewModel.pinRequest.collectAsStateWithLifecycle()
     val menuStyle by viewModel.menuStyle.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
@@ -146,7 +148,7 @@ internal fun TvShellRoute(
     }
     val activity = LocalActivity.current
     // The detail pages read the title style (#523).
-    CompositionLocalProvider(LocalTvTitleStyle provides titleStyle) {
+    CompositionLocalProvider(LocalTvTitleStyle provides titleStyle, LocalTvPosterAccent provides posterAccent) {
         TvShell(
             backStack,
             player,
