@@ -192,7 +192,7 @@ class TvVideosViewModel
         }
     }
 
-/** The Genres or Studios / Networks tab (#522): a card per genre or studio of the kind's posters; `null` while loading. */
+/** The Genres or Studios / Networks tab (#522): a card per genre or studio of the kind's posters. */
 @HiltViewModel(assistedFactory = TvVideoGroupsViewModel.Factory::class)
 class TvVideoGroupsViewModel
     @AssistedInject
@@ -202,13 +202,15 @@ class TvVideoGroupsViewModel
         videos: VideoRepository,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
-        val groups: StateFlow<List<TvVideoGroup>?> =
+        val groups: StateFlow<TvVideoGroupsUiState> =
             videos
                 .posters(kind)
-                .map { posters -> groupsOf(posters) { if (studios) it.studios else it.genres } }
-                .flowOn(defaultDispatcher)
-                .catch { emit(emptyList()) }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+                .map<_, TvVideoGroupsUiState> { posters ->
+                    TvVideoGroupsUiState.Groups(groupsOf(posters) { if (studios) it.studios else it.genres })
+                }.flowOn(defaultDispatcher)
+                // A database read failed: the next change reads again.
+                .catch { emit(TvVideoGroupsUiState.Error) }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvVideoGroupsUiState.Loading)
 
         @AssistedFactory
         interface Factory {
@@ -258,6 +260,16 @@ class TvCollectionViewModel
             fun create(id: MediaId): TvCollectionViewModel
         }
     }
+
+sealed interface TvVideoGroupsUiState {
+    data object Loading : TvVideoGroupsUiState
+
+    data object Error : TvVideoGroupsUiState
+
+    data class Groups(
+        val groups: List<TvVideoGroup>,
+    ) : TvVideoGroupsUiState
+}
 
 sealed interface TvVideoGridUiState {
     data object Loading : TvVideoGridUiState

@@ -187,32 +187,42 @@ private fun TvVideoGroupsRoute(
         hiltViewModel<TvVideoGroupsViewModel, TvVideoGroupsViewModel.Factory>(key = "$kind/groups/$studios") {
             it.create(kind, studios)
         }
-    val groups by viewModel.groups.collectAsStateWithLifecycle()
-    TvVideoGroups(kind, groups, restoreFocus) { navigation.onOpenGroup(kind, studios, it) }
+    val state by viewModel.groups.collectAsStateWithLifecycle()
+    TvVideoGroups(kind, state, studios, restoreFocus) { navigation.onOpenGroup(kind, studios, it) }
 }
 
 /** The Genres or Studios / Networks tab (#522): six cards across, each a name, its count and its newest picture. */
 @Composable
 fun TvVideoGroups(
     kind: TvVideoKind,
-    groups: List<TvVideoGroup>?,
+    state: TvVideoGroupsUiState,
+    studios: Boolean,
     restoreFocus: Boolean,
     onOpen: (String) -> Unit,
 ) {
-    when {
-        groups == null -> {
+    when (state) {
+        TvVideoGroupsUiState.Loading -> {
             Unit
         }
 
-        groups.isEmpty() -> {
+        TvVideoGroupsUiState.Error -> {
             MqTvMessage(
-                stringResource(R.string.tv_video_no_groups),
-                stringResource(R.string.tv_video_no_studios_body),
+                stringResource(R.string.tv_video_error_title),
+                stringResource(R.string.tv_video_error_body),
                 focusAction = false,
             )
         }
 
-        else -> {
+        is TvVideoGroupsUiState.Groups if state.groups.isEmpty() -> {
+            MqTvMessage(
+                stringResource(R.string.tv_video_no_groups),
+                stringResource(if (studios) R.string.tv_video_no_studios_body else R.string.tv_video_no_genres_body),
+                focusAction = false,
+            )
+        }
+
+        is TvVideoGroupsUiState.Groups -> {
+            val groups = state.groups
             val focus = rememberFocusMemory()
             LazyVerticalGrid(
                 GridCells.Fixed(COLUMNS),
@@ -320,6 +330,14 @@ fun TvVideoGridScreen(
                 MqTvMessage(
                     stringResource(R.string.tv_video_no_favorites),
                     stringResource(R.string.tv_video_no_favorites_body),
+                    focusAction = false,
+                )
+            }
+
+            TvVideoGridUiState.Empty if only is TvVideoOnly.Genre || only is TvVideoOnly.Studio -> {
+                MqTvMessage(
+                    stringResource(R.string.tv_video_no_groups),
+                    stringResource(R.string.tv_video_group_gone_body),
                     focusAction = false,
                 )
             }

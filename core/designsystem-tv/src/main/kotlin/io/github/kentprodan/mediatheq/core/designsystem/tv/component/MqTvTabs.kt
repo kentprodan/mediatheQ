@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.designsystem.tv.component
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -23,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
@@ -99,7 +101,15 @@ fun <T> MqTvTabs(
             },
             label = "tabs",
         ) { shown ->
-            Box(Modifier.fillMaxSize()) {
+            // The tab sliding out takes no focus: a quick Down after a tab switch lands in the new one.
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .focusProperties {
+                        onEnter =
+                            { if (transition.targetState == EnterExitState.PostExit) cancelFocusChange() }
+                    }.focusGroup(),
+            ) {
                 states.SaveableStateProvider(key(tabs[shown])) { content(tabs[shown], cameBack) }
             }
         }

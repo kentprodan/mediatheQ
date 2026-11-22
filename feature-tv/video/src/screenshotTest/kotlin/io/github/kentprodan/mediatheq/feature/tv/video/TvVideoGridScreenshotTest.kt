@@ -114,7 +114,10 @@ fun TvSeriesNetworksScreenshot() =
             TvVideoTabsRoute(TvVideoKind.Series, TvVideoNavigation(), TvVideoTab.Studios) { _, _ ->
                 TvVideoGroups(
                     TvVideoKind.Series,
-                    listOf(TvVideoGroup("AMC", 3), TvVideoGroup("BBC One", 12), TvVideoGroup("HBO", 1)),
+                    TvVideoGroupsUiState.Groups(
+                        listOf(TvVideoGroup("AMC", 3), TvVideoGroup("BBC One", 12), TvVideoGroup("HBO", 1)),
+                    ),
+                    studios = true,
                     restoreFocus = false,
                 ) {}
             }

@@ -162,17 +162,17 @@ class TvVideoGridViewModelTest {
         test {
             videos.movies.value = library + movie("Ronin", 1998).copy(genres = listOf("Crime"))
 
-            fun TestScope.groups(studios: Boolean): List<TvVideoGroup>? {
+            fun TestScope.groups(studios: Boolean): List<TvVideoGroup> {
                 val viewModel =
                     TvVideoGroupsViewModel(TvVideoKind.Movies, studios, videos, mainDispatcherRule.testDispatcher)
                 backgroundScope.launch { viewModel.groups.collect {} }
                 runCurrent()
-                return viewModel.groups.value
+                return (viewModel.groups.value as TvVideoGroupsUiState.Groups).groups
             }
 
-            assertThat(groups(studios = false)?.map { it.name to it.count })
+            assertThat(groups(studios = false).map { it.name to it.count })
                 .containsExactly("Comedy" to 1, "Crime" to 2, "Horror" to 1, "Sci-Fi" to 1)
                 .inOrder()
-            assertThat(groups(studios = true)?.map { it.name }).containsExactly("Brandywine", "Warner Bros.").inOrder()
+            assertThat(groups(studios = true).map { it.name }).containsExactly("Brandywine", "Warner Bros.").inOrder()
         }
 }

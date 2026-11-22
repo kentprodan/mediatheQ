@@ -2,10 +2,13 @@ package io.github.kentprodan.mediatheq.feature.tv.video
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -56,8 +59,13 @@ class TvVideoTabsTest {
         tab: TvVideoTab,
         cameBack: Boolean,
     ) = when (tab) {
-        TvVideoTab.Genres -> TvVideoGroups(TvVideoKind.Movies, genres, cameBack) { opened += it }
-        else -> TvVideoGridScreen(TvVideoKind.Movies, grid, {}, {}, restoreFocus = cameBack)
+        TvVideoTab.Genres -> {
+            TvVideoGroups(TvVideoKind.Movies, TvVideoGroupsUiState.Groups(genres), false, cameBack) { opened += it }
+        }
+
+        else -> {
+            TvVideoGridScreen(TvVideoKind.Movies, grid, {}, {}, restoreFocus = cameBack)
+        }
     }
 
     private fun press(key: Key) = composeRule.onRoot().performKeyInput { pressKey(key) }
@@ -97,11 +105,8 @@ class TvVideoTabsTest {
         repeat(3) { press(Key.DirectionUp) }
         repeat(2) { press(Key.DirectionLeft) }
         composeRule.mainClock.advanceTimeBy(1_000)
-        // Down from the tab passes Sort and Filter first when they sit under it.
+        // Sort and Filter sit on the right, out of the way: Down from the tab goes into the grid.
         press(Key.DirectionDown)
-        if (composeRule.onNodeWithText("Sort: Date added").fetchSemanticsNode().config[SemanticsProperties.Focused]) {
-            press(Key.DirectionDown)
-        }
 
         card("Movie 06").assertIsFocused()
     }
@@ -117,5 +122,53 @@ class TvVideoTabsTest {
         press(Key.DirectionCenter)
 
         assertThat(opened).containsExactly("Drama")
+    }
+
+    @Test
+    fun `Back in a tab goes up to the tabs, the next Back is left to the shell`() {
+        var shellBacks = 0
+        composeRule.setContent {
+            // The shell's own Back sits under the screen's.
+            BackHandler { shellBacks++ }
+            MediatheqTvTheme {
+                TvVideoTabsRoute(TvVideoKind.Movies, TvVideoNavigation()) { tab, cameBack -> Tab(tab, cameBack) }
+            }
+        }
+        card("Movie 03").performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.waitForIdle()
+
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        assertThat(shellBacks).isEqualTo(0)
+        composeRule.onNodeWithText("All").assertIsFocused()
+
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        assertThat(shellBacks).isEqualTo(1)
+    }
+
+    @Test
+    fun `empty Favorites says how to add one, with no Sync now`() {
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvVideoGridScreen(TvVideoKind.Movies, TvVideoGridUiState.Empty, {}, {}, only = TvVideoOnly.Favorites)
+            }
+        }
+
+        composeRule.onNodeWithText("No favorites yet").assertExists()
+        composeRule.onNodeWithText("Sync now").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an empty Genres or Studios tab says why, a failed read shows the error`() {
+        var state: TvVideoGroupsUiState by mutableStateOf(TvVideoGroupsUiState.Groups(emptyList()))
+        var studios by mutableStateOf(false)
+        composeRule.setContent {
+            MediatheqTvTheme { TvVideoGroups(TvVideoKind.Movies, state, studios, restoreFocus = false) {} }
+        }
+
+        composeRule.onNodeWithText("None of the library has a genre yet.").assertExists()
+        studios = true
+        composeRule.onNodeWithText("Studios come with the next library sync.").assertExists()
+        state = TvVideoGroupsUiState.Error
+        composeRule.onNodeWithText("Couldn", substring = true).assertExists()
     }
 }
