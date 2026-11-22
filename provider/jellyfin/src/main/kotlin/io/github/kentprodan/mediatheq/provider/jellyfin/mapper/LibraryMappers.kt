@@ -42,6 +42,7 @@ internal fun BaseItemDto.toArtist(serverId: ServerId): Artist? {
         artwork(),
         userData.toDomain(),
         backdrop = backdrop(),
+        logo = logo(),
         overview = overview?.trim()?.takeIf { it.isNotEmpty() },
     )
 }
@@ -133,6 +134,8 @@ internal fun BaseItemDto.toVideo(
         sizeBytes = source?.size,
         artwork = artwork(),
         backdrop = backdrop(),
+        // Episodes show their series' title: only movies keep a logo.
+        logo = logo().takeUnless { episode },
         userData = userData.toDomain(),
         streams = streams.mapNotNull { it.toStreamInfo() },
     )
@@ -153,6 +156,7 @@ internal fun BaseItemDto.toSeries(serverId: ServerId): Series? {
         officialRating = officialRating?.takeIf { it.isNotBlank() },
         artwork = artwork(),
         backdrop = backdrop(),
+        logo = logo(),
         userData = userData.toDomain(),
     )
 }
@@ -308,6 +312,12 @@ private fun BaseItemDto.artwork(): Artwork? {
 private fun BaseItemDto.backdrop(): Artwork? {
     val tag = backdropImageTags.firstOrNull() ?: return null
     return Artwork(id ?: return null, tag, imageBlurHashes["Backdrop"]?.get(tag), ImageType.Backdrop)
+}
+
+/** The item's own logo (#523), asked for with `enableImageTypes=Logo`. */
+private fun BaseItemDto.logo(): Artwork? {
+    val tag = imageTags["Logo"] ?: return null
+    return Artwork(id ?: return null, tag, imageBlurHashes["Logo"]?.get(tag), ImageType.Logo)
 }
 
 private fun BaseItemDto.albumArtwork(): Artwork? {

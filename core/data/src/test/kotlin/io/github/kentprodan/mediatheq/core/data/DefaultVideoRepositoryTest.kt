@@ -12,8 +12,10 @@ import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoUserColumns
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAccount
+import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.Chapter
 import io.github.kentprodan.mediatheq.core.model.DownloadState
+import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
@@ -87,6 +89,7 @@ class DefaultVideoRepositoryTest {
             duration = 90.minutes,
             genres = listOf("Comedy", "Drama"),
             studios = listOf("Legendary", "Warner Bros."),
+            logo = Artwork("m1", "l1", "hash", ImageType.Logo),
             format = VideoFormat("hevc", 3840, 2160, VideoRange.DolbyVision, 20_000),
             userData = UserData(played = false, playbackPosition = 12.minutes, playedPercentage = 13.3),
         )

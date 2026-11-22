@@ -60,6 +60,8 @@ data class Video(
     val sizeBytes: Long? = null,
     val artwork: Artwork? = null,
     val backdrop: Artwork? = null,
+    /** The title as an image (#523); a movie's only, never an episode's. */
+    val logo: Artwork? = null,
     val userData: UserData = UserData(),
     /** Filled by the sync and by `VideoRepository.streams`; list reads leave it empty. */
     val streams: List<MediaStreamInfo> = emptyList(),
@@ -78,6 +80,8 @@ data class Series(
     val communityRating: Double? = null,
     val artwork: Artwork? = null,
     val backdrop: Artwork? = null,
+    /** The title as an image (#523); a movie's only, never an episode's. */
+    val logo: Artwork? = null,
     val userData: UserData = UserData(),
     /** "TV-14", "16"; the age gate (#434) reads it for the series' episodes too. */
     val officialRating: String? = null,

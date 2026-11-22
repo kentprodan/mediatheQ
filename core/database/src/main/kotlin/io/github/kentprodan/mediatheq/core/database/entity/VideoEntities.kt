@@ -30,6 +30,8 @@ data class SeriesEntity(
     @ColumnInfo(name = "community_rating") val communityRating: Double? = null,
     @Embedded val image: ImageColumns = ImageColumns(),
     @Embedded(prefix = "backdrop_") val backdrop: ImageColumns = ImageColumns(),
+    /** The title as an image (#523). */
+    @Embedded(prefix = "logo_") val logo: ImageColumns = ImageColumns(),
     @Embedded val userData: UserDataColumns = UserDataColumns(),
     @Embedded val videoUser: VideoUserColumns = VideoUserColumns(),
     @ColumnInfo(name = "official_rating") val officialRating: String? = null,
@@ -84,6 +86,8 @@ data class VideoEntity(
     @ColumnInfo(name = "size_bytes") val sizeBytes: Long? = null,
     @Embedded val image: ImageColumns = ImageColumns(),
     @Embedded(prefix = "backdrop_") val backdrop: ImageColumns = ImageColumns(),
+    /** The title as an image (#523). */
+    @Embedded(prefix = "logo_") val logo: ImageColumns = ImageColumns(),
     @Embedded val userData: UserDataColumns = UserDataColumns(),
     @Embedded val videoUser: VideoUserColumns = VideoUserColumns(),
 )

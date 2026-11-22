@@ -59,7 +59,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 21,
+    version = 22,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -147,6 +147,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 19, to = 20),
         // 21: the studios of movies and series (#522, the Studios / Networks tabs); the next start syncs them.
         AutoMigration(from = 20, to = 21, spec = SyncStudiosMigration::class),
+        // 22: the logos of movies, series and artists (#523, the title as an image); the next start syncs them.
+        AutoMigration(from = 21, to = 22, spec = SyncLogosMigration::class),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {

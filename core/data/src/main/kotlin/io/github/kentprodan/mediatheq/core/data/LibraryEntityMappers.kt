@@ -46,6 +46,7 @@ internal fun Artist.toEntity(isAlbumArtist: Boolean) =
         userData.toColumns(),
         backdrop.toColumns(),
         overview,
+        logo.toColumns(),
     )
 
 internal fun Album.toEntity() =
@@ -195,6 +196,7 @@ internal fun ArtistEntity.toDomain() =
         userData.toDomain(),
         backdrop = backdrop.toDomain(ImageType.Backdrop),
         overview = overview,
+        logo = logo.toDomain(ImageType.Logo),
     )
 
 internal fun Artwork?.toColumns() = ImageColumns(this?.itemId, this?.tag, this?.blurHash)

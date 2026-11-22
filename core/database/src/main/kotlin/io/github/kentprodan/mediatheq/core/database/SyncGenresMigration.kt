@@ -63,3 +63,6 @@ class SyncSeriesRatingMigration : ResyncMigration(STAGING_12)
 
 /** 20 -> 21 (#522): movies, episodes and series have no studios yet. */
 class SyncStudiosMigration : ResyncMigration(STAGING_12)
+
+/** 21 -> 22 (#523): movies, series and artists have no logo yet. */
+class SyncLogosMigration : ResyncMigration(STAGING_12)

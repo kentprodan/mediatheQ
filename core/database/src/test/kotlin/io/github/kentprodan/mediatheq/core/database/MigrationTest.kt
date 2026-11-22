@@ -608,4 +608,36 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `21 to 22 adds the logos, keeps the library and makes the next start sync`() =
+        runTest {
+            helper.createDatabase(21).apply {
+                execSQL(
+                    "INSERT INTO sync_state (id, last_full_sync_at, owner_server_id, owner_user_id, " +
+                        "checkpoint_index) VALUES (0, 1760000000000, 's', 'u', 0)",
+                )
+                execSQL(
+                    "INSERT INTO artist (server_id, id, name, sort_name, is_album_artist, is_favorite, play_count, " +
+                        "played) VALUES ('s', 'a1', 'Ada', 'Ada', 1, 0, 0, 0)",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(22)
+
+            connection.prepare("SELECT last_full_sync_at FROM sync_state").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(0)
+            }
+            connection.prepare("SELECT name, logo_image_tag FROM artist").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getText(0)).isEqualTo("Ada")
+                assertThat(it.isNull(1)).isTrue()
+            }
+            for (table in listOf("video", "series")) {
+                connection.prepare("SELECT logo_image_item_id FROM $table").use { assertThat(it.step()).isFalse() }
+            }
+            connection.close()
+        }
 }
