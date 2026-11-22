@@ -37,7 +37,7 @@ data class MqTvMenuEntry(
 )
 
 /**
- * An item's menu (#236, #238): a dialog with [title] and [entries], focus on the current choice, else the first. Choosing one runs it and closes
+ * An item's menu (#236, #238): a dialog with [title] and [entries], focus on the current choice of a menu of choices, else the first entry. Choosing one runs it and closes
  * the menu. A long-press opens it while select is still held: that key's repeats and release are ignored, select
  * counts only after a fresh press in the menu.
  */
@@ -48,7 +48,16 @@ fun MqTvMenu(
     onDismiss: () -> Unit,
 ) {
     val first = remember { FocusRequester() }
-    val focused = entries.indexOfFirst { it.selected == true }.coerceAtLeast(0)
+    // A menu of choices opens on the current one; a menu with actions too opens on its first entry.
+    val focused =
+        if (entries.all {
+                it.selected != null
+            }
+        ) {
+            entries.indexOfFirst { it.selected == true }.coerceAtLeast(0)
+        } else {
+            0
+        }
     var armed by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.large) {

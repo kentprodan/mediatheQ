@@ -212,7 +212,7 @@ fun TvShell(
         MqTvMenu(
             stringResource(R.string.tv_close_title),
             listOf(
-                MqTvMenuEntry(stringResource(R.string.tv_close), null, onClose),
+                MqTvMenuEntry(stringResource(R.string.tv_close), null, onClick = onClose),
                 MqTvMenuEntry(stringResource(R.string.tv_close_cancel), null) {},
             ),
             onDismiss = { closing = false },

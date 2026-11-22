@@ -385,13 +385,19 @@ private fun SleepTimerMenu(
                     ) { onAction(TvNowPlayingAction.CancelSleepTimer) },
                 )
             }
-            add(MqTvMenuEntry(stringResource(R.string.tv_np_sleep_this_track), null, start(SleepTimerChoice.Tracks(1))))
+            add(
+                MqTvMenuEntry(
+                    stringResource(R.string.tv_np_sleep_this_track),
+                    null,
+                    onClick = start(SleepTimerChoice.Tracks(1)),
+                ),
+            )
             listOf(2, 3).forEach { n ->
                 add(
                     MqTvMenuEntry(
                         stringResource(R.string.tv_np_sleep_tracks, n),
                         null,
-                        start(SleepTimerChoice.Tracks(n)),
+                        onClick = start(SleepTimerChoice.Tracks(n)),
                     ),
                 )
             }
@@ -400,7 +406,7 @@ private fun SleepTimerMenu(
                     MqTvMenuEntry(
                         stringResource(R.string.tv_np_sleep_minutes, m),
                         null,
-                        start(SleepTimerChoice.Minutes(m)),
+                        onClick = start(SleepTimerChoice.Minutes(m)),
                     ),
                 )
             }

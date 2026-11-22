@@ -138,13 +138,12 @@ fun TvHomeRowsScreen(
                 ) { onAction(TvHomeRowsAction.ToggleImmersive(section)) }
                     .takeIf { section.kind != HomeKind.Shortcuts },
             )
-        // The card variants (#518) follow Move up / Move down; the chosen one carries a check.
+        // The card variants (#518) follow Move up / Move down, the chosen one with its radio on (#523).
         val styles =
             (listOf(null) + TvCardStyle.entries).map { style ->
-                MqTvMenuEntry(
-                    stringResource(cardStyleLabel(style)),
-                    MqTvIcons.Watched.takeIf { style == current },
-                ) { onAction(TvHomeRowsAction.SetCardStyle(section, style)) }
+                MqTvMenuEntry(stringResource(cardStyleLabel(style)), null, style == current) {
+                    onAction(TvHomeRowsAction.SetCardStyle(section, style))
+                }
             }
         MqTvMenu(
             stringResource(section.title),
