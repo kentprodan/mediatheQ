@@ -124,6 +124,7 @@ class DefaultLibraryPreferencesRepository
                     tvImmersiveRows = navigation.tvImmersiveRows.map { it.name },
                     tvMenuStyle = navigation.tvMenuStyle.name,
                     tvTitle = navigation.tvTitle.name,
+                    tvPosterAccent = navigation.tvPosterAccent,
                     tvCardStyles = navigation.tvCardStyles.entries.associate { (k, v) -> k.name to v.name },
                 ),
             )
@@ -154,6 +155,7 @@ class DefaultLibraryPreferencesRepository
                         ?: defaults.tvImmersiveRows,
                 tvMenuStyle = enumOrNull<TvMenuStyle>(stored.tvMenuStyle) ?: defaults.tvMenuStyle,
                 tvTitle = enumOrNull<TvTitleStyle>(stored.tvTitle) ?: defaults.tvTitle,
+                tvPosterAccent = stored.tvPosterAccent ?: defaults.tvPosterAccent,
                 // Unknown names (a section or variant removed later) are dropped.
                 tvCardStyles =
                     stored.tvCardStyles

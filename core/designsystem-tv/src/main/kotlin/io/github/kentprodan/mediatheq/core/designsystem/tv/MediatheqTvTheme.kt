@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.designsystem.tv
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.tv.material3.ColorScheme
 import androidx.tv.material3.LocalContentColor
@@ -30,7 +31,9 @@ fun MediatheqTvTheme(
     seed: Int = IRIS_SEED,
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(colorScheme = tvColorScheme(seed)) {
+    // Built once per seed: two dynamic schemes and some thirty colors.
+    val scheme = remember(seed) { tvColorScheme(seed) }
+    MaterialTheme(colorScheme = scheme) {
         // tv-material's Text is black outside a Surface: text on the plain background (headers, Now Playing) reads
         // onSurface instead.
         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface, content = content)

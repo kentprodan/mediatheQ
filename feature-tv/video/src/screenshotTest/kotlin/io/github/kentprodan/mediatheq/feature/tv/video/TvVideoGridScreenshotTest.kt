@@ -318,3 +318,34 @@ fun TvMovieTitleTextScreenshot() =
 @Composable
 fun TvMovieTitleNoLogoScreenshot() =
     MovieTitle(io.github.kentprodan.mediatheq.core.model.TvTitleStyle.Logo, withLogo = false)
+
+/** Accent from the poster on (#517): the movie page in a warm poster's colors (a seed stands in for the poster). */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvMoviePosterAccentScreenshot() =
+    androidx.compose.runtime.CompositionLocalProvider(
+        io.github.kentprodan.mediatheq.core.ui.tv.LocalTvPosterAccent provides true,
+        io.github.kentprodan.mediatheq.core.ui.tv.LocalPreviewPosterSeed provides 0xFFD9822B.toInt(),
+    ) {
+        MediatheqTvTheme {
+            Surface {
+                TvMovieScreen(
+                    TvMovieUiState.Content(
+                        io.github.kentprodan.mediatheq.core.model.Video(
+                            MediaId(ServerId("s"), "m1"),
+                            io.github.kentprodan.mediatheq.core.model.VideoKind.Movie,
+                            "Blade Runner",
+                            overview = "A blade runner must pursue and terminate four replicants.",
+                            year = 1982,
+                            genres = listOf("Science Fiction", "Drama"),
+                        ),
+                        format = "4K · HEVC · HDR10",
+                        resumeAt = kotlin.time.Duration.parse("42m10s"),
+                    ),
+                    {},
+                    { _, _ -> },
+                )
+            }
+        }
+    }

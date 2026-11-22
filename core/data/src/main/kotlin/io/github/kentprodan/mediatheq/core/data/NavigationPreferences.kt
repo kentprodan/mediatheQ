@@ -74,6 +74,8 @@ data class NavigationPreferences(
     val tvMenuStyle: TvMenuStyle = TvMenuStyle.Modal,
     /** TV (#523): the title of the detail pages; the logo by default. */
     val tvTitle: TvTitleStyle = TvTitleStyle.Logo,
+    /** TV (#517): detail pages take their accent from the poster or cover; off keeps Iris. */
+    val tvPosterAccent: Boolean = false,
     /** TV (#518): the card variant a Home row uses; a row missing here keeps its own default. */
     val tvCardStyles: Map<HomeSection, TvCardStyle> = emptyMap(),
 ) {

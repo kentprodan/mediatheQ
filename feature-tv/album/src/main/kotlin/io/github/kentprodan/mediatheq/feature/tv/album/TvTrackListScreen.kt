@@ -53,6 +53,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvFormatBadge
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterAccent
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTrackRow
 
 @Composable
@@ -86,21 +87,24 @@ fun TvTrackListScreen(
     modifier: Modifier = Modifier,
     showNumbers: Boolean = true,
 ) {
-    when (state) {
-        TvTrackListUiState.Loading -> {
-            Box(modifier.fillMaxSize())
-        }
+    // Accent from the poster (#517): the page in its poster's colors.
+    MqTvPosterAccent((state as? TvTrackListUiState.Content)?.header?.artwork) {
+        when (state) {
+            TvTrackListUiState.Loading -> {
+                Box(modifier.fillMaxSize())
+            }
 
-        TvTrackListUiState.NotFound -> {
-            MqTvMessage(
-                stringResource(R.string.tv_album_not_found_title),
-                stringResource(R.string.tv_album_not_found_body),
-                modifier,
-            )
-        }
+            TvTrackListUiState.NotFound -> {
+                MqTvMessage(
+                    stringResource(R.string.tv_album_not_found_title),
+                    stringResource(R.string.tv_album_not_found_body),
+                    modifier,
+                )
+            }
 
-        is TvTrackListUiState.Content -> {
-            Content(state, onAction, modifier, showNumbers)
+            is TvTrackListUiState.Content -> {
+                Content(state, onAction, modifier, showNumbers)
+            }
         }
     }
 }
