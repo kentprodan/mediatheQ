@@ -8,7 +8,7 @@
     <string name="genre_top_tracks">Piese de top</string>
     <string name="genre_play">Redă</string>
     <string name="genre_shuffle">Amestecă</string>
-    <string name="genre_play_next">Redă următoarea</string>
+    <string name="genre_play_next">Redă în continuare</string>
     <string name="genre_add_to_queue">Adaugă în coadă</string>
     <string name="genre_more_options">Mai multe opțiuni pentru %1$s</string>
     <plurals name="genre_album_count">

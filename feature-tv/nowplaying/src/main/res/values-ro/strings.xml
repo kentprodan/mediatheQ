@@ -27,5 +27,5 @@
     <string name="tv_np_sleep_off">Oprește</string>
     <string name="tv_np_sleep_this_track">La sfârșitul acestei piese</string>
     <string name="tv_np_sleep_tracks">După %d piese</string>
-    <string name="tv_np_sleep_minutes">Peste %d minute</string>
+    <string name="tv_np_sleep_minutes">Peste %d min</string>
 </resources>

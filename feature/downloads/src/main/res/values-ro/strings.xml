@@ -15,7 +15,7 @@
     </plurals>
     <string name="downloads_cleanup">Curățare</string>
     <string name="downloads_cleanup_title">Cureți fișierele offline?</string>
-    <string name="downloads_cleanup_body">Se șterg %1$s și datele rămase, în total %2$s. Descărcările terminate și cele în așteptare rămân.</string>
+    <string name="downloads_cleanup_body">Curățarea șterge %1$s și datele rămase, în total %2$s. Descărcările terminate și cele în așteptare rămân.</string>
     <string name="downloads_cleanup_nothing">Nimic de curățat: nicio descărcare eșuată și nicio dată rămasă.</string>
     <string name="downloads_cleanup_confirm">Curăță</string>
     <string name="downloads_cancel">Anulează</string>
@@ -36,7 +36,7 @@
     <string name="downloads_section_playlists">Playlisturi</string>
     <string name="downloads_section_songs">Piese</string>
     <string name="downloads_size_duration">%1$s · %2$s</string>
-    <string name="downloads_free_space">%1$s liberi pe acest dispozitiv</string>
+    <string name="downloads_free_space">%1$s disponibili pe acest dispozitiv</string>
     <string name="downloads_unavailable">Descărcările sunt pe %1$s, care nu e disponibil. Nu s-a șters nimic: revin când îl pui la loc.</string>
     <string name="downloads_sd_card">cardul SD</string>
     <string name="downloads_play">Redă</string>

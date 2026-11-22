@@ -81,8 +81,8 @@
     <string name="tv_series_resume">Continuă %s</string>
     <string name="tv_series_more">Mai multe</string>
     <string name="tv_series_specials">Speciale</string>
-    <string name="tv_series_season_watched">Marchează %s ca văzut</string>
-    <string name="tv_series_season_unwatched">Marchează %s ca nevăzut</string>
+    <string name="tv_series_season_watched">Marchează ca văzut: %s</string>
+    <string name="tv_series_season_unwatched">Marchează ca nevăzut: %s</string>
     <string name="tv_series_series_watched">Marchează tot serialul ca văzut</string>
     <string name="tv_series_series_unwatched">Marchează tot serialul ca nevăzut</string>
     <string name="tv_series_hide_overviews">Ascunde descrierile episoadelor nevăzute</string>

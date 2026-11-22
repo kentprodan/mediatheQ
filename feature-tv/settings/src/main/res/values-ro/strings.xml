@@ -68,7 +68,7 @@
     <string name="tv_settings_parental">Control parental</string>
     <string name="tv_settings_parental_detail">Un PIN și o limită de vârstă pentru fiecare profil</string>
     <string name="tv_parental_hint">Filmele și serialele cu o clasificare peste limita de vârstă a unui profil cer PIN-ul. Limitele se aplică după ce setezi un PIN.</string>
-    <string name="tv_parental_main_only">Doar %1$s poate schimba acestea.</string>
+    <string name="tv_parental_main_only">Doar %1$s poate schimba aceste setări.</string>
     <string name="tv_parental_set_pin">Setează un PIN</string>
     <string name="tv_parental_change_pin">Schimbă PIN-ul</string>
     <string name="tv_parental_remove_pin">Șterge PIN-ul</string>

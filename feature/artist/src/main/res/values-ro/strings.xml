@@ -10,7 +10,7 @@
     <string name="artist_empty_body">Nimic de la acest artist nu e în bibliotecă.</string>
     <string name="artist_play">Redă</string>
     <string name="artist_shuffle">Amestecă</string>
-    <string name="artist_play_next">Redă următoarea</string>
+    <string name="artist_play_next">Redă în continuare</string>
     <string name="artist_add_to_queue">Adaugă în coadă</string>
     <string name="artist_more_options">Mai multe opțiuni pentru %1$s</string>
     <string name="artist_show_all">Arată tot</string>

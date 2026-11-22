@@ -8,7 +8,7 @@
     <string name="core_ui_nothing_downloaded_body">Modul offline arată doar muzica de pe acest telefon.</string>
     <string name="core_ui_open_downloads">Deschide Descărcări</string>
     <string name="core_ui_now_playing">Se redă acum</string>
-    <string name="core_ui_play_next">Redă următoarea</string>
+    <string name="core_ui_play_next">Redă în continuare</string>
     <string name="core_ui_play_item">Redă %1$s</string>
     <string name="core_ui_add_to_queue">Adaugă în coadă</string>
     <string name="core_ui_duration_minutes">%1$d min</string>
@@ -58,7 +58,7 @@
     <string name="core_ui_more_actions">Mai multe acțiuni</string>
     <string name="core_ui_select_all">Selectează tot</string>
     <plurals name="core_ui_selected">
-        <item quantity="one">%1$d selectat</item>
+        <item quantity="one">%1$d element selectat</item>
         <item quantity="few">%1$d selectate</item>
         <item quantity="other">%1$d selectate</item>
     </plurals>

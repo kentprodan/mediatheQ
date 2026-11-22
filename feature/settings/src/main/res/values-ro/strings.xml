@@ -25,9 +25,9 @@
     <string name="settings_backup_not_written">Backupul nu a putut fi salvat acolo. Încearcă alt loc.</string>
     <string name="settings_backup_restored">Setări restaurate.</string>
     <plurals name="settings_backup_restored_sign_in">
-        <item quantity="one">Setări restaurate. Conectează-te la %1$d server în Gestionează furnizorii media.</item>
-        <item quantity="few">Setări restaurate. Conectează-te la %1$d servere în Gestionează furnizorii media.</item>
-        <item quantity="other">Setări restaurate. Conectează-te la %1$d de servere în Gestionează furnizorii media.</item>
+        <item quantity="one">Setări restaurate. Conectează-te la %1$d server din Setări › Servere.</item>
+        <item quantity="few">Setări restaurate. Conectează-te la %1$d servere din Setări › Servere.</item>
+        <item quantity="other">Setări restaurate. Conectează-te la %1$d de servere din Setări › Servere.</item>
     </plurals>
     <string name="settings_backup_unreadable">Fișierul nu a putut fi deschis.</string>
     <string name="settings_backup_invalid">Acest fișier nu e un backup mediatheQ. Nu s-a schimbat nimic.</string>
@@ -84,7 +84,7 @@
     <string name="settings_st_offline">Offline</string>
     <string name="settings_st_storage">Stocare</string>
     <string name="settings_st_location">Locația stocării</string>
-    <string name="settings_st_location_free">%1$s · %2$s liberi</string>
+    <string name="settings_st_location_free">%1$s · %2$s disponibili</string>
     <string name="settings_st_internal">Stocare internă</string>
     <string name="settings_st_location_missing">Indisponibilă</string>
     <string name="settings_st_moving">Se mută descărcările</string>
@@ -192,7 +192,7 @@
     <string name="settings_track_action">Atingerea unei piese</string>
     <string name="settings_track_play">Redă</string>
     <string name="settings_track_play_only">Redă doar această piesă</string>
-    <string name="settings_track_play_next">Redă următoarea</string>
+    <string name="settings_track_play_next">Redă în continuare</string>
     <string name="settings_track_add_to_queue">Adaugă în coadă</string>
     <string name="settings_expand_player">Deschide playerul la redare</string>
     <string name="settings_expand_player_summary">Se redă acum se deschide când redarea pornește dintr-o listă.</string>
@@ -269,7 +269,7 @@
     <string name="licenses_title">Licențe open-source</string>
     <string name="licenses_close">Înapoi</string>
     <string name="licenses_open_page">Deschide pagina proiectului</string>
-    <string name="licenses_notice">Notă</string>
+    <string name="licenses_notice">Mențiuni</string>
     <string name="licenses_expanded">Licență afișată</string>
     <string name="licenses_collapsed">Licență ascunsă</string>
     <string name="settings_showcase">Vitrina temei</string>
@@ -403,7 +403,7 @@
     <string name="settings_ap_hidden_buttons">Butoane ascunse</string>
     <string name="settings_ap_button_resume">Continuă</string>
     <string name="settings_ap_button_shuffle">Amestecă</string>
-    <string name="settings_ap_button_play_next">Redă următoarea</string>
+    <string name="settings_ap_button_play_next">Redă în continuare</string>
     <string name="settings_ap_button_add_to_queue">Adaugă în coadă</string>
     <string name="settings_ap_button_favorite">Favorit</string>
     <string name="settings_ap_content">Conținut</string>
@@ -485,8 +485,8 @@
     <string name="settings_pb_behavior">Redare</string>
     <string name="settings_pb_behavior_summary">Coada, următoarea și anterioara, amestecarea, versuri pe Bluetooth.</string>
     <string name="settings_pb_queue">Coada, butoanele și afișajele</string>
-    <string name="settings_pb_preserve_play_next">Păstrează ordinea pentru Redă următoarea</string>
-    <string name="settings_pb_preserve_play_next_summary">Redă următoarea adaugă după piesele adăugate anterior așa, nu imediat după cea curentă</string>
+    <string name="settings_pb_preserve_play_next">Păstrează ordinea pentru Redă în continuare</string>
+    <string name="settings_pb_preserve_play_next_summary">Redă în continuare adaugă după piesele adăugate anterior astfel, nu imediat după cea curentă</string>
     <string name="settings_pb_rewind_first">Anterioara repornește întâi piesa</string>
     <string name="settings_pb_rewind_first_summary">Anterioara repornește piesa, în afară de primele 3 secunde ale ei</string>
     <string name="settings_pb_circular">Coada în buclă</string>
@@ -692,7 +692,7 @@
     <string name="settings_parental">Control parental</string>
     <string name="settings_parental_summary">Un PIN și o limită de vârstă pentru fiecare profil</string>
     <string name="settings_parental_intro">Filmele și serialele cu o clasificare peste limita de vârstă a unui profil cer PIN-ul pe acel profil. Limitele se aplică după ce setezi un PIN.</string>
-    <string name="settings_parental_main_only">Doar %1$s poate schimba acestea.</string>
+    <string name="settings_parental_main_only">Doar %1$s poate schimba aceste setări.</string>
     <string name="settings_parental_pin">PIN</string>
     <string name="settings_parental_enter_pin">Introdu PIN-ul</string>
     <string name="settings_parental_wrong_pin">PIN greșit</string>

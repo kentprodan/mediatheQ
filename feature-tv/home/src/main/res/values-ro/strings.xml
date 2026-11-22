@@ -10,7 +10,7 @@
     <string name="tv_home_sync_now">Sincronizează acum</string>
     <string name="tv_home_track_mix">Mix de piese</string>
     <string name="tv_home_album_mix">Mix de albume</string>
-    <string name="tv_home_decade_mix">Mix anii \'%1$d</string>
+    <string name="tv_home_decade_mix">Mix din anii %1$d</string>
     <string name="tv_home_play">Redă</string>
     <string name="tv_home_shuffle">Amestecă</string>
     <string name="tv_home_add_to_queue">Adaugă în coadă</string>

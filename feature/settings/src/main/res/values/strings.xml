@@ -24,8 +24,8 @@
     <string name="settings_backup_not_written">The backup could not be saved there. Try another place.</string>
     <string name="settings_backup_restored">Settings restored.</string>
     <plurals name="settings_backup_restored_sign_in">
-        <item quantity="one">Settings restored. Sign in to %1$d server in Manage media providers.</item>
-        <item quantity="other">Settings restored. Sign in to %1$d servers in Manage media providers.</item>
+        <item quantity="one">Settings restored. Sign in to %1$d server in Settings › Servers.</item>
+        <item quantity="other">Settings restored. Sign in to %1$d servers in Settings › Servers.</item>
     </plurals>
     <string name="settings_backup_unreadable">The file could not be opened.</string>
     <string name="settings_backup_invalid">This file is not a mediatheQ backup. Nothing was changed.</string>
