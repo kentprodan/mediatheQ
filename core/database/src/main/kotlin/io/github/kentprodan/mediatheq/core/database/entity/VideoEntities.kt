@@ -25,6 +25,8 @@ data class SeriesEntity(
     @ColumnInfo(name = "date_added") val dateAddedMillis: Long? = null,
     /** Genre names, one per line (a video genre page is later, ADR 0048). */
     val genres: String? = null,
+    /** Studio or network names, one per line (#522). */
+    val studios: String? = null,
     @ColumnInfo(name = "community_rating") val communityRating: Double? = null,
     @Embedded val image: ImageColumns = ImageColumns(),
     @Embedded(prefix = "backdrop_") val backdrop: ImageColumns = ImageColumns(),
@@ -68,6 +70,8 @@ data class VideoEntity(
     @ColumnInfo(name = "season_number") val seasonNumber: Int? = null,
     @ColumnInfo(name = "episode_number") val episodeNumber: Int? = null,
     val genres: String? = null,
+    /** Studio names, one per line (#522). */
+    val studios: String? = null,
     val tagline: String? = null,
     @ColumnInfo(name = "official_rating") val officialRating: String? = null,
     @ColumnInfo(name = "community_rating") val communityRating: Double? = null,

@@ -24,6 +24,8 @@ data class TvPoster(
     val progress: Float? = null,
     val favorite: Boolean = false,
     val genres: List<String> = emptyList(),
+    /** Studios or networks (#522). */
+    val studios: List<String> = emptyList(),
     val dateAdded: Instant? = null,
     /** A movie's length; `null` for a series. */
     val runtime: Duration? = null,
@@ -113,6 +115,51 @@ fun genresOf(posters: List<TvPoster>): List<String> =
         .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
         .map { it.key }
 
+/** Which posters of a kind a tab or a page shows (#522), before the sort and the filters. */
+sealed interface TvVideoOnly {
+    fun keeps(poster: TvPoster): Boolean
+
+    data object All : TvVideoOnly {
+        override fun keeps(poster: TvPoster) = true
+    }
+
+    data object Favorites : TvVideoOnly {
+        override fun keeps(poster: TvPoster) = poster.favorite
+    }
+
+    data class Genre(
+        val name: String,
+    ) : TvVideoOnly {
+        override fun keeps(poster: TvPoster) = name in poster.genres
+    }
+
+    data class Studio(
+        val name: String,
+    ) : TvVideoOnly {
+        override fun keeps(poster: TvPoster) = name in poster.studios
+    }
+}
+
+/** A card of the Genres or Studios tab (#522): the name, how many posters, the newest one's picture. */
+data class TvVideoGroup(
+    val name: String,
+    val count: Int,
+    val artwork: Artwork? = null,
+)
+
+/** The genres or studios ([of]) of [posters] in name order, each with its count and its newest poster's picture. */
+fun groupsOf(
+    posters: List<TvPoster>,
+    of: (TvPoster) -> List<String>,
+): List<TvVideoGroup> {
+    val newestFirst = posters.sortedWith(newestFirst<Instant> { it.dateAdded })
+    return newestFirst
+        .flatMap { poster -> of(poster).map { it to poster } }
+        .groupBy({ it.first }, { it.second })
+        .map { (name, items) -> TvVideoGroup(name, items.size, items.firstNotNullOfOrNull { it.artwork }) }
+        .sortedWith(compareBy(nameComparator()) { it.name })
+}
+
 /** The decades of [posters], newest first: the Decade filter's choices. */
 fun decadesOf(posters: List<TvPoster>): List<Int> =
     posters.mapNotNull { it.year?.let(::decadeOf) }.distinct().sortedDescending()
@@ -139,6 +186,7 @@ internal fun Video.toPoster() =
                 },
         favorite = userData.isFavorite,
         genres = genres,
+        studios = studios,
         dateAdded = dateAdded,
         runtime = duration.takeIf { it.isPositive() },
         rating = communityRating,
@@ -157,6 +205,7 @@ internal fun Series.toPoster() =
         watched = userData.played,
         favorite = userData.isFavorite,
         genres = genres,
+        studios = studios,
         dateAdded = dateAdded,
         rating = communityRating,
     )

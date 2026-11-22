@@ -573,4 +573,39 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `20 to 21 adds the studios, keeps the videos and makes the next start sync`() =
+        runTest {
+            helper.createDatabase(20).apply {
+                execSQL(
+                    "INSERT INTO sync_state (id, last_full_sync_at, owner_server_id, owner_user_id, " +
+                        "checkpoint_index) VALUES (0, 1760000000000, 's', 'u', 0)",
+                )
+                execSQL(
+                    "INSERT INTO video (server_id, id, kind, title, sort_name, duration_ms, is_favorite, play_count, " +
+                        "played, position_ms) VALUES ('s', 'm1', 'Movie', 'Alien', 'Alien', 1000, 0, 0, 0, 0)",
+                )
+                execSQL(
+                    "INSERT INTO series (server_id, id, title, sort_name, is_favorite, play_count, played, " +
+                        "position_ms) VALUES ('s', 'sr1', 'Show', 'Show', 0, 0, 0, 0)",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(21)
+
+            connection.prepare("SELECT last_full_sync_at FROM sync_state").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(0)
+            }
+            for ((table, title) in listOf("video" to "Alien", "series" to "Show")) {
+                connection.prepare("SELECT title, studios FROM $table").use {
+                    assertThat(it.step()).isTrue()
+                    assertThat(it.getText(0)).isEqualTo(title)
+                    assertThat(it.isNull(1)).isTrue()
+                }
+            }
+            connection.close()
+        }
 }

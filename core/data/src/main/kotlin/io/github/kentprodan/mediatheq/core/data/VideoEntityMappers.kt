@@ -25,9 +25,9 @@ import kotlin.time.Instant
 
 // Video domain <-> Room rows (#270), like LibraryEntityMappers. Genres are names, one per line (ADR 0048).
 
-private fun List<String>.joinedGenres() = takeIf { it.isNotEmpty() }?.joinToString("\n")
+private fun List<String>.joinedLines() = takeIf { it.isNotEmpty() }?.joinToString("\n")
 
-private fun String?.splitGenres() = this?.split("\n")?.filter { it.isNotEmpty() }.orEmpty()
+private fun String?.splitLines() = this?.split("\n")?.filter { it.isNotEmpty() }.orEmpty()
 
 private fun UserData.toVideoColumns() =
     VideoUserColumns(playbackPosition.inWholeMilliseconds, playedPercentage, unplayedCount)
@@ -58,7 +58,8 @@ internal fun Video.toEntity() =
         seasonId = seasonId?.itemId,
         seasonNumber = seasonNumber,
         episodeNumber = episodeNumber,
-        genres = genres.joinedGenres(),
+        genres = genres.joinedLines(),
+        studios = studios.joinedLines(),
         tagline = tagline,
         officialRating = officialRating,
         communityRating = communityRating,
@@ -109,7 +110,8 @@ internal fun VideoEntity.toDomain(): Video {
         seasonId = seasonId?.let { MediaId(server, it) },
         seasonNumber = seasonNumber,
         episodeNumber = episodeNumber,
-        genres = genres.splitGenres(),
+        genres = genres.splitLines(),
+        studios = studios.splitLines(),
         tagline = tagline,
         officialRating = officialRating,
         communityRating = communityRating,
@@ -153,7 +155,8 @@ internal fun Series.toEntity() =
         overview = overview,
         year = year,
         dateAddedMillis = dateAdded?.toEpochMilliseconds(),
-        genres = genres.joinedGenres(),
+        genres = genres.joinedLines(),
+        studios = studios.joinedLines(),
         communityRating = communityRating,
         image = artwork.toColumns(),
         backdrop = backdrop.toColumns(),
@@ -170,7 +173,8 @@ internal fun SeriesEntity.toDomain() =
         overview = overview,
         year = year,
         dateAdded = dateAddedMillis?.let(Instant::fromEpochMilliseconds),
-        genres = genres.splitGenres(),
+        genres = genres.splitLines(),
+        studios = studios.splitLines(),
         communityRating = communityRating,
         artwork = image.toDomain(),
         backdrop = backdrop.toDomain(ImageType.Backdrop),

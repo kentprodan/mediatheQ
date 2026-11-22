@@ -6,6 +6,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 ## [Unreleased]
 
 ### Added
+- TV Movies and Series have tabs: All, Collections (movies), Genres, Favorites and Studios or Networks; a genre or studio opens its own grid. Studios arrive with the next library sync.
+- TV tabs (Library, Movies, Series) slide with the tab you pick, and each tab keeps the card you were on.
 - Play music from your Jellyfin server: library of albums, artists, genres, record labels, years, playlists and tracks, kept on the phone and synced in the background.
 - Home with mixes and sections you arrange, Search with filters, album, artist, genre and playlist pages.
 - Now Playing with waveform seek bar, synced lyrics, queue, favorites and ratings; colors from the cover.

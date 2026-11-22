@@ -147,26 +147,24 @@ enum class TvVideoKind(
     ),
 }
 
-@HiltViewModel
-class TvMoviesViewModel
-    @Inject
-    constructor(
-        savedState: SavedStateHandle,
-        sync: LibrarySyncRepository,
-        videos: VideoRepository,
-        @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
-    ) : TvVideoGridViewModel(
-            savedState,
-            sync,
-            TvVideoKind.Movies,
-            videos.movies(VideoSort.Name, unwatched = false).map { movies -> movies.map { it.toPoster() } },
-            defaultDispatcher,
-        )
+/** A kind's posters (#426), all of them, read once by name. */
+private fun VideoRepository.posters(kind: TvVideoKind): Flow<List<TvPoster>> =
+    if (kind == TvVideoKind.Series) {
+        series(VideoSort.Name, unwatched = false).map { series -> series.map { it.toPoster() } }
+    } else {
+        movies(VideoSort.Name, unwatched = false).map { movies -> movies.map { it.toPoster() } }
+    }
 
-@HiltViewModel
-class TvSeriesViewModel
-    @Inject
+/**
+ * The Movies or Series grid (#426) of one tab or page (#522): every poster, the favorites, or one genre's or studio's
+ * ([only]), which then sort and filter as usual; a genre or studio page is titled with its name.
+ */
+@HiltViewModel(assistedFactory = TvVideosViewModel.Factory::class)
+class TvVideosViewModel
+    @AssistedInject
     constructor(
+        @Assisted kind: TvVideoKind,
+        @Assisted val only: TvVideoOnly,
         savedState: SavedStateHandle,
         sync: LibrarySyncRepository,
         videos: VideoRepository,
@@ -174,10 +172,54 @@ class TvSeriesViewModel
     ) : TvVideoGridViewModel(
             savedState,
             sync,
-            TvVideoKind.Series,
-            videos.series(VideoSort.Name, unwatched = false).map { series -> series.map { it.toPoster() } },
+            kind,
+            videos.posters(kind).map { posters -> posters.filter(only::keeps) },
             defaultDispatcher,
-        )
+            flowOf(
+                when (only) {
+                    is TvVideoOnly.Genre -> only.name
+                    is TvVideoOnly.Studio -> only.name
+                    else -> null
+                },
+            ),
+        ) {
+        @AssistedFactory
+        interface Factory {
+            fun create(
+                kind: TvVideoKind,
+                only: TvVideoOnly,
+            ): TvVideosViewModel
+        }
+    }
+
+/** The Genres or Studios / Networks tab (#522): a card per genre or studio of the kind's posters. */
+@HiltViewModel(assistedFactory = TvVideoGroupsViewModel.Factory::class)
+class TvVideoGroupsViewModel
+    @AssistedInject
+    constructor(
+        @Assisted kind: TvVideoKind,
+        @Assisted studios: Boolean,
+        videos: VideoRepository,
+        @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
+    ) : ViewModel() {
+        val groups: StateFlow<TvVideoGroupsUiState> =
+            videos
+                .posters(kind)
+                .map<_, TvVideoGroupsUiState> { posters ->
+                    TvVideoGroupsUiState.Groups(groupsOf(posters) { if (studios) it.studios else it.genres })
+                }.flowOn(defaultDispatcher)
+                // A database read failed: the next change reads again.
+                .catch { emit(TvVideoGroupsUiState.Error) }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvVideoGroupsUiState.Loading)
+
+        @AssistedFactory
+        interface Factory {
+            fun create(
+                kind: TvVideoKind,
+                studios: Boolean,
+            ): TvVideoGroupsViewModel
+        }
+    }
 
 @HiltViewModel
 class TvCollectionsViewModel
@@ -218,6 +260,16 @@ class TvCollectionViewModel
             fun create(id: MediaId): TvCollectionViewModel
         }
     }
+
+sealed interface TvVideoGroupsUiState {
+    data object Loading : TvVideoGroupsUiState
+
+    data object Error : TvVideoGroupsUiState
+
+    data class Groups(
+        val groups: List<TvVideoGroup>,
+    ) : TvVideoGroupsUiState
+}
 
 sealed interface TvVideoGridUiState {
     data object Loading : TvVideoGridUiState

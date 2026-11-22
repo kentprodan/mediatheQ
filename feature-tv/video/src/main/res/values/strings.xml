@@ -16,6 +16,18 @@
     </plurals>
     <string name="tv_video_collections">Collections</string>
     <string name="tv_video_no_collections">No collections yet</string>
+    <!-- The tabs of Movies and Series (#522) -->
+    <string name="tv_video_tab_all">All</string>
+    <string name="tv_video_tab_genres">Genres</string>
+    <string name="tv_video_tab_favorites">Favorites</string>
+    <string name="tv_video_tab_studios">Studios</string>
+    <string name="tv_video_tab_networks">Networks</string>
+    <string name="tv_video_no_favorites">No favorites yet</string>
+    <string name="tv_video_no_favorites_body">Mark a movie or series as a favorite on its page and it shows here.</string>
+    <string name="tv_video_no_groups">Nothing here yet</string>
+    <string name="tv_video_no_studios_body">Studios come with the next library sync.</string>
+    <string name="tv_video_no_genres_body">None of the library has a genre yet.</string>
+    <string name="tv_video_group_gone_body">Nothing in the library has this genre or studio any more.</string>
     <string name="tv_video_sort_collection">Collection order</string>
     <!-- 12 of 340 movies -->
     <string name="tv_video_count_filtered">%1$d of %2$s</string>

@@ -96,9 +96,13 @@ data class PersonKey(
     val name: String,
 ) : NavKey
 
-/** The collections of movies (#426, TV). */
+/** One genre's or studio's movies or series (#522, TV): a card of the Genres or Studios / Networks tab. */
 @Serializable
-data object VideoCollectionsKey : NavKey
+data class VideoGroupKey(
+    val series: Boolean,
+    val studio: Boolean,
+    val name: String,
+) : NavKey
 
 /** One collection's movies (#426, TV). */
 @Serializable

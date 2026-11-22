@@ -50,6 +50,8 @@ data class Video(
     val seasonNumber: Int? = null,
     val episodeNumber: Int? = null,
     val genres: List<String> = emptyList(),
+    /** Studio names (#522): the Movies Studios tab. */
+    val studios: List<String> = emptyList(),
     val tagline: String? = null,
     val officialRating: String? = null,
     /** The public rating, 0-10 (#426: the TV's Rating sort, the movie page). */
@@ -71,6 +73,8 @@ data class Series(
     val year: Int? = null,
     val dateAdded: Instant? = null,
     val genres: List<String> = emptyList(),
+    /** Studios and networks (#522): the Series Networks tab. */
+    val studios: List<String> = emptyList(),
     val communityRating: Double? = null,
     val artwork: Artwork? = null,
     val backdrop: Artwork? = null,
