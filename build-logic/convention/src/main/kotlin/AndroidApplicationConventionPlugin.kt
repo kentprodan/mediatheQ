@@ -15,6 +15,11 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 configureAndroid(this)
                 configureCompose(this)
                 defaultConfig.targetSdk = libs.intVersion("targetSdk")
+                // English and Romanian (#447): the app's own language in Android Settings, from the res/values-* folders;
+                // English is the default (res/resources.properties).
+                androidResources.generateLocaleConfig = true
+                // Only these languages: libraries' other translations would otherwise show in the language list.
+                androidResources.localeFilters += setOf("en", "ro")
                 buildTypes {
                     // R8 (#398): Compose and the app run optimized; names stay, so logs and crashes read as written.
                     getByName("release") {

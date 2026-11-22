@@ -47,6 +47,7 @@ import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.data.TrackAction
 import io.github.kentprodan.mediatheq.core.data.TrackInfo
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
+import io.github.kentprodan.mediatheq.core.designsystem.preview.MqRoPreview
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MqColorSource
@@ -66,6 +67,7 @@ private val content =
 /** The hub: the search field, the settings, then About. */
 @PreviewTest
 @MqPreviews
+@MqRoPreview
 @Composable
 fun SettingsHubScreenshot() {
     MediatheqTheme { SettingsHubScreen(onOpen = {}, onBack = {}) }

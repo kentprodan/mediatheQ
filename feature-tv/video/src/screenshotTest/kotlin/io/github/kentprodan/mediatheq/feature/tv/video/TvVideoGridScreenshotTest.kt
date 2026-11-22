@@ -5,6 +5,7 @@ import androidx.tv.material3.Surface
 import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvPreviews
+import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvRoPreview
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 
@@ -82,6 +83,7 @@ fun TvSeriesFilteredScreenshot() {
 /** Movies as tabs (#522): All selected over its grid. */
 @PreviewTest
 @MqTvPreviews
+@MqTvRoPreview
 @Composable
 fun TvMoviesTabsScreenshot() {
     val arranged = arrange(posters, TvVideoSort.Name, TvVideoFilter(), 0)

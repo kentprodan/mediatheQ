@@ -16,3 +16,7 @@ import androidx.compose.ui.tooling.preview.Preview
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 annotation class MqPreviews
+
+/** A screen in Romanian (#447): the phone, light, at font scale 1.0, to see the translated texts fit. */
+@Preview(name = "Romanian", device = Devices.PIXEL_9, showBackground = true, locale = "ro")
+annotation class MqRoPreview
