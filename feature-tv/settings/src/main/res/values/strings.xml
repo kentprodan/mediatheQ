@@ -90,4 +90,7 @@
     <string name="tv_settings_carousel_source">Carousel shows</string>
     <string name="tv_settings_carousel_source_auto">Automatic: new movies, or new albums without video</string>
     <string name="tv_settings_carousel_skip_watched">Leave out what you watched</string>
+    <string name="tv_settings_menu_style">Menu style</string>
+    <string name="tv_settings_menu_style_modal">Modal: the menu opens over the dimmed screen</string>
+    <string name="tv_settings_menu_style_standard">Standard: the menu pushes the screen aside</string>
 </resources>

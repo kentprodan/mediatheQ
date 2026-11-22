@@ -187,6 +187,14 @@ fun TvSettingsScreen(
             }
             item {
                 MqTvListItem(
+                    stringResource(R.string.tv_settings_menu_style),
+                    { onAction(TvSettingsAction.NextMenuStyle) },
+                    Modifier.focusMemory(focus, "menuStyle"),
+                    supporting = stringResource(state.menuStyle.label),
+                )
+            }
+            item {
+                MqTvListItem(
                     stringResource(R.string.tv_settings_simple_transitions),
                     { onAction(TvSettingsAction.ToggleSimpleTransitions) },
                     Modifier.focusMemory(focus, "transitions"),
@@ -536,6 +544,13 @@ private val io.github.kentprodan.mediatheq.core.data.DisplayMatch.label: Int
             io.github.kentprodan.mediatheq.core.data.DisplayMatch.RateAndResolution -> {
                 R.string.tv_settings_display_match_resolution
             }
+        }
+
+private val io.github.kentprodan.mediatheq.core.data.TvMenuStyle.label: Int
+    get() =
+        when (this) {
+            io.github.kentprodan.mediatheq.core.data.TvMenuStyle.Modal -> R.string.tv_settings_menu_style_modal
+            io.github.kentprodan.mediatheq.core.data.TvMenuStyle.Standard -> R.string.tv_settings_menu_style_standard
         }
 
 private val TvCarousel.label: Int

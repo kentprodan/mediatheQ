@@ -6,6 +6,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.common.HeldKey
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.DisplayMatch
 import io.github.kentprodan.mediatheq.core.data.SegmentAction
@@ -99,6 +100,10 @@ class TvPlayerViewModel
         private val started = MutableStateFlow(false)
 
         val position: StateFlow<Duration> = playback.position
+
+        // A held Left or Right (#353): told by timing, per video; repeats step on from the last target.
+        private val held = HeldKey()
+        private var heldTarget: Duration? = null
         val videoPlayer = playback.videoPlayer
 
         val uiState: StateFlow<TvPlayerUiState> =
@@ -227,7 +232,12 @@ class TvPlayerViewModel
 
                 is TvPlayerAction.Seek -> {
                     val duration = playing?.duration ?: return
-                    playback.seekTo(videoSeekTarget(position.value, duration, action.forward, action.repeat))
+                    val repeat = action.atMs?.let { held.press(action.forward, it, playing.video.id) ?: return } ?: 0
+                    if (repeat == 0) heldTarget = null
+                    // A held key steps on from its last target: the position lags a round trip behind.
+                    val target = videoSeekTarget(heldTarget ?: position.value, duration, action.forward, repeat)
+                    heldTarget = target
+                    playback.seekTo(target)
                 }
 
                 is TvPlayerAction.ChooseAudio -> {
@@ -356,10 +366,13 @@ sealed interface TvPlayerUiState {
 sealed interface TvPlayerAction {
     data object TogglePlayPause : TvPlayerAction
 
-    /** Left or Right; [repeat] counts the held key's repeats ([videoSeekTarget]). */
+    /**
+     * Left or Right, a key-down at [atMs] (uptime); held keys are told by timing ([HeldKey], #353). Without a time
+     * (the bar's -10 s / +30 s buttons) it is a press of its own.
+     */
     data class Seek(
         val forward: Boolean,
-        val repeat: Int = 0,
+        val atMs: Long? = null,
     ) : TvPlayerAction
 
     data class ChooseAudio(

@@ -59,6 +59,9 @@ sealed interface TvSettingsUiState {
         val carouselSkipWatched: Boolean = true,
         /** The sections the carousel can show in the app mode (#521). */
         val carouselSources: List<HomeSection> = emptyList(),
+        /** The side menu's style (#520). */
+        val menuStyle: io.github.kentprodan.mediatheq.core.data.TvMenuStyle =
+            io.github.kentprodan.mediatheq.core.data.TvMenuStyle.Modal,
     ) : TvSettingsUiState
 }
 
@@ -89,6 +92,9 @@ sealed interface TvSettingsAction {
     ) : TvSettingsAction
 
     data object ToggleCarouselSkipWatched : TvSettingsAction
+
+    /** Settings -> Display -> Menu style (#520): Modal, Standard in turn. */
+    data object NextMenuStyle : TvSettingsAction
 
     /** Opens the dialog of one part of the subtitle style. */
     data class ChooseSubtitle(

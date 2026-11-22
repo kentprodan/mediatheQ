@@ -121,6 +121,7 @@ class DefaultLibraryPreferencesRepository
                     tvCarouselSource = navigation.tvCarouselSource?.name.orEmpty(),
                     tvCarouselSkipWatched = navigation.tvCarouselSkipWatched,
                     tvImmersiveRows = navigation.tvImmersiveRows.map { it.name },
+                    tvMenuStyle = navigation.tvMenuStyle.name,
                     tvCardStyles = navigation.tvCardStyles.entries.associate { (k, v) -> k.name to v.name },
                 ),
             )
@@ -149,6 +150,7 @@ class DefaultLibraryPreferencesRepository
                 tvImmersiveRows =
                     stored.tvImmersiveRows?.mapNotNull { enumOrNull<HomeSection>(it) }?.toSet()
                         ?: defaults.tvImmersiveRows,
+                tvMenuStyle = enumOrNull<TvMenuStyle>(stored.tvMenuStyle) ?: defaults.tvMenuStyle,
                 // Unknown names (a section or variant removed later) are dropped.
                 tvCardStyles =
                     stored.tvCardStyles

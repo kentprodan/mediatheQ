@@ -69,6 +69,8 @@ data class NavigationPreferences(
     val tvCarouselSkipWatched: Boolean = true,
     /** TV (#521): Home rows shown as immersive lists (the focused card's backdrop and details behind the row). */
     val tvImmersiveRows: Set<HomeSection> = emptySet(),
+    /** TV (#520): how the side menu opens. */
+    val tvMenuStyle: TvMenuStyle = TvMenuStyle.Modal,
     /** TV (#518): the card variant a Home row uses; a row missing here keeps its own default. */
     val tvCardStyles: Map<HomeSection, TvCardStyle> = emptyMap(),
 ) {
@@ -109,3 +111,9 @@ enum class TvCardStyle { Standard, Classic, Compact, WideStandard, WideClassic }
 
 /** TV Home's featured carousel (#521, Google TV guidelines): off, an inset card, or immersive (full width). */
 enum class TvCarousel { Off, Card, Immersive }
+
+/**
+ * The TV side menu's style (#520, Google TV guidelines): Modal floats over the dimmed screen (the default), Standard
+ * pushes the screen aside while open.
+ */
+enum class TvMenuStyle { Modal, Standard }

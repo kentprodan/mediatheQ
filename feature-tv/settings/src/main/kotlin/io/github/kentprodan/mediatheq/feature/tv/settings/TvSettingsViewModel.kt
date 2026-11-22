@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.RememberedOutputs
 import io.github.kentprodan.mediatheq.core.data.TvCarousel
+import io.github.kentprodan.mediatheq.core.data.TvMenuStyle
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeKind
@@ -75,6 +76,7 @@ class TvSettingsViewModel
                     carouselSource = plain.tvCarouselSource?.takeIf { it in carouselSources(mode) },
                     carouselSkipWatched = plain.tvCarouselSkipWatched,
                     carouselSources = carouselSources(mode),
+                    menuStyle = plain.tvMenuStyle,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvSettingsUiState.Loading)
 
@@ -120,6 +122,17 @@ class TvSettingsViewModel
                     updateNavigation {
                         val all = TvCarousel.entries
                         it.copy(tvCarousel = all[(it.tvCarousel.ordinal + 1) % all.size])
+                    }
+                }
+
+                TvSettingsAction.NextMenuStyle -> {
+                    val repo = libraryPreferences ?: return
+                    viewModelScope.launch {
+                        val navigation = repo.preferences.first().navigation
+                        val all = TvMenuStyle.entries
+                        repo.setNavigation(
+                            navigation.copy(tvMenuStyle = all[(navigation.tvMenuStyle.ordinal + 1) % all.size]),
+                        )
                     }
                 }
 
