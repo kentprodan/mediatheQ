@@ -44,6 +44,9 @@ sealed interface TvSettingsUiState {
         /** Home's hero (#504). */
         val homeHero: io.github.kentprodan.mediatheq.core.data.TvHomeHero =
             io.github.kentprodan.mediatheq.core.data.TvHomeHero.None,
+        /** The side menu's style (#520). */
+        val menuStyle: io.github.kentprodan.mediatheq.core.data.TvMenuStyle =
+            io.github.kentprodan.mediatheq.core.data.TvMenuStyle.Modal,
     ) : TvSettingsUiState
 }
 
@@ -65,6 +68,9 @@ sealed interface TvSettingsAction {
 
     /** Settings -> Display -> Home hero (#504): None, Compact, Large in turn. */
     data object NextHomeHero : TvSettingsAction
+
+    /** Settings -> Display -> Menu style (#520): Modal, Standard in turn. */
+    data object NextMenuStyle : TvSettingsAction
 
     /** Opens the dialog of one part of the subtitle style. */
     data class ChooseSubtitle(

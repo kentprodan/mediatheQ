@@ -1,6 +1,9 @@
 package io.github.kentprodan.mediatheq.tv.navigation
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
+import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.data.TvMenuStyle
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -9,7 +12,9 @@ import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAppLog
 import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
+import io.github.kentprodan.mediatheq.core.testing.FakeLibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakeSessionRepository
 import io.github.kentprodan.mediatheq.core.testing.MainDispatcherRule
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -60,6 +65,23 @@ class TvShellViewModelTest {
                     TvDestination.Series,
                     TvDestination.Settings,
                 ).inOrder()
+        }
+
+    @Test
+    fun `the menu shows who is signed in and the chosen menu style (#520)`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val session = FakeSessionRepository()
+            val preferences = FakeLibraryPreferencesRepository()
+            val shell = TvShellViewModel(playback, log, appMode, null, preferences, session = session)
+            assertThat(shell.userName.value).isNull()
+            assertThat(shell.menuStyle.value).isEqualTo(TvMenuStyle.Modal)
+
+            session.session.value = SessionState.LoggedIn("Home", "Ana")
+            preferences.setNavigation(NavigationPreferences(tvMenuStyle = TvMenuStyle.Standard))
+            runCurrent()
+
+            assertThat(shell.userName.value).isEqualTo("Ana")
+            assertThat(shell.menuStyle.value).isEqualTo(TvMenuStyle.Standard)
         }
 
     @Test

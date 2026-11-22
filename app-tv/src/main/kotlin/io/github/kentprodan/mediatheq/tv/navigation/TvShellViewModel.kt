@@ -8,6 +8,9 @@ import io.github.kentprodan.mediatheq.core.common.AppLog
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.ParentalControls
+import io.github.kentprodan.mediatheq.core.data.SessionRepository
+import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.data.TvMenuStyle
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.aboveLimit
 import io.github.kentprodan.mediatheq.core.model.AppMode
@@ -44,6 +47,7 @@ class TvShellViewModel
         preferences: LibraryPreferencesRepository? = null,
         private val parental: ParentalControls? = null,
         private val videos: VideoRepository? = null,
+        session: SessionRepository? = null,
     ) : ViewModel() {
         /** A key waiting for the PIN (#434), with whether the last try was wrong. */
         data class PinRequest(
@@ -134,6 +138,16 @@ class TvShellViewModel
         val simpleTransitions: StateFlow<Boolean> =
             (preferences?.preferences?.map { it.navigation.simpleTransitions } ?: flowOf(false))
                 .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+        /** The menu's style, TV Settings -> Display (#520). */
+        val menuStyle: StateFlow<TvMenuStyle> =
+            (preferences?.preferences?.map { it.navigation.tvMenuStyle } ?: flowOf(TvMenuStyle.Modal))
+                .stateIn(viewModelScope, SharingStarted.Eagerly, TvMenuStyle.Modal)
+
+        /** Who is signed in, for the menu's profile entry (#520); `null` hides it. */
+        val userName: StateFlow<String?> =
+            (session?.session?.map { (it as? SessionState.LoggedIn)?.userName } ?: flowOf(null))
+                .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
         /** A video another client started here (#389): the shell opens the player on it. */
         val remoteVideo: Flow<MediaId> = remoteControl?.videoStarted ?: emptyFlow()
