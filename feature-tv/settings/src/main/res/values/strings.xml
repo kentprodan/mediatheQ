@@ -7,7 +7,6 @@
     <string name="tv_settings_passthrough_unknown">Play something over HDMI once to set up this output.</string>
     <string name="tv_settings_streaming">Streaming</string>
     <string name="tv_settings_quality">Streaming quality</string>
-    <string name="tv_settings_quality_current">current</string>
     <string name="tv_settings_original">Original</string>
     <string name="tv_settings_kbps">%1$d kb/s</string>
     <string name="tv_settings_library">Library</string>

@@ -31,11 +31,13 @@ import androidx.tv.material3.Text
 data class MqTvMenuEntry(
     val label: String,
     val icon: ImageVector?,
+    /** A choice among the menu's entries (#523): a radio button shows whether it is the current one. */
+    val selected: Boolean? = null,
     val onClick: () -> Unit,
 )
 
 /**
- * An item's menu (#236, #238): a dialog with [title] and [entries], focus on the first. Choosing one runs it and closes
+ * An item's menu (#236, #238): a dialog with [title] and [entries], focus on the current choice, else the first. Choosing one runs it and closes
  * the menu. A long-press opens it while select is still held: that key's repeats and release are ignored, select
  * counts only after a fresh press in the menu.
  */
@@ -46,6 +48,7 @@ fun MqTvMenu(
     onDismiss: () -> Unit,
 ) {
     val first = remember { FocusRequester() }
+    val focused = entries.indexOfFirst { it.selected == true }.coerceAtLeast(0)
     var armed by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.large) {
@@ -73,14 +76,17 @@ fun MqTvMenu(
                             entry.onClick()
                             onDismiss()
                         },
-                        if (index == 0) Modifier.focusRequester(first) else Modifier,
+                        if (index == focused) Modifier.focusRequester(first) else Modifier,
                         icon = entry.icon,
+                        selected = entry.selected == true,
+                        control = entry.selected?.let { MqTvControl.Radio },
                     )
                 }
             }
         }
+        // Inside the dialog: its entries are composed (and the requester attached) by the time this runs.
+        LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
     }
-    LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
 }
 
 private val SELECT_KEYS = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter)

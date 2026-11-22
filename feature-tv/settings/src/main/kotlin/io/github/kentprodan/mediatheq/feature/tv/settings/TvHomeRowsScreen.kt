@@ -31,10 +31,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
-import androidx.tv.material3.Switch
 import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.data.TvCardStyle
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
@@ -96,7 +96,8 @@ fun TvHomeRowsScreen(
                         stringResource(cardStyleLabel(row.cardStyle)) +
                             if (row.immersive) " · " + stringResource(R.string.tv_settings_immersive_row) else "",
                     onLongClick = { moving = row.section },
-                    trailing = { Switch(checked = row.shown, onCheckedChange = null) },
+                    selected = row.shown,
+                    control = MqTvControl.Switch,
                 )
             }
             // Genre rows (#431): per account, after the video rows.
@@ -114,7 +115,8 @@ fun TvHomeRowsScreen(
                         genre,
                         { onAction(TvHomeRowsAction.ToggleGenre(genre)) },
                         Modifier.focusMemory(focus, "genre/$genre"),
-                        trailing = { Switch(checked = on, onCheckedChange = null) },
+                        selected = on,
+                        control = MqTvControl.Switch,
                     )
                 }
             }

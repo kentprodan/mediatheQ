@@ -48,6 +48,7 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvTabs
@@ -498,6 +499,7 @@ private fun SortMenu(
                 },
                 if (sort == current) Modifier.focusRequester(selected) else Modifier,
                 selected = sort == current,
+                control = MqTvControl.Radio,
             )
         }
     }
@@ -522,6 +524,7 @@ private fun FilterMenu(
                         { onAction(TvVideoGridAction.SetWatched(watched)) },
                         if (watched == TvWatched.All) Modifier.focusRequester(first) else Modifier,
                         selected = filter.watched == watched,
+                        control = MqTvControl.Radio,
                     )
                 }
                 if (favorites) {
@@ -530,6 +533,7 @@ private fun FilterMenu(
                             stringResource(R.string.tv_video_filter_favorites),
                             { onAction(TvVideoGridAction.ToggleFavorites) },
                             selected = filter.favorites,
+                            control = MqTvControl.Checkbox,
                         )
                     }
                 }
@@ -609,6 +613,7 @@ private fun <T : Any> ChoiceDialog(
                 },
                 if (current == null) Modifier.focusRequester(selected) else Modifier,
                 selected = current == null,
+                control = MqTvControl.Radio,
             )
         }
         items(choices, key = { it.toString() }) { choice ->
@@ -620,6 +625,7 @@ private fun <T : Any> ChoiceDialog(
                 },
                 if (choice == current) Modifier.focusRequester(selected) else Modifier,
                 selected = choice == current,
+                control = MqTvControl.Radio,
             )
         }
     }
