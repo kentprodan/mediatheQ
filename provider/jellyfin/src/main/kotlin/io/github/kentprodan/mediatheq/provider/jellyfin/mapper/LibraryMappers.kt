@@ -124,6 +124,8 @@ internal fun BaseItemDto.toVideo(
         seasonNumber = parentIndexNumber.takeIf { episode },
         episodeNumber = indexNumber.takeIf { episode },
         genres = genreNames(),
+        // No screen lists an episode's studios: only movies keep them.
+        studios = studioNames().takeUnless { episode }.orEmpty(),
         tagline = taglines.firstOrNull { it.isNotBlank() },
         officialRating = officialRating?.takeIf { it.isNotBlank() },
         communityRating = communityRating,
@@ -146,6 +148,7 @@ internal fun BaseItemDto.toSeries(serverId: ServerId): Series? {
         year = productionYear,
         dateAdded = instant(dateCreated),
         genres = genreNames(),
+        studios = studioNames(),
         communityRating = communityRating,
         officialRating = officialRating?.takeIf { it.isNotBlank() },
         artwork = artwork(),
@@ -186,6 +189,10 @@ internal fun BaseItemDto.toSeason(serverId: ServerId): Season? {
 
 private fun BaseItemDto.genreNames(): List<String> =
     genreItems.mapNotNull { pair -> pair.name?.takeIf { it.isNotBlank() } }.distinct()
+
+/** A movie's studios or a series' networks (#522), by name. */
+private fun BaseItemDto.studioNames(): List<String> =
+    studios.mapNotNull { pair -> pair.name?.takeIf { it.isNotBlank() } }.distinct()
 
 internal fun MediaStreamDto.toVideoFormat(): VideoFormat? {
     val codec = codec?.lowercase()?.takeIf { it.isNotEmpty() } ?: return null

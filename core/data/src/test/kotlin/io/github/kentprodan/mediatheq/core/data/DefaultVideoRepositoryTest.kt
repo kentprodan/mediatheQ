@@ -86,6 +86,7 @@ class DefaultVideoRepositoryTest {
             year = 2020,
             duration = 90.minutes,
             genres = listOf("Comedy", "Drama"),
+            studios = listOf("Legendary", "Warner Bros."),
             format = VideoFormat("hevc", 3840, 2160, VideoRange.DolbyVision, 20_000),
             userData = UserData(played = false, playbackPosition = 12.minutes, playedPercentage = 13.3),
         )
@@ -106,7 +107,16 @@ class DefaultVideoRepositoryTest {
                 .map(::VideoStreamStaging),
         )
         dao.stageSeries(
-            listOf(SeriesStaging(Series(id("sr1"), "Show", userData = UserData(unplayedCount = 5)).toEntity())),
+            listOf(
+                SeriesStaging(
+                    Series(
+                        id("sr1"),
+                        "Show",
+                        studios = listOf("HBO"),
+                        userData = UserData(unplayedCount = 5),
+                    ).toEntity(),
+                ),
+            ),
         )
         dao.stageSeasons(listOf(SeasonStaging(SeasonEntity("s", "se1", "sr1", "Season 1", 1))))
         dao.swap(1, "s", "u")
@@ -118,6 +128,7 @@ class DefaultVideoRepositoryTest {
             library()
 
             assertThat(repository.video(id("m1")).first()).isEqualTo(movie)
+            assertThat(repository.series(id("sr1")).first()?.studios).containsExactly("HBO")
             assertThat(
                 repository
                     .streams(id("m1"))

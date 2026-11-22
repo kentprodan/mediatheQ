@@ -60,3 +60,6 @@ class SyncVideoRatingMigration : ResyncMigration(STAGING_12)
 
 /** 17 -> 18 (#434): series have no official rating yet. */
 class SyncSeriesRatingMigration : ResyncMigration(STAGING_12)
+
+/** 20 -> 21 (#522): movies, episodes and series have no studios yet. */
+class SyncStudiosMigration : ResyncMigration(STAGING_12)

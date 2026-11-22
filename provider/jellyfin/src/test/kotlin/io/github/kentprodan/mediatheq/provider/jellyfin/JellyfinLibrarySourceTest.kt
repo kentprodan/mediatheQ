@@ -468,6 +468,7 @@ class JellyfinLibrarySourceTest {
             assertThat(movie.tagline).isEqualTo("The tagline of Movie 1.")
             assertThat(movie.officialRating).isEqualTo("R")
             assertThat(movie.communityRating).isEqualTo(7.197)
+            assertThat(movie.studios).containsExactly("Mandate Pictures", "Point Grey Pictures").inOrder()
             assertThat(movie.genres).containsExactly("Comedy", "Drama").inOrder()
             assertThat(movie.dateAdded).isEqualTo(Instant.parse("2026-11-07T21:38:14.2409704Z"))
             assertThat(movie.format).isEqualTo(VideoFormat("h264", 1920, 1080, VideoRange.Sdr, 14_477))
@@ -504,6 +505,7 @@ class JellyfinLibrarySourceTest {
             assertThat(series.year).isEqualTo(2011)
             assertThat(series.userData.unplayedCount).isEqualTo(94)
             assertThat(series.userData.playedPercentage).isEqualTo(0.0)
+            assertThat(series.studios).containsExactly("CBS", "Michael Patrick King Productions").inOrder()
         }
 
     @Test
