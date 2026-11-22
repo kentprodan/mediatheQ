@@ -214,6 +214,22 @@ class JellyfinLibrarySourceTest {
         }
 
     @Test
+    fun `series and artists keep their logo, an episode never does (#523)`() =
+        runTest {
+            enqueue("items_logo/series.json")
+            enqueue("items_logo/artists.json")
+            enqueue("items_logo/episodes.json")
+
+            val series = (source.series(server, 0, 500) as MqResult.Success).value.items
+            val artists = (source.albumArtists(server, 0, 500) as MqResult.Success).value.items
+            val episodes = (source.episodes(server, 0, 500) as MqResult.Success).value.items
+
+            assertThat(series.single().logo).isEqualTo(Artwork("s1", "sl1", null, ImageType.Logo))
+            assertThat(artists.single().logo).isEqualTo(Artwork("a1", "al1", null, ImageType.Logo))
+            assertThat(episodes.single().logo).isNull()
+        }
+
+    @Test
     fun `R18 albums carry their record labels, without the no-label placeholder`() =
         runTest {
             enqueue("items_music_album/with_studios.json")

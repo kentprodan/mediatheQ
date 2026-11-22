@@ -80,7 +80,7 @@ data class Series(
     val communityRating: Double? = null,
     val artwork: Artwork? = null,
     val backdrop: Artwork? = null,
-    /** The title as an image (#523); a movie's only, never an episode's. */
+    /** The title as an image (#523). */
     val logo: Artwork? = null,
     val userData: UserData = UserData(),
     /** "TV-14", "16"; the age gate (#434) reads it for the series' episodes too. */

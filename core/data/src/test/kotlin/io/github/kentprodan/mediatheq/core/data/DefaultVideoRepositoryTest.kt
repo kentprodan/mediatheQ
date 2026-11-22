@@ -116,6 +116,7 @@ class DefaultVideoRepositoryTest {
                         id("sr1"),
                         "Show",
                         studios = listOf("HBO"),
+                        logo = Artwork("sr1", "sl1", null, ImageType.Logo),
                         userData = UserData(unplayedCount = 5),
                     ).toEntity(),
                 ),
@@ -132,6 +133,9 @@ class DefaultVideoRepositoryTest {
 
             assertThat(repository.video(id("m1")).first()).isEqualTo(movie)
             assertThat(repository.series(id("sr1")).first()?.studios).containsExactly("HBO")
+            assertThat(
+                repository.series(id("sr1")).first()?.logo,
+            ).isEqualTo(Artwork("sr1", "sl1", null, ImageType.Logo))
             assertThat(
                 repository
                     .streams(id("m1"))

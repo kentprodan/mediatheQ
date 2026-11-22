@@ -1,0 +1,16 @@
+{
+  "Items": [
+    {
+      "Name": "Ada",
+      "Id": "a1",
+      "Type": "MusicArtist",
+      "ImageTags": {
+        "Primary": "p1",
+        "Logo": "al1"
+      },
+      "BackdropImageTags": []
+    }
+  ],
+  "TotalRecordCount": 1,
+  "StartIndex": 0
+}

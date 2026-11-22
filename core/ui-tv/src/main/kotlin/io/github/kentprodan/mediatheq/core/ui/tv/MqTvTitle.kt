@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,7 +39,9 @@ fun MqTvTitle(
     maxLines: Int = 2,
     style: TvTitleStyle = LocalTvTitleStyle.current,
 ) {
-    val showLogo = logo != null && style != TvTitleStyle.Text
+    // A logo that does not load (offline, gone from the server) gives way to the name.
+    var failed by remember(logo) { mutableStateOf(false) }
+    val showLogo = logo != null && style != TvTitleStyle.Text && !failed
     Column(
         modifier.semantics(mergeDescendants = true) {
             heading()
@@ -50,6 +56,7 @@ fun MqTvTitle(
                 modifier = Modifier.height(LOGO_HEIGHT).widthIn(max = LOGO_MAX_WIDTH),
                 alignment = Alignment.CenterStart,
                 contentScale = ContentScale.Fit,
+                onError = { failed = true },
             )
         }
         if (!showLogo || style == TvTitleStyle.LogoAndText) {

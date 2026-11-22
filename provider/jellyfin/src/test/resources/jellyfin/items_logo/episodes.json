@@ -1,0 +1,18 @@
+{
+  "Items": [
+    {
+      "Name": "Pilot",
+      "Id": "e1",
+      "Type": "Episode",
+      "SeriesId": "s1",
+      "SeriesName": "Show",
+      "ImageTags": {
+        "Primary": "p1",
+        "Logo": "l1"
+      },
+      "BackdropImageTags": []
+    }
+  ],
+  "TotalRecordCount": 1,
+  "StartIndex": 0
+}

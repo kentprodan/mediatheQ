@@ -2,8 +2,11 @@ package io.github.kentprodan.mediatheq.core.designsystem.tv.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,6 +67,9 @@ fun MqTvMenu(
             Column(
                 Modifier
                     .width(360.dp)
+                    // A long list (25 subtitle tracks) scrolls; focus on the current choice brings it into view.
+                    .heightIn(max = MENU_MAX_HEIGHT)
+                    .verticalScroll(rememberScrollState())
                     .padding(16.dp)
                     .onPreviewKeyEvent { event ->
                         if (event.key !in SELECT_KEYS) return@onPreviewKeyEvent false
@@ -97,5 +103,7 @@ fun MqTvMenu(
         LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
     }
 }
+
+private val MENU_MAX_HEIGHT = 600.dp
 
 private val SELECT_KEYS = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter)

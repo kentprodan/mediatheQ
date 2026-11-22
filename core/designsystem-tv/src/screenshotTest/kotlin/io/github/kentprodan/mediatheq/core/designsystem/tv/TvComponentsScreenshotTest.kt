@@ -129,7 +129,7 @@ fun TvListItemSwitchScreenshot() =
         }
     }
 
-/** The selection controls (#523): a chosen and an unchosen radio, a checked and an unchecked checkbox. */
+/** The selection controls (#523): radios and checkboxes on and off, then disabled. */
 @PreviewTest
 @MqTvPreviews
 @Composable
@@ -141,6 +141,8 @@ fun TvListItemControlsScreenshot() =
                 MqTvListItem("High", {}, control = MqTvControl.Radio)
                 MqTvListItem("Favorites", {}, selected = true, control = MqTvControl.Checkbox)
                 MqTvListItem("Reverse order", {}, control = MqTvControl.Checkbox)
+                MqTvListItem("Disabled choice", {}, selected = true, enabled = false, control = MqTvControl.Radio)
+                MqTvListItem("Disabled option", {}, selected = true, enabled = false, control = MqTvControl.Checkbox)
             }
         }
     }
