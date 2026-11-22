@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.data.PlaylistItem
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
+import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.data.genreRows
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.AppMode
@@ -275,5 +276,51 @@ class TvHomeViewModelTest {
 
         assertThat(rows.map { it.genre }).containsExactly("Crime", "Animation").inOrder()
         assertThat(rows.first().items.map { it.id }).containsExactly(wire.id, heat.id).inOrder()
+    }
+
+    @Test
+    fun `the carousel shows new albums by default and the immersive rows from Settings (#521)`() =
+        test {
+            preferences.setNavigation(
+                preferences.preferences.value.navigation.copy(tvImmersiveRows = setOf(HomeSection.FavoriteAlbums)),
+            )
+            val state = withLibrary().uiState.value as TvHomeUiState.Content
+
+            assertThat(state.carousel).isEqualTo(TvCarousel.Card)
+            assertThat(state.featuredSection).isEqualTo(HomeSection.RecentlyAddedAlbums)
+            assertThat(state.featured.map { it.id }).containsExactly(beta.id, alpha.id).inOrder()
+            assertThat(state.immersiveRows).containsExactly(HomeSection.FavoriteAlbums)
+        }
+
+    @Test
+    fun `a carousel turned off has no slides (#521)`() =
+        test {
+            preferences.setNavigation(preferences.preferences.value.navigation.copy(tvCarousel = TvCarousel.Off))
+
+            assertThat((withLibrary().uiState.value as TvHomeUiState.Content).featured).isEmpty()
+        }
+
+    @Test
+    fun `the carousel source is the chosen section while the mode has it, else new movies or new albums (#521)`() {
+        assertThat(carouselSource(null, AppMode.Both)).isEqualTo(HomeSection.RecentlyAddedMovies)
+        assertThat(carouselSource(null, AppMode.Music)).isEqualTo(HomeSection.RecentlyAddedAlbums)
+        assertThat(carouselSource(HomeSection.FavoriteAlbums, AppMode.Both)).isEqualTo(HomeSection.FavoriteAlbums)
+        assertThat(carouselSource(HomeSection.ContinueWatching, AppMode.Music))
+            .isEqualTo(HomeSection.RecentlyAddedAlbums)
+    }
+
+    @Test
+    fun `the carousel leaves out watched videos on demand and keeps at most six slides (#521)`() {
+        val videos =
+            (1..8).map {
+                Video(id("v$it"), VideoKind.Movie, "Movie $it", userData = UserData(played = it <= 2))
+            }
+
+        assertThat(featured(HomeItems.Videos(videos, wide = false), skipWatched = true).map { it.id })
+            .containsExactlyElementsIn((3..8).map { id("v$it") })
+            .inOrder()
+        assertThat(featured(HomeItems.Videos(videos, wide = false), skipWatched = false).map { it.id })
+            .containsExactlyElementsIn((1..6).map { id("v$it") })
+            .inOrder()
     }
 }
