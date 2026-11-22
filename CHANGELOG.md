@@ -55,6 +55,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Movie and series pages on the TV: the backdrop, facts and format, Play or Resume, Favorite and Watched, audio and subtitles kept per movie; series with Next up, season tabs, episodes and watched for a season or the whole series; and the TV video player with fast seeking, a bar that hides itself, the next episode countdown and the screen kept on while playing.
 - Remote control: Jellyfin web (and soon the phone) can pause, skip and seek mediatheQ on the TV and the phone, and send a movie to play from where you were; the TV opens its player on it.
 - Playlists edited without a connection keep your changes and send them when the server is back; if the playlist also changed on the server meanwhile, you choose Merge, Replace or Skip.
+- A featured carousel at the top of TV Home (Settings -> Display): as a card or across the whole top, showing new movies, new albums or a Home section you pick, optionally without what you watched; it moves on every 8 seconds and stops while you are on it.
+- Any TV Home row can be an immersive list (Settings -> Home rows, long press a row): the focused card's picture and details appear behind the row.
 
 ### Changed
 - While an output's equalizer is off, its Preset row says why the preset and bands are grey.
