@@ -226,7 +226,7 @@ private fun Rows(
         ) {
             if (showCarousel) {
                 item(key = "featured", contentType = "featured") {
-                    FeaturedCarousel(state, focus, onAction, navigation)
+                    FeaturedCarousel(state, focus, onAction, navigation, Modifier.rowFocus(focused, FEATURED_KEY))
                 }
             }
             items(rows.take(split), key = { it.section.name }, contentType = { "row" }) { sectionRow(it) }
@@ -669,12 +669,15 @@ private class HeroFocus {
     var row by mutableStateOf<String?>(null)
 }
 
-/** What the hero shows: [focus] once it rested for [HERO_DELAY]; the state is read only by the hero's parts. */
+/**
+ * The focused row and card once they rested for [HERO_DELAY], debounced together so a row never shows the card of the
+ * row the focus left; the state is read only by the immersive layers.
+ */
 @OptIn(FlowPreview::class)
 @Composable
-private fun rememberHero(focus: HeroFocus): State<HeroInfo?> =
-    produceState<HeroInfo?>(null, focus) {
-        snapshotFlow { focus.info }.debounce(HERO_DELAY).collect { value = it }
+private fun rememberHero(focus: HeroFocus): State<Pair<String?, HeroInfo?>> =
+    produceState<Pair<String?, HeroInfo?>>(null to null, focus) {
+        snapshotFlow { focus.row to focus.info }.debounce(HERO_DELAY).collect { value = it }
     }
 
 /** The focused row lands just below the hero (#504), at the same place every time, like Google TV. */
@@ -707,11 +710,12 @@ private fun ImmersiveRow(
     key: String,
     title: String,
     focused: HeroFocus,
-    hero: State<HeroInfo?>,
+    hero: State<Pair<String?, HeroInfo?>>,
     content: LazyListScope.() -> Unit,
 ) {
     Box(Modifier.fillMaxWidth().height(IMMERSIVE_ROW_HEIGHT).rowFocus(focused, key)) {
-        val info = hero.value.takeIf { focused.row == key }
+        // Hidden at once when the focus leaves the row, shown only after it rested on a card here.
+        val info = hero.value.takeIf { (row) -> row == key && focused.row == key }?.second
         AnimatedVisibility(
             visible = info != null,
             modifier = Modifier.matchParentSize(),
@@ -766,15 +770,16 @@ private fun FeaturedCarousel(
     focus: FocusMemory,
     onAction: (TvHomeAction) -> Unit,
     navigation: TvHomeNavigation,
+    modifier: Modifier,
 ) {
     val immersive = state.carousel == TvCarousel.Immersive
     val overline = stringResource(state.featuredSection.title)
     MqTvCarousel(
         state.featured.size,
         if (immersive) {
-            Modifier.fillMaxWidth().height(IMMERSIVE_CAROUSEL_HEIGHT)
+            modifier.fillMaxWidth().height(IMMERSIVE_CAROUSEL_HEIGHT)
         } else {
-            Modifier
+            modifier
                 .padding(horizontal = EDGE)
                 .fillMaxWidth()
                 .height(CARD_CAROUSEL_HEIGHT)
