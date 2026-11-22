@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.tv.video
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.UserData
@@ -124,5 +125,19 @@ class TvPostersTest {
         assertThat(movie.copy(userData = UserData(playedPercentage = 25.0)).toPoster().progress).isEqualTo(0.25f)
         assertThat(movie.copy(userData = UserData(playbackPosition = 50.minutes)).toPoster().progress).isEqualTo(0.5f)
         assertThat(movie.toPoster().progress).isNull()
+    }
+
+    @Test
+    fun `a genre card shows the picture of its newest poster that has one, and a movie keeps its studios (#522)`() {
+        val old = alien.copy(artwork = Artwork("a", "t1"))
+        val newer = brazil.copy(dateAdded = Instant.fromEpochSeconds(50), artwork = Artwork("b", "t2"))
+        val newestNoPicture = heat.copy(genres = listOf("Sci-Fi"), dateAdded = Instant.fromEpochSeconds(90))
+
+        val sciFi = groupsOf(listOf(old, newer, newestNoPicture)) { it.genres }.single { it.name == "Sci-Fi" }
+
+        assertThat(sciFi.count).isEqualTo(3)
+        assertThat(sciFi.artwork).isEqualTo(Artwork("b", "t2"))
+        val movie = Video(MediaId(ServerId("s"), "m"), VideoKind.Movie, "M", studios = listOf("A24"))
+        assertThat(movie.toPoster().studios).containsExactly("A24")
     }
 }

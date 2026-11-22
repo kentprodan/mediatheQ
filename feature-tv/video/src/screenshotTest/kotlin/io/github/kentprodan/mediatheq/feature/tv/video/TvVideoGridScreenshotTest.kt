@@ -34,7 +34,7 @@ private fun Grid(
     state: TvVideoGridUiState,
 ) = MediatheqTvTheme {
     Surface {
-        TvVideoGridScreen(kind, state, {}, {}, onOpenCollections = { }.takeIf { kind == TvVideoKind.Movies })
+        TvVideoGridScreen(kind, state, {}, {})
     }
 }
 
@@ -78,6 +78,48 @@ fun TvSeriesFilteredScreenshot() {
         ),
     )
 }
+
+/** Movies as tabs (#522): All selected over its grid. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvMoviesTabsScreenshot() {
+    val arranged = arrange(posters, TvVideoSort.Name, TvVideoFilter(), 0)
+    val grid =
+        TvVideoGridUiState.Content(
+            arranged.posters,
+            arranged.letters,
+            TvVideoSort.Name,
+            TvVideoFilter(),
+            genres = emptyList(),
+            decades = emptyList(),
+            total = posters.size,
+        )
+    MediatheqTvTheme {
+        Surface {
+            TvVideoTabsRoute(TvVideoKind.Movies, TvVideoNavigation()) { _, _ ->
+                TvVideoGridScreen(TvVideoKind.Movies, grid, {}, {})
+            }
+        }
+    }
+}
+
+/** The Series Networks tab (#522): a card per network with its count. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSeriesNetworksScreenshot() =
+    MediatheqTvTheme {
+        Surface {
+            TvVideoTabsRoute(TvVideoKind.Series, TvVideoNavigation(), TvVideoTab.Studios) { _, _ ->
+                TvVideoGroups(
+                    TvVideoKind.Series,
+                    listOf(TvVideoGroup("AMC", 3), TvVideoGroup("BBC One", 12), TvVideoGroup("HBO", 1)),
+                    restoreFocus = false,
+                ) {}
+            }
+        }
+    }
 
 /** The filters keep nothing. */
 @PreviewTest
