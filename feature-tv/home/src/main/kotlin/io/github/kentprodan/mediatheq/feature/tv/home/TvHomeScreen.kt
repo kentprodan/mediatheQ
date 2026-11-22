@@ -41,16 +41,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.requireLayoutCoordinates
+import androidx.compose.ui.relocation.BringIntoViewModifierNode
+import androidx.compose.ui.relocation.bringIntoView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
@@ -680,7 +688,7 @@ private fun rememberHero(focus: HeroFocus): State<Pair<String?, HeroInfo?>> =
         snapshotFlow { focus.row to focus.info }.debounce(HERO_DELAY).collect { value = it }
     }
 
-/** The focused row lands just below the hero (#504), at the same place every time, like Google TV. */
+/** The focused row lands near the top, at the same place every time, like Google TV. */
 private val RowsToTop =
     object : BringIntoViewSpec {
         override fun calculateScrollDistance(
@@ -692,6 +700,33 @@ private val RowsToTop =
 
 // The row title and its padding above the cards, so the title stays in view.
 private const val ROW_HEADER_PX = 140f
+
+/** A card asking to be shown brings its whole immersive row instead (#521), so the details above the cards stay on screen. */
+private fun Modifier.showsWholeRow(): Modifier = this then WholeRowElement
+
+private data object WholeRowElement : ModifierNodeElement<WholeRowNode>() {
+    override fun create() = WholeRowNode()
+
+    override fun update(node: WholeRowNode) = Unit
+}
+
+private class WholeRowNode :
+    Modifier.Node(),
+    BringIntoViewModifierNode {
+    override suspend fun bringIntoView(
+        childCoordinates: LayoutCoordinates,
+        boundsProvider: () -> Rect?,
+    ) {
+        // RowsToTop lands a request's top ROW_HEADER_PX down: start it that far into the row so the row's top lands at 0.
+        bringIntoView {
+            requireLayoutCoordinates()
+                .size
+                .toSize()
+                .toRect()
+                .translate(0f, ROW_HEADER_PX)
+        }
+    }
+}
 
 /** Marks the row that has the focus (#521), so only its immersive layer shows; read only by that layer. */
 private fun Modifier.rowFocus(
@@ -713,7 +748,13 @@ private fun ImmersiveRow(
     hero: State<Pair<String?, HeroInfo?>>,
     content: LazyListScope.() -> Unit,
 ) {
-    Box(Modifier.fillMaxWidth().height(IMMERSIVE_ROW_HEIGHT).rowFocus(focused, key)) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(IMMERSIVE_ROW_HEIGHT)
+            .rowFocus(focused, key)
+            .showsWholeRow(),
+    ) {
         // Hidden at once when the focus leaves the row, shown only after it rested on a card here.
         val info = hero.value.takeIf { (row) -> row == key && focused.row == key }?.second
         AnimatedVisibility(

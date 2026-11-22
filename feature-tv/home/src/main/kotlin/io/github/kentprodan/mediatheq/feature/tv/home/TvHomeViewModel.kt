@@ -96,24 +96,40 @@ class TvHomeViewModel
         private val rows =
             combine(
                 combine(library.homeLibrary(), homeVideos) { music, video -> music.copy(videos = video) },
-                preferences.preferences.map { it.home to it.navigation }.distinctUntilChanged(),
+                preferences.preferences
+                    .map {
+                        it.home to
+                            Triple(
+                                it.navigation.tvCarousel,
+                                it.navigation.tvCarouselSource,
+                                it.navigation.tvCarouselSkipWatched,
+                            )
+                    }.distinctUntilChanged(),
                 shuffle.seed,
                 mode,
-            ) { library, (home, navigation), seed, mode ->
+            ) { library, (home, carousel), seed, mode ->
+                val (style, chosen, skipWatched) = carousel
                 val noMusic = library.albums.isEmpty() && library.tracks.isEmpty()
                 if (noMusic && (!mode.video || library.videos == HomeVideos())) return@combine null
                 val now = clock.now()
+
                 // The carousel (#521) reads its section whether or not that row shows.
-                val source = carouselSource(navigation.tvCarouselSource, mode)
-                val featured =
-                    if (navigation.tvCarousel == TvCarousel.Off) {
+                fun slides(section: HomeSection) =
+                    if (style == TvCarousel.Off) {
                         emptyList()
                     } else {
                         featured(
-                            tvItems(source, homeItems(source, library, FEATURED_FETCH, seed, now), FEATURED_FETCH),
-                            navigation.tvCarouselSkipWatched,
+                            tvItems(section, homeItems(section, library, FEATURED_FETCH, seed, now), FEATURED_FETCH),
+                            skipWatched,
                         )
                     }
+                var source = carouselSource(chosen, mode)
+                var featured = slides(source)
+                // Automatic: new albums when no new movie is left to show.
+                if (featured.isEmpty() && source != chosen && HomeSection.RecentlyAddedAlbums.allowed(mode)) {
+                    source = HomeSection.RecentlyAddedAlbums
+                    featured = slides(source)
+                }
                 val shownRows =
                     // The order and the shown sections from Settings -> Home rows (#431), music and video together.
                     home.shown

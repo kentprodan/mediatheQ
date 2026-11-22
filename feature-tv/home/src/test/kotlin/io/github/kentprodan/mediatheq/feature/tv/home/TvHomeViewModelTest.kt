@@ -294,6 +294,45 @@ class TvHomeViewModelTest {
         }
 
     @Test
+    fun `Automatic shows new albums when no unwatched new movie is left, a chosen section stays (#521)`() =
+        test {
+            library.albums.value = listOf(alpha, beta)
+            library.tracks.value = tracks
+            val videos = FakeVideoRepository()
+            videos.movies.value = listOf(Video(id("m1"), VideoKind.Movie, "Seen", userData = UserData(played = true)))
+            val viewModel =
+                TvHomeViewModel(
+                    library,
+                    sync,
+                    playback,
+                    TrackTaps(playback, preferences),
+                    playlists,
+                    preferences,
+                    HomeShuffle(1),
+                    TestClock(day(20)),
+                    mainDispatcherRule.testDispatcher,
+                    videos,
+                    FakeAppModeRepository(AppMode.Both),
+                    userData,
+                )
+            backgroundScope.launch { viewModel.uiState.collect() }
+            runCurrent()
+
+            var state = viewModel.uiState.value as TvHomeUiState.Content
+            assertThat(state.featuredSection).isEqualTo(HomeSection.RecentlyAddedAlbums)
+            assertThat(state.featured.map { it.id }).containsExactly(beta.id, alpha.id).inOrder()
+
+            preferences.setNavigation(
+                preferences.preferences.value.navigation
+                    .copy(tvCarouselSource = HomeSection.RecentlyAddedMovies),
+            )
+            runCurrent()
+            state = viewModel.uiState.value as TvHomeUiState.Content
+            assertThat(state.featuredSection).isEqualTo(HomeSection.RecentlyAddedMovies)
+            assertThat(state.featured).isEmpty()
+        }
+
+    @Test
     fun `a carousel turned off has no slides (#521)`() =
         test {
             preferences.setNavigation(

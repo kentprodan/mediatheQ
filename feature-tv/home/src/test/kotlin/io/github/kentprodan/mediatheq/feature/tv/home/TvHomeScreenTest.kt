@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.NativeKeyEvent
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -178,12 +179,7 @@ class TvHomeScreenTest {
 
         val play = composeRule.onNodeWithText("Play").assertIsFocused()
         // The slide's title above Play is still on screen: focusing Play did not scroll the carousel away.
-        assertThat(
-            composeRule
-                .onNodeWithText("Album 1")
-                .fetchSemanticsNode()
-                .boundsInRoot.top,
-        ).isAtLeast(0f)
+        composeRule.onNodeWithText("Album 1").assertIsDisplayed()
         play.performKeyInput { pressKey(Key.DirectionCenter) }
 
         assertThat(actions).containsExactly(TvHomeAction.Play(TvHomeTarget.Album(id("al1"))))
@@ -200,7 +196,12 @@ class TvHomeScreenTest {
 
     @Test
     fun `an immersive row shows the focused card's details only once the focus rests (#521)`() {
-        show(twoRows.copy(immersiveRows = setOf(HomeSection.FavoriteAlbums)))
+        // Rows below, so the list can scroll the immersive row as far as the focus asks.
+        val below =
+            listOf(HomeSection.LastPlayedAlbums, HomeSection.MostPlayedAlbums).map {
+                TvHomeRow(it, HomeItems.Albums(albums))
+            }
+        show(twoRows.copy(rows = twoRows.rows + below, immersiveRows = setOf(HomeSection.FavoriteAlbums)))
         composeRule.mainClock.autoAdvance = false
 
         press(listOf(Key.DirectionDown))
@@ -208,7 +209,8 @@ class TvHomeScreenTest {
         composeRule.onNodeWithText("Favorite 1").assertDoesNotExist()
         composeRule.mainClock.advanceTimeBy(800)
 
-        composeRule.onNodeWithText("Favorite 1").assertExists()
+        // The details at the top of the row are on screen: the row, not only its card, was brought into view.
+        composeRule.onNodeWithText("Favorite 1").assertIsDisplayed()
     }
 
     @Test
