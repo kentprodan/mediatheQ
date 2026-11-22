@@ -68,13 +68,33 @@ class TvLibraryScreenTest {
         }
 
         focus("Album 03")
-        // Focusing a tab shows it.
-        focus("Artists")
+        // Up reaches the selected tab; focusing another tab shows it.
+        repeat(3) { press(Key.DirectionUp) }
+        press(Key.DirectionRight)
         composeRule.onNodeWithText("Boards of Canada").assertExists()
-        focus("Albums")
+        press(Key.DirectionLeft)
         press(Key.DirectionDown)
 
         composeRule.onNodeWithText("Album 03").assertIsFocused()
+    }
+
+    @Test
+    fun `Up from a card on the right lands on the selected tab, the shown tab stays (#522)`() {
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvLibraryTabsScreen { tab, cameBack ->
+                    TvLibraryList(state(tab), {}, TvLibraryNavigation(), restoreFocus = cameBack)
+                }
+            }
+        }
+        // The last card of the top row sits under the last tabs.
+        focus("Album 06")
+
+        repeat(3) { press(Key.DirectionUp) }
+        composeRule.mainClock.advanceTimeBy(1_000)
+
+        composeRule.onNodeWithText("Albums").assertIsFocused()
+        composeRule.onNodeWithText("Album 06").assertExists()
     }
 
     @Test
@@ -142,8 +162,9 @@ class TvLibraryScreenTest {
             }
         }
 
+        // Entering the row lands on the selected tab (Albums); walking right shows each tab.
         focus("Artists")
-        press(Key.DirectionRight)
+        repeat(2) { press(Key.DirectionRight) }
         composeRule.mainClock.advanceTimeBy(1_000)
 
         composeRule.onNodeWithText("Nothing here yet").assertExists()

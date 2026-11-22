@@ -61,6 +61,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvTabs
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -103,55 +104,12 @@ fun TvLibraryRoute(navigation: TvLibraryNavigation) =
         TvLibraryList(state, viewModel::onAction, navigation, restoreFocus = cameBack)
     }
 
-/** The tabs and the shown tab's [list]; `cameBack` says the screen just opened (back from a detail page). */
+/** The Library's tabs (#237) and the shown tab's [list] (MqTvTabs: slide, kept focus, Up and Back to the tabs). */
 @Composable
-fun TvLibraryTabsScreen(list: @Composable (tab: TvLibraryTab, cameBack: Boolean) -> Unit) {
-    var tab by rememberSaveable { mutableStateOf(TvLibraryTab.Albums) }
-    // Coming back from a detail page the tab's last card takes focus; switching tabs leaves focus on the tabs.
-    var cameBack by remember { mutableStateOf(true) }
-    val tabs = rememberSaveableStateHolder()
-    val selectedTab = remember { FocusRequester() }
-    var inList by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize()) {
-        TvLibraryTabs(tab, selectedTab) {
-            tab = it
-            cameBack = false
-        }
-        Box(Modifier.onFocusChanged { inList = it.hasFocus }.focusGroup()) {
-            tabs.SaveableStateProvider(tab.name) { list(tab, cameBack) }
-        }
-    }
-    // Deep in a list Up only scrolls: Back goes up to the tabs first, the next Back on to the shell (#348).
-    BackHandler(enabled = inList) { runCatching { selectedTab.requestFocus() } }
-}
-
-@Composable
-fun TvLibraryTabs(
-    selected: TvLibraryTab,
-    selectedFocus: FocusRequester,
-    onSelect: (TvLibraryTab) -> Unit,
-) {
-    TabRow(selected.ordinal, Modifier.padding(start = EDGE, top = 24.dp)) {
-        TvLibraryTab.entries.forEach { tab ->
-            Tab(
-                selected = tab == selected,
-                onFocus = { if (tab != selected) onSelect(tab) },
-                modifier = if (tab == selected) Modifier.focusRequester(selectedFocus) else Modifier,
-                // The selected tab's pill is dark while the row has no focus: light text on it.
-                colors =
-                    TabDefaults.pillIndicatorTabColors(
-                        selectedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    ),
-            ) {
-                Text(
-                    stringResource(tab.label),
-                    Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            }
-        }
-    }
-}
+fun TvLibraryTabsScreen(
+    initial: TvLibraryTab = TvLibraryTab.Albums,
+    list: @Composable (tab: TvLibraryTab, cameBack: Boolean) -> Unit,
+) = MqTvTabs(TvLibraryTab.entries, { stringResource(it.label) }, { it.name }, initial = initial.ordinal, content = list)
 
 /** A genre's or a year's albums (#237): the album grid under the genre's name or the year. */
 @Composable

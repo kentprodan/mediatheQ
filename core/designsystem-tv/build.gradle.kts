@@ -11,6 +11,8 @@ android {
 
 dependencies {
     api(libs.androidx.tv.material)
+    // Back from a tab's content goes to the tabs (MqTvTabs, #522).
+    implementation(libs.androidx.activity.compose)
     // The scheme from the Iris seed, with the phone's generator (ADR 0012, 0037).
     implementation(libs.material.color.utilities)
     testImplementation(libs.junit)

@@ -46,10 +46,7 @@ private fun Tab(
     state: TvLibraryUiState,
 ) = MediatheqTvTheme {
     Surface {
-        Column {
-            TvLibraryTabs(tab, remember { FocusRequester() }) {}
-            TvLibraryList(state, {}, TvLibraryNavigation())
-        }
+        TvLibraryTabsScreen(tab) { _, _ -> TvLibraryList(state, {}, TvLibraryNavigation()) }
     }
 }
 
