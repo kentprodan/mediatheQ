@@ -6,6 +6,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 ## [Unreleased]
 
 ### Added
+- TV movie, series and artist pages can show the title as its Jellyfin logo (Settings -> Display -> Title on pages: Logo, Logo and name, Name only). Logos arrive with the next library sync.
+- TV choices show radio buttons, checkboxes and switches (sort, filters, quality, subtitles, audio tracks, zoom), and a choice menu opens on the current choice.
 - TV Movies and Series have tabs: All, Collections (movies), Genres, Favorites and Studios or Networks; a genre or studio opens its own grid. Studios arrive with the next library sync.
 - TV tabs (Library, Movies, Series) slide with the tab you pick, and each tab keeps the card you were on.
 - Play music from your Jellyfin server: library of albums, artists, genres, record labels, years, playlists and tracks, kept on the phone and synced in the background.

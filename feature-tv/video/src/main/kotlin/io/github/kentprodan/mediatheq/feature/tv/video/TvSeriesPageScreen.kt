@@ -48,6 +48,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterCard
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTitle
 import kotlin.time.Duration
 
 @Composable
@@ -100,13 +101,7 @@ private fun Content(
     MqTvBackdrop(series.backdrop, Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().padding(top = 48.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.padding(horizontal = EDGE), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    series.title,
-                    Modifier.widthIn(max = 840.dp).semantics { heading() },
-                    style = MaterialTheme.typography.displaySmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                MqTvTitle(series.title, series.logo, maxLines = 1)
                 val facts =
                     listOfNotNull(
                         series.year?.toString(),

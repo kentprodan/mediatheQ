@@ -40,6 +40,7 @@ import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 import io.github.kentprodan.mediatheq.core.ui.tv.title
+import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 
 @Composable
 fun TvSettingsRoute(
@@ -192,6 +193,14 @@ fun TvSettingsScreen(
                     { onAction(TvSettingsAction.NextMenuStyle) },
                     Modifier.focusMemory(focus, "menuStyle"),
                     supporting = stringResource(state.menuStyle.label),
+                )
+            }
+            item {
+                MqTvListItem(
+                    stringResource(R.string.tv_settings_title_style),
+                    { onAction(TvSettingsAction.NextTitleStyle) },
+                    Modifier.focusMemory(focus, "titleStyle"),
+                    supporting = stringResource(state.titleStyle.label),
                 )
             }
             item {
@@ -542,6 +551,14 @@ private val io.github.kentprodan.mediatheq.core.data.DisplayMatch.label: Int
             io.github.kentprodan.mediatheq.core.data.DisplayMatch.RateAndResolution -> {
                 R.string.tv_settings_display_match_resolution
             }
+        }
+
+private val TvTitleStyle.label: Int
+    get() =
+        when (this) {
+            TvTitleStyle.Logo -> R.string.tv_settings_title_logo
+            TvTitleStyle.LogoAndText -> R.string.tv_settings_title_logo_text
+            TvTitleStyle.Text -> R.string.tv_settings_title_text
         }
 
 private val io.github.kentprodan.mediatheq.core.data.TvMenuStyle.label: Int

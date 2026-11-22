@@ -243,3 +243,76 @@ fun TvSeriesPageScreenshot() {
         }
     }
 }
+
+/** A movie page whose title follows [style] (#523); layoutlib loads no image, so a light bar stands in for the logo. */
+@OptIn(coil3.annotation.ExperimentalCoilApi::class)
+@Composable
+private fun MovieTitle(
+    style: io.github.kentprodan.mediatheq.core.model.TvTitleStyle,
+    withLogo: Boolean,
+) {
+    val logo =
+        io.github.kentprodan.mediatheq.core.model
+            .Artwork("m1", "l1", type = io.github.kentprodan.mediatheq.core.model.ImageType.Logo)
+    val preview =
+        coil3.compose.AsyncImagePreviewHandler { request ->
+            (request.data as? io.github.kentprodan.mediatheq.core.model.Artwork)
+                ?.takeIf { it.type == io.github.kentprodan.mediatheq.core.model.ImageType.Logo }
+                ?.let { coil3.ColorImage(0xFFE0E0E0.toInt(), width = 480, height = 120) }
+                // Any other picture (the backdrop) stays empty, as layoutlib shows it.
+                ?: coil3.ColorImage(0, width = 1, height = 1)
+        }
+    androidx.compose.runtime.CompositionLocalProvider(
+        io.github.kentprodan.mediatheq.core.ui.tv.LocalTvTitleStyle provides style,
+        coil3.compose.LocalAsyncImagePreviewHandler provides preview,
+    ) {
+        MediatheqTvTheme {
+            Surface {
+                TvMovieScreen(
+                    TvMovieUiState.Content(
+                        io.github.kentprodan.mediatheq.core.model.Video(
+                            MediaId(ServerId("s"), "m1"),
+                            io.github.kentprodan.mediatheq.core.model.VideoKind.Movie,
+                            "Blade Runner",
+                            overview = "A blade runner must pursue and terminate four replicants.",
+                            year = 1982,
+                            logo = logo.takeIf { withLogo },
+                        ),
+                        format = "4K · HEVC · HDR10",
+                        resumeAt = null,
+                    ),
+                    {},
+                    { _, _ -> },
+                )
+            }
+        }
+    }
+}
+
+/** Title: Logo, on a movie with a logo (#523). */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvMovieTitleLogoScreenshot() =
+    MovieTitle(io.github.kentprodan.mediatheq.core.model.TvTitleStyle.Logo, withLogo = true)
+
+/** Title: Logo and name, on a movie with a logo (#523). */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvMovieTitleLogoAndTextScreenshot() =
+    MovieTitle(io.github.kentprodan.mediatheq.core.model.TvTitleStyle.LogoAndText, withLogo = true)
+
+/** Title: Name only, on a movie with a logo (#523). */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvMovieTitleTextScreenshot() =
+    MovieTitle(io.github.kentprodan.mediatheq.core.model.TvTitleStyle.Text, withLogo = true)
+
+/** Title: Logo, on a movie without one: the name (#523). */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvMovieTitleNoLogoScreenshot() =
+    MovieTitle(io.github.kentprodan.mediatheq.core.model.TvTitleStyle.Logo, withLogo = false)

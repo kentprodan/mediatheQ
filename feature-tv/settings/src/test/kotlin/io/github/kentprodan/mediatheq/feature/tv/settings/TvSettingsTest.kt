@@ -34,6 +34,7 @@ import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
+import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAccountRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeAppModeRepository
@@ -249,6 +250,39 @@ class TvSettingsTest {
                     .navigation.tvMenuStyle,
             ).isEqualTo(TvMenuStyle.Standard)
             assertThat(viewModel.content().menuStyle).isEqualTo(TvMenuStyle.Standard)
+        }
+
+    @Test
+    fun `Title on pages goes Logo, Logo and name, Name only, then Logo again and is stored (#523)`() =
+        test {
+            val library = FakeLibraryPreferencesRepository()
+            val viewModel =
+                TvSettingsViewModel(
+                    outputs,
+                    preferences,
+                    sync,
+                    accounts,
+                    playback,
+                    appMode,
+                    FakeVideoPreferencesRepository(),
+                    library,
+                )
+            backgroundScope.launch { viewModel.uiState.collect() }
+            runCurrent()
+
+            val seen =
+                (1..3).map {
+                    viewModel.onAction(TvSettingsAction.NextTitleStyle)
+                    runCurrent()
+                    viewModel.content().titleStyle
+                }
+
+            assertThat(seen).containsExactly(TvTitleStyle.LogoAndText, TvTitleStyle.Text, TvTitleStyle.Logo).inOrder()
+            assertThat(
+                library.preferences
+                    .first()
+                    .navigation.tvTitle,
+            ).isEqualTo(TvTitleStyle.Logo)
         }
 
     @Test

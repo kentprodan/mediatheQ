@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
+import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 
 /** The HDMI output whose Dolby Atmos passthrough switch Settings shows (ADR 0039). */
 data class TvHdmiOutput(
@@ -62,6 +63,8 @@ sealed interface TvSettingsUiState {
         /** The side menu's style (#520). */
         val menuStyle: io.github.kentprodan.mediatheq.core.data.TvMenuStyle =
             io.github.kentprodan.mediatheq.core.data.TvMenuStyle.Modal,
+        /** Display -> Title (#523). */
+        val titleStyle: TvTitleStyle = TvTitleStyle.Logo,
     ) : TvSettingsUiState
 }
 
@@ -95,6 +98,9 @@ sealed interface TvSettingsAction {
 
     /** Settings -> Display -> Menu style (#520): Modal, Standard in turn. */
     data object NextMenuStyle : TvSettingsAction
+
+    /** Display -> Title (#523): Logo, Logo and text, Text, then round again. */
+    data object NextTitleStyle : TvSettingsAction
 
     /** Opens the dialog of one part of the subtitle style. */
     data class ChooseSubtitle(

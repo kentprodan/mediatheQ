@@ -51,6 +51,7 @@ import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterCard
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTitle
 import kotlin.time.Duration
 
 @Composable
@@ -98,13 +99,7 @@ fun TvMovieScreen(
                         .padding(start = 48.dp, end = 48.dp, top = 96.dp, bottom = 48.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(
-                        movie.title,
-                        Modifier.widthIn(max = 840.dp).semantics { heading() },
-                        style = MaterialTheme.typography.displaySmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    MqTvTitle(movie.title, movie.logo)
                     facts(movie).takeIf { it.isNotEmpty() }?.let {
                         Text(
                             it,

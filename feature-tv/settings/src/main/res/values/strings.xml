@@ -92,4 +92,9 @@
     <string name="tv_settings_menu_style">Menu style</string>
     <string name="tv_settings_menu_style_modal">Modal: the menu opens over the dimmed screen</string>
     <string name="tv_settings_menu_style_standard">Standard: the menu pushes the screen aside</string>
+    <!-- Display -> Title of movie, series and artist pages (#523) -->
+    <string name="tv_settings_title_style">Title on pages</string>
+    <string name="tv_settings_title_logo">Logo (the name when there is none)</string>
+    <string name="tv_settings_title_logo_text">Logo and name</string>
+    <string name="tv_settings_title_text">Name only</string>
 </resources>

@@ -17,6 +17,7 @@ import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
+import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -122,6 +123,7 @@ class DefaultLibraryPreferencesRepository
                     tvCarouselSkipWatched = navigation.tvCarouselSkipWatched,
                     tvImmersiveRows = navigation.tvImmersiveRows.map { it.name },
                     tvMenuStyle = navigation.tvMenuStyle.name,
+                    tvTitle = navigation.tvTitle.name,
                     tvCardStyles = navigation.tvCardStyles.entries.associate { (k, v) -> k.name to v.name },
                 ),
             )
@@ -151,6 +153,7 @@ class DefaultLibraryPreferencesRepository
                     stored.tvImmersiveRows?.mapNotNull { enumOrNull<HomeSection>(it) }?.toSet()
                         ?: defaults.tvImmersiveRows,
                 tvMenuStyle = enumOrNull<TvMenuStyle>(stored.tvMenuStyle) ?: defaults.tvMenuStyle,
+                tvTitle = enumOrNull<TvTitleStyle>(stored.tvTitle) ?: defaults.tvTitle,
                 // Unknown names (a section or variant removed later) are dropped.
                 tvCardStyles =
                     stored.tvCardStyles
