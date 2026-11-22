@@ -6,10 +6,12 @@ import io.github.kentprodan.mediatheq.core.data.GenreRow
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.data.TvCardStyle
-import io.github.kentprodan.mediatheq.core.data.TvHomeHero
+import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.data.genreRows
+import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.Playlist
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.Video
@@ -30,10 +32,14 @@ sealed interface TvHomeUiState {
         val rows: List<TvHomeRow>,
         /** The genres picked in Settings -> Home rows (#431), shown after the video rows. */
         val genreRows: List<GenreRow> = emptyList(),
-        /** Settings -> Display -> Home header (#504). */
-        val hero: TvHomeHero = TvHomeHero.None,
         /** Settings -> Home rows (#518): a row's card variant; the rest keep their defaults. */
         val cardStyles: Map<HomeSection, TvCardStyle> = emptyMap(),
+        /** The featured carousel (#521): its style, the section it shows and its items (none hides it). */
+        val carousel: TvCarousel = TvCarousel.Off,
+        val featuredSection: HomeSection = HomeSection.RecentlyAddedMovies,
+        val featured: List<Featured> = emptyList(),
+        /** Rows shown as immersive lists (#521). */
+        val immersiveRows: Set<HomeSection> = emptySet(),
     ) : TvHomeUiState
 
     /** Synced, but the server has no music. */
@@ -43,6 +49,29 @@ sealed interface TvHomeUiState {
     data class Error(
         val error: MqError,
     ) : TvHomeUiState
+}
+
+/** One slide of the featured carousel (#521). */
+sealed interface Featured {
+    val id: MediaId
+
+    data class Movie(
+        val video: Video,
+    ) : Featured {
+        override val id get() = video.id
+    }
+
+    data class AlbumItem(
+        val album: Album,
+    ) : Featured {
+        override val id get() = album.id
+    }
+
+    data class PlaylistItem(
+        val playlist: Playlist,
+    ) : Featured {
+        override val id get() = playlist.id
+    }
 }
 
 data class TvHomeRow(

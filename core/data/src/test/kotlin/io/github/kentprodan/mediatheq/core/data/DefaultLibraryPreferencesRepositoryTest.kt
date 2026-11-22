@@ -451,7 +451,10 @@ class DefaultLibraryPreferencesRepositoryTest {
                     slowStartMessages = false,
                     trackAction = TrackAction.PlayNext,
                     expandPlayer = true,
-                    tvHomeHero = TvHomeHero.Compact,
+                    tvCarousel = TvCarousel.Immersive,
+                    tvCarouselSource = HomeSection.ContinueWatching,
+                    tvCarouselSkipWatched = false,
+                    tvImmersiveRows = setOf(HomeSection.RecentlyAddedMovies),
                     tvMenuStyle = TvMenuStyle.Standard,
                     tvCardStyles = mapOf(HomeSection.ContinueWatching to TvCardStyle.Compact),
                 )

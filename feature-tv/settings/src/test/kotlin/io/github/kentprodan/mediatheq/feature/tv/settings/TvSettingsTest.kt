@@ -18,9 +18,11 @@ import io.github.kentprodan.mediatheq.core.data.RememberedOutputs
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
+import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.data.TvMenuStyle
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.model.AppMode
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
@@ -163,6 +165,52 @@ class TvSettingsTest {
                     .navigation.simpleTransitions,
             ).isTrue()
             assertThat(viewModel.content().simpleTransitions).isTrue()
+        }
+
+    @Test
+    fun `the Home carousel's style, source and watched filter are chosen and stored (#521)`() =
+        test {
+            val library = FakeLibraryPreferencesRepository()
+            val viewModel =
+                TvSettingsViewModel(
+                    outputs,
+                    preferences,
+                    sync,
+                    accounts,
+                    playback,
+                    appMode,
+                    FakeVideoPreferencesRepository(),
+                    library,
+                )
+            backgroundScope.launch { viewModel.uiState.collect() }
+            runCurrent()
+            assertThat(viewModel.content().carousel).isEqualTo(TvCarousel.Card)
+
+            viewModel.onAction(TvSettingsAction.NextCarousel)
+            runCurrent()
+            assertThat(viewModel.content().carousel).isEqualTo(TvCarousel.Immersive)
+            viewModel.onAction(TvSettingsAction.NextCarousel)
+            runCurrent()
+            assertThat(viewModel.content().carousel).isEqualTo(TvCarousel.Off)
+
+            viewModel.onAction(TvSettingsAction.ChooseCarouselSource)
+            assertThat(viewModel.content().dialog).isEqualTo(TvSettingsDialog.CarouselSource)
+            assertThat(viewModel.content().carouselSources).contains(HomeSection.ContinueWatching)
+            viewModel.onAction(TvSettingsAction.SetCarouselSource(HomeSection.ContinueWatching))
+            viewModel.onAction(TvSettingsAction.ToggleCarouselSkipWatched)
+            runCurrent()
+
+            val stored = library.preferences.first().navigation
+            assertThat(stored.tvCarouselSource).isEqualTo(HomeSection.ContinueWatching)
+            assertThat(stored.tvCarouselSkipWatched).isFalse()
+            assertThat(viewModel.content().dialog).isNull()
+            assertThat(viewModel.content().carouselSource).isEqualTo(HomeSection.ContinueWatching)
+
+            // Music only: the carousel cannot show a video section, so Settings shows Automatic, as Home does.
+            appMode.setMode(AppMode.Music)
+            runCurrent()
+            assertThat(viewModel.content().carouselSource).isNull()
+            assertThat(viewModel.content().carouselSources).doesNotContain(HomeSection.ContinueWatching)
         }
 
     @Test

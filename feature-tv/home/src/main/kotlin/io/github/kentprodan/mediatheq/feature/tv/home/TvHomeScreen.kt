@@ -1,5 +1,9 @@
 package io.github.kentprodan.mediatheq.feature.tv.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
@@ -7,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -32,18 +38,27 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.requireLayoutCoordinates
+import androidx.compose.ui.relocation.BringIntoViewModifierNode
+import androidx.compose.ui.relocation.bringIntoView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
@@ -53,12 +68,14 @@ import io.github.kentprodan.mediatheq.core.data.GenreRow
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.Mix
 import io.github.kentprodan.mediatheq.core.data.TvCardStyle
-import io.github.kentprodan.mediatheq.core.data.TvHomeHero
+import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.data.genreRows
 import io.github.kentprodan.mediatheq.core.data.resumePosition
 import io.github.kentprodan.mediatheq.core.designsystem.tv.FocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCardStyle
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCarousel
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
@@ -151,7 +168,7 @@ fun TvHomeScreen(
         }
 
         is TvHomeUiState.Content -> {
-            Rows(state.rows, state.genreRows, state.hero, state.cardStyles, onAction, navigation, modifier)
+            Rows(state, onAction, navigation, modifier)
         }
     }
 }
@@ -166,21 +183,23 @@ private data class Menu(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Rows(
-    rows: List<TvHomeRow>,
-    genreRows: List<GenreRow>,
-    heroMode: TvHomeHero,
-    cardStyles: Map<HomeSection, TvCardStyle>,
+    state: TvHomeUiState.Content,
     onAction: (TvHomeAction) -> Unit,
     navigation: TvHomeNavigation,
     modifier: Modifier,
 ) {
+    val rows = state.rows
+    val genreRows = state.genreRows
+    val cardStyles = state.cardStyles
     val focus = rememberFocusMemory()
     var menu by remember { mutableStateOf<Menu?>(null) }
     var videoMenu by remember { mutableStateOf<Video?>(null) }
-    // The hero (#431, #504): the focused video is written here by the cards but read only by the hero (after a pause,
-    // so moving along a row never flickers), never by the rows: a D-pad move recomposes the cards it touches only.
+    // Immersive rows (#521): the focused card is written here by the cards but read only by the immersive layer of the
+    // row that has the focus (after a pause, so moving along a row never flickers): a D-pad move recomposes the cards
+    // it touches only.
     val focused = remember { HeroFocus() }
     val hero = rememberHero(focused)
+    val showCarousel = state.carousel != TvCarousel.Off && state.featured.isNotEmpty()
     val cards =
         remember(focus, onAction, navigation, cardStyles) {
             Cards(
@@ -192,39 +211,48 @@ private fun Rows(
                 openVideoMenu = { videoMenu = it },
             ) { menu = it }
         }
-    // The header (#504): none by default; Compact or Large from Settings -> Display, with video in the mode.
-    val hasVideo = heroMode != TvHomeHero.None && (rows.any { it.items is HomeItems.Videos } || genreRows.isNotEmpty())
     // Genre rows (#431) follow the last video row.
     val split = rows.indexOfLast { it.items is HomeItems.Videos } + 1
-    Box(modifier.fillMaxSize()) {
-        if (hasVideo && heroMode == TvHomeHero.Large) HeroBackdrop(hero, Modifier.matchParentSize())
-        Column(Modifier.fillMaxSize()) {
-            // Fixed at the top (#504): the rows scroll under it, the focused row always lands just below it.
-            if (hasVideo) HeroText(hero, compact = heroMode == TvHomeHero.Compact)
-            CompositionLocalProvider(LocalBringIntoViewSpec provides RowsToTop) {
-                LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = if (hasVideo) 8.dp else 32.dp, bottom = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp),
-                ) {
-                    items(rows.take(split), key = { it.section.name }, contentType = { "row" }) { row ->
-                        CardRow(stringResource(row.section.title)) { with(cards) { row(row) } }
-                    }
-                    items(genreRows, key = { "genre/${it.genre}" }, contentType = { "row" }) { row ->
-                        CardRow(row.genre) { with(cards) { genre(row) } }
-                    }
-                    items(rows.drop(split), key = { it.section.name }, contentType = { "row" }) { row ->
-                        CardRow(stringResource(row.section.title)) { with(cards) { row(row) } }
-                    }
-                }
-            }
+    val immersive = state.immersiveRows
+    val sectionRow: @Composable (TvHomeRow) -> Unit = { row ->
+        val title = stringResource(row.section.title)
+        if (row.section in immersive) {
+            ImmersiveRow(row.section.name, title, focused, hero) { with(cards) { row(row) } }
+        } else {
+            CardRow(title, Modifier.rowFocus(focused, row.section.name)) { with(cards) { row(row) } }
         }
     }
-    // The first card on the first visit, the one focused last when coming back from a detail page.
+    CompositionLocalProvider(LocalBringIntoViewSpec provides RowsToTop) {
+        LazyColumn(
+            modifier.fillMaxSize(),
+            contentPadding =
+                PaddingValues(
+                    top = if (showCarousel && state.carousel == TvCarousel.Immersive) 0.dp else 32.dp,
+                    bottom = 32.dp,
+                ),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            if (showCarousel) {
+                item(key = "featured", contentType = "featured") {
+                    FeaturedCarousel(state, focus, onAction, navigation, Modifier.rowFocus(focused, FEATURED_KEY))
+                }
+            }
+            items(rows.take(split), key = { it.section.name }, contentType = { "row" }) { sectionRow(it) }
+            items(genreRows, key = { "genre/${it.genre}" }, contentType = { "row" }) { row ->
+                CardRow(row.genre, Modifier.rowFocus(focused, "genre/${row.genre}")) { with(cards) { genre(row) } }
+            }
+            items(rows.drop(split), key = { it.section.name }, contentType = { "row" }) { sectionRow(it) }
+        }
+    }
+    // The carousel or the first card on the first visit, the one focused last when coming back from a detail page.
     LaunchedEffect(Unit) {
         // Lazy rows compose their cards when laid out, after this effect starts: wait for that frame.
         withFrameNanos {}
-        rows.firstNotNullOfOrNull(::firstKey)?.let(focus::restore)
+        if (showCarousel) {
+            focus.restore(FEATURED_KEY)
+        } else {
+            rows.firstNotNullOfOrNull(::firstKey)?.let(focus::restore)
+        }
     }
     menu?.let { shown -> CoverMenu(shown, onAction, navigation.onOpenArtist) { menu = null } }
     videoMenu?.let { video -> ResumeMenu(video, onAction, navigation) { videoMenu = null } }
@@ -235,9 +263,10 @@ private fun Rows(
 @Composable
 private fun CardRow(
     title: String,
+    modifier: Modifier = Modifier,
     content: LazyListScope.() -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         MqTvRowHeader(title, Modifier.padding(horizontal = EDGE))
         // Focus coming back into a row lands on the card it left (the column position is kept).
         CompositionLocalProvider(LocalBringIntoViewSpec provides Pivot) {
@@ -641,33 +670,25 @@ private fun heroInfo(series: Series): HeroInfo =
         series.backdrop ?: series.artwork,
     )
 
-/** The card the rows last focused (#504); only the hero reads it. */
+/** The card and the row last focused (#521); only the immersive layers read them. */
 @Stable
 private class HeroFocus {
     var info by mutableStateOf<HeroInfo?>(null)
+    var row by mutableStateOf<String?>(null)
 }
 
-/** What the hero shows: [focus] once it rested for [HERO_DELAY]; the state is read only by the hero's parts. */
+/**
+ * The focused row and card once they rested for [HERO_DELAY], debounced together so a row never shows the card of the
+ * row the focus left; the state is read only by the immersive layers.
+ */
 @OptIn(FlowPreview::class)
 @Composable
-private fun rememberHero(focus: HeroFocus): State<HeroInfo?> =
-    produceState<HeroInfo?>(null, focus) {
-        snapshotFlow { focus.info }.debounce(HERO_DELAY).collect { value = it }
+private fun rememberHero(focus: HeroFocus): State<Pair<String?, HeroInfo?>> =
+    produceState<Pair<String?, HeroInfo?>>(null to null, focus) {
+        snapshotFlow { focus.row to focus.info }.debounce(HERO_DELAY).collect { value = it }
     }
 
-@Composable
-private fun HeroBackdrop(
-    hero: State<HeroInfo?>,
-    modifier: Modifier,
-) = MqTvBackdrop(hero.value?.backdrop, modifier) {}
-
-@Composable
-private fun HeroText(
-    hero: State<HeroInfo?>,
-    compact: Boolean,
-) = Hero(hero.value, compact)
-
-/** The focused row lands just below the hero (#504), at the same place every time, like Google TV. */
+/** The focused row lands near the top, at the same place every time, like Google TV. */
 private val RowsToTop =
     object : BringIntoViewSpec {
         override fun calculateScrollDistance(
@@ -680,50 +701,213 @@ private val RowsToTop =
 // The row title and its padding above the cards, so the title stays in view.
 private const val ROW_HEADER_PX = 140f
 
-/** The top of Home with video (#431): the focused video's title, facts and overview over its backdrop. */
-@Composable
-private fun Hero(
-    info: HeroInfo?,
-    compact: Boolean = false,
-) {
-    Column(
-        Modifier.fillMaxWidth().height(if (compact) COMPACT_HERO_HEIGHT else HERO_HEIGHT).padding(horizontal = EDGE),
-        verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp, Alignment.Bottom),
+/** A card asking to be shown brings its whole immersive row instead (#521), so the details above the cards stay on screen. */
+private fun Modifier.showsWholeRow(): Modifier = this then WholeRowElement
+
+private data object WholeRowElement : ModifierNodeElement<WholeRowNode>() {
+    override fun create() = WholeRowNode()
+
+    override fun update(node: WholeRowNode) = Unit
+}
+
+private class WholeRowNode :
+    Modifier.Node(),
+    BringIntoViewModifierNode {
+    override suspend fun bringIntoView(
+        childCoordinates: LayoutCoordinates,
+        boundsProvider: () -> Rect?,
     ) {
-        if (info == null) return@Column
-        Text(
-            info.title,
-            style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.displaySmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        // RowsToTop lands a request's top ROW_HEADER_PX down: start it that far into the row so the row's top lands at 0.
+        bringIntoView {
+            requireLayoutCoordinates()
+                .size
+                .toSize()
+                .toRect()
+                .translate(0f, ROW_HEADER_PX)
+        }
+    }
+}
+
+/** Marks the row that has the focus (#521), so only its immersive layer shows; read only by that layer. */
+private fun Modifier.rowFocus(
+    focused: HeroFocus,
+    key: String,
+): Modifier = onFocusChanged { if (it.hasFocus) focused.row = key }
+
+/**
+ * An immersive list (#521, Google TV guidelines): while the row has the focus, the focused card's 16:9 backdrop
+ * aligned top right under a cinematic scrim and its details, revealed once the focus rests; the row keeps one fixed
+ * height, so nothing around it moves.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ImmersiveRow(
+    key: String,
+    title: String,
+    focused: HeroFocus,
+    hero: State<Pair<String?, HeroInfo?>>,
+    content: LazyListScope.() -> Unit,
+) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(IMMERSIVE_ROW_HEIGHT)
+            .rowFocus(focused, key)
+            .showsWholeRow(),
+    ) {
+        // Hidden at once when the focus leaves the row, shown only after it rested on a card here.
+        val info = hero.value.takeIf { (row) -> row == key && focused.row == key }?.second
+        AnimatedVisibility(
+            visible = info != null,
+            modifier = Modifier.matchParentSize(),
+            enter = fadeIn(tween(REVEAL_MILLIS)),
+            exit = fadeOut(tween(REVEAL_MILLIS)),
+        ) {
+            // The last info stays while it fades out.
+            val shown = remember { mutableStateOf(info) }
+            if (info != null) shown.value = info
+            Box(Modifier.fillMaxSize()) {
+                MqTvBackdrop(
+                    shown.value?.backdrop,
+                    Modifier.align(Alignment.TopEnd).fillMaxWidth(BACKDROP_WIDTH).aspectRatio(16f / 9f),
+                ) {}
+                shown.value?.let { Details(it, Modifier.padding(start = EDGE, top = 16.dp)) }
+            }
+        }
+        CardRow(title, Modifier.align(Alignment.BottomStart), content)
+    }
+}
+
+/** The immersive row's details: the focused card's title, facts and two lines of overview. */
+@Composable
+private fun Details(
+    info: HeroInfo,
+    modifier: Modifier,
+) {
+    Column(modifier.widthIn(max = 640.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(info.title, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         info.facts?.let {
             Text(
                 it,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        info.overview?.takeUnless { compact }?.let {
+        info.overview?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/**
+ * The featured carousel (#521): Card is an inset rounded card, Immersive spans the top of Home. Each slide shows its
+ * picture under a scrim with the section as overline, the title, a short description and Play.
+ */
+@Composable
+private fun FeaturedCarousel(
+    state: TvHomeUiState.Content,
+    focus: FocusMemory,
+    onAction: (TvHomeAction) -> Unit,
+    navigation: TvHomeNavigation,
+    modifier: Modifier,
+) {
+    val immersive = state.carousel == TvCarousel.Immersive
+    val overline = stringResource(state.featuredSection.title)
+    MqTvCarousel(
+        state.featured.size,
+        if (immersive) {
+            modifier.fillMaxWidth().height(IMMERSIVE_CAROUSEL_HEIGHT)
+        } else {
+            modifier
+                .padding(horizontal = EDGE)
+                .fillMaxWidth()
+                .height(CARD_CAROUSEL_HEIGHT)
+                .clip(RoundedCornerShape(16.dp))
+        },
+    ) { index ->
+        val item = state.featured[index]
+        val slide = slideOf(item)
+        MqTvBackdrop(slide.picture, Modifier.fillMaxSize()) {}
+        Column(
+            Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = if (immersive) EDGE else 32.dp, bottom = 32.dp, end = 32.dp)
+                .widthIn(max = 640.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             Text(
-                it,
-                Modifier.widthIn(max = 760.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 3,
+                overline,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                slide.title,
+                style = MaterialTheme.typography.headlineMedium,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+            slide.description?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            MqTvButton(
+                stringResource(R.string.tv_home_play),
+                {
+                    when (item) {
+                        is Featured.Movie -> navigation.onPlayVideo(item.video.id, item.video.resumePosition())
+                        is Featured.AlbumItem -> onAction(TvHomeAction.Play(TvHomeTarget.Album(item.id)))
+                        is Featured.PlaylistItem -> onAction(TvHomeAction.Play(TvHomeTarget.Playlist(item.id)))
+                    }
+                },
+                Modifier.padding(top = 8.dp).focusMemory(focus, FEATURED_KEY),
+                icon = MqTvIcons.Play,
             )
         }
     }
 }
 
+/** What a slide shows. */
+private data class Slide(
+    val title: String,
+    val description: String?,
+    val picture: Artwork?,
+)
+
+private fun slideOf(item: Featured): Slide =
+    when (item) {
+        is Featured.Movie -> {
+            val info = heroInfo(item.video)
+            Slide(info.title, item.video.overview ?: info.facts, info.backdrop)
+        }
+
+        is Featured.AlbumItem -> {
+            Slide(
+                item.album.title,
+                item.album.albumArtists
+                    .joinToString { it.name }
+                    .ifEmpty { null },
+                item.album.artwork,
+            )
+        }
+
+        is Featured.PlaylistItem -> {
+            Slide(item.playlist.name, null, item.playlist.artwork)
+        }
+    }
+
+/** The carousel's Play in the focus memory: the first visit starts there. */
+private const val FEATURED_KEY = "featured"
+
+private val CARD_CAROUSEL_HEIGHT = 300.dp
+private val IMMERSIVE_CAROUSEL_HEIGHT = 400.dp
+private val IMMERSIVE_ROW_HEIGHT = 420.dp
+private const val BACKDROP_WIDTH = 0.66f
+private const val REVEAL_MILLIS = 300
+
 /** "S2 · E5", or nothing known. */
 private fun episodeLabel(video: Video): String =
     listOfNotNull(video.seasonNumber?.let { "S$it" }, video.episodeNumber?.let { "E$it" }).joinToString(" · ")
-
-private val HERO_HEIGHT = 260.dp
-private val COMPACT_HERO_HEIGHT = 96.dp
 
 // Guideline card width (#507): 5 posters per screen, 20 dp apart; the wide variants size themselves (#518).
 private val POSTER_CARD = 124.dp
