@@ -60,6 +60,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterAccent
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvRowHeader
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTitle
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTrackRow
@@ -88,21 +89,24 @@ fun TvArtistScreen(
     onOpenAlbum: (MediaId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    when (state) {
-        TvArtistUiState.Loading -> {
-            Box(modifier.fillMaxSize())
-        }
+    // Accent from the poster (#517): the page in its poster's colors.
+    MqTvPosterAccent((state as? TvArtistUiState.Content)?.artist?.artwork) {
+        when (state) {
+            TvArtistUiState.Loading -> {
+                Box(modifier.fillMaxSize())
+            }
 
-        TvArtistUiState.NotFound -> {
-            MqTvMessage(
-                stringResource(R.string.tv_artist_not_found_title),
-                stringResource(R.string.tv_artist_not_found_body),
-                modifier,
-            )
-        }
+            TvArtistUiState.NotFound -> {
+                MqTvMessage(
+                    stringResource(R.string.tv_artist_not_found_title),
+                    stringResource(R.string.tv_artist_not_found_body),
+                    modifier,
+                )
+            }
 
-        is TvArtistUiState.Content -> {
-            Content(state, onAction, onOpenAlbum, modifier)
+            is TvArtistUiState.Content -> {
+                Content(state, onAction, onOpenAlbum, modifier)
+            }
         }
     }
 }

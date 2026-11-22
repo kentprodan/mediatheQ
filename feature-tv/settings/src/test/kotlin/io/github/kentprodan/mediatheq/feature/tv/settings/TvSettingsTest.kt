@@ -253,6 +253,36 @@ class TvSettingsTest {
         }
 
     @Test
+    fun `Accent from the poster switches and is stored, off by default (#517)`() =
+        test {
+            val library = FakeLibraryPreferencesRepository()
+            val viewModel =
+                TvSettingsViewModel(
+                    outputs,
+                    preferences,
+                    sync,
+                    accounts,
+                    playback,
+                    appMode,
+                    FakeVideoPreferencesRepository(),
+                    library,
+                )
+            backgroundScope.launch { viewModel.uiState.collect() }
+            runCurrent()
+            assertThat(viewModel.content().posterAccent).isFalse()
+
+            viewModel.onAction(TvSettingsAction.TogglePosterAccent)
+            runCurrent()
+
+            assertThat(
+                library.preferences
+                    .first()
+                    .navigation.tvPosterAccent,
+            ).isTrue()
+            assertThat(viewModel.content().posterAccent).isTrue()
+        }
+
+    @Test
     fun `Title on pages goes Logo, Logo and name, Name only, then Logo again and is stored (#523)`() =
         test {
             val library = FakeLibraryPreferencesRepository()

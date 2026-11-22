@@ -206,6 +206,16 @@ fun TvSettingsScreen(
             }
             item {
                 MqTvListItem(
+                    stringResource(R.string.tv_settings_poster_accent),
+                    { onAction(TvSettingsAction.TogglePosterAccent) },
+                    Modifier.focusMemory(focus, "posterAccent"),
+                    supporting = stringResource(R.string.tv_settings_poster_accent_detail),
+                    selected = state.posterAccent,
+                    control = MqTvControl.Switch,
+                )
+            }
+            item {
+                MqTvListItem(
                     stringResource(R.string.tv_settings_simple_transitions),
                     { onAction(TvSettingsAction.ToggleSimpleTransitions) },
                     Modifier.focusMemory(focus, "transitions"),

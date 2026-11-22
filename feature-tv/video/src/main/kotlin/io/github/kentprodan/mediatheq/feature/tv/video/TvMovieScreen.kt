@@ -50,6 +50,7 @@ import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterAccent
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTitle
 import kotlin.time.Duration
@@ -79,49 +80,56 @@ fun TvMovieScreen(
     onOpenMovie: (MediaId) -> Unit = {},
     onOpenPerson: (MediaId, String) -> Unit = { _, _ -> },
 ) {
-    when (state) {
-        TvMovieUiState.Loading -> {
-            Unit
-        }
+    // Accent from the poster (#517): the page in its poster's colors.
+    MqTvPosterAccent((state as? TvMovieUiState.Content)?.movie?.artwork) {
+        when (state) {
+            TvMovieUiState.Loading -> {
+                Unit
+            }
 
-        is TvMovieUiState.Error -> {
-            MqTvMessage(stringResource(R.string.tv_movie_missing), stringResource(R.string.tv_movie_missing_body))
-        }
+            is TvMovieUiState.Error -> {
+                MqTvMessage(stringResource(R.string.tv_movie_missing), stringResource(R.string.tv_movie_missing_body))
+            }
 
-        is TvMovieUiState.Content -> {
-            val movie = state.movie
-            MqTvBackdrop(movie.backdrop, Modifier.fillMaxSize()) {
-                // Scrolls down to the rows below the buttons; D-pad focus brings each into view.
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(start = 48.dp, end = 48.dp, top = 96.dp, bottom = 48.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    MqTvTitle(movie.title, movie.logo)
-                    facts(movie).takeIf { it.isNotEmpty() }?.let {
-                        Text(
-                            it,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+            is TvMovieUiState.Content -> {
+                val movie = state.movie
+                MqTvBackdrop(movie.backdrop, Modifier.fillMaxSize()) {
+                    // Scrolls down to the rows below the buttons; D-pad focus brings each into view.
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(start = 48.dp, end = 48.dp, top = 96.dp, bottom = 48.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        MqTvTitle(movie.title, movie.logo)
+                        facts(movie).takeIf { it.isNotEmpty() }?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        state.format?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        movie.overview?.let {
+                            Text(
+                                it,
+                                Modifier.widthIn(max = 720.dp),
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 4,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Buttons(state, onAction, onPlay, Modifier.padding(top = 12.dp))
+                        if (state.people.isNotEmpty()) PeopleRow(state.people, onOpenPerson)
+                        if (state.similar.isNotEmpty()) SimilarRow(state.similar, onOpenMovie)
                     }
-                    state.format?.let {
-                        Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                    }
-                    movie.overview?.let {
-                        Text(
-                            it,
-                            Modifier.widthIn(max = 720.dp),
-                            style = MaterialTheme.typography.bodyLarge,
-                            maxLines = 4,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    Buttons(state, onAction, onPlay, Modifier.padding(top = 12.dp))
-                    if (state.people.isNotEmpty()) PeopleRow(state.people, onOpenPerson)
-                    if (state.similar.isNotEmpty()) SimilarRow(state.similar, onOpenMovie)
                 }
             }
         }
