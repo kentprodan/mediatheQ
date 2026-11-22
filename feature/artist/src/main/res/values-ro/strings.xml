@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="artist_back">Înapoi</string>
+    <string name="artist_top_tracks">Piese de top</string>
+    <string name="artist_albums">Albume</string>
+    <string name="artist_appears_on">Apare pe</string>
+    <string name="artist_not_found_title">Artistul nu e disponibil</string>
+    <string name="artist_not_found_body">Nu mai e în bibliotecă.</string>
+    <string name="artist_empty_title">Încă nu e muzică</string>
+    <string name="artist_empty_body">Nimic de la acest artist nu e în bibliotecă.</string>
+    <string name="artist_play">Redă</string>
+    <string name="artist_shuffle">Amestecă</string>
+    <string name="artist_play_next">Redă în continuare</string>
+    <string name="artist_add_to_queue">Adaugă în coadă</string>
+    <string name="artist_more_options">Mai multe opțiuni pentru %1$s</string>
+    <string name="artist_show_all">Arată tot</string>
+    <string name="artist_no_plays">Încă nimic ascultat</string>
+    <string name="artist_about">Despre</string>
+    <string name="artist_show_more">Arată mai mult</string>
+    <string name="artist_show_less">Arată mai puțin</string>
+    <string name="artist_about_genres">Genuri</string>
+    <string name="artist_about_albums">Albume</string>
+    <string name="artist_about_tracks">Piese</string>
+    <string name="artist_about_favorite">Favorit</string>
+    <string name="artist_about_favorite_yes">În favoritele tale</string>
+    <string name="artist_about_rating">Notă</string>
+    <plurals name="artist_album_count">
+        <item quantity="one">%d album</item>
+        <item quantity="few">%d albume</item>
+        <item quantity="other">%d de albume</item>
+    </plurals>
+</resources>

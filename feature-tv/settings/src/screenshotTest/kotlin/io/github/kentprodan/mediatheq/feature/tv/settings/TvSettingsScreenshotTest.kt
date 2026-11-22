@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvPreviews
+import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvRoPreview
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 
@@ -27,6 +28,7 @@ private fun Settings(state: TvSettingsUiState) = MediatheqTvTheme { TvSettingsSc
 
 @PreviewTest
 @MqTvPreviews
+@MqTvRoPreview
 @Composable
 fun TvSettingsScreenshot() = Settings(settings)
 

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_artist_play_all">Redă tot</string>
+    <string name="tv_artist_shuffle_all">Amestecă tot</string>
+    <string name="tv_artist_albums">Albume</string>
+    <string name="tv_artist_appears_on">Apare pe</string>
+    <string name="tv_artist_top_tracks">Piese de top</string>
+    <string name="tv_artist_more">Selectează ca să citești mai mult</string>
+    <string name="tv_artist_less">Selectează ca să vezi mai puțin</string>
+    <string name="tv_artist_empty">Încă nu ai muzică de la acest artist în bibliotecă.</string>
+    <string name="tv_artist_not_found_title">Nu mai e pe acest server</string>
+    <string name="tv_artist_not_found_body">Artistul a fost poate șters. Întoarce-te și alege altul.</string>
+</resources>

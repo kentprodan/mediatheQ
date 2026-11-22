@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="core_ui_tv_home_shortcuts">Scurtături</string>
+    <string name="core_ui_tv_home_favorite_playlists">Playlisturi favorite</string>
+    <string name="core_ui_tv_home_favorite_albums">Albume favorite</string>
+    <string name="core_ui_tv_home_favorite_tracks">Piese favorite</string>
+    <string name="core_ui_tv_home_favorite_artists">Artiști favoriți</string>
+    <string name="core_ui_tv_home_recently_added_albums">Albume adăugate recent</string>
+    <string name="core_ui_tv_home_rediscover_albums">Albume de redescoperit</string>
+    <string name="core_ui_tv_home_last_played_albums">Albume ascultate ultima dată</string>
+    <string name="core_ui_tv_home_random_artists">Artiști la întâmplare</string>
+    <string name="core_ui_tv_home_random_albums">Albume la întâmplare</string>
+    <string name="core_ui_tv_home_continue_albums">Continuă albumele</string>
+    <string name="core_ui_tv_home_most_played_tracks">Cele mai ascultate piese</string>
+    <string name="core_ui_tv_home_recently_added_tracks">Piese adăugate recent</string>
+    <string name="core_ui_tv_home_recently_added_artists">Artiști adăugați recent</string>
+    <string name="core_ui_tv_home_last_played_tracks">Piese ascultate ultima dată</string>
+    <string name="core_ui_tv_home_last_played_artists">Artiști ascultați ultima dată</string>
+    <string name="core_ui_tv_home_most_played_albums">Cele mai ascultate albume</string>
+    <string name="core_ui_tv_home_most_played_artists">Cei mai ascultați artiști</string>
+    <string name="core_ui_tv_home_random_tracks">Piese la întâmplare</string>
+    <string name="core_ui_tv_home_rediscover_tracks">Piese de redescoperit</string>
+    <string name="core_ui_tv_home_five_star_tracks">Piese de 5 stele</string>
+    <string name="core_ui_tv_quality_atmos">Dolby Atmos</string>
+    <string name="core_ui_tv_quality_hi_res">Hi-Res Lossless</string>
+    <string name="core_ui_tv_quality_lossless">Lossless</string>
+    <string name="core_ui_tv_quality_high">Calitate înaltă</string>
+    <string name="core_ui_tv_quality_efficient">Eficiență înaltă</string>
+    <string name="core_ui_tv_playing">Se redă</string>
+    <string name="core_ui_tv_home_continue_watching">Continuă vizionarea</string>
+    <string name="core_ui_tv_home_next_up">Urmează</string>
+    <string name="core_ui_tv_home_recently_added_movies">Filme adăugate recent</string>
+    <string name="core_ui_tv_home_recently_added_episodes">Episoade adăugate recent</string>
+</resources>

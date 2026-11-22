@@ -9,6 +9,7 @@ import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.designsystem.preview.MqPreviews
+import io.github.kentprodan.mediatheq.core.designsystem.preview.MqRoPreview
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeDisplay
@@ -55,6 +56,7 @@ private val tracks = listOf(PreviewData.track.copy(artwork = PreviewData.artwork
 /** Home with the default sections that have content (#127): rows, a two-row grid, a carousel, track lists. */
 @PreviewTest
 @MqPreviews
+@MqRoPreview
 @Composable
 fun HomeFullScreenshot() =
     Home(

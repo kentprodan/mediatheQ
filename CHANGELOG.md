@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 ## [Unreleased]
 
 ### Added
+- The app (phone and TV) in Romanian, following the device language; on the phone it can also be picked for mediatheQ alone in Android Settings -> Apps -> Language.
 - TV movie, series, artist, album and playlist pages can take their colors from the poster or cover (Settings -> Display -> Accent from the poster).
 - TV movie, series and artist pages can show the title as its Jellyfin logo (Settings -> Display -> Title on pages: Logo, Logo and name, Name only). Logos arrive with the next library sync.
 - TV choices show radio buttons, checkboxes and switches (sort, filters, quality, subtitles, audio tracks, zoom), and a choice menu opens on the current choice.

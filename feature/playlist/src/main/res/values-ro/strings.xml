@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playlist_back">Înapoi</string>
+    <string name="playlist_not_found_title">Playlistul nu e disponibil</string>
+    <string name="playlist_not_found_body">Nu mai e în bibliotecă.</string>
+    <string name="playlist_more_options">Mai multe opțiuni pentru %1$s</string>
+    <string name="playlist_empty_title">Încă nu sunt piese</string>
+    <string name="playlist_empty_body">Adaugă piese din meniul unui album.</string>
+    <string name="playlist_rename">Redenumește</string>
+    <string name="playlist_name">Nume</string>
+    <string name="playlist_save">Salvează</string>
+    <string name="playlist_cancel">Anulează</string>
+    <string name="playlist_delete">Șterge playlistul</string>
+    <string name="playlist_delete_title">Ștergi „%1$s”?</string>
+    <string name="playlist_delete_body">Playlistul e șters de pe server. Piesele lui rămân în bibliotecă.</string>
+    <string name="playlist_delete_confirm">Șterge</string>
+    <string name="playlist_remove">Scoate din playlist</string>
+    <string name="playlist_move_up">Mută mai sus</string>
+    <string name="playlist_move_down">Mută mai jos</string>
+    <string name="playlist_clear_selection">Anulează selecția</string>
+    <plurals name="playlist_selected">
+        <item quantity="one">%d selectată</item>
+        <item quantity="few">%d selectate</item>
+        <item quantity="other">%d selectate</item>
+    </plurals>
+    <string name="playlist_edit_failed">Modificarea nu a putut fi salvată și a fost anulată.</string>
+    <string name="playlist_add_to">Adaugă în playlist</string>
+    <string name="playlist_new">Playlist nou</string>
+    <string name="playlist_create">Creează</string>
+    <string name="playlist_none_yet">Încă nu ai playlisturi.</string>
+    <string name="playlist_add_failed">Piesele nu au putut fi adăugate. Încearcă din nou.</string>
+    <string name="playlist_play">Redă</string>
+    <string name="playlist_resume">Continuă</string>
+    <string name="playlist_play_from_start">Redă de la început</string>
+    <string name="playlist_shuffle">Amestecă</string>
+    <string name="playlist_play_next">Redă în continuare</string>
+    <string name="playlist_add_to_queue">Adaugă în coadă</string>
+    <string name="playlist_edit">Editează</string>
+    <string name="playlist_downloaded">Descărcat</string>
+</resources>

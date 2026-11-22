@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_onboarding_welcome">Bine ai venit în mediatheQ</string>
+    <string name="tv_onboarding_server_intro">Introdu adresa serverului tău Jellyfin.</string>
+    <string name="tv_onboarding_server_address">Adresa serverului</string>
+    <string name="tv_onboarding_connect">Conectează</string>
+    <string name="tv_onboarding_checking">Se verifică…</string>
+    <string name="tv_onboarding_error_invalid">Aceasta nu e o adresă de server. Încearcă de ex. 192.168.1.10:8096.</string>
+    <string name="tv_onboarding_error_cleartext">Adresa nu e în rețeaua ta de acasă, deci are nevoie de https.</string>
+    <string name="tv_onboarding_error_unreachable">Serverul nu poate fi contactat. Verifică adresa și dacă TV-ul e în aceeași rețea.</string>
+    <string name="tv_onboarding_error_not_jellyfin">Adresa nu răspunde ca un server Jellyfin.</string>
+    <string name="tv_onboarding_error_unsupported">Serverul are Jellyfin %1$s. mediatheQ are nevoie de versiunea 12 sau mai nouă.</string>
+    <string name="tv_onboarding_error_other">Ceva nu a mers. Încearcă din nou.</string>
+    <string name="tv_onboarding_signed_out">Ai fost deconectat. Conectează-te din nou.</string>
+    <string name="tv_onboarding_quick_connect_title">Conectează-te la %1$s</string>
+    <string name="tv_onboarding_quick_connect_intro">Pe telefon, deschide Jellyfin, mergi la Quick Connect și introdu acest cod:</string>
+    <string name="tv_onboarding_quick_connect_waiting">Se așteaptă aprobarea…</string>
+    <string name="tv_onboarding_quick_connect_starting">Se obține un cod…</string>
+    <string name="tv_onboarding_quick_connect_disabled">Quick Connect e dezactivat pe acest server. Conectează-te cu numele de utilizator și parola.</string>
+    <string name="tv_onboarding_quick_connect_expired">Codul a expirat. Cere unul nou.</string>
+    <string name="tv_onboarding_quick_connect_unreachable">Serverul nu poate fi contactat. Încearcă din nou.</string>
+    <string name="tv_onboarding_quick_connect_failed">Conectarea nu a mers. Încearcă din nou.</string>
+    <string name="tv_onboarding_new_code">Cod nou</string>
+    <string name="tv_onboarding_use_password">Folosește parola</string>
+    <string name="tv_onboarding_user_name">Nume de utilizator</string>
+    <string name="tv_onboarding_password">Parolă</string>
+    <string name="tv_onboarding_sign_in">Conectează-te</string>
+    <string name="tv_onboarding_signing_in">Se conectează…</string>
+    <string name="tv_onboarding_error_wrong_credentials">Nume de utilizator sau parolă greșite.</string>
+    <string name="tv_onboarding_error_storage">Conectarea nu a putut fi salvată pe acest TV.</string>
+    <string name="tv_profiles_title">Cine se uită?</string>
+    <string name="tv_profiles_add">Adaugă un profil</string>
+</resources>

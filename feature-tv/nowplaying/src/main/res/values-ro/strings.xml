@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_np_nothing_title">Nu se redă nimic</string>
+    <string name="tv_np_nothing_body">Alege un album, un playlist sau un mix ca să începi.</string>
+    <string name="tv_np_play">Redă</string>
+    <string name="tv_np_pause">Pauză</string>
+    <string name="tv_np_previous">Anterioara</string>
+    <string name="tv_np_next">Următoarea</string>
+    <string name="tv_np_shuffle">Amestecă</string>
+    <string name="tv_np_repeat">Repetă</string>
+    <string name="tv_np_repeat_off">Fără repetare</string>
+    <string name="tv_np_repeat_all">Repetă tot</string>
+    <string name="tv_np_repeat_one">Repetă piesa</string>
+    <string name="tv_np_on">Pornit</string>
+    <string name="tv_np_off">Oprit</string>
+    <string name="tv_np_favorite">Favorit</string>
+    <string name="tv_np_progress">Poziție</string>
+    <string name="tv_np_buffering">Se încarcă…</string>
+    <string name="tv_np_queue">Urmează</string>
+    <string name="tv_np_remove">Scoate din coadă</string>
+    <string name="tv_np_atmos_converted">Dolby Atmos indisponibil · Redare stereo pe această ieșire</string>
+    <string name="tv_np_atmos_decoded">Dolby Atmos indisponibil · Decodat pe această ieșire</string>
+    <string name="tv_np_lyrics">Versuri</string>
+    <string name="tv_np_lyrics_none">Nu există versuri pentru această piesă</string>
+    <string name="tv_np_lyrics_error">Versurile nu au putut fi încărcate. Selectează Versuri ca să încerci din nou.</string>
+    <string name="tv_np_sleep_timer">Temporizator de oprire</string>
+    <string name="tv_np_sleep_off">Oprește</string>
+    <string name="tv_np_sleep_this_track">La sfârșitul acestei piese</string>
+    <string name="tv_np_sleep_tracks">După %d piese</string>
+    <string name="tv_np_sleep_minutes">Peste %d min</string>
+</resources>

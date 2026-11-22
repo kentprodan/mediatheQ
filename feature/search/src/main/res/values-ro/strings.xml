@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_placeholder">Caută în bibliotecă</string>
+    <string name="search_clear_query">Șterge căutarea</string>
+    <string name="search_recent">Căutări recente</string>
+    <string name="search_clear_recent">Șterge</string>
+    <string name="search_start_title">Caută în bibliotecă</string>
+    <string name="search_start_body">Artiști, albume, piese și playlisturi. Diacriticele sunt opționale.</string>
+    <string name="search_no_results_title">Niciun rezultat</string>
+    <string name="search_no_results_body">Nimic din bibliotecă nu se potrivește cu „%1$s”.</string>
+    <string name="search_no_downloads_body">Mod offline: nimic descărcat nu se potrivește cu „%1$s”.</string>
+    <string name="search_error_title">Căutarea a eșuat</string>
+    <string name="search_error_body">Biblioteca de pe acest telefon nu a putut fi citită.</string>
+    <string name="search_retry">Reîncearcă</string>
+    <string name="search_all">Tot</string>
+    <string name="search_artists">Artiști</string>
+    <string name="search_albums">Albume</string>
+    <string name="search_songs">Piese</string>
+    <string name="search_playlists">Playlisturi</string>
+    <string name="search_genres">Genuri</string>
+    <string name="search_record_labels">Case de discuri</string>
+    <string name="search_movies">Filme</string>
+    <string name="search_series">Seriale</string>
+    <string name="search_episodes">Episoade</string>
+</resources>

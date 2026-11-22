@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_home_syncing_title">Se sincronizează biblioteca…</string>
+    <string name="tv_home_syncing_body">Prima sincronizare poate dura un minut. Muzica apare aici când e gata.</string>
+    <string name="tv_home_syncing_progress">%1$d din %2$d</string>
+    <string name="tv_home_empty_title">Încă nimic aici</string>
+    <string name="tv_home_empty_body">Serverul tău nu are încă muzică.</string>
+    <string name="tv_home_error_title">Biblioteca nu a putut fi încărcată</string>
+    <string name="tv_home_error_body">Verifică dacă serverul e pornit și accesibil, apoi încearcă din nou.</string>
+    <string name="tv_home_sync_now">Sincronizează acum</string>
+    <string name="tv_home_track_mix">Mix de piese</string>
+    <string name="tv_home_album_mix">Mix de albume</string>
+    <string name="tv_home_decade_mix">Mix din anii %1$d</string>
+    <string name="tv_home_play">Redă</string>
+    <string name="tv_home_shuffle">Amestecă</string>
+    <string name="tv_home_add_to_queue">Adaugă în coadă</string>
+    <string name="tv_home_go_to_artist">Mergi la artist</string>
+    <string name="tv_home_go_to_series">Mergi la serial</string>
+    <string name="tv_home_go_to_movie">Mergi la film</string>
+    <string name="tv_home_remove_from_resume">Scoate din Continuă vizionarea</string>
+    <string name="tv_home_time_left">încă %d min</string>
+    <plurals name="tv_home_new_episodes">
+        <item quantity="one">%d episod nou</item>
+        <item quantity="few">%d episoade noi</item>
+        <item quantity="other">%d de episoade noi</item>
+    </plurals>
+</resources>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_welcome">Bine ai venit în mediatheQ</string>
+    <string name="onboarding_server_body">Introdu adresa serverului tău Jellyfin.</string>
+    <string name="onboarding_server_address">Adresa serverului</string>
+    <string name="onboarding_server_hint">de ex. 192.168.1.10:8096</string>
+    <string name="onboarding_connect">Conectează</string>
+    <string name="onboarding_connecting">Se conectează…</string>
+    <string name="onboarding_error_invalid_address">Aceasta nu e o adresă de server validă.</string>
+    <string name="onboarding_error_cleartext">Folosește https:// pentru servere din afara rețelei de acasă sau a Tailscale.</string>
+    <string name="onboarding_error_unreachable">Serverul nu poate fi contactat. Verifică adresa și dacă ești în aceeași rețea.</string>
+    <string name="onboarding_error_not_jellyfin">Adresa nu răspunde ca un server Jellyfin.</string>
+    <string name="onboarding_error_unsupported">Versiune de server nesuportată: %1$s. mediatheQ are nevoie de Jellyfin 12 sau mai nou.</string>
+    <string name="onboarding_error_other">Ceva nu a mers. Încearcă din nou.</string>
+    <string name="onboarding_notice_session_expired">Sesiunea a expirat. Conectează-te din nou.</string>
+    <string name="onboarding_notice_storage">Conectarea salvată nu a putut fi citită. Conectează-te din nou.</string>
+    <string name="onboarding_login_title">Conectează-te la %1$s</string>
+    <string name="onboarding_username">Nume de utilizator</string>
+    <string name="onboarding_password">Parolă</string>
+    <string name="onboarding_show_password">Arată parola</string>
+    <string name="onboarding_hide_password">Ascunde parola</string>
+    <string name="onboarding_sign_in">Conectează-te</string>
+    <string name="onboarding_signing_in">Se conectează…</string>
+    <string name="onboarding_error_wrong_credentials">Nume de utilizator sau parolă greșite.</string>
+    <string name="onboarding_error_storage">Conectarea nu a putut fi salvată în siguranță pe acest telefon.</string>
+    <string name="onboarding_use_quick_connect">Folosește Quick Connect</string>
+    <string name="onboarding_quick_connect_disabled">Quick Connect e dezactivat pe acest server.</string>
+    <string name="onboarding_quick_connect_title">Quick Connect</string>
+    <string name="onboarding_quick_connect_body">Într-o altă aplicație conectată la %1$s, deschide Quick Connect și introdu acest cod:</string>
+    <string name="onboarding_quick_connect_code_description">Codul %1$s</string>
+    <string name="onboarding_quick_connect_waiting">Se așteaptă aprobarea…</string>
+    <string name="onboarding_quick_connect_expired">Codul a expirat.</string>
+    <string name="onboarding_quick_connect_new_code">Cere un cod nou</string>
+    <string name="onboarding_cancel">Anulează</string>
+    <string name="onboarding_app_mode_title">Pentru ce folosești mediatheQ?</string>
+    <string name="onboarding_app_mode_body">Poți schimba oricând, sus pe Acasă sau în Setări.</string>
+    <string name="onboarding_app_mode_continue">Continuă</string>
+</resources>

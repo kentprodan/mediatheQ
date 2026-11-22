@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="album_back">Înapoi</string>
+    <string name="album_not_found_title">Albumul nu e disponibil</string>
+    <string name="album_not_found_body">Nu mai e în bibliotecă.</string>
+    <string name="album_more_options">Mai multe opțiuni pentru %1$s</string>
+    <string name="album_play">Redă</string>
+    <string name="album_resume">Continuă</string>
+    <string name="album_play_from_start">Redă de la început</string>
+    <string name="album_shuffle">Amestecă</string>
+    <string name="album_play_next">Redă în continuare</string>
+    <string name="album_add_to_queue">Adaugă în coadă</string>
+    <string name="album_more_from">Mai multe de la %1$s</string>
+    <string name="album_about">Despre</string>
+    <string name="album_show_more">Arată mai mult</string>
+    <string name="album_show_less">Arată mai puțin</string>
+    <string name="album_about_genres">Genuri</string>
+    <string name="album_about_labels">Case de discuri</string>
+    <string name="album_about_released">Data lansării</string>
+    <string name="album_about_added">Data adăugării</string>
+    <string name="album_about_plays">Ascultat</string>
+    <string name="album_about_size">Mărimea fișierelor și formatul</string>
+    <plurals name="album_play_count">
+        <item quantity="one">o dată</item>
+        <item quantity="few">de %1$d ori</item>
+        <item quantity="other">de %1$d de ori</item>
+    </plurals>
+    <string name="album_more_like_this">Asemănătoare</string>
+</resources>

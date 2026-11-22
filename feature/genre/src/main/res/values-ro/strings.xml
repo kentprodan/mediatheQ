@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="genre_back">Înapoi</string>
+    <string name="genre_albums">Albume</string>
+    <string name="genre_album_artists">Artiștii albumelor</string>
+    <string name="genre_show_all">Arată tot</string>
+    <string name="genre_artists">Artiști</string>
+    <string name="genre_top_tracks">Piese de top</string>
+    <string name="genre_play">Redă</string>
+    <string name="genre_shuffle">Amestecă</string>
+    <string name="genre_play_next">Redă în continuare</string>
+    <string name="genre_add_to_queue">Adaugă în coadă</string>
+    <string name="genre_more_options">Mai multe opțiuni pentru %1$s</string>
+    <plurals name="genre_album_count">
+        <item quantity="one">%d album</item>
+        <item quantity="few">%d albume</item>
+        <item quantity="other">%d de albume</item>
+    </plurals>
+    <plurals name="genre_artist_count">
+        <item quantity="one">%d artist</item>
+        <item quantity="few">%d artiști</item>
+        <item quantity="other">%d de artiști</item>
+    </plurals>
+    <string name="genre_not_found_title">Genul nu e disponibil</string>
+    <string name="genre_not_found_body">Nimic din bibliotecă nu mai are acest gen.</string>
+</resources>

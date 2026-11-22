@@ -19,6 +19,17 @@ import androidx.compose.ui.tooling.preview.Preview
 )
 annotation class MqTvPreviews
 
+/** A TV screen in Romanian (#447), to see the translated texts fit. */
+@Preview(
+    name = "TV Romanian",
+    device = TV_1080P,
+    uiMode = TV_UI_MODE,
+    showBackground = true,
+    backgroundColor = TV_BACKGROUND,
+    locale = "ro",
+)
+annotation class MqTvRoPreview
+
 /** 1920 x 1080 px at 320 dpi: 960 x 540 dp, what a 1080p TV reports. */
 private const val TV_1080P = "spec:width=960dp,height=540dp,dpi=320"
 private const val TV_UI_MODE = UI_MODE_TYPE_TELEVISION or UI_MODE_NIGHT_YES

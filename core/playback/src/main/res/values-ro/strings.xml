@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_button_favorite">Favorit</string>
+    <string name="playback_button_unfavorite">Scoate din favorite</string>
+    <string name="playback_button_repeat">Repetă</string>
+    <string name="playback_button_shuffle">Amestecă</string>
+</resources>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_album_play">Redă</string>
+    <string name="tv_album_shuffle">Amestecă</string>
+    <string name="tv_album_resume">Continuă</string>
+    <string name="tv_album_favorite">Favorit</string>
+    <string name="tv_album_favorited">La favorite</string>
+    <string name="tv_album_play_next">Redă în continuare</string>
+    <string name="tv_album_add_to_queue">Adaugă în coadă</string>
+    <string name="tv_album_add_favorite">Adaugă la favorite</string>
+    <string name="tv_album_remove_favorite">Scoate din favorite</string>
+    <string name="tv_album_disc">Discul %1$d</string>
+    <string name="tv_album_no_tracks">Încă nu sunt piese aici.</string>
+    <string name="tv_album_not_found_title">Nu mai e pe acest server</string>
+    <string name="tv_album_not_found_body">A fost poate șters. Întoarce-te și alege altceva.</string>
+    <plurals name="tv_album_tracks">
+        <item quantity="one">%1$d piesă</item>
+        <item quantity="few">%1$d piese</item>
+        <item quantity="other">%1$d de piese</item>
+    </plurals>
+</resources>

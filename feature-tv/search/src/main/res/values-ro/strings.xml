@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_search_label">Caută albume, artiști, piese și playlisturi</string>
+    <string name="tv_search_hint">Scrie un nume. Diacriticele sunt opționale: „Mosoi” găsește „Moșoi”.</string>
+    <string name="tv_search_recent">Căutări recente</string>
+    <string name="tv_search_albums">Albume</string>
+    <string name="tv_search_artists">Artiști</string>
+    <string name="tv_search_tracks">Piese</string>
+    <string name="tv_search_playlists">Playlisturi</string>
+    <string name="tv_search_no_results">Nimic din bibliotecă nu se potrivește cu „%1$s”.</string>
+    <string name="tv_search_error">Căutarea nu a mers. Apasă Căutare pe tastatură ca să încerci din nou.</string>
+    <string name="tv_search_storage">Biblioteca de pe acest TV nu a putut fi citită. Încearcă din nou sau sincronizeaz-o din Setări.</string>
+    <string name="tv_search_movies">Filme</string>
+    <string name="tv_search_series">Seriale</string>
+    <string name="tv_search_episodes">Episoade</string>
+    <string name="tv_search_people">Persoane</string>
+</resources>
