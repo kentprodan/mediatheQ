@@ -47,9 +47,10 @@ private fun rememberPosterSeed(poster: Artwork?): Int? {
     if (LocalInspectionMode.current) return LocalPreviewPosterSeed.current
     val context = LocalContext.current
     val key = poster?.let { "${it.itemId}/${it.tag}" }
-    var seed by remember(key) { mutableStateOf(key?.let(seeds::get)) }
+    val cached = key?.let(seeds::get)
+    var seed by remember(key) { mutableStateOf(cached?.takeIf { it != NO_SEED }) }
     LaunchedEffect(key) {
-        if (key == null || seed != null) return@LaunchedEffect
+        if (key == null || cached != null) return@LaunchedEffect
         val request =
             ImageRequest
                 .Builder(context)
@@ -65,14 +66,17 @@ private fun rememberPosterSeed(poster: Artwork?): Int? {
                     withContext(
                         Dispatchers.Default,
                     ) { posterSeedColor(it.pixels()) }
-                }?.also { seeds.put(key, it) }
+                }.also { if (bitmap != null) seeds.put(key, it ?: NO_SEED) } // a failed load is tried again next time
     }
     return seed
 }
 
 private fun Bitmap.pixels(): IntArray = IntArray(width * height).also { getPixels(it, 0, width, 0, 0, width, height) }
 
-// Back to a page seen before: its accent at once, no second read.
+// Back to a page seen before: its accent at once, no second read; a picture without a color is kept as NO_SEED.
 private val seeds = LruCache<String, Int>(64)
+
+// A transparent color: never a seed (seeds are opaque).
+private const val NO_SEED = 0
 
 private const val SEED_IMAGE_SIZE_PX = 128

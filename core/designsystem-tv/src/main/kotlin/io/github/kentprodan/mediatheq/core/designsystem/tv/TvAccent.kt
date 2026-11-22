@@ -4,7 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.MaterialTheme
 import com.materialkolor.quantize.QuantizerCelebi
 import com.materialkolor.score.Score
@@ -29,11 +32,13 @@ fun MqTvAccentTheme(
     seed: Int?,
     content: @Composable () -> Unit,
 ) {
-    if (seed == null) {
-        content()
-    } else {
-        MediatheqTvTheme(seed) {
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) { content() }
+    val scheme = remember(seed) { seed?.let(::tvColorScheme) }
+    // One tree with or without a seed: the accent arriving never rebuilds the page (its focus and scroll stay).
+    MaterialTheme(colorScheme = scheme ?: MaterialTheme.colorScheme) {
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+            Box(Modifier.fillMaxSize().then(scheme?.let { Modifier.background(it.background) } ?: Modifier)) {
+                content()
+            }
         }
     }
 }
