@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -46,27 +47,42 @@ fun MqTvSidePanel(
     val shown = remember { MutableTransitionState(false).apply { targetState = true } }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
-            AnimatedVisibility(shown, enter = slideInHorizontally { it }) {
-                Surface(
-                    Modifier.fillMaxHeight().width(PANEL_WIDTH),
-                    colors = SurfaceDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Column(Modifier.padding(top = 48.dp)) {
-                        Text(
-                            title,
-                            Modifier.padding(horizontal = 36.dp).semantics { heading() },
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-                        LazyColumn(
-                            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 48.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) { content(focused) }
-                    }
-                }
-            }
+            AnimatedVisibility(
+                shown,
+                enter = slideInHorizontally { it },
+            ) { MqTvSidePanelContent(title) { content(focused) } }
         }
     }
-    LaunchedEffect(page) { runCatching { focused.requestFocus() } }
+    LaunchedEffect(page) {
+        // The page's items compose during the dialog window's next layout.
+        withFrameNanos {}
+        runCatching { focused.requestFocus() }
+    }
+}
+
+/** The panel itself, without its window: the screenshot test draws it (previews render no dialog). */
+@Composable
+internal fun MqTvSidePanelContent(
+    title: String,
+    content: LazyListScope.() -> Unit,
+) {
+    Surface(
+        Modifier.fillMaxHeight().width(PANEL_WIDTH),
+        colors = SurfaceDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(Modifier.padding(top = 48.dp)) {
+            Text(
+                title,
+                Modifier.padding(horizontal = 36.dp).semantics { heading() },
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            LazyColumn(
+                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 48.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                content = content,
+            )
+        }
+    }
 }
 
 /** The guidelines' side panel width. */
