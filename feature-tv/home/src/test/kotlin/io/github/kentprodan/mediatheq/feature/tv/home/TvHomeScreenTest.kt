@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.tv.home
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.NativeKeyEvent
@@ -19,6 +20,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.data.HomeItems
 import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.HomeSection
@@ -183,6 +185,33 @@ class TvHomeScreenTest {
         play.performKeyInput { pressKey(Key.DirectionCenter) }
 
         assertThat(actions).containsExactly(TvHomeAction.Play(TvHomeTarget.Album(id("al1"))))
+    }
+
+    @Test
+    fun `Left on a later slide goes back a slide, only the first slide lets focus out to the left (#569)`() {
+        composeRule.setContent {
+            MediatheqTvTheme {
+                Row {
+                    // Stands in for the menu at the left of the screen.
+                    MqTvButton("Menu", {})
+                    TvHomeScreen(withCarousel, { actions += it }, TvHomeNavigation())
+                }
+            }
+        }
+        composeRule.onNodeWithText("Play").assertIsFocused()
+
+        press(listOf(Key.DirectionRight))
+        composeRule.mainClock.advanceTimeBy(1_000)
+        press(listOf(Key.DirectionRight))
+        composeRule.mainClock.advanceTimeBy(1_000)
+        press(listOf(Key.DirectionLeft))
+        composeRule.mainClock.advanceTimeBy(1_000)
+
+        composeRule.onNodeWithText("Menu").assertIsNotFocused()
+        composeRule.onNodeWithText("Play").assertIsFocused().performKeyInput { pressKey(Key.DirectionCenter) }
+        assertThat(actions).containsExactly(TvHomeAction.Play(TvHomeTarget.Album(id("al2"))))
+        press(listOf(Key.DirectionLeft, Key.DirectionLeft))
+        composeRule.onNodeWithText("Menu").assertIsFocused()
     }
 
     @Test
