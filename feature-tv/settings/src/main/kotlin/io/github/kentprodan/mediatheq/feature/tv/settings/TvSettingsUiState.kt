@@ -53,10 +53,13 @@ sealed interface TvSettingsUiState {
             io.github.kentprodan.mediatheq.core.data.DisplayMatch.Rate,
         /** Transitions between pages (#444): Simple when on. */
         val simpleTransitions: Boolean = false,
-        /** Home's featured carousel (#521): its style, its source (`null` = automatic) and whether it skips watched. */
+        /**
+         * Home's featured carousel (#521): its style, the sections it mixes (#575: the chosen ones, else the default)
+         * and whether it skips watched.
+         */
         val carousel: TvCarousel =
             TvCarousel.Card,
-        val carouselSource: HomeSection? = null,
+        val carouselPicked: List<HomeSection> = emptyList(),
         val carouselSkipWatched: Boolean = true,
         /** The sections the carousel can show in the app mode (#521). */
         val carouselSources: List<HomeSection> = emptyList(),
@@ -91,9 +94,9 @@ sealed interface TvSettingsAction {
 
     data object ChooseCarouselSource : TvSettingsAction
 
-    /** `null` = automatic. */
-    data class SetCarouselSource(
-        val source: HomeSection?,
+    /** Turns a carousel section on or off (#575); the last one stays on. */
+    data class ToggleCarouselSource(
+        val source: HomeSection,
     ) : TvSettingsAction
 
     data object ToggleCarouselSkipWatched : TvSettingsAction

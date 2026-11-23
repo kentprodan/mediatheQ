@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -34,6 +36,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvSidePanel
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.AppMode
@@ -175,7 +178,7 @@ fun TvSettingsScreen(
                         stringResource(R.string.tv_settings_carousel_source),
                         { onAction(TvSettingsAction.ChooseCarouselSource) },
                         Modifier.focusMemory(focus, "carouselSource"),
-                        supporting = carouselSourceLabel(state.carouselSource),
+                        supporting = state.carouselPicked.map { stringResource(it.title) }.joinToString(),
                     )
                 }
                 item {
@@ -318,17 +321,21 @@ fun TvSettingsScreen(
             }
 
             TvSettingsDialog.CarouselSource -> {
-                MqTvMenu(
-                    title = stringResource(R.string.tv_settings_carousel_source),
-                    entries =
-                        (listOf(null) + state.carouselSources).map { source ->
-                            val text = carouselSourceLabel(source)
-                            MqTvMenuEntry(text, null, source == state.carouselSource) {
-                                onAction(TvSettingsAction.SetCarouselSource(source))
-                            }
-                        },
+                // Several at once (#575): checkboxes in the side panel, which stays open while they change.
+                MqTvSidePanel(
+                    stringResource(R.string.tv_settings_carousel_source),
                     onDismiss = { onAction(TvSettingsAction.Dismiss) },
-                )
+                ) { first ->
+                    itemsIndexed(state.carouselSources) { index, source ->
+                        MqTvListItem(
+                            stringResource(source.title),
+                            { onAction(TvSettingsAction.ToggleCarouselSource(source)) },
+                            if (index == 0) Modifier.focusRequester(first) else Modifier,
+                            selected = source in state.carouselPicked,
+                            control = MqTvControl.Checkbox,
+                        )
+                    }
+                }
             }
 
             TvSettingsDialog.DisplayMatch -> {
@@ -585,8 +592,3 @@ private val TvCarousel.label: Int
             TvCarousel.Card -> R.string.tv_settings_carousel_card
             TvCarousel.Immersive -> R.string.tv_settings_carousel_immersive
         }
-
-/** A carousel source's name: Automatic for `null`. */
-@Composable
-private fun carouselSourceLabel(source: HomeSection?): String =
-    source?.let { stringResource(it.title) } ?: stringResource(R.string.tv_settings_carousel_source_auto)

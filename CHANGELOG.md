@@ -65,6 +65,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Any TV Home row can be an immersive list (Settings -> Home rows, long press a row): the focused card's picture and details appear behind the row.
 
 ### Changed
+- TV Settings -> Carousel shows: pick several sections at once (checkboxes); by default the carousel mixes new movies, new episodes and Continue watching, each slide saying where it comes from.
 - TV Sort and Filter open as a side panel from the right; Genre and Decade take several choices at once (any of them), and changing a filter no longer makes the panel flicker.
 - The TV side menu has no Now playing entry any more: the card of what plays, at the bottom of the menu, opens Now Playing.
 - The TV side menu: Settings -> Display -> Menu style chooses Modal (over the dimmed screen) or Standard (pushes the screen aside); your profile sits at the top (Select switches profile), and Library is now called Music.

@@ -38,6 +38,8 @@ sealed interface TvHomeUiState {
         val carousel: TvCarousel = TvCarousel.Off,
         val featuredSection: HomeSection = HomeSection.RecentlyAddedMovies,
         val featured: List<Featured> = emptyList(),
+        /** Each slide's own section when they mix several (#575); a slide not listed uses [featuredSection]. */
+        val slideSections: Map<MediaId, HomeSection> = emptyMap(),
         /** Rows shown as immersive lists (#521). */
         val immersiveRows: Set<HomeSection> = emptySet(),
     ) : TvHomeUiState
