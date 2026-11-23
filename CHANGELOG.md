@@ -65,6 +65,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Any TV Home row can be an immersive list (Settings -> Home rows, long press a row): the focused card's picture and details appear behind the row.
 
 ### Changed
+- TV Home: on the first row the carousel stays in view and keeps changing slides; lower rows scroll it away.
 - TV: after closing the app with Back, the next start asks Who's watching? again; a short trip out with the Home button still does not.
 - TV Settings -> Carousel shows: pick several sections at once (checkboxes); by default the carousel mixes new movies, new episodes and Continue watching, each slide saying where it comes from.
 - TV Sort and Filter open as a side panel from the right; Genre and Decade take several choices at once (any of them), and changing a filter no longer makes the panel flicker.
