@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation3.runtime.NavKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.AppLog
+import io.github.kentprodan.mediatheq.core.data.AccountRepository
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.ParentalControls
@@ -50,6 +51,7 @@ class TvShellViewModel
         private val parental: ParentalControls? = null,
         private val videos: VideoRepository? = null,
         session: SessionRepository? = null,
+        accounts: AccountRepository? = null,
         private val profileGate: ProfileGate? = null,
     ) : ViewModel() {
         /** A key waiting for the PIN (#434), with whether the last try was wrong. */
@@ -150,6 +152,11 @@ class TvShellViewModel
         /** Who is signed in, for the menu's profile entry (#520); `null` hides it. */
         val userName: StateFlow<String?> =
             (session?.session?.map { (it as? SessionState.LoggedIn)?.userName } ?: flowOf(null))
+                .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+        /** The signed-in user's picture for the profile entry (#556); `null` shows the initial. */
+        val userImage: StateFlow<String?> =
+            (accounts?.accounts?.map { list -> list.firstOrNull { it.active }?.imageUrl } ?: flowOf(null))
                 .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
         /** TV Settings -> Accent from the poster (#517). */

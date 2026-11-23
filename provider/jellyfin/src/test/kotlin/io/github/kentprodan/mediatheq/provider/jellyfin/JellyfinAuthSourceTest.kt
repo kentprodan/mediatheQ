@@ -51,6 +51,14 @@ class JellyfinAuthSourceTest {
         )
 
     @Test
+    fun `the user image is the user's public Primary image, without a token (#556)`() {
+        assertThat(source.userImageUrl("http://nas:8096/jf", "u1", 192))
+            .isEqualTo("http://nas:8096/jf/Users/u1/Images/Primary?fillWidth=192&quality=90")
+        assertThat(source.userImageUrl("", "u1", 192)).isNull()
+        assertThat(source.userImageUrl("http://nas:8096", "", 192)).isNull()
+    }
+
+    @Test
     fun `server info parses public info and sends the header without token`() =
         runTest {
             enqueue("system_info_public/version_12.json")
