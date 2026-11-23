@@ -44,6 +44,7 @@ import io.github.kentprodan.mediatheq.core.navigation.MoviesKey
 import io.github.kentprodan.mediatheq.core.navigation.NowPlayingKey
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import kotlinx.coroutines.delay
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -243,6 +244,67 @@ class TvShellTest {
 
         composeRule.onNodeWithText("Home").assertIsFocused()
         assertThat(backStack).containsExactly(HomeKey)
+    }
+
+    @Test
+    fun `Back from a screen opens the menu, the next Back goes Home with the Home entry focused (#567)`() {
+        backStack += LibraryKey
+        show(userName = "Ana")
+        composeRule.onNodeWithText("Library screen").assertExists()
+
+        pressBack()
+        composeRule.onNodeWithText("Music").assertIsFocused()
+        pressBack()
+
+        assertThat(backStack).containsExactly(HomeKey)
+        composeRule.onNodeWithText("Home").assertIsFocused()
+        pressBack()
+        composeRule.onNodeWithText("Close mediatheQ?").assertExists()
+    }
+
+    @Test
+    fun `a screen that takes focus late, once loaded, does not close the menu after Back (#567)`() {
+        backStack += LibraryKey
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvShell(backStack, PlayerUiModel()) { _ ->
+                    entry(HomeKey) {
+                        val focus = rememberFocusMemory()
+                        MqTvButton("First album", {}, Modifier.focusMemory(focus, "first"))
+                        // Content arrives after a moment, then asks for its first focus.
+                        LaunchedEffect(Unit) {
+                            delay(300)
+                            focus.restore("first")
+                        }
+                    }
+                    entry(LibraryKey) { Text("Library screen") }
+                }
+            }
+        }
+        pressBack()
+        pressBack()
+        composeRule.mainClock.advanceTimeBy(500)
+
+        composeRule.onNodeWithText("Home").assertIsFocused()
+        // Right still goes to the screen.
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.onNodeWithText("First album").assertIsFocused()
+    }
+
+    @Test
+    fun `after a detail page, Back from the top-level screen still opens the menu first (#567)`() {
+        // Like Settings -> Display -> back to Settings in the Standard style.
+        backStack += listOf(LibraryKey, album)
+        show(TvMenuStyle.Standard)
+        composeRule.onNodeWithText("Album page").assertExists()
+        pressBack()
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.onNodeWithText("Library screen").assertExists()
+
+        pressBack()
+
+        assertThat(backStack.toList()).containsExactly(HomeKey, LibraryKey).inOrder()
+        composeRule.onNodeWithText("Music").assertIsFocused()
     }
 
     @Test
