@@ -41,6 +41,8 @@ import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
 import io.github.kentprodan.mediatheq.core.navigation.MoviesKey
+import io.github.kentprodan.mediatheq.core.navigation.NowPlayingKey
+import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import org.junit.Rule
 import org.junit.Test
@@ -241,6 +243,26 @@ class TvShellTest {
 
         composeRule.onNodeWithText("Home").assertIsFocused()
         assertThat(backStack).containsExactly(HomeKey)
+    }
+
+    @Test
+    fun `the menu has no Now playing entry, the pill of what plays opens it (#573)`() {
+        val playing = PlayerUiModel(item = NowPlayingItem(MediaId(ServerId("s"), "t"), "Strobe", "deadmau5"))
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvShell(backStack, playing) { _ ->
+                    entry(HomeKey) { MqTvButton("First album", {}) }
+                    entry(NowPlayingKey) { Text("Now Playing screen") }
+                }
+            }
+        }
+        composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+
+        composeRule.onNodeWithText("Now playing").assertDoesNotExist()
+        composeRule.onNodeWithText("Strobe").performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.onNodeWithText("Now Playing screen").assertExists()
+        assertThat(backStack.toList()).containsExactly(HomeKey, NowPlayingKey).inOrder()
     }
 
     @Test
