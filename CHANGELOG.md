@@ -66,15 +66,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 
 ### Changed
 - TV Sort and Filter open as a side panel from the right; Genre and Decade take several choices at once (any of them), and changing a filter no longer makes the panel flicker.
+- The TV side menu has no Now playing entry any more: the card of what plays, at the bottom of the menu, opens Now Playing.
 - The TV side menu: Settings -> Display -> Menu style chooses Modal (over the dimmed screen) or Standard (pushes the screen aside); your profile sits at the top (Select switches profile), and Library is now called Music.
 - While an output's equalizer is off, its Preset row says why the preset and bands are grey.
 - Moving between screens now slides in the direction you go (forward or back) instead of a plain fade; the back gesture shrinks the screen as you drag.
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 
 ### Fixed
+- TV: Back from the open menu goes Home with the menu still on Home, not on the profile or the page.
+- TV: the Standard menu style slides the screen back smoothly when the menu closes, without a jump.
 - On the TV, holding Left or Right on the progress (music and movies) seeks faster the longer you hold, also with remotes that send a held key as separate presses.
 - Now Playing on a phone held sideways shows the controls without scrolling (smaller transport buttons, the album line in the menu).
 - The waveform analysis no longer keeps the processor busy or stops making waveforms when one file never finishes decoding.
+- TV Home: Left on the carousel goes back a slide; only the first slide lets you into the menu.
 - Typing in search in list (Library) and in the Downloads filter no longer moves the cursor back.
 - Bit-perfect USB turned on while a track plays takes effect at once, not only from the next track.
 - A tap right after going back no longer reaches the page you are leaving: the Settings gear on Home no longer opens that page's menu (#189).
