@@ -37,7 +37,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
@@ -50,6 +49,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvSidePanel
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvTabs
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
@@ -291,41 +291,33 @@ private fun SortMenu(
     onReverse: () -> Unit,
     onSort: (LibrarySort) -> Unit,
 ) {
-    val current = remember { FocusRequester() }
-    Dialog(onDismissRequest = onDismiss) {
-        androidx.tv.material3.Surface(shape = MaterialTheme.shapes.large) {
-            Column(Modifier.width(360.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    stringResource(R.string.tv_library_sort_title),
-                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp).semantics { heading() },
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                state.filter.sorts.forEach { sort ->
-                    MqTvListItem(
-                        stringResource(sort.label),
-                        {
-                            onSort(sort)
-                            onDismiss()
-                        },
-                        if (sort == state.sort) Modifier.focusRequester(current) else Modifier,
-                        selected = sort == state.sort,
-                        control = MqTvControl.Radio,
-                    )
-                }
-                // The direction of the chosen sort (#349), as the phone's Reverse order (#187).
-                MqTvListItem(
-                    stringResource(R.string.tv_library_sort_reverse),
-                    {
-                        onReverse()
-                        onDismiss()
-                    },
-                    selected = state.reversed,
-                    control = MqTvControl.Checkbox,
-                )
-            }
+    // The guidelines' side panel (#579), as the video grids.
+    MqTvSidePanel(stringResource(R.string.tv_library_sort_title), onDismiss) { current ->
+        items(state.filter.sorts) { sort ->
+            MqTvListItem(
+                stringResource(sort.label),
+                {
+                    onSort(sort)
+                    onDismiss()
+                },
+                if (sort == state.sort) Modifier.focusRequester(current) else Modifier,
+                selected = sort == state.sort,
+                control = MqTvControl.Radio,
+            )
+        }
+        // The direction of the chosen sort (#349), as the phone's Reverse order (#187).
+        item {
+            MqTvListItem(
+                stringResource(R.string.tv_library_sort_reverse),
+                {
+                    onReverse()
+                    onDismiss()
+                },
+                selected = state.reversed,
+                control = MqTvControl.Checkbox,
+            )
         }
     }
-    LaunchedEffect(Unit) { runCatching { current.requestFocus() } }
 }
 
 @get:StringRes
