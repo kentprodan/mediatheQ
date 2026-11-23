@@ -17,7 +17,7 @@ import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toDomain
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
-import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 
@@ -39,9 +39,10 @@ class JellyfinAuthSource internal constructor(
         baseUrl: String,
         userId: String,
         widthPx: Int,
-    ): String =
-        baseUrl
-            .toHttpUrl()
+    ): String? {
+        // A damaged account record must not break the account list (review).
+        val url = baseUrl.toHttpUrlOrNull()?.takeIf { userId.isNotBlank() } ?: return null
+        return url
             .newBuilder()
             .addPathSegment("Users")
             .addPathSegment(userId)
@@ -50,6 +51,7 @@ class JellyfinAuthSource internal constructor(
             .addQueryParameter("quality", "90")
             .build()
             .toString()
+    }
 
     override suspend fun serverInfo(connection: ServerConnection): MqResult<ServerInfo> =
         http.get(connection, "System/Info/Public", PublicSystemInfoDto.serializer()) { it.toDomain() }
