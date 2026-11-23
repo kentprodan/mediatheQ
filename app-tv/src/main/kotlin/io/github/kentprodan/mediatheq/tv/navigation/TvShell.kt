@@ -84,6 +84,7 @@ import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.ui.tv.LocalTvPosterAccent
 import io.github.kentprodan.mediatheq.core.ui.tv.LocalTvTitleStyle
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAvatar
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
 import io.github.kentprodan.mediatheq.feature.tv.album.tvAlbumEntries
 import io.github.kentprodan.mediatheq.feature.tv.artist.tvArtistEntry
@@ -112,6 +113,7 @@ internal fun TvShellRoute(
     val pin by viewModel.pinRequest.collectAsStateWithLifecycle()
     val menuStyle by viewModel.menuStyle.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
+    val userImage by viewModel.userImage.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(HomeKey)
     val context = LocalContext.current
     val versionName =
@@ -156,6 +158,7 @@ internal fun TvShellRoute(
             simpleTransitions = simpleTransitions,
             menuStyle = menuStyle,
             userName = userName,
+            userImage = userImage,
             onProfile = onSwitchProfile,
             onUnknown = viewModel::unknownDestination,
             onClose = {
@@ -207,6 +210,7 @@ fun TvShell(
     simpleTransitions: Boolean = false,
     menuStyle: TvMenuStyle = TvMenuStyle.Modal,
     userName: String? = null,
+    userImage: String? = null,
     onProfile: () -> Unit = {},
     onUnknown: (NavKey) -> Unit = {},
     onClose: () -> Unit = {},
@@ -242,6 +246,7 @@ fun TvShell(
         showMenu = topLevel,
         menuStyle = menuStyle,
         userName = userName,
+        userImage = userImage,
         onProfile = onProfile,
     ) {
         // Each screen requests its own initial focus once, the item it had before when it comes back (FocusMemory).
@@ -282,6 +287,7 @@ fun TvFrame(
     showMenu: Boolean = true,
     menuStyle: TvMenuStyle = TvMenuStyle.Modal,
     userName: String? = null,
+    userImage: String? = null,
     onProfile: () -> Unit = {},
     previewOpen: Boolean = false,
     content: @Composable () -> Unit,
@@ -329,6 +335,7 @@ fun TvFrame(
             destinations,
             requesters,
             userName,
+            userImage,
             onProfile,
             Modifier
                 .align(Alignment.CenterStart)
@@ -367,6 +374,7 @@ private fun Island(
     destinations: List<TvDestination>,
     requesters: Map<TvDestination, FocusRequester>,
     userName: String?,
+    userImage: String?,
     onProfile: () -> Unit,
     modifier: Modifier,
 ) {
@@ -395,7 +403,7 @@ private fun Island(
                 ) { onNavigate(destination.key) }
             }
             // Who is watching first (#520): Select opens the profile picker.
-            userName?.takeIf { it.isNotBlank() }?.let { name -> ProfileEntry(name, open, onProfile) }
+            userName?.takeIf { it.isNotBlank() }?.let { name -> ProfileEntry(name, userImage, open, onProfile) }
             top.forEach { entry(it) }
             if (top.isNotEmpty()) Spacer(Modifier.height(12.dp))
             (destinations - (top + bottom).toSet()).forEach { entry(it) }
@@ -437,10 +445,11 @@ private fun Island(
     }
 }
 
-/** The signed-in user's initial in a circle (the guideline's avatar), the name once the menu is open. */
+/** The signed-in user's picture (#556), the initial without one (the guideline's avatar), the name once open. */
 @Composable
 private fun ProfileEntry(
     name: String,
+    image: String?,
     open: Boolean,
     onClick: () -> Unit,
 ) {
@@ -458,16 +467,7 @@ private fun ProfileEntry(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                Modifier.size(24.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    name.take(1).uppercase(),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-            }
+            MqTvAvatar(name, image, 24.dp, MaterialTheme.typography.labelMedium)
             if (open) {
                 Text(
                     name,
