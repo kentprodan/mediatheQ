@@ -20,9 +20,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -222,9 +224,12 @@ private fun Rows(
             CardRow(title, Modifier.rowFocus(focused, row.section.name)) { with(cards) { row(row) } }
         }
     }
-    CompositionLocalProvider(LocalBringIntoViewSpec provides RowsToTop) {
+    val list = rememberLazyListState()
+    val rowsToTop = remember(list) { rowsToTop(list) }
+    CompositionLocalProvider(LocalBringIntoViewSpec provides rowsToTop) {
         LazyColumn(
             modifier.fillMaxSize(),
+            state = list,
             contentPadding =
                 PaddingValues(
                     top = if (showCarousel && state.carousel == TvCarousel.Immersive) 0.dp else 32.dp,
@@ -688,14 +693,19 @@ private fun rememberHero(focus: HeroFocus): State<Pair<String?, HeroInfo?>> =
         snapshotFlow { focus.row to focus.info }.debounce(HERO_DELAY).collect { value = it }
     }
 
-/** The focused row lands near the top, at the same place every time, like Google TV. */
-private val RowsToTop =
+/**
+ * The focused row lands near the top, at the same place every time, like Google TV. While Home is still at its top and
+ * the row is wholly on screen (the first row under the carousel, #574), nothing moves: the carousel stays in view and
+ * its slides advance.
+ */
+private fun rowsToTop(list: LazyListState) =
     object : BringIntoViewSpec {
         override fun calculateScrollDistance(
             offset: Float,
             size: Float,
             containerSize: Float,
-        ): Float = offset - ROW_HEADER_PX
+        ): Float =
+            if (!list.canScrollBackward && offset >= 0 && offset + size <= containerSize) 0f else offset - ROW_HEADER_PX
     }
 
 // The row title and its padding above the cards, so the title stays in view.
@@ -717,7 +727,7 @@ private class WholeRowNode :
         childCoordinates: LayoutCoordinates,
         boundsProvider: () -> Rect?,
     ) {
-        // RowsToTop lands a request's top ROW_HEADER_PX down: start it that far into the row so the row's top lands at 0.
+        // rowsToTop lands a request's top ROW_HEADER_PX down: start it that far into the row so the row's top lands at 0.
         bringIntoView {
             requireLayoutCoordinates()
                 .size
@@ -814,7 +824,6 @@ private fun FeaturedCarousel(
     modifier: Modifier,
 ) {
     val immersive = state.carousel == TvCarousel.Immersive
-    val overline = stringResource(state.featuredSection.title)
     MqTvCarousel(
         state.featured.size,
         if (immersive) {
@@ -838,7 +847,7 @@ private fun FeaturedCarousel(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                overline,
+                stringResource((state.slideSections[item.id] ?: state.featuredSection).title),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

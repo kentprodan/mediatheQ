@@ -87,7 +87,6 @@
     <string name="tv_settings_carousel_card">Card: titluri recomandate într-un card mare sus</string>
     <string name="tv_settings_carousel_immersive">Imersiv: titluri recomandate pe toată partea de sus</string>
     <string name="tv_settings_carousel_source">Caruselul arată</string>
-    <string name="tv_settings_carousel_source_auto">Automat: filme noi sau, fără video, albume noi</string>
     <string name="tv_settings_carousel_skip_watched">Lasă deoparte ce ai văzut</string>
     <string name="tv_settings_menu_style">Stilul meniului</string>
     <string name="tv_settings_menu_style_modal">Modal: meniul se deschide peste ecranul întunecat</string>

@@ -64,7 +64,7 @@ fun TvMoviesGridScreenshot() {
 @MqTvPreviews
 @Composable
 fun TvSeriesFilteredScreenshot() {
-    val filter = TvVideoFilter(watched = TvWatched.Unwatched, decade = 2010)
+    val filter = TvVideoFilter(watched = TvWatched.Unwatched, decades = setOf(2010))
     val arranged = arrange(posters, TvVideoSort.Year, filter, 0)
     Grid(
         TvVideoKind.Series,

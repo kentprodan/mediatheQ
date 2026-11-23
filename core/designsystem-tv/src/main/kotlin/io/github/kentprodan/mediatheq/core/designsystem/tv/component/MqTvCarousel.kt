@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.designsystem.tv.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.padding
@@ -9,6 +10,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Carousel
 import androidx.tv.material3.CarouselDefaults
@@ -55,7 +58,14 @@ fun MqTvCarousel(
             }
         },
     ) { index ->
-        Box { slide(index) }
+        Box(
+            Modifier
+                .focusProperties {
+                    // tv-material lets focus leave left from a later slide's button (#569: the menu opened from
+                    // slide 3). Cancelled, the Carousel reads the move as Left: the previous slide.
+                    onExit = { if (index > 0 && requestedFocusDirection == FocusDirection.Left) cancelFocusChange() }
+                }.focusGroup(),
+        ) { slide(index) }
     }
 }
 
