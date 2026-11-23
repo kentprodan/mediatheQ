@@ -398,17 +398,27 @@ private fun Island(
             userName?.takeIf { it.isNotBlank() }?.let { name -> ProfileEntry(name, open, onProfile) }
             top.forEach { entry(it) }
             if (top.isNotEmpty()) Spacer(Modifier.height(12.dp))
-            (destinations - (top + bottom).toSet()).forEach { entry(it) }
+            // Now playing has no entry of its own (#573): the pill below opens it.
+            (destinations - (top + bottom).toSet() - TvDestination.NowPlaying).forEach { entry(it) }
             if (bottom.isNotEmpty()) Spacer(Modifier.height(12.dp))
             bottom.forEach { entry(it) }
             player.item?.let { item ->
+                // Set apart from Settings: what plays, not another entry.
+                Spacer(Modifier.height(12.dp))
                 val playState = stringResource(if (player.isPlaying) R.string.tv_playing else R.string.tv_paused)
-                // What plays: its cover (and title once open); Select opens Now playing.
+                // What plays: its cover (and title once open); Select opens Now playing, which it marks as the active
+                // entry there (#573).
                 Surface(
                     onClick = { onNavigate(TvDestination.NowPlaying.key) },
-                    modifier = Modifier.semantics { stateDescription = playState },
+                    modifier =
+                        Modifier
+                            .focusRequester(requesters.getValue(TvDestination.NowPlaying))
+                            .semantics {
+                                stateDescription = playState
+                                this.selected = selected == TvDestination.NowPlaying
+                            },
                     shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(20.dp)),
-                    colors = entryColors(selected = false),
+                    colors = entryColors(selected = selected == TvDestination.NowPlaying),
                     scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
                 ) {
                     Row(
