@@ -119,7 +119,8 @@ class DefaultLibraryPreferencesRepository
                     expandPlayer = navigation.expandPlayer,
                     simpleTransitions = navigation.simpleTransitions,
                     tvCarousel = navigation.tvCarousel.name,
-                    tvCarouselSource = navigation.tvCarouselSource?.name.orEmpty(),
+                    // Comma-separated names in the old one-section key: a single old choice reads as a list of one.
+                    tvCarouselSource = navigation.tvCarouselSources?.joinToString(",") { it.name }.orEmpty(),
                     tvCarouselSkipWatched = navigation.tvCarouselSkipWatched,
                     tvImmersiveRows = navigation.tvImmersiveRows.map { it.name },
                     tvMenuStyle = navigation.tvMenuStyle.name,
@@ -147,8 +148,13 @@ class DefaultLibraryPreferencesRepository
                 expandPlayer = stored.expandPlayer ?: defaults.expandPlayer,
                 simpleTransitions = stored.simpleTransitions ?: defaults.simpleTransitions,
                 tvCarousel = enumOrNull<TvCarousel>(stored.tvCarousel) ?: defaults.tvCarousel,
-                // Empty = automatic; an unknown name (a section removed later) too.
-                tvCarouselSource = enumOrNull<HomeSection>(stored.tvCarouselSource),
+                // Empty = the default; unknown names (sections removed later) are dropped.
+                tvCarouselSources =
+                    stored.tvCarouselSource
+                        ?.split(",")
+                        ?.mapNotNull { enumOrNull<HomeSection>(it) }
+                        ?.distinct()
+                        ?.ifEmpty { null },
                 tvCarouselSkipWatched = stored.tvCarouselSkipWatched ?: defaults.tvCarouselSkipWatched,
                 tvImmersiveRows =
                     stored.tvImmersiveRows?.mapNotNull { enumOrNull<HomeSection>(it) }?.toSet()
