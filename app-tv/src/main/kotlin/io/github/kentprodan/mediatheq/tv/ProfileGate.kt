@@ -56,7 +56,9 @@ class ProfileGate
             if (mutableState.value == ProfilePicker.Hidden && profilePickerDue(last, clock.now(), closed)) {
                 mutableState.value = ProfilePicker.Due
             }
-            if (closed) prefs.edit { putBoolean(CLOSED_WITH_BACK, false) }
+            // shortcut: process onStart/onStop come ~700 ms late, so reopening within that after a Back exit skips the
+            // picker once; move the check to the activity's onStart if that matters.
+            if (closed) prefs.edit(commit = true) { putBoolean(CLOSED_WITH_BACK, false) }
         }
 
         /** The app was closed with Back (#572): the next start asks again, however soon. */
