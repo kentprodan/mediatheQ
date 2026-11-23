@@ -206,7 +206,11 @@ class TvVideoGroupsViewModel
             videos
                 .posters(kind)
                 .map<_, TvVideoGroupsUiState> { posters ->
-                    TvVideoGroupsUiState.Groups(groupsOf(posters) { if (studios) it.studios else it.genres })
+                    val groups = groupsOf(posters) { if (studios) it.studios else it.genres }
+                    // A studio shows its own picture with its logo (#576), not a poster.
+                    TvVideoGroupsUiState.Groups(
+                        if (studios) groups.map { it.copy(artwork = studioThumb(it.name)) } else groups,
+                    )
                 }.flowOn(defaultDispatcher)
                 // A database read failed: the next change reads again.
                 .catch { emit(TvVideoGroupsUiState.Error) }

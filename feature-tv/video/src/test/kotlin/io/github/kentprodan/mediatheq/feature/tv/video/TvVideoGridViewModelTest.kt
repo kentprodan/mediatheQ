@@ -174,5 +174,7 @@ class TvVideoGridViewModelTest {
                 .containsExactly("Comedy" to 1, "Crime" to 2, "Horror" to 1, "Sci-Fi" to 1)
                 .inOrder()
             assertThat(groups(studios = true).map { it.name }).containsExactly("Brandywine", "Warner Bros.").inOrder()
+            // A studio card shows the studio's own picture with its logo (#576).
+            assertThat(groups(studios = true).first().artwork).isEqualTo(studioThumb("Brandywine"))
         }
 }

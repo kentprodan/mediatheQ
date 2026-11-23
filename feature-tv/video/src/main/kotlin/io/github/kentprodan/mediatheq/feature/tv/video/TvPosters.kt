@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.tv.video
 
 import io.github.kentprodan.mediatheq.core.common.nameComparator
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Video
@@ -159,6 +160,9 @@ fun groupsOf(
         .map { (name, items) -> TvVideoGroup(name, items.size, items.firstNotNullOfOrNull { it.artwork }) }
         .sortedWith(compareBy(nameComparator()) { it.name })
 }
+
+/** A studio's or network's wide picture with its logo, by name (#576). */
+fun studioThumb(name: String) = Artwork(name, tag = "", type = ImageType.StudioThumb)
 
 /** The decades of [posters], newest first: the Decade filter's choices. */
 fun decadesOf(posters: List<TvPoster>): List<Int> =

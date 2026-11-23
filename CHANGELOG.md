@@ -65,6 +65,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Any TV Home row can be an immersive list (Settings -> Home rows, long press a row): the focused card's picture and details appear behind the row.
 
 ### Changed
+- TV Movies -> Studios and Series -> Networks show each studio's or network's picture with its logo from Jellyfin, four across.
 - The TV side menu has no Now playing entry any more: the card of what plays, at the bottom of the menu, opens Now Playing.
 - The TV side menu: Settings -> Display -> Menu style chooses Modal (over the dimmed screen) or Standard (pushes the screen aside); your profile sits at the top (Select switches profile), and Library is now called Music.
 - While an output's equalizer is off, its Preset row says why the preset and bands are grey.

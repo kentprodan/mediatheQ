@@ -20,4 +20,7 @@ enum class ImageType {
 
     /** The title drawn as an image (#523): a movie's, series' or artist's logo, transparent around it. */
     Logo,
+
+    /** A studio's or network's wide picture with its logo (#576); the artwork's item id is the studio's name, no tag. */
+    StudioThumb,
 }
