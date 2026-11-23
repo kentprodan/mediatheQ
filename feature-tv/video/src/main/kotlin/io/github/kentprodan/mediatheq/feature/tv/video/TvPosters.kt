@@ -39,12 +39,15 @@ enum class TvVideoSort { Collection, Name, DateAdded, Year, Rating, Runtime, Ran
 
 enum class TvWatched { All, Unwatched, Watched }
 
-/** The filters of a TV video grid; [decade] is its first year (1990). */
+/**
+ * The filters of a TV video grid. Several [genres] or [decades] (#579) keep a poster with any of them; a decade is its
+ * first year (1990).
+ */
 data class TvVideoFilter(
     val watched: TvWatched = TvWatched.All,
     val favorites: Boolean = false,
-    val genre: String? = null,
-    val decade: Int? = null,
+    val genres: Set<String> = emptySet(),
+    val decades: Set<Int> = emptySet(),
 ) {
     val active: Int get() =
         listOfNotNull(
@@ -52,8 +55,8 @@ data class TvVideoFilter(
                 it != TvWatched.All
             },
             favorites.takeIf { it },
-            genre,
-            decade,
+            genres.ifEmpty { null },
+            decades.ifEmpty { null },
         ).size
 }
 
@@ -82,8 +85,8 @@ fun arrange(
                 TvWatched.Watched -> p.watched
             } &&
                 (!filter.favorites || p.favorite) &&
-                (filter.genre == null || filter.genre in p.genres) &&
-                (filter.decade == null || p.year?.let(::decadeOf) == filter.decade)
+                (filter.genres.isEmpty() || p.genres.any { it in filter.genres }) &&
+                (filter.decades.isEmpty() || p.year?.let(::decadeOf) in filter.decades)
         }
     val sorted =
         when (sort) {

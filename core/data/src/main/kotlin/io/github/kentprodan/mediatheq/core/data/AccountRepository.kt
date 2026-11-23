@@ -61,4 +61,6 @@ data class Account(
     val signedIn: Boolean = true,
     /** Other addresses of the same server (#382), tried when [baseUrl] does not answer. */
     val alternateUrls: List<String> = emptyList(),
+    /** The user's picture on the server (#556), `null` when the server kind has none. */
+    val imageUrl: String? = null,
 )

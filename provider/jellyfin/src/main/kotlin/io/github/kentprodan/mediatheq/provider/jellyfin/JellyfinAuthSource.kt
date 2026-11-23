@@ -17,6 +17,7 @@ import io.github.kentprodan.mediatheq.provider.jellyfin.mapper.toDomain
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 
@@ -31,6 +32,26 @@ class JellyfinAuthSource internal constructor(
         json: Json,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ) : this(JellyfinHttp(okHttpClient, clientInfo, json, ioDispatcher))
+
+    // shortcut: no image tag (the account does not keep one), so a new picture shows once Coil's cache lets the old one
+    // go; keep the user's PrimaryImageTag with the account if that is too slow.
+    override fun userImageUrl(
+        baseUrl: String,
+        userId: String,
+        widthPx: Int,
+    ): String? {
+        // A damaged account record must not break the account list (review).
+        val url = baseUrl.toHttpUrlOrNull()?.takeIf { userId.isNotBlank() } ?: return null
+        return url
+            .newBuilder()
+            .addPathSegment("Users")
+            .addPathSegment(userId)
+            .addPathSegments("Images/Primary")
+            .addQueryParameter("fillWidth", widthPx.toString())
+            .addQueryParameter("quality", "90")
+            .build()
+            .toString()
+    }
 
     override suspend fun serverInfo(connection: ServerConnection): MqResult<ServerInfo> =
         http.get(connection, "System/Info/Public", PublicSystemInfoDto.serializer()) { it.toDomain() }

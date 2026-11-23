@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.data.AccountRepository
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.AudioOutputRepository
 import io.github.kentprodan.mediatheq.core.data.AudioPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.DefaultTvCarouselSources
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
@@ -73,8 +74,8 @@ class TvSettingsViewModel
                     displayMatch = video.displayMatch,
                     simpleTransitions = plain.simpleTransitions,
                     carousel = plain.tvCarousel,
-                    // A source the mode does not have shows as Automatic, as Home uses it (#521).
-                    carouselSource = plain.tvCarouselSource?.takeIf { it in carouselSources(mode) },
+                    // What Home mixes (#575): the chosen sections the mode has, else the default.
+                    carouselPicked = carouselPicked(plain.tvCarouselSources, carouselSources(mode)),
                     carouselSkipWatched = plain.tvCarouselSkipWatched,
                     carouselSources = carouselSources(mode),
                     menuStyle = plain.tvMenuStyle,
@@ -156,9 +157,23 @@ class TvSettingsViewModel
                     dialog.value = TvSettingsDialog.CarouselSource
                 }
 
-                is TvSettingsAction.SetCarouselSource -> {
-                    dialog.value = null
-                    updateNavigation { it.copy(tvCarouselSource = action.source) }
+                is TvSettingsAction.ToggleCarouselSource -> {
+                    val sources = (uiState.value as? TvSettingsUiState.Content)?.carouselSources ?: return
+                    updateNavigation { navigation ->
+                        val picked = carouselPicked(navigation.tvCarouselSources, sources)
+                        val next = if (action.source in picked) picked - action.source else picked + action.source
+                        // The panel stays open; the last section cannot go off. Sections this mode does not show stay
+                        // stored (review: toggling in Music mode kept wiping the video ones).
+                        val hidden = navigation.tvCarouselSources.orEmpty().filter { it !in sources }
+                        if (next.isEmpty()) {
+                            navigation
+                        } else {
+                            navigation.copy(
+                                tvCarouselSources =
+                                    hidden + sources.filter { it in next },
+                            )
+                        }
+                    }
                 }
 
                 TvSettingsAction.ToggleCarouselSkipWatched -> {
@@ -238,6 +253,17 @@ private data class TvSettingsExtras(
     val video: io.github.kentprodan.mediatheq.core.data.VideoPreferences,
     val simpleTransitions: NavigationPreferences,
 )
+
+/** The sections the carousel mixes (#575): the chosen ones among [sources], else the default ones there. */
+internal fun carouselPicked(
+    chosen: List<HomeSection>?,
+    sources: List<HomeSection>,
+): List<HomeSection> =
+    chosen?.filter { it in sources }?.ifEmpty { null }
+        // As Home: new albums when none of the default is shown in this mode.
+        ?: DefaultTvCarouselSources.filter { it in sources }.ifEmpty {
+            listOf(HomeSection.RecentlyAddedAlbums).filter { it in sources }.ifEmpty { sources.take(1) }
+        }
 
 /** What the Home carousel can show (#521): the sections of videos, albums and playlists the [mode] has. */
 internal fun carouselSources(mode: AppMode?): List<HomeSection> =

@@ -40,7 +40,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
@@ -51,6 +50,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvSidePanel
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvTabs
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
@@ -492,7 +492,7 @@ private fun SortMenu(
     onSort: (TvVideoSort) -> Unit,
 ) {
     val sorts = kind.sorts
-    MenuDialog(stringResource(R.string.tv_video_sort_title), onDismiss) { selected ->
+    MqTvSidePanel(stringResource(R.string.tv_video_sort_title), onDismiss) { selected ->
         items(sorts) { sort ->
             MqTvListItem(
                 stringResource(sort.label),
@@ -508,7 +508,10 @@ private fun SortMenu(
     }
 }
 
-/** The filters: watched state, favorites, then a genre or a decade from their own lists, and Clear. */
+/**
+ * The filters in one side panel (#579): watched state, favorites, then genres and decades on their own pages, and
+ * Clear. A page changes inside the same panel (#570); Back from a page returns to the filters.
+ */
 @Composable
 private fun FilterMenu(
     state: TvVideoGridUiState.Content,
@@ -518,9 +521,20 @@ private fun FilterMenu(
 ) {
     var page by remember { mutableStateOf(FilterPage.Main) }
     val filter = state.filter
-    when (page) {
-        FilterPage.Main -> {
-            MenuDialog(stringResource(R.string.tv_video_filter_title), onDismiss) { first ->
+    val title =
+        when (page) {
+            FilterPage.Main -> R.string.tv_video_filter_title
+            FilterPage.Genre -> R.string.tv_video_filter_genre
+            FilterPage.Decade -> R.string.tv_video_filter_decade
+        }
+    val any = stringResource(R.string.tv_video_filter_any)
+    MqTvSidePanel(
+        stringResource(title),
+        onDismiss = { if (page == FilterPage.Main) onDismiss() else page = FilterPage.Main },
+        page = page,
+    ) { first ->
+        when (page) {
+            FilterPage.Main -> {
                 items(TvWatched.entries) { watched ->
                     MqTvListItem(
                         stringResource(watched.label),
@@ -544,7 +558,11 @@ private fun FilterMenu(
                     MqTvListItem(
                         stringResource(R.string.tv_video_filter_genre),
                         { page = FilterPage.Genre },
-                        supporting = filter.genre ?: stringResource(R.string.tv_video_filter_any),
+                        supporting =
+                            filter.genres
+                                .sorted()
+                                .joinToString()
+                                .ifEmpty { any },
                         enabled = state.genres.isNotEmpty(),
                     )
                 }
@@ -553,8 +571,11 @@ private fun FilterMenu(
                         stringResource(R.string.tv_video_filter_decade),
                         { page = FilterPage.Decade },
                         supporting =
-                            filter.decade?.let { stringResource(R.string.tv_video_decade, it) }
-                                ?: stringResource(R.string.tv_video_filter_any),
+                            filter.decades
+                                .sortedDescending()
+                                .map { stringResource(R.string.tv_video_decade, it) }
+                                .joinToString()
+                                .ifEmpty { any },
                         enabled = state.decades.isNotEmpty(),
                     )
                 }
@@ -570,93 +591,51 @@ private fun FilterMenu(
                     }
                 }
             }
-        }
 
-        FilterPage.Genre -> {
-            ChoiceDialog(
-                stringResource(R.string.tv_video_filter_genre),
-                state.genres,
-                filter.genre,
-                label = { it },
-                onDismiss = { page = FilterPage.Main },
-            ) { onAction(TvVideoGridAction.SetGenre(it)) }
-        }
+            FilterPage.Genre -> {
+                choices(state.genres, filter.genres, any, first, label = { it }) {
+                    onAction(TvVideoGridAction.ToggleGenre(it))
+                }
+            }
 
-        FilterPage.Decade -> {
-            ChoiceDialog(
-                stringResource(R.string.tv_video_filter_decade),
-                state.decades,
-                filter.decade,
-                label = { stringResource(R.string.tv_video_decade, it) },
-                onDismiss = { page = FilterPage.Main },
-            ) { onAction(TvVideoGridAction.SetDecade(it)) }
+            FilterPage.Decade -> {
+                choices(
+                    state.decades,
+                    filter.decades,
+                    any,
+                    first,
+                    label = { stringResource(R.string.tv_video_decade, it) },
+                ) {
+                    onAction(TvVideoGridAction.ToggleDecade(it))
+                }
+            }
         }
     }
 }
 
 private enum class FilterPage { Main, Genre, Decade }
 
-/** A list of [choices] with Any first; choosing one sets it and goes back to the filters. */
-@Composable
-private fun <T : Any> ChoiceDialog(
-    title: String,
+/** Any (none picked), then [choices] as checkboxes (#579): several at once; Any clears them. The page stays open. */
+private fun <T : Any> LazyListScope.choices(
     choices: List<T>,
-    current: T?,
+    picked: Set<T>,
+    any: String,
+    first: FocusRequester,
     label: @Composable (T) -> String,
-    onDismiss: () -> Unit,
-    onChoose: (T?) -> Unit,
+    onToggle: (T?) -> Unit,
 ) {
-    MenuDialog(title, onDismiss) { selected ->
-        item {
-            MqTvListItem(
-                stringResource(R.string.tv_video_filter_any),
-                {
-                    onChoose(null)
-                    onDismiss()
-                },
-                if (current == null) Modifier.focusRequester(selected) else Modifier,
-                selected = current == null,
-                control = MqTvControl.Radio,
-            )
-        }
-        items(choices, key = { it.toString() }) { choice ->
-            MqTvListItem(
-                label(choice),
-                {
-                    onChoose(choice)
-                    onDismiss()
-                },
-                if (choice == current) Modifier.focusRequester(selected) else Modifier,
-                selected = choice == current,
-                control = MqTvControl.Radio,
-            )
-        }
+    item(key = "any") {
+        MqTvListItem(
+            any,
+            { onToggle(null) },
+            Modifier.focusRequester(first),
+            selected = picked.isEmpty(),
+            control = MqTvControl.Checkbox,
+        )
     }
-}
-
-/** A titled list in a dialog; the item given the requester takes focus when it opens. */
-@Composable
-private fun MenuDialog(
-    title: String,
-    onDismiss: () -> Unit,
-    content: LazyListScope.(FocusRequester) -> Unit,
-) {
-    val selected = remember { FocusRequester() }
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = MaterialTheme.shapes.large) {
-            Column(Modifier.width(400.dp).padding(16.dp)) {
-                Text(
-                    title,
-                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp).semantics { heading() },
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                LazyColumn(Modifier.heightIn(max = 480.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    content(selected)
-                }
-            }
-        }
+    items(choices, key = { it.toString() }) { choice ->
+        MqTvListItem(label(choice), { onToggle(choice) }, selected = choice in picked, control = MqTvControl.Checkbox)
     }
-    LaunchedEffect(Unit) { runCatching { selected.requestFocus() } }
 }
 
 @get:StringRes

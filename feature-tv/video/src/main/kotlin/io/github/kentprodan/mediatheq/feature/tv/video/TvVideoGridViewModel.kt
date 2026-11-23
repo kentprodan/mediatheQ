@@ -44,12 +44,12 @@ abstract class TvVideoGridViewModel(
     private val sort = savedState.getStateFlow(KEY_SORT, kind.sorts.first())
     private val watched = savedState.getStateFlow(KEY_WATCHED, TvWatched.All)
     private val favorites = savedState.getStateFlow(KEY_FAVORITES, false)
-    private val genre = savedState.getStateFlow<String?>(KEY_GENRE, null)
-    private val decade = savedState.getStateFlow<Int?>(KEY_DECADE, null)
+    private val genres = savedState.getStateFlow(KEY_GENRES, arrayListOf<String>())
+    private val decades = savedState.getStateFlow(KEY_DECADES, arrayListOf<Int>())
     private val seed = savedState.getStateFlow(KEY_SEED, 0L)
 
     private val filter =
-        combine(watched, favorites, genre, decade) { w, f, g, d -> TvVideoFilter(w, f, g, d) }
+        combine(watched, favorites, genres, decades) { w, f, g, d -> TvVideoFilter(w, f, g.toSet(), d.toSet()) }
 
     val uiState: StateFlow<TvVideoGridUiState> =
         combine(posters, sort, filter, seed, title) { all, s, f, r, name ->
@@ -92,19 +92,20 @@ abstract class TvVideoGridViewModel(
                 savedState[KEY_FAVORITES] = !favorites.value
             }
 
-            is TvVideoGridAction.SetGenre -> {
-                savedState[KEY_GENRE] = action.genre
+            // Any clears the list; a choice turns on or off.
+            is TvVideoGridAction.ToggleGenre -> {
+                savedState[KEY_GENRES] = toggled(genres.value, action.genre)
             }
 
-            is TvVideoGridAction.SetDecade -> {
-                savedState[KEY_DECADE] = action.decade
+            is TvVideoGridAction.ToggleDecade -> {
+                savedState[KEY_DECADES] = toggled(decades.value, action.decade)
             }
 
             TvVideoGridAction.ClearFilters -> {
                 savedState[KEY_WATCHED] = TvWatched.All
                 savedState[KEY_FAVORITES] = false
-                savedState[KEY_GENRE] = null
-                savedState[KEY_DECADE] = null
+                savedState[KEY_GENRES] = arrayListOf<String>()
+                savedState[KEY_DECADES] = arrayListOf<Int>()
             }
 
             // The sync runs in its own job: leaving the screen does not stop it.
@@ -114,12 +115,23 @@ abstract class TvVideoGridViewModel(
         }
     }
 
+    /** [value] added to or removed from [list]; `null` empties it. An ArrayList: what the saved state keeps. */
+    private fun <T> toggled(
+        list: List<T>,
+        value: T?,
+    ): ArrayList<T> =
+        when (value) {
+            null -> arrayListOf()
+            in list -> ArrayList(list - value)
+            else -> ArrayList(list + value)
+        }
+
     private companion object {
         const val KEY_SORT = "sort"
         const val KEY_WATCHED = "watched"
         const val KEY_FAVORITES = "favorites"
-        const val KEY_GENRE = "genre"
-        const val KEY_DECADE = "decade"
+        const val KEY_GENRES = "genres"
+        const val KEY_DECADES = "decades"
         const val KEY_SEED = "seed"
     }
 }
@@ -310,11 +322,13 @@ sealed interface TvVideoGridAction {
 
     data object ToggleFavorites : TvVideoGridAction
 
-    data class SetGenre(
+    /** Turns [genre] on or off; `null` (Any) clears the genres. */
+    data class ToggleGenre(
         val genre: String?,
     ) : TvVideoGridAction
 
-    data class SetDecade(
+    /** Turns [decade] on or off; `null` (Any) clears the decades. */
+    data class ToggleDecade(
         val decade: Int?,
     ) : TvVideoGridAction
 

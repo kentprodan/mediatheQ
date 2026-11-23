@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
@@ -23,6 +24,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvIconButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvImageButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvSidePanelContent
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvTextField
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvWideButton
 
@@ -207,6 +209,25 @@ fun TvCarouselScreenshot() =
             MqTvCarousel(3, Modifier.padding(48.dp).height(300.dp)) { index ->
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)) {
                     MqTvButton("Slide ${index + 1}", {}, Modifier.padding(32.dp), icon = MqTvIcons.Play)
+                }
+            }
+        }
+    }
+
+/** The side panel (#579): Filter's first page at the right of the screen. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSidePanelScreenshot() =
+    MediatheqTvTheme {
+        Surface(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
+                MqTvSidePanelContent("Filter") {
+                    item { MqTvListItem("All", {}, selected = true, control = MqTvControl.Radio) }
+                    item { MqTvListItem("Unwatched", {}, selected = false, control = MqTvControl.Radio) }
+                    item { MqTvListItem("Favorites only", {}, selected = true, control = MqTvControl.Checkbox) }
+                    item { MqTvListItem("Genre", {}, supporting = "Crime, Drama") }
+                    item { MqTvListItem("Decade", {}, supporting = "Any") }
                 }
             }
         }
