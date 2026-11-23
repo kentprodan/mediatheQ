@@ -57,6 +57,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvLetterStrip
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterCard
+import io.github.kentprodan.mediatheq.core.ui.tv.POSTER_RATIO
 import kotlinx.coroutines.launch
 
 /** Where the Movies and Series tabs lead (#522). */
@@ -226,7 +227,8 @@ fun TvVideoGroups(
             val groups = state.groups
             val focus = rememberFocusMemory()
             LazyVerticalGrid(
-                GridCells.Fixed(COLUMNS),
+                // Studios are wide pictures (#576): fewer across.
+                GridCells.Fixed(if (studios) WIDE_COLUMNS else COLUMNS),
                 Modifier
                     .fillMaxSize()
                     // Down from the tabs: the card focused last, else the first; a request for one card is left alone.
@@ -247,6 +249,7 @@ fun TvVideoGroups(
                         modifier = Modifier.fillMaxWidth().focusMemory(focus, group.name),
                         subtitle = pluralStringResource(kind.count, group.count, group.count),
                         placeholder = if (kind == TvVideoKind.Series) MqTvIcons.Series else MqTvIcons.Movie,
+                        aspectRatio = if (studios) 16f / 9f else POSTER_RATIO,
                     )
                 }
             }
@@ -688,3 +691,6 @@ private val EDGE = 48.dp
 
 /** Six posters across next to the collapsed drawer (owner, #426). */
 private const val COLUMNS = 6
+
+/** Four 16:9 studio pictures across (#576). */
+private const val WIDE_COLUMNS = 4

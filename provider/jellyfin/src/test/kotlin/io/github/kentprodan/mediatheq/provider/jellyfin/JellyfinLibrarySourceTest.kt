@@ -370,6 +370,10 @@ class JellyfinLibrarySourceTest {
             .isEqualTo("http://nas:8096/Items/ar1/Images/Backdrop/0?tag=b1&fillWidth=1024&quality=90")
         assertThat(source.imageUrl("http://nas:8096", Artwork("m1", "l1", null, ImageType.Logo), 640))
             .isEqualTo("http://nas:8096/Items/m1/Images/Logo?tag=l1&fillWidth=640&quality=90")
+        // A studio by name, no tag (#576).
+        assertThat(
+            source.imageUrl("http://nas:8096", Artwork("Warner Bros. Pictures", "", null, ImageType.StudioThumb), 512),
+        ).isEqualTo("http://nas:8096/Studios/Warner%20Bros.%20Pictures/Images/Thumb?fillWidth=512&quality=90")
         assertThat(url).doesNotContain("api_key")
         assertThat(url.lowercase()).doesNotContain("token")
     }
