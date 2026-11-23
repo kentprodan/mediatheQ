@@ -64,8 +64,11 @@ data class NavigationPreferences(
     val simpleTransitions: Boolean = false,
     /** TV (#521): the featured carousel at the top of Home. */
     val tvCarousel: TvCarousel = TvCarousel.Card,
-    /** TV (#521): the Home section the carousel shows; `null` = automatic (new movies with video, else new albums). */
-    val tvCarouselSource: HomeSection? = null,
+    /**
+     * TV (#575): the Home sections the carousel mixes, in order; `null` = the default (new movies, new episodes and
+     * Continue watching with video, else new albums).
+     */
+    val tvCarouselSources: List<HomeSection>? = null,
     /** TV (#521): the carousel leaves out watched movies and episodes. */
     val tvCarouselSkipWatched: Boolean = true,
     /** TV (#521): Home rows shown as immersive lists (the focused card's backdrop and details behind the row). */
@@ -122,3 +125,7 @@ enum class TvCarousel { Off, Card, Immersive }
  * pushes the screen aside while open.
  */
 enum class TvMenuStyle { Modal, Standard }
+
+/** The TV carousel's sections when none are chosen (#575, owner): new movies, new episodes, Continue watching. */
+val DefaultTvCarouselSources: List<HomeSection> =
+    listOf(HomeSection.RecentlyAddedMovies, HomeSection.RecentlyAddedEpisodes, HomeSection.ContinueWatching)

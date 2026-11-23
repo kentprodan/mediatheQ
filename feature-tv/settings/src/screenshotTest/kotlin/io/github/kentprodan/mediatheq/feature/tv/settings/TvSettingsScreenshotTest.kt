@@ -5,6 +5,7 @@ import com.android.tools.screenshot.PreviewTest
 import io.github.kentprodan.mediatheq.core.common.APP_ENTRY
 import io.github.kentprodan.mediatheq.core.common.LicenseEntry
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.DefaultTvCarouselSources
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
@@ -21,6 +22,7 @@ private val settings =
         sync = SyncStatus.Idle(null),
         serverName = "Home server",
         userName = "kent",
+        carouselPicked = DefaultTvCarouselSources,
     )
 
 @Composable

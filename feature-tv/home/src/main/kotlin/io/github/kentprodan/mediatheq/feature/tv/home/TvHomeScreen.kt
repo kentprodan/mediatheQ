@@ -824,7 +824,6 @@ private fun FeaturedCarousel(
     modifier: Modifier,
 ) {
     val immersive = state.carousel == TvCarousel.Immersive
-    val overline = stringResource(state.featuredSection.title)
     MqTvCarousel(
         state.featured.size,
         if (immersive) {
@@ -848,7 +847,7 @@ private fun FeaturedCarousel(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                overline,
+                stringResource((state.slideSections[item.id] ?: state.featuredSection).title),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

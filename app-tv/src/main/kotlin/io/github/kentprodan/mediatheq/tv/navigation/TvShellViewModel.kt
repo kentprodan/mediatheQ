@@ -23,6 +23,7 @@ import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.RemoteControl
+import io.github.kentprodan.mediatheq.tv.ProfileGate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -49,6 +50,7 @@ class TvShellViewModel
         private val parental: ParentalControls? = null,
         private val videos: VideoRepository? = null,
         session: SessionRepository? = null,
+        private val profileGate: ProfileGate? = null,
     ) : ViewModel() {
         /** A key waiting for the PIN (#434), with whether the last try was wrong. */
         data class PinRequest(
@@ -171,8 +173,14 @@ class TvShellViewModel
                 .map(TvDestination::shownIn)
                 .stateIn(viewModelScope, SharingStarted.Eagerly, TvDestination.shownIn(AppMode.Music))
 
-        /** Close on Back at Home (#343): the music stops with the app; the queue stays for next time. */
-        fun stopMusic() = playback.pause()
+        /**
+         * Close on Back at Home (#343): the music stops with the app; the queue stays for next time. The next start asks
+         * Who's watching? again (#572).
+         */
+        fun close() {
+            playback.pause()
+            profileGate?.closedWithBack()
+        }
 
         /** A destination no TV screen registers yet: logged, never thrown (ADR 0041). */
         fun unknownDestination(key: Any) = log.warn(TAG, "No TV screen for $key")

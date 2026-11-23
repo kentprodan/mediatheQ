@@ -83,9 +83,21 @@ class TvVideoGridViewModelTest {
             assertThat(viewModel.kind).isEqualTo(TvVideoKind.Movies)
             assertThat(savedState.get<TvVideoSort>("sort")).isEqualTo(TvVideoSort.Year)
 
-            viewModel.onAction(TvVideoGridAction.SetDecade(1980))
+            viewModel.onAction(TvVideoGridAction.ToggleDecade(1980))
             runCurrent()
             assertThat(viewModel.content().posters.map { it.title }).containsExactly("Brazil")
+
+            // A second decade adds to the first (#579); choosing it again removes it, Any clears them.
+            viewModel.onAction(TvVideoGridAction.ToggleDecade(1990))
+            runCurrent()
+            assertThat(viewModel.content().posters.map { it.title }).containsExactly("Heat", "Brazil").inOrder()
+            viewModel.onAction(TvVideoGridAction.ToggleDecade(1990))
+            runCurrent()
+            assertThat(viewModel.content().filter.decades).containsExactly(1980)
+            viewModel.onAction(TvVideoGridAction.ToggleDecade(null))
+            runCurrent()
+            assertThat(viewModel.content().filter.decades).isEmpty()
+            viewModel.onAction(TvVideoGridAction.ToggleDecade(1980))
 
             viewModel.onAction(TvVideoGridAction.ClearFilters)
             runCurrent()

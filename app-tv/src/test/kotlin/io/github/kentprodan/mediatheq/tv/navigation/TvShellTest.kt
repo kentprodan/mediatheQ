@@ -41,7 +41,10 @@ import io.github.kentprodan.mediatheq.core.navigation.AlbumKey
 import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
 import io.github.kentprodan.mediatheq.core.navigation.MoviesKey
+import io.github.kentprodan.mediatheq.core.navigation.NowPlayingKey
+import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import kotlinx.coroutines.delay
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -191,6 +194,28 @@ class TvShellTest {
     }
 
     @Test
+    fun `closing the Standard menu slides the screen back instead of snapping (#568)`() {
+        fun firstAlbumLeft() = composeRule.onNodeWithText("First album").getBoundsInRoot().left
+
+        show(TvMenuStyle.Standard)
+        composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
+        val closed = firstAlbumLeft()
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+        val pushed = firstAlbumLeft()
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.mainClock.advanceTimeByFrame()
+
+        assertThat(firstAlbumLeft()).isGreaterThan(closed)
+        assertThat(firstAlbumLeft()).isLessThan(pushed)
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        assertThat(firstAlbumLeft()).isEqualTo(closed)
+    }
+
+    @Test
     fun `the Modal menu opens over the screen without moving it (#520)`() {
         show(TvMenuStyle.Modal)
         composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
@@ -241,6 +266,87 @@ class TvShellTest {
 
         composeRule.onNodeWithText("Home").assertIsFocused()
         assertThat(backStack).containsExactly(HomeKey)
+    }
+
+    @Test
+    fun `Back from a screen opens the menu, the next Back goes Home with the Home entry focused (#567)`() {
+        backStack += LibraryKey
+        show(userName = "Ana")
+        composeRule.onNodeWithText("Library screen").assertExists()
+
+        pressBack()
+        composeRule.onNodeWithText("Music").assertIsFocused()
+        pressBack()
+
+        assertThat(backStack).containsExactly(HomeKey)
+        composeRule.onNodeWithText("Home").assertIsFocused()
+        pressBack()
+        composeRule.onNodeWithText("Close mediatheQ?").assertExists()
+    }
+
+    @Test
+    fun `a screen that takes focus late, once loaded, does not close the menu after Back (#567)`() {
+        backStack += LibraryKey
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvShell(backStack, PlayerUiModel()) { _ ->
+                    entry(HomeKey) {
+                        val focus = rememberFocusMemory()
+                        MqTvButton("First album", {}, Modifier.focusMemory(focus, "first"))
+                        // Content arrives after a moment, then asks for its first focus.
+                        LaunchedEffect(Unit) {
+                            delay(300)
+                            focus.restore("first")
+                        }
+                    }
+                    entry(LibraryKey) { Text("Library screen") }
+                }
+            }
+        }
+        pressBack()
+        pressBack()
+        composeRule.mainClock.advanceTimeBy(500)
+
+        composeRule.onNodeWithText("Home").assertIsFocused()
+        // Right still goes to the screen.
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.onNodeWithText("First album").assertIsFocused()
+    }
+
+    @Test
+    fun `after a detail page, Back from the top-level screen still opens the menu first (#567)`() {
+        // Like Settings -> Display -> back to Settings in the Standard style.
+        backStack += listOf(LibraryKey, album)
+        show(TvMenuStyle.Standard)
+        composeRule.onNodeWithText("Album page").assertExists()
+        pressBack()
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.onNodeWithText("Library screen").assertExists()
+
+        pressBack()
+
+        assertThat(backStack.toList()).containsExactly(HomeKey, LibraryKey).inOrder()
+        composeRule.onNodeWithText("Music").assertIsFocused()
+    }
+
+    @Test
+    fun `the menu has no Now playing entry, the pill of what plays opens it (#573)`() {
+        val playing = PlayerUiModel(item = NowPlayingItem(MediaId(ServerId("s"), "t"), "Strobe", "deadmau5"))
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvShell(backStack, playing) { _ ->
+                    entry(HomeKey) { MqTvButton("First album", {}) }
+                    entry(NowPlayingKey) { Text("Now Playing screen") }
+                }
+            }
+        }
+        composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+
+        composeRule.onNodeWithText("Now playing").assertDoesNotExist()
+        composeRule.onNodeWithText("Strobe").performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.onNodeWithText("Now Playing screen").assertExists()
+        assertThat(backStack.toList()).containsExactly(HomeKey, NowPlayingKey).inOrder()
     }
 
     @Test

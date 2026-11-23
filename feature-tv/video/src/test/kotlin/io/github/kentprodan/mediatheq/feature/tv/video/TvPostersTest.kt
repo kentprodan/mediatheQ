@@ -104,12 +104,23 @@ class TvPostersTest {
             .inOrder()
         assertThat(titles(TvVideoSort.Name, TvVideoFilter(favorites = true))).containsExactly("Brazil")
         assertThat(
-            titles(TvVideoSort.Name, TvVideoFilter(genre = "Sci-Fi")),
+            titles(TvVideoSort.Name, TvVideoFilter(genres = setOf("Sci-Fi"))),
         ).containsExactly("Alien", "Brazil").inOrder()
-        assertThat(titles(TvVideoSort.Name, TvVideoFilter(decade = 1980))).containsExactly("Brazil")
-        assertThat(titles(TvVideoSort.Name, TvVideoFilter(watched = TvWatched.Unwatched, genre = "Sci-Fi")))
+        assertThat(titles(TvVideoSort.Name, TvVideoFilter(decades = setOf(1980)))).containsExactly("Brazil")
+        assertThat(titles(TvVideoSort.Name, TvVideoFilter(watched = TvWatched.Unwatched, genres = setOf("Sci-Fi"))))
             .containsExactly("Brazil")
-        assertThat(TvVideoFilter(watched = TvWatched.Unwatched, genre = "Sci-Fi").active).isEqualTo(2)
+        assertThat(TvVideoFilter(watched = TvWatched.Unwatched, genres = setOf("Sci-Fi")).active).isEqualTo(2)
+    }
+
+    @Test
+    fun `several genres or decades keep a poster with any of them (#579)`() {
+        assertThat(titles(TvVideoSort.Name, TvVideoFilter(genres = setOf("Horror", "Crime"))))
+            .containsExactly("Alien", "Heat")
+            .inOrder()
+        assertThat(titles(TvVideoSort.Name, TvVideoFilter(decades = setOf(1970, 1990))))
+            .containsExactly("Alien", "Heat")
+            .inOrder()
+        assertThat(TvVideoFilter(genres = setOf("Horror", "Crime"), decades = setOf(1970)).active).isEqualTo(2)
     }
 
     @Test
