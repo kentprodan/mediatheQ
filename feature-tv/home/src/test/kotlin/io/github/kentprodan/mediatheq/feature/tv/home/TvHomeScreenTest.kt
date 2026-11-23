@@ -7,6 +7,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -183,6 +184,20 @@ class TvHomeScreenTest {
         play.performKeyInput { pressKey(Key.DirectionCenter) }
 
         assertThat(actions).containsExactly(TvHomeAction.Play(TvHomeTarget.Album(id("al1"))))
+    }
+
+    @Test
+    fun `on the first row the carousel stays in view, a lower row scrolls it away (#574)`() {
+        show(withCarousel)
+
+        press(listOf(Key.DirectionDown))
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.onNodeWithContentDescription("Album 1", substring = true).assertIsFocused()
+        composeRule.onNodeWithText("Play").assertIsDisplayed()
+
+        press(listOf(Key.DirectionDown))
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.onNodeWithText("Play").assertIsNotDisplayed()
     }
 
     @Test
