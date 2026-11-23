@@ -3,6 +3,9 @@ package io.github.kentprodan.mediatheq.tv.navigation
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
@@ -334,6 +337,13 @@ fun TvFrame(
         delay(REOPEN_GUARD)
         state.reopen = false
     }
+    // How far the screen is pushed (Standard), 0..1 with the island's own size animation (#568): closing slides it back
+    // with the island instead of snapping to 0 while the island still shrinks.
+    val push by animateFloatAsState(
+        if (showMenu && standard && open) 1f else 0f,
+        spring(stiffness = Spring.StiffnessMediumLow),
+        label = "menuPush",
+    )
     // The neutral background also behind the island's margin (the window's own color would show there).
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // The screen stays at the same place in the tree with or without the menu, so it keeps its state.
@@ -342,11 +352,10 @@ fun TvFrame(
                 .fillMaxSize()
                 .padding(start = if (showMenu) MENU_SPACE else 0.dp)
                 .graphicsLayer {
-                    if (showMenu && standard && open) {
-                        // The screen's first column starts MENU_SPACE + its own 48 dp in: it moves past the island.
-                        translationX =
-                            (islandEnd + PUSH_GAP.toPx() - (MENU_SPACE + SCREEN_MARGIN).toPx()).coerceAtLeast(0f)
-                    }
+                    // The screen's first column starts MENU_SPACE + its own 48 dp in: it moves past the island. Read
+                    // here, the animation redraws the layer only.
+                    translationX =
+                        push * (islandEnd + PUSH_GAP.toPx() - (MENU_SPACE + SCREEN_MARGIN).toPx()).coerceAtLeast(0f)
                 }.onFocusChanged { if (it.hasFocus && state.reopen) state.focusActive() }
                 .focusRequester(screen)
                 .focusRestorer()
