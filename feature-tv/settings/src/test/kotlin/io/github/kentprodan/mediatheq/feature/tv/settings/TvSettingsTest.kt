@@ -224,7 +224,7 @@ class TvSettingsTest {
         }
 
     @Test
-    fun `logo size goes Small, Medium, Large in turn and is stored (#578)`() =
+    fun `logo size starts at Medium, goes Large then Small, and is stored (#578)`() =
         test {
             val library = FakeLibraryPreferencesRepository()
             val viewModel =
