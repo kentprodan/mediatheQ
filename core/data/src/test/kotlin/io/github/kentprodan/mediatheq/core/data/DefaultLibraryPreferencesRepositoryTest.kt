@@ -457,6 +457,7 @@ class DefaultLibraryPreferencesRepositoryTest {
                     tvImmersiveRows = setOf(HomeSection.RecentlyAddedMovies),
                     tvMenuStyle = TvMenuStyle.Standard,
                     tvTitle = io.github.kentprodan.mediatheq.core.model.TvTitleStyle.Text,
+                    tvLogoSize = io.github.kentprodan.mediatheq.core.model.TvLogoSize.Large,
                     tvPosterAccent = true,
                     tvCardStyles = mapOf(HomeSection.ContinueWatching to TvCardStyle.Compact),
                 )

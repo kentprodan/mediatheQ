@@ -39,6 +39,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
+import io.github.kentprodan.mediatheq.core.model.TvLogoSize
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.ui.tv.title
 
@@ -203,6 +204,17 @@ fun TvSettingsScreen(
                     Modifier.focusMemory(focus, "titleStyle"),
                     supporting = stringResource(state.titleStyle.label),
                 )
+            }
+            // Only while pages show a logo (#578).
+            if (state.titleStyle != TvTitleStyle.Text) {
+                item {
+                    MqTvListItem(
+                        stringResource(R.string.tv_settings_logo_size),
+                        { onAction(TvSettingsAction.NextLogoSize) },
+                        Modifier.focusMemory(focus, "logoSize"),
+                        supporting = stringResource(state.logoSize.label),
+                    )
+                }
             }
             item {
                 MqTvListItem(
@@ -561,6 +573,14 @@ private val io.github.kentprodan.mediatheq.core.data.DisplayMatch.label: Int
             io.github.kentprodan.mediatheq.core.data.DisplayMatch.RateAndResolution -> {
                 R.string.tv_settings_display_match_resolution
             }
+        }
+
+private val TvLogoSize.label: Int
+    get() =
+        when (this) {
+            TvLogoSize.Small -> R.string.tv_settings_logo_small
+            TvLogoSize.Medium -> R.string.tv_settings_logo_medium
+            TvLogoSize.Large -> R.string.tv_settings_logo_large
         }
 
 private val TvTitleStyle.label: Int

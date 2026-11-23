@@ -17,6 +17,7 @@ import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
+import io.github.kentprodan.mediatheq.core.model.TvLogoSize
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -124,6 +125,7 @@ class DefaultLibraryPreferencesRepository
                     tvImmersiveRows = navigation.tvImmersiveRows.map { it.name },
                     tvMenuStyle = navigation.tvMenuStyle.name,
                     tvTitle = navigation.tvTitle.name,
+                    tvLogoSize = navigation.tvLogoSize.name,
                     tvPosterAccent = navigation.tvPosterAccent,
                     tvCardStyles = navigation.tvCardStyles.entries.associate { (k, v) -> k.name to v.name },
                 ),
@@ -155,6 +157,7 @@ class DefaultLibraryPreferencesRepository
                         ?: defaults.tvImmersiveRows,
                 tvMenuStyle = enumOrNull<TvMenuStyle>(stored.tvMenuStyle) ?: defaults.tvMenuStyle,
                 tvTitle = enumOrNull<TvTitleStyle>(stored.tvTitle) ?: defaults.tvTitle,
+                tvLogoSize = enumOrNull<TvLogoSize>(stored.tvLogoSize) ?: defaults.tvLogoSize,
                 tvPosterAccent = stored.tvPosterAccent ?: defaults.tvPosterAccent,
                 // Unknown names (a section or variant removed later) are dropped.
                 tvCardStyles =

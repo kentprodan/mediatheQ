@@ -15,6 +15,7 @@ import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.aboveLimit
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.TvLogoSize
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.navigation.MovieKey
 import io.github.kentprodan.mediatheq.core.navigation.ParentalControlsKey
@@ -159,6 +160,11 @@ class TvShellViewModel
         val titleStyle: StateFlow<TvTitleStyle> =
             (preferences?.preferences?.map { it.navigation.tvTitle } ?: flowOf(TvTitleStyle.Logo))
                 .stateIn(viewModelScope, SharingStarted.Eagerly, TvTitleStyle.Logo)
+
+        /** TV Settings -> Logo size (#578). */
+        val logoSize: StateFlow<TvLogoSize> =
+            (preferences?.preferences?.map { it.navigation.tvLogoSize } ?: flowOf(TvLogoSize.Medium))
+                .stateIn(viewModelScope, SharingStarted.Eagerly, TvLogoSize.Medium)
 
         /** A video another client started here (#389): the shell opens the player on it. */
         val remoteVideo: Flow<MediaId> = remoteControl?.videoStarted ?: emptyFlow()

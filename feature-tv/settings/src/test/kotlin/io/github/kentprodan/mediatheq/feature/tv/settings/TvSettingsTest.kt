@@ -34,6 +34,7 @@ import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
+import io.github.kentprodan.mediatheq.core.model.TvLogoSize
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAccountRepository
@@ -220,6 +221,38 @@ class TvSettingsTest {
             runCurrent()
             assertThat(viewModel.content().carouselSource).isNull()
             assertThat(viewModel.content().carouselSources).doesNotContain(HomeSection.ContinueWatching)
+        }
+
+    @Test
+    fun `logo size goes Small, Medium, Large in turn and is stored (#578)`() =
+        test {
+            val library = FakeLibraryPreferencesRepository()
+            val viewModel =
+                TvSettingsViewModel(
+                    outputs,
+                    preferences,
+                    sync,
+                    accounts,
+                    playback,
+                    appMode,
+                    FakeVideoPreferencesRepository(),
+                    library,
+                )
+            backgroundScope.launch { viewModel.uiState.collect() }
+            runCurrent()
+            assertThat(viewModel.content().logoSize).isEqualTo(TvLogoSize.Medium)
+
+            viewModel.onAction(TvSettingsAction.NextLogoSize)
+            runCurrent()
+            assertThat(viewModel.content().logoSize).isEqualTo(TvLogoSize.Large)
+            viewModel.onAction(TvSettingsAction.NextLogoSize)
+            runCurrent()
+
+            assertThat(
+                library.preferences
+                    .first()
+                    .navigation.tvLogoSize,
+            ).isEqualTo(TvLogoSize.Small)
         }
 
     @Test

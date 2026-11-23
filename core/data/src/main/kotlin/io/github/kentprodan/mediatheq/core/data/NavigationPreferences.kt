@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
+import io.github.kentprodan.mediatheq.core.model.TvLogoSize
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 
 /** A destination the main navigation can show (#122). */
@@ -74,6 +75,8 @@ data class NavigationPreferences(
     val tvMenuStyle: TvMenuStyle = TvMenuStyle.Modal,
     /** TV (#523): the title of the detail pages; the logo by default. */
     val tvTitle: TvTitleStyle = TvTitleStyle.Logo,
+    /** TV (#578): the logo title's size. */
+    val tvLogoSize: TvLogoSize = TvLogoSize.Medium,
     /** TV (#517): detail pages take their accent from the poster or cover; off keeps Iris. */
     val tvPosterAccent: Boolean = false,
     /** TV (#518): the card variant a Home row uses; a row missing here keeps its own default. */
