@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -95,6 +96,8 @@ import io.github.kentprodan.mediatheq.feature.tv.search.tvSearchEntry
 import io.github.kentprodan.mediatheq.feature.tv.settings.tvSettingsEntries
 import io.github.kentprodan.mediatheq.feature.tv.video.tvVideoEntries
 import io.github.kentprodan.mediatheq.tv.R
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 internal fun TvShellRoute(
@@ -320,13 +323,15 @@ fun TvFrame(
     var islandEnd by remember { mutableIntStateOf(0) }
     val standard = menuStyle == TvMenuStyle.Standard
     val active = selected.takeIf { it in destinations } ?: TvDestination.Home
-    state.active = active
-    // The screen under the open menu changed by Back (#567): it takes its own first focus, which would close the menu
-    // or leave focus on the profile; two frames later the menu takes it back on the new active entry.
+    SideEffect { state.active = active }
+    // The screen under the open menu changed by Back (#567): focus may stay on the profile, or the screen takes its own
+    // first focus (at once, or once its content loads), which would close the menu. Two frames later the menu takes
+    // focus on the new active entry, and for a moment after that any grab by the screen is sent back to it.
     LaunchedEffect(state.reopen) {
         if (!state.reopen) return@LaunchedEffect
         repeat(2) { withFrameNanos {} }
         state.focusActive()
+        delay(REOPEN_GUARD)
         state.reopen = false
     }
     // The neutral background also behind the island's margin (the window's own color would show there).
@@ -342,7 +347,8 @@ fun TvFrame(
                         translationX =
                             (islandEnd + PUSH_GAP.toPx() - (MENU_SPACE + SCREEN_MARGIN).toPx()).coerceAtLeast(0f)
                     }
-                }.focusRequester(screen)
+                }.onFocusChanged { if (it.hasFocus && state.reopen) state.focusActive() }
+                .focusRequester(screen)
                 .focusRestorer()
                 .focusGroup(),
         ) { content() }
@@ -374,6 +380,8 @@ fun TvFrame(
                     layout(island.width, island.height) { island.place(0, 0) }
                 }.onFocusChanged { state.open = it.hasFocus }
                 .onPreviewKeyEvent { event ->
+                    // A key pressed in the menu ends the guard after Back: the person moves on their own now.
+                    if (event.type == KeyEventType.KeyDown) state.reopen = false
                     // The open menu covers the screen's first column: Right goes back to what the screen had focused.
                     val right = event.key == Key.DirectionRight
                     if (right && event.type == KeyEventType.KeyDown) screen.requestFocus()
@@ -560,6 +568,9 @@ private val MENU_SPACE = 32.dp
 
 /** The screens' own start margin. */
 private val SCREEN_MARGIN = 48.dp
+
+/** How long after Back from the open menu a screen's late first focus is sent back to the menu (#567). */
+private val REOPEN_GUARD = 1.seconds
 
 /** Between the open island and the pushed screen (Standard, #520). */
 private val PUSH_GAP = 24.dp

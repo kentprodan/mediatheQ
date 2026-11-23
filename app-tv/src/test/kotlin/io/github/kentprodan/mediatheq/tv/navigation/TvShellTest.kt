@@ -42,6 +42,7 @@ import io.github.kentprodan.mediatheq.core.navigation.HomeKey
 import io.github.kentprodan.mediatheq.core.navigation.LibraryKey
 import io.github.kentprodan.mediatheq.core.navigation.MoviesKey
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import kotlinx.coroutines.delay
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -257,6 +258,35 @@ class TvShellTest {
         composeRule.onNodeWithText("Home").assertIsFocused()
         pressBack()
         composeRule.onNodeWithText("Close mediatheQ?").assertExists()
+    }
+
+    @Test
+    fun `a screen that takes focus late, once loaded, does not close the menu after Back (#567)`() {
+        backStack += LibraryKey
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvShell(backStack, PlayerUiModel()) { _ ->
+                    entry(HomeKey) {
+                        val focus = rememberFocusMemory()
+                        MqTvButton("First album", {}, Modifier.focusMemory(focus, "first"))
+                        // Content arrives after a moment, then asks for its first focus.
+                        LaunchedEffect(Unit) {
+                            delay(300)
+                            focus.restore("first")
+                        }
+                    }
+                    entry(LibraryKey) { Text("Library screen") }
+                }
+            }
+        }
+        pressBack()
+        pressBack()
+        composeRule.mainClock.advanceTimeBy(500)
+
+        composeRule.onNodeWithText("Home").assertIsFocused()
+        // Right still goes to the screen.
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.onNodeWithText("First album").assertIsFocused()
     }
 
     @Test
