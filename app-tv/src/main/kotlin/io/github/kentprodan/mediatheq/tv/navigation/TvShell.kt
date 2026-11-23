@@ -159,7 +159,7 @@ internal fun TvShellRoute(
             onProfile = onSwitchProfile,
             onUnknown = viewModel::unknownDestination,
             onClose = {
-                viewModel.stopMusic()
+                viewModel.close()
                 activity?.finish()
             },
             guard = viewModel::guard,

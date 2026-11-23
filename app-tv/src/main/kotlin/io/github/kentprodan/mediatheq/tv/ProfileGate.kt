@@ -23,11 +23,15 @@ enum class ProfilePicker {
     Opened,
 }
 
-/** Owner decision (#433): the picker comes back only after the app was not used for 4 hours. */
+/**
+ * Owner decisions: the picker comes back after the app was not used for 4 hours (#433), and always after the app was
+ * closed with Back (#572); a short trip out with the remote's Home button does not ask.
+ */
 fun profilePickerDue(
     lastUsed: Instant?,
     now: Instant,
-): Boolean = lastUsed == null || now - lastUsed >= PICKER_IDLE
+    closedWithBack: Boolean = false,
+): Boolean = closedWithBack || lastUsed == null || now - lastUsed >= PICKER_IDLE
 
 private val PICKER_IDLE = 4.hours
 
@@ -48,10 +52,15 @@ class ProfileGate
 
         fun onForeground() {
             val last = prefs.getLong(LAST_USED, 0L).takeIf { it > 0 }?.let(Instant::fromEpochMilliseconds)
-            if (mutableState.value == ProfilePicker.Hidden && profilePickerDue(last, clock.now())) {
+            val closed = prefs.getBoolean(CLOSED_WITH_BACK, false)
+            if (mutableState.value == ProfilePicker.Hidden && profilePickerDue(last, clock.now(), closed)) {
                 mutableState.value = ProfilePicker.Due
             }
+            if (closed) prefs.edit { putBoolean(CLOSED_WITH_BACK, false) }
         }
+
+        /** The app was closed with Back (#572): the next start asks again, however soon. */
+        fun closedWithBack() = prefs.edit(commit = true) { putBoolean(CLOSED_WITH_BACK, true) }
 
         fun onBackground() = used()
 
@@ -70,5 +79,6 @@ class ProfileGate
         private companion object {
             const val PROFILES_FILE = "profiles"
             const val LAST_USED = "last_used"
+            const val CLOSED_WITH_BACK = "closed_with_back"
         }
     }
