@@ -244,6 +244,38 @@ class TvShellTest {
     }
 
     @Test
+    fun `Back from a screen opens the menu, the next Back goes Home with the Home entry focused (#567)`() {
+        backStack += LibraryKey
+        show(userName = "Ana")
+        composeRule.onNodeWithText("Library screen").assertExists()
+
+        pressBack()
+        composeRule.onNodeWithText("Music").assertIsFocused()
+        pressBack()
+
+        assertThat(backStack).containsExactly(HomeKey)
+        composeRule.onNodeWithText("Home").assertIsFocused()
+        pressBack()
+        composeRule.onNodeWithText("Close mediatheQ?").assertExists()
+    }
+
+    @Test
+    fun `after a detail page, Back from the top-level screen still opens the menu first (#567)`() {
+        // Like Settings -> Display -> back to Settings in the Standard style.
+        backStack += listOf(LibraryKey, album)
+        show(TvMenuStyle.Standard)
+        composeRule.onNodeWithText("Album page").assertExists()
+        pressBack()
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.onNodeWithText("Library screen").assertExists()
+
+        pressBack()
+
+        assertThat(backStack.toList()).containsExactly(HomeKey, LibraryKey).inOrder()
+        composeRule.onNodeWithText("Music").assertIsFocused()
+    }
+
+    @Test
     fun `a detail page has the whole screen, without the tabs (#515)`() {
         show()
         composeRule.onNodeWithContentDescription("Search").assertExists()

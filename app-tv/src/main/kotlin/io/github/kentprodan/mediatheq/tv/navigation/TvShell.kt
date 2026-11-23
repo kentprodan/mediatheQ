@@ -28,6 +28,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -214,6 +215,7 @@ fun TvShell(
     entries: EntryProviderScope<NavKey>.(TvNavigator) -> Unit,
 ) {
     val navigator = remember(backStack) { TvNavigator(backStack, guard) }
+    val menu = remember { TvMenuState() }
     var closing by remember { mutableStateOf(false) }
     BackHandler(enabled = backStack.size <= 1) { closing = true }
     if (closing) {
@@ -243,11 +245,17 @@ fun TvShell(
         menuStyle = menuStyle,
         userName = userName,
         onProfile = onProfile,
+        state = menu,
     ) {
         // Each screen requests its own initial focus once, the item it had before when it comes back (FocusMemory).
         NavDisplay(
             backStack = backStack,
-            onBack = { navigator.back() },
+            onBack = {
+                // Back from the open menu (#567): it stays open on the new screen's entry.
+                val fromMenu = menu.open
+                navigator.back()
+                if (fromMenu) menu.reopen = true
+            },
             transitionSpec = { TvMotion.forward(simpleTransitions) },
             popTransitionSpec = { TvMotion.back(simpleTransitions) },
             entryDecorators =
@@ -263,6 +271,23 @@ fun TvShell(
                     },
                 ) { entries(navigator) },
         )
+    }
+}
+
+/** The menu's focus (#567): whether it is open, and focusing the active entry. */
+class TvMenuState {
+    internal val requesters = TvDestination.entries.associateWith { FocusRequester() }
+    internal var active = TvDestination.Home
+
+    /** Back popped while the menu was open: it focuses the new active entry once the screen under it has settled. */
+    internal var reopen by mutableStateOf(false)
+
+    /** The menu holds focus. */
+    var open by mutableStateOf(false)
+        internal set
+
+    fun focusActive() {
+        runCatching { requesters.getValue(active).requestFocus() }
     }
 }
 
@@ -284,17 +309,26 @@ fun TvFrame(
     userName: String? = null,
     onProfile: () -> Unit = {},
     previewOpen: Boolean = false,
+    state: TvMenuState = remember { TvMenuState() },
     content: @Composable () -> Unit,
 ) {
-    val requesters = remember { TvDestination.entries.associateWith { FocusRequester() } }
+    val requesters = state.requesters
     val screen = remember { FocusRequester() }
-    var focused by remember { mutableStateOf(false) }
     // Previews render no focus: they open the menu with [previewOpen].
-    val open = focused || previewOpen
+    val open = state.open || previewOpen
     // The island's right edge, read only while drawing (Standard): opening moves the screen without a new layout.
     var islandEnd by remember { mutableIntStateOf(0) }
     val standard = menuStyle == TvMenuStyle.Standard
     val active = selected.takeIf { it in destinations } ?: TvDestination.Home
+    state.active = active
+    // The screen under the open menu changed by Back (#567): it takes its own first focus, which would close the menu
+    // or leave focus on the profile; two frames later the menu takes it back on the new active entry.
+    LaunchedEffect(state.reopen) {
+        if (!state.reopen) return@LaunchedEffect
+        repeat(2) { withFrameNanos {} }
+        state.focusActive()
+        state.reopen = false
+    }
     // The neutral background also behind the island's margin (the window's own color would show there).
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // The screen stays at the same place in the tree with or without the menu, so it keeps its state.
@@ -338,7 +372,7 @@ fun TvFrame(
                     val island = measurable.measure(constraints)
                     islandEnd = 16.dp.roundToPx() + island.width
                     layout(island.width, island.height) { island.place(0, 0) }
-                }.onFocusChanged { focused = it.hasFocus }
+                }.onFocusChanged { state.open = it.hasFocus }
                 .onPreviewKeyEvent { event ->
                     // The open menu covers the screen's first column: Right goes back to what the screen had focused.
                     val right = event.key == Key.DirectionRight
@@ -355,7 +389,7 @@ fun TvFrame(
     }
     // Back from the screen opens the menu on the selected entry (Android TV guidelines); from the menu, Back goes on
     // as before (Home, then the close question).
-    BackHandler(enabled = showMenu && !open) { requesters.getValue(active).requestFocus() }
+    BackHandler(enabled = showMenu && !open) { state.focusActive() }
 }
 
 @Composable

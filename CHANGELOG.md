@@ -71,6 +71,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 
 ### Fixed
+- TV: Back from the open menu goes Home with the menu still on Home, not on the profile or the page.
 - On the TV, holding Left or Right on the progress (music and movies) seeks faster the longer you hold, also with remotes that send a held key as separate presses.
 - Now Playing on a phone held sideways shows the controls without scrolling (smaller transport buttons, the album line in the menu).
 - The waveform analysis no longer keeps the processor busy or stops making waveforms when one file never finishes decoding.
