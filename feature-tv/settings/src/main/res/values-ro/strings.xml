@@ -95,6 +95,10 @@
     <string name="tv_settings_title_logo">Logo (numele când nu există)</string>
     <string name="tv_settings_title_logo_text">Logo și nume</string>
     <string name="tv_settings_title_text">Doar numele</string>
+    <string name="tv_settings_logo_size">Mărimea logo-ului</string>
+    <string name="tv_settings_logo_small">Mic</string>
+    <string name="tv_settings_logo_medium">Mediu</string>
+    <string name="tv_settings_logo_large">Mare</string>
     <string name="tv_settings_poster_accent">Accent din poster</string>
     <string name="tv_settings_poster_accent_detail">Paginile de film, serial, artist, album și playlist își iau culorile din imagine</string>
 </resources>

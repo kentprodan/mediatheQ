@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
+import io.github.kentprodan.mediatheq.core.model.TvLogoSize
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 
 /** The HDMI output whose Dolby Atmos passthrough switch Settings shows (ADR 0039). */
@@ -68,6 +69,8 @@ sealed interface TvSettingsUiState {
             io.github.kentprodan.mediatheq.core.data.TvMenuStyle.Modal,
         /** Display -> Title (#523). */
         val titleStyle: TvTitleStyle = TvTitleStyle.Logo,
+        /** The logo title's size (#578). */
+        val logoSize: TvLogoSize = TvLogoSize.Medium,
         /** Display -> Accent from the poster (#517). */
         val posterAccent: Boolean = false,
     ) : TvSettingsUiState
@@ -106,6 +109,9 @@ sealed interface TvSettingsAction {
 
     /** Display -> Title (#523): Logo, Logo and text, Text, then round again. */
     data object NextTitleStyle : TvSettingsAction
+
+    /** Settings -> Display -> Logo size (#578): Small, Medium, Large in turn. */
+    data object NextLogoSize : TvSettingsAction
 
     /** Display -> Accent from the poster (#517). */
     data object TogglePosterAccent : TvSettingsAction

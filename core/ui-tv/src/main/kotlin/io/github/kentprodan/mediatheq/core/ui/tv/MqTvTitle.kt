@@ -22,13 +22,17 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.TvLogoSize
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 
 /** The title style of the detail pages, from Settings -> Display -> Title (#523); the TV shell provides it. */
 val LocalTvTitleStyle = staticCompositionLocalOf { TvTitleStyle.Logo }
 
+/** The logo's size, from Settings -> Display -> Logo size (#578); the TV shell provides it. */
+val LocalTvLogoSize = staticCompositionLocalOf { TvLogoSize.Medium }
+
 /**
- * A detail page's title (#523): the item's [logo] (left aligned, at most [LOGO_HEIGHT] high), the [title] as text, or
+ * A detail page's title (#523): the item's [logo] (left aligned, [size] high), the [title] as text, or
  * both, as [style] says; without a logo it is always the text. Read as one heading named [title].
  */
 @Composable
@@ -38,6 +42,7 @@ fun MqTvTitle(
     modifier: Modifier = Modifier,
     maxLines: Int = 2,
     style: TvTitleStyle = LocalTvTitleStyle.current,
+    size: TvLogoSize = LocalTvLogoSize.current,
 ) {
     // A logo that does not load (offline, gone from the server) gives way to the name.
     var failed by remember(logo) { mutableStateOf(false) }
@@ -53,7 +58,8 @@ fun MqTvTitle(
             AsyncImage(
                 logo,
                 contentDescription = null,
-                modifier = Modifier.height(LOGO_HEIGHT).widthIn(max = LOGO_MAX_WIDTH),
+                // A wide logo is held by the width, a tall one by the height: both stay inside their area.
+                modifier = Modifier.height(size.height).widthIn(max = size.height * LOGO_ASPECT),
                 alignment = Alignment.CenterStart,
                 contentScale = ContentScale.Fit,
                 onError = { failed = true },
@@ -72,5 +78,13 @@ fun MqTvTitle(
     }
 }
 
-private val LOGO_HEIGHT = 120.dp
-private val LOGO_MAX_WIDTH = 480.dp
+/** The logo's area (#578); Medium is #523's 120 x 480 dp. */
+private val TvLogoSize.height
+    get() =
+        when (this) {
+            TvLogoSize.Small -> 80.dp
+            TvLogoSize.Medium -> 120.dp
+            TvLogoSize.Large -> 160.dp
+        }
+
+private const val LOGO_ASPECT = 4f

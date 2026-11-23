@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 ## [Unreleased]
 
 ### Added
+- TV Settings -> Display -> Logo size: Small, Medium or Large logos as titles on movie, series and artist pages.
 - TV: your Jellyfin picture shows in the side menu and on Who's watching? (the initial when you have none).
 - The app (phone and TV) in Romanian, following the device language; on the phone it can also be picked for mediatheQ alone in Android Settings -> Apps -> Language.
 - TV movie, series, artist, album and playlist pages can take their colors from the poster or cover (Settings -> Display -> Accent from the poster).
