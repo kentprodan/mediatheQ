@@ -32,6 +32,7 @@ import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.data.Account
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
+import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAvatar
 import io.github.kentprodan.mediatheq.feature.tv.onboarding.R
 
 @Composable
@@ -85,14 +86,19 @@ fun TvProfilesScreen(
                         { onPick(account) },
                         if (index == focused) Modifier.focusRequester(first) else Modifier,
                         subtitle = account.serverName,
-                    ) { Avatar(account.userName.take(1).uppercase()) }
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            // The Jellyfin picture (#556), the initial without one.
+                            MqTvAvatar(account.userName, account.imageUrl, 96.dp, MaterialTheme.typography.displaySmall)
+                        }
+                    }
                 }
                 item(key = "add") {
                     MqTvCard(
                         stringResource(R.string.tv_profiles_add),
                         onAdd,
                         if (profiles.isEmpty()) Modifier.focusRequester(first) else Modifier,
-                    ) { Avatar(null) }
+                    ) { AddAvatar() }
                 }
             }
         }
@@ -104,21 +110,11 @@ fun TvProfilesScreen(
 }
 
 @Composable
-private fun Avatar(initial: String?) {
+private fun AddAvatar() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Box(
             Modifier.size(96.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
             contentAlignment = Alignment.Center,
-        ) {
-            if (initial != null) {
-                Text(
-                    initial,
-                    style = MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-            } else {
-                Icon(MqTvIcons.Add, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-            }
-        }
+        ) { Icon(MqTvIcons.Add, null, tint = MaterialTheme.colorScheme.onSecondaryContainer) }
     }
 }

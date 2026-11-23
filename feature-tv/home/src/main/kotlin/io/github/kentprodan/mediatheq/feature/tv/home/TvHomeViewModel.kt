@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.DefaultDispatcher
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
+import io.github.kentprodan.mediatheq.core.data.DefaultTvCarouselSources
 import io.github.kentprodan.mediatheq.core.data.GenreItem
 import io.github.kentprodan.mediatheq.core.data.GenreRow
 import io.github.kentprodan.mediatheq.core.data.HomeItems
@@ -101,7 +102,7 @@ class TvHomeViewModel
                         it.home to
                             Triple(
                                 it.navigation.tvCarousel,
-                                it.navigation.tvCarouselSource,
+                                it.navigation.tvCarouselSources,
                                 it.navigation.tvCarouselSkipWatched,
                             )
                     }.distinctUntilChanged(),
@@ -123,13 +124,16 @@ class TvHomeViewModel
                             skipWatched,
                         )
                     }
-                var source = carouselSource(chosen, mode)
-                var featured = slides(source)
-                // Automatic: new albums when no new movie is left to show.
-                if (featured.isEmpty() && source != chosen && HomeSection.RecentlyAddedAlbums.allowed(mode)) {
-                    source = HomeSection.RecentlyAddedAlbums
-                    featured = slides(source)
+                var sources = carouselSources(chosen, mode)
+                var bySource = sources.associateWith(::slides)
+                // The default with nothing left to show (all watched, no video yet): new albums.
+                if (chosen == null && bySource.values.all { it.isEmpty() } &&
+                    HomeSection.RecentlyAddedAlbums.allowed(mode)
+                ) {
+                    sources = listOf(HomeSection.RecentlyAddedAlbums)
+                    bySource = sources.associateWith(::slides)
                 }
+                val mixed = mixSlides(bySource)
                 val shownRows =
                     // The order and the shown sections from Settings -> Home rows (#431), music and video together.
                     home.shown
@@ -150,7 +154,12 @@ class TvHomeViewModel
                                 }
                             TvHomeRow(section, items, counts).takeUnless { items.isEmpty && settings.hideIfEmpty }
                         }
-                HomeData(shownRows, source, featured)
+                HomeData(
+                    shownRows,
+                    sources.first(),
+                    mixed.map { it.second },
+                    mixed.associate { it.second.id to it.first },
+                )
             }.flowOn(defaultDispatcher)
 
         /** The genre rows (#431): read only with video and genres picked. */
@@ -194,6 +203,7 @@ class TvHomeViewModel
                             carousel,
                             data.featuredSection,
                             data.featured,
+                            data.slideSections,
                             immersive,
                         )
                     }
@@ -307,15 +317,32 @@ private data class HomeData(
     val rows: List<TvHomeRow>,
     val featuredSection: HomeSection,
     val featured: List<Featured>,
+    val slideSections: Map<MediaId, HomeSection>,
 )
 
-/** The carousel's section (#521): the chosen one while the [mode] has it, else new movies with video, new albums. */
-internal fun carouselSource(
-    chosen: HomeSection?,
+/**
+ * The carousel's sections (#575): the chosen ones the [mode] has, else the default (owner): new movies, new episodes
+ * and Continue watching with video, new albums without.
+ */
+internal fun carouselSources(
+    chosen: List<HomeSection>?,
     mode: AppMode,
-): HomeSection =
-    chosen?.takeIf { it.allowed(mode) }
-        ?: if (mode.video) HomeSection.RecentlyAddedMovies else HomeSection.RecentlyAddedAlbums
+): List<HomeSection> =
+    chosen?.filter { it.allowed(mode) }?.ifEmpty { null }
+        ?: DefaultTvCarouselSources.filter { it.allowed(mode) }.ifEmpty { listOf(HomeSection.RecentlyAddedAlbums) }
+
+/**
+ * The slides of several sections, taken in turn (the first of each, then the second of each…) so every source shows
+ * early; an item in two sections shows once, where its turn comes first. Up to [FEATURED_COUNT].
+ */
+internal fun mixSlides(bySource: Map<HomeSection, List<Featured>>): List<Pair<HomeSection, Featured>> {
+    val seen = mutableSetOf<MediaId>()
+    val longest = bySource.values.maxOfOrNull { it.size } ?: 0
+    return (0 until longest)
+        .flatMap { i -> bySource.mapNotNull { (section, slides) -> slides.getOrNull(i)?.let { section to it } } }
+        .filter { seen.add(it.second.id) }
+        .take(FEATURED_COUNT)
+}
 
 /** The carousel's slides (#521): up to [FEATURED_COUNT] videos, albums or playlists; watched videos left out on demand. */
 internal fun featured(

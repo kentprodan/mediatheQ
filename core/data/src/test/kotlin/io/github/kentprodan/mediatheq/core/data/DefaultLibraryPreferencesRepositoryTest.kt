@@ -452,7 +452,7 @@ class DefaultLibraryPreferencesRepositoryTest {
                     trackAction = TrackAction.PlayNext,
                     expandPlayer = true,
                     tvCarousel = TvCarousel.Immersive,
-                    tvCarouselSource = HomeSection.ContinueWatching,
+                    tvCarouselSources = listOf(HomeSection.ContinueWatching, HomeSection.RecentlyAddedMovies),
                     tvCarouselSkipWatched = false,
                     tvImmersiveRows = setOf(HomeSection.RecentlyAddedMovies),
                     tvMenuStyle = TvMenuStyle.Standard,
@@ -465,6 +465,24 @@ class DefaultLibraryPreferencesRepositoryTest {
             repository.setNavigation(chosen)
 
             assertThat(repository.preferences.first().navigation).isEqualTo(chosen)
+        }
+
+    @Test
+    fun `an old single carousel source reads as a list of one, unknown names drop (#575)`() =
+        runTest {
+            dataStore.edit { it[stringPreferencesKey("tv_carousel_source")] = "FavoriteAlbums" }
+            assertThat(
+                repository.preferences
+                    .first()
+                    .navigation.tvCarouselSources,
+            ).containsExactly(HomeSection.FavoriteAlbums)
+
+            dataStore.edit { it[stringPreferencesKey("tv_carousel_source")] = "Gone" }
+            assertThat(
+                repository.preferences
+                    .first()
+                    .navigation.tvCarouselSources,
+            ).isNull()
         }
 
     @Test

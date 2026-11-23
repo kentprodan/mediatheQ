@@ -206,21 +206,44 @@ class TvSettingsTest {
             viewModel.onAction(TvSettingsAction.ChooseCarouselSource)
             assertThat(viewModel.content().dialog).isEqualTo(TvSettingsDialog.CarouselSource)
             assertThat(viewModel.content().carouselSources).contains(HomeSection.ContinueWatching)
-            viewModel.onAction(TvSettingsAction.SetCarouselSource(HomeSection.ContinueWatching))
+            // The default (#575): new movies, new episodes and Continue watching; the panel stays open on a change.
+            assertThat(viewModel.content().carouselPicked)
+                .containsExactly(
+                    HomeSection.RecentlyAddedMovies,
+                    HomeSection.RecentlyAddedEpisodes,
+                    HomeSection.ContinueWatching,
+                )
+            viewModel.onAction(TvSettingsAction.ToggleCarouselSource(HomeSection.RecentlyAddedEpisodes))
+            runCurrent()
+            viewModel.onAction(TvSettingsAction.ToggleCarouselSource(HomeSection.FavoriteAlbums))
             viewModel.onAction(TvSettingsAction.ToggleCarouselSkipWatched)
             runCurrent()
 
             val stored = library.preferences.first().navigation
-            assertThat(stored.tvCarouselSource).isEqualTo(HomeSection.ContinueWatching)
+            val picked =
+                listOf(HomeSection.ContinueWatching, HomeSection.RecentlyAddedMovies, HomeSection.FavoriteAlbums)
+            assertThat(stored.tvCarouselSources).containsExactlyElementsIn(picked)
             assertThat(stored.tvCarouselSkipWatched).isFalse()
-            assertThat(viewModel.content().dialog).isNull()
-            assertThat(viewModel.content().carouselSource).isEqualTo(HomeSection.ContinueWatching)
+            assertThat(viewModel.content().dialog).isEqualTo(TvSettingsDialog.CarouselSource)
+            assertThat(viewModel.content().carouselPicked).containsExactlyElementsIn(picked)
 
-            // Music only: the carousel cannot show a video section, so Settings shows Automatic, as Home does.
+            // Music only: the video sections drop out, as Home leaves them out.
             appMode.setMode(AppMode.Music)
             runCurrent()
-            assertThat(viewModel.content().carouselSource).isNull()
+            assertThat(viewModel.content().carouselPicked).containsExactly(HomeSection.FavoriteAlbums)
             assertThat(viewModel.content().carouselSources).doesNotContain(HomeSection.ContinueWatching)
+            // The last one cannot go off.
+            viewModel.onAction(TvSettingsAction.ToggleCarouselSource(HomeSection.FavoriteAlbums))
+            runCurrent()
+            assertThat(viewModel.content().carouselPicked).containsExactly(HomeSection.FavoriteAlbums)
+            // A toggle in Music mode keeps the stored video sections for when video comes back.
+            viewModel.onAction(TvSettingsAction.ToggleCarouselSource(HomeSection.RecentlyAddedAlbums))
+            runCurrent()
+            assertThat(
+                library.preferences
+                    .first()
+                    .navigation.tvCarouselSources,
+            ).containsAtLeast(HomeSection.ContinueWatching, HomeSection.RecentlyAddedMovies)
         }
 
     @Test

@@ -36,4 +36,11 @@ interface AuthSource {
 
     /** Ends the session of [connection]'s token on the server. */
     suspend fun logout(connection: ServerConnection): MqResult<Unit>
+
+    /** The user's picture at least [widthPx] wide, public like the other images (ADR 0015); `null` without one. */
+    fun userImageUrl(
+        baseUrl: String,
+        userId: String,
+        widthPx: Int,
+    ): String? = null
 }

@@ -294,7 +294,7 @@ class TvHomeViewModelTest {
         }
 
     @Test
-    fun `Automatic shows new albums when no unwatched new movie is left, a chosen section stays (#521)`() =
+    fun `the default shows new albums when no unwatched video is left, a chosen section stays (#521, #575)`() =
         test {
             library.albums.value = listOf(alpha, beta)
             library.tracks.value = tracks
@@ -324,7 +324,7 @@ class TvHomeViewModelTest {
 
             preferences.setNavigation(
                 preferences.preferences.value.navigation
-                    .copy(tvCarouselSource = HomeSection.RecentlyAddedMovies),
+                    .copy(tvCarouselSources = listOf(HomeSection.RecentlyAddedMovies)),
             )
             runCurrent()
             state = viewModel.uiState.value as TvHomeUiState.Content
@@ -344,12 +344,37 @@ class TvHomeViewModelTest {
         }
 
     @Test
-    fun `the carousel source is the chosen section while the mode has it, else new movies or new albums (#521)`() {
-        assertThat(carouselSource(null, AppMode.Both)).isEqualTo(HomeSection.RecentlyAddedMovies)
-        assertThat(carouselSource(null, AppMode.Music)).isEqualTo(HomeSection.RecentlyAddedAlbums)
-        assertThat(carouselSource(HomeSection.FavoriteAlbums, AppMode.Both)).isEqualTo(HomeSection.FavoriteAlbums)
-        assertThat(carouselSource(HomeSection.ContinueWatching, AppMode.Music))
-            .isEqualTo(HomeSection.RecentlyAddedAlbums)
+    fun `the carousel sources are the chosen ones the mode has, else the default (#575)`() {
+        assertThat(carouselSources(null, AppMode.Both))
+            .containsExactly(
+                HomeSection.RecentlyAddedMovies,
+                HomeSection.RecentlyAddedEpisodes,
+                HomeSection.ContinueWatching,
+            ).inOrder()
+        assertThat(carouselSources(null, AppMode.Music)).containsExactly(HomeSection.RecentlyAddedAlbums)
+        assertThat(carouselSources(listOf(HomeSection.FavoriteAlbums, HomeSection.ContinueWatching), AppMode.Music))
+            .containsExactly(HomeSection.FavoriteAlbums)
+        assertThat(carouselSources(listOf(HomeSection.ContinueWatching), AppMode.Music))
+            .containsExactly(HomeSection.RecentlyAddedAlbums)
+    }
+
+    @Test
+    fun `several sources take turns, an item in two shows once, at most six slides (#575)`() {
+        fun movies(vararg n: Int) = n.map { Featured.Movie(Video(id("v$it"), VideoKind.Movie, "Movie $it")) }
+        val mixed =
+            mixSlides(
+                mapOf(
+                    HomeSection.RecentlyAddedMovies to movies(1, 2, 3, 4),
+                    HomeSection.ContinueWatching to movies(2, 9),
+                    HomeSection.RecentlyAddedEpisodes to emptyList(),
+                ),
+            )
+
+        assertThat(mixed.map { it.second.id.itemId }).containsExactly("v1", "v2", "v9", "v3", "v4").inOrder()
+        assertThat(mixed[0].first).isEqualTo(HomeSection.RecentlyAddedMovies)
+        assertThat(mixed[1].first).isEqualTo(HomeSection.ContinueWatching)
+        assertThat(mixSlides(mapOf(HomeSection.RecentlyAddedMovies to movies(*(1..9).toList().toIntArray()))))
+            .hasSize(FEATURED_COUNT)
     }
 
     @Test

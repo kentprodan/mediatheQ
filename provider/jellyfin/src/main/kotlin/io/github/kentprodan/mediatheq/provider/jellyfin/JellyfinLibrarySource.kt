@@ -430,25 +430,34 @@ class JellyfinLibrarySource internal constructor(
         baseUrl: String,
         artwork: Artwork,
         widthPx: Int,
-    ): String =
-        baseUrl
-            .toHttpUrl()
-            .newBuilder()
-            .addPathSegments("Items")
-            .addPathSegment(artwork.itemId)
-            .addPathSegments(
-                when (artwork.type) {
-                    ImageType.Primary -> "Images/Primary"
-                    ImageType.Backdrop -> "Images/Backdrop/0"
-                    ImageType.Logo -> "Images/Logo"
-                },
-            )
-            // The tag versions the image, so the URL is immutable and caches forever (jellyfin skill, section 4).
-            .addQueryParameter("tag", artwork.tag)
+    ): String {
+        val url = baseUrl.toHttpUrl().newBuilder()
+        if (artwork.type == ImageType.StudioThumb) {
+            // A studio by name (#576): public like the items' images; studios carry no tag (jellyfin skill, R18).
+            // shortcut: no tag, so a changed picture shows once the cache drops the old one; a name with "/" is sent as
+            // %2F, which the server may not match (the card then shows its placeholder): use the studio's item id if seen.
+            url.addPathSegment("Studios").addPathSegment(artwork.itemId).addPathSegments("Images/Thumb")
+        } else {
+            url
+                .addPathSegments("Items")
+                .addPathSegment(artwork.itemId)
+                .addPathSegments(
+                    when (artwork.type) {
+                        ImageType.Backdrop -> "Images/Backdrop/0"
+                        ImageType.Logo -> "Images/Logo"
+                        ImageType.Primary -> "Images/Primary"
+                        ImageType.StudioThumb -> error("handled above")
+                    },
+                )
+                // The tag versions the image, so the URL is immutable and caches forever (jellyfin skill, section 4).
+                .addQueryParameter("tag", artwork.tag)
+        }
+        return url
             .addQueryParameter("fillWidth", widthPx.toString())
             .addQueryParameter("quality", "90")
             .build()
             .toString()
+    }
 
     override suspend fun image(
         baseUrl: String,

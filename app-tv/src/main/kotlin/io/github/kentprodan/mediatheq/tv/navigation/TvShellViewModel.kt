@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation3.runtime.NavKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.AppLog
+import io.github.kentprodan.mediatheq.core.data.AccountRepository
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.ParentalControls
@@ -24,6 +25,7 @@ import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.RemoteControl
+import io.github.kentprodan.mediatheq.tv.ProfileGate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -50,6 +52,8 @@ class TvShellViewModel
         private val parental: ParentalControls? = null,
         private val videos: VideoRepository? = null,
         session: SessionRepository? = null,
+        accounts: AccountRepository? = null,
+        private val profileGate: ProfileGate? = null,
     ) : ViewModel() {
         /** A key waiting for the PIN (#434), with whether the last try was wrong. */
         data class PinRequest(
@@ -151,6 +155,11 @@ class TvShellViewModel
             (session?.session?.map { (it as? SessionState.LoggedIn)?.userName } ?: flowOf(null))
                 .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+        /** The signed-in user's picture for the profile entry (#556); `null` shows the initial. */
+        val userImage: StateFlow<String?> =
+            (accounts?.accounts?.map { list -> list.firstOrNull { it.active }?.imageUrl } ?: flowOf(null))
+                .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
         /** TV Settings -> Accent from the poster (#517). */
         val posterAccent: StateFlow<Boolean> =
             (preferences?.preferences?.map { it.navigation.tvPosterAccent } ?: flowOf(false))
@@ -177,8 +186,14 @@ class TvShellViewModel
                 .map(TvDestination::shownIn)
                 .stateIn(viewModelScope, SharingStarted.Eagerly, TvDestination.shownIn(AppMode.Music))
 
-        /** Close on Back at Home (#343): the music stops with the app; the queue stays for next time. */
-        fun stopMusic() = playback.pause()
+        /**
+         * Close on Back at Home (#343): the music stops with the app; the queue stays for next time. The next start asks
+         * Who's watching? again (#572).
+         */
+        fun close() {
+            playback.pause()
+            profileGate?.closedWithBack()
+        }
 
         /** A destination no TV screen registers yet: logged, never thrown (ADR 0041). */
         fun unknownDestination(key: Any) = log.warn(TAG, "No TV screen for $key")

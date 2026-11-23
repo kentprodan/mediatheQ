@@ -7,6 +7,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 
 ### Added
 - TV Settings -> Display -> Logo size: Small, Medium or Large logos as titles on movie, series and artist pages.
+- TV: your Jellyfin picture shows in the side menu and on Who's watching? (the initial when you have none).
 - The app (phone and TV) in Romanian, following the device language; on the phone it can also be picked for mediatheQ alone in Android Settings -> Apps -> Language.
 - TV movie, series, artist, album and playlist pages can take their colors from the poster or cover (Settings -> Display -> Accent from the poster).
 - TV movie, series and artist pages can show the title as its Jellyfin logo (Settings -> Display -> Title on pages: Logo, Logo and name, Name only). Logos arrive with the next library sync.
@@ -66,6 +67,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Any TV Home row can be an immersive list (Settings -> Home rows, long press a row): the focused card's picture and details appear behind the row.
 
 ### Changed
+- TV Movies -> Studios and Series -> Networks show each studio's or network's picture with its logo from Jellyfin, four across.
+- TV Home: on the first row the carousel stays in view and keeps changing slides; lower rows scroll it away.
+- TV: after closing the app with Back, the next start asks Who's watching? again; a short trip out with the Home button still does not.
+- TV Settings -> Carousel shows: pick several sections at once (checkboxes); by default the carousel mixes new movies, new episodes and Continue watching, each slide saying where it comes from.
+- TV Sort and Filter open as a side panel from the right; Genre and Decade take several choices at once (any of them), and changing a filter no longer makes the panel flicker.
 - The TV side menu has no Now playing entry any more: the card of what plays, at the bottom of the menu, opens Now Playing.
 - The TV side menu: Settings -> Display -> Menu style chooses Modal (over the dimmed screen) or Standard (pushes the screen aside); your profile sits at the top (Select switches profile), and Library is now called Music.
 - While an output's equalizer is off, its Preset row says why the preset and bands are grey.
@@ -73,6 +79,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 
 ### Fixed
+- TV: Back from the open menu goes Home with the menu still on Home, not on the profile or the page.
+- TV: the Standard menu style slides the screen back smoothly when the menu closes, without a jump.
 - On the TV, holding Left or Right on the progress (music and movies) seeks faster the longer you hold, also with remotes that send a held key as separate presses.
 - Now Playing on a phone held sideways shows the controls without scrolling (smaller transport buttons, the album line in the menu).
 - The waveform analysis no longer keeps the processor busy or stops making waveforms when one file never finishes decoding.

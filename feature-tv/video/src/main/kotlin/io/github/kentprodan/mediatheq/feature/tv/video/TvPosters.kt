@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.feature.tv.video
 
 import io.github.kentprodan.mediatheq.core.common.nameComparator
 import io.github.kentprodan.mediatheq.core.model.Artwork
+import io.github.kentprodan.mediatheq.core.model.ImageType
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Series
 import io.github.kentprodan.mediatheq.core.model.Video
@@ -38,12 +39,15 @@ enum class TvVideoSort { Collection, Name, DateAdded, Year, Rating, Runtime, Ran
 
 enum class TvWatched { All, Unwatched, Watched }
 
-/** The filters of a TV video grid; [decade] is its first year (1990). */
+/**
+ * The filters of a TV video grid. Several [genres] or [decades] (#579) keep a poster with any of them; a decade is its
+ * first year (1990).
+ */
 data class TvVideoFilter(
     val watched: TvWatched = TvWatched.All,
     val favorites: Boolean = false,
-    val genre: String? = null,
-    val decade: Int? = null,
+    val genres: Set<String> = emptySet(),
+    val decades: Set<Int> = emptySet(),
 ) {
     val active: Int get() =
         listOfNotNull(
@@ -51,8 +55,8 @@ data class TvVideoFilter(
                 it != TvWatched.All
             },
             favorites.takeIf { it },
-            genre,
-            decade,
+            genres.ifEmpty { null },
+            decades.ifEmpty { null },
         ).size
 }
 
@@ -81,8 +85,8 @@ fun arrange(
                 TvWatched.Watched -> p.watched
             } &&
                 (!filter.favorites || p.favorite) &&
-                (filter.genre == null || filter.genre in p.genres) &&
-                (filter.decade == null || p.year?.let(::decadeOf) == filter.decade)
+                (filter.genres.isEmpty() || p.genres.any { it in filter.genres }) &&
+                (filter.decades.isEmpty() || p.year?.let(::decadeOf) in filter.decades)
         }
     val sorted =
         when (sort) {
@@ -159,6 +163,9 @@ fun groupsOf(
         .map { (name, items) -> TvVideoGroup(name, items.size, items.firstNotNullOfOrNull { it.artwork }) }
         .sortedWith(compareBy(nameComparator()) { it.name })
 }
+
+/** A studio's or network's wide picture with its logo, by name (#576). */
+fun studioThumb(name: String) = Artwork(name, tag = "", type = ImageType.StudioThumb)
 
 /** The decades of [posters], newest first: the Decade filter's choices. */
 fun decadesOf(posters: List<TvPoster>): List<Int> =

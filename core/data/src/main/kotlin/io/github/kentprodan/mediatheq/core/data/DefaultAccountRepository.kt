@@ -50,6 +50,7 @@ internal class DefaultAccountRepository
                         lastSync = record,
                         signedIn = it.signedIn,
                         alternateUrls = it.alternateUrls,
+                        imageUrl = authSource.userImageUrl(it.baseUrl, it.userId, AVATAR_WIDTH),
                     )
                 }
             }
@@ -178,3 +179,6 @@ internal fun alternateAddresses(text: String): List<String>? {
         }
     return if (valid) urls.distinct() else null
 }
+
+/** The avatar is at most 96 dp (Who's watching?); 192 px is sharp at xhdpi. */
+private const val AVATAR_WIDTH = 192
