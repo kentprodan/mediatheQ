@@ -194,6 +194,28 @@ class TvShellTest {
     }
 
     @Test
+    fun `closing the Standard menu slides the screen back instead of snapping (#568)`() {
+        fun firstAlbumLeft() = composeRule.onNodeWithText("First album").getBoundsInRoot().left
+
+        show(TvMenuStyle.Standard)
+        composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
+        val closed = firstAlbumLeft()
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionLeft) }
+        val pushed = firstAlbumLeft()
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.mainClock.advanceTimeByFrame()
+
+        assertThat(firstAlbumLeft()).isGreaterThan(closed)
+        assertThat(firstAlbumLeft()).isLessThan(pushed)
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        assertThat(firstAlbumLeft()).isEqualTo(closed)
+    }
+
+    @Test
     fun `the Modal menu opens over the screen without moving it (#520)`() {
         show(TvMenuStyle.Modal)
         composeRule.onNodeWithText("First album").performSemanticsAction(SemanticsActions.RequestFocus)
