@@ -162,16 +162,15 @@ class TvSettingsViewModel
                     updateNavigation { navigation ->
                         val picked = carouselPicked(navigation.tvCarouselSources, sources)
                         val next = if (action.source in picked) picked - action.source else picked + action.source
-                        // The panel stays open; the last section cannot go off.
+                        // The panel stays open; the last section cannot go off. Sections this mode does not show stay
+                        // stored (review: toggling in Music mode kept wiping the video ones).
+                        val hidden = navigation.tvCarouselSources.orEmpty().filter { it !in sources }
                         if (next.isEmpty()) {
                             navigation
                         } else {
                             navigation.copy(
                                 tvCarouselSources =
-                                    sources.filter {
-                                        it in
-                                            next
-                                    },
+                                    hidden + sources.filter { it in next },
                             )
                         }
                     }
@@ -261,7 +260,10 @@ internal fun carouselPicked(
     sources: List<HomeSection>,
 ): List<HomeSection> =
     chosen?.filter { it in sources }?.ifEmpty { null }
-        ?: DefaultTvCarouselSources.filter { it in sources }.ifEmpty { sources.take(1) }
+        // As Home: new albums when none of the default is shown in this mode.
+        ?: DefaultTvCarouselSources.filter { it in sources }.ifEmpty {
+            listOf(HomeSection.RecentlyAddedAlbums).filter { it in sources }.ifEmpty { sources.take(1) }
+        }
 
 /** What the Home carousel can show (#521): the sections of videos, albums and playlists the [mode] has. */
 internal fun carouselSources(mode: AppMode?): List<HomeSection> =

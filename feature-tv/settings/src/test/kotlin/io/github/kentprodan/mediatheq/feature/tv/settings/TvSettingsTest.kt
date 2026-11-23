@@ -235,6 +235,14 @@ class TvSettingsTest {
             viewModel.onAction(TvSettingsAction.ToggleCarouselSource(HomeSection.FavoriteAlbums))
             runCurrent()
             assertThat(viewModel.content().carouselPicked).containsExactly(HomeSection.FavoriteAlbums)
+            // A toggle in Music mode keeps the stored video sections for when video comes back.
+            viewModel.onAction(TvSettingsAction.ToggleCarouselSource(HomeSection.RecentlyAddedAlbums))
+            runCurrent()
+            assertThat(
+                library.preferences
+                    .first()
+                    .navigation.tvCarouselSources,
+            ).containsAtLeast(HomeSection.ContinueWatching, HomeSection.RecentlyAddedMovies)
         }
 
     @Test
