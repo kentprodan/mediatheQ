@@ -7,3 +7,8 @@ plugins {
 android {
     namespace = "io.github.kentprodan.mediatheq.feature.tv.settings"
 }
+
+dependencies {
+    // Back inside Settings goes up a level (#580).
+    implementation(libs.androidx.activity.compose)
+}

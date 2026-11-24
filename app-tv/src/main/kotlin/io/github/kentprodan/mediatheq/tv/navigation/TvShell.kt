@@ -250,8 +250,9 @@ fun TvShell(
         if (hidden > 0) repeat(backStack.size - hidden) { backStack.removeAt(backStack.lastIndex) }
     }
     val selected = backStack.lastOrNull { TvDestination.of(it) != null }?.let(TvDestination::of) ?: TvDestination.Home
-    // The menu shows on the top level only (#508): a detail page and the players have the whole screen (#515).
-    val topLevel = backStack.lastOrNull()?.let(TvDestination::of) != null
+    // The menu shows on the top level only (#508): a detail page and the players have the whole screen (#515), and so
+    // does Settings, like the system Settings (#580).
+    val topLevel = backStack.lastOrNull()?.let(TvDestination::of).let { it != null && it != TvDestination.Settings }
     TvFrame(
         selected,
         player,

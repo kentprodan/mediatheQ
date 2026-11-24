@@ -104,4 +104,7 @@
     <string name="tv_settings_logo_large">Large</string>
     <string name="tv_settings_poster_accent">Accent from the poster</string>
     <string name="tv_settings_poster_accent_detail">Movie, series, artist, album and playlist pages take their colors from the picture</string>
+    <string name="tv_settings_sound">Sound and streaming</string>
+    <string name="tv_settings_video_subtitles">Video and subtitles</string>
+    <string name="tv_settings_home">Home</string>
 </resources>

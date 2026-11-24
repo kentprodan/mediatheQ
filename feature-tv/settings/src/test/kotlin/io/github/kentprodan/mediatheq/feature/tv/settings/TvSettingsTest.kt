@@ -4,19 +4,21 @@ import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsFocused
-import androidx.compose.ui.test.assertIsNotSelected
-import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.pressKey
 import com.google.common.truth.Truth.assertThat
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.Account
@@ -119,19 +121,16 @@ class TvSettingsTest {
         }
 
     @Test
-    fun `the app mode is shown and changed from its dialog, hidden without video on the server`() =
+    fun `the app mode is shown and changed, hidden without video on the server`() =
         test {
             val viewModel = viewModel()
             assertThat(viewModel.content().appMode).isEqualTo(AppMode.Both)
 
-            viewModel.onAction(TvSettingsAction.ChooseAppMode)
-            assertThat(viewModel.content().dialog).isEqualTo(TvSettingsDialog.AppMode)
             viewModel.onAction(TvSettingsAction.SetAppMode(AppMode.Music))
             runCurrent()
 
             assertThat(appMode.stored.value).isEqualTo(AppMode.Music)
             assertThat(viewModel.content().appMode).isEqualTo(AppMode.Music)
-            assertThat(viewModel.content().dialog).isNull()
 
             val noVideo =
                 TvSettingsViewModel(
@@ -196,15 +195,13 @@ class TvSettingsTest {
             runCurrent()
             assertThat(viewModel.content().carousel).isEqualTo(TvCarousel.Card)
 
-            viewModel.onAction(TvSettingsAction.NextCarousel)
+            viewModel.onAction(TvSettingsAction.SetCarousel(TvCarousel.Immersive))
             runCurrent()
             assertThat(viewModel.content().carousel).isEqualTo(TvCarousel.Immersive)
-            viewModel.onAction(TvSettingsAction.NextCarousel)
+            viewModel.onAction(TvSettingsAction.SetCarousel(TvCarousel.Off))
             runCurrent()
             assertThat(viewModel.content().carousel).isEqualTo(TvCarousel.Off)
 
-            viewModel.onAction(TvSettingsAction.ChooseCarouselSource)
-            assertThat(viewModel.content().dialog).isEqualTo(TvSettingsDialog.CarouselSource)
             assertThat(viewModel.content().carouselSources).contains(HomeSection.ContinueWatching)
             // The default (#575): new movies, new episodes and Continue watching; the panel stays open on a change.
             assertThat(viewModel.content().carouselPicked)
@@ -224,7 +221,6 @@ class TvSettingsTest {
                 listOf(HomeSection.ContinueWatching, HomeSection.RecentlyAddedMovies, HomeSection.FavoriteAlbums)
             assertThat(stored.tvCarouselSources).containsExactlyElementsIn(picked)
             assertThat(stored.tvCarouselSkipWatched).isFalse()
-            assertThat(viewModel.content().dialog).isEqualTo(TvSettingsDialog.CarouselSource)
             assertThat(viewModel.content().carouselPicked).containsExactlyElementsIn(picked)
 
             // Music only: the video sections drop out, as Home leaves them out.
@@ -247,7 +243,7 @@ class TvSettingsTest {
         }
 
     @Test
-    fun `logo size starts at Medium, goes Large then Small, and is stored (#578)`() =
+    fun `logo size starts at Medium and the one picked is stored (#578)`() =
         test {
             val library = FakeLibraryPreferencesRepository()
             val viewModel =
@@ -265,10 +261,10 @@ class TvSettingsTest {
             runCurrent()
             assertThat(viewModel.content().logoSize).isEqualTo(TvLogoSize.Medium)
 
-            viewModel.onAction(TvSettingsAction.NextLogoSize)
+            viewModel.onAction(TvSettingsAction.SetLogoSize(TvLogoSize.Large))
             runCurrent()
             assertThat(viewModel.content().logoSize).isEqualTo(TvLogoSize.Large)
-            viewModel.onAction(TvSettingsAction.NextLogoSize)
+            viewModel.onAction(TvSettingsAction.SetLogoSize(TvLogoSize.Small))
             runCurrent()
 
             assertThat(
@@ -279,7 +275,7 @@ class TvSettingsTest {
         }
 
     @Test
-    fun `menu style switches between Modal and Standard and is stored (#520)`() =
+    fun `menu style starts at Modal and the one picked is stored (#520)`() =
         test {
             val library = FakeLibraryPreferencesRepository()
             val viewModel =
@@ -297,7 +293,7 @@ class TvSettingsTest {
             runCurrent()
             assertThat(viewModel.content().menuStyle).isEqualTo(TvMenuStyle.Modal)
 
-            viewModel.onAction(TvSettingsAction.NextMenuStyle)
+            viewModel.onAction(TvSettingsAction.SetMenuStyle(TvMenuStyle.Standard))
             runCurrent()
 
             assertThat(
@@ -339,7 +335,7 @@ class TvSettingsTest {
         }
 
     @Test
-    fun `Title on pages goes Logo, Logo and name, Name only, then Logo again and is stored (#523)`() =
+    fun `Title on pages takes Logo, Logo and name or Name only and is stored (#523)`() =
         test {
             val library = FakeLibraryPreferencesRepository()
             val viewModel =
@@ -357,8 +353,8 @@ class TvSettingsTest {
             runCurrent()
 
             val seen =
-                (1..3).map {
-                    viewModel.onAction(TvSettingsAction.NextTitleStyle)
+                listOf(TvTitleStyle.LogoAndText, TvTitleStyle.Text, TvTitleStyle.Logo).map {
+                    viewModel.onAction(TvSettingsAction.SetTitleStyle(it))
                     runCurrent()
                     viewModel.content().titleStyle
                 }
@@ -372,21 +368,18 @@ class TvSettingsTest {
         }
 
     @Test
-    fun `a subtitle style part is chosen from its dialog and stored`() =
+    fun `a subtitle style part is chosen and stored`() =
         test {
             val video = FakeVideoPreferencesRepository()
             val viewModel = TvSettingsViewModel(outputs, preferences, sync, accounts, playback, appMode, video)
             backgroundScope.launch { viewModel.uiState.collect() }
             runCurrent()
 
-            viewModel.onAction(TvSettingsAction.ChooseSubtitle(TvSettingsDialog.SubtitleSize))
-            assertThat(viewModel.content().dialog).isEqualTo(TvSettingsDialog.SubtitleSize)
             viewModel.onAction(TvSettingsAction.SetSubtitleStyle(SubtitleStyle(size = SubtitleStyle.Size.Large)))
             runCurrent()
 
             assertThat(video.preferences.value.subtitleStyle.size).isEqualTo(SubtitleStyle.Size.Large)
             assertThat(viewModel.content().subtitleStyle.size).isEqualTo(SubtitleStyle.Size.Large)
-            assertThat(viewModel.content().dialog).isNull()
         }
 
     @Test
@@ -408,17 +401,12 @@ class TvSettingsTest {
     }
 
     @Test
-    fun `the quality is chosen in a dialog and written for unmetered networks`() =
+    fun `the quality is chosen and written for unmetered networks`() =
         test {
             val viewModel = viewModel()
 
-            viewModel.onAction(TvSettingsAction.ChooseQuality)
-            runCurrent()
-            assertThat(viewModel.content().dialog).isEqualTo(TvSettingsDialog.Quality)
-
             viewModel.onAction(TvSettingsAction.SetQuality(StreamingQuality.Kbps256))
             runCurrent()
-            assertThat(viewModel.content().dialog).isNull()
             assertThat(viewModel.content().quality).isEqualTo(StreamingQuality.Kbps256)
             assertThat(preferences.preferences.value.unmeteredQuality).isEqualTo(StreamingQuality.Kbps256)
         }
@@ -438,34 +426,15 @@ class TvSettingsTest {
         }
 
     @Test
-    fun `sign out asks first, then pauses the music and removes the active account`() =
+    fun `sign out pauses the music and removes the active account`() =
         test {
             playback.state.value = PlayerUiModel(isPlaying = true)
             val viewModel = viewModel()
-
-            viewModel.onAction(TvSettingsAction.AskSignOut)
-            runCurrent()
-            assertThat(viewModel.content().dialog).isEqualTo(TvSettingsDialog.SignOut)
-            assertThat(accounts.removed).isEmpty()
 
             viewModel.onAction(TvSettingsAction.SignOut)
             advanceUntilIdle()
             assertThat(playback.commands).containsExactly("togglePlayPause")
             assertThat(accounts.removed).containsExactly("a1" to true)
-            assertThat(viewModel.content().dialog).isNull()
-        }
-
-    @Test
-    fun `cancelling sign out keeps the account`() =
-        test {
-            val viewModel = viewModel()
-
-            viewModel.onAction(TvSettingsAction.AskSignOut)
-            viewModel.onAction(TvSettingsAction.Dismiss)
-            advanceUntilIdle()
-
-            assertThat(viewModel.content().dialog).isNull()
-            assertThat(accounts.removed).isEmpty()
         }
 
     @Test
@@ -478,8 +447,8 @@ class TvSettingsTest {
                 MediatheqTvTheme { TvSettingsScreen(state, "1.0", viewModel::onAction, onOpenLicenses = {}) }
             }
 
-            composeRule.onNodeWithText("Dolby Atmos passthrough").performSemanticsAction(SemanticsActions.OnClick)
-            composeRule.waitForIdle()
+            click("Sound and streaming")
+            click("Dolby Atmos passthrough")
             runCurrent()
 
             assertThat(
@@ -491,56 +460,80 @@ class TvSettingsTest {
         }
 
     @Test
-    fun `focus starts on the passthrough row`() {
-        val content =
-            TvSettingsUiState.Content(
-                hdmi = TvHdmiOutput(tv, "LG TV", atmosPassthrough = true),
-                quality = StreamingQuality.Original,
-                sync = SyncStatus.Idle(null),
-                serverName = "Home server",
-                userName = "kent",
-            )
-        composeRule.setContent { MediatheqTvTheme { TvSettingsScreen(content, "1.0", {}, onOpenLicenses = {}) } }
+    fun `Settings opens on the categories, focus on the first (#580)`() {
+        show(content())
+        composeRule.onNodeWithText("Sound and streaming").assertIsFocused()
+        composeRule.onNodeWithText("Account").assertExists()
+    }
+
+    @Test
+    fun `Right opens the focused category with its rows, Left comes back to it (#580)`() {
+        show(content())
+        press(Key.DirectionRight)
         composeRule.onNodeWithText("Dolby Atmos passthrough").assertIsFocused()
+
+        press(Key.DirectionLeft)
+        composeRule.onNodeWithText("Sound and streaming").assertIsFocused()
     }
 
     @Test
-    fun `before any HDMI output focus starts on the quality row`() {
-        val content =
-            TvSettingsUiState.Content(
-                hdmi = null,
-                quality = StreamingQuality.Original,
-                sync = SyncStatus.Idle(null),
-                serverName = "Home server",
-                userName = "kent",
-            )
-        composeRule.setContent { MediatheqTvTheme { TvSettingsScreen(content, "1.0", {}, onOpenLicenses = {}) } }
-        composeRule.onNodeWithText("Streaming quality").assertIsFocused()
-    }
-
-    @Test
-    fun `the quality dialog opens on the current choice, whose radio is on (#523)`() {
-        val content =
-            TvSettingsUiState.Content(
-                hdmi = null,
-                quality = StreamingQuality.Kbps320,
-                sync = SyncStatus.Idle(null),
-                serverName = "Home server",
-                userName = "kent",
-            )
-        var dialog by mutableStateOf<TvSettingsDialog?>(null)
-        composeRule.setContent {
-            MediatheqTvTheme { TvSettingsScreen(content.copy(dialog = dialog), "1.0", {}, onOpenLicenses = {}) }
-        }
-        composeRule.waitForIdle()
-        dialog = TvSettingsDialog.Quality
+    fun `the quality level opens on the current choice, whose radio is on, and picking comes back (#580)`() {
+        val actions = mutableListOf<TvSettingsAction>()
+        show(content().copy(quality = StreamingQuality.Kbps320), actions::add)
+        click("Sound and streaming")
+        click("Streaming quality")
 
         val radio = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton)
         composeRule
             .onNode(hasText("320", substring = true) and radio)
             .assertIsFocused()
-            .assertIsSelected()
-        composeRule.onNode(hasText("Original") and radio).assertIsNotSelected()
+            .assertIsOn()
+        composeRule.onNode(hasText("Original") and radio).assertIsOff()
+
+        composeRule.onNode(hasText("Original") and radio).performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.waitForIdle()
+        assertThat(actions).containsExactly(TvSettingsAction.SetQuality(StreamingQuality.Original))
+        composeRule.onNodeWithText("Streaming quality").assertIsFocused()
+    }
+
+    @Test
+    fun `sign out asks on its own level, and Cancel keeps the account (#580)`() {
+        val actions = mutableListOf<TvSettingsAction>()
+        show(content(), actions::add)
+        click("Account")
+        click("Sign out")
+        composeRule.onNodeWithText("Sign out of Home server?").assertExists()
+
+        click("Cancel")
+        assertThat(actions).isEmpty()
+        composeRule.onNodeWithText("Sign out").assertIsFocused()
+    }
+
+    private fun content() =
+        TvSettingsUiState.Content(
+            hdmi = TvHdmiOutput(tv, "LG TV", atmosPassthrough = true),
+            quality = StreamingQuality.Original,
+            sync = SyncStatus.Idle(null),
+            serverName = "Home server",
+            userName = "kent",
+        )
+
+    private fun show(
+        content: TvSettingsUiState.Content,
+        onAction: (TvSettingsAction) -> Unit = {},
+    ) {
+        composeRule.setContent { MediatheqTvTheme { TvSettingsScreen(content, "1.0", onAction, onOpenLicenses = {}) } }
+        composeRule.waitForIdle()
+    }
+
+    private fun click(text: String) {
+        composeRule.onNodeWithText(text).performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.waitForIdle()
+    }
+
+    private fun press(key: Key) {
+        composeRule.onRoot().performKeyInput { pressKey(key) }
+        composeRule.waitForIdle()
     }
 
     @Test

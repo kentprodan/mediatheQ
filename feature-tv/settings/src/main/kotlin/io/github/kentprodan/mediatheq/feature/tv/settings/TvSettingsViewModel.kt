@@ -12,18 +12,13 @@ import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.RememberedOutputs
-import io.github.kentprodan.mediatheq.core.data.TvCarousel
-import io.github.kentprodan.mediatheq.core.data.TvMenuStyle
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputKind
-import io.github.kentprodan.mediatheq.core.model.TvLogoSize
-import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -50,7 +45,6 @@ class TvSettingsViewModel
         private val libraryPreferences: LibraryPreferencesRepository? = null,
     ) : ViewModel() {
         private val simple = libraryPreferences?.preferences?.map { it.navigation } ?: flowOf(NavigationPreferences())
-        private val dialog = MutableStateFlow<TvSettingsDialog?>(null)
 
         val uiState: StateFlow<TvSettingsUiState> =
             combine(
@@ -58,10 +52,8 @@ class TvSettingsViewModel
                 audioPreferences.preferences,
                 sync.status,
                 accounts.accounts,
-                combine(dialog, appMode.mode, videoPreferences.preferences, simple) { open, mode, video, plain ->
-                    TvSettingsExtras(open, mode, video, plain)
-                },
-            ) { remembered, preferences, status, list, (open, mode, video, plain) ->
+                combine(appMode.mode, videoPreferences.preferences, simple, ::TvSettingsExtras),
+            ) { remembered, preferences, status, list, (mode, video, plain) ->
                 val active = list.firstOrNull { it.active }
                 TvSettingsUiState.Content(
                     hdmi = hdmiOutput(remembered),
@@ -69,7 +61,6 @@ class TvSettingsViewModel
                     sync = status,
                     serverName = active?.serverName,
                     userName = active?.userName,
-                    dialog = open,
                     appMode = mode.takeIf { appMode.videoAvailable },
                     subtitleStyle = video.subtitleStyle,
                     displayMatch = video.displayMatch,
@@ -100,12 +91,7 @@ class TvSettingsViewModel
                     }
                 }
 
-                TvSettingsAction.ChooseQuality -> {
-                    dialog.value = TvSettingsDialog.Quality
-                }
-
                 is TvSettingsAction.SetQuality -> {
-                    dialog.value = null
                     viewModelScope.launch { audioPreferences.setStreamingQuality(metered = false, action.quality) }
                 }
 
@@ -114,54 +100,29 @@ class TvSettingsViewModel
                     viewModelScope.launch { sync.sync() }
                 }
 
-                TvSettingsAction.ChooseAppMode -> {
-                    dialog.value = TvSettingsDialog.AppMode
-                }
-
                 // A kind turned on syncs by itself (LibrarySyncRepository watches the mode).
                 is TvSettingsAction.SetAppMode -> {
-                    dialog.value = null
                     viewModelScope.launch { appMode.setMode(action.mode) }
                 }
 
-                TvSettingsAction.NextCarousel -> {
-                    updateNavigation {
-                        val all = TvCarousel.entries
-                        it.copy(tvCarousel = all[(it.tvCarousel.ordinal + 1) % all.size])
-                    }
+                is TvSettingsAction.SetCarousel -> {
+                    updateNavigation { it.copy(tvCarousel = action.carousel) }
                 }
 
-                TvSettingsAction.NextMenuStyle -> {
-                    val repo = libraryPreferences ?: return
-                    viewModelScope.launch {
-                        val navigation = repo.preferences.first().navigation
-                        val all = TvMenuStyle.entries
-                        repo.setNavigation(
-                            navigation.copy(tvMenuStyle = all[(navigation.tvMenuStyle.ordinal + 1) % all.size]),
-                        )
-                    }
+                is TvSettingsAction.SetMenuStyle -> {
+                    updateNavigation { it.copy(tvMenuStyle = action.style) }
                 }
 
                 TvSettingsAction.TogglePosterAccent -> {
                     updateNavigation { it.copy(tvPosterAccent = !it.tvPosterAccent) }
                 }
 
-                TvSettingsAction.NextLogoSize -> {
-                    val all = TvLogoSize.entries
-                    updateNavigation { it.copy(tvLogoSize = all[(it.tvLogoSize.ordinal + 1) % all.size]) }
+                is TvSettingsAction.SetLogoSize -> {
+                    updateNavigation { it.copy(tvLogoSize = action.size) }
                 }
 
-                TvSettingsAction.NextTitleStyle -> {
-                    val repo = libraryPreferences ?: return
-                    viewModelScope.launch {
-                        val navigation = repo.preferences.first().navigation
-                        val all = TvTitleStyle.entries
-                        repo.setNavigation(navigation.copy(tvTitle = all[(navigation.tvTitle.ordinal + 1) % all.size]))
-                    }
-                }
-
-                TvSettingsAction.ChooseCarouselSource -> {
-                    dialog.value = TvSettingsDialog.CarouselSource
+                is TvSettingsAction.SetTitleStyle -> {
+                    updateNavigation { it.copy(tvTitle = action.style) }
                 }
 
                 is TvSettingsAction.ToggleCarouselSource -> {
@@ -195,31 +156,16 @@ class TvSettingsViewModel
                     }
                 }
 
-                is TvSettingsAction.ChooseSubtitle -> {
-                    dialog.value = action.dialog
-                }
-
                 is TvSettingsAction.SetDisplayMatch -> {
-                    dialog.value = null
                     viewModelScope.launch { videoPreferences.update { it.copy(displayMatch = action.match) } }
                 }
 
                 is TvSettingsAction.SetSubtitleStyle -> {
-                    dialog.value = null
                     viewModelScope.launch { videoPreferences.update { it.copy(subtitleStyle = action.style) } }
                 }
 
-                TvSettingsAction.AskSignOut -> {
-                    dialog.value = TvSettingsDialog.SignOut
-                }
-
                 TvSettingsAction.SignOut -> {
-                    dialog.value = null
                     viewModelScope.launch { signOut() }
-                }
-
-                TvSettingsAction.Dismiss -> {
-                    dialog.value = null
                 }
             }
         }
@@ -255,7 +201,6 @@ internal fun hdmiOutput(remembered: RememberedOutputs): TvHdmiOutput? {
 
 /** The settings read beside the main ones (combine takes five flows). */
 private data class TvSettingsExtras(
-    val dialog: TvSettingsDialog?,
     val mode: AppMode,
     val video: io.github.kentprodan.mediatheq.core.data.VideoPreferences,
     val simpleTransitions: NavigationPreferences,

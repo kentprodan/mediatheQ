@@ -17,18 +17,6 @@ data class TvHdmiOutput(
     val atmosPassthrough: Boolean,
 )
 
-/** The dialog open over the settings list. */
-enum class TvSettingsDialog {
-    Quality,
-    SignOut,
-    AppMode,
-    SubtitleSize,
-    SubtitleBackground,
-    SubtitleColor,
-    DisplayMatch,
-    CarouselSource,
-}
-
 /** Settings on TV (#243). */
 sealed interface TvSettingsUiState {
     data object Loading : TvSettingsUiState
@@ -44,7 +32,6 @@ sealed interface TvSettingsUiState {
         val sync: SyncStatus,
         val serverName: String?,
         val userName: String?,
-        val dialog: TvSettingsDialog? = null,
         /** What the TV shows (#426, ADR 0051); `null` when the server has no video, so the row is hidden. */
         val appMode: AppMode? = null,
         /** How subtitles look in the video player (#429). */
@@ -80,22 +67,18 @@ sealed interface TvSettingsAction {
     /** Turns the HDMI output's Dolby Atmos passthrough on or off; the next track follows it (#241). */
     data object TogglePassthrough : TvSettingsAction
 
-    data object ChooseQuality : TvSettingsAction
-
     data class SetQuality(
         val quality: StreamingQuality,
     ) : TvSettingsAction
 
     data object SyncNow : TvSettingsAction
 
-    data object ChooseAppMode : TvSettingsAction
-
     data object ToggleSimpleTransitions : TvSettingsAction
 
-    /** Settings -> Display -> Home carousel (#521): Off, Card, Immersive in turn. */
-    data object NextCarousel : TvSettingsAction
-
-    data object ChooseCarouselSource : TvSettingsAction
+    /** Settings -> Home -> Carousel (#521): Off, Card or Immersive. */
+    data class SetCarousel(
+        val carousel: TvCarousel,
+    ) : TvSettingsAction
 
     /** Turns a carousel section on or off (#575); the last one stays on. */
     data class ToggleCarouselSource(
@@ -104,22 +87,23 @@ sealed interface TvSettingsAction {
 
     data object ToggleCarouselSkipWatched : TvSettingsAction
 
-    /** Settings -> Display -> Menu style (#520): Modal, Standard in turn. */
-    data object NextMenuStyle : TvSettingsAction
+    /** Settings -> Display -> Menu style (#520). */
+    data class SetMenuStyle(
+        val style: io.github.kentprodan.mediatheq.core.data.TvMenuStyle,
+    ) : TvSettingsAction
 
-    /** Display -> Title (#523): Logo, Logo and text, Text, then round again. */
-    data object NextTitleStyle : TvSettingsAction
+    /** Display -> Title (#523): Logo, Logo and text or Text. */
+    data class SetTitleStyle(
+        val style: TvTitleStyle,
+    ) : TvSettingsAction
 
-    /** Settings -> Display -> Logo size (#578): Small, Medium, Large in turn. */
-    data object NextLogoSize : TvSettingsAction
+    /** Settings -> Display -> Logo size (#578). */
+    data class SetLogoSize(
+        val size: TvLogoSize,
+    ) : TvSettingsAction
 
     /** Display -> Accent from the poster (#517). */
     data object TogglePosterAccent : TvSettingsAction
-
-    /** Opens the dialog of one part of the subtitle style. */
-    data class ChooseSubtitle(
-        val dialog: TvSettingsDialog,
-    ) : TvSettingsAction
 
     data class SetDisplayMatch(
         val match: io.github.kentprodan.mediatheq.core.data.DisplayMatch,
@@ -133,11 +117,5 @@ sealed interface TvSettingsAction {
         val mode: AppMode,
     ) : TvSettingsAction
 
-    /** Asks before signing out. */
-    data object AskSignOut : TvSettingsAction
-
     data object SignOut : TvSettingsAction
-
-    /** Closes the open dialog. */
-    data object Dismiss : TvSettingsAction
 }

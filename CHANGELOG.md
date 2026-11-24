@@ -68,6 +68,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Any TV Home row can be an immersive list (Settings -> Home rows, long press a row): the focused card's picture and details appear behind the row.
 
 ### Changed
+- TV Settings look like the Google TV system Settings: full screen, categories with round icons, a preview of the next level on the right, Right or Select to go in and Left or Back to come out, and values picked from a list with a radio instead of a dialog.
 - TV Home's spacing follows Google's guideline: 28 dp margins at the top and bottom, 16 dp from a row's title to its cards.
 - TV Home scrolls as little as it can: the row you move to comes in at the bottom with the next one peeking, and the carousel simply scrolls away. Immersive rows grow when you reach them, with their details above 16:9 pictures.
 - TV Home's wide cards show the movie's or series' Jellyfin thumb (the 16:9 picture with its title), else the backdrop. Thumbs arrive with the next library sync.
