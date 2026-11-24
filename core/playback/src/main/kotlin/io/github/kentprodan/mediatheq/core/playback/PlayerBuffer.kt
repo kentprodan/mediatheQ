@@ -13,6 +13,7 @@ import androidx.media3.exoplayer.LoadControl
  * target (about 138 MB for video) is more than a small box's heap, and a 100 Mb/s remux fills it before the time limit
  * is reached. A third of the heap, never more than [MAX_TARGET_BYTES] nor less than Media3's floor. Pure.
  */
+@OptIn(UnstableApi::class)
 internal fun targetBufferBytes(maxHeapBytes: Long): Int =
     (maxHeapBytes / 3)
         .coerceAtMost(MAX_TARGET_BYTES)
