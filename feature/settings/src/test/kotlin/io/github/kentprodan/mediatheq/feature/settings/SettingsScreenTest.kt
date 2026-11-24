@@ -912,11 +912,12 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `with crossfade disabled its switch and curves are off`() {
+    fun `with crossfade disabled its switch and curves are hidden`() {
         show(SettingsPage.Transitions)
-        scrollTo("Smart fades")
+        scrollTo("Crossfade length")
 
-        composeRule.onNode(hasText("Smart fades") and hasClickAction()).assertIsNotEnabled()
+        composeRule.onNodeWithText("Smart fades").assertDoesNotExist()
+        composeRule.onNodeWithText("Fade out curve").assertDoesNotExist()
     }
 
     @Test

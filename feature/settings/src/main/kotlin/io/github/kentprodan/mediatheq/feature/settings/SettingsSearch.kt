@@ -184,10 +184,8 @@ internal val settingsIndex: Map<SettingsPage, List<Int>> =
             listOf(
                 R.string.settings_tr_fade_in,
                 R.string.settings_tr_fade_out,
+                // Smart fades and the curves show only with a length: found through Crossfade length.
                 R.string.settings_tr_crossfade,
-                R.string.settings_tr_smart,
-                R.string.settings_tr_out_curve,
-                R.string.settings_tr_in_curve,
             ),
         SettingsPage.AutoActions to
             listOf(

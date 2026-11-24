@@ -70,38 +70,38 @@ internal fun LazyListScope.transitionsGroups(
                     },
                 ) { set(transitions.copy(crossfadeMs = it)) }
             }
-            item { shapes ->
-                SwitchItem(
-                    shapes,
-                    stringResource(R.string.settings_tr_smart),
-                    stringResource(R.string.settings_tr_smart_summary),
-                    transitions.smartFades,
-                    enabled = on,
-                ) { set(transitions.copy(smartFades = it)) }
-            }
-            item { shapes ->
-                ChoiceItem(
-                    shapes,
-                    stringResource(R.string.settings_tr_out_curve),
-                    null,
-                    FadeCurve.entries,
-                    transitions.fadeOutCurve,
-                    { stringResource(it.label) },
-                    { set(transitions.copy(fadeOutCurve = it)) },
-                    enabled = on,
-                )
-            }
-            item { shapes ->
-                ChoiceItem(
-                    shapes,
-                    stringResource(R.string.settings_tr_in_curve),
-                    null,
-                    FadeCurve.entries,
-                    transitions.fadeInCurve,
-                    { stringResource(it.label) },
-                    { set(transitions.copy(fadeInCurve = it)) },
-                    enabled = on,
-                )
+            // The rest only matters with a length: hidden while crossfade is Disabled.
+            if (on) {
+                item { shapes ->
+                    SwitchItem(
+                        shapes,
+                        stringResource(R.string.settings_tr_smart),
+                        stringResource(R.string.settings_tr_smart_summary),
+                        transitions.smartFades,
+                    ) { set(transitions.copy(smartFades = it)) }
+                }
+                item { shapes ->
+                    ChoiceItem(
+                        shapes,
+                        stringResource(R.string.settings_tr_out_curve),
+                        null,
+                        FadeCurve.entries,
+                        transitions.fadeOutCurve,
+                        { stringResource(it.label) },
+                        { set(transitions.copy(fadeOutCurve = it)) },
+                    )
+                }
+                item { shapes ->
+                    ChoiceItem(
+                        shapes,
+                        stringResource(R.string.settings_tr_in_curve),
+                        null,
+                        FadeCurve.entries,
+                        transitions.fadeInCurve,
+                        { stringResource(it.label) },
+                        { set(transitions.copy(fadeInCurve = it)) },
+                    )
+                }
             }
         }
     }
