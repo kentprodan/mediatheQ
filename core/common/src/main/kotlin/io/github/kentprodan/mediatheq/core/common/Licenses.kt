@@ -75,6 +75,14 @@ internal val COPIED_ASSETS =
             "GPL-3.0",
             "https://github.com/Moonfin-Client/Moonfin-Core",
         ),
+        CopiedAsset(
+            "pixelplayer-widening",
+            "Bit-perfect widening output",
+            "Code from PixelPlayer",
+            "GPL-3.0-only",
+            "GPL-3.0",
+            "https://github.com/PixelPlayerHQ/PixelPlayerOSS",
+        ),
     )
 
 /**

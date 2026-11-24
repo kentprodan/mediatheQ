@@ -47,6 +47,31 @@ class AudioOutputControllerTest {
     }
 
     @Test
+    fun `with float output a 24-bit DAC attribute is set and the decoders may output float (#629)`() {
+        val bits24 = MixerCapability(cd.copy(encoding = AudioFormat.ENCODING_PCM_24BIT_PACKED), bitPerfect = true)
+        port.capabilities = listOf(MixerCapability(cd, bitPerfect = true), bits24)
+        val floatController = AudioOutputController(port, { format }, changes::add, { false }, floatPipeline = true)
+
+        floatController.setSettings(bitPerfectOn)
+
+        assertThat(port.preferred).isEqualTo(bits24)
+        assertThat(floatController.state.bitPerfectFormat).isEqualTo(bits24.format)
+        assertThat(floatController.state.floatOutput).isTrue()
+    }
+
+    @Test
+    fun `float output only on a bit-perfect DAC route on a device that takes float`() {
+        port.capabilities = listOf(MixerCapability(cd, bitPerfect = true))
+        val floatController = AudioOutputController(port, { format }, changes::add, { false }, floatPipeline = true)
+
+        floatController.setSettings(AudioSettings())
+        assertThat(floatController.state.floatOutput).isFalse()
+
+        controller.setSettings(bitPerfectOn)
+        assertThat(controller.state.floatOutput).isFalse()
+    }
+
+    @Test
     fun `without a matching format the track plays normally and nothing is preferred`() {
         port.capabilities = listOf(MixerCapability(hiRes, bitPerfect = true))
 
