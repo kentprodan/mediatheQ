@@ -95,6 +95,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 
 ### Fixed
+- TV: Dolby Atmos passthrough survives the HDMI link dropping for a few seconds at playback start, and a soundbar that stays silent after a pause gets its audio back on its own. The passthrough switch now really decodes the audio when it is off.
 - TV: the first card of every screen keeps clear of the menu, also when focused; an immersive row shows the focused card's details just above its cards and scrolls into place in one move.
 - TV Home's carousel moves on by itself again when an accessibility service (a launcher, a button remapper) is on.
 - TV: Back from the open menu goes Home with the menu still on Home, not on the profile or the page.

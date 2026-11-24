@@ -67,6 +67,14 @@ internal val COPIED_ASSETS =
             "Trademark of Dolby Laboratories",
             "https://www.dolby.com",
         ),
+        CopiedAsset(
+            "moonfin-passthrough",
+            "Passthrough recovery",
+            "Code from Moonfin",
+            "GPL-3.0-only",
+            "GPL-3.0",
+            "https://github.com/Moonfin-Client/Moonfin-Core",
+        ),
     )
 
 /**
