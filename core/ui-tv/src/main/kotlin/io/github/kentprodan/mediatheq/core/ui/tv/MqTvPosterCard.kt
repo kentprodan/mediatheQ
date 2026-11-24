@@ -40,8 +40,19 @@ fun MqTvPosterCard(
     onLongClick: (() -> Unit)? = null,
     /** The guideline card variant (#518). */
     style: MqTvCardStyle = MqTvCardStyle.Classic,
+    /** The wide variants' two lines under the title (#603). */
+    description: String? = null,
 ) {
-    MqTvCard(title, onClick, modifier, subtitle, onLongClick, imageAspectRatio = aspectRatio, style = style) {
+    MqTvCard(
+        title,
+        onClick,
+        modifier,
+        subtitle,
+        onLongClick,
+        imageAspectRatio = aspectRatio,
+        style = style,
+        description = description,
+    ) {
         Box(Modifier.fillMaxSize()) {
             MqTvCover(artwork, placeholder)
             if (watched) {

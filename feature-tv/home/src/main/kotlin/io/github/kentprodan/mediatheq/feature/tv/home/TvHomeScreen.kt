@@ -539,6 +539,7 @@ private class Cards(
             aspectRatio = if (wide) 16f / 9f else POSTER_RATIO,
             onLongClick = open,
             style = cardStyle,
+            description = video.overview,
         )
     }
 }
