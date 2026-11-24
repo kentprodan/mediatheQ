@@ -287,13 +287,14 @@ Order inside each engine: things that make playback **correct** first, then **ro
 7. Device profile v2: codec level tests and a quirk table, compared with the official client's.
 8. Diagnostics: the engine decision record and overlay (shared with audio).
 
-## 7. Open questions for the owner
+## 7. Owner decisions (2026-11-24)
 
-1. FFmpeg extension: the prebuilt Jellyfin `media3-ffmpeg-decoder` artifact (what jellyfin-androidtv and Wholphin use)
-   or our own build with a chosen decoder list. Both are LGPL/GPL-compatible. The prebuilt is faster to adopt.
-2. Copying Moonfin's GPL-3.0 Kotlin (route-flap hold, silence recovery, DV conversion, settle) with attribution, or
-   rewriting from these notes. Copying is faster and their code is tested; it must stay in our style.
-3. Crossfade's second player inside the single-session-player model (ADR 0047): the session still exposes one player
-   (a wrapper over A and B, as PixelPlayer does). This needs an ADR update.
-4. Positive ReplayGain takes a track off offload (a `LoudnessEnhancer` needs PCM). Accept that, or attenuate only (no
-   gain above 0 dB) when offload matters (phone, screen off)?
+1. **FFmpeg**: the prebuilt Media3 FFmpeg decoder module Jellyfin publishes (as jellyfin-androidtv and Wholphin use),
+   not an own build.
+2. **Moonfin's code**: copy their own GPL-3.0 Kotlin (passthrough robustness, Dolby Vision conversion, display mode
+   settle and the recovery policies), adapted to our style and tests, with attribution in `THIRD_PARTY.md`. Check each
+   file's origin first, because some come from jellyfin-androidtv (GPL-2.0).
+3. **Crossfade**: two players inside, A and B, behind one session player (as PixelPlayer and Rhythm do). ADR 0047 is
+   updated with that issue.
+4. **ReplayGain**: raise quiet tracks too (`LoudnessEnhancer`) with the peak guard. A track that is raised leaves
+   offload; the others keep it.
