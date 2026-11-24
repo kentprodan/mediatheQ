@@ -79,6 +79,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 
 ### Fixed
+- TV Home's carousel moves on by itself again when an accessibility service (a launcher, a button remapper) is on.
 - TV: Back from the open menu goes Home with the menu still on Home, not on the profile or the page.
 - TV: the Standard menu style slides the screen back smoothly when the menu closes, without a jump.
 - On the TV, holding Left or Right on the progress (music and movies) seeks faster the longer you hold, also with remotes that send a held key as separate presses.
