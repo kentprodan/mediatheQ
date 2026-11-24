@@ -244,6 +244,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
         val playerNetwork =
             // The switch and Automatic offline mode's Not on Wi-Fi (#144); no network is OfflineModeNetwork's own.
             OfflineModeNetwork(networkMonitor, offlineFilter.forced, applicationScope)
+        // The player the renderers' recovery seeks, once built.
+        var built: ExoPlayer? = null
         val player =
             ExoPlayer
                 .Builder(this)
@@ -258,7 +260,17 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 ).setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setRenderersFactory(
-                    DefaultRenderersFactory(this)
+                    PassthroughRenderersFactory(
+                        this,
+                        allowedPassthrough = { streamResolver.passthrough },
+                        // A bitstream track gone silent (#377): a seek in place rebuilds it, on the player's thread.
+                        onRecoveryNeeded = { reason ->
+                            Handler(Looper.getMainLooper()).post {
+                                appLog.info(AUDIO_TAG, "Passthrough recovery: $reason")
+                                built?.let { it.seekTo(it.currentPosition) }
+                            }
+                        },
+                    )
                         // A failing hardware decoder hands over to the next one.
                         .setEnableDecoderFallback(true)
                         // The platform first, FFmpeg for what it lacks (#625): AC-3 / E-AC-3 / JOC reach MediaCodec and
@@ -300,6 +312,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         downloadCache = downloadCache,
                     ),
                 ).build()
+        built = player
         startAudioOutput(player)
         autoActions =
             AutoActionsController(this, getSystemService(AudioManager::class.java), player) { audio.autoActions }

@@ -46,7 +46,7 @@ PlaybackConnection (UI side)                         async MediaController -> St
   - `setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))` (section 9)
   - renderers: `DefaultRenderersFactory` with `setEnableDecoderFallback(true)` and `EXTENSION_RENDERER_MODE_ON` with Jellyfin's FFmpeg audio decoder (ADR 0054, #625): the platform first, FFmpeg for what it lacks (DTS, TrueHD, JOC on the phone). `AudioDecoders` includes what FFmpeg reads, so the profile declares it
   - load control (`playerLoadControl`, #626): byte target a third of the heap (capped 384 MB, Media3's floor), up to 120 s ahead except on low-RAM devices; byte limit keeps priority over time and no back buffer (kept back-buffer bytes would veto loading ahead)
-  - audio sink: default `DefaultAudioSink` (passthrough + offload support built in). Only customize via `DefaultAudioSink.Builder` if a test proves it is needed; custom sinks break on media3 bumps.
+  - audio sink: the stock `DefaultAudioSink`, wrapped by `PassthroughRenderersFactory` (ADR 0055, #377) in `PassthroughRecoveryAudioSink` (Moonfin's route-flap hold and silent-bitstream rebuild; the service seeks in place) and `PassthroughPolicyAudioSink` (a bitstream outside `requestPassthrough` is unsupported, so the output's switch really means decode). Both forward everything else; check them at each media3 bump.
 - One player for the whole app process. Rebuild only when the output policy requires it (section 7).
 
 ## 3. Stream selection (with Jellyfin `PlaybackInfo`)
@@ -241,7 +241,7 @@ Rules:
 ## 14. Don'ts
 
 - No `ExoPlayer` outside the service. No second player instance.
-- No custom `AudioSink` subclass without an ADR.
+- No custom `AudioSink` subclass without an ADR (the two wrappers are ADR 0055).
 - No direct USB access APIs for audio (use mixer attributes).
 - No hard-coded device capabilities or codec lists.
 - No transcoding of Atmos tracks on a route that can passthrough them.
