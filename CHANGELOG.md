@@ -71,6 +71,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - TV Home scrolls as little as it can: the row you move to comes in at the bottom with the next one peeking, and the carousel simply scrolls away. Immersive rows grow when you reach them, with their details above 16:9 pictures.
 - TV Home's wide cards show the movie's or series' Jellyfin thumb (the 16:9 picture with its title), else the backdrop. Thumbs arrive with the next library sync.
 - TV cards follow Google's spacing: the title sits 8 dp under a poster, Classic and Compact cards have 12 dp padding, wide cards 16 dp beside the picture with two lines of description.
+- TV Home's wide cards show the movie's or series' Jellyfin thumb (the 16:9 picture with its title), else the backdrop. Thumbs arrive with the next library sync.
+- TV cards follow Google's spacing: the title sits 8 dp under a poster, Classic and Compact cards have 12 dp padding, wide cards 16 dp beside the picture with two lines of description.
+- TV cards follow Google's spacing: the title sits 8 dp under a poster, Classic and Compact cards have 12 dp padding, wide cards 16 dp beside the picture with two lines of description.
+- TV logo sizes are one step smaller: Large is the old Medium, Medium the old Small, and Small smaller still.
 - TV Movies -> Studios and Series -> Networks show each studio's or network's picture with its logo from Jellyfin, four across.
 - TV: after closing the app with Back, the next start asks Who's watching? again; a short trip out with the Home button still does not.
 - TV Settings -> Carousel shows: pick several sections at once (checkboxes); by default the carousel mixes new movies, new episodes and Continue watching, each slide saying where it comes from.
@@ -82,6 +86,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 
 ### Fixed
+- TV Home's carousel moves on by itself again when an accessibility service (a launcher, a button remapper) is on.
 - TV: Back from the open menu goes Home with the menu still on Home, not on the profile or the page.
 - TV: the Standard menu style slides the screen back smoothly when the menu closes, without a jump.
 - On the TV, holding Left or Right on the progress (music and movies) seeks faster the longer you hold, also with remotes that send a held key as separate presses.
