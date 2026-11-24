@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import android.os.SystemClock
 import android.view.KeyEvent
 import androidx.core.content.IntentCompat
 import androidx.media3.common.AudioAttributes
@@ -235,6 +236,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var outputsJob: Job? = null
     private val equalizer by lazy { EqualizerEffect(AudioPreferences.EQ_BANDS_HZ, appLog) }
     private val loudness by lazy { LoudnessBoost(appLog) }
+    private lateinit var offloadGuard: OffloadGuard
+    private var offloadBroken = false
 
     @Inject
     @IoDispatcher
@@ -684,6 +687,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             AudioOutputController(
                 playingVideo = { player.currentMediaItem?.isVideo() == true },
                 currentGains = { player.currentMediaItem?.gains() ?: ItemGains(null, null) },
+                offloadBroken = { offloadBroken },
                 port = usbAudio,
                 currentFormat = {
                     val playing =
@@ -793,12 +797,50 @@ class MediatheqPlaybackService : MediaLibraryService() {
             },
         )
         usbAudio.watch(audioOutput::onDeviceChanged, audioOutput::onPreferenceDropped)
+        // A broken offload stream (#628): PCM from now on (this OS build, or this session).
+        val brokenBuilds = getSharedPreferences(OFFLOAD_PREFS, MODE_PRIVATE)
+        offloadBroken = brokenBuilds.getString(OFFLOAD_BROKEN_BUILD, null) == Build.FINGERPRINT
+        offloadGuard =
+            OffloadGuard(
+                now = SystemClock::elapsedRealtime,
+                schedule = handlerSchedule(Handler(Looper.getMainLooper())),
+                position = { player.currentPosition },
+            ) { persist ->
+                appLog.info(AUDIO_TAG, "Offload broke (${if (persist) "stall, this build" else "reset, this session"})")
+                if (persist) brokenBuilds.edit().putString(OFFLOAD_BROKEN_BUILD, Build.FINGERPRINT).apply()
+                offloadBroken = true
+                audioOutput.refresh("offload broken")
+                player.seekTo(player.currentPosition)
+            }
+        player.addListener(
+            object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) = offloadGuard.onIsPlayingChanged(isPlaying)
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_BUFFERING) offloadGuard.onBuffering()
+                }
+
+                override fun onPositionDiscontinuity(
+                    oldPosition: Player.PositionInfo,
+                    newPosition: Player.PositionInfo,
+                    reason: Int,
+                ) = offloadGuard.onExpectedBuffering()
+
+                override fun onMediaItemTransition(
+                    mediaItem: MediaItem?,
+                    reason: Int,
+                ) = offloadGuard.onExpectedBuffering()
+            },
+        )
         player.addAnalyticsListener(
             object : AnalyticsListener {
                 override fun onAudioTrackInitialized(
                     eventTime: AnalyticsListener.EventTime,
                     audioTrackConfig: AudioSink.AudioTrackConfig,
-                ) = audioOutput.onAudioTrackOpened(audioTrackConfig.sampleRate, audioTrackConfig.encoding)
+                ) {
+                    offloadGuard.onAudioTrackOpened(audioTrackConfig.offload)
+                    audioOutput.onAudioTrackOpened(audioTrackConfig.sampleRate, audioTrackConfig.encoding)
+                }
 
                 override fun onAudioTrackReleased(
                     eventTime: AnalyticsListener.EventTime,
@@ -886,6 +928,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         autoActions.release()
         fader.release()
         loudness.release()
+        offloadGuard.release()
         detachSleepTimer?.invoke()
         bluetoothLyrics.release()
         // A reopen in progress ends now, not on a timer after the player is gone.
@@ -1054,6 +1097,8 @@ internal fun localCoverBytes(uri: Uri): ByteArray? {
 }
 
 private const val AUDIO_TAG = "MqAudioOutput"
+private const val OFFLOAD_PREFS = "offload"
+private const val OFFLOAD_BROKEN_BUILD = "broken_build"
 
 /** The audio output refused or lost the AudioTrack (not the stream or the decoder). */
 @UnstableApi
