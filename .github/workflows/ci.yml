@@ -27,6 +27,15 @@ jobs:
           # Only main writes the cache; PRs read it.
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
+      - name: Robolectric jars
+        # Robolectric fetches its Android jars from Maven Central at test time, outside Gradle's cache; a refused
+        # download failed whole test classes (IOException in MavenArtifactFetcher, three times on 2026-11-24).
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: robolectric-
+
       - name: Check
         # The public runner has 4 cores and 16 GB. Three workers, and Kotlin compiles inside the Gradle daemon: each
         # screenshot test JVM takes up to 4 GB, so four of them next to a Kotlin daemon starved the runner (PR #525).
