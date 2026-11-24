@@ -136,6 +136,7 @@ internal fun BaseItemDto.toVideo(
         backdrop = backdrop(),
         // Episodes show their series' title: only movies keep a logo.
         logo = logo().takeUnless { episode },
+        thumb = thumb(),
         userData = userData.toDomain(),
         streams = streams.mapNotNull { it.toStreamInfo() },
     )
@@ -157,6 +158,7 @@ internal fun BaseItemDto.toSeries(serverId: ServerId): Series? {
         artwork = artwork(),
         backdrop = backdrop(),
         logo = logo(),
+        thumb = thumb(),
         userData = userData.toDomain(),
     )
 }
@@ -318,6 +320,12 @@ private fun BaseItemDto.backdrop(): Artwork? {
 private fun BaseItemDto.logo(): Artwork? {
     val tag = imageTags["Logo"] ?: return null
     return Artwork(id ?: return null, tag, imageBlurHashes["Logo"]?.get(tag), ImageType.Logo)
+}
+
+/** The item's 16:9 thumb (#605), asked for with `enableImageTypes=Thumb`. */
+private fun BaseItemDto.thumb(): Artwork? {
+    val tag = imageTags["Thumb"] ?: return null
+    return Artwork(id ?: return null, tag, imageBlurHashes["Thumb"]?.get(tag), ImageType.Thumb)
 }
 
 private fun BaseItemDto.albumArtwork(): Artwork? {

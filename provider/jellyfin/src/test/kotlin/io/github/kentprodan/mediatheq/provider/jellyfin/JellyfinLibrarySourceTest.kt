@@ -211,6 +211,9 @@ class JellyfinLibrarySourceTest {
 
             assertThat(movies[0].logo).isEqualTo(Artwork("m1", "l1", "LOGOHASH", ImageType.Logo))
             assertThat(movies[1].logo).isNull()
+            // The 16:9 thumb rides on the same query (#605).
+            assertThat(movies[0].thumb).isEqualTo(Artwork("m1", "t1", null, ImageType.Thumb))
+            assertThat(movies[1].thumb).isNull()
         }
 
     @Test
@@ -225,6 +228,7 @@ class JellyfinLibrarySourceTest {
             val episodes = (source.episodes(server, 0, 500) as MqResult.Success).value.items
 
             assertThat(series.single().logo).isEqualTo(Artwork("s1", "sl1", null, ImageType.Logo))
+            assertThat(series.single().thumb).isEqualTo(Artwork("s1", "st1", null, ImageType.Thumb))
             assertThat(artists.single().logo).isEqualTo(Artwork("a1", "al1", null, ImageType.Logo))
             assertThat(episodes.single().logo).isNull()
         }
@@ -370,6 +374,8 @@ class JellyfinLibrarySourceTest {
             .isEqualTo("http://nas:8096/Items/ar1/Images/Backdrop/0?tag=b1&fillWidth=1024&quality=90")
         assertThat(source.imageUrl("http://nas:8096", Artwork("m1", "l1", null, ImageType.Logo), 640))
             .isEqualTo("http://nas:8096/Items/m1/Images/Logo?tag=l1&fillWidth=640&quality=90")
+        assertThat(source.imageUrl("http://nas:8096", Artwork("m1", "t1", null, ImageType.Thumb), 640))
+            .isEqualTo("http://nas:8096/Items/m1/Images/Thumb?tag=t1&fillWidth=640&quality=90")
         // A studio by name, no tag (#576).
         assertThat(
             source.imageUrl("http://nas:8096", Artwork("Warner Bros. Pictures", "", null, ImageType.StudioThumb), 512),

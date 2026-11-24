@@ -90,6 +90,7 @@ class DefaultVideoRepositoryTest {
             genres = listOf("Comedy", "Drama"),
             studios = listOf("Legendary", "Warner Bros."),
             logo = Artwork("m1", "l1", "hash", ImageType.Logo),
+            thumb = Artwork("m1", "t1", null, ImageType.Thumb),
             format = VideoFormat("hevc", 3840, 2160, VideoRange.DolbyVision, 20_000),
             userData = UserData(played = false, playbackPosition = 12.minutes, playedPercentage = 13.3),
         )
@@ -117,6 +118,7 @@ class DefaultVideoRepositoryTest {
                         "Show",
                         studios = listOf("HBO"),
                         logo = Artwork("sr1", "sl1", null, ImageType.Logo),
+                        thumb = Artwork("sr1", "st1", null, ImageType.Thumb),
                         userData = UserData(unplayedCount = 5),
                     ).toEntity(),
                 ),
@@ -136,6 +138,9 @@ class DefaultVideoRepositoryTest {
             assertThat(
                 repository.series(id("sr1")).first()?.logo,
             ).isEqualTo(Artwork("sr1", "sl1", null, ImageType.Logo))
+            assertThat(
+                repository.series(id("sr1")).first()?.thumb,
+            ).isEqualTo(Artwork("sr1", "st1", null, ImageType.Thumb))
             assertThat(
                 repository
                     .streams(id("m1"))

@@ -6,7 +6,8 @@
       "Type": "Series",
       "ImageTags": {
         "Primary": "p1",
-        "Logo": "sl1"
+        "Logo": "sl1",
+        "Thumb": "st1"
       },
       "BackdropImageTags": []
     }

@@ -4,7 +4,7 @@
       "Name": "Movie with a logo",
       "Id": "m1",
       "Type": "Movie",
-      "ImageTags": { "Primary": "p1", "Logo": "l1" },
+      "ImageTags": { "Primary": "p1", "Logo": "l1", "Thumb": "t1" },
       "BackdropImageTags": [],
       "ImageBlurHashes": { "Logo": { "l1": "LOGOHASH" } }
     },
