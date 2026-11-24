@@ -122,6 +122,7 @@ Rules:
   ```
   (`AUDIO_OFFLOAD_MODE_DISABLED` / `ENABLED` / `REQUIRED` in 1.11.) Set it once at start and again only when settings change (`Player.applyAudioMode`): changing track selection parameters re-selects tracks and drops the next item buffered for gapless. With gapless required, formats with encoder delay (MP3/AAC) offload only where the device reports gapless offload; FLAC usually offloads.
 - `ENABLED` (not `REQUIRED`): fall back to normal playback when offload is unavailable.
+- **Broken offload (#628, `OffloadGuard`):** an offloaded track frozen 1.5 s after play started is a stall: offload off and remembered for this `Build.FINGERPRINT` (SharedPreferences `offload`), an OS update retries it. Buffering within 500 ms of an offloaded play, not after a seek or a transition, is a HAL reset: off for the session. Both refresh the output and seek in place.
 - Offload is **off** when: EQ is active, bit-perfect USB is active, passthrough is active, or a feature needs PCM access (visualizer, crossfade, waveform). `AudioPolicy` decides; one place only.
 - Volume-based normalization (ReplayGain via player volume) works with offload.
 - Manual test: screen off, long album, battery and gapless transitions (1.11.1 fixed offload stalls at gapless transitions - keep media3 current).

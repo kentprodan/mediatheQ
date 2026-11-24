@@ -73,6 +73,8 @@ internal class AudioOutputController(
     private val playingVideo: () -> Boolean = { false },
     /** The playing item's normalization gains (#627): a raised track plays without offload. */
     private val currentGains: () -> ItemGains = { ItemGains(null, null) },
+    /** The device's offload broke (#628, [OffloadGuard]): no offload at all. */
+    private val offloadBroken: () -> Boolean = { false },
 ) {
     private var settings = AudioSettings()
     private var preferred: MixerCapability? = null
@@ -155,15 +157,7 @@ internal class AudioOutputController(
         publish(
             AudioOutputState(
                 route = route,
-                offload =
-                    AudioPolicy.offload(
-                        settings,
-                        route,
-                        passthrough,
-                        video = playingVideo(),
-                        boosted =
-                            AudioPolicy.boostMillibels(currentGains(), AudioPolicy.normalization(settings), mode) > 0,
-                    ),
+                offload = !offloadBroken() && offload(route, passthrough, mode),
                 mode = mode,
                 bitPerfectFormat = chosen?.format,
                 bitPerfectNoMatch = format != null && chosen == null,
@@ -252,5 +246,14 @@ internal class AudioOutputController(
             state = next
             onChange(next)
         }
+    }
+
+    private fun offload(
+        route: AudioRoute,
+        passthrough: Set<String>,
+        mode: AudioMode,
+    ): Boolean {
+        val boost = AudioPolicy.boostMillibels(currentGains(), AudioPolicy.normalization(settings), mode)
+        return AudioPolicy.offload(settings, route, passthrough, video = playingVideo(), boosted = boost > 0)
     }
 }
