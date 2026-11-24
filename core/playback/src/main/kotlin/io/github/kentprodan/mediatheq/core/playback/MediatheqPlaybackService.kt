@@ -22,6 +22,7 @@ import androidx.media3.datasource.DataSourceBitmapLoader
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
@@ -256,7 +257,14 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     false,
                 ).setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
-                .setMediaSourceFactory(
+                .setRenderersFactory(
+                    DefaultRenderersFactory(this)
+                        // A failing hardware decoder hands over to the next one.
+                        .setEnableDecoderFallback(true)
+                        // The platform first, FFmpeg for what it lacks (#625): AC-3 / E-AC-3 / JOC reach MediaCodec and
+                        // passthrough, so Atmos is never decoded by FFmpeg on a route that takes it.
+                        .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON),
+                ).setMediaSourceFactory(
                     StreamMediaSourceFactory(
                         DefaultMediaSourceFactory(
                             streamDataSourceFactory(

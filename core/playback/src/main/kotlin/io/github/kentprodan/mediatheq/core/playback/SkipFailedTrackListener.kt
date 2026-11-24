@@ -1,8 +1,10 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionError
@@ -38,6 +40,26 @@ internal class SkipFailedTrackListener(
         val causes = generateSequence<Throwable>(error) { it.cause }
         val offline = causes.any { it is OfflineException }
         val trackAtFault = offline || causes.any { it is StreamUnavailableException && it.error.isTrackOnly() }
+        fail(if (offline) PlaybackError.Reason.NotDownloaded else PlaybackError.Reason.Failed, trackAtFault)
+    }
+
+    /**
+     * A track whose audio no decoder takes (#625): Media3 raises no error and runs a silent clock through it, so it is
+     * the track's own failure. Never for a video, whose picture still plays.
+     */
+    override fun onTracksChanged(tracks: Tracks) {
+        val undecodable =
+            tracks.containsType(C.TRACK_TYPE_AUDIO) &&
+                !tracks.containsType(C.TRACK_TYPE_VIDEO) &&
+                !tracks.isTypeSupported(C.TRACK_TYPE_AUDIO, true)
+        if (undecodable) fail(PlaybackError.Reason.Failed, trackAtFault = true, stop = true)
+    }
+
+    private fun fail(
+        reason: PlaybackError.Reason,
+        trackAtFault: Boolean,
+        stop: Boolean = false,
+    ) {
         val skip = trackAtFault && player.hasNextMediaItem() && ++failuresInARow < player.mediaItemCount
         val title =
             player.currentMediaItem
@@ -45,11 +67,12 @@ internal class SkipFailedTrackListener(
                 ?.title
                 ?.toString()
                 .orEmpty()
-        val reason = if (offline) PlaybackError.Reason.NotDownloaded else PlaybackError.Reason.Failed
         onError(PlaybackError(title, reason, skip))
         if (skip) {
             player.seekToNextMediaItem()
             player.prepare()
+        } else if (stop) {
+            player.pause()
         }
     }
 }

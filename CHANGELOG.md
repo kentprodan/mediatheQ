@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 ## [Unreleased]
 
 ### Added
+- DTS, DTS-HD, TrueHD and Dolby Atmos (E-AC-3) play from the original file on the phone and on the TV without passthrough, decoded on the device by FFmpeg instead of converted by the server. A track the device cannot decode at all is skipped instead of playing silence.
 - TV Settings -> Home rows: each row can show 1 to 5 cards across the screen (long press a row).
 - TV Settings -> Display -> Logo size: Small, Medium or Large logos as titles on movie, series and artist pages.
 - TV: your Jellyfin picture shows in the side menu and on Who's watching? (the initial when you have none).

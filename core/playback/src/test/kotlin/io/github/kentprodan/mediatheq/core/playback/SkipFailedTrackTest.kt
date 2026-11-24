@@ -1,8 +1,13 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import android.content.Context
+import androidx.media3.common.C
+import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
+import androidx.media3.common.TrackGroup
+import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.TransferListener
 import androidx.media3.exoplayer.ExoPlayer
@@ -45,8 +50,10 @@ class SkipFailedTrackTest {
     private val errors = mutableListOf<PlaybackError>()
     private var recovers = false
 
+    private val listener = SkipFailedTrackListener(player, recover = { recovers }, onError = { errors += it })
+
     init {
-        player.addListener(SkipFailedTrackListener(player, recover = { recovers }, onError = { errors += it }))
+        player.addListener(listener)
     }
 
     @After
@@ -157,6 +164,59 @@ class SkipFailedTrackTest {
 
         runUntil { player.currentMediaItemIndex == 2 && player.isPlaying }
     }
+
+    @Test
+    fun `a track whose audio no decoder takes is skipped as failed instead of playing silence (#625)`() {
+        queue(1, 2)
+        runUntil { player.isPlaying }
+
+        listener.onTracksChanged(tracks(MimeTypes.AUDIO_TRUEHD, C.FORMAT_UNSUPPORTED_SUBTYPE))
+
+        runUntil { player.currentMediaItemIndex == 1 }
+        assertThat(errors).containsExactly(PlaybackError("Track 1", Reason.Failed, skipped = true))
+    }
+
+    @Test
+    fun `the last such track pauses instead of running a silent clock (#625)`() {
+        queue(1)
+        runUntil { player.isPlaying }
+
+        listener.onTracksChanged(tracks(MimeTypes.AUDIO_TRUEHD, C.FORMAT_UNSUPPORTED_SUBTYPE))
+
+        assertThat(player.playWhenReady).isFalse()
+        assertThat(errors).containsExactly(PlaybackError("Track 1", Reason.Failed, skipped = false))
+    }
+
+    @Test
+    fun `audio a decoder takes, or a video's audio, is left alone (#625)`() {
+        queue(1, 2)
+        runUntil { player.isPlaying }
+
+        listener.onTracksChanged(tracks(MimeTypes.AUDIO_FLAC, C.FORMAT_HANDLED))
+        listener.onTracksChanged(
+            Tracks(
+                tracks(MimeTypes.AUDIO_TRUEHD, C.FORMAT_UNSUPPORTED_SUBTYPE).groups +
+                    tracks(MimeTypes.VIDEO_H264, C.FORMAT_HANDLED).groups,
+            ),
+        )
+
+        assertThat(errors).isEmpty()
+        assertThat(player.currentMediaItemIndex).isEqualTo(0)
+    }
+
+    private fun tracks(
+        mime: String,
+        support: Int,
+    ) = Tracks(
+        listOf(
+            Tracks.Group(
+                TrackGroup(Format.Builder().setSampleMimeType(mime).build()),
+                false,
+                intArrayOf(support),
+                booleanArrayOf(false),
+            ),
+        ),
+    )
 
     private fun item(n: Int): MediaItem =
         Track(MediaId(ServerId("s"), "t$n"), "Track $n", emptyList(), 3.minutes).toMediaItem(null).withTrackUri()!!
