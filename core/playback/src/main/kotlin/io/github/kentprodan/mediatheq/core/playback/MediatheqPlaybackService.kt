@@ -264,7 +264,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         // The platform first, FFmpeg for what it lacks (#625): AC-3 / E-AC-3 / JOC reach MediaCodec and
                         // passthrough, so Atmos is never decoded by FFmpeg on a route that takes it.
                         .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON),
-                ).setMediaSourceFactory(
+                ).setLoadControl(playerLoadControl(this))
+                .setMediaSourceFactory(
                     StreamMediaSourceFactory(
                         DefaultMediaSourceFactory(
                             streamDataSourceFactory(
