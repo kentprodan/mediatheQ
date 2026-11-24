@@ -18,7 +18,8 @@ aboutLibraries {
     // A new kind of license stops the build: add its text above, after checking it is compatible with GPL-3.0.
     license {
         strictMode = com.mikepenz.aboutlibraries.plugin.StrictMode.FAIL
-        allowedLicenses.addAll("Apache-2.0", "BSD-3-Clause", "MIT", "GPL-3.0-or-later")
+        // GPL-3.0-only: the FFmpeg audio decoder (ADR 0054); the app is GPL-3.0-or-later, so the whole ships as 3.0.
+        allowedLicenses.addAll("Apache-2.0", "BSD-3-Clause", "MIT", "GPL-3.0-or-later", "GPL-3.0-only")
         // The app's own license ships with it too (GPL-3.0 section 4), from LICENSE (a test keeps them equal).
         additionalLicenses.add("GPL-3.0-or-later")
     }

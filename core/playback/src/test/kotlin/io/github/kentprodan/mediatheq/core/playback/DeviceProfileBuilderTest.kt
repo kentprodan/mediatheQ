@@ -51,10 +51,11 @@ class DeviceProfileBuilderTest {
     }
 
     @Test
-    fun `TrueHD is never declared without passthrough, even with a TrueHD decoder`() {
-        val profile = DeviceProfileBuilder.build(pixel + "audio/true-hd" + "audio/eac3-joc", none, Original)
+    fun `TrueHD and DTS are declared with a decoder (FFmpeg, #625) as well as with passthrough`() {
+        val profile = DeviceProfileBuilder.build(pixel + "audio/true-hd" + "audio/vnd.dts", none, Original)
 
-        assertThat(profile.directPlayCodecs).doesNotContain("truehd")
+        assertThat(profile.directPlayCodecs).containsAtLeast("truehd", "dts", "dca")
+        assertThat(DeviceProfileBuilder.build(pixel, none, Original).directPlayCodecs).containsNoneOf("truehd", "dts")
     }
 
     @Test

@@ -16,6 +16,7 @@ dependencies {
     api(libs.androidx.media3.common)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
+    implementation(libs.jellyfin.media3.ffmpeg.decoder)
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.datasource.okhttp)
     // MediaExtractorCompat: reads a cached file for its waveform with Media3's extractors (#124, ADR 0027).

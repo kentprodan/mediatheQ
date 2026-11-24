@@ -31,7 +31,7 @@ object DeviceProfileBuilder {
 
     /**
      * [passthroughMimeTypes] is what the route passes through unchanged (ADR 0039, [PassthroughCapabilities]): E-AC-3
-     * counts with a JOC decoder or JOC passthrough, TrueHD only with TrueHD passthrough. Empty = today's phone profile.
+     * counts with a JOC decoder or JOC passthrough, the rest with a decoder (FFmpeg's included, #625) or passthrough.
      */
     fun build(
         decoderMimeTypes: Set<String>,
@@ -45,9 +45,7 @@ object DeviceProfileBuilder {
                     .filter { (codec, mime) ->
                         when {
                             mime == null -> true
-                            codec == "truehd" -> mime in passthroughMimeTypes
-                            codec == "eac3" -> mime in decoderMimeTypes || mime in passthroughMimeTypes
-                            else -> mime in decoderMimeTypes
+                            else -> mime in decoderMimeTypes || mime in passthroughMimeTypes
                         }
                     }.map { it.first },
             transcoding = quality.bitrate?.let(::opus) ?: OPUS_256,
@@ -149,10 +147,10 @@ object DeviceProfileBuilder {
         )
 
     /**
-     * Jellyfin codec name -> decoder MIME type needed; `null` = Media3 handles it without a platform decoder (PCM).
+     * Jellyfin codec name -> decoder MIME type needed; `null` = Media3 handles it without a decoder (PCM).
      * E-AC-3 counts only with a JOC (Atmos) decoder: a plain E-AC-3 decoder (Pixel) fails on Atmos music since Media3
-     * 1.11 removed the fallback, so the server converts it to stereo Opus (#24). TrueHD is declared only where the route
-     * passes it through ([build]): phones have no decoder for it.
+     * 1.11 removed the fallback. The bundled FFmpeg decoder (#625) reads JOC (its 5.1 bed), TrueHD and DTS, so they
+     * play on the device instead of a server conversion; passthrough still wins where the route takes them.
      */
     private val CODECS =
         listOf(
@@ -165,6 +163,8 @@ object DeviceProfileBuilder {
             "ac3" to "audio/ac3",
             "eac3" to "audio/eac3-joc",
             "truehd" to "audio/true-hd",
+            "dts" to "audio/vnd.dts",
+            "dca" to "audio/vnd.dts",
             "pcm_s16le" to null,
             "pcm_s24le" to null,
         )

@@ -15,7 +15,8 @@ aboutLibraries {
     collect.configPath = rootProject.file("app/aboutlibraries")
     license {
         strictMode = com.mikepenz.aboutlibraries.plugin.StrictMode.FAIL
-        allowedLicenses.addAll("Apache-2.0", "BSD-3-Clause", "MIT", "GPL-3.0-or-later")
+        // GPL-3.0-only: the FFmpeg audio decoder (ADR 0054); the app is GPL-3.0-or-later, so the whole ships as 3.0.
+        allowedLicenses.addAll("Apache-2.0", "BSD-3-Clause", "MIT", "GPL-3.0-or-later", "GPL-3.0-only")
         additionalLicenses.add("GPL-3.0-or-later")
     }
 }
