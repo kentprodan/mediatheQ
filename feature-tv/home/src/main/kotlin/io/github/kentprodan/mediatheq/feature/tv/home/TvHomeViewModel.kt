@@ -76,6 +76,15 @@ class TvHomeViewModel
     ) : ViewModel() {
         private val mode = appMode?.mode ?: flowOf(AppMode.Music)
 
+        /** What Home shows (#621): the mode, without music when Settings -> Home keeps to movies and series. */
+        private val homeMode =
+            combine(
+                mode,
+                preferences.preferences.map { it.navigation.tvHomeMusic }.distinctUntilChanged(),
+            ) { mode, music ->
+                if (!music && mode.video) AppMode.Video else mode
+            }.distinctUntilChanged()
+
         /** The video sections' items (#431), read only while the TV's mode has video. */
         private val homeVideos: Flow<HomeVideos> =
             mode.map { it.video }.distinctUntilChanged().flatMapLatest { video ->
@@ -107,7 +116,7 @@ class TvHomeViewModel
                             )
                     }.distinctUntilChanged(),
                 shuffle.seed,
-                mode,
+                homeMode,
             ) { library, (home, carousel), seed, mode ->
                 val (style, chosen, skipWatched) = carousel
                 val noMusic = library.albums.isEmpty() && library.tracks.isEmpty()
@@ -184,7 +193,15 @@ class TvHomeViewModel
             preferences.preferences
                 .map {
                     val nav = it.navigation
-                    Looks(nav.tvCarousel, nav.tvCardStyles, nav.tvImmersiveRows, nav.tvCardsPerScreen)
+                    Looks(
+                        nav.tvCarousel,
+                        nav.tvCardStyles,
+                        nav.tvImmersiveRows,
+                        nav.tvCardsPerScreen,
+                        nav.tvRowOrder,
+                        nav.tvGenreCardStyles,
+                        nav.tvGenreCardsPerScreen,
+                    )
                 }.distinctUntilChanged()
 
         /** The status, and whether a full sync ever completed (then an empty library is really empty). */
@@ -199,7 +216,8 @@ class TvHomeViewModel
                 genreRows,
                 status,
                 looks,
-            ) { data, genreRows, status, (carousel, cards, immersive, perScreen) ->
+            ) { data, genreRows, status, looks ->
+                val (carousel, cards, immersive, perScreen) = looks
                 val (current, everSynced) = status ?: return@combine TvHomeUiState.Loading
                 when {
                     data != null -> {
@@ -213,6 +231,9 @@ class TvHomeViewModel
                             data.slideSections,
                             immersive,
                             perScreen,
+                            looks.rowOrder,
+                            looks.genreCardStyles,
+                            looks.genreCardsPerScreen,
                         )
                     }
 
@@ -388,4 +409,7 @@ private data class Looks(
     val cardStyles: Map<HomeSection, io.github.kentprodan.mediatheq.core.data.TvCardStyle>,
     val immersive: Set<HomeSection>,
     val perScreen: Map<HomeSection, Int>,
+    val rowOrder: List<String>,
+    val genreCardStyles: Map<String, io.github.kentprodan.mediatheq.core.data.TvCardStyle>,
+    val genreCardsPerScreen: Map<String, Int>,
 )

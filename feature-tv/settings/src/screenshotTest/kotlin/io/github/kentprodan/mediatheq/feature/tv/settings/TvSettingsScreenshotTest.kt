@@ -9,10 +9,12 @@ import io.github.kentprodan.mediatheq.core.data.DefaultTvCarouselSources
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
+import io.github.kentprodan.mediatheq.core.data.TvCardStyle
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvRoPreview
 import io.github.kentprodan.mediatheq.core.model.AppMode
+import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 
@@ -26,12 +28,34 @@ private val settings =
         carouselPicked = DefaultTvCarouselSources,
     )
 
+private val homeRows =
+    TvHomeRowsState(
+        listOf(
+            TvHomeRow(HomeSection.ContinueWatching, true, TvCardStyle.WideClassic, immersive = true),
+            TvHomeRow(HomeSection.NextUp, true),
+            TvHomeRow(null, true, perScreen = 3, genre = "Drama"),
+            TvHomeRow(HomeSection.RecentlyAddedMovies, false),
+        ),
+        genres = listOf("Drama" to true, "Comedy" to false, "Science Fiction" to false),
+    )
+
 @Composable
 private fun Settings(
     state: TvSettingsUiState,
     vararg levels: SettingsPage,
+    deeper: List<SettingsLevel> = emptyList(),
 ) = MediatheqTvTheme {
-    TvSettingsScreen(state, "0.1.0", {}, {}, {}, {}, {}, start = listOf(SettingsPage.Root) + levels)
+    TvSettingsScreen(
+        state,
+        "0.1.0",
+        {},
+        {},
+        {},
+        {},
+        homeRows,
+        {},
+        start = (listOf(SettingsPage.Root) + levels).map(::SettingsLevel) + deeper,
+    )
 }
 
 /** The categories (#580), the first one's level previewed on the right. */
@@ -105,7 +129,58 @@ fun TvSettingsMenuBehaviorScreenshot() =
 @MqTvPreviews
 @Composable
 fun TvSettingsTitleScreenshot() =
-    Settings(settings, SettingsPage.Screens, SettingsPage.ScreenMovies, SettingsPage.MovieTitle)
+    Settings(
+        settings,
+        SettingsPage.Screens,
+        SettingsPage.ScreenMovies,
+        deeper =
+            listOf(
+                SettingsLevel(SettingsPage.TitlePages, "Movie"),
+                SettingsLevel(SettingsPage.TitleStyle, "Movie"),
+            ),
+    )
+
+/** Home rows as levels (#621): reorder first, each row with what it shows, the genres last. */
+@PreviewTest
+@MqTvPreviews
+@MqTvRoPreview
+@Composable
+fun TvSettingsHomeRowsScreenshot() =
+    Settings(settings, SettingsPage.Screens, SettingsPage.ScreenHome, SettingsPage.HomeRows)
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsHomeRowScreenshot() =
+    Settings(
+        settings,
+        SettingsPage.Screens,
+        SettingsPage.ScreenHome,
+        SettingsPage.HomeRows,
+        deeper = listOf(SettingsLevel(SettingsPage.Row, "ContinueWatching")),
+    )
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsRowDesignScreenshot() =
+    Settings(
+        settings,
+        SettingsPage.Screens,
+        SettingsPage.ScreenHome,
+        SettingsPage.HomeRows,
+        deeper =
+            listOf(
+                SettingsLevel(SettingsPage.Row, "ContinueWatching"),
+                SettingsLevel(SettingsPage.RowDesign, "ContinueWatching"),
+            ),
+    )
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsGenresScreenshot() =
+    Settings(settings, SettingsPage.Screens, SettingsPage.ScreenHome, SettingsPage.HomeRows, SettingsPage.Genres)
 
 /** A sync runs. */
 @PreviewTest

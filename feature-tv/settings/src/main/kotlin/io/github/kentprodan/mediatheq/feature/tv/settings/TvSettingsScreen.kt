@@ -44,13 +44,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.data.CARDS_PER_SCREEN
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
+import io.github.kentprodan.mediatheq.core.data.TvCardStyle
 import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 import io.github.kentprodan.mediatheq.core.model.AppMode
+import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 import io.github.kentprodan.mediatheq.core.model.TvLogoSize
 import io.github.kentprodan.mediatheq.core.model.TvTitlePage
@@ -61,20 +64,22 @@ import io.github.kentprodan.mediatheq.core.ui.tv.title
 fun TvSettingsRoute(
     versionName: String,
     onOpenLicenses: () -> Unit,
-    onOpenHomeRows: () -> Unit = {},
     onOpenParental: () -> Unit = {},
     onSwitchProfile: () -> Unit = {},
     viewModel: TvSettingsViewModel = hiltViewModel(),
+    homeRows: TvHomeRowsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val rows by homeRows.state.collectAsStateWithLifecycle()
     TvSettingsScreen(
         state,
         versionName,
         viewModel::onAction,
         onOpenLicenses,
-        onOpenHomeRows,
         onOpenParental,
         onSwitchProfile,
+        rows,
+        homeRows::onAction,
     )
 }
 
@@ -100,16 +105,36 @@ internal enum class SettingsPage {
     ScreenSeries,
     ScreenMusic,
     Carousel,
+    HomeContent,
     CarouselDesign,
     CarouselSources,
-    MovieTitle,
-    MovieLogo,
-    SeriesTitle,
-    SeriesLogo,
-    ArtistTitle,
-    ArtistLogo,
+    HomeRows,
+    RowOrder,
+    Row,
+    RowDesign,
+    RowSize,
+    Genres,
+    TitlePages,
+    TitleStyle,
+    LogoSize,
     AppMode,
     SignOut,
+}
+
+/** A level on the stack: a page, with the row or detail page it is about for the levels of one (#621). */
+internal data class SettingsLevel(
+    val page: SettingsPage,
+    val arg: String? = null,
+) {
+    /** Saved on the stack, and the key of the row that opens it. */
+    val key: String get() = arg?.let { "${page.name}$ARG$it" } ?: page.name
+
+    companion object {
+        fun of(key: String) =
+            SettingsLevel(SettingsPage.valueOf(key.substringBefore(ARG)), key.substringAfter(ARG, "").ifEmpty { null })
+
+        private const val ARG = '|'
+    }
 }
 
 /**
@@ -123,18 +148,20 @@ fun TvSettingsScreen(
     versionName: String,
     onAction: (TvSettingsAction) -> Unit,
     onOpenLicenses: () -> Unit,
-    onOpenHomeRows: () -> Unit = {},
     onOpenParental: () -> Unit = {},
     onSwitchProfile: () -> Unit = {},
+    homeRows: TvHomeRowsState? = null,
+    onHomeRowsAction: (TvHomeRowsAction) -> Unit = {},
 ) = TvSettingsScreen(
     state,
     versionName,
     onAction,
     onOpenLicenses,
-    onOpenHomeRows,
     onOpenParental,
     onSwitchProfile,
-    start = listOf(SettingsPage.Root),
+    homeRows,
+    onHomeRowsAction,
+    start = listOf(SettingsLevel(SettingsPage.Root)),
 )
 
 /** Settings opened at the levels [start] (the screenshots of the deeper levels). */
@@ -144,22 +171,28 @@ internal fun TvSettingsScreen(
     versionName: String,
     onAction: (TvSettingsAction) -> Unit,
     onOpenLicenses: () -> Unit,
-    onOpenHomeRows: () -> Unit,
     onOpenParental: () -> Unit,
     onSwitchProfile: () -> Unit,
-    start: List<SettingsPage>,
+    homeRows: TvHomeRowsState?,
+    onHomeRowsAction: (TvHomeRowsAction) -> Unit,
+    start: List<SettingsLevel>,
 ) {
     Surface(Modifier.fillMaxSize()) {
         if (state !is TvSettingsUiState.Content) return@Surface
-        // Kept with the screen's saved state, so coming back from the licenses or Home rows finds the same level and row.
-        var stack by rememberSaveable { mutableStateOf(start) }
-        var focused by rememberSaveable { mutableStateOf(mapOf<SettingsPage, String>()) }
-        val open: (SettingsPage) -> Unit = { child ->
+        // Kept with the screen's saved state, so coming back from the licenses finds the same level and row.
+        var stack by rememberSaveable { mutableStateOf(start.map { it.key }) }
+        var focused by rememberSaveable { mutableStateOf(mapOf<String, String>()) }
+        // The Home row picked up to move (#621).
+        var lifted by rememberSaveable { mutableStateOf<String?>(null) }
+        val open: (SettingsLevel) -> Unit = { child ->
             // Back lands on the row that opened it, however it was opened.
-            focused = focused + (stack.last() to child.name)
-            stack = stack + child
+            focused = focused + (stack.last() to child.key)
+            stack = stack + child.key
         }
-        val back: () -> Unit = { if (stack.size > 1) stack = stack.dropLast(1) }
+        val back: () -> Unit = {
+            lifted = null
+            if (stack.size > 1) stack = stack.dropLast(1)
+        }
         BackHandler(enabled = stack.size > 1, onBack = back)
         val context = LocalContext.current
         val pages =
@@ -170,11 +203,13 @@ internal fun TvSettingsScreen(
                 open,
                 back,
                 onOpenLicenses,
-                onOpenHomeRows,
                 onOpenParental,
                 onSwitchProfile,
                 onOpenCaptions = { openCaptionSettings(context) },
-            )
+                homeRows,
+                onHomeRowsAction,
+                lifted,
+            ) { lifted = it }
         AnimatedContent(
             stack,
             transitionSpec = {
@@ -184,9 +219,9 @@ internal fun TvSettingsScreen(
             },
             contentKey = { it.size to it.last() },
             label = "settingsLevel",
-        ) { levels ->
-            val page = levels.last()
-            val content = pages.of(page)
+        ) { keys ->
+            val page = keys.last()
+            val content = pages.of(SettingsLevel.of(page))
             // The current value on a level that picks one, else the row focused last here, else the first.
             val initial =
                 remember {
@@ -203,7 +238,7 @@ internal fun TvSettingsScreen(
                         panel?.let { drawRect(it, Offset(x, 0f), Size(size.width - x, size.height)) }
                     }.padding(start = START, top = TOP),
             ) {
-                SettingsColumn(content.title) {
+                SettingsColumn(content.title, summary = content.summary) {
                     content.rows.forEach { entry ->
                         key(entry.key) {
                             val requester = remember { FocusRequester() }
@@ -212,13 +247,21 @@ internal fun TvSettingsScreen(
                                 entry,
                                 Modifier.focusRequester(requester).onPreviewKeyEvent { event ->
                                     val down = event.type == KeyEventType.KeyDown
+                                    val move = entry.onMove
+                                    val vertical = event.key == Key.DirectionUp || event.key == Key.DirectionDown
                                     when {
+                                        // A row picked up moves instead of the focus (#621).
+                                        move != null && vertical -> {
+                                            if (down) move(event.key == Key.DirectionUp)
+                                            true
+                                        }
+
                                         event.key == Key.DirectionRight && child != null -> {
                                             if (down) open(child)
                                             true
                                         }
 
-                                        event.key == Key.DirectionLeft && levels.size > 1 -> {
+                                        event.key == Key.DirectionLeft && keys.size > 1 -> {
                                             if (down) back()
                                             true
                                         }
@@ -256,16 +299,20 @@ internal fun TvSettingsScreen(
 private data class Level(
     val title: String,
     val rows: List<SettingEntry>,
-    val children: Map<String, SettingsPage>,
+    val children: Map<String, SettingsLevel>,
+    val summary: String? = null,
 )
 
 /** Collects a level's rows; a [section] set before a row becomes that row's overline. */
 private class LevelBuilder(
-    private val open: (SettingsPage) -> Unit,
+    private val open: (SettingsLevel) -> Unit,
 ) {
     val rows = mutableListOf<SettingEntry>()
-    val children = mutableMapOf<String, SettingsPage>()
+    val children = mutableMapOf<String, SettingsLevel>()
     var section: String? = null
+
+    /** The level's own line under its title. */
+    var summary: String? = null
 
     fun row(entry: SettingEntry) {
         rows += entry.copy(section = section)
@@ -277,9 +324,16 @@ private class LevelBuilder(
         title: String,
         summary: String? = null,
         icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    ) = opens(SettingsLevel(page), title, summary, icon)
+
+    fun opens(
+        level: SettingsLevel,
+        title: String,
+        summary: String? = null,
+        icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     ) {
-        children[page.name] = page
-        row(SettingEntry(page.name, title, summary, icon, onClick = { open(page) }))
+        children[level.key] = level
+        row(SettingEntry(level.key, title, summary, icon, onClick = { open(level) }))
     }
 }
 
@@ -288,17 +342,23 @@ private class Pages(
     val state: TvSettingsUiState.Content,
     val versionName: String,
     val onAction: (TvSettingsAction) -> Unit,
-    val open: (SettingsPage) -> Unit,
+    val open: (SettingsLevel) -> Unit,
     val back: () -> Unit,
     val onOpenLicenses: () -> Unit,
-    val onOpenHomeRows: () -> Unit,
     val onOpenParental: () -> Unit,
     val onSwitchProfile: () -> Unit,
     val onOpenCaptions: () -> Unit,
+    val homeRows: TvHomeRowsState?,
+    val onHomeRowsAction: (TvHomeRowsAction) -> Unit,
+    val lifted: String?,
+    val lift: (String?) -> Unit,
 ) {
     @Composable
-    fun of(page: SettingsPage): Level {
+    fun of(level: SettingsLevel): Level {
+        val page = level.page
+        val arg = level.arg
         val b = LevelBuilder(open)
+        val rows = homeRows?.rows.orEmpty()
         val video = state.appMode?.video == true
         val music = state.appMode?.music != false
         val title =
@@ -462,20 +522,173 @@ private class Pages(
                 }
 
                 SettingsPage.ScreenHome -> {
+                    // Home without music (#621) once the TV has both.
+                    if (state.appMode == AppMode.Both) {
+                        b.opens(
+                            SettingsPage.HomeContent,
+                            stringResource(R.string.tv_settings_home_content),
+                            stringResource(
+                                if (state.homeMusic) {
+                                    R.string.tv_settings_home_content_all
+                                } else {
+                                    R.string.tv_settings_home_content_video
+                                },
+                            ),
+                        )
+                    }
                     b.opens(
                         SettingsPage.Carousel,
                         stringResource(R.string.tv_settings_carousel),
                         stringResource(state.carousel.label),
                     )
-                    b.row(
-                        SettingEntry(
-                            "homeRows",
-                            stringResource(R.string.tv_settings_home_rows),
-                            stringResource(R.string.tv_settings_home_rows_detail),
-                            onClick = onOpenHomeRows,
-                        ),
+                    b.opens(
+                        SettingsPage.HomeRows,
+                        stringResource(R.string.tv_settings_home_rows),
+                        stringResource(R.string.tv_settings_home_rows_detail),
                     )
                     stringResource(R.string.tv_settings_home)
+                }
+
+                SettingsPage.HomeContent -> {
+                    b.pick(
+                        "video",
+                        stringResource(R.string.tv_settings_home_content_video),
+                        !state.homeMusic,
+                        stringResource(R.string.tv_settings_home_content_video_detail),
+                    ) { onAction(TvSettingsAction.SetHomeMusic(false)) }
+                    b.pick(
+                        "all",
+                        stringResource(R.string.tv_settings_home_content_all),
+                        state.homeMusic,
+                        stringResource(R.string.tv_settings_home_content_all_detail),
+                    ) { onAction(TvSettingsAction.SetHomeMusic(true)) }
+                    stringResource(R.string.tv_settings_home_content)
+                }
+
+                SettingsPage.HomeRows -> {
+                    b.opens(
+                        SettingsPage.RowOrder,
+                        stringResource(R.string.tv_settings_reorder),
+                        stringResource(R.string.tv_settings_reorder_detail),
+                        MqTvIcons.DragHandle,
+                    )
+                    rows.forEach { row ->
+                        b.opens(SettingsLevel(SettingsPage.Row, row.id), rowTitle(row), rowSummary(row))
+                    }
+                    homeRows?.genres?.takeIf { it.isNotEmpty() }?.let { genres ->
+                        b.opens(
+                            SettingsPage.Genres,
+                            stringResource(R.string.tv_settings_genre_rows),
+                            stringResource(R.string.tv_settings_genre_rows_on, genres.count { it.second }),
+                        )
+                    }
+                    stringResource(R.string.tv_settings_home_rows)
+                }
+
+                SettingsPage.RowOrder -> {
+                    // Select picks a row up, Up and Down move it, Select puts it down (#621).
+                    b.summary = stringResource(R.string.tv_settings_reorder_hint)
+                    rows.forEach { row ->
+                        val up = lifted == row.id
+                        b.row(
+                            SettingEntry(
+                                row.id,
+                                rowTitle(row),
+                                when {
+                                    up -> stringResource(R.string.tv_settings_row_moving)
+                                    !row.shown -> stringResource(R.string.tv_settings_row_hidden)
+                                    else -> null
+                                },
+                                lifted = up,
+                                onMove =
+                                    { toUp: Boolean -> onHomeRowsAction(TvHomeRowsAction.Move(row.id, toUp)) }
+                                        .takeIf { up },
+                            ) { lift(if (up) null else row.id) },
+                        )
+                    }
+                    stringResource(R.string.tv_settings_reorder)
+                }
+
+                SettingsPage.Row -> {
+                    val row = rows.firstOrNull { it.id == arg }
+                    if (row != null) {
+                        b.row(
+                            SettingEntry(
+                                "show",
+                                stringResource(R.string.tv_settings_row_show),
+                                control = MqTvControl.Switch,
+                                checked = row.shown,
+                            ) {
+                                onHomeRowsAction(TvHomeRowsAction.Toggle(row.id))
+                                // A genre turned off leaves the rows: back to them.
+                                if (row.genre != null) back()
+                            },
+                        )
+                        // Immersive (#521) for rows with pictures; the mixes have none.
+                        row.section?.takeIf { it.kind != HomeKind.Shortcuts }?.let { section ->
+                            b.row(
+                                SettingEntry(
+                                    "immersive",
+                                    stringResource(R.string.tv_settings_immersive_row),
+                                    control = MqTvControl.Switch,
+                                    checked = row.immersive,
+                                ) { onHomeRowsAction(TvHomeRowsAction.ToggleImmersive(section)) },
+                            )
+                        }
+                        b.opens(
+                            SettingsLevel(SettingsPage.RowDesign, row.id),
+                            stringResource(R.string.tv_settings_carousel_design),
+                            stringResource(row.cardStyle.label),
+                        )
+                        b.opens(
+                            SettingsLevel(SettingsPage.RowSize, row.id),
+                            stringResource(R.string.tv_settings_row_size),
+                            perScreenLabel(row.perScreen),
+                        )
+                    }
+                    row?.let { rowTitle(it) }.orEmpty()
+                }
+
+                SettingsPage.RowDesign -> {
+                    val row = rows.firstOrNull { it.id == arg }
+                    (listOf(null) + TvCardStyle.entries).forEach { style ->
+                        b.pick(
+                            style?.name ?: "default",
+                            stringResource(style.label),
+                            row != null && row.cardStyle == style,
+                            stringResource(style.detail),
+                        ) { arg?.let { onHomeRowsAction(TvHomeRowsAction.SetCardStyle(it, style)) } }
+                    }
+                    stringResource(R.string.tv_settings_carousel_design)
+                }
+
+                SettingsPage.RowSize -> {
+                    val row = rows.firstOrNull { it.id == arg }
+                    (listOf(null) + CARDS_PER_SCREEN.reversed()).forEach { count ->
+                        b.pick(
+                            count?.toString() ?: "default",
+                            perScreenLabel(count),
+                            row != null && row.perScreen == count,
+                            stringResource(R.string.tv_settings_size_default_detail).takeIf { count == null },
+                        ) { arg?.let { onHomeRowsAction(TvHomeRowsAction.SetPerScreen(it, count)) } }
+                    }
+                    stringResource(R.string.tv_settings_row_size)
+                }
+
+                SettingsPage.Genres -> {
+                    // A genre turned on joins Home rows, last (#621).
+                    b.summary = stringResource(R.string.tv_settings_genre_rows_detail)
+                    homeRows?.genres.orEmpty().forEach { (genre, on) ->
+                        b.row(
+                            SettingEntry(
+                                "genre:$genre",
+                                genre,
+                                control = MqTvControl.Switch,
+                                checked = on,
+                            ) { onHomeRowsAction(TvHomeRowsAction.ToggleGenre(genre)) },
+                        )
+                    }
+                    stringResource(R.string.tv_settings_genre_rows)
                 }
 
                 SettingsPage.Carousel -> {
@@ -529,23 +742,37 @@ private class Pages(
                 }
 
                 SettingsPage.ScreenMovies, SettingsPage.ScreenSeries, SettingsPage.ScreenMusic -> {
-                    val (titleLevel, logoLevel) = page.titleLevels
-                    val target = titleLevel.titlePage
+                    // The detail page's own level (#621), where its later settings go too.
+                    val target = page.titlePage
+                    b.opens(
+                        SettingsLevel(SettingsPage.TitlePages, target.name),
+                        stringResource(target.pagesTitle),
+                        stringResource((state.titleStyles[target] ?: TvTitleStyle.Logo).label),
+                    )
+                    stringResource(page.screenTitle)
+                }
+
+                SettingsPage.TitlePages -> {
+                    val target = TvTitlePage.valueOf(arg ?: TvTitlePage.Movie.name)
                     val style = state.titleStyles[target] ?: TvTitleStyle.Logo
-                    b.opens(titleLevel, stringResource(R.string.tv_settings_title_style), stringResource(style.label))
+                    b.opens(
+                        SettingsLevel(SettingsPage.TitleStyle, target.name),
+                        stringResource(R.string.tv_settings_title_style),
+                        stringResource(style.label),
+                    )
                     // Only while the page shows a logo (#578).
                     if (style != TvTitleStyle.Text) {
                         b.opens(
-                            logoLevel,
+                            SettingsLevel(SettingsPage.LogoSize, target.name),
                             stringResource(R.string.tv_settings_logo_size),
                             stringResource((state.logoSizes[target] ?: TvLogoSize.Medium).label),
                         )
                     }
-                    stringResource(page.screenTitle)
+                    stringResource(target.pagesTitle)
                 }
 
-                SettingsPage.MovieTitle, SettingsPage.SeriesTitle, SettingsPage.ArtistTitle -> {
-                    val target = page.titlePage
+                SettingsPage.TitleStyle -> {
+                    val target = TvTitlePage.valueOf(arg ?: TvTitlePage.Movie.name)
                     TvTitleStyle.entries.forEach {
                         val checked = it == (state.titleStyles[target] ?: TvTitleStyle.Logo)
                         b.pick(it.name, stringResource(it.label), checked, stringResource(it.detail)) {
@@ -555,8 +782,8 @@ private class Pages(
                     stringResource(R.string.tv_settings_title_style)
                 }
 
-                SettingsPage.MovieLogo, SettingsPage.SeriesLogo, SettingsPage.ArtistLogo -> {
-                    val target = page.titlePage
+                SettingsPage.LogoSize -> {
+                    val target = TvTitlePage.valueOf(arg ?: TvTitlePage.Movie.name)
                     TvLogoSize.entries.forEach {
                         b.pick(
                             it.name,
@@ -697,7 +924,7 @@ private class Pages(
                     stringResource(R.string.tv_settings_sign_out_question, state.serverName.orEmpty())
                 }
             }
-        return Level(title, b.rows.toList(), b.children.toMap())
+        return Level(title, b.rows.toList(), b.children.toMap(), b.summary)
     }
 
     /** A value of a level that picks one: a radio, and choosing it comes back to the level before. */
@@ -895,22 +1122,63 @@ private val TvTitleStyle.detail: Int
             TvTitleStyle.Text -> R.string.tv_settings_title_text_detail
         }
 
-/** A screen's title and logo levels (#619). */
-private val SettingsPage.titleLevels: Pair<SettingsPage, SettingsPage>
-    get() =
-        when (this) {
-            SettingsPage.ScreenSeries -> SettingsPage.SeriesTitle to SettingsPage.SeriesLogo
-            SettingsPage.ScreenMusic -> SettingsPage.ArtistTitle to SettingsPage.ArtistLogo
-            else -> SettingsPage.MovieTitle to SettingsPage.MovieLogo
-        }
-
-/** The detail page a title or logo level sets (#619). */
+/** The detail page a screen's level sets (#619). */
 private val SettingsPage.titlePage: TvTitlePage
     get() =
         when (this) {
-            SettingsPage.SeriesTitle, SettingsPage.SeriesLogo -> TvTitlePage.Series
-            SettingsPage.ArtistTitle, SettingsPage.ArtistLogo -> TvTitlePage.Artist
+            SettingsPage.ScreenSeries -> TvTitlePage.Series
+            SettingsPage.ScreenMusic -> TvTitlePage.Artist
             else -> TvTitlePage.Movie
+        }
+
+/** The level of a detail page's settings (#621). */
+private val TvTitlePage.pagesTitle: Int
+    get() =
+        when (this) {
+            TvTitlePage.Movie -> R.string.tv_settings_movie_pages
+            TvTitlePage.Series -> R.string.tv_settings_series_pages
+            TvTitlePage.Artist -> R.string.tv_settings_artist_pages
+        }
+
+/** A Home row's name (#621): its section's, or its genre. */
+@Composable
+private fun rowTitle(row: TvHomeRow): String = row.section?.let { stringResource(it.title) } ?: row.genre.orEmpty()
+
+/** What a Home row's level holds (#621): shown or hidden, then what differs from its defaults. */
+@Composable
+private fun rowSummary(row: TvHomeRow): String =
+    listOfNotNull(
+        stringResource(if (row.shown) R.string.tv_settings_row_shown else R.string.tv_settings_row_hidden),
+        row.cardStyle?.let { stringResource(it.label) },
+        row.perScreen?.let { stringResource(R.string.tv_settings_per_screen, it) },
+        stringResource(R.string.tv_settings_immersive_row).takeIf { row.immersive },
+    ).joinToString(" · ")
+
+@Composable
+private fun perScreenLabel(count: Int?): String =
+    count?.let { stringResource(R.string.tv_settings_per_screen, it) }
+        ?: stringResource(R.string.tv_settings_size_default)
+
+private val TvCardStyle?.label: Int
+    get() =
+        when (this) {
+            null -> R.string.tv_settings_design_default
+            TvCardStyle.Standard -> R.string.tv_settings_design_standard
+            TvCardStyle.Classic -> R.string.tv_settings_design_classic
+            TvCardStyle.Compact -> R.string.tv_settings_design_compact
+            TvCardStyle.WideStandard -> R.string.tv_settings_design_wide_standard
+            TvCardStyle.WideClassic -> R.string.tv_settings_design_wide_classic
+        }
+
+private val TvCardStyle?.detail: Int
+    get() =
+        when (this) {
+            null -> R.string.tv_settings_design_default_detail
+            TvCardStyle.Standard -> R.string.tv_settings_design_standard_detail
+            TvCardStyle.Classic -> R.string.tv_settings_design_classic_detail
+            TvCardStyle.Compact -> R.string.tv_settings_design_compact_detail
+            TvCardStyle.WideStandard -> R.string.tv_settings_design_wide_standard_detail
+            TvCardStyle.WideClassic -> R.string.tv_settings_design_wide_classic_detail
         }
 
 private val SettingsPage.screenTitle: Int

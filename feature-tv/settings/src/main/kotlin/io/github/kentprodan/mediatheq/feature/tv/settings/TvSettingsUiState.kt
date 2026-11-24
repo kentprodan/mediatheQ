@@ -61,6 +61,8 @@ sealed interface TvSettingsUiState {
         val logoSizes: Map<TvTitlePage, TvLogoSize> = emptyMap(),
         /** Display -> Accent from the poster (#517). */
         val posterAccent: Boolean = false,
+        /** Screens -> Home -> Home shows (#621): music too, or movies and series only. */
+        val homeMusic: Boolean = true,
     ) : TvSettingsUiState
 }
 
@@ -118,6 +120,11 @@ sealed interface TvSettingsAction {
 
     data class SetAppMode(
         val mode: AppMode,
+    ) : TvSettingsAction
+
+    /** Screens -> Home -> Home shows (#621). */
+    data class SetHomeMusic(
+        val music: Boolean,
     ) : TvSettingsAction
 
     data object SignOut : TvSettingsAction

@@ -91,6 +91,17 @@ data class NavigationPreferences(
     val tvCardStyles: Map<HomeSection, TvCardStyle> = emptyMap(),
     /** TV (#604): how many cards of a Home row fit on screen ([CARDS_PER_SCREEN]); a row missing here keeps its default. */
     val tvCardsPerScreen: Map<HomeSection, Int> = emptyMap(),
+    /**
+     * TV (#621): the order of Home's rows, sections and genre rows together, as [tvRowId]s; empty = the sections'
+     * order, then the genres. Rows missing here go last.
+     */
+    val tvRowOrder: List<String> = emptyList(),
+    /** TV (#621): a genre row's card variant; a genre missing here shows posters. */
+    val tvGenreCardStyles: Map<String, TvCardStyle> = emptyMap(),
+    /** TV (#621): how many of a genre row's cards fit on screen; a genre missing here keeps the default. */
+    val tvGenreCardsPerScreen: Map<String, Int> = emptyMap(),
+    /** TV (#621): Home shows the music rows too; off, Home keeps to movies and series (with video only). */
+    val tvHomeMusic: Boolean = true,
 ) {
     companion object {
         const val MAX_ENTRIES = 6
@@ -98,6 +109,27 @@ data class NavigationPreferences(
         val DEFAULT_ENTRIES =
             listOf(MainNavEntry.Home, MainNavEntry.Library, MainNavEntry.Search, MainNavEntry.Downloads)
     }
+}
+
+/** A TV Home row's id (#621): the section's name, or [GENRE_ROW] and the genre. */
+fun tvRowId(section: HomeSection): String = section.name
+
+fun tvRowId(genre: String): String = GENRE_ROW + genre
+
+const val GENRE_ROW = "genre:"
+
+/**
+ * The ids of TV Home's rows (#621), [sections] (in their order) and [genres] together, in [tvOrder]'s order; rows it
+ * does not name keep their default place after them.
+ */
+fun tvRowIds(
+    sections: List<HomeSection>,
+    genres: List<String>,
+    tvOrder: List<String>,
+): List<String> {
+    val all = sections.map(::tvRowId) + genres.map(::tvRowId)
+    val ordered = tvOrder.filter { it in all }.distinct()
+    return ordered + all.filter { it !in ordered }
 }
 
 /** The title [page] shows (#619). */

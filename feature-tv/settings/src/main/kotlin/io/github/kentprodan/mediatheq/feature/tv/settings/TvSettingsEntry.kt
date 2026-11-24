@@ -2,7 +2,6 @@ package io.github.kentprodan.mediatheq.feature.tv.settings
 
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
-import io.github.kentprodan.mediatheq.core.navigation.HomePageSettingsKey
 import io.github.kentprodan.mediatheq.core.navigation.LicenseTextKey
 import io.github.kentprodan.mediatheq.core.navigation.LicensesKey
 import io.github.kentprodan.mediatheq.core.navigation.Navigator
@@ -24,14 +23,11 @@ fun EntryProviderScope<NavKey>.tvSettingsEntries(
         TvSettingsRoute(
             versionName,
             onOpenLicenses = { navigator.navigateTo(LicensesKey) },
-            onOpenHomeRows = { navigator.navigateTo(HomePageSettingsKey) },
             onOpenParental = { navigator.navigateTo(ParentalControlsKey) },
             onSwitchProfile = onSwitchProfile,
         )
     }
     entry<ParentalControlsKey> { TvParentalRoute() }
-    // Settings -> Home rows (#431): the phone's Home page settings key, the TV's own page.
-    entry<HomePageSettingsKey> { TvHomeRowsRoute() }
     entry<LicensesKey> { TvLicensesRoute(report, notices, onOpen = { navigator.navigateTo(LicenseTextKey(it)) }) }
     entry<LicenseTextKey> { TvLicenseRoute(it.id, report, notices) }
 }

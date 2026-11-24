@@ -128,6 +128,10 @@ class DefaultLibraryPreferencesRepository
                     tvMenuStyle = navigation.tvMenuStyle.name,
                     tvTitle = navigation.tvTitle.name,
                     tvLogoSize = navigation.tvLogoSize.name,
+                    tvRowOrder = navigation.tvRowOrder,
+                    tvGenreCardStyles = navigation.tvGenreCardStyles.mapValues { it.value.name },
+                    tvGenreCardsPerScreen = navigation.tvGenreCardsPerScreen.mapValues { "${it.value}" },
+                    tvHomeMusic = navigation.tvHomeMusic,
                     tvTitles = navigation.tvTitles.entries.associate { (k, v) -> k.name to v.name },
                     tvLogoSizes = navigation.tvLogoSizes.entries.associate { (k, v) -> k.name to v.name },
                     tvPosterAccent = navigation.tvPosterAccent,
@@ -168,6 +172,16 @@ class DefaultLibraryPreferencesRepository
                 tvMenuStyle = enumOrNull<TvMenuStyle>(stored.tvMenuStyle) ?: defaults.tvMenuStyle,
                 tvTitle = enumOrNull<TvTitleStyle>(stored.tvTitle) ?: defaults.tvTitle,
                 tvLogoSize = enumOrNull<TvLogoSize>(stored.tvLogoSize) ?: defaults.tvLogoSize,
+                tvRowOrder = stored.tvRowOrder ?: defaults.tvRowOrder,
+                tvGenreCardStyles =
+                    stored.tvGenreCardStyles
+                        ?.mapNotNull { (k, v) -> enumOrNull<TvCardStyle>(v)?.let { k to it } }
+                        ?.toMap() ?: defaults.tvGenreCardStyles,
+                tvGenreCardsPerScreen =
+                    stored.tvGenreCardsPerScreen
+                        ?.mapNotNull { (k, v) -> v.toIntOrNull()?.takeIf { it in CARDS_PER_SCREEN }?.let { k to it } }
+                        ?.toMap() ?: defaults.tvGenreCardsPerScreen,
+                tvHomeMusic = stored.tvHomeMusic ?: defaults.tvHomeMusic,
                 tvTitles = byPage(stored.tvTitles) { enumOrNull<TvTitleStyle>(it) },
                 tvLogoSizes = byPage(stored.tvLogoSizes) { enumOrNull<TvLogoSize>(it) },
                 tvPosterAccent = stored.tvPosterAccent ?: defaults.tvPosterAccent,

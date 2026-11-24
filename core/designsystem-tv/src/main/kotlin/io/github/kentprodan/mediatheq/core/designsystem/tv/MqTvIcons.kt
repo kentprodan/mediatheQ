@@ -44,4 +44,5 @@ object MqTvIcons {
     val Palette: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_palette)
     val Sync: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_sync)
     val Info: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_info)
+    val DragHandle: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_drag_handle)
 }

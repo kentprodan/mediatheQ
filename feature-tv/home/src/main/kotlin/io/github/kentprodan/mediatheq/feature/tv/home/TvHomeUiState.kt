@@ -30,7 +30,7 @@ sealed interface TvHomeUiState {
     /** The phone's Home sections in its order, each a row; empty ones left out when their settings say so. */
     data class Content(
         val rows: List<TvHomeRow>,
-        /** The genres picked in Settings -> Home rows (#431), shown after the video rows. */
+        /** The genres picked in Settings -> Home rows (#431), placed by [rowOrder]. */
         val genreRows: List<GenreRow> = emptyList(),
         /** Settings -> Home rows (#518): a row's card variant; the rest keep their defaults. */
         val cardStyles: Map<HomeSection, TvCardStyle> = emptyMap(),
@@ -44,6 +44,11 @@ sealed interface TvHomeUiState {
         val immersiveRows: Set<HomeSection> = emptySet(),
         /** Settings -> Home rows (#604): how many cards of a row fit on screen; the rest keep their defaults. */
         val cardsPerScreen: Map<HomeSection, Int> = emptyMap(),
+        /** Settings -> Home rows (#621): the rows' order, sections and genres together (`tvRowIds`). */
+        val rowOrder: List<String> = emptyList(),
+        /** Settings -> Home rows (#621): a genre row's card variant and how many cards fit on screen. */
+        val genreCardStyles: Map<String, TvCardStyle> = emptyMap(),
+        val genreCardsPerScreen: Map<String, Int> = emptyMap(),
     ) : TvHomeUiState
 
     /** Synced, but the server has no music. */

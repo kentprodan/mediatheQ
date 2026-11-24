@@ -77,6 +77,8 @@ import io.github.kentprodan.mediatheq.core.data.TvCardStyle
 import io.github.kentprodan.mediatheq.core.data.TvCarousel
 import io.github.kentprodan.mediatheq.core.data.genreRows
 import io.github.kentprodan.mediatheq.core.data.resumePosition
+import io.github.kentprodan.mediatheq.core.data.tvRowId
+import io.github.kentprodan.mediatheq.core.data.tvRowIds
 import io.github.kentprodan.mediatheq.core.designsystem.tv.FocusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
@@ -208,20 +210,28 @@ private fun Rows(
     val hero = rememberHero(focused)
     val showCarousel = state.carousel != TvCarousel.Off && state.featured.isNotEmpty()
     val cards =
-        remember(focus, onAction, navigation, cardStyles, perScreen, state.immersiveRows) {
+        remember(focus, onAction, navigation, cardStyles, perScreen, state.immersiveRows, state.genreCardStyles) {
             Cards(
                 focus,
                 cardStyles,
                 perScreen,
                 state.immersiveRows,
+                state.genreCardStyles,
+                state.genreCardsPerScreen,
                 onAction,
                 navigation,
                 onFocused = { focused.info = it },
                 openVideoMenu = { videoMenu = it },
             ) { menu = it }
         }
-    // Genre rows (#431) follow the last video row.
-    val split = rows.indexOfLast { it.items is HomeItems.Videos } + 1
+    // Sections and genre rows (#431) in the order from Settings -> Home rows (#621).
+    val ordered =
+        remember(rows, genreRows, state.rowOrder) {
+            val bySection = rows.associateBy { tvRowId(it.section) }
+            val byGenre = genreRows.associateBy { tvRowId(it.genre) }
+            tvRowIds(rows.map { it.section }, genreRows.map { it.genre }, state.rowOrder)
+                .mapNotNull { bySection[it] ?: byGenre[it] }
+        }
     val immersive = state.immersiveRows
     val sectionRow: @Composable (TvHomeRow) -> Unit = { row ->
         val title = stringResource(row.section.title)
@@ -259,11 +269,23 @@ private fun Rows(
                     )
                 }
             }
-            items(rows.take(split), key = { it.section.name }, contentType = { "row" }) { sectionRow(it) }
-            items(genreRows, key = { "genre/${it.genre}" }, contentType = { "row" }) { row ->
-                CardRow(row.genre, Modifier.rowFocus(focused, "genre/${row.genre}")) { with(cards) { genre(row) } }
+            items(
+                ordered,
+                key = { (it as? TvHomeRow)?.section?.name ?: "genre/${(it as GenreRow).genre}" },
+                contentType = { "row" },
+            ) { row ->
+                when (row) {
+                    is TvHomeRow -> {
+                        sectionRow(row)
+                    }
+
+                    is GenreRow -> {
+                        CardRow(row.genre, Modifier.rowFocus(focused, "genre/${row.genre}")) {
+                            with(cards) { genre(row) }
+                        }
+                    }
+                }
             }
-            items(rows.drop(split), key = { it.section.name }, contentType = { "row" }) { sectionRow(it) }
         }
     }
     // The carousel or the first card on the first visit, the one focused last when coming back from a detail page.
@@ -325,6 +347,8 @@ private class Cards(
     val cardStyles: Map<HomeSection, TvCardStyle>,
     val perScreen: Map<HomeSection, Int>,
     val immersive: Set<HomeSection>,
+    val genreStyles: Map<String, TvCardStyle>,
+    val genrePerScreen: Map<String, Int>,
     val onAction: (TvHomeAction) -> Unit,
     val navigation: TvHomeNavigation,
     val onFocused: (HeroInfo?) -> Unit,
@@ -444,18 +468,26 @@ private class Cards(
         }
     }
 
-    /** A genre row (#431): posters; Select opens the movie or the series. */
+    /**
+     * A genre row (#431): posters, or the variant and size from Settings (#621), a wide one with the backdrop; Select
+     * opens the movie or the series.
+     */
     fun LazyListScope.genre(row: GenreRow) {
+        val style = genreStyles[row.genre]?.let { MqTvCardStyle.valueOf(it.name) } ?: MqTvCardStyle.Standard
+        val width = genrePerScreen[row.genre]?.let(::cardWidth) ?: if (style.wide) style.width else POSTER_CARD
         itemsIndexed(row.items, key = { _, it -> it.id.toString() }) { _, item ->
             val movie = (item as? GenreItem.Movie)?.video
             val series = (item as? GenreItem.Show)?.series
             MqTvPosterCard(
                 movie?.title ?: series?.title.orEmpty(),
-                movie?.artwork ?: series?.artwork,
+                if (style.wide) {
+                    movie?.let { it.thumb ?: it.backdrop ?: it.artwork } ?: series?.let { it.backdrop ?: it.artwork }
+                } else {
+                    movie?.artwork ?: series?.artwork
+                },
                 onClick = { if (movie != null) navigation.onOpenMovie(movie.id) else navigation.onOpenSeries(item.id) },
                 modifier =
                     Modifier
-                        .width(POSTER_CARD)
                         .focusMemory(focus, "genre/${row.genre}/${item.id}")
                         .onFocusChanged {
                             if (it.isFocused) onFocused(movie?.let(::heroInfo) ?: series?.let(::heroInfo))
@@ -463,7 +495,9 @@ private class Cards(
                 subtitle = (movie?.year ?: series?.year)?.toString(),
                 watched = (movie?.userData ?: series?.userData)?.played == true,
                 placeholder = if (movie != null) MqTvIcons.Movie else MqTvIcons.Series,
-                style = MqTvCardStyle.Standard,
+                aspectRatio = if (style.wide) 16f / 9f else POSTER_RATIO,
+                style = style,
+                width = width,
             )
         }
     }
