@@ -45,6 +45,7 @@ PlaybackConnection (UI side)                         async MediaController -> St
   - `setWakeMode(C.WAKE_MODE_NETWORK)` for streaming
   - `setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))` (section 9)
   - renderers: `DefaultRenderersFactory` with `setEnableDecoderFallback(true)` and `EXTENSION_RENDERER_MODE_ON` with Jellyfin's FFmpeg audio decoder (ADR 0054, #625): the platform first, FFmpeg for what it lacks (DTS, TrueHD, JOC on the phone). `AudioDecoders` includes what FFmpeg reads, so the profile declares it
+  - load control (`playerLoadControl`, #626): byte target a third of the heap (capped 384 MB, Media3's floor), up to 120 s ahead except on low-RAM devices; byte limit keeps priority over time and no back buffer (kept back-buffer bytes would veto loading ahead)
   - audio sink: default `DefaultAudioSink` (passthrough + offload support built in). Only customize via `DefaultAudioSink.Builder` if a test proves it is needed; custom sinks break on media3 bumps.
 - One player for the whole app process. Rebuild only when the output policy requires it (section 7).
 
