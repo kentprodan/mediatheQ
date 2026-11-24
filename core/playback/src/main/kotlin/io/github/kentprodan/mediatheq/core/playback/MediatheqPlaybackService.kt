@@ -231,6 +231,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private lateinit var passthroughCapabilities: Media3PassthroughCapabilities
     private lateinit var audioOutput: AudioOutputController
     private lateinit var swap: SwapPlayer
+
+    /** The controller's last state, for the sink on the playback thread (#629). */
+    @Volatile private var outputNow = AudioOutputState()
     private lateinit var outputApplier: OutputStateApplier
     private lateinit var reopener: AudioTrackReopener
     private var audioSettingsJob: Job? = null
@@ -268,6 +271,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     PassthroughRenderersFactory(
                         this,
                         allowedPassthrough = { streamResolver.passthrough },
+                        // Read on the playback thread at decoder and AudioTrack setup (#629).
+                        bitPerfectFormat = { outputNow.bitPerfectFormat },
+                        floatOutput = { outputNow.floatOutput },
                         // A bitstream track gone silent (#377): a seek in place rebuilds it, on the player's thread.
                         onRecoveryNeeded = { reason ->
                             Handler(Looper.getMainLooper()).post {
@@ -692,6 +698,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 playingVideo = { player.currentMediaItem?.isVideo() == true },
                 currentGains = { player.currentMediaItem?.gains() ?: ItemGains(null, null) },
                 offloadBroken = { offloadBroken },
+                floatPipeline = FloatOutputProbe.supported,
                 port = usbAudio,
                 currentFormat = {
                     val playing =
@@ -707,6 +714,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     }
                 },
                 onChange = {
+                    outputNow = it
                     // Before applying: the next stream request already asks for what this route passes through.
                     streamResolver.passthrough = it.requestPassthrough
                     outputApplier.apply(it)

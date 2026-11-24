@@ -4,34 +4,50 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.audio.AudioOffloadSupport
 import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.AudioTrackAudioOutputProvider
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.audio.ForwardingAudioSink
 import java.nio.ByteBuffer
 
 /**
- * The player's renderers (ADR 0054, 0055): the stock ones, with the stock `DefaultAudioSink` wrapped in the passthrough
- * recovery (#377) and the output's passthrough policy.
+ * The player's renderers (ADR 0054, 0055, 0056): the stock ones, with a `DefaultAudioSink` that may write float, caps
+ * rates above 192 kHz and opens bit-perfect AudioTracks in the DAC's container ([BitPerfectOutputProvider]), wrapped
+ * in the passthrough recovery (#377) and the output's policy.
  */
 @UnstableApi
 internal class PassthroughRenderersFactory(
     context: Context,
     private val allowedPassthrough: () -> Set<String>,
     private val onRecoveryNeeded: (reason: String) -> Unit,
+    /** The bit-perfect mixer format set now (`AudioOutputState.bitPerfectFormat`), read on the playback thread. */
+    private val bitPerfectFormat: () -> PcmFormat? = { null },
+    /** Whether the decoders may hand the sink float now (`AudioOutputState.floatOutput`). */
+    private val floatOutput: () -> Boolean = { false },
 ) : DefaultRenderersFactory(context) {
     override fun buildAudioSink(
         context: Context,
         enableFloatOutput: Boolean,
         enableAudioOutputPlaybackParams: Boolean,
-    ): AudioSink? {
-        val sink = super.buildAudioSink(context, enableFloatOutput, enableAudioOutputPlaybackParams) ?: return null
+    ): AudioSink {
+        val sink =
+            DefaultAudioSink
+                .Builder(context)
+                .setEnableFloatOutput(FloatOutputProbe.supported)
+                .setEnableAudioOutputPlaybackParameters(enableAudioOutputPlaybackParams)
+                .setAudioProcessorChain(DefaultAudioSink.DefaultAudioProcessorChain(HiResRateCap()))
+                .setAudioOutputProvider(
+                    BitPerfectOutputProvider(AudioTrackAudioOutputProvider.Builder(context).build(), bitPerfectFormat),
+                ).build()
         val recovering =
             PassthroughRecoveryAudioSink(sink, PassthroughSilenceRecovery(), RouteFlapHold(), onRecoveryNeeded)
-        return PassthroughPolicyAudioSink(recovering, allowedPassthrough)
+        return PassthroughPolicyAudioSink(recovering, allowedPassthrough, floatOutput)
     }
 }
 
@@ -67,16 +83,28 @@ internal fun passthroughAllowed(
  * here, so the renderer decodes it (MediaCodec, then FFmpeg) instead of passing it through. It only ever narrows what
  * the sink below says, never forces a bitstream onto a route that cannot carry it. The offload answer is vetoed too,
  * since the renderer asks it first.
+ *
+ * Float the same way (#629, ADR 0056): the sink below writes float whenever the device takes it, but decoders are only
+ * told so while [floatAllowed] (a bit-perfect DAC route), the one place where float keeps 24-bit samples whole. Off it,
+ * float is "with transcoding", as a sink without float output answers, so decoders keep 16-bit and the processors run.
  */
 @UnstableApi
 internal class PassthroughPolicyAudioSink(
     delegate: AudioSink,
     private val allowed: () -> Set<String>,
+    private val floatAllowed: () -> Boolean = { false },
 ) : ForwardingAudioSink(delegate) {
     override fun supportsFormat(format: Format): Boolean = getFormatSupport(format) != AudioSink.SINK_FORMAT_UNSUPPORTED
 
-    override fun getFormatSupport(format: Format): Int =
-        if (vetoed(format)) AudioSink.SINK_FORMAT_UNSUPPORTED else super.getFormatSupport(format)
+    override fun getFormatSupport(format: Format): Int {
+        if (vetoed(format)) return AudioSink.SINK_FORMAT_UNSUPPORTED
+        val support = super.getFormatSupport(format)
+        val narrowed =
+            support == AudioSink.SINK_FORMAT_SUPPORTED_DIRECTLY &&
+                format.pcmEncoding == C.ENCODING_PCM_FLOAT &&
+                !floatAllowed()
+        return if (narrowed) AudioSink.SINK_FORMAT_SUPPORTED_WITH_TRANSCODING else support
+    }
 
     override fun getFormatOffloadSupport(format: Format): AudioOffloadSupport =
         if (vetoed(format)) AudioOffloadSupport.DEFAULT_UNSUPPORTED else super.getFormatOffloadSupport(format)
