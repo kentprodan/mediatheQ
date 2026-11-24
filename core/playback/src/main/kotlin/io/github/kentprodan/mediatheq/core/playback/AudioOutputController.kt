@@ -71,6 +71,8 @@ internal class AudioOutputController(
     private val currentMime: () -> String? = { null },
     /** A video item is current (ADR 0047): no offload. */
     private val playingVideo: () -> Boolean = { false },
+    /** The playing item's normalization gains (#627): a raised track plays without offload. */
+    private val currentGains: () -> ItemGains = { ItemGains(null, null) },
 ) {
     private var settings = AudioSettings()
     private var preferred: MixerCapability? = null
@@ -153,7 +155,15 @@ internal class AudioOutputController(
         publish(
             AudioOutputState(
                 route = route,
-                offload = AudioPolicy.offload(settings, route, passthrough, video = playingVideo()),
+                offload =
+                    AudioPolicy.offload(
+                        settings,
+                        route,
+                        passthrough,
+                        video = playingVideo(),
+                        boosted =
+                            AudioPolicy.boostMillibels(currentGains(), AudioPolicy.normalization(settings), mode) > 0,
+                    ),
                 mode = mode,
                 bitPerfectFormat = chosen?.format,
                 bitPerfectNoMatch = format != null && chosen == null,

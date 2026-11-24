@@ -36,6 +36,8 @@ internal class NormalizationListener(
     private val mode: () -> AudioMode,
     /** The factor of an audio focus duck (#139) and of a running fade (#142); 1 otherwise. */
     private val duck: () -> Float = { 1f },
+    /** Raises a quiet track (#627), in millibels; 0 turns it off. */
+    private val boost: (Int) -> Unit = {},
 ) : Player.Listener {
     override fun onMediaItemTransition(
         mediaItem: MediaItem?,
@@ -45,7 +47,9 @@ internal class NormalizationListener(
     /** Sets the current track's volume now, e.g. after the mode changed (bit-perfect plays at full volume). */
     fun apply() {
         val gains = player.currentMediaItem?.gains() ?: ItemGains(null, null)
-        player.volume = AudioPolicy.volume(gains, AudioPolicy.normalization(settings()), mode()) * duck()
+        val normalization = AudioPolicy.normalization(settings())
+        player.volume = AudioPolicy.volume(gains, normalization, mode()) * duck()
+        boost(AudioPolicy.boostMillibels(gains, normalization, mode()))
     }
 }
 

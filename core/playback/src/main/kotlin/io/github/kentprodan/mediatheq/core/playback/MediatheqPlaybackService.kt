@@ -234,6 +234,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private var audioSettingsJob: Job? = null
     private var outputsJob: Job? = null
     private val equalizer by lazy { EqualizerEffect(AudioPreferences.EQ_BANDS_HZ, appLog) }
+    private val loudness by lazy { LoudnessBoost(appLog) }
 
     @Inject
     @IoDispatcher
@@ -682,6 +683,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         audioOutput =
             AudioOutputController(
                 playingVideo = { player.currentMediaItem?.isVideo() == true },
+                currentGains = { player.currentMediaItem?.gains() ?: ItemGains(null, null) },
                 port = usbAudio,
                 currentFormat = {
                     val playing =
@@ -758,6 +760,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 { settings },
                 mode = { audioOutput.state.mode },
                 duck = { (if (ducked) DUCK_VOLUME else 1f) * fader.factor },
+                boost = loudness::set,
             )
         player.addListener(normalization)
         // Fades (#142): bit-perfect has no volume to ramp.
@@ -783,7 +786,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     }
                 }
 
-                override fun onAudioSessionIdChanged(audioSessionId: Int) = applyEqualizer()
+                override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                    applyEqualizer()
+                    loudness.attach(audioSessionId)
+                }
             },
         )
         usbAudio.watch(audioOutput::onDeviceChanged, audioOutput::onPreferenceDropped)
@@ -879,6 +885,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         outputsJob?.cancel()
         autoActions.release()
         fader.release()
+        loudness.release()
         detachSleepTimer?.invoke()
         bluetoothLyrics.release()
         // A reopen in progress ends now, not on a timer after the player is gone.
