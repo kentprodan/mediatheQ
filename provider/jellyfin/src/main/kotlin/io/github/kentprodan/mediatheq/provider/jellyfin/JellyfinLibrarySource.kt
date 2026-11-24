@@ -445,6 +445,7 @@ class JellyfinLibrarySource internal constructor(
                     when (artwork.type) {
                         ImageType.Backdrop -> "Images/Backdrop/0"
                         ImageType.Logo -> "Images/Logo"
+                        ImageType.Thumb -> "Images/Thumb"
                         ImageType.Primary -> "Images/Primary"
                         ImageType.StudioThumb -> error("handled above")
                     },

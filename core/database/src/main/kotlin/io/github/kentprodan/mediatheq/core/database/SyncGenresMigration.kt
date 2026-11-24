@@ -66,3 +66,6 @@ class SyncStudiosMigration : ResyncMigration(STAGING_12)
 
 /** 21 -> 22 (#523): movies, series and artists have no logo yet. */
 class SyncLogosMigration : ResyncMigration(STAGING_12)
+
+/** 22 -> 23 (#605): movies and series have no thumb yet. */
+class SyncThumbsMigration : ResyncMigration(STAGING_12)

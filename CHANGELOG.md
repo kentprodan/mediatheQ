@@ -68,6 +68,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Any TV Home row can be an immersive list (Settings -> Home rows, long press a row): the focused card's picture and details appear behind the row.
 
 ### Changed
+- TV Home's wide cards show the movie's or series' Jellyfin thumb (the 16:9 picture with its title), else the backdrop. Thumbs arrive with the next library sync.
+- TV cards follow Google's spacing: the title sits 8 dp under a poster, Classic and Compact cards have 12 dp padding, wide cards 16 dp beside the picture with two lines of description.
 - TV cards follow Google's spacing: the title sits 8 dp under a poster, Classic and Compact cards have 12 dp padding, wide cards 16 dp beside the picture with two lines of description.
 - TV logo sizes are one step smaller: Large is the old Medium, Medium the old Small, and Small smaller still.
 - TV Movies -> Studios and Series -> Networks show each studio's or network's picture with its logo from Jellyfin, four across.

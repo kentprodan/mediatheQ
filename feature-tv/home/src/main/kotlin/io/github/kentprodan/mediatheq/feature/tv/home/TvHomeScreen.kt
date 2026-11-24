@@ -535,7 +535,8 @@ private class Cards(
         val open = { openVideoMenu(video) }.takeIf { row.section == HomeSection.ContinueWatching }
         MqTvPosterCard(
             title,
-            if (wide) video.backdrop ?: video.artwork else video.artwork,
+            // A wide card shows the 16:9 thumb with the title art (#605), else the backdrop.
+            if (wide) video.thumb ?: video.backdrop ?: video.artwork else video.artwork,
             onClick = {
                 when {
                     plays -> navigation.onPlayVideo(video.id, video.resumePosition())

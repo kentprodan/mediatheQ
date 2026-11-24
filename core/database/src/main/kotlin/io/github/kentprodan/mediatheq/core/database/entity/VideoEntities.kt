@@ -32,6 +32,8 @@ data class SeriesEntity(
     @Embedded(prefix = "backdrop_") val backdrop: ImageColumns = ImageColumns(),
     /** The title as an image (#523). */
     @Embedded(prefix = "logo_") val logo: ImageColumns = ImageColumns(),
+    /** The 16:9 picture with the title art (#605). */
+    @Embedded(prefix = "thumb_") val thumb: ImageColumns = ImageColumns(),
     @Embedded val userData: UserDataColumns = UserDataColumns(),
     @Embedded val videoUser: VideoUserColumns = VideoUserColumns(),
     @ColumnInfo(name = "official_rating") val officialRating: String? = null,
@@ -88,6 +90,8 @@ data class VideoEntity(
     @Embedded(prefix = "backdrop_") val backdrop: ImageColumns = ImageColumns(),
     /** The title as an image (#523). */
     @Embedded(prefix = "logo_") val logo: ImageColumns = ImageColumns(),
+    /** The 16:9 picture with the title art (#605). */
+    @Embedded(prefix = "thumb_") val thumb: ImageColumns = ImageColumns(),
     @Embedded val userData: UserDataColumns = UserDataColumns(),
     @Embedded val videoUser: VideoUserColumns = VideoUserColumns(),
 )

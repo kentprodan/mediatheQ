@@ -62,6 +62,8 @@ data class Video(
     val backdrop: Artwork? = null,
     /** The title as an image (#523); a movie's only, never an episode's. */
     val logo: Artwork? = null,
+    /** The 16:9 picture with the title art (#605), for horizontal cards. */
+    val thumb: Artwork? = null,
     val userData: UserData = UserData(),
     /** Filled by the sync and by `VideoRepository.streams`; list reads leave it empty. */
     val streams: List<MediaStreamInfo> = emptyList(),
@@ -82,6 +84,8 @@ data class Series(
     val backdrop: Artwork? = null,
     /** The title as an image (#523). */
     val logo: Artwork? = null,
+    /** The 16:9 picture with the title art (#605). */
+    val thumb: Artwork? = null,
     val userData: UserData = UserData(),
     /** "TV-14", "16"; the age gate (#434) reads it for the series' episodes too. */
     val officialRating: String? = null,

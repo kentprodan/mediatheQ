@@ -640,4 +640,27 @@ class MigrationTest {
             }
             connection.close()
         }
+
+    @Test
+    fun `22 to 23 adds the thumbs and makes the next start sync`() =
+        runTest {
+            helper.createDatabase(22).apply {
+                execSQL(
+                    "INSERT INTO sync_state (id, last_full_sync_at, owner_server_id, owner_user_id, " +
+                        "checkpoint_index) VALUES (0, 1760000000000, 's', 'u', 0)",
+                )
+                close()
+            }
+
+            val connection = helper.runMigrationsAndValidate(23)
+
+            connection.prepare("SELECT last_full_sync_at FROM sync_state").use {
+                assertThat(it.step()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(0)
+            }
+            for (table in listOf("video", "series")) {
+                connection.prepare("SELECT thumb_image_item_id FROM $table").use { assertThat(it.step()).isFalse() }
+            }
+            connection.close()
+        }
 }
