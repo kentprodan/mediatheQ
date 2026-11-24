@@ -230,6 +230,20 @@ class TvHomeScreenTest {
     }
 
     @Test
+    fun `the carousel moves on about every 8 s while the focus is on the rows, and stays put while it has it (#600)`() {
+        show(withCarousel)
+        composeRule.mainClock.advanceTimeBy(20_000)
+
+        press(listOf(Key.DirectionDown))
+        composeRule.mainClock.advanceTimeBy(8_500)
+        press(listOf(Key.DirectionUp))
+        composeRule.mainClock.advanceTimeBy(1_000)
+
+        composeRule.onNodeWithText("Play").assertIsFocused().performKeyInput { pressKey(Key.DirectionCenter) }
+        assertThat(actions).containsExactly(TvHomeAction.Play(TvHomeTarget.Album(id("al2"))))
+    }
+
+    @Test
     fun `D-pad down leaves the carousel for the first row (#521)`() {
         show(withCarousel)
 
