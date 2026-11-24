@@ -103,4 +103,7 @@
     <string name="tv_settings_logo_large">Mare</string>
     <string name="tv_settings_poster_accent">Accent din poster</string>
     <string name="tv_settings_poster_accent_detail">Paginile de film, serial, artist, album și playlist își iau culorile din imagine</string>
+    <string name="tv_settings_sound">Sunet și streaming</string>
+    <string name="tv_settings_video_subtitles">Video și subtitrări</string>
+    <string name="tv_settings_home">Acasă</string>
 </resources>

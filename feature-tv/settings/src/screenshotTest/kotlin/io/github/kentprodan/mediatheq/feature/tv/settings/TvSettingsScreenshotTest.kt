@@ -12,6 +12,7 @@ import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MediatheqTvTheme
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvPreviews
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvRoPreview
+import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 
@@ -26,36 +27,91 @@ private val settings =
     )
 
 @Composable
-private fun Settings(state: TvSettingsUiState) = MediatheqTvTheme { TvSettingsScreen(state, "0.1.0", {}, {}) }
+private fun Settings(
+    state: TvSettingsUiState,
+    vararg levels: SettingsPage,
+) = MediatheqTvTheme {
+    TvSettingsScreen(state, "0.1.0", {}, {}, {}, {}, {}, start = listOf(SettingsPage.Root) + levels)
+}
 
+/** The categories (#580), the first one's level previewed on the right. */
 @PreviewTest
 @MqTvPreviews
 @MqTvRoPreview
 @Composable
 fun TvSettingsScreenshot() = Settings(settings)
 
-/** Before the first play over HDMI: the switch row is disabled and says why; a sync runs. */
+/** Before the first play over HDMI: the switch row is disabled and says why. */
 @PreviewTest
 @MqTvPreviews
+@MqTvRoPreview
 @Composable
-fun TvSettingsNoHdmiSyncingScreenshot() =
-    Settings(settings.copy(hdmi = null, sync = SyncStatus.Running(SyncStep.Albums, 120, 800)))
+fun TvSettingsSoundScreenshot() = Settings(settings.copy(hdmi = null), SettingsPage.Sound)
 
 @PreviewTest
 @MqTvPreviews
 @Composable
-fun TvSettingsSyncFailedScreenshot() = Settings(settings.copy(sync = SyncStatus.Failed(MqError.Network, null)))
+fun TvSettingsSoundHdmiScreenshot() = Settings(settings, SettingsPage.Sound)
 
 @PreviewTest
 @MqTvPreviews
 @Composable
-fun TvSettingsQualityDialogScreenshot() =
-    Settings(settings.copy(quality = StreamingQuality.Kbps256, dialog = TvSettingsDialog.Quality))
+fun TvSettingsVideoScreenshot() = Settings(settings.copy(appMode = AppMode.Both), SettingsPage.Video)
 
 @PreviewTest
 @MqTvPreviews
 @Composable
-fun TvSettingsSignOutDialogScreenshot() = Settings(settings.copy(dialog = TvSettingsDialog.SignOut))
+fun TvSettingsDisplayScreenshot() = Settings(settings.copy(posterAccent = true), SettingsPage.Display)
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsHomeScreenshot() = Settings(settings, SettingsPage.Home)
+
+/** A sync runs. */
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsLibrarySyncingScreenshot() =
+    Settings(
+        settings.copy(appMode = AppMode.Both, sync = SyncStatus.Running(SyncStep.Albums, 120, 800)),
+        SettingsPage.Library,
+    )
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsLibrarySyncFailedScreenshot() =
+    Settings(settings.copy(sync = SyncStatus.Failed(MqError.Network, null)), SettingsPage.Library)
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsAccountScreenshot() = Settings(settings.copy(appMode = AppMode.Both), SettingsPage.Account)
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsAboutScreenshot() = Settings(settings, SettingsPage.About)
+
+/** A level that picks one value: a radio on the current one. */
+@PreviewTest
+@MqTvPreviews
+@MqTvRoPreview
+@Composable
+fun TvSettingsQualityScreenshot() =
+    Settings(settings.copy(quality = StreamingQuality.Kbps256), SettingsPage.Sound, SettingsPage.Quality)
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsCarouselSourcesScreenshot() =
+    Settings(settings.copy(carouselSources = DefaultTvCarouselSources), SettingsPage.Home, SettingsPage.CarouselSources)
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsSignOutScreenshot() = Settings(settings, SettingsPage.Account, SettingsPage.SignOut)
 
 private val okhttp =
     LicenseEntry(

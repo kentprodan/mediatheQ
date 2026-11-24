@@ -38,4 +38,10 @@ object MqTvIcons {
     val Movie: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_movie)
     val Series: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_tv)
     val Watched: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_check_circle_filled)
+
+    /** Settings' categories (#580). */
+    val Subtitles: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_subtitles)
+    val Palette: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_palette)
+    val Sync: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_sync)
+    val Info: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_info)
 }

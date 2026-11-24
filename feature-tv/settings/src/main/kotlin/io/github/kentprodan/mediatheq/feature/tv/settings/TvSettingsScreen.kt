@@ -1,46 +1,48 @@
 package io.github.kentprodan.mediatheq.feature.tv.settings
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
-import androidx.tv.material3.Text
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
 import io.github.kentprodan.mediatheq.core.data.SyncStatus
 import io.github.kentprodan.mediatheq.core.data.SyncStep
 import io.github.kentprodan.mediatheq.core.data.TvCarousel
+import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
-import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
-import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
-import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
-import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvSidePanel
-import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
-import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.AppMode
-import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 import io.github.kentprodan.mediatheq.core.model.TvLogoSize
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
@@ -67,9 +69,34 @@ fun TvSettingsRoute(
     )
 }
 
+/** The levels of Settings (#580): the categories, each category's page, and the pages that pick one value. */
+internal enum class SettingsPage {
+    Root,
+    Sound,
+    Video,
+    Display,
+    Home,
+    Library,
+    Account,
+    About,
+    Quality,
+    DisplayMatch,
+    SubtitleSize,
+    SubtitleBackground,
+    SubtitleColor,
+    Carousel,
+    CarouselSources,
+    MenuStyle,
+    TitleStyle,
+    LogoSize,
+    AppMode,
+    SignOut,
+}
+
 /**
- * Settings on TV (#243): one list in sections (audio output, streaming, library, account, about); focus starts on its
- * first row, or on the row it had when coming back from the licenses. The quality choice and the sign-out confirmation are dialogs.
+ * Settings on TV (#243), laid out like the Google TV system Settings (#580): full screen, a level's rows on the left
+ * and a dimmed preview of the focused row's next level on the right. Select or Right opens that level, Back or Left
+ * comes back to the row that opened it; a value is picked on its own level, with a radio on the current one.
  */
 @Composable
 fun TvSettingsScreen(
@@ -80,377 +107,524 @@ fun TvSettingsScreen(
     onOpenHomeRows: () -> Unit = {},
     onOpenParental: () -> Unit = {},
     onSwitchProfile: () -> Unit = {},
+) = TvSettingsScreen(
+    state,
+    versionName,
+    onAction,
+    onOpenLicenses,
+    onOpenHomeRows,
+    onOpenParental,
+    onSwitchProfile,
+    start = listOf(SettingsPage.Root),
+)
+
+/** Settings opened at the levels [start] (the screenshots of the deeper levels). */
+@Composable
+internal fun TvSettingsScreen(
+    state: TvSettingsUiState,
+    versionName: String,
+    onAction: (TvSettingsAction) -> Unit,
+    onOpenLicenses: () -> Unit,
+    onOpenHomeRows: () -> Unit,
+    onOpenParental: () -> Unit,
+    onSwitchProfile: () -> Unit,
+    start: List<SettingsPage>,
 ) {
     Surface(Modifier.fillMaxSize()) {
         if (state !is TvSettingsUiState.Content) return@Surface
-        // Coming back from the licenses focuses the row that opened them (ADR 0041).
-        val focus = rememberFocusMemory()
-        LazyColumn(
-            Modifier.fillMaxHeight().wrapContentWidth(Alignment.Start).width(720.dp),
-            contentPadding = PaddingValues(48.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            item {
-                Text(
-                    stringResource(R.string.tv_settings_title),
-                    Modifier.padding(bottom = 16.dp).semantics { heading() },
-                    style = MaterialTheme.typography.headlineLarge,
-                )
-            }
-            section(R.string.tv_settings_output)
-            item {
-                val hdmi = state.hdmi
-                if (hdmi != null) {
-                    MqTvListItem(
-                        stringResource(R.string.tv_settings_passthrough),
-                        { onAction(TvSettingsAction.TogglePassthrough) },
-                        Modifier.focusMemory(focus, PASSTHROUGH),
-                        supporting = stringResource(R.string.tv_settings_passthrough_detail, hdmi.name),
-                        selected = hdmi.atmosPassthrough,
-                        control = MqTvControl.Switch,
-                    )
-                } else {
-                    // Nothing to switch yet: the player remembers the HDMI output on its first play there.
-                    MqTvListItem(
-                        stringResource(R.string.tv_settings_passthrough),
-                        {},
-                        supporting = stringResource(R.string.tv_settings_passthrough_unknown),
-                        enabled = false,
-                    )
-                }
-            }
-            section(R.string.tv_settings_streaming)
-            item {
-                MqTvListItem(
-                    stringResource(R.string.tv_settings_quality),
-                    { onAction(TvSettingsAction.ChooseQuality) },
-                    Modifier.focusMemory(focus, QUALITY),
-                    supporting = qualityLabel(state.quality),
-                )
-            }
-            if (state.appMode?.video == true) {
-                section(R.string.tv_settings_video)
-                item {
-                    MqTvListItem(
-                        stringResource(R.string.tv_settings_display_match),
-                        { onAction(TvSettingsAction.ChooseSubtitle(TvSettingsDialog.DisplayMatch)) },
-                        Modifier.focusMemory(focus, "displayMatch"),
-                        supporting = stringResource(state.displayMatch.label),
-                    )
-                }
-                section(R.string.tv_settings_subtitles)
-                item {
-                    MqTvListItem(
-                        stringResource(R.string.tv_settings_subtitle_size),
-                        { onAction(TvSettingsAction.ChooseSubtitle(TvSettingsDialog.SubtitleSize)) },
-                        Modifier.focusMemory(focus, "subtitleSize"),
-                        supporting = stringResource(state.subtitleStyle.size.label),
-                    )
-                }
-                item {
-                    MqTvListItem(
-                        stringResource(R.string.tv_settings_subtitle_background),
-                        { onAction(TvSettingsAction.ChooseSubtitle(TvSettingsDialog.SubtitleBackground)) },
-                        Modifier.focusMemory(focus, "subtitleBackground"),
-                        supporting = stringResource(state.subtitleStyle.background.label),
-                    )
-                }
-                item {
-                    MqTvListItem(
-                        stringResource(R.string.tv_settings_subtitle_color),
-                        { onAction(TvSettingsAction.ChooseSubtitle(TvSettingsDialog.SubtitleColor)) },
-                        Modifier.focusMemory(focus, "subtitleColor"),
-                        supporting = stringResource(state.subtitleStyle.color.label),
-                    )
-                }
-            }
-            section(R.string.tv_settings_display)
-            item {
-                MqTvListItem(
-                    stringResource(R.string.tv_settings_carousel),
-                    { onAction(TvSettingsAction.NextCarousel) },
-                    Modifier.focusMemory(focus, "carousel"),
-                    supporting = stringResource(state.carousel.label),
-                )
-            }
-            if (state.carousel != TvCarousel.Off) {
-                item {
-                    MqTvListItem(
-                        stringResource(R.string.tv_settings_carousel_source),
-                        { onAction(TvSettingsAction.ChooseCarouselSource) },
-                        Modifier.focusMemory(focus, "carouselSource"),
-                        supporting = state.carouselPicked.map { stringResource(it.title) }.joinToString(),
-                    )
-                }
-                item {
-                    MqTvListItem(
-                        stringResource(R.string.tv_settings_carousel_skip_watched),
-                        { onAction(TvSettingsAction.ToggleCarouselSkipWatched) },
-                        Modifier.focusMemory(focus, "carouselSkipWatched"),
-                        selected = state.carouselSkipWatched,
-                        control = MqTvControl.Switch,
-                    )
-                }
-            }
-            item {
-                MqTvListItem(
-                    stringResource(R.string.tv_settings_menu_style),
-                    { onAction(TvSettingsAction.NextMenuStyle) },
-                    Modifier.focusMemory(focus, "menuStyle"),
-                    supporting = stringResource(state.menuStyle.label),
-                )
-            }
-            item {
-                MqTvListItem(
-                    stringResource(R.string.tv_settings_title_style),
-                    { onAction(TvSettingsAction.NextTitleStyle) },
-                    Modifier.focusMemory(focus, "titleStyle"),
-                    supporting = stringResource(state.titleStyle.label),
-                )
-            }
-            // Only while pages show a logo (#578).
-            if (state.titleStyle != TvTitleStyle.Text) {
-                item {
-                    MqTvListItem(
-                        stringResource(R.string.tv_settings_logo_size),
-                        { onAction(TvSettingsAction.NextLogoSize) },
-                        Modifier.focusMemory(focus, "logoSize"),
-                        supporting = stringResource(state.logoSize.label),
-                    )
-                }
-            }
-            item {
-                MqTvListItem(
-                    stringResource(R.string.tv_settings_poster_accent),
-                    { onAction(TvSettingsAction.TogglePosterAccent) },
-                    Modifier.focusMemory(focus, "posterAccent"),
-                    supporting = stringResource(R.string.tv_settings_poster_accent_detail),
-                    selected = state.posterAccent,
-                    control = MqTvControl.Switch,
-                )
-            }
-            item {
-                MqTvListItem(
-                    stringResource(R.string.tv_settings_simple_transitions),
-                    { onAction(TvSettingsAction.ToggleSimpleTransitions) },
-                    Modifier.focusMemory(focus, "transitions"),
-                    supporting = stringResource(R.string.tv_settings_simple_transitions_detail),
-                    selected = state.simpleTransitions,
-                    control = MqTvControl.Switch,
-                )
-            }
-            section(R.string.tv_settings_library)
-            state.appMode?.let { mode ->
-                item {
-                    MqTvListItem(
-                        stringResource(R.string.tv_settings_app_mode),
-                        { onAction(TvSettingsAction.ChooseAppMode) },
-                        Modifier.focusMemory(focus, "appMode"),
-                        supporting = stringResource(mode.label),
-                    )
-                }
-            }
-            item {
-                MqTvListItem(
-                    stringResource(R.string.tv_settings_home_rows),
-                    onOpenHomeRows,
-                    Modifier.focusMemory(focus, "homeRows"),
-                    supporting = stringResource(R.string.tv_settings_home_rows_detail),
-                )
-            }
-            item {
-                MqTvListItem(
-                    stringResource(R.string.tv_settings_sync),
-                    { onAction(TvSettingsAction.SyncNow) },
-                    Modifier.focusMemory(focus, "sync"),
-                    supporting = syncLabel(state.sync),
-                )
-            }
-            section(R.string.tv_settings_account)
-            item {
-                // "Who's watching?" (#433): switch to or add a profile.
-                MqTvListItem(
-                    state.serverName.orEmpty(),
-                    onSwitchProfile,
-                    Modifier.focusMemory(focus, "account"),
-                    supporting =
-                        listOfNotNull(
-                            state.userName,
-                            stringResource(R.string.tv_settings_switch_profile),
-                        ).joinToString(" · "),
-                )
-            }
-            if (state.appMode?.video == true) {
-                item {
-                    MqTvListItem(
-                        stringResource(R.string.tv_settings_parental),
-                        onOpenParental,
-                        Modifier.focusMemory(focus, "parental"),
-                        supporting = stringResource(R.string.tv_settings_parental_detail),
-                    )
-                }
-            }
-            item {
-                MqTvListItem(
-                    stringResource(R.string.tv_settings_sign_out),
-                    { onAction(TvSettingsAction.AskSignOut) },
-                    Modifier.focusMemory(focus, "signOut"),
-                )
-            }
-            section(R.string.tv_settings_about)
-            item {
-                MqTvListItem(
-                    stringResource(R.string.tv_settings_version),
-                    {},
-                    Modifier.focusMemory(focus, "version"),
-                    supporting = versionName,
-                )
-            }
-            item {
-                MqTvListItem(
-                    stringResource(R.string.tv_settings_licenses),
-                    onOpenLicenses,
-                    Modifier.focusMemory(focus, "licenses"),
-                )
-            }
+        // Kept with the screen's saved state, so coming back from the licenses or Home rows finds the same level and row.
+        var stack by rememberSaveable { mutableStateOf(start) }
+        var focused by rememberSaveable { mutableStateOf(mapOf<SettingsPage, String>()) }
+        val open: (SettingsPage) -> Unit = { child ->
+            // Back lands on the row that opened it, however it was opened.
+            focused = focused + (stack.last() to child.name)
+            stack = stack + child
         }
-        LaunchedEffect(Unit) {
-            // The rows are lazy items, laid out after this effect starts.
-            withFrameNanos {}
-            focus.restore(if (state.hdmi != null) PASSTHROUGH else QUALITY)
-        }
-        when (state.dialog) {
-            TvSettingsDialog.Quality -> {
-                QualityDialog(state.quality, onAction)
-            }
+        val back: () -> Unit = { if (stack.size > 1) stack = stack.dropLast(1) }
+        BackHandler(enabled = stack.size > 1, onBack = back)
+        val pages =
+            Pages(
+                state,
+                versionName,
+                onAction,
+                open,
+                back,
+                onOpenLicenses,
+                onOpenHomeRows,
+                onOpenParental,
+                onSwitchProfile,
+            )
+        AnimatedContent(
+            stack,
+            transitionSpec = {
+                // Deeper slides in from the right, back from the left, as the system Settings do.
+                val deeper = targetState.size > initialState.size
+                (slideInHorizontally { if (deeper) it / SLIDE else -it / SLIDE } + fadeIn()) togetherWith fadeOut()
+            },
+            contentKey = { it.size to it.last() },
+            label = "settingsLevel",
+        ) { levels ->
+            val page = levels.last()
+            val content = pages.of(page)
+            // The current value on a level that picks one, else the row focused last here, else the first.
+            val initial =
+                remember {
+                    content.rows.firstOrNull { it.control == MqTvControl.Radio && it.checked }?.key
+                        ?: focused[page]?.takeIf { key -> content.rows.any { it.key == key } }
+                        ?: content.rows.firstOrNull { it.enabled }?.key
+                }
+            Row(Modifier.fillMaxSize().padding(start = START, top = TOP)) {
+                SettingsColumn(content.title) {
+                    content.rows.forEach { entry ->
+                        key(entry.key) {
+                            val requester = remember { FocusRequester() }
+                            val child = content.children[entry.key]
+                            SettingRow(
+                                entry,
+                                Modifier.focusRequester(requester).onPreviewKeyEvent { event ->
+                                    val down = event.type == KeyEventType.KeyDown
+                                    when {
+                                        event.key == Key.DirectionRight && child != null -> {
+                                            if (down) open(child)
+                                            true
+                                        }
 
-            TvSettingsDialog.SignOut -> {
-                SignOutDialog(state, onAction)
-            }
+                                        event.key == Key.DirectionLeft && levels.size > 1 -> {
+                                            if (down) back()
+                                            true
+                                        }
 
-            TvSettingsDialog.AppMode -> {
-                AppModeDialog(state.appMode, onAction)
-            }
-
-            TvSettingsDialog.CarouselSource -> {
-                // Several at once (#575): checkboxes in the side panel, which stays open while they change.
-                MqTvSidePanel(
-                    stringResource(R.string.tv_settings_carousel_source),
-                    onDismiss = { onAction(TvSettingsAction.Dismiss) },
-                ) { first ->
-                    itemsIndexed(state.carouselSources) { index, source ->
-                        MqTvListItem(
-                            stringResource(source.title),
-                            { onAction(TvSettingsAction.ToggleCarouselSource(source)) },
-                            if (index == 0) Modifier.focusRequester(first) else Modifier,
-                            selected = source in state.carouselPicked,
-                            control = MqTvControl.Checkbox,
-                        )
+                                        else -> {
+                                            false
+                                        }
+                                    }
+                                },
+                                onFocus = { focused = focused + (page to entry.key) },
+                            )
+                            if (entry.key == initial) {
+                                LaunchedEffect(Unit) {
+                                    withFrameNanos {}
+                                    runCatching { requester.requestFocus() }
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.width(PANE_GAP))
+                content.children[focused[page]]?.let { child ->
+                    val preview = pages.of(child)
+                    // Only a look ahead: not read out, never focused.
+                    SettingsColumn(preview.title, Modifier.alpha(PREVIEW_ALPHA).clearAndSetSemantics {}) {
+                        preview.rows.forEach { PreviewRow(it) }
                     }
                 }
             }
-
-            TvSettingsDialog.DisplayMatch -> {
-                MqTvMenu(
-                    title = stringResource(R.string.tv_settings_display_match),
-                    entries =
-                        io.github.kentprodan.mediatheq.core.data.DisplayMatch.entries.map { match ->
-                            val text = stringResource(match.label)
-                            MqTvMenuEntry(text, null, match == state.displayMatch) {
-                                onAction(TvSettingsAction.SetDisplayMatch(match))
-                            }
-                        },
-                    onDismiss = { onAction(TvSettingsAction.Dismiss) },
-                )
-            }
-
-            TvSettingsDialog.SubtitleSize -> {
-                StyleDialog(
-                    R.string.tv_settings_subtitle_size,
-                    SubtitleStyle.Size.entries,
-                    state.subtitleStyle.size,
-                    { it.label },
-                    onAction,
-                ) { state.subtitleStyle.copy(size = it) }
-            }
-
-            TvSettingsDialog.SubtitleBackground -> {
-                StyleDialog(
-                    R.string.tv_settings_subtitle_background,
-                    SubtitleStyle.Background.entries,
-                    state.subtitleStyle.background,
-                    { it.label },
-                    onAction,
-                ) { state.subtitleStyle.copy(background = it) }
-            }
-
-            TvSettingsDialog.SubtitleColor -> {
-                StyleDialog(
-                    R.string.tv_settings_subtitle_color,
-                    SubtitleStyle.Color.entries,
-                    state.subtitleStyle.color,
-                    { it.label },
-                    onAction,
-                ) { state.subtitleStyle.copy(color = it) }
-            }
-
-            null -> {
-                Unit
-            }
         }
     }
 }
 
-private fun LazyListScope.section(title: Int) =
-    item {
-        Text(
-            stringResource(title),
-            Modifier.padding(top = 24.dp, bottom = 4.dp, start = 12.dp).semantics { heading() },
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+/** One level: its title, its rows and which rows open which level. */
+private data class Level(
+    val title: String,
+    val rows: List<SettingEntry>,
+    val children: Map<String, SettingsPage>,
+)
+
+/** Collects a level's rows; a [section] set before a row becomes that row's overline. */
+private class LevelBuilder(
+    private val open: (SettingsPage) -> Unit,
+) {
+    val rows = mutableListOf<SettingEntry>()
+    val children = mutableMapOf<String, SettingsPage>()
+    var section: String? = null
+
+    fun row(entry: SettingEntry) {
+        rows += entry.copy(section = section)
+        section = null
     }
 
-@Composable
-private fun QualityDialog(
-    current: StreamingQuality,
-    onAction: (TvSettingsAction) -> Unit,
+    fun opens(
+        page: SettingsPage,
+        title: String,
+        summary: String? = null,
+        icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    ) {
+        children[page.name] = page
+        row(SettingEntry(page.name, title, summary, icon, onClick = { open(page) }))
+    }
+}
+
+/** Builds each level from the state; the same level shows as the current one or as the preview. */
+private class Pages(
+    val state: TvSettingsUiState.Content,
+    val versionName: String,
+    val onAction: (TvSettingsAction) -> Unit,
+    val open: (SettingsPage) -> Unit,
+    val back: () -> Unit,
+    val onOpenLicenses: () -> Unit,
+    val onOpenHomeRows: () -> Unit,
+    val onOpenParental: () -> Unit,
+    val onSwitchProfile: () -> Unit,
 ) {
-    MqTvMenu(
-        title = stringResource(R.string.tv_settings_quality),
-        entries =
-            StreamingQuality.entries.map { quality ->
-                val label = qualityLabel(quality)
-                MqTvMenuEntry(label, null, quality == current) {
-                    onAction(TvSettingsAction.SetQuality(quality))
+    @Composable
+    fun of(page: SettingsPage): Level {
+        val b = LevelBuilder(open)
+        val title =
+            when (page) {
+                SettingsPage.Root -> {
+                    b.opens(SettingsPage.Sound, stringResource(R.string.tv_settings_sound), icon = MqTvIcons.Playing)
+                    if (state.appMode?.video == true) {
+                        b.opens(
+                            SettingsPage.Video,
+                            stringResource(R.string.tv_settings_video_subtitles),
+                            icon = MqTvIcons.Subtitles,
+                        )
+                    }
+                    b.opens(
+                        SettingsPage.Display,
+                        stringResource(R.string.tv_settings_display),
+                        icon = MqTvIcons.Palette,
+                    )
+                    b.opens(SettingsPage.Home, stringResource(R.string.tv_settings_home), icon = MqTvIcons.Home)
+                    b.opens(SettingsPage.Library, stringResource(R.string.tv_settings_library), icon = MqTvIcons.Sync)
+                    b.opens(
+                        SettingsPage.Account,
+                        stringResource(R.string.tv_settings_account),
+                        state.userName,
+                        MqTvIcons.Person,
+                    )
+                    b.opens(SettingsPage.About, stringResource(R.string.tv_settings_about), versionName, MqTvIcons.Info)
+                    stringResource(R.string.tv_settings_title)
                 }
-            },
-        onDismiss = { onAction(TvSettingsAction.Dismiss) },
+
+                SettingsPage.Sound -> {
+                    b.section = stringResource(R.string.tv_settings_output)
+                    val hdmi = state.hdmi
+                    b.row(
+                        SettingEntry(
+                            "passthrough",
+                            stringResource(R.string.tv_settings_passthrough),
+                            // Nothing to switch yet: the player remembers the HDMI output on its first play there.
+                            if (hdmi != null) {
+                                stringResource(R.string.tv_settings_passthrough_detail, hdmi.name)
+                            } else {
+                                stringResource(R.string.tv_settings_passthrough_unknown)
+                            },
+                            control = MqTvControl.Switch.takeIf { hdmi != null },
+                            checked = hdmi?.atmosPassthrough == true,
+                            enabled = hdmi != null,
+                            onClick = { onAction(TvSettingsAction.TogglePassthrough) },
+                        ),
+                    )
+                    b.section = stringResource(R.string.tv_settings_streaming)
+                    b.opens(
+                        SettingsPage.Quality,
+                        stringResource(R.string.tv_settings_quality),
+                        qualityLabel(state.quality),
+                    )
+                    stringResource(R.string.tv_settings_sound)
+                }
+
+                SettingsPage.Video -> {
+                    b.section = stringResource(R.string.tv_settings_video)
+                    b.opens(
+                        SettingsPage.DisplayMatch,
+                        stringResource(R.string.tv_settings_display_match),
+                        stringResource(state.displayMatch.label),
+                    )
+                    b.section = stringResource(R.string.tv_settings_subtitles)
+                    val style = state.subtitleStyle
+                    b.opens(
+                        SettingsPage.SubtitleSize,
+                        stringResource(R.string.tv_settings_subtitle_size),
+                        stringResource(style.size.label),
+                    )
+                    b.opens(
+                        SettingsPage.SubtitleBackground,
+                        stringResource(R.string.tv_settings_subtitle_background),
+                        stringResource(style.background.label),
+                    )
+                    b.opens(
+                        SettingsPage.SubtitleColor,
+                        stringResource(R.string.tv_settings_subtitle_color),
+                        stringResource(style.color.label),
+                    )
+                    stringResource(R.string.tv_settings_video_subtitles)
+                }
+
+                SettingsPage.Display -> {
+                    b.opens(
+                        SettingsPage.MenuStyle,
+                        stringResource(R.string.tv_settings_menu_style),
+                        stringResource(state.menuStyle.label),
+                    )
+                    b.opens(
+                        SettingsPage.TitleStyle,
+                        stringResource(R.string.tv_settings_title_style),
+                        stringResource(state.titleStyle.label),
+                    )
+                    // Only while pages show a logo (#578).
+                    if (state.titleStyle != TvTitleStyle.Text) {
+                        b.opens(
+                            SettingsPage.LogoSize,
+                            stringResource(R.string.tv_settings_logo_size),
+                            stringResource(state.logoSize.label),
+                        )
+                    }
+                    b.row(
+                        SettingEntry(
+                            "posterAccent",
+                            stringResource(R.string.tv_settings_poster_accent),
+                            stringResource(R.string.tv_settings_poster_accent_detail),
+                            control = MqTvControl.Switch,
+                            checked = state.posterAccent,
+                            onClick = { onAction(TvSettingsAction.TogglePosterAccent) },
+                        ),
+                    )
+                    b.row(
+                        SettingEntry(
+                            "transitions",
+                            stringResource(R.string.tv_settings_simple_transitions),
+                            stringResource(R.string.tv_settings_simple_transitions_detail),
+                            control = MqTvControl.Switch,
+                            checked = state.simpleTransitions,
+                            onClick = { onAction(TvSettingsAction.ToggleSimpleTransitions) },
+                        ),
+                    )
+                    stringResource(R.string.tv_settings_display)
+                }
+
+                SettingsPage.Home -> {
+                    b.opens(
+                        SettingsPage.Carousel,
+                        stringResource(R.string.tv_settings_carousel),
+                        stringResource(state.carousel.label),
+                    )
+                    if (state.carousel != TvCarousel.Off) {
+                        b.opens(
+                            SettingsPage.CarouselSources,
+                            stringResource(R.string.tv_settings_carousel_source),
+                            state.carouselPicked.map { stringResource(it.title) }.joinToString(),
+                        )
+                        b.row(
+                            SettingEntry(
+                                "carouselSkipWatched",
+                                stringResource(R.string.tv_settings_carousel_skip_watched),
+                                control = MqTvControl.Switch,
+                                checked = state.carouselSkipWatched,
+                                onClick = { onAction(TvSettingsAction.ToggleCarouselSkipWatched) },
+                            ),
+                        )
+                    }
+                    b.row(
+                        SettingEntry(
+                            "homeRows",
+                            stringResource(R.string.tv_settings_home_rows),
+                            stringResource(R.string.tv_settings_home_rows_detail),
+                            onClick = onOpenHomeRows,
+                        ),
+                    )
+                    stringResource(R.string.tv_settings_home)
+                }
+
+                SettingsPage.Library -> {
+                    state.appMode?.let { mode ->
+                        b.opens(
+                            SettingsPage.AppMode,
+                            stringResource(R.string.tv_settings_app_mode),
+                            stringResource(mode.label),
+                        )
+                    }
+                    b.row(
+                        SettingEntry(
+                            "sync",
+                            stringResource(R.string.tv_settings_sync),
+                            syncLabel(state.sync),
+                            onClick = { onAction(TvSettingsAction.SyncNow) },
+                        ),
+                    )
+                    stringResource(R.string.tv_settings_library)
+                }
+
+                SettingsPage.Account -> {
+                    // "Who's watching?" (#433): switch to or add a profile.
+                    b.row(
+                        SettingEntry(
+                            "account",
+                            state.serverName.orEmpty(),
+                            listOfNotNull(state.userName, stringResource(R.string.tv_settings_switch_profile))
+                                .joinToString(" · "),
+                            MqTvIcons.Person,
+                            onClick = onSwitchProfile,
+                        ),
+                    )
+                    if (state.appMode?.video == true) {
+                        b.row(
+                            SettingEntry(
+                                "parental",
+                                stringResource(R.string.tv_settings_parental),
+                                stringResource(R.string.tv_settings_parental_detail),
+                                onClick = onOpenParental,
+                            ),
+                        )
+                    }
+                    b.opens(SettingsPage.SignOut, stringResource(R.string.tv_settings_sign_out))
+                    stringResource(R.string.tv_settings_account)
+                }
+
+                SettingsPage.About -> {
+                    b.row(SettingEntry("version", stringResource(R.string.tv_settings_version), versionName))
+                    b.row(
+                        SettingEntry(
+                            "licenses",
+                            stringResource(R.string.tv_settings_licenses),
+                            onClick = onOpenLicenses,
+                        ),
+                    )
+                    stringResource(R.string.tv_settings_about)
+                }
+
+                SettingsPage.Quality -> {
+                    StreamingQuality.entries.forEach {
+                        b.pick(
+                            it.name,
+                            qualityLabel(it),
+                            it == state.quality,
+                        ) { onAction(TvSettingsAction.SetQuality(it)) }
+                    }
+                    stringResource(R.string.tv_settings_quality)
+                }
+
+                SettingsPage.DisplayMatch -> {
+                    io.github.kentprodan.mediatheq.core.data.DisplayMatch.entries.forEach {
+                        b.pick(it.name, stringResource(it.label), it == state.displayMatch) {
+                            onAction(TvSettingsAction.SetDisplayMatch(it))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_display_match)
+                }
+
+                SettingsPage.SubtitleSize -> {
+                    SubtitleStyle.Size.entries.forEach {
+                        b.pick(it.name, stringResource(it.label), it == state.subtitleStyle.size) {
+                            onAction(TvSettingsAction.SetSubtitleStyle(state.subtitleStyle.copy(size = it)))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_subtitle_size)
+                }
+
+                SettingsPage.SubtitleBackground -> {
+                    SubtitleStyle.Background.entries.forEach {
+                        b.pick(it.name, stringResource(it.label), it == state.subtitleStyle.background) {
+                            onAction(TvSettingsAction.SetSubtitleStyle(state.subtitleStyle.copy(background = it)))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_subtitle_background)
+                }
+
+                SettingsPage.SubtitleColor -> {
+                    SubtitleStyle.Color.entries.forEach {
+                        b.pick(it.name, stringResource(it.label), it == state.subtitleStyle.color) {
+                            onAction(TvSettingsAction.SetSubtitleStyle(state.subtitleStyle.copy(color = it)))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_subtitle_color)
+                }
+
+                SettingsPage.Carousel -> {
+                    TvCarousel.entries.forEach {
+                        b.pick(it.name, stringResource(it.label), it == state.carousel) {
+                            onAction(TvSettingsAction.SetCarousel(it))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_carousel)
+                }
+
+                SettingsPage.CarouselSources -> {
+                    // Several at once (#575): checkboxes, the level stays open while they change.
+                    state.carouselSources.forEach { source ->
+                        b.row(
+                            SettingEntry(
+                                source.name,
+                                stringResource(source.title),
+                                control = MqTvControl.Checkbox,
+                                checked = source in state.carouselPicked,
+                                onClick = { onAction(TvSettingsAction.ToggleCarouselSource(source)) },
+                            ),
+                        )
+                    }
+                    stringResource(R.string.tv_settings_carousel_source)
+                }
+
+                SettingsPage.MenuStyle -> {
+                    io.github.kentprodan.mediatheq.core.data.TvMenuStyle.entries.forEach {
+                        b.pick(it.name, stringResource(it.label), it == state.menuStyle) {
+                            onAction(TvSettingsAction.SetMenuStyle(it))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_menu_style)
+                }
+
+                SettingsPage.TitleStyle -> {
+                    TvTitleStyle.entries.forEach {
+                        b.pick(it.name, stringResource(it.label), it == state.titleStyle) {
+                            onAction(TvSettingsAction.SetTitleStyle(it))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_title_style)
+                }
+
+                SettingsPage.LogoSize -> {
+                    TvLogoSize.entries.forEach {
+                        b.pick(it.name, stringResource(it.label), it == state.logoSize) {
+                            onAction(TvSettingsAction.SetLogoSize(it))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_logo_size)
+                }
+
+                SettingsPage.AppMode -> {
+                    AppMode.entries.forEach {
+                        b.pick(it.name, stringResource(it.label), it == state.appMode) {
+                            onAction(TvSettingsAction.SetAppMode(it))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_app_mode)
+                }
+
+                SettingsPage.SignOut -> {
+                    b.row(
+                        SettingEntry(
+                            "signOut",
+                            stringResource(R.string.tv_settings_sign_out),
+                            onClick = { onAction(TvSettingsAction.SignOut) },
+                        ),
+                    )
+                    b.row(SettingEntry("cancel", stringResource(R.string.tv_settings_cancel), onClick = back))
+                    stringResource(R.string.tv_settings_sign_out_question, state.serverName.orEmpty())
+                }
+            }
+        return Level(title, b.rows.toList(), b.children.toMap())
+    }
+
+    /** A value of a level that picks one: a radio, and choosing it comes back to the level before. */
+    private fun LevelBuilder.pick(
+        key: String,
+        title: String,
+        checked: Boolean,
+        set: () -> Unit,
+    ) = row(
+        SettingEntry(key, title, control = MqTvControl.Radio, checked = checked) {
+            set()
+            back()
+        },
     )
 }
 
-/** One part of the subtitle style: its choices, the current one marked. */
-@Composable
-private fun <T> StyleDialog(
-    title: Int,
-    choices: List<T>,
-    current: T,
-    label: (T) -> Int,
-    onAction: (TvSettingsAction) -> Unit,
-    style: (T) -> SubtitleStyle,
-) {
-    MqTvMenu(
-        title = stringResource(title),
-        entries =
-            choices.map { choice ->
-                val text = stringResource(label(choice))
-                MqTvMenuEntry(text, null, choice == current) {
-                    onAction(TvSettingsAction.SetSubtitleStyle(style(choice)))
-                }
-            },
-        onDismiss = { onAction(TvSettingsAction.Dismiss) },
-    )
-}
+// Between the rows and the preview of the next level.
+private val PANE_GAP = 124.dp
+private const val PREVIEW_ALPHA = 0.5f
+private const val SLIDE = 4
 
 private val SubtitleStyle.Size.label: Int
     get() =
@@ -478,24 +652,6 @@ private val SubtitleStyle.Color.label: Int
             SubtitleStyle.Color.Yellow -> R.string.tv_settings_subtitle_yellow
         }
 
-@Composable
-private fun AppModeDialog(
-    current: AppMode?,
-    onAction: (TvSettingsAction) -> Unit,
-) {
-    MqTvMenu(
-        title = stringResource(R.string.tv_settings_app_mode),
-        entries =
-            AppMode.entries.map { mode ->
-                val label = stringResource(mode.label)
-                MqTvMenuEntry(label, null, mode == current) {
-                    onAction(TvSettingsAction.SetAppMode(mode))
-                }
-            },
-        onDismiss = { onAction(TvSettingsAction.Dismiss) },
-    )
-}
-
 private val AppMode.label: Int
     get() =
         when (this) {
@@ -503,20 +659,6 @@ private val AppMode.label: Int
             AppMode.Video -> R.string.tv_settings_app_mode_video
             AppMode.Both -> R.string.tv_settings_app_mode_both
         }
-
-@Composable
-private fun SignOutDialog(
-    state: TvSettingsUiState.Content,
-    onAction: (TvSettingsAction) -> Unit,
-) = MqTvMenu(
-    title = stringResource(R.string.tv_settings_sign_out_question, state.serverName.orEmpty()),
-    entries =
-        listOf(
-            MqTvMenuEntry(stringResource(R.string.tv_settings_sign_out), null) { onAction(TvSettingsAction.SignOut) },
-            MqTvMenuEntry(stringResource(R.string.tv_settings_cancel), null) { onAction(TvSettingsAction.Dismiss) },
-        ),
-    onDismiss = { onAction(TvSettingsAction.Dismiss) },
-)
 
 @Composable
 private fun qualityLabel(quality: StreamingQuality): String =
@@ -563,8 +705,6 @@ private fun stepLabel(step: SyncStep): String =
     )
 
 private const val BITS_PER_KBIT = 1000
-private const val PASSTHROUGH = "passthrough"
-private const val QUALITY = "quality"
 
 private val io.github.kentprodan.mediatheq.core.data.DisplayMatch.label: Int
     get() =

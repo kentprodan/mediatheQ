@@ -63,67 +63,43 @@ fun TvHomeRowsScreen(
     val rows = state.rows
     var moving by remember { mutableStateOf<HomeSection?>(null) }
     val focus = rememberFocusMemory()
-    Surface(Modifier.fillMaxSize()) {
-        LazyColumn(
-            Modifier.fillMaxHeight().wrapContentWidth(Alignment.Start).width(720.dp),
-            contentPadding = PaddingValues(48.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            item {
-                Text(
-                    stringResource(R.string.tv_settings_home_rows),
-                    Modifier.padding(bottom = 4.dp).semantics { heading() },
-                    style = MaterialTheme.typography.headlineLarge,
-                )
-                Text(
-                    stringResource(R.string.tv_settings_home_rows_hint),
-                    Modifier.padding(bottom = 16.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            items(rows, key = { it.section.name }) { row ->
-                MqTvListItem(
+    SettingsPage(stringResource(R.string.tv_settings_home_rows), stringResource(R.string.tv_settings_home_rows_hint)) {
+        items(rows, key = { it.section.name }) { row ->
+            SettingRow(
+                SettingEntry(
+                    row.section.name,
                     stringResource(row.section.title),
-                    { onAction(TvHomeRowsAction.Toggle(row.section)) },
-                    Modifier
-                        .focusMemory(focus, row.section.name)
-                        .onPreviewKeyEvent { event ->
-                            val isMenu = event.key == Key.Menu
-                            if (isMenu && event.type == KeyEventType.KeyUp) moving = row.section
-                            isMenu
-                        },
-                    supporting =
-                        listOfNotNull(
-                            stringResource(cardStyleLabel(row.cardStyle)),
-                            row.perScreen?.let { stringResource(R.string.tv_settings_per_screen, it) },
-                            stringResource(R.string.tv_settings_immersive_row).takeIf { row.immersive },
-                        ).joinToString(" · "),
-                    onLongClick = { moving = row.section },
-                    selected = row.shown,
+                    listOfNotNull(
+                        stringResource(cardStyleLabel(row.cardStyle)),
+                        row.perScreen?.let { stringResource(R.string.tv_settings_per_screen, it) },
+                        stringResource(R.string.tv_settings_immersive_row).takeIf { row.immersive },
+                    ).joinToString(" · "),
                     control = MqTvControl.Switch,
-                )
-            }
-            // Genre rows (#431): per account, after the video rows.
-            if (state.genres.isNotEmpty()) {
-                item {
-                    Text(
-                        stringResource(R.string.tv_settings_genre_rows),
-                        Modifier.padding(top = 24.dp, bottom = 4.dp, start = 12.dp).semantics { heading() },
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                items(state.genres, key = { "genre/${it.first}" }) { (genre, on) ->
-                    MqTvListItem(
-                        genre,
-                        { onAction(TvHomeRowsAction.ToggleGenre(genre)) },
-                        Modifier.focusMemory(focus, "genre/$genre"),
-                        selected = on,
-                        control = MqTvControl.Switch,
-                    )
-                }
-            }
+                    checked = row.shown,
+                    onLongClick = { moving = row.section },
+                ) { onAction(TvHomeRowsAction.Toggle(row.section)) },
+                Modifier
+                    .focusMemory(focus, row.section.name)
+                    .onPreviewKeyEvent { event ->
+                        val isMenu = event.key == Key.Menu
+                        if (isMenu && event.type == KeyEventType.KeyUp) moving = row.section
+                        isMenu
+                    },
+            )
+        }
+        // Genre rows (#431): per account, after the video rows.
+        items(state.genres.withIndex().toList(), key = { "genre/${it.value.first}" }) { (index, item) ->
+            val (genre, on) = item
+            SettingRow(
+                SettingEntry(
+                    "genre/$genre",
+                    genre,
+                    control = MqTvControl.Switch,
+                    checked = on,
+                    section = stringResource(R.string.tv_settings_genre_rows).takeIf { index == 0 },
+                ) { onAction(TvHomeRowsAction.ToggleGenre(genre)) },
+                Modifier.focusMemory(focus, "genre/$genre"),
+            )
         }
     }
     LaunchedEffect(Unit) {

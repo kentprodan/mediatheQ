@@ -61,38 +61,28 @@ fun TvLicensesScreen(
     state: TvLicensesUiState,
     onOpen: (String) -> Unit,
 ) {
-    Surface(Modifier.fillMaxSize()) {
-        // Back from a license focuses the entry that opened it (ADR 0041).
-        val focus = rememberFocusMemory()
-        LazyColumn(
-            Modifier.fillMaxHeight().wrapContentWidth(Alignment.Start).width(720.dp),
-            contentPadding = PaddingValues(48.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            item { Heading(stringResource(R.string.tv_licenses_title)) }
-            when (state) {
-                TvLicensesUiState.Loading -> {
-                    item { Text(stringResource(R.string.tv_licenses_loading)) }
-                }
-
-                is TvLicensesUiState.Content -> {
-                    items(state.entries, key = { it.id }) { entry ->
-                        MqTvListItem(
-                            entry.name,
-                            { onOpen(entry.id) },
-                            Modifier.focusMemory(focus, entry.id),
-                            supporting = listOfNotNull(entry.detail, entry.licenseName).joinToString(" · "),
-                        )
-                    }
-                }
+    // Back from a license focuses the entry that opened it (ADR 0041).
+    val focus = rememberFocusMemory()
+    val loading = stringResource(R.string.tv_licenses_loading).takeIf { state is TvLicensesUiState.Loading }
+    SettingsPage(stringResource(R.string.tv_licenses_title), loading) {
+        if (state is TvLicensesUiState.Content) {
+            items(state.entries, key = { it.id }) { entry ->
+                SettingRow(
+                    SettingEntry(
+                        entry.id,
+                        entry.name,
+                        listOfNotNull(entry.detail, entry.licenseName).joinToString(" · "),
+                    ) { onOpen(entry.id) },
+                    Modifier.focusMemory(focus, entry.id),
+                )
             }
         }
-        if (state is TvLicensesUiState.Content) {
-            LaunchedEffect(Unit) {
-                // The entries are lazy items, laid out after this effect starts.
-                withFrameNanos {}
-                focus.restore(state.entries.firstOrNull()?.id)
-            }
+    }
+    if (state is TvLicensesUiState.Content) {
+        LaunchedEffect(Unit) {
+            // The entries are lazy items, laid out after this effect starts.
+            withFrameNanos {}
+            focus.restore(state.entries.firstOrNull()?.id)
         }
     }
 }
