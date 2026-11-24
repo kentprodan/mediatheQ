@@ -67,6 +67,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Any TV Home row can be an immersive list (Settings -> Home rows, long press a row): the focused card's picture and details appear behind the row.
 
 ### Changed
+- TV logo sizes are one step smaller: Large is the old Medium, Medium the old Small, and Small smaller still.
 - TV Movies -> Studios and Series -> Networks show each studio's or network's picture with its logo from Jellyfin, four across.
 - TV Home: on the first row the carousel stays in view and keeps changing slides; lower rows scroll it away.
 - TV: after closing the app with Back, the next start asks Who's watching? again; a short trip out with the Home button still does not.

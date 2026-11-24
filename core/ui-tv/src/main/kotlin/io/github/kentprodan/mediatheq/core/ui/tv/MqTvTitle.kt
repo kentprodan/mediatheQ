@@ -78,13 +78,13 @@ fun MqTvTitle(
     }
 }
 
-/** The logo's area (#578); Medium is #523's 120 x 480 dp. */
+/** The logo's area (#578, one step smaller in #602): Large is #523's 120 x 480 dp. */
 private val TvLogoSize.height
     get() =
         when (this) {
-            TvLogoSize.Small -> 80.dp
-            TvLogoSize.Medium -> 120.dp
-            TvLogoSize.Large -> 160.dp
+            TvLogoSize.Small -> 56.dp
+            TvLogoSize.Medium -> 80.dp
+            TvLogoSize.Large -> 120.dp
         }
 
 private const val LOGO_ASPECT = 4f
