@@ -15,6 +15,9 @@ class MixerAttributeSelectorTest {
     @Test
     fun `the local constants are the platform's values`() {
         assertThat(MixerAttributeSelector.ENCODING_PCM_16BIT).isEqualTo(AudioFormat.ENCODING_PCM_16BIT)
+        assertThat(MixerAttributeSelector.ENCODING_PCM_FLOAT).isEqualTo(AudioFormat.ENCODING_PCM_FLOAT)
+        assertThat(MixerAttributeSelector.ENCODING_PCM_24BIT_PACKED).isEqualTo(AudioFormat.ENCODING_PCM_24BIT_PACKED)
+        assertThat(MixerAttributeSelector.ENCODING_PCM_32BIT).isEqualTo(AudioFormat.ENCODING_PCM_32BIT)
         assertThat(MixerAttributeSelector.CHANNEL_OUT_MONO).isEqualTo(AudioFormat.CHANNEL_OUT_MONO)
         assertThat(MixerAttributeSelector.CHANNEL_OUT_STEREO).isEqualTo(AudioFormat.CHANNEL_OUT_STEREO)
     }
@@ -53,10 +56,32 @@ class MixerAttributeSelectorTest {
     }
 
     @Test
-    fun `a DAC offering only 24-bit is no match for 16-bit output`() {
+    fun `a 16-bit pipeline takes 16 bits first, then a wider container`() {
         val only24 = capability(cd.copy(encoding = AudioFormat.ENCODING_PCM_24BIT_PACKED))
+        val only32 = capability(cd.copy(encoding = AudioFormat.ENCODING_PCM_32BIT))
+        val same = capability(cd)
 
-        assertThat(MixerAttributeSelector.select(listOf(only24), cd)).isNull()
+        assertThat(MixerAttributeSelector.select(listOf(only32, only24, same), cd)).isEqualTo(same)
+        assertThat(MixerAttributeSelector.select(listOf(only32, only24), cd)).isEqualTo(only24)
+    }
+
+    @Test
+    fun `a float pipeline takes 24 bits, then 32, then 16`() {
+        val bits24 = capability(cd.copy(encoding = AudioFormat.ENCODING_PCM_24BIT_PACKED))
+        val bits32 = capability(cd.copy(encoding = AudioFormat.ENCODING_PCM_32BIT))
+        val bits16 = capability(cd)
+
+        assertThat(MixerAttributeSelector.select(listOf(bits16, bits32, bits24), cd, floatPipeline = true))
+            .isEqualTo(bits24)
+        assertThat(MixerAttributeSelector.select(listOf(bits16, bits32), cd, floatPipeline = true)).isEqualTo(bits32)
+        assertThat(MixerAttributeSelector.select(listOf(bits16), cd, floatPipeline = true)).isEqualTo(bits16)
+    }
+
+    @Test
+    fun `a float mixer attribute is never chosen`() {
+        val float = capability(cd.copy(encoding = AudioFormat.ENCODING_PCM_FLOAT))
+
+        assertThat(MixerAttributeSelector.select(listOf(float), cd, floatPipeline = true)).isNull()
     }
 
     @Test

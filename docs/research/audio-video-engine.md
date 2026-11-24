@@ -270,7 +270,7 @@ Order inside each engine: things that make playback **correct** first, then **ro
    DTS-HD as core.
 4. ReplayGain v2: peak guard, positive gain via `LoudnessEnhancer`, the offload interplay in `AudioPolicy`.
 5. Offload safety: stall memory per build, early-buffering reset detection, no offload over Bluetooth transitions.
-6. Hi-res and bit-perfect: float probe, >192 kHz cap, widening output provider (maybe replaces the reopen).
+6. Hi-res and bit-perfect: float probe, >192 kHz cap, widening output provider (#629, ADR 0056; it does not replace the reopen).
 7. Crossfade (#219): two-player engine with queue window and fading wrapper, after 1-6.
 8. Surround downmix for stereo routes.
 9. Later, only if a device needs it: own IEC 61937 output.
