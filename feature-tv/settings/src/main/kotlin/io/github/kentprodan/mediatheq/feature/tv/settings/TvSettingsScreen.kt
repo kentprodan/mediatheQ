@@ -621,10 +621,6 @@ private class Pages(
     )
 }
 
-// Where the Settings start on screen: the system Settings' left edge and top.
-private val START = 106.dp
-private val TOP = 56.dp
-
 // Between the rows and the preview of the next level.
 private val PANE_GAP = 124.dp
 private const val PREVIEW_ALPHA = 0.5f

@@ -4,13 +4,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -60,6 +65,8 @@ internal data class SettingEntry(
     val checked: Boolean = false,
     val enabled: Boolean = true,
     val section: String? = null,
+    /** Long-press of select: the row's menu (Home rows). */
+    val onLongClick: (() -> Unit)? = null,
     val onClick: () -> Unit = {},
 )
 
@@ -75,24 +82,61 @@ internal fun SettingsColumn(
     rows: @Composable ColumnScope.() -> Unit,
 ) {
     Column(modifier.width(PANE_WIDTH)) {
-        Text(
-            title,
-            Modifier.padding(start = ROW_INSET).semantics { heading() },
-            style = MaterialTheme.typography.displaySmall,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        summary?.let {
-            Text(
-                it,
-                Modifier.padding(start = ROW_INSET, top = 8.dp),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Header(title, summary)
         Column(Modifier.padding(top = 24.dp).verticalScroll(rememberScrollState()), content = rows)
     }
 }
+
+/**
+ * A Settings page opened from a row (Home rows, Parental controls, the licenses; #580): the same title and rows as the
+ * main Settings, in one wider column of lazy [rows] for the long lists.
+ */
+@Composable
+internal fun SettingsPage(
+    title: String,
+    summary: String? = null,
+    rows: LazyListScope.() -> Unit,
+) {
+    Surface(Modifier.fillMaxSize()) {
+        // The surface passes its full size down as the minimum: let the column take its own width.
+        Column(
+            Modifier
+                .padding(start = START, top = TOP)
+                .wrapContentSize(Alignment.TopStart)
+                .width(SINGLE_PANE_WIDTH),
+        ) {
+            Header(title, summary)
+            LazyColumn(contentPadding = PaddingValues(top = 24.dp, bottom = TOP), content = rows)
+        }
+    }
+}
+
+@Composable
+private fun Header(
+    title: String,
+    summary: String?,
+) {
+    Text(
+        title,
+        Modifier.padding(start = ROW_INSET).semantics { heading() },
+        style = MaterialTheme.typography.displaySmall,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+    summary?.let {
+        Text(
+            it,
+            Modifier.padding(start = ROW_INSET, top = 8.dp),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+// Where Settings start on screen: the system Settings' left edge and top.
+internal val START = 106.dp
+internal val TOP = 56.dp
+private val SINGLE_PANE_WIDTH = 560.dp
 
 /** The pane's width, from the guideline's two-pane settings: about half the screen with the preview beside it. */
 internal val PANE_WIDTH = 380.dp
@@ -125,6 +169,7 @@ internal fun SettingRow(
     val scheme = MaterialTheme.colorScheme
     Surface(
         onClick = entry.onClick,
+        onLongClick = entry.onLongClick,
         modifier =
             modifier
                 .fillMaxWidth()

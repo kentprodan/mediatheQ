@@ -53,56 +53,40 @@ fun TvParentalScreen(
     var newPin by remember { mutableStateOf(false) }
     var limitOf by remember { mutableStateOf<Account?>(null) }
     val focus = rememberFocusMemory()
-    Surface(Modifier.fillMaxSize()) {
-        LazyColumn(
-            Modifier.fillMaxHeight().wrapContentWidth(Alignment.Start).width(720.dp),
-            contentPadding = PaddingValues(48.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            item {
-                Text(
-                    stringResource(R.string.tv_settings_parental),
-                    Modifier.padding(bottom = 4.dp).semantics { heading() },
-                    style = MaterialTheme.typography.headlineLarge,
-                )
-                Text(
-                    if (state.isMain) {
-                        stringResource(R.string.tv_parental_hint)
-                    } else {
-                        stringResource(R.string.tv_parental_main_only, state.mainName)
-                    },
-                    Modifier.padding(bottom = 16.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            item {
-                MqTvListItem(
+    val hint =
+        if (state.isMain) {
+            stringResource(R.string.tv_parental_hint)
+        } else {
+            stringResource(R.string.tv_parental_main_only, state.mainName)
+        }
+    SettingsPage(stringResource(R.string.tv_settings_parental), hint) {
+        item {
+            SettingRow(
+                SettingEntry(
+                    "pin",
                     stringResource(if (state.hasPin) R.string.tv_parental_change_pin else R.string.tv_parental_set_pin),
-                    { newPin = true },
-                    Modifier.focusMemory(focus, "pin"),
                     enabled = state.isMain,
+                ) { newPin = true },
+                Modifier.focusMemory(focus, "pin"),
+            )
+        }
+        if (state.hasPin) {
+            item {
+                SettingRow(
+                    SettingEntry("removePin", stringResource(R.string.tv_parental_remove_pin), enabled = state.isMain) {
+                        onAction(TvParentalAction.SetPin(null))
+                    },
+                    Modifier.focusMemory(focus, "removePin"),
                 )
             }
-            if (state.hasPin) {
-                item {
-                    MqTvListItem(
-                        stringResource(R.string.tv_parental_remove_pin),
-                        { onAction(TvParentalAction.SetPin(null)) },
-                        Modifier.focusMemory(focus, "removePin"),
-                        enabled = state.isMain,
-                    )
-                }
-            }
-            items(state.profiles, key = { it.first.id }) { (account, limit) ->
-                MqTvListItem(
-                    account.userName,
-                    { limitOf = account },
-                    Modifier.focusMemory(focus, account.id),
-                    supporting = limitLabel(limit),
-                    enabled = state.isMain,
-                )
-            }
+        }
+        items(state.profiles, key = { it.first.id }) { (account, limit) ->
+            SettingRow(
+                SettingEntry(account.id, account.userName, limitLabel(limit), enabled = state.isMain) {
+                    limitOf = account
+                },
+                Modifier.focusMemory(focus, account.id),
+            )
         }
     }
     LaunchedEffect(Unit) {
