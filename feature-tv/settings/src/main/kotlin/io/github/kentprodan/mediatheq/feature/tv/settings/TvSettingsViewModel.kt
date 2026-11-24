@@ -13,10 +13,13 @@ import io.github.kentprodan.mediatheq.core.data.LibrarySyncRepository
 import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.RememberedOutputs
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.tvLogoSizeOf
+import io.github.kentprodan.mediatheq.core.data.tvTitleOf
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeKind
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputKind
+import io.github.kentprodan.mediatheq.core.model.TvTitlePage
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
@@ -71,8 +74,8 @@ class TvSettingsViewModel
                     carouselSkipWatched = plain.tvCarouselSkipWatched,
                     carouselSources = carouselSources(mode),
                     menuStyle = plain.tvMenuStyle,
-                    titleStyle = plain.tvTitle,
-                    logoSize = plain.tvLogoSize,
+                    titleStyles = TvTitlePage.entries.associateWith(plain::tvTitleOf),
+                    logoSizes = TvTitlePage.entries.associateWith(plain::tvLogoSizeOf),
                     posterAccent = plain.tvPosterAccent,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvSettingsUiState.Loading)
@@ -118,11 +121,11 @@ class TvSettingsViewModel
                 }
 
                 is TvSettingsAction.SetLogoSize -> {
-                    updateNavigation { it.copy(tvLogoSize = action.size) }
+                    updateNavigation { it.copy(tvLogoSizes = it.tvLogoSizes + (action.page to action.size)) }
                 }
 
                 is TvSettingsAction.SetTitleStyle -> {
-                    updateNavigation { it.copy(tvTitle = action.style) }
+                    updateNavigation { it.copy(tvTitles = it.tvTitles + (action.page to action.style)) }
                 }
 
                 is TvSettingsAction.ToggleCarouselSource -> {

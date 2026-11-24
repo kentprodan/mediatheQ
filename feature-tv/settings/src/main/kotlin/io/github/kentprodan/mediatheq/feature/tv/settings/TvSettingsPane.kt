@@ -235,11 +235,13 @@ private fun RowContent(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+            // Smaller and greyer than the title, a little apart from it (#619).
             entry.summary?.let {
                 Text(
                     it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = LocalContentColor.current.copy(alpha = SUMMARY),
+                    Modifier.padding(top = 4.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (focused) LocalContentColor.current.copy(alpha = SUMMARY) else scheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

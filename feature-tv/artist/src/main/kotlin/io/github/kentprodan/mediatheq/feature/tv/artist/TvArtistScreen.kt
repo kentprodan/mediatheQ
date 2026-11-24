@@ -57,6 +57,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.TvTitlePage
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvCover
@@ -182,7 +183,7 @@ private fun Header(
         ) {
             MqTvCover(artist.artwork, MqTvIcons.Person, Modifier.size(PICTURE).clip(CircleShape))
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                MqTvTitle(artist.name, artist.logo)
+                MqTvTitle(artist.name, artist.logo, TvTitlePage.Artist)
                 artist.overview?.takeIf { it.isNotBlank() }?.let {
                     Biography(
                         it,

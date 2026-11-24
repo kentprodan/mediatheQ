@@ -37,6 +37,7 @@ import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.OutputKind
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 import io.github.kentprodan.mediatheq.core.model.TvLogoSize
+import io.github.kentprodan.mediatheq.core.model.TvTitlePage
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeAccountRepository
@@ -243,7 +244,7 @@ class TvSettingsTest {
         }
 
     @Test
-    fun `logo size starts at Medium and the one picked is stored (#578)`() =
+    fun `logo size starts at Medium and the one picked is stored for that page alone (#578, #619)`() =
         test {
             val library = FakeLibraryPreferencesRepository()
             val viewModel =
@@ -259,19 +260,21 @@ class TvSettingsTest {
                 )
             backgroundScope.launch { viewModel.uiState.collect() }
             runCurrent()
-            assertThat(viewModel.content().logoSize).isEqualTo(TvLogoSize.Medium)
+            assertThat(viewModel.content().logoSizes[TvTitlePage.Series]).isEqualTo(TvLogoSize.Medium)
 
-            viewModel.onAction(TvSettingsAction.SetLogoSize(TvLogoSize.Large))
+            viewModel.onAction(TvSettingsAction.SetLogoSize(TvTitlePage.Series, TvLogoSize.Large))
             runCurrent()
-            assertThat(viewModel.content().logoSize).isEqualTo(TvLogoSize.Large)
-            viewModel.onAction(TvSettingsAction.SetLogoSize(TvLogoSize.Small))
+            assertThat(viewModel.content().logoSizes[TvTitlePage.Series]).isEqualTo(TvLogoSize.Large)
+            viewModel.onAction(TvSettingsAction.SetLogoSize(TvTitlePage.Series, TvLogoSize.Small))
             runCurrent()
 
+            // Each page on its own (#619): the others keep theirs.
+            assertThat(viewModel.content().logoSizes[TvTitlePage.Movie]).isEqualTo(TvLogoSize.Medium)
             assertThat(
                 library.preferences
                     .first()
-                    .navigation.tvLogoSize,
-            ).isEqualTo(TvLogoSize.Small)
+                    .navigation.tvLogoSizes,
+            ).containsExactly(TvTitlePage.Series, TvLogoSize.Small)
         }
 
     @Test
@@ -335,7 +338,7 @@ class TvSettingsTest {
         }
 
     @Test
-    fun `Title on pages takes Logo, Logo and name or Name only and is stored (#523)`() =
+    fun `Title on pages takes Logo, Logo and name or Name only and is stored for that page (#523, #619)`() =
         test {
             val library = FakeLibraryPreferencesRepository()
             val viewModel =
@@ -354,17 +357,17 @@ class TvSettingsTest {
 
             val seen =
                 listOf(TvTitleStyle.LogoAndText, TvTitleStyle.Text, TvTitleStyle.Logo).map {
-                    viewModel.onAction(TvSettingsAction.SetTitleStyle(it))
+                    viewModel.onAction(TvSettingsAction.SetTitleStyle(TvTitlePage.Artist, it))
                     runCurrent()
-                    viewModel.content().titleStyle
+                    viewModel.content().titleStyles[TvTitlePage.Artist]
                 }
 
             assertThat(seen).containsExactly(TvTitleStyle.LogoAndText, TvTitleStyle.Text, TvTitleStyle.Logo).inOrder()
             assertThat(
                 library.preferences
                     .first()
-                    .navigation.tvTitle,
-            ).isEqualTo(TvTitleStyle.Logo)
+                    .navigation.tvTitles,
+            ).containsExactly(TvTitlePage.Artist, TvTitleStyle.Logo)
         }
 
     @Test
@@ -460,20 +463,43 @@ class TvSettingsTest {
         }
 
     @Test
-    fun `Settings opens on the categories, focus on the first (#580)`() {
+    fun `Settings opens on the categories, focus on the first, Account (#580, #619)`() {
         show(content())
-        composeRule.onNodeWithText("Sound and streaming").assertIsFocused()
-        composeRule.onNodeWithText("Account").assertExists()
+        composeRule.onNodeWithText("Account").assertIsFocused()
+        composeRule.onNodeWithText("Sound and streaming").assertExists()
     }
 
     @Test
     fun `Right opens the focused category with its rows, Left comes back to it (#580)`() {
         show(content())
         press(Key.DirectionRight)
-        composeRule.onNodeWithText("Dolby Atmos passthrough").assertIsFocused()
+        composeRule.onNodeWithText("Home server").assertIsFocused()
 
         press(Key.DirectionLeft)
-        composeRule.onNodeWithText("Sound and streaming").assertIsFocused()
+        composeRule.onNodeWithText("Account").assertIsFocused()
+    }
+
+    @Test
+    fun `the Home carousel design is picked under Screens, each design with its description (#619)`() {
+        val actions = mutableListOf<TvSettingsAction>()
+        show(content(), actions::add)
+        click("Screens")
+        click("Home")
+        click("Home carousel")
+        click("Design")
+
+        composeRule.onNodeWithText("Card").assertIsFocused()
+        composeRule.onNodeWithText("Featured titles across", substring = true).assertExists()
+        click("Immersive")
+        assertThat(actions).containsExactly(TvSettingsAction.SetCarousel(TvCarousel.Immersive))
+    }
+
+    @Test
+    fun `a subtitle part following the TV offers the system caption settings (#619)`() {
+        show(content().copy(appMode = AppMode.Both))
+        click("Video and subtitles")
+        click("Size")
+        composeRule.onNodeWithText("Open the TV caption settings").assertExists()
     }
 
     @Test

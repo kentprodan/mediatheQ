@@ -71,6 +71,9 @@ class LibraryPreferencesStore
                         tvMenuStyle = prefs[TV_MENU_STYLE],
                         tvTitle = prefs[TV_TITLE],
                         tvLogoSize = prefs[TV_LOGO_SIZE],
+                        tvTitles = prefs[TV_TITLES]?.associate { it.substringBefore('=') to it.substringAfter('=') },
+                        tvLogoSizes =
+                            prefs[TV_LOGO_SIZES]?.associate { it.substringBefore('=') to it.substringAfter('=') },
                         tvPosterAccent = prefs[TV_POSTER_ACCENT],
                         tvCardStyles =
                             prefs[TV_CARD_STYLES]?.associate { it.substringBefore('=') to it.substringAfter('=') },
@@ -269,6 +272,8 @@ class LibraryPreferencesStore
                 prefs.put(TV_MENU_STYLE, navigation.tvMenuStyle)
                 prefs.put(TV_TITLE, navigation.tvTitle)
                 prefs.put(TV_LOGO_SIZE, navigation.tvLogoSize)
+                prefs.put(TV_TITLES, navigation.tvTitles?.map { (k, v) -> "$k=$v" }?.toSet())
+                prefs.put(TV_LOGO_SIZES, navigation.tvLogoSizes?.map { (k, v) -> "$k=$v" }?.toSet())
                 prefs.put(TV_POSTER_ACCENT, navigation.tvPosterAccent)
                 prefs.put(TV_CARD_STYLES, navigation.tvCardStyles?.map { (k, v) -> "$k=$v" }?.toSet())
                 prefs.put(TV_CARDS_PER_SCREEN, navigation.tvCardsPerScreen?.map { (k, v) -> "$k=$v" }?.toSet())
@@ -680,6 +685,10 @@ class LibraryPreferencesStore
             val TV_MENU_STYLE = stringPreferencesKey("tv_menu_style")
             val TV_TITLE = stringPreferencesKey("tv_title")
             val TV_LOGO_SIZE = stringPreferencesKey("tv_logo_size")
+
+            /** `Page=Style` and `Page=Size` pairs (#619). */
+            val TV_TITLES = stringSetPreferencesKey("tv_titles")
+            val TV_LOGO_SIZES = stringSetPreferencesKey("tv_logo_sizes")
             val TV_POSTER_ACCENT = booleanPreferencesKey("tv_poster_accent")
 
             /** `Section=Style` pairs (#518). */
@@ -900,6 +909,10 @@ data class StoredNavigation(
     val tvTitle: String? = null,
     /** `TvLogoSize` name (#578). */
     val tvLogoSize: String? = null,
+    /** `TvTitlePage` name to `TvTitleStyle` name (#619). */
+    val tvTitles: Map<String, String>? = null,
+    /** `TvTitlePage` name to `TvLogoSize` name (#619). */
+    val tvLogoSizes: Map<String, String>? = null,
     /** TV (#517): accent from the poster. */
     val tvPosterAccent: Boolean? = null,
     /** `HomeSection` name to `TvCardStyle` name (#518). */

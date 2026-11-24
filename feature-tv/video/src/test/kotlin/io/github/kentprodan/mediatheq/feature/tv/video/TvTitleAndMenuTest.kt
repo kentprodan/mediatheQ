@@ -23,6 +23,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.ImageType
+import io.github.kentprodan.mediatheq.core.model.TvTitlePage
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTitle
 import org.junit.Rule
@@ -43,21 +44,27 @@ class TvTitleAndMenuTest {
 
     @Test
     fun `Name only shows the name as the heading, with no logo (#523)`() {
-        composeRule.setContent { MediatheqTvTheme { MqTvTitle("Blade Runner", logo, style = TvTitleStyle.Text) } }
+        composeRule.setContent {
+            MediatheqTvTheme { MqTvTitle("Blade Runner", logo, TvTitlePage.Movie, style = TvTitleStyle.Text) }
+        }
 
         composeRule.onNodeWithText("Blade Runner").assert(heading)
     }
 
     @Test
     fun `without a logo, Logo shows the name (#523)`() {
-        composeRule.setContent { MediatheqTvTheme { MqTvTitle("Blade Runner", null, style = TvTitleStyle.Logo) } }
+        composeRule.setContent {
+            MediatheqTvTheme { MqTvTitle("Blade Runner", null, TvTitlePage.Movie, style = TvTitleStyle.Logo) }
+        }
 
         composeRule.onNodeWithText("Blade Runner").assert(heading)
     }
 
     @Test
     fun `a logo that cannot load gives way to the name, read as the heading (#523)`() {
-        composeRule.setContent { MediatheqTvTheme { MqTvTitle("Blade Runner", logo, style = TvTitleStyle.Logo) } }
+        composeRule.setContent {
+            MediatheqTvTheme { MqTvTitle("Blade Runner", logo, TvTitlePage.Movie, style = TvTitleStyle.Logo) }
+        }
         // The failed load arrives from the image loader's own thread.
         composeRule.waitUntil(
             5_000,

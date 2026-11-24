@@ -8,6 +8,7 @@ import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.OutputId
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 import io.github.kentprodan.mediatheq.core.model.TvLogoSize
+import io.github.kentprodan.mediatheq.core.model.TvTitlePage
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 
 /** The HDMI output whose Dolby Atmos passthrough switch Settings shows (ADR 0039). */
@@ -54,10 +55,10 @@ sealed interface TvSettingsUiState {
         /** The side menu's style (#520). */
         val menuStyle: io.github.kentprodan.mediatheq.core.data.TvMenuStyle =
             io.github.kentprodan.mediatheq.core.data.TvMenuStyle.Modal,
-        /** Display -> Title (#523). */
-        val titleStyle: TvTitleStyle = TvTitleStyle.Logo,
-        /** The logo title's size (#578). */
-        val logoSize: TvLogoSize = TvLogoSize.Medium,
+        /** Each detail page's title (#523, #619). */
+        val titleStyles: Map<TvTitlePage, TvTitleStyle> = emptyMap(),
+        /** Each detail page's logo size (#578, #619). */
+        val logoSizes: Map<TvTitlePage, TvLogoSize> = emptyMap(),
         /** Display -> Accent from the poster (#517). */
         val posterAccent: Boolean = false,
     ) : TvSettingsUiState
@@ -92,13 +93,15 @@ sealed interface TvSettingsAction {
         val style: io.github.kentprodan.mediatheq.core.data.TvMenuStyle,
     ) : TvSettingsAction
 
-    /** Display -> Title (#523): Logo, Logo and text or Text. */
+    /** Screens -> a page -> Title on pages (#523, #619): Logo, Logo and name or Name only. */
     data class SetTitleStyle(
+        val page: TvTitlePage,
         val style: TvTitleStyle,
     ) : TvSettingsAction
 
-    /** Settings -> Display -> Logo size (#578). */
+    /** Screens -> a page -> Logo size (#578, #619). */
     data class SetLogoSize(
+        val page: TvTitlePage,
         val size: TvLogoSize,
     ) : TvSettingsAction
 
