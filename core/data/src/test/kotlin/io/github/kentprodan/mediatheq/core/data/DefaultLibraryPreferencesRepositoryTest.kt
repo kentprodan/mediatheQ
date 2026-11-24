@@ -460,6 +460,7 @@ class DefaultLibraryPreferencesRepositoryTest {
                     tvLogoSize = io.github.kentprodan.mediatheq.core.model.TvLogoSize.Large,
                     tvPosterAccent = true,
                     tvCardStyles = mapOf(HomeSection.ContinueWatching to TvCardStyle.Compact),
+                    tvCardsPerScreen = mapOf(HomeSection.ContinueWatching to 2),
                 )
 
             repository.setNavigation(chosen)

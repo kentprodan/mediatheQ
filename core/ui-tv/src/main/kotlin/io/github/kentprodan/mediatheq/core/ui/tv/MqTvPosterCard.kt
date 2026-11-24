@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
@@ -42,6 +43,8 @@ fun MqTvPosterCard(
     style: MqTvCardStyle = MqTvCardStyle.Classic,
     /** The wide variants' two lines under the title (#603). */
     description: String? = null,
+    /** The card's width (#604). */
+    width: Dp = style.width,
 ) {
     MqTvCard(
         title,
@@ -52,6 +55,7 @@ fun MqTvPosterCard(
         imageAspectRatio = aspectRatio,
         style = style,
         description = description,
+        width = width,
     ) {
         Box(Modifier.fillMaxSize()) {
             MqTvCover(artwork, placeholder)

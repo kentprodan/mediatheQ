@@ -32,6 +32,8 @@ data class TvHomeRow(
     val cardStyle: TvCardStyle? = null,
     /** Shown as an immersive list (#521). */
     val immersive: Boolean = false,
+    /** How many cards fit on screen (#604); `null`: the variant's default. */
+    val perScreen: Int? = null,
 )
 
 /** Settings -> Home rows: the sections, then the library's genres (#431) with whether each has a row. */
@@ -54,6 +56,12 @@ sealed interface TvHomeRowsAction {
     data class SetCardStyle(
         val section: HomeSection,
         val style: TvCardStyle?,
+    ) : TvHomeRowsAction
+
+    /** How many of the row's cards fit on screen (#604); `null` goes back to the default. */
+    data class SetPerScreen(
+        val section: HomeSection,
+        val count: Int?,
     ) : TvHomeRowsAction
 
     /** The row as an immersive list on or off (#521). */
@@ -90,6 +98,7 @@ class TvHomeRowsViewModel
                             it !in prefs.home.hidden,
                             prefs.navigation.tvCardStyles[it],
                             it in prefs.navigation.tvImmersiveRows,
+                            prefs.navigation.tvCardsPerScreen[it],
                         )
                     }
             }
@@ -144,6 +153,16 @@ class TvHomeRowsViewModel
                         preferences.setNavigation(
                             navigation.copy(
                                 tvCardStyles = action.style?.let { styles + (action.section to it) } ?: styles,
+                            ),
+                        )
+                    }
+
+                    is TvHomeRowsAction.SetPerScreen -> {
+                        val navigation = preferences.preferences.first().navigation
+                        val counts = navigation.tvCardsPerScreen - action.section
+                        preferences.setNavigation(
+                            navigation.copy(
+                                tvCardsPerScreen = action.count?.let { counts + (action.section to it) } ?: counts,
                             ),
                         )
                     }

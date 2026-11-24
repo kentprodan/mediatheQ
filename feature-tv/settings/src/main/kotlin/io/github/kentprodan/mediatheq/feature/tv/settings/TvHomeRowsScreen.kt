@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
+import io.github.kentprodan.mediatheq.core.data.CARDS_PER_SCREEN
 import io.github.kentprodan.mediatheq.core.data.TvCardStyle
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
@@ -93,8 +94,11 @@ fun TvHomeRowsScreen(
                             isMenu
                         },
                     supporting =
-                        stringResource(cardStyleLabel(row.cardStyle)) +
-                            if (row.immersive) " · " + stringResource(R.string.tv_settings_immersive_row) else "",
+                        listOfNotNull(
+                            stringResource(cardStyleLabel(row.cardStyle)),
+                            row.perScreen?.let { stringResource(R.string.tv_settings_per_screen, it) },
+                            stringResource(R.string.tv_settings_immersive_row).takeIf { row.immersive },
+                        ).joinToString(" · "),
                     onLongClick = { moving = row.section },
                     selected = row.shown,
                     control = MqTvControl.Switch,
@@ -145,6 +149,16 @@ fun TvHomeRowsScreen(
                     onAction(TvHomeRowsAction.SetCardStyle(section, style))
                 }
             }
+        // How many cards fit on screen (#604), after the variants.
+        val sizes =
+            (listOf(null) + CARDS_PER_SCREEN.reversed()).map { count ->
+                MqTvMenuEntry(
+                    count?.let { stringResource(R.string.tv_settings_per_screen, it) }
+                        ?: stringResource(R.string.tv_settings_per_screen_default),
+                    null,
+                    count == row?.perScreen,
+                ) { onAction(TvHomeRowsAction.SetPerScreen(section, count)) }
+            }
         MqTvMenu(
             stringResource(section.title),
             listOf(
@@ -154,7 +168,7 @@ fun TvHomeRowsScreen(
                 MqTvMenuEntry(stringResource(R.string.tv_settings_move_down), null) {
                     onAction(TvHomeRowsAction.Move(section, up = false))
                 },
-            ) + immersive + styles,
+            ) + immersive + styles + sizes,
             onDismiss = { moving = null },
         )
     }

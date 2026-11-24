@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
@@ -33,8 +34,12 @@ fun MqTvAlbumCard(
     onLongClick: (() -> Unit)? = null,
     /** The guideline card variant (#518). */
     style: MqTvCardStyle = MqTvCardStyle.Classic,
+    /** The card's width (#604). */
+    width: Dp = style.width,
 ) {
-    MqTvCard(title, onClick, modifier, subtitle, onLongClick, style = style) { MqTvCover(artwork, placeholder) }
+    MqTvCard(title, onClick, modifier, subtitle, onLongClick, style = style, width = width) {
+        MqTvCover(artwork, placeholder)
+    }
 }
 
 /** The [artwork] filling its box, over a tinted [placeholder] icon that shows until (or instead of) the image. */
