@@ -588,8 +588,11 @@ private fun entryColors(selected: Boolean): ClickableSurfaceColors {
     )
 }
 
-/** Added to the screens' own 48 dp margin, so the collapsed island never covers their first column. */
-private val MENU_SPACE = 32.dp
+/**
+ * Added to the screens' own 48 dp margin, so the collapsed island (it ends 76 dp in) never covers their first column and
+ * a focused, scaled card keeps clear of it: the first column starts 104 dp in.
+ */
+private val MENU_SPACE = 56.dp
 
 /** The screens' own start margin. */
 private val SCREEN_MARGIN = 48.dp

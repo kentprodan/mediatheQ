@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.tv.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -26,8 +27,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -47,7 +46,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -104,7 +102,6 @@ import io.github.kentprodan.mediatheq.core.ui.tv.MqTvRowHeader
 import io.github.kentprodan.mediatheq.core.ui.tv.POSTER_RATIO
 import io.github.kentprodan.mediatheq.core.ui.tv.title
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.debounce
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -258,7 +255,7 @@ private fun Rows(
                         focus,
                         onAction,
                         navigation,
-                        Modifier.rowFocus(focused, FEATURED_KEY).showsWholeRow(),
+                        Modifier.rowFocus(focused, FEATURED_KEY).showsWholeRow(0.dp),
                     )
                 }
             }
@@ -662,7 +659,7 @@ private fun Message(
     onSync ?: {},
 )
 
-// The screen's start margin: with the menu's 32 dp the first card sits 80 dp in, clear of the collapsed rail (#606).
+// The screen's start margin: with the menu's 56 dp the first card sits 104 dp in, clear of the collapsed rail.
 private val EDGE = 48.dp
 
 // The guideline's overscan margin at the top and bottom (27-28 dp).
@@ -776,30 +773,35 @@ private val ROW_HEADER = 70.dp
 // How much of the next row shows under the focused one: the gap, its title and the top of its cards.
 private val PEEK = 110.dp
 
-/** A card asking to be shown brings its whole immersive row instead (#521), so the details above the cards stay on screen. */
-private fun Modifier.showsWholeRow(): Modifier = this then WholeRowElement
+/**
+ * A card asking to be shown brings its whole immersive row instead (#521), so the details above the cards stay on screen,
+ * at least [height] tall: a row that is about to grow scrolls once, to where it ends up, while it grows.
+ */
+private fun Modifier.showsWholeRow(height: Dp): Modifier = this then WholeRowElement(height)
 
-private data object WholeRowElement : ModifierNodeElement<WholeRowNode>() {
-    override fun create() = WholeRowNode()
+private data class WholeRowElement(
+    val height: Dp,
+) : ModifierNodeElement<WholeRowNode>() {
+    override fun create() = WholeRowNode(height)
 
-    override fun update(node: WholeRowNode) = Unit
+    override fun update(node: WholeRowNode) {
+        node.height = height
+    }
 }
 
-private class WholeRowNode :
-    Modifier.Node(),
+private class WholeRowNode(
+    var height: Dp,
+) : Modifier.Node(),
     BringIntoViewModifierNode {
     override suspend fun bringIntoView(
         childCoordinates: LayoutCoordinates,
         boundsProvider: () -> Rect?,
     ) {
         // minimalScroll keeps the row header above a request: start it that far into the row, the row's top is its own.
-        val header = with(requireDensity()) { ROW_HEADER.toPx() }
+        val (header, least) = with(requireDensity()) { ROW_HEADER.toPx() to height.toPx() }
         bringIntoView {
-            requireLayoutCoordinates()
-                .size
-                .toSize()
-                .toRect()
-                .translate(0f, header)
+            val size = requireLayoutCoordinates().size.toSize()
+            Rect(0f, header, size.width, header + maxOf(size.height, least))
         }
     }
 }
@@ -825,14 +827,6 @@ private fun ImmersiveRow(
     content: LazyListScope.() -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    val whole = remember { BringIntoViewRequester() }
-    // Grown, the row asks again to be shown whole: the request its card made came while it was still short.
-    LaunchedEffect(open) {
-        if (open) {
-            delay(GROW_MILLIS.toLong())
-            whole.bringIntoView()
-        }
-    }
     Box(
         Modifier
             .fillMaxWidth()
@@ -840,29 +834,31 @@ private fun ImmersiveRow(
             .then(if (open) Modifier.height(IMMERSIVE_ROW_HEIGHT) else Modifier)
             .rowFocus(focused, key)
             .onFocusChanged { open = it.hasFocus }
-            .showsWholeRow()
-            .bringIntoViewRequester(whole),
+            .showsWholeRow(IMMERSIVE_ROW_HEIGHT),
     ) {
         // Hidden at once when the focus leaves the row, shown only after it rested on a card here.
         val info = hero.value.takeIf { (row) -> row == key && focused.row == key }?.second
-        AnimatedVisibility(
-            visible = info != null,
-            modifier = Modifier.matchParentSize(),
-            enter = fadeIn(tween(REVEAL_MILLIS)),
-            exit = fadeOut(tween(REVEAL_MILLIS)),
-        ) {
-            // The last info stays while it fades out.
-            val shown = remember { mutableStateOf(info) }
-            if (info != null) shown.value = info
+        // The last info stays while it fades out.
+        val shown = remember { mutableStateOf(info) }
+        if (info != null) shown.value = info
+        val reveal = fadeIn(tween(REVEAL_MILLIS))
+        val hide = fadeOut(tween(REVEAL_MILLIS))
+        AnimatedVisibility(info != null, Modifier.matchParentSize(), reveal, hide) {
             Box(Modifier.fillMaxSize()) {
                 MqTvBackdrop(
                     shown.value?.backdrop,
                     Modifier.align(Alignment.TopEnd).fillMaxWidth(BACKDROP_WIDTH).aspectRatio(16f / 9f),
                 ) {}
-                shown.value?.let { Details(it, Modifier.padding(start = EDGE, top = 16.dp)) }
             }
         }
-        CardRow(title, Modifier.align(Alignment.BottomStart), content)
+        // The details sit just above the row's title, like the guideline's immersive list, not at the top of the row.
+        Column(Modifier.align(Alignment.BottomStart)) {
+            // Gone at once when the focus leaves: fading, it would hold the shrinking row open.
+            AnimatedVisibility(info != null, enter = reveal, exit = ExitTransition.None) {
+                shown.value?.let { Details(it, Modifier.padding(start = EDGE, bottom = 16.dp)) }
+            }
+            CardRow(title, content = content)
+        }
     }
 }
 
