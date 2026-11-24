@@ -519,6 +519,17 @@
     <string name="settings_tr_fade_out_summary">La pauză și oprire; nu când întrerupe un apel sau altă aplicație</string>
     <string name="settings_disabled">Dezactivat</string>
     <string name="settings_ms">%1$d ms</string>
+    <string name="settings_tr_crossfade_group">Suprapunerea pieselor</string>
+    <string name="settings_tr_crossfade">Durata suprapunerii</string>
+    <string name="settings_tr_crossfade_summary">Între piese din albume diferite și în cozile amestecate. Nu se folosește când un album se redă în ordine: albumele rămân fără pauze.</string>
+    <string name="settings_seconds">%1$d s</string>
+    <string name="settings_tr_smart">Treceri inteligente</string>
+    <string name="settings_tr_smart_summary">Începe unde piesa devine liniștită și sare peste liniște, după forma ei de undă</string>
+    <string name="settings_tr_out_curve">Curba de scădere</string>
+    <string name="settings_tr_in_curve">Curba de creștere</string>
+    <string name="settings_curve_linear">Liniară</string>
+    <string name="settings_curve_equal_power">Putere egală</string>
+    <string name="settings_curve_exponential">Exponențială</string>
     <string name="settings_auto_actions">Acțiuni automate</string>
     <string name="settings_auto_actions_summary">Căști, Bluetooth, volum și oprire.</string>
     <string name="settings_aa_events">Evenimente ale dispozitivului</string>

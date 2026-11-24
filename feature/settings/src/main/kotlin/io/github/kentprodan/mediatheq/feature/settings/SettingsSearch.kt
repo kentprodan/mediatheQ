@@ -180,7 +180,13 @@ internal val settingsIndex: Map<SettingsPage, List<Int>> =
                 R.string.settings_hb_slow,
             ),
         SettingsPage.NotificationButtons to listOf(R.string.settings_nb_previous, R.string.settings_nb_next),
-        SettingsPage.Transitions to listOf(R.string.settings_tr_fade_in, R.string.settings_tr_fade_out),
+        SettingsPage.Transitions to
+            listOf(
+                R.string.settings_tr_fade_in,
+                R.string.settings_tr_fade_out,
+                // Smart fades and the curves show only with a length: found through Crossfade length.
+                R.string.settings_tr_crossfade,
+            ),
         SettingsPage.AutoActions to
             listOf(
                 R.string.settings_aa_volume,

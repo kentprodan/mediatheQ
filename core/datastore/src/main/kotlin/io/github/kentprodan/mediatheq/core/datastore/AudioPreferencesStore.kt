@@ -71,6 +71,10 @@ class AudioPreferencesStore
                     ),
                 fadeInMs = prefs[TR_FADE_IN_MS],
                 fadeOutMs = prefs[TR_FADE_OUT_MS],
+                crossfadeMs = prefs[TR_CROSSFADE_MS],
+                smartFades = prefs[TR_SMART_FADES],
+                fadeOutCurve = prefs[TR_FADE_OUT_CURVE],
+                fadeInCurve = prefs[TR_FADE_IN_CURVE],
                 video =
                     StoredVideoPreferences(
                         unmeteredQuality = prefs[VIDEO_UNMETERED_QUALITY],
@@ -235,14 +239,15 @@ class AudioPreferencesStore
             }
         }
 
-        /** Transitions (#142): both fade lengths at once; null removes one (the default). */
-        suspend fun setFades(
-            fadeInMs: Int?,
-            fadeOutMs: Int?,
-        ) {
+        /** Transitions (#142, #219): the whole page at once; null removes a value (the default). */
+        suspend fun setTransitions(transitions: StoredTransitions) {
             dataStore.edit {
-                it.put(TR_FADE_IN_MS, fadeInMs)
-                it.put(TR_FADE_OUT_MS, fadeOutMs)
+                it.put(TR_FADE_IN_MS, transitions.fadeInMs)
+                it.put(TR_FADE_OUT_MS, transitions.fadeOutMs)
+                it.put(TR_CROSSFADE_MS, transitions.crossfadeMs)
+                it.put(TR_SMART_FADES, transitions.smartFades)
+                it.put(TR_FADE_OUT_CURVE, transitions.fadeOutCurve)
+                it.put(TR_FADE_IN_CURVE, transitions.fadeInCurve)
             }
         }
 
@@ -316,6 +321,10 @@ class AudioPreferencesStore
             val NB_ACTION_3 = stringPreferencesKey("nb_action_3")
             val TR_FADE_IN_MS = intPreferencesKey("tr_fade_in_ms")
             val TR_FADE_OUT_MS = intPreferencesKey("tr_fade_out_ms")
+            val TR_CROSSFADE_MS = intPreferencesKey("tr_crossfade_ms")
+            val TR_SMART_FADES = booleanPreferencesKey("tr_smart_fades")
+            val TR_FADE_OUT_CURVE = stringPreferencesKey("tr_fade_out_curve")
+            val TR_FADE_IN_CURVE = stringPreferencesKey("tr_fade_in_curve")
             val AA_VOLUME_PAUSE = booleanPreferencesKey("aa_volume_pause")
             val AA_HEADPHONE_PLAY = booleanPreferencesKey("aa_headphone_play")
             val AA_BLUETOOTH_PLAY = booleanPreferencesKey("aa_bluetooth_play")
@@ -360,7 +369,21 @@ data class StoredAudioPreferences(
     val autoActions: StoredAutoActions = StoredAutoActions(),
     val fadeInMs: Int? = null,
     val fadeOutMs: Int? = null,
+    val crossfadeMs: Int? = null,
+    val smartFades: Boolean? = null,
+    val fadeOutCurve: String? = null,
+    val fadeInCurve: String? = null,
     val video: StoredVideoPreferences = StoredVideoPreferences(),
+)
+
+/** Settings -> Playback -> Transitions as stored (#142, #219); `null` = not set. */
+data class StoredTransitions(
+    val fadeInMs: Int? = null,
+    val fadeOutMs: Int? = null,
+    val crossfadeMs: Int? = null,
+    val smartFades: Boolean? = null,
+    val fadeOutCurve: String? = null,
+    val fadeInCurve: String? = null,
 )
 
 /** Settings -> Video as stored (#276); `null` = not set. */

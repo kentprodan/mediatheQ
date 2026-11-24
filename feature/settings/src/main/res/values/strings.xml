@@ -517,6 +517,17 @@
     <string name="settings_tr_fade_out_summary">On pause and stop; not when a call or another app interrupts</string>
     <string name="settings_disabled">Disabled</string>
     <string name="settings_ms">%1$d ms</string>
+    <string name="settings_tr_crossfade_group">Crossfade</string>
+    <string name="settings_tr_crossfade">Crossfade length</string>
+    <string name="settings_tr_crossfade_summary">Between tracks of different albums and in shuffled queues. Not used when an album plays in order: albums stay gapless.</string>
+    <string name="settings_seconds">%1$d s</string>
+    <string name="settings_tr_smart">Smart fades</string>
+    <string name="settings_tr_smart_summary">Starts where the track gets quiet and skips silence, using its waveform</string>
+    <string name="settings_tr_out_curve">Fade out curve</string>
+    <string name="settings_tr_in_curve">Fade in curve</string>
+    <string name="settings_curve_linear">Linear</string>
+    <string name="settings_curve_equal_power">Equal power</string>
+    <string name="settings_curve_exponential">Exponential</string>
     <string name="settings_auto_actions">Automatic actions</string>
     <string name="settings_auto_actions_summary">Headphones, Bluetooth, volume and stop.</string>
     <string name="settings_aa_events">Device events</string>

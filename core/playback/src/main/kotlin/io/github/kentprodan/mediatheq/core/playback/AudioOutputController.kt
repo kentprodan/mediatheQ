@@ -46,6 +46,8 @@ internal data class AudioOutputState(
      * so a 24-bit file keeps its depth. Known before any track, so the first decoder already outputs float.
      */
     val floatOutput: Boolean = false,
+    /** Bit-perfect is wanted on this route (the setting and a USB DAC): no crossfade, whatever the track (#219). */
+    val bitPerfectWanted: Boolean = false,
 )
 
 /**
@@ -82,6 +84,8 @@ internal class AudioOutputController(
     private val offloadBroken: () -> Boolean = { false },
     /** The device takes float PCM ([FloatOutputProbe]): the bit-perfect pipeline is float, so 24 bits come first. */
     private val floatPipeline: Boolean = false,
+    /** A crossfade length is set (#219): two AudioTracks overlap, so no offload. */
+    private val crossfadeOn: () -> Boolean = { false },
 ) {
     private var settings = AudioSettings()
     private var preferred: MixerCapability? = null
@@ -178,6 +182,7 @@ internal class AudioOutputController(
                 requestPassthrough =
                     passthrough.takeIf { AudioPolicy.wantsPassthrough(settings, route, it) }.orEmpty(),
                 floatOutput = floatPipeline && bitPerfect,
+                bitPerfectWanted = bitPerfect,
             ),
         )
         // After publishing: the offload change of this decision is applied first, then the track is reopened.
@@ -263,6 +268,7 @@ internal class AudioOutputController(
         mode: AudioMode,
     ): Boolean {
         val boost = AudioPolicy.boostMillibels(currentGains(), AudioPolicy.normalization(settings), mode)
-        return AudioPolicy.offload(settings, route, passthrough, video = playingVideo(), boosted = boost > 0)
+        return !crossfadeOn() &&
+            AudioPolicy.offload(settings, route, passthrough, video = playingVideo(), boosted = boost > 0)
     }
 }

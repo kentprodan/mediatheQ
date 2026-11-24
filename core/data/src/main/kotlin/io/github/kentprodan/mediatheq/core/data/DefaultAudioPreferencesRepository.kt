@@ -4,6 +4,7 @@ import io.github.kentprodan.mediatheq.core.datastore.AudioPreferencesStore
 import io.github.kentprodan.mediatheq.core.datastore.StoredAutoActions
 import io.github.kentprodan.mediatheq.core.datastore.StoredOutsideControls
 import io.github.kentprodan.mediatheq.core.datastore.StoredPlaybackBehavior
+import io.github.kentprodan.mediatheq.core.datastore.StoredTransitions
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -51,6 +52,10 @@ class DefaultAudioPreferencesRepository
                         TransitionsPreferences(
                             fadeInMs = TransitionsPreferences.fadeMs(stored.fadeInMs ?: 0),
                             fadeOutMs = TransitionsPreferences.fadeMs(stored.fadeOutMs ?: 0),
+                            crossfadeMs = TransitionsPreferences.crossfadeMs(stored.crossfadeMs ?: 0),
+                            smartFades = stored.smartFades ?: false,
+                            fadeOutCurve = enumOrNull<FadeCurve>(stored.fadeOutCurve) ?: FadeCurve.EqualPower,
+                            fadeInCurve = enumOrNull<FadeCurve>(stored.fadeInCurve) ?: FadeCurve.EqualPower,
                         ),
                 )
             }
@@ -140,9 +145,15 @@ class DefaultAudioPreferencesRepository
             )
 
         override suspend fun setTransitions(transitions: TransitionsPreferences?) =
-            store.setFades(
-                transitions?.fadeInMs?.let(TransitionsPreferences::fadeMs),
-                transitions?.fadeOutMs?.let(TransitionsPreferences::fadeMs),
+            store.setTransitions(
+                StoredTransitions(
+                    fadeInMs = transitions?.fadeInMs?.let(TransitionsPreferences::fadeMs),
+                    fadeOutMs = transitions?.fadeOutMs?.let(TransitionsPreferences::fadeMs),
+                    crossfadeMs = transitions?.crossfadeMs?.let(TransitionsPreferences::crossfadeMs),
+                    smartFades = transitions?.smartFades,
+                    fadeOutCurve = transitions?.fadeOutCurve?.name,
+                    fadeInCurve = transitions?.fadeInCurve?.name,
+                ),
             )
 
         private fun autoActions(stored: StoredAutoActions): AutoActionsPreferences {

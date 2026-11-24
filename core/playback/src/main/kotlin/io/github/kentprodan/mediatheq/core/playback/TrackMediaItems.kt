@@ -62,6 +62,7 @@ internal fun Track.toMediaItem(
                         putGains(this@toMediaItem)
                         putOutputFormat(this@toMediaItem)
                         putShuffleWeight(this@toMediaItem)
+                        albumId?.let { putString(EXTRA_ALBUM_ID, it.toString()) }
                     },
                 ).setIsPlayable(true)
                 .setIsBrowsable(false)
@@ -147,6 +148,7 @@ private const val EXTRA_PLAYLIST_ID = "io.github.kentprodan.mediatheq.PLAYLIST_I
 private const val EXTRA_ARTWORK_ID = "io.github.kentprodan.mediatheq.ARTWORK_ID"
 private const val EXTRA_ARTWORK_TAG = "io.github.kentprodan.mediatheq.ARTWORK_TAG"
 private const val EXTRA_ARTWORK_BLUR_HASH = "io.github.kentprodan.mediatheq.ARTWORK_BLUR_HASH"
+private const val EXTRA_ALBUM_ID = "io.github.kentprodan.mediatheq.ALBUM_ID"
 private const val EXTRA_ALBUM_GAIN = "io.github.kentprodan.mediatheq.ALBUM_GAIN"
 private const val EXTRA_TRACK_GAIN = "io.github.kentprodan.mediatheq.TRACK_GAIN"
 private const val EXTRA_SAMPLE_RATE = "io.github.kentprodan.mediatheq.SAMPLE_RATE"
@@ -181,6 +183,12 @@ private fun Bundle.putOutputFormat(track: Track) {
     track.audioFormat?.channels?.let { putInt(EXTRA_CHANNELS, it) }
     track.audioFormat?.spatialFormat?.let { putString(EXTRA_SPATIAL, it.name) }
     track.audioFormat?.codec?.let { putString(EXTRA_CODEC, it) }
+}
+
+/** Where this track sits on its album, for crossfade (#219); `null` without an album id. */
+internal fun MediaItem.albumPlace(): CrossfadePlan.AlbumPlace? {
+    val album = mediaMetadata.extras?.getString(EXTRA_ALBUM_ID) ?: return null
+    return CrossfadePlan.AlbumPlace(album, mediaMetadata.discNumber ?: 1, mediaMetadata.trackNumber ?: 0)
 }
 
 /** Whether the file is Dolby Atmos (as the server reports it), so the service can tell when it plays converted. */

@@ -231,6 +231,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private lateinit var passthroughCapabilities: Media3PassthroughCapabilities
     private lateinit var audioOutput: AudioOutputController
     private lateinit var swap: SwapPlayer
+    private lateinit var crossfader: Crossfader
+
+    /** A crossfade runs (#219): the session-wide loudness boost is the smaller of both tracks' meanwhile. */
+    private var crossfading = false
+
+    /** Sets the player volume and boost again (the normalization's apply), once the audio output is up. */
+    private var applyVolume: () -> Unit = {}
+    private var tailBoost = 0
+
+    /** Waveforms of the playing and the next track, for smart fades (#219); filled on each transition. */
+    private val crossfadeWaveforms = mutableMapOf<MediaId, List<Float>?>()
+    private var crossfadeWaveformJob: Job? = null
 
     /** The controller's last state, for the sink on the playback thread (#629). */
     @Volatile private var outputNow = AudioOutputState()
@@ -254,7 +266,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
             OfflineModeNetwork(networkMonitor, offlineFilter.forced, applicationScope)
         // The player the renderers' recovery seeks, once built.
         var built: ExoPlayer? = null
-        val exoPlayer =
+
+        fun buildPlayer(): ExoPlayer =
             ExoPlayer
                 .Builder(this)
                 .setAudioAttributes(
@@ -324,10 +337,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     ),
                 ).build()
         // Everything holds the swap player (#219): a crossfade can move playback to a second ExoPlayer under it.
-        swap = SwapPlayer(exoPlayer)
+        swap = SwapPlayer(buildPlayer())
         val player = swap.player
         built = player
         startAudioOutput(player)
+        startCrossfade(player, ::buildPlayer)
         autoActions =
             AutoActionsController(this, getSystemService(AudioManager::class.java), player) { audio.autoActions }
         autoActions.start()
@@ -500,7 +514,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     val behaviorChanged = it.behavior != audio.behavior
                     val lyricsChanged = it.behavior.bluetoothLyrics != audio.behavior.bluetoothLyrics
                     val buttonsChanged = it.notificationButtons != audio.notificationButtons
+                    val crossfadeChanged = it.transitions.crossfadeMs != audio.transitions.crossfadeMs
                     audio = it
+                    if (crossfadeChanged && ::crossfader.isInitialized) {
+                        crossfader.onSettingsChanged()
+                        // Crossfade on means no offload (#219).
+                        audioOutput.refresh("crossfade")
+                    }
                     if (behaviorChanged) queuePlayer.onBehaviorChanged()
                     // Bluetooth lyrics also hide the queue from the platform session (ADR 0034).
                     if (buttonsChanged || lyricsChanged) refreshButtons()
@@ -604,6 +624,98 @@ class MediatheqPlaybackService : MediaLibraryService() {
             .build()
     }
 
+    /** Crossfade (#219, ADR 0047): a second player under the swap player, planned from the Transitions settings. */
+    private fun startCrossfade(
+        player: ExoPlayer,
+        buildPlayer: () -> ExoPlayer,
+    ) {
+        fun idOf(item: MediaItem) = runCatching { MediaId.parse(item.mediaId) }.getOrNull()
+        crossfader =
+            Crossfader(
+                swap,
+                newPlayer = buildPlayer,
+                enabled = { audio.transitions.crossfadeMs > 0 },
+                plan = { current, next, durationMs ->
+                    val transitions = audio.transitions
+                    val state = audioOutput.state
+                    val outgoing = idOf(current)
+                    val allowed =
+                        CrossfadePlan.allowed(
+                            crossfadeMs = transitions.crossfadeMs,
+                            hasNext = true,
+                            followsOnAlbum = CrossfadePlan.followsOnAlbum(current.albumPlace(), next.albumPlace()),
+                            video = current.isVideo() || next.isVideo(),
+                            bitPerfectWanted = state.bitPerfectWanted,
+                            passthrough =
+                                current.passthroughMime() in state.requestPassthrough ||
+                                    next.passthroughMime() in state.requestPassthrough,
+                            repeatOne = player.repeatMode == Player.REPEAT_MODE_ONE,
+                            sleepTimerAtTrackEnd = player.pauseAtEndOfMediaItems,
+                            outgoingOnDevice =
+                                outgoing != null &&
+                                    (
+                                        downloads.isDownloaded(outgoing) ||
+                                            streamingCache.isFullyCached(originalCacheKey(outgoing))
+                                    ),
+                        )
+                    if (!allowed) {
+                        null
+                    } else {
+                        val smart = transitions.smartFades
+                        Crossfader.Plan(
+                            lengthMs = transitions.crossfadeMs,
+                            startMs =
+                                CrossfadePlan.startMs(
+                                    durationMs,
+                                    transitions.crossfadeMs,
+                                    outgoing?.takeIf { smart }?.let(crossfadeWaveforms::get),
+                                ),
+                            introSkipMs =
+                                CrossfadePlan.introSkipMs(
+                                    next.mediaMetadata.durationMs ?: 0,
+                                    idOf(next)?.takeIf { smart }?.let(crossfadeWaveforms::get),
+                                ),
+                            outCurve = transitions.fadeOutCurve,
+                            inCurve = transitions.fadeInCurve,
+                        )
+                    }
+                },
+                handler = Handler(Looper.getMainLooper()),
+                onRunning = { running ->
+                    crossfading = running
+                    // The tail is gone: the new track's own boost.
+                    if (!running) applyVolume()
+                },
+                log = { appLog.info(AUDIO_TAG, it) },
+            )
+        crossfader.start()
+        // Smart fades read the waveforms of the playing and the next track (#124).
+        player.addListener(
+            object : Player.Listener {
+                override fun onEvents(
+                    player: Player,
+                    events: Player.Events,
+                ) {
+                    if (!events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_TIMELINE_CHANGED)) return
+                    if (!audio.transitions.smartFades || audio.transitions.crossfadeMs == 0) return
+                    val ids =
+                        listOfNotNull(
+                            player.currentMediaItem,
+                            player.nextMediaItemIndex.takeIf { it != C.INDEX_UNSET }?.let(player::getMediaItemAt),
+                        ).mapNotNull(::idOf)
+                    crossfadeWaveforms.keys.retainAll(ids.toSet())
+                    crossfadeWaveformJob?.cancel()
+                    crossfadeWaveformJob =
+                        applicationScope.launch(Dispatchers.Main) {
+                            ids.filter { it !in crossfadeWaveforms }.forEach {
+                                crossfadeWaveforms[it] = waveforms.levels(it).first()
+                            }
+                        }
+                }
+            },
+        )
+    }
+
     /**
      * Offload, bit-perfect USB and normalization follow the settings, the output device and the playing track (media3
      * skill, sections 5-7).
@@ -698,6 +810,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 playingVideo = { player.currentMediaItem?.isVideo() == true },
                 currentGains = { player.currentMediaItem?.gains() ?: ItemGains(null, null) },
                 offloadBroken = { offloadBroken },
+                crossfadeOn = { audio.transitions.crossfadeMs > 0 },
                 floatPipeline = FloatOutputProbe.supported,
                 port = usbAudio,
                 currentFormat = {
@@ -776,9 +889,13 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 { settings },
                 mode = { audioOutput.state.mode },
                 duck = { (if (ducked) DUCK_VOLUME else 1f) * fader.factor },
-                boost = loudness::set,
+                boost = { mb ->
+                    if (!crossfading) tailBoost = mb
+                    loudness.set(if (crossfading) minOf(mb, tailBoost) else mb)
+                },
             )
         player.addListener(normalization)
+        applyVolume = normalization::apply
         // Fades (#142): bit-perfect has no volume to ramp.
         fader =
             VolumeFader(
@@ -937,6 +1054,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
         waveformWorker.close()
         audioSettingsJob?.cancel()
         outputsJob?.cancel()
+        crossfadeWaveformJob?.cancel()
+        crossfader.release()
         autoActions.release()
         fader.release()
         loudness.release()
