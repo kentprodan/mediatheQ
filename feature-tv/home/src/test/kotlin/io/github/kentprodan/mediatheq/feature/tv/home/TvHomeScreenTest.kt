@@ -188,18 +188,53 @@ class TvHomeScreenTest {
         assertThat(actions).containsExactly(TvHomeAction.Play(TvHomeTarget.Album(id("al1"))))
     }
 
+    private val fourRows =
+        twoRows.copy(
+            rows =
+                twoRows.rows +
+                    listOf(HomeSection.LastPlayedAlbums, HomeSection.MostPlayedAlbums).map {
+                        TvHomeRow(it, HomeItems.Albums(albums))
+                    },
+        )
+
     @Test
-    fun `on the first row the carousel stays in view, a lower row scrolls it away (#574)`() {
-        show(withCarousel)
+    fun `Home scrolls as little as it can, the next row peeks below the focused one, its title in view (#601)`() {
+        show(fourRows)
 
         press(listOf(Key.DirectionDown))
         composeRule.mainClock.advanceTimeBy(1_000)
-        composeRule.onNodeWithContentDescription("Album 1", substring = true).assertIsFocused()
-        composeRule.onNodeWithText("Play").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Favorite 1", substring = true).assertIsFocused()
+        // Scrolled only so far that the row fits with the next one peeking: it sits low, not pulled to the top.
+        val title = composeRule.onNodeWithText("Favorite albums").assertIsDisplayed().fetchSemanticsNode()
+        val height =
+            composeRule
+                .onRoot()
+                .fetchSemanticsNode()
+                .size.height
+        assertThat(title.boundsInRoot.top / height).isGreaterThan(0.2f)
+        // The next row's title is on screen under the focused row.
+        composeRule.onNodeWithText("Last played albums").assertIsDisplayed()
 
-        press(listOf(Key.DirectionDown))
+        press(listOf(Key.DirectionUp))
         composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.onNodeWithText("Recently added albums").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the carousel is not pinned, it scrolls away as the rows come up, and back with Up (#601)`() {
+        show(withCarousel.copy(rows = fourRows.rows))
+
+        repeat(2) {
+            press(listOf(Key.DirectionDown))
+            composeRule.mainClock.advanceTimeBy(1_000)
+        }
         composeRule.onNodeWithText("Play").assertIsNotDisplayed()
+
+        repeat(3) {
+            press(listOf(Key.DirectionUp))
+            composeRule.mainClock.advanceTimeBy(1_000)
+        }
+        composeRule.onNodeWithText("Play").assertIsFocused().assertIsDisplayed()
     }
 
     @Test

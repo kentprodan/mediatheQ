@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.tv.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,6 +26,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -53,7 +56,9 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireLayoutCoordinates
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.relocation.BringIntoViewModifierNode
 import androidx.compose.ui.relocation.bringIntoView
 import androidx.compose.ui.res.pluralStringResource
@@ -206,11 +211,12 @@ private fun Rows(
     val hero = rememberHero(focused)
     val showCarousel = state.carousel != TvCarousel.Off && state.featured.isNotEmpty()
     val cards =
-        remember(focus, onAction, navigation, cardStyles, perScreen) {
+        remember(focus, onAction, navigation, cardStyles, perScreen, state.immersiveRows) {
             Cards(
                 focus,
                 cardStyles,
                 perScreen,
+                state.immersiveRows,
                 onAction,
                 navigation,
                 onFocused = { focused.info = it },
@@ -229,8 +235,10 @@ private fun Rows(
         }
     }
     val list = rememberLazyListState()
-    val rowsToTop = remember(list) { rowsToTop(list) }
-    CompositionLocalProvider(LocalBringIntoViewSpec provides rowsToTop) {
+    val density = LocalDensity.current
+    val scrolling =
+        remember(density) { minimalScroll(with(density) { ROW_HEADER.toPx() }, with(density) { PEEK.toPx() }) }
+    CompositionLocalProvider(LocalBringIntoViewSpec provides scrolling) {
         LazyColumn(
             modifier.fillMaxSize(),
             state = list,
@@ -310,6 +318,7 @@ private class Cards(
     val focus: FocusMemory,
     val cardStyles: Map<HomeSection, TvCardStyle>,
     val perScreen: Map<HomeSection, Int>,
+    val immersive: Set<HomeSection>,
     val onAction: (TvHomeAction) -> Unit,
     val navigation: TvHomeNavigation,
     val onFocused: (HeroInfo?) -> Unit,
@@ -502,7 +511,10 @@ private class Cards(
     ) {
         // The row's variant (#518): 16:9 stills as Wide classic, posters as Standard; a wide choice shows the backdrop.
         val cardStyle = style(row, if (stills) MqTvCardStyle.WideClassic else MqTvCardStyle.Standard)
-        val wide = cardStyle.wide
+        // An immersive row shows 16:9 pictures (#601), four across unless the row says otherwise.
+        val immersiveRow = row.section in immersive
+        val wide = cardStyle.wide || immersiveRow
+        val size = if (immersiveRow && row.section !in perScreen) cardWidth(4) else width(row, cardStyle)
         val episode = video.kind == VideoKind.Episode
         val newCount = video.seriesId?.let { row.newEpisodes[it] }
         val title = if (episode) video.seriesName ?: video.title else video.title
@@ -560,7 +572,7 @@ private class Cards(
             onLongClick = open,
             style = cardStyle,
             description = video.overview,
-            width = width(row, cardStyle),
+            width = size,
         )
     }
 }
@@ -716,22 +728,38 @@ private fun rememberHero(focus: HeroFocus): State<Pair<String?, HeroInfo?>> =
     }
 
 /**
- * The focused row lands near the top, at the same place every time, like Google TV. While Home is still at its top and
- * the row is wholly on screen (the first row under the carousel, #574), nothing moves: the carousel stays in view and
- * its slides advance.
+ * Home scrolls as little as it can (#601, the guideline's immersive list motion): a focused card's row comes into view
+ * with its title ([header] above the card) and, below it, [peek] of the next row (its title and the top of its cards),
+ * so the row lands at the bottom when going down and at the top when going up. Nothing is pinned: the carousel scrolls
+ * away as the rows come up.
  */
-private fun rowsToTop(list: LazyListState) =
-    object : BringIntoViewSpec {
-        override fun calculateScrollDistance(
-            offset: Float,
-            size: Float,
-            containerSize: Float,
-        ): Float =
-            if (!list.canScrollBackward && offset >= 0 && offset + size <= containerSize) 0f else offset - ROW_HEADER_PX
-    }
+private fun minimalScroll(
+    header: Float,
+    peek: Float,
+) = object : BringIntoViewSpec {
+    override fun calculateScrollDistance(
+        offset: Float,
+        size: Float,
+        containerSize: Float,
+    ): Float {
+        val leading = offset - header
+        val trailing = offset + size + peek - containerSize
+        return when {
+            leading < 0 -> leading
 
-// The row title and its padding above the cards, so the title stays in view.
-private const val ROW_HEADER_PX = 140f
+            // Never past the row's own top: a row taller than the room left keeps its title in view.
+            trailing > 0 -> minOf(trailing, leading)
+
+            else -> 0f
+        }
+    }
+}
+
+// The row title and its padding above the cards, kept in view with the cards.
+private val ROW_HEADER = 70.dp
+
+// How much of the next row shows under the focused one: the gap, its title and the top of its cards.
+private val PEEK = 110.dp
 
 /** A card asking to be shown brings its whole immersive row instead (#521), so the details above the cards stay on screen. */
 private fun Modifier.showsWholeRow(): Modifier = this then WholeRowElement
@@ -749,13 +777,14 @@ private class WholeRowNode :
         childCoordinates: LayoutCoordinates,
         boundsProvider: () -> Rect?,
     ) {
-        // rowsToTop lands a request's top ROW_HEADER_PX down: start it that far into the row so the row's top lands at 0.
+        // minimalScroll keeps the row header above a request: start it that far into the row, the row's top is its own.
+        val header = with(requireDensity()) { ROW_HEADER.toPx() }
         bringIntoView {
             requireLayoutCoordinates()
                 .size
                 .toSize()
                 .toRect()
-                .translate(0f, ROW_HEADER_PX)
+                .translate(0f, header)
         }
     }
 }
@@ -767,9 +796,9 @@ private fun Modifier.rowFocus(
 ): Modifier = onFocusChanged { if (it.hasFocus) focused.row = key }
 
 /**
- * An immersive list (#521, Google TV guidelines): while the row has the focus, the focused card's 16:9 backdrop
- * aligned top right under a cinematic scrim and its details, revealed once the focus rests; the row keeps one fixed
- * height, so nothing around it moves.
+ * An immersive list (#521, Google TV guidelines): a plain row until it gets the focus, then it grows (#601) to show the
+ * focused card's 16:9 backdrop aligned top right under a cinematic scrim and its details, revealed once the focus
+ * rests, with its cards low and the next row peeking below.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -780,12 +809,24 @@ private fun ImmersiveRow(
     hero: State<Pair<String?, HeroInfo?>>,
     content: LazyListScope.() -> Unit,
 ) {
+    var open by remember { mutableStateOf(false) }
+    val whole = remember { BringIntoViewRequester() }
+    // Grown, the row asks again to be shown whole: the request its card made came while it was still short.
+    LaunchedEffect(open) {
+        if (open) {
+            delay(GROW_MILLIS.toLong())
+            whole.bringIntoView()
+        }
+    }
     Box(
         Modifier
             .fillMaxWidth()
-            .height(IMMERSIVE_ROW_HEIGHT)
+            .animateContentSize(tween(GROW_MILLIS))
+            .then(if (open) Modifier.height(IMMERSIVE_ROW_HEIGHT) else Modifier)
             .rowFocus(focused, key)
-            .showsWholeRow(),
+            .onFocusChanged { open = it.hasFocus }
+            .showsWholeRow()
+            .bringIntoViewRequester(whole),
     ) {
         // Hidden at once when the focus leaves the row, shown only after it rested on a card here.
         val info = hero.value.takeIf { (row) -> row == key && focused.row == key }?.second
@@ -809,6 +850,8 @@ private fun ImmersiveRow(
         CardRow(title, Modifier.align(Alignment.BottomStart), content)
     }
 }
+
+private const val GROW_MILLIS = 250
 
 /** The immersive row's details: the focused card's title, facts and two lines of overview. */
 @Composable
