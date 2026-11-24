@@ -244,8 +244,9 @@ private fun Rows(
             state = list,
             contentPadding =
                 PaddingValues(
-                    top = if (showCarousel && state.carousel == TvCarousel.Immersive) 0.dp else 32.dp,
-                    bottom = 32.dp,
+                    // The guideline's overscan margin top and bottom (#606); an immersive carousel goes edge to edge.
+                    top = if (showCarousel && state.carousel == TvCarousel.Immersive) 0.dp else SAFE_VERTICAL,
+                    bottom = SAFE_VERTICAL,
                 ),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
@@ -290,13 +291,14 @@ private fun CardRow(
     modifier: Modifier = Modifier,
     content: LazyListScope.() -> Unit,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    // 16 dp from the title to the cards (#606): 4 here and the row's 12 dp, which leaves room for the focus scale.
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         MqTvRowHeader(title, Modifier.padding(horizontal = EDGE))
         // Focus coming back into a row lands on the card it left (the column position is kept).
         CompositionLocalProvider(LocalBringIntoViewSpec provides Pivot) {
             LazyRow(
                 Modifier.fillMaxWidth().focusRestorer(),
-                contentPadding = PaddingValues(horizontal = EDGE, vertical = 16.dp),
+                contentPadding = PaddingValues(horizontal = EDGE, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
                 content = content,
             )
@@ -660,7 +662,11 @@ private fun Message(
     onSync ?: {},
 )
 
+// The screen's start margin: with the menu's 32 dp the first card sits 80 dp in, clear of the collapsed rail (#606).
 private val EDGE = 48.dp
+
+// The guideline's overscan margin at the top and bottom (27-28 dp).
+private val SAFE_VERTICAL = 28.dp
 
 /** The focused card sits 30 % from the row's start; rows scroll under that fixed line (#236). */
 @OptIn(ExperimentalFoundationApi::class)
