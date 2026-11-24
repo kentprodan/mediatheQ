@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 ## [Unreleased]
 
 ### Added
+- Crossfade (Settings -> Playback -> Transitions): 1 to 12 seconds between tracks of different albums and in shuffled queues, with fade curves and smart fades that start where a track gets quiet. Albums playing in order stay gapless; no crossfade on bit-perfect or passthrough outputs, and only for tracks downloaded or fully cached.
 - Bit-perfect USB: 24-bit files reach the DAC with all 24 bits, and DACs that take only 24 or 32-bit audio now play bit-perfect too. Files above 192 kHz play at half their rate on other outputs, where some phones stall.
 - DTS, DTS-HD, TrueHD and Dolby Atmos (E-AC-3) play from the original file on the phone and on the TV without passthrough, decoded on the device by FFmpeg instead of converted by the server. A track the device cannot decode at all is skipped instead of playing silence.
 - TV Settings -> Home rows: each row can show 1 to 5 cards across the screen (long press a row).

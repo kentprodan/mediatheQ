@@ -243,7 +243,7 @@ Rules:
 
 ## 14. Don'ts
 
-- No `ExoPlayer` outside the service. No second player instance.
+- No `ExoPlayer` outside the service. No second player instance, except the crossfade's, behind `SwapPlayer` (#219, ADR 0047 amendment): never hold an ExoPlayer directly, always the swap player.
 - No custom `AudioSink` subclass without an ADR (the two wrappers are ADR 0055).
 - No direct USB access APIs for audio (use mixer attributes).
 - No hard-coded device capabilities or codec lists.

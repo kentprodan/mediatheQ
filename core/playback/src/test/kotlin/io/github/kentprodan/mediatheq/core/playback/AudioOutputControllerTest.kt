@@ -28,6 +28,15 @@ class AudioOutputControllerTest {
     private val bitPerfectOn = AudioSettings(bitPerfectUsb = true)
 
     @Test
+    fun `a crossfade length turns offload off (#219)`() {
+        val crossfading = AudioOutputController(port, { format }, changes::add, { false }, crossfadeOn = { true })
+
+        crossfading.setSettings(AudioSettings())
+
+        assertThat(crossfading.state.offload).isFalse()
+    }
+
+    @Test
     fun `without a DAC nothing is preferred and audio is offloaded`() {
         controller.setSettings(bitPerfectOn)
 
@@ -43,7 +52,9 @@ class AudioOutputControllerTest {
 
         assertThat(port.preferred).isEqualTo(MixerCapability(cd, bitPerfect = true))
         assertThat(controller.state)
-            .isEqualTo(AudioOutputState(AudioRoute.UsbDac, offload = false, AudioMode.BitPerfect, cd))
+            .isEqualTo(
+                AudioOutputState(AudioRoute.UsbDac, offload = false, AudioMode.BitPerfect, cd, bitPerfectWanted = true),
+            )
     }
 
     @Test
@@ -79,7 +90,16 @@ class AudioOutputControllerTest {
 
         assertThat(port.preferred).isNull()
         assertThat(controller.state)
-            .isEqualTo(AudioOutputState(AudioRoute.UsbDac, offload = false, AudioMode.Processed, null, true))
+            .isEqualTo(
+                AudioOutputState(
+                    AudioRoute.UsbDac,
+                    offload = false,
+                    AudioMode.Processed,
+                    null,
+                    true,
+                    bitPerfectWanted = true,
+                ),
+            )
     }
 
     @Test

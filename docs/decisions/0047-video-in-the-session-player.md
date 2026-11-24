@@ -44,3 +44,24 @@ or the one session player with a video item on it.
 - If daily use shows that music should resume by itself after a video, that is one setting in a later issue.
 - In the `Video` app mode (ADR 0051) the hand-back does not happen: the saved music queue stays saved and is
   restored only after a switch back to `Music` or `Both`.
+
+## Amendment (2026-11-24, #219): two ExoPlayers under one player for crossfade
+
+The owner chose crossfade with two players behind one session player (`docs/research/audio-video-engine.md`, section
+7), and a layer in front of both so nothing else changes.
+
+- "One player" now means one `SwapPlayer`: a proxy `ExoPlayer` that the service, the session and every listener
+  hold. It forwards each call to the active ExoPlayer, keeps the listeners itself and moves them when the active one
+  changes, and owns the volume (the target the normalization, fades and ducking set, times the crossfade's gain).
+- `Crossfader` builds a second ExoPlayer like the first. A few seconds before the crossfade it gets the same queue,
+  shuffle order and repeat mode, the next item (after its silent intro with smart fades), volume 0, and the same audio
+  session id, so the equalizer and the loudness effect are never re-attached. At the start it plays, the swap player
+  moves to it, and the listeners get one automatic transition (the outgoing track reported as played to its end). The
+  outgoing player plays its tail unobserved along the curves, then stops and becomes the next spare.
+- A pause during the crossfade silences the tail at once; a seek, a skip or a queue change ends it. Anything wrong
+  before the start leaves the plain gapless transition. During the overlap the session-wide loudness boost is the
+  smaller of the two tracks'.
+- No crossfade for video, bit-perfect, passthrough, repeat one, a sleep timer ending with the track, the next track of
+  the same album in order, or an outgoing track that is not whole on the device (`CrossfadePlan.allowed`). A crossfade
+  length turns offload off.
+- Video still plays on whichever ExoPlayer is active; nothing here changes the video rules above.
