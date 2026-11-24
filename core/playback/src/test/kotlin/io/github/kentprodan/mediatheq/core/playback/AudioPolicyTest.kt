@@ -279,4 +279,32 @@ class AudioPolicyTest {
     fun `a playing video is never offloaded`() {
         assertThat(AudioPolicy.offload(AudioSettings(), AudioRoute.Other, video = true)).isFalse()
     }
+
+    @Test
+    fun `a quiet track keeps full volume and is raised by its gain instead, without offload (#627)`() {
+        val quiet = ItemGains(albumDb = 4.5, trackDb = 2.0)
+
+        assertThat(AudioPolicy.volume(quiet, Normalization.Album, AudioMode.Offload)).isEqualTo(1f)
+        assertThat(AudioPolicy.boostMillibels(quiet, Normalization.Album, AudioMode.Offload)).isEqualTo(450)
+        assertThat(AudioPolicy.boostMillibels(quiet, Normalization.Track, AudioMode.Offload)).isEqualTo(200)
+        assertThat(AudioPolicy.offload(AudioSettings(), AudioRoute.Other, boosted = true)).isFalse()
+    }
+
+    @Test
+    fun `a loud track, no normalization or a fixed volume raises nothing (#627)`() {
+        assertThat(
+            AudioPolicy.boostMillibels(ItemGains(-3.0, null), Normalization.Album, AudioMode.Offload),
+        ).isEqualTo(0)
+        assertThat(AudioPolicy.boostMillibels(ItemGains(5.0, null), Normalization.Off, AudioMode.Offload)).isEqualTo(0)
+        assertThat(AudioPolicy.boostMillibels(ItemGains(5.0, null), Normalization.Album, AudioMode.Passthrough))
+            .isEqualTo(0)
+        assertThat(AudioPolicy.boostMillibels(ItemGains(5.0, null), Normalization.Album, AudioMode.BitPerfect))
+            .isEqualTo(0)
+    }
+
+    @Test
+    fun `a boost is capped at 12 dB (#627)`() {
+        assertThat(AudioPolicy.boostMillibels(ItemGains(20.0, null), Normalization.Album, AudioMode.Processed))
+            .isEqualTo(1200)
+    }
 }

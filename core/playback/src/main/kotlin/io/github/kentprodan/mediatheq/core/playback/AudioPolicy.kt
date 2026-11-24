@@ -4,6 +4,7 @@ import androidx.media3.common.MimeTypes
 import io.github.kentprodan.mediatheq.core.data.Normalization
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import kotlin.math.pow
+import kotlin.math.roundToInt
 
 /** How the player outputs audio (media3 skill, section 7). */
 internal enum class AudioMode {
@@ -80,8 +81,14 @@ internal object AudioPolicy {
         passthrough: Set<String> = emptySet(),
         /** A video plays (ADR 0047): offloaded audio cannot be kept in sync with the picture. */
         video: Boolean = false,
+        /**
+         * The playing track is raised by its gain (#627): the boost works on PCM only. In album normalization every
+         * track of an album has the same gain, so this changes between albums, never inside a gapless one.
+         */
+        boosted: Boolean = false,
     ): Boolean =
         !video &&
+            !boosted &&
             !equalizer(settings) &&
             !wantsBitPerfect(settings, route) &&
             !wantsPassthrough(settings, route, passthrough)
@@ -184,24 +191,48 @@ internal object AudioPolicy {
     ): Boolean = playMethod == PlayMethod.DirectPlay && !convertedDownload
 
     /**
-     * Player volume for a track with these gains in [mode]: album gain with the track's as fallback (or the other way
-     * round in [Normalization.Track]). Never above 1: a positive gain would need a limiter to avoid clipping. Always 1
-     * in bit-perfect and passthrough modes ([fixedVolume]), where the audio must reach the device unchanged.
+     * The gain (dB) a track with these gains gets: album gain with the track's as fallback (or the other way round in
+     * [Normalization.Track]); `null` without normalization or a gain. Never in bit-perfect or passthrough modes
+     * ([fixedVolume]), where the audio must reach the device unchanged.
      */
+    fun gainDb(
+        gains: ItemGains,
+        normalization: Normalization,
+        mode: AudioMode,
+    ): Double? {
+        if (fixedVolume(mode)) return null
+        return when (normalization) {
+            Normalization.Album -> gains.albumDb ?: gains.trackDb
+            Normalization.Track -> gains.trackDb ?: gains.albumDb
+            Normalization.Off -> null
+        }
+    }
+
+    /** Player volume for the gain: a cut through the volume (works with offload), never above 1. */
     fun volume(
         gains: ItemGains,
         normalization: Normalization,
         mode: AudioMode,
     ): Float {
-        if (fixedVolume(mode)) return 1f
-        val db =
-            when (normalization) {
-                Normalization.Album -> gains.albumDb ?: gains.trackDb
-                Normalization.Track -> gains.trackDb ?: gains.albumDb
-                Normalization.Off -> null
-            } ?: return 1f
-        return 10.0.pow(db / 20).toFloat().coerceIn(0f, 1f)
+        val db = gainDb(gains, normalization, mode) ?: return 1f
+        return 10.0.pow(db.coerceAtMost(0.0) / 20).toFloat().coerceIn(0f, 1f)
     }
+
+    /**
+     * A positive gain (a quiet track, #627) as millibels for the loudness enhancer, whose limiter keeps the raised
+     * track from clipping (Jellyfin gives no peaks); capped at [MAX_BOOST_MB]. 0 when nothing is raised.
+     */
+    fun boostMillibels(
+        gains: ItemGains,
+        normalization: Normalization,
+        mode: AudioMode,
+    ): Int {
+        val db = gainDb(gains, normalization, mode) ?: return 0
+        return (db * 100).roundToInt().coerceIn(0, MAX_BOOST_MB)
+    }
+
+    /** 12 dB: past this a "quiet" track is more likely a mis-tagged gain than a quiet master. */
+    private const val MAX_BOOST_MB = 1200
 
     /** Converted downloads and conversions of undecodable formats are Opus at this bitrate (ADR 0024). */
     private const val CONVERTED_DOWNLOAD_KBPS = 256
