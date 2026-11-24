@@ -44,6 +44,7 @@ import io.github.kentprodan.mediatheq.core.data.AutoDownloads
 import io.github.kentprodan.mediatheq.core.data.AutoOffline
 import io.github.kentprodan.mediatheq.core.data.BehaviorSwitch
 import io.github.kentprodan.mediatheq.core.data.ColorSource
+import io.github.kentprodan.mediatheq.core.data.FadeCurve
 import io.github.kentprodan.mediatheq.core.data.GenrePagePreferences
 import io.github.kentprodan.mediatheq.core.data.HomePreferences
 import io.github.kentprodan.mediatheq.core.data.ImagePreferences
@@ -878,7 +879,8 @@ class SettingsScreenTest {
             SettingsUiState.Content(AudioPreferences(transitions = TransitionsPreferences(fadeOutMs = 300))),
         )
         assertRows("Fade in", "Fade out")
-        composeRule.onNodeWithText("Disabled").assertExists()
+        // Fade in; crossfade, further down, is disabled too.
+        composeRule.onAllNodesWithText("Disabled")[0].assertExists()
         composeRule.onNodeWithText("300 ms").assertExists()
 
         composeRule
@@ -887,6 +889,34 @@ class SettingsScreenTest {
 
         assertThat(actions)
             .containsExactly(SettingsAction.SetTransitions(TransitionsPreferences(fadeInMs = 500, fadeOutMs = 300)))
+    }
+
+    @Test
+    fun `crossfade shows its length in seconds, and its curves apply at once (#219)`() {
+        val on = TransitionsPreferences(crossfadeMs = 6_000)
+        show(SettingsPage.Transitions, SettingsUiState.Content(AudioPreferences(transitions = on)))
+        scrollTo("Crossfade length")
+        composeRule.onNodeWithText("6 s").assertExists()
+
+        composeRule
+            .onNodeWithContentDescription("Crossfade length")
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(9_000f) }
+        scrollTo("Fade in curve")
+        composeRule.onAllNodesWithText("Linear")[1].performClick()
+
+        assertThat(actions)
+            .containsExactly(
+                SettingsAction.SetTransitions(on.copy(crossfadeMs = 9_000)),
+                SettingsAction.SetTransitions(on.copy(fadeInCurve = FadeCurve.Linear)),
+            ).inOrder()
+    }
+
+    @Test
+    fun `with crossfade disabled its switch and curves are off`() {
+        show(SettingsPage.Transitions)
+        scrollTo("Smart fades")
+
+        composeRule.onNode(hasText("Smart fades") and hasClickAction()).assertIsNotEnabled()
     }
 
     @Test

@@ -243,6 +243,32 @@ class DefaultAudioPreferencesRepositoryTest {
         }
 
     @Test
+    fun `crossfade is off by default, kept in whole seconds up to 12, with its switch and curves`() =
+        runTest {
+            val defaults = repository.preferences.first().transitions
+            assertThat(defaults.crossfadeMs).isEqualTo(0)
+            assertThat(defaults.smartFades).isFalse()
+            assertThat(defaults.fadeOutCurve).isEqualTo(FadeCurve.EqualPower)
+
+            val chosen =
+                TransitionsPreferences(
+                    crossfadeMs = 6_400,
+                    smartFades = true,
+                    fadeOutCurve = FadeCurve.Linear,
+                    fadeInCurve = FadeCurve.Exponential,
+                )
+            repository.setTransitions(chosen)
+            assertThat(repository.preferences.first().transitions).isEqualTo(chosen.copy(crossfadeMs = 6_000))
+
+            repository.setTransitions(chosen.copy(crossfadeMs = 60_000))
+            assertThat(
+                repository.preferences
+                    .first()
+                    .transitions.crossfadeMs,
+            ).isEqualTo(12_000)
+        }
+
+    @Test
     fun `automatic actions are kept, and their restore resets only that page`() =
         runTest {
             val focus = AudioFocusPreferences(ShortFocusAction.Pause, noResumeAfterLongLoss = true)

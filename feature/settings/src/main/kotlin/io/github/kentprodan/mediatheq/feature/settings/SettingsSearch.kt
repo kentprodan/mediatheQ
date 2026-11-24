@@ -180,7 +180,15 @@ internal val settingsIndex: Map<SettingsPage, List<Int>> =
                 R.string.settings_hb_slow,
             ),
         SettingsPage.NotificationButtons to listOf(R.string.settings_nb_previous, R.string.settings_nb_next),
-        SettingsPage.Transitions to listOf(R.string.settings_tr_fade_in, R.string.settings_tr_fade_out),
+        SettingsPage.Transitions to
+            listOf(
+                R.string.settings_tr_fade_in,
+                R.string.settings_tr_fade_out,
+                R.string.settings_tr_crossfade,
+                R.string.settings_tr_smart,
+                R.string.settings_tr_out_curve,
+                R.string.settings_tr_in_curve,
+            ),
         SettingsPage.AutoActions to
             listOf(
                 R.string.settings_aa_volume,
