@@ -45,6 +45,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
 import io.github.kentprodan.mediatheq.core.model.MediaId
+import io.github.kentprodan.mediatheq.core.model.TvTitlePage
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvPosterAccent
@@ -105,7 +106,7 @@ private fun Content(
     MqTvBackdrop(series.backdrop, Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().padding(top = 48.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.padding(horizontal = EDGE), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                MqTvTitle(series.title, series.logo, maxLines = 1)
+                MqTvTitle(series.title, series.logo, TvTitlePage.Series, maxLines = 1)
                 val facts =
                     listOfNotNull(
                         series.year?.toString(),

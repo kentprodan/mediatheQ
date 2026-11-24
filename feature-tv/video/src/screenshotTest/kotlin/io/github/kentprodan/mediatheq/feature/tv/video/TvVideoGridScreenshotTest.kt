@@ -265,7 +265,8 @@ private fun MovieTitle(
                 ?: coil3.ColorImage(0, width = 1, height = 1)
         }
     androidx.compose.runtime.CompositionLocalProvider(
-        io.github.kentprodan.mediatheq.core.ui.tv.LocalTvTitleStyle provides style,
+        io.github.kentprodan.mediatheq.core.ui.tv.LocalTvTitleStyle provides
+            mapOf(io.github.kentprodan.mediatheq.core.model.TvTitlePage.Movie to style),
         coil3.compose.LocalAsyncImagePreviewHandler provides preview,
     ) {
         MediatheqTvTheme {

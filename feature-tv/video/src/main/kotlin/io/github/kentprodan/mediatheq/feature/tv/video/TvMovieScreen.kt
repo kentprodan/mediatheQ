@@ -46,6 +46,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
 import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.StreamType
+import io.github.kentprodan.mediatheq.core.model.TvTitlePage
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvAlbumCard
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvBackdrop
@@ -102,7 +103,7 @@ fun TvMovieScreen(
                             .padding(start = 48.dp, end = 48.dp, top = 96.dp, bottom = 48.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        MqTvTitle(movie.title, movie.logo)
+                        MqTvTitle(movie.title, movie.logo, TvTitlePage.Movie)
                         facts(movie).takeIf { it.isNotEmpty() }?.let {
                             Text(
                                 it,

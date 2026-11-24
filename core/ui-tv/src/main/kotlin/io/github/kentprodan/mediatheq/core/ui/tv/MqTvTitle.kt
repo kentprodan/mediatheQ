@@ -23,26 +23,28 @@ import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.TvLogoSize
+import io.github.kentprodan.mediatheq.core.model.TvTitlePage
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 
-/** The title style of the detail pages, from Settings -> Display -> Title (#523); the TV shell provides it. */
-val LocalTvTitleStyle = staticCompositionLocalOf { TvTitleStyle.Logo }
+/** Each detail page's title style, from Settings -> Screens (#523, #619); the TV shell provides it. */
+val LocalTvTitleStyle = staticCompositionLocalOf { emptyMap<TvTitlePage, TvTitleStyle>() }
 
-/** The logo's size, from Settings -> Display -> Logo size (#578); the TV shell provides it. */
-val LocalTvLogoSize = staticCompositionLocalOf { TvLogoSize.Medium }
+/** Each detail page's logo size, from Settings -> Screens (#578, #619); the TV shell provides it. */
+val LocalTvLogoSize = staticCompositionLocalOf { emptyMap<TvTitlePage, TvLogoSize>() }
 
 /**
- * A detail page's title (#523): the item's [logo] (left aligned, [size] high), the [title] as text, or
+ * A detail [page]'s title (#523): the item's [logo] (left aligned, [size] high), the [title] as text, or
  * both, as [style] says; without a logo it is always the text. Read as one heading named [title].
  */
 @Composable
 fun MqTvTitle(
     title: String,
     logo: Artwork?,
+    page: TvTitlePage,
     modifier: Modifier = Modifier,
     maxLines: Int = 2,
-    style: TvTitleStyle = LocalTvTitleStyle.current,
-    size: TvLogoSize = LocalTvLogoSize.current,
+    style: TvTitleStyle = LocalTvTitleStyle.current[page] ?: TvTitleStyle.Logo,
+    size: TvLogoSize = LocalTvLogoSize.current[page] ?: TvLogoSize.Medium,
 ) {
     // A logo that does not load (offline, gone from the server) gives way to the name.
     var failed by remember(logo) { mutableStateOf(false) }

@@ -3,6 +3,7 @@ package io.github.kentprodan.mediatheq.core.data
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.TvLogoSize
+import io.github.kentprodan.mediatheq.core.model.TvTitlePage
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 
 /** A destination the main navigation can show (#122). */
@@ -76,10 +77,14 @@ data class NavigationPreferences(
     val tvImmersiveRows: Set<HomeSection> = emptySet(),
     /** TV (#520): how the side menu opens. */
     val tvMenuStyle: TvMenuStyle = TvMenuStyle.Modal,
-    /** TV (#523): the title of the detail pages; the logo by default. */
+    /** TV (#523): the title of the detail pages; the logo by default. A page set on its own (#619) is in [tvTitles]. */
     val tvTitle: TvTitleStyle = TvTitleStyle.Logo,
-    /** TV (#578): the logo title's size. */
+    /** TV (#578): the logo title's size; a page set on its own (#619) is in [tvLogoSizes]. */
     val tvLogoSize: TvLogoSize = TvLogoSize.Medium,
+    /** TV (#619): the title of each detail page; a page missing here keeps [tvTitle]. */
+    val tvTitles: Map<TvTitlePage, TvTitleStyle> = emptyMap(),
+    /** TV (#619): the logo size of each detail page; a page missing here keeps [tvLogoSize]. */
+    val tvLogoSizes: Map<TvTitlePage, TvLogoSize> = emptyMap(),
     /** TV (#517): detail pages take their accent from the poster or cover; off keeps Iris. */
     val tvPosterAccent: Boolean = false,
     /** TV (#518): the card variant a Home row uses; a row missing here keeps its own default. */
@@ -94,6 +99,12 @@ data class NavigationPreferences(
             listOf(MainNavEntry.Home, MainNavEntry.Library, MainNavEntry.Search, MainNavEntry.Downloads)
     }
 }
+
+/** The title [page] shows (#619). */
+fun NavigationPreferences.tvTitleOf(page: TvTitlePage): TvTitleStyle = tvTitles[page] ?: tvTitle
+
+/** The logo size [page] shows (#619). */
+fun NavigationPreferences.tvLogoSizeOf(page: TvTitlePage): TvLogoSize = tvLogoSizes[page] ?: tvLogoSize
 
 /**
  * [entries] without repeats, with [MainNavEntry.Home] (added first when missing: Settings is reached from it) and at

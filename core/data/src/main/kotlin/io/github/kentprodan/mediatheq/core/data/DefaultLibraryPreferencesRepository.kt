@@ -18,6 +18,7 @@ import io.github.kentprodan.mediatheq.core.model.HomeSection
 import io.github.kentprodan.mediatheq.core.model.HomeSectionSettings
 import io.github.kentprodan.mediatheq.core.model.LibraryShortcut
 import io.github.kentprodan.mediatheq.core.model.TvLogoSize
+import io.github.kentprodan.mediatheq.core.model.TvTitlePage
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -127,6 +128,8 @@ class DefaultLibraryPreferencesRepository
                     tvMenuStyle = navigation.tvMenuStyle.name,
                     tvTitle = navigation.tvTitle.name,
                     tvLogoSize = navigation.tvLogoSize.name,
+                    tvTitles = navigation.tvTitles.entries.associate { (k, v) -> k.name to v.name },
+                    tvLogoSizes = navigation.tvLogoSizes.entries.associate { (k, v) -> k.name to v.name },
                     tvPosterAccent = navigation.tvPosterAccent,
                     tvCardStyles = navigation.tvCardStyles.entries.associate { (k, v) -> k.name to v.name },
                     tvCardsPerScreen = navigation.tvCardsPerScreen.entries.associate { (k, v) -> k.name to "$v" },
@@ -165,6 +168,8 @@ class DefaultLibraryPreferencesRepository
                 tvMenuStyle = enumOrNull<TvMenuStyle>(stored.tvMenuStyle) ?: defaults.tvMenuStyle,
                 tvTitle = enumOrNull<TvTitleStyle>(stored.tvTitle) ?: defaults.tvTitle,
                 tvLogoSize = enumOrNull<TvLogoSize>(stored.tvLogoSize) ?: defaults.tvLogoSize,
+                tvTitles = byPage(stored.tvTitles) { enumOrNull<TvTitleStyle>(it) },
+                tvLogoSizes = byPage(stored.tvLogoSizes) { enumOrNull<TvLogoSize>(it) },
                 tvPosterAccent = stored.tvPosterAccent ?: defaults.tvPosterAccent,
                 // Unknown names (a section or variant removed later) are dropped.
                 tvCardStyles =
@@ -183,6 +188,18 @@ class DefaultLibraryPreferencesRepository
                         }?.toMap() ?: defaults.tvCardsPerScreen,
             )
         }
+
+        /** Stored `Page=Value` pairs (#619), without unknown pages or values. */
+        private fun <T : Any> byPage(
+            stored: Map<String, String>?,
+            value: (String) -> T?,
+        ): Map<TvTitlePage, T> =
+            stored
+                ?.mapNotNull { (k, v) ->
+                    val page = enumOrNull<TvTitlePage>(k) ?: return@mapNotNull null
+                    page to (value(v) ?: return@mapNotNull null)
+                }?.toMap()
+                .orEmpty()
 
         override suspend fun setMediaLists(mediaLists: MediaListPreferences) =
             store.setMediaLists(

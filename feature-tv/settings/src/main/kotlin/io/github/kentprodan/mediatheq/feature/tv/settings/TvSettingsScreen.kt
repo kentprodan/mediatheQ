@@ -1,5 +1,8 @@
 package io.github.kentprodan.mediatheq.feature.tv.settings
 
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -22,18 +25,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.StreamingQuality
@@ -45,6 +53,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
 import io.github.kentprodan.mediatheq.core.model.TvLogoSize
+import io.github.kentprodan.mediatheq.core.model.TvTitlePage
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.ui.tv.title
 
@@ -72,23 +81,33 @@ fun TvSettingsRoute(
 /** The levels of Settings (#580): the categories, each category's page, and the pages that pick one value. */
 internal enum class SettingsPage {
     Root,
+    Account,
     Sound,
     Video,
     Display,
-    Home,
+    Screens,
     Library,
-    Account,
     About,
     Quality,
     DisplayMatch,
     SubtitleSize,
     SubtitleBackground,
     SubtitleColor,
-    Carousel,
-    CarouselSources,
     MenuStyle,
-    TitleStyle,
-    LogoSize,
+    MenuBehavior,
+    ScreenHome,
+    ScreenMovies,
+    ScreenSeries,
+    ScreenMusic,
+    Carousel,
+    CarouselDesign,
+    CarouselSources,
+    MovieTitle,
+    MovieLogo,
+    SeriesTitle,
+    SeriesLogo,
+    ArtistTitle,
+    ArtistLogo,
     AppMode,
     SignOut,
 }
@@ -142,6 +161,7 @@ internal fun TvSettingsScreen(
         }
         val back: () -> Unit = { if (stack.size > 1) stack = stack.dropLast(1) }
         BackHandler(enabled = stack.size > 1, onBack = back)
+        val context = LocalContext.current
         val pages =
             Pages(
                 state,
@@ -153,6 +173,7 @@ internal fun TvSettingsScreen(
                 onOpenHomeRows,
                 onOpenParental,
                 onSwitchProfile,
+                onOpenCaptions = { openCaptionSettings(context) },
             )
         AnimatedContent(
             stack,
@@ -173,7 +194,15 @@ internal fun TvSettingsScreen(
                         ?: focused[page]?.takeIf { key -> content.rows.any { it.key == key } }
                         ?: content.rows.firstOrNull { it.enabled }?.key
                 }
-            Row(Modifier.fillMaxSize().padding(start = START, top = TOP)) {
+            val panel = MaterialTheme.colorScheme.surfaceVariant.takeIf { content.children.isEmpty() }
+            Row(
+                Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        val x = (START + PANE_WIDTH + LEAF_PANEL_GAP).toPx()
+                        panel?.let { drawRect(it, Offset(x, 0f), Size(size.width - x, size.height)) }
+                    }.padding(start = START, top = TOP),
+            ) {
                 SettingsColumn(content.title) {
                     content.rows.forEach { entry ->
                         key(entry.key) {
@@ -265,15 +294,24 @@ private class Pages(
     val onOpenHomeRows: () -> Unit,
     val onOpenParental: () -> Unit,
     val onSwitchProfile: () -> Unit,
+    val onOpenCaptions: () -> Unit,
 ) {
     @Composable
     fun of(page: SettingsPage): Level {
         val b = LevelBuilder(open)
+        val video = state.appMode?.video == true
+        val music = state.appMode?.music != false
         val title =
             when (page) {
                 SettingsPage.Root -> {
+                    b.opens(
+                        SettingsPage.Account,
+                        stringResource(R.string.tv_settings_account),
+                        state.userName,
+                        MqTvIcons.Person,
+                    )
                     b.opens(SettingsPage.Sound, stringResource(R.string.tv_settings_sound), icon = MqTvIcons.Playing)
-                    if (state.appMode?.video == true) {
+                    if (video) {
                         b.opens(
                             SettingsPage.Video,
                             stringResource(R.string.tv_settings_video_subtitles),
@@ -285,14 +323,8 @@ private class Pages(
                         stringResource(R.string.tv_settings_display),
                         icon = MqTvIcons.Palette,
                     )
-                    b.opens(SettingsPage.Home, stringResource(R.string.tv_settings_home), icon = MqTvIcons.Home)
+                    b.opens(SettingsPage.Screens, stringResource(R.string.tv_settings_screens), icon = MqTvIcons.Home)
                     b.opens(SettingsPage.Library, stringResource(R.string.tv_settings_library), icon = MqTvIcons.Sync)
-                    b.opens(
-                        SettingsPage.Account,
-                        stringResource(R.string.tv_settings_account),
-                        state.userName,
-                        MqTvIcons.Person,
-                    )
                     b.opens(SettingsPage.About, stringResource(R.string.tv_settings_about), versionName, MqTvIcons.Info)
                     stringResource(R.string.tv_settings_title)
                 }
@@ -353,24 +385,12 @@ private class Pages(
                 }
 
                 SettingsPage.Display -> {
+                    // Only the mode on this level; what each one does is on the levels inside.
                     b.opens(
                         SettingsPage.MenuStyle,
                         stringResource(R.string.tv_settings_menu_style),
                         stringResource(state.menuStyle.label),
                     )
-                    b.opens(
-                        SettingsPage.TitleStyle,
-                        stringResource(R.string.tv_settings_title_style),
-                        stringResource(state.titleStyle.label),
-                    )
-                    // Only while pages show a logo (#578).
-                    if (state.titleStyle != TvTitleStyle.Text) {
-                        b.opens(
-                            SettingsPage.LogoSize,
-                            stringResource(R.string.tv_settings_logo_size),
-                            stringResource(state.logoSize.label),
-                        )
-                    }
                     b.row(
                         SettingEntry(
                             "posterAccent",
@@ -394,10 +414,74 @@ private class Pages(
                     stringResource(R.string.tv_settings_display)
                 }
 
-                SettingsPage.Home -> {
+                SettingsPage.MenuStyle -> {
+                    // The menu's shape (#619): floating is the only one so far, its behavior is on the level inside.
+                    b.opens(
+                        SettingsPage.MenuBehavior,
+                        stringResource(R.string.tv_settings_menu_floating),
+                        stringResource(R.string.tv_settings_menu_floating_detail),
+                    )
+                    stringResource(R.string.tv_settings_menu_style)
+                }
+
+                SettingsPage.MenuBehavior -> {
+                    io.github.kentprodan.mediatheq.core.data.TvMenuStyle.entries.forEach {
+                        b.pick(it.name, stringResource(it.label), it == state.menuStyle, stringResource(it.detail)) {
+                            onAction(TvSettingsAction.SetMenuStyle(it))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_menu_floating)
+                }
+
+                SettingsPage.Screens -> {
+                    b.opens(
+                        SettingsPage.ScreenHome,
+                        stringResource(R.string.tv_settings_home),
+                        stringResource(R.string.tv_settings_screens_home),
+                    )
+                    if (video) {
+                        b.opens(
+                            SettingsPage.ScreenMovies,
+                            stringResource(R.string.tv_settings_movies),
+                            stringResource(R.string.tv_settings_movies_detail),
+                        )
+                        b.opens(
+                            SettingsPage.ScreenSeries,
+                            stringResource(R.string.tv_settings_series),
+                            stringResource(R.string.tv_settings_series_detail),
+                        )
+                    }
+                    if (music) {
+                        b.opens(
+                            SettingsPage.ScreenMusic,
+                            stringResource(R.string.tv_settings_music),
+                            stringResource(R.string.tv_settings_music_detail),
+                        )
+                    }
+                    stringResource(R.string.tv_settings_screens)
+                }
+
+                SettingsPage.ScreenHome -> {
                     b.opens(
                         SettingsPage.Carousel,
                         stringResource(R.string.tv_settings_carousel),
+                        stringResource(state.carousel.label),
+                    )
+                    b.row(
+                        SettingEntry(
+                            "homeRows",
+                            stringResource(R.string.tv_settings_home_rows),
+                            stringResource(R.string.tv_settings_home_rows_detail),
+                            onClick = onOpenHomeRows,
+                        ),
+                    )
+                    stringResource(R.string.tv_settings_home)
+                }
+
+                SettingsPage.Carousel -> {
+                    b.opens(
+                        SettingsPage.CarouselDesign,
+                        stringResource(R.string.tv_settings_carousel_design),
                         stringResource(state.carousel.label),
                     )
                     if (state.carousel != TvCarousel.Off) {
@@ -416,15 +500,73 @@ private class Pages(
                             ),
                         )
                     }
-                    b.row(
-                        SettingEntry(
-                            "homeRows",
-                            stringResource(R.string.tv_settings_home_rows),
-                            stringResource(R.string.tv_settings_home_rows_detail),
-                            onClick = onOpenHomeRows,
-                        ),
-                    )
-                    stringResource(R.string.tv_settings_home)
+                    stringResource(R.string.tv_settings_carousel)
+                }
+
+                SettingsPage.CarouselDesign -> {
+                    TvCarousel.entries.forEach {
+                        b.pick(it.name, stringResource(it.label), it == state.carousel, stringResource(it.detail)) {
+                            onAction(TvSettingsAction.SetCarousel(it))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_carousel_design)
+                }
+
+                SettingsPage.CarouselSources -> {
+                    // Several at once (#575): checkboxes, the level stays open while they change.
+                    state.carouselSources.forEach { source ->
+                        b.row(
+                            SettingEntry(
+                                source.name,
+                                stringResource(source.title),
+                                control = MqTvControl.Checkbox,
+                                checked = source in state.carouselPicked,
+                                onClick = { onAction(TvSettingsAction.ToggleCarouselSource(source)) },
+                            ),
+                        )
+                    }
+                    stringResource(R.string.tv_settings_carousel_source)
+                }
+
+                SettingsPage.ScreenMovies, SettingsPage.ScreenSeries, SettingsPage.ScreenMusic -> {
+                    val (titleLevel, logoLevel) = page.titleLevels
+                    val target = titleLevel.titlePage
+                    val style = state.titleStyles[target] ?: TvTitleStyle.Logo
+                    b.opens(titleLevel, stringResource(R.string.tv_settings_title_style), stringResource(style.label))
+                    // Only while the page shows a logo (#578).
+                    if (style != TvTitleStyle.Text) {
+                        b.opens(
+                            logoLevel,
+                            stringResource(R.string.tv_settings_logo_size),
+                            stringResource((state.logoSizes[target] ?: TvLogoSize.Medium).label),
+                        )
+                    }
+                    stringResource(page.screenTitle)
+                }
+
+                SettingsPage.MovieTitle, SettingsPage.SeriesTitle, SettingsPage.ArtistTitle -> {
+                    val target = page.titlePage
+                    TvTitleStyle.entries.forEach {
+                        val checked = it == (state.titleStyles[target] ?: TvTitleStyle.Logo)
+                        b.pick(it.name, stringResource(it.label), checked, stringResource(it.detail)) {
+                            onAction(TvSettingsAction.SetTitleStyle(target, it))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_title_style)
+                }
+
+                SettingsPage.MovieLogo, SettingsPage.SeriesLogo, SettingsPage.ArtistLogo -> {
+                    val target = page.titlePage
+                    TvLogoSize.entries.forEach {
+                        b.pick(
+                            it.name,
+                            stringResource(it.label),
+                            it == (state.logoSizes[target] ?: TvLogoSize.Medium),
+                        ) {
+                            onAction(TvSettingsAction.SetLogoSize(target, it))
+                        }
+                    }
+                    stringResource(R.string.tv_settings_logo_size)
                 }
 
                 SettingsPage.Library -> {
@@ -458,7 +600,7 @@ private class Pages(
                             onClick = onSwitchProfile,
                         ),
                     )
-                    if (state.appMode?.video == true) {
+                    if (video) {
                         b.row(
                             SettingEntry(
                                 "parental",
@@ -510,6 +652,7 @@ private class Pages(
                             onAction(TvSettingsAction.SetSubtitleStyle(state.subtitleStyle.copy(size = it)))
                         }
                     }
+                    captions(b, state.subtitleStyle.size == SubtitleStyle.Size.System)
                     stringResource(R.string.tv_settings_subtitle_size)
                 }
 
@@ -519,6 +662,7 @@ private class Pages(
                             onAction(TvSettingsAction.SetSubtitleStyle(state.subtitleStyle.copy(background = it)))
                         }
                     }
+                    captions(b, state.subtitleStyle.background == SubtitleStyle.Background.System)
                     stringResource(R.string.tv_settings_subtitle_background)
                 }
 
@@ -528,59 +672,8 @@ private class Pages(
                             onAction(TvSettingsAction.SetSubtitleStyle(state.subtitleStyle.copy(color = it)))
                         }
                     }
+                    captions(b, state.subtitleStyle.color == SubtitleStyle.Color.System)
                     stringResource(R.string.tv_settings_subtitle_color)
-                }
-
-                SettingsPage.Carousel -> {
-                    TvCarousel.entries.forEach {
-                        b.pick(it.name, stringResource(it.label), it == state.carousel) {
-                            onAction(TvSettingsAction.SetCarousel(it))
-                        }
-                    }
-                    stringResource(R.string.tv_settings_carousel)
-                }
-
-                SettingsPage.CarouselSources -> {
-                    // Several at once (#575): checkboxes, the level stays open while they change.
-                    state.carouselSources.forEach { source ->
-                        b.row(
-                            SettingEntry(
-                                source.name,
-                                stringResource(source.title),
-                                control = MqTvControl.Checkbox,
-                                checked = source in state.carouselPicked,
-                                onClick = { onAction(TvSettingsAction.ToggleCarouselSource(source)) },
-                            ),
-                        )
-                    }
-                    stringResource(R.string.tv_settings_carousel_source)
-                }
-
-                SettingsPage.MenuStyle -> {
-                    io.github.kentprodan.mediatheq.core.data.TvMenuStyle.entries.forEach {
-                        b.pick(it.name, stringResource(it.label), it == state.menuStyle) {
-                            onAction(TvSettingsAction.SetMenuStyle(it))
-                        }
-                    }
-                    stringResource(R.string.tv_settings_menu_style)
-                }
-
-                SettingsPage.TitleStyle -> {
-                    TvTitleStyle.entries.forEach {
-                        b.pick(it.name, stringResource(it.label), it == state.titleStyle) {
-                            onAction(TvSettingsAction.SetTitleStyle(it))
-                        }
-                    }
-                    stringResource(R.string.tv_settings_title_style)
-                }
-
-                SettingsPage.LogoSize -> {
-                    TvLogoSize.entries.forEach {
-                        b.pick(it.name, stringResource(it.label), it == state.logoSize) {
-                            onAction(TvSettingsAction.SetLogoSize(it))
-                        }
-                    }
-                    stringResource(R.string.tv_settings_logo_size)
                 }
 
                 SettingsPage.AppMode -> {
@@ -612,17 +705,38 @@ private class Pages(
         key: String,
         title: String,
         checked: Boolean,
+        summary: String? = null,
         set: () -> Unit,
     ) = row(
-        SettingEntry(key, title, control = MqTvControl.Radio, checked = checked) {
+        SettingEntry(key, title, summary, control = MqTvControl.Radio, checked = checked) {
             set()
             back()
         },
     )
+
+    /** While a subtitle part follows the TV (#619): the way to the system caption settings it follows. */
+    @Composable
+    private fun captions(
+        b: LevelBuilder,
+        system: Boolean,
+    ) {
+        if (!system) return
+        b.row(
+            SettingEntry(
+                "captions",
+                stringResource(R.string.tv_settings_caption_settings),
+                stringResource(R.string.tv_settings_caption_settings_detail),
+                onClick = onOpenCaptions,
+            ),
+        )
+    }
 }
 
 // Between the rows and the preview of the next level.
 private val PANE_GAP = 124.dp
+
+// The last level's panel starts this far right of its rows.
+private val LEAF_PANEL_GAP = 56.dp
 private const val PREVIEW_ALPHA = 0.5f
 private const val SLIDE = 4
 
@@ -752,3 +866,63 @@ private val TvCarousel.label: Int
             TvCarousel.Card -> R.string.tv_settings_carousel_card
             TvCarousel.Immersive -> R.string.tv_settings_carousel_immersive
         }
+
+private val TvCarousel.detail: Int
+    get() =
+        when (this) {
+            TvCarousel.Off -> R.string.tv_settings_carousel_off_detail
+            TvCarousel.Card -> R.string.tv_settings_carousel_card_detail
+            TvCarousel.Immersive -> R.string.tv_settings_carousel_immersive_detail
+        }
+
+private val io.github.kentprodan.mediatheq.core.data.TvMenuStyle.detail: Int
+    get() =
+        when (this) {
+            io.github.kentprodan.mediatheq.core.data.TvMenuStyle.Modal -> {
+                R.string.tv_settings_menu_style_modal_detail
+            }
+
+            io.github.kentprodan.mediatheq.core.data.TvMenuStyle.Standard -> {
+                R.string.tv_settings_menu_style_standard_detail
+            }
+        }
+
+private val TvTitleStyle.detail: Int
+    get() =
+        when (this) {
+            TvTitleStyle.Logo -> R.string.tv_settings_title_logo_detail
+            TvTitleStyle.LogoAndText -> R.string.tv_settings_title_logo_text_detail
+            TvTitleStyle.Text -> R.string.tv_settings_title_text_detail
+        }
+
+/** A screen's title and logo levels (#619). */
+private val SettingsPage.titleLevels: Pair<SettingsPage, SettingsPage>
+    get() =
+        when (this) {
+            SettingsPage.ScreenSeries -> SettingsPage.SeriesTitle to SettingsPage.SeriesLogo
+            SettingsPage.ScreenMusic -> SettingsPage.ArtistTitle to SettingsPage.ArtistLogo
+            else -> SettingsPage.MovieTitle to SettingsPage.MovieLogo
+        }
+
+/** The detail page a title or logo level sets (#619). */
+private val SettingsPage.titlePage: TvTitlePage
+    get() =
+        when (this) {
+            SettingsPage.SeriesTitle, SettingsPage.SeriesLogo -> TvTitlePage.Series
+            SettingsPage.ArtistTitle, SettingsPage.ArtistLogo -> TvTitlePage.Artist
+            else -> TvTitlePage.Movie
+        }
+
+private val SettingsPage.screenTitle: Int
+    get() =
+        when (this) {
+            SettingsPage.ScreenSeries -> R.string.tv_settings_series
+            SettingsPage.ScreenMusic -> R.string.tv_settings_music
+            else -> R.string.tv_settings_movies
+        }
+
+/** The system caption settings (#619), or the system Settings where a TV has no such page. */
+private fun openCaptionSettings(context: Context) {
+    runCatching { context.startActivity(Intent(Settings.ACTION_CAPTIONING_SETTINGS)) }
+        .onFailure { runCatching { context.startActivity(Intent(Settings.ACTION_SETTINGS)) } }
+}

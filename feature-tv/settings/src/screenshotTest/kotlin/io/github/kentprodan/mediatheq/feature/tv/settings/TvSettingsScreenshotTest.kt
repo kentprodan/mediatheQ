@@ -66,7 +66,46 @@ fun TvSettingsDisplayScreenshot() = Settings(settings.copy(posterAccent = true),
 @PreviewTest
 @MqTvPreviews
 @Composable
-fun TvSettingsHomeScreenshot() = Settings(settings, SettingsPage.Home)
+fun TvSettingsHomeScreenshot() = Settings(settings, SettingsPage.Screens, SettingsPage.ScreenHome)
+
+/** The screens with settings of their own (#619). */
+@PreviewTest
+@MqTvPreviews
+@MqTvRoPreview
+@Composable
+fun TvSettingsScreensScreenshot() = Settings(settings.copy(appMode = AppMode.Both), SettingsPage.Screens)
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsMoviesScreenshot() =
+    Settings(settings.copy(appMode = AppMode.Both), SettingsPage.Screens, SettingsPage.ScreenMovies)
+
+/** Each design with its description (#619); the last level's panel on the right. */
+@PreviewTest
+@MqTvPreviews
+@MqTvRoPreview
+@Composable
+fun TvSettingsCarouselDesignScreenshot() =
+    Settings(
+        settings,
+        SettingsPage.Screens,
+        SettingsPage.ScreenHome,
+        SettingsPage.Carousel,
+        SettingsPage.CarouselDesign,
+    )
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsMenuBehaviorScreenshot() =
+    Settings(settings, SettingsPage.Display, SettingsPage.MenuStyle, SettingsPage.MenuBehavior)
+
+@PreviewTest
+@MqTvPreviews
+@Composable
+fun TvSettingsTitleScreenshot() =
+    Settings(settings, SettingsPage.Screens, SettingsPage.ScreenMovies, SettingsPage.MovieTitle)
 
 /** A sync runs. */
 @PreviewTest
@@ -106,7 +145,11 @@ fun TvSettingsQualityScreenshot() =
 @MqTvPreviews
 @Composable
 fun TvSettingsCarouselSourcesScreenshot() =
-    Settings(settings.copy(carouselSources = DefaultTvCarouselSources), SettingsPage.Home, SettingsPage.CarouselSources)
+    Settings(
+        settings.copy(carouselSources = DefaultTvCarouselSources),
+        SettingsPage.Carousel,
+        SettingsPage.CarouselSources,
+    )
 
 @PreviewTest
 @MqTvPreviews

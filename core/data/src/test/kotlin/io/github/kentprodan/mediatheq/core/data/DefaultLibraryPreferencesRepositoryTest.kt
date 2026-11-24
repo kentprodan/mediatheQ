@@ -458,6 +458,16 @@ class DefaultLibraryPreferencesRepositoryTest {
                     tvMenuStyle = TvMenuStyle.Standard,
                     tvTitle = io.github.kentprodan.mediatheq.core.model.TvTitleStyle.Text,
                     tvLogoSize = io.github.kentprodan.mediatheq.core.model.TvLogoSize.Large,
+                    tvTitles =
+                        mapOf(
+                            io.github.kentprodan.mediatheq.core.model.TvTitlePage.Series to
+                                io.github.kentprodan.mediatheq.core.model.TvTitleStyle.LogoAndText,
+                        ),
+                    tvLogoSizes =
+                        mapOf(
+                            io.github.kentprodan.mediatheq.core.model.TvTitlePage.Artist to
+                                io.github.kentprodan.mediatheq.core.model.TvLogoSize.Small,
+                        ),
                     tvPosterAccent = true,
                     tvCardStyles = mapOf(HomeSection.ContinueWatching to TvCardStyle.Compact),
                     tvCardsPerScreen = mapOf(HomeSection.ContinueWatching to 2),

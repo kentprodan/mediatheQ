@@ -14,9 +14,12 @@ import io.github.kentprodan.mediatheq.core.data.SessionState
 import io.github.kentprodan.mediatheq.core.data.TvMenuStyle
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.aboveLimit
+import io.github.kentprodan.mediatheq.core.data.tvLogoSizeOf
+import io.github.kentprodan.mediatheq.core.data.tvTitleOf
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.TvLogoSize
+import io.github.kentprodan.mediatheq.core.model.TvTitlePage
 import io.github.kentprodan.mediatheq.core.model.TvTitleStyle
 import io.github.kentprodan.mediatheq.core.navigation.MovieKey
 import io.github.kentprodan.mediatheq.core.navigation.ParentalControlsKey
@@ -165,15 +168,23 @@ class TvShellViewModel
             (preferences?.preferences?.map { it.navigation.tvPosterAccent } ?: flowOf(false))
                 .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-        /** TV Settings -> Title (#523): how the detail pages show their title. */
-        val titleStyle: StateFlow<TvTitleStyle> =
-            (preferences?.preferences?.map { it.navigation.tvTitle } ?: flowOf(TvTitleStyle.Logo))
-                .stateIn(viewModelScope, SharingStarted.Eagerly, TvTitleStyle.Logo)
+        /** TV Settings -> Screens (#523, #619): how each detail page shows its title. */
+        val titleStyle: StateFlow<Map<TvTitlePage, TvTitleStyle>> =
+            (
+                preferences?.preferences?.map { prefs ->
+                    TvTitlePage.entries.associateWith(prefs.navigation::tvTitleOf)
+                }
+                    ?: flowOf(emptyMap())
+            ).stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
-        /** TV Settings -> Logo size (#578). */
-        val logoSize: StateFlow<TvLogoSize> =
-            (preferences?.preferences?.map { it.navigation.tvLogoSize } ?: flowOf(TvLogoSize.Medium))
-                .stateIn(viewModelScope, SharingStarted.Eagerly, TvLogoSize.Medium)
+        /** TV Settings -> Screens (#578, #619): each detail page's logo size. */
+        val logoSize: StateFlow<Map<TvTitlePage, TvLogoSize>> =
+            (
+                preferences?.preferences?.map { prefs ->
+                    TvTitlePage.entries.associateWith(prefs.navigation::tvLogoSizeOf)
+                }
+                    ?: flowOf(emptyMap())
+            ).stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
         /** A video another client started here (#389): the shell opens the player on it. */
         val remoteVideo: Flow<MediaId> = remoteControl?.videoStarted ?: emptyFlow()

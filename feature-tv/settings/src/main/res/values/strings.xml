@@ -9,7 +9,7 @@
     <string name="tv_settings_quality">Streaming quality</string>
     <string name="tv_settings_original">Original</string>
     <string name="tv_settings_kbps">%1$d kb/s</string>
-    <string name="tv_settings_library">Library</string>
+    <string name="tv_settings_library">Server and library</string>
     <string name="tv_settings_sync">Sync now</string>
     <string name="tv_settings_sync_idle">Fetch the library from the server again</string>
     <string name="tv_settings_sync_running">Syncing %1$s · %2$d of %3$d</string>
@@ -49,7 +49,7 @@
     <string name="tv_settings_subtitle_box">Dark box</string>
     <string name="tv_settings_subtitle_white">White</string>
     <string name="tv_settings_subtitle_yellow">Yellow</string>
-    <string name="tv_settings_display">Display</string>
+    <string name="tv_settings_display">Appearance</string>
     <string name="tv_settings_simple_transitions">Simple transitions</string>
     <string name="tv_settings_simple_transitions_detail">A plain fast fade between pages, without the scale</string>
     <string name="tv_settings_switch_profile">Switch profile</string>
@@ -85,17 +85,17 @@
     <string name="tv_settings_display_match_resolution">Frame rate and resolution</string>
     <string name="tv_settings_immersive_row">Immersive list</string>
     <string name="tv_settings_carousel">Home carousel</string>
-    <string name="tv_settings_carousel_off">Off: just the rows</string>
-    <string name="tv_settings_carousel_card">Card: featured items in a large card at the top</string>
-    <string name="tv_settings_carousel_immersive">Immersive: featured items across the whole top of Home</string>
+    <string name="tv_settings_carousel_off">Off</string>
+    <string name="tv_settings_carousel_card">Card</string>
+    <string name="tv_settings_carousel_immersive">Immersive</string>
     <string name="tv_settings_carousel_source">Carousel shows</string>
     <string name="tv_settings_carousel_skip_watched">Leave out what you watched</string>
     <string name="tv_settings_menu_style">Menu style</string>
-    <string name="tv_settings_menu_style_modal">Modal: the menu opens over the dimmed screen</string>
-    <string name="tv_settings_menu_style_standard">Standard: the menu pushes the screen aside</string>
+    <string name="tv_settings_menu_style_modal">Modal</string>
+    <string name="tv_settings_menu_style_standard">Standard</string>
     <!-- Display -> Title of movie, series and artist pages (#523) -->
     <string name="tv_settings_title_style">Title on pages</string>
-    <string name="tv_settings_title_logo">Logo (the name when there is none)</string>
+    <string name="tv_settings_title_logo">Logo</string>
     <string name="tv_settings_title_logo_text">Logo and name</string>
     <string name="tv_settings_title_text">Name only</string>
     <string name="tv_settings_logo_size">Logo size</string>
@@ -107,4 +107,25 @@
     <string name="tv_settings_sound">Sound and streaming</string>
     <string name="tv_settings_video_subtitles">Video and subtitles</string>
     <string name="tv_settings_home">Home</string>
+    <string name="tv_settings_screens">Screens</string>
+    <string name="tv_settings_screens_home">Carousel and rows</string>
+    <string name="tv_settings_movies">Movies</string>
+    <string name="tv_settings_movies_detail">Title and logo on movie pages</string>
+    <string name="tv_settings_series">Series</string>
+    <string name="tv_settings_series_detail">Title and logo on series pages</string>
+    <string name="tv_settings_music">Music</string>
+    <string name="tv_settings_music_detail">Title and logo on artist pages</string>
+    <string name="tv_settings_carousel_design">Design</string>
+    <string name="tv_settings_carousel_off_detail">No carousel: Home starts straight with the rows</string>
+    <string name="tv_settings_carousel_card_detail">Featured titles in a large rounded card at the top of Home, one after another</string>
+    <string name="tv_settings_carousel_immersive_detail">Featured titles across the whole top of Home, their picture filling the width of the screen</string>
+    <string name="tv_settings_menu_floating">Floating</string>
+    <string name="tv_settings_menu_floating_detail">A rounded panel that floats over the left side of the screen</string>
+    <string name="tv_settings_menu_style_modal_detail">Opens over the screen, which dims behind it</string>
+    <string name="tv_settings_menu_style_standard_detail">Pushes the screen aside while it is open</string>
+    <string name="tv_settings_title_logo_detail">Shows the name when the title has no logo</string>
+    <string name="tv_settings_title_logo_text_detail">The logo, with the name under it</string>
+    <string name="tv_settings_title_text_detail">The name as text, without the logo</string>
+    <string name="tv_settings_caption_settings">Open the TV caption settings</string>
+    <string name="tv_settings_caption_settings_detail">The system settings this option follows</string>
 </resources>
