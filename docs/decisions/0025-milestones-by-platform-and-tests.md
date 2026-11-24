@@ -40,3 +40,17 @@ this; `/start` never picks from Tests.
 - Interface changes for the phone go to Mobile 2 · Polish, before the TV work starts.
 - Older text may still say F1, F2, ...; read them with the table above.
 - Exit issues do not ask for a week-long usage log (owner, 2026-11-18).
+
+**Amended 2026-11-24 (owner):** milestones are grouped by screen, the way the TV polish is done, and the playback
+core has its own two. The phase milestones are gone (closed ones deleted, open issues moved). Order:
+
+| Order | Milestone | Content |
+|---|---|---|
+| 1 | Audio engine | decoding, Atmos passthrough, output routing, gapless, crossfade, ReplayGain, bit-perfect |
+| 2 | Video engine | decoders, HDR and Dolby Vision, display mode, subtitle rendering and timing, track selection |
+| 3 | TV · Home, TV · Library, TV · Detail pages, TV · Player, TV · Settings, TV · System | one TV screen group each |
+| 4 | Mobile · Video | video on the phone |
+| 5 | Servers · Navidrome | the Subsonic provider |
+| 6 | Integrations | Android Auto, Wear, Cast, scrobbling |
+
+Tests stays as it is. The engines start with research (`docs/research/`) before any code.
