@@ -71,6 +71,16 @@ class LibraryPreferencesStore
                         tvMenuStyle = prefs[TV_MENU_STYLE],
                         tvTitle = prefs[TV_TITLE],
                         tvLogoSize = prefs[TV_LOGO_SIZE],
+                        tvRowOrder = prefs[TV_ROW_ORDER]?.split(GENRE_SEPARATOR)?.filter { it.isNotEmpty() },
+                        tvGenreCardStyles =
+                            prefs[TV_GENRE_CARD_STYLES]?.associate {
+                                it.substringBeforeLast('=') to it.substringAfterLast('=')
+                            },
+                        tvGenreCardsPerScreen =
+                            prefs[TV_GENRE_CARDS_PER_SCREEN]?.associate {
+                                it.substringBeforeLast('=') to it.substringAfterLast('=')
+                            },
+                        tvHomeMusic = prefs[TV_HOME_MUSIC],
                         tvTitles = prefs[TV_TITLES]?.associate { it.substringBefore('=') to it.substringAfter('=') },
                         tvLogoSizes =
                             prefs[TV_LOGO_SIZES]?.associate { it.substringBefore('=') to it.substringAfter('=') },
@@ -272,6 +282,13 @@ class LibraryPreferencesStore
                 prefs.put(TV_MENU_STYLE, navigation.tvMenuStyle)
                 prefs.put(TV_TITLE, navigation.tvTitle)
                 prefs.put(TV_LOGO_SIZE, navigation.tvLogoSize)
+                prefs.put(TV_ROW_ORDER, navigation.tvRowOrder?.joinToString(GENRE_SEPARATOR))
+                prefs.put(TV_GENRE_CARD_STYLES, navigation.tvGenreCardStyles?.map { (k, v) -> "$k=$v" }?.toSet())
+                prefs.put(
+                    TV_GENRE_CARDS_PER_SCREEN,
+                    navigation.tvGenreCardsPerScreen?.map { (k, v) -> "$k=$v" }?.toSet(),
+                )
+                prefs.put(TV_HOME_MUSIC, navigation.tvHomeMusic)
                 prefs.put(TV_TITLES, navigation.tvTitles?.map { (k, v) -> "$k=$v" }?.toSet())
                 prefs.put(TV_LOGO_SIZES, navigation.tvLogoSizes?.map { (k, v) -> "$k=$v" }?.toSet())
                 prefs.put(TV_POSTER_ACCENT, navigation.tvPosterAccent)
@@ -686,6 +703,14 @@ class LibraryPreferencesStore
             val TV_TITLE = stringPreferencesKey("tv_title")
             val TV_LOGO_SIZE = stringPreferencesKey("tv_logo_size")
 
+            /** Row ids, one per line (#621). */
+            val TV_ROW_ORDER = stringPreferencesKey("tv_row_order")
+
+            /** `Genre=Style` and `Genre=Count` pairs (#621); the genre is before the last `=`. */
+            val TV_GENRE_CARD_STYLES = stringSetPreferencesKey("tv_genre_card_styles")
+            val TV_GENRE_CARDS_PER_SCREEN = stringSetPreferencesKey("tv_genre_cards_per_screen")
+            val TV_HOME_MUSIC = booleanPreferencesKey("tv_home_music")
+
             /** `Page=Style` and `Page=Size` pairs (#619). */
             val TV_TITLES = stringSetPreferencesKey("tv_titles")
             val TV_LOGO_SIZES = stringSetPreferencesKey("tv_logo_sizes")
@@ -909,6 +934,14 @@ data class StoredNavigation(
     val tvTitle: String? = null,
     /** `TvLogoSize` name (#578). */
     val tvLogoSize: String? = null,
+    /** TV Home's row ids in order (#621). */
+    val tvRowOrder: List<String>? = null,
+    /** Genre to `TvCardStyle` name (#621). */
+    val tvGenreCardStyles: Map<String, String>? = null,
+    /** Genre to how many cards fit on screen (#621). */
+    val tvGenreCardsPerScreen: Map<String, String>? = null,
+    /** TV Home shows music too (#621). */
+    val tvHomeMusic: Boolean? = null,
     /** `TvTitlePage` name to `TvTitleStyle` name (#619). */
     val tvTitles: Map<String, String>? = null,
     /** `TvTitlePage` name to `TvLogoSize` name (#619). */

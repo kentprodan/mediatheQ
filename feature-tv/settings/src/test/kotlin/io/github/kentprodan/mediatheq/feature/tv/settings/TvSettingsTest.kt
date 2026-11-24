@@ -495,6 +495,31 @@ class TvSettingsTest {
     }
 
     @Test
+    fun `reordering picks a row up with Select, and Up or Down then moves it instead of the focus (#621)`() {
+        val moves = mutableListOf<TvHomeRowsAction>()
+        val rows =
+            TvHomeRowsState(
+                listOf(TvHomeRow(HomeSection.ContinueWatching, true), TvHomeRow(null, true, genre = "Drama")),
+            )
+        show(content().copy(appMode = AppMode.Both), rows = rows, onRowsAction = moves::add)
+        click("Screens")
+        click("Home")
+        click("Home rows")
+        click("Reorder rows")
+        composeRule.onNodeWithText("Continue watching").assertIsFocused()
+
+        // Not picked up: Down moves the focus.
+        press(Key.DirectionDown)
+        composeRule.onNodeWithText("Drama").assertIsFocused()
+        assertThat(moves).isEmpty()
+
+        click("Drama")
+        press(Key.DirectionUp)
+        assertThat(moves).containsExactly(TvHomeRowsAction.Move("genre:Drama", up = true))
+        composeRule.onNodeWithText("Drama").assertIsFocused()
+    }
+
+    @Test
     fun `a subtitle part following the TV offers the system caption settings (#619)`() {
         show(content().copy(appMode = AppMode.Both))
         click("Video and subtitles")
@@ -547,8 +572,21 @@ class TvSettingsTest {
     private fun show(
         content: TvSettingsUiState.Content,
         onAction: (TvSettingsAction) -> Unit = {},
+        rows: TvHomeRowsState? = null,
+        onRowsAction: (TvHomeRowsAction) -> Unit = {},
     ) {
-        composeRule.setContent { MediatheqTvTheme { TvSettingsScreen(content, "1.0", onAction, onOpenLicenses = {}) } }
+        composeRule.setContent {
+            MediatheqTvTheme {
+                TvSettingsScreen(
+                    content,
+                    "1.0",
+                    onAction,
+                    onOpenLicenses = {},
+                    homeRows = rows,
+                    onHomeRowsAction = onRowsAction,
+                )
+            }
+        }
         composeRule.waitForIdle()
     }
 

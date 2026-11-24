@@ -50,6 +50,7 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.Switch
 import androidx.tv.material3.SwitchDefaults
 import androidx.tv.material3.Text
+import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 
 /**
@@ -65,8 +66,11 @@ internal data class SettingEntry(
     val checked: Boolean = false,
     val enabled: Boolean = true,
     val section: String? = null,
-    /** Long-press of select: the row's menu (Home rows). */
+    /** Long-press of select. */
     val onLongClick: (() -> Unit)? = null,
+    /** Picked up to move (#621): Up and Down call [onMove] instead of moving the focus. */
+    val lifted: Boolean = false,
+    val onMove: ((up: Boolean) -> Unit)? = null,
     val onClick: () -> Unit = {},
 )
 
@@ -183,9 +187,9 @@ internal fun SettingRow(
             ClickableSurfaceDefaults.colors(
                 containerColor = Color.Transparent,
                 contentColor = scheme.onSurface,
-                focusedContainerColor = scheme.inverseSurface,
-                // Near black on the light card, as the system Settings.
-                focusedContentColor = scheme.background,
+                // Near black on the light card, as the system Settings; a row picked up to move takes the accent.
+                focusedContainerColor = if (entry.lifted) scheme.primary else scheme.inverseSurface,
+                focusedContentColor = if (entry.lifted) scheme.onPrimary else scheme.background,
                 disabledContainerColor = Color.Transparent,
                 disabledContentColor = scheme.onSurface.copy(alpha = DISABLED),
             ),
@@ -293,7 +297,8 @@ private fun RowContent(
             }
 
             null -> {
-                Unit
+                // A row that moves shows its handle (#621).
+                if (entry.lifted) Icon(MqTvIcons.DragHandle, contentDescription = null)
             }
         }
     }

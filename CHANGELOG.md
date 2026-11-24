@@ -68,6 +68,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Any TV Home row can be an immersive list (Settings -> Home rows, long press a row): the focused card's picture and details appear behind the row.
 
 ### Changed
+- TV Settings, round 3: Home rows live in Settings. Reorder rows picks a row up with Select and moves it with Up and Down. Each row has its own level (Show on Home, Immersive list, Design, Size). Genres turned on join the rows, in any order, with their own design and size. Movies, Series and Music each have a pages level for the title and logo. Home shows can keep Home to movies and series. Who's watching? shows round profile pictures with the name under them.
 - TV Settings, round 2: Account comes first, Library is now Server and library, and a new Screens category holds Home (carousel design, sources, rows), Movies, Series and Music, each with its own title and logo size. Menu style goes Floating, then Modal or Standard; every choice says what it does. The last level shows a panel of its own tone, row descriptions are smaller and greyer, and subtitles that follow the TV can open the TV's caption settings.
 - TV Settings look like the Google TV system Settings: full screen, categories with round icons, a preview of the next level on the right, Right or Select to go in and Left or Back to come out, and values picked from a list with a radio instead of a dialog.
 - TV Home's spacing follows Google's guideline: 28 dp margins at the top and bottom, 16 dp from a row's title to its cards.

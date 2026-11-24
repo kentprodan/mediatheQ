@@ -4,11 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.data.AppModeRepository
+import io.github.kentprodan.mediatheq.core.data.GENRE_ROW
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
+import io.github.kentprodan.mediatheq.core.data.NavigationPreferences
 import io.github.kentprodan.mediatheq.core.data.TvCardStyle
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoSort
 import io.github.kentprodan.mediatheq.core.data.genreCounts
+import io.github.kentprodan.mediatheq.core.data.tvRowId
+import io.github.kentprodan.mediatheq.core.data.tvRowIds
 import io.github.kentprodan.mediatheq.core.model.HomeSection
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -24,19 +28,27 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** One row of Settings -> Home rows on TV (#431). */
+/** One row of Settings -> Home rows on TV (#431): a Home section, or a genre's row (#621). */
 data class TvHomeRow(
-    val section: HomeSection,
+    val section: HomeSection?,
     val shown: Boolean,
     /** `null`: the row's own default (#518). */
     val cardStyle: TvCardStyle? = null,
-    /** Shown as an immersive list (#521). */
+    /** Shown as an immersive list (#521); sections only. */
     val immersive: Boolean = false,
     /** How many cards fit on screen (#604); `null`: the variant's default. */
     val perScreen: Int? = null,
-)
+    /** The genre of a genre row (#621). */
+    val genre: String? = null,
+) {
+    /** The row's id in Home's order (`tvRowId`). */
+    val id: String get() = section?.let(::tvRowId) ?: tvRowId(genre.orEmpty())
+}
 
-/** Settings -> Home rows: the sections, then the library's genres (#431) with whether each has a row. */
+/**
+ * Settings -> Home rows: the sections and the genre rows picked (#621) in Home's order, then the library's genres (#431)
+ * with whether each has a row.
+ */
 data class TvHomeRowsState(
     val rows: List<TvHomeRow>,
     val genres: List<Pair<String, Boolean>> = emptyList(),
@@ -48,19 +60,20 @@ sealed interface TvHomeRowsAction {
         val genre: String,
     ) : TvHomeRowsAction
 
+    /** A row on Home or not: a section shows or hides, a genre's row goes (#621). */
     data class Toggle(
-        val section: HomeSection,
+        val id: String,
     ) : TvHomeRowsAction
 
-    /** The row's card variant (#518); `null` goes back to its default. */
+    /** The row's card variant (#518, #621); `null` goes back to its default. */
     data class SetCardStyle(
-        val section: HomeSection,
+        val id: String,
         val style: TvCardStyle?,
     ) : TvHomeRowsAction
 
-    /** How many of the row's cards fit on screen (#604); `null` goes back to the default. */
+    /** How many of the row's cards fit on screen (#604, #621); `null` goes back to the default. */
     data class SetPerScreen(
-        val section: HomeSection,
+        val id: String,
         val count: Int?,
     ) : TvHomeRowsAction
 
@@ -69,15 +82,16 @@ sealed interface TvHomeRowsAction {
         val section: HomeSection,
     ) : TvHomeRowsAction
 
+    /** One place up or down among the rows listed (#621). */
     data class Move(
-        val section: HomeSection,
+        val id: String,
         val up: Boolean,
     ) : TvHomeRowsAction
 }
 
 /**
- * Settings -> Home rows on TV (#431): the Home sections of the TV's mode (music and video together) in their order,
- * each shown or hidden; the same stored order and hidden set as the phone's Home page settings.
+ * Settings -> Home rows on TV (#431, #621): the Home sections of the TV's mode (music and video together) and the genre
+ * rows picked, in Home's order, each shown or hidden, with its design and size.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -89,18 +103,34 @@ class TvHomeRowsViewModel
         videos: VideoRepository? = null,
     ) : ViewModel() {
         private val visible =
-            combine(preferences.preferences, appMode.mode) { prefs, mode ->
-                prefs.home.order
-                    .filter { it.allowed(mode) }
-                    .map {
-                        TvHomeRow(
-                            it,
-                            it !in prefs.home.hidden,
-                            prefs.navigation.tvCardStyles[it],
-                            it in prefs.navigation.tvImmersiveRows,
-                            prefs.navigation.tvCardsPerScreen[it],
-                        )
+            combine(preferences.preferences, appMode.mode, preferences.homeGenres) { prefs, mode, genres ->
+                val nav = prefs.navigation
+                val sections = prefs.home.order.filter { it.allowed(mode) }
+                // Genre rows show with video only, as on Home.
+                val picked = genres.takeIf { mode.video }.orEmpty()
+                val bySection =
+                    sections.associate { section ->
+                        tvRowId(section) to
+                            TvHomeRow(
+                                section,
+                                section !in prefs.home.hidden,
+                                nav.tvCardStyles[section],
+                                section in nav.tvImmersiveRows,
+                                nav.tvCardsPerScreen[section],
+                            )
                     }
+                val byGenre =
+                    picked.associate { genre ->
+                        tvRowId(genre) to
+                            TvHomeRow(
+                                null,
+                                shown = true,
+                                cardStyle = nav.tvGenreCardStyles[genre],
+                                perScreen = nav.tvGenreCardsPerScreen[genre],
+                                genre = genre,
+                            )
+                    }
+                tvRowIds(sections, picked, nav.tvRowOrder).mapNotNull { bySection[it] ?: byGenre[it] }
             }
 
         /** The library's genres, the most common first; none without video. */
@@ -129,80 +159,103 @@ class TvHomeRowsViewModel
                 TvHomeRowsState(rows, genres.map { it to (it in picked) })
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+        private suspend fun updateNavigation(change: (NavigationPreferences) -> NavigationPreferences) =
+            preferences.setNavigation(change(preferences.preferences.first().navigation))
+
+        private suspend fun toggleGenre(genre: String) {
+            val picked = preferences.homeGenres.first()
+            preferences.setHomeGenres(if (genre in picked) picked - genre else picked + genre)
+        }
+
         fun onAction(action: TvHomeRowsAction) {
             viewModelScope.launch {
                 val home = preferences.preferences.first().home
                 when (action) {
                     is TvHomeRowsAction.Toggle -> {
-                        val hidden = home.hidden
-                        preferences.setHomeHidden(
-                            if (action.section in hidden) hidden - action.section else hidden + action.section,
-                        )
+                        val section = HomeSection.entries.firstOrNull { tvRowId(it) == action.id }
+                        if (section == null) {
+                            toggleGenre(action.id.removePrefix(GENRE_ROW))
+                        } else {
+                            val hidden = home.hidden
+                            preferences.setHomeHidden(if (section in hidden) hidden - section else hidden + section)
+                        }
                     }
 
                     is TvHomeRowsAction.ToggleGenre -> {
-                        val picked = preferences.homeGenres.first()
-                        preferences.setHomeGenres(
-                            if (action.genre in picked) picked - action.genre else picked + action.genre,
-                        )
+                        toggleGenre(action.genre)
                     }
 
                     is TvHomeRowsAction.SetCardStyle -> {
-                        val navigation = preferences.preferences.first().navigation
-                        val styles = navigation.tvCardStyles - action.section
-                        preferences.setNavigation(
-                            navigation.copy(
-                                tvCardStyles = action.style?.let { styles + (action.section to it) } ?: styles,
-                            ),
-                        )
+                        val section = HomeSection.entries.firstOrNull { tvRowId(it) == action.id }
+                        updateNavigation { nav ->
+                            if (section != null) {
+                                nav.copy(tvCardStyles = nav.tvCardStyles.with(section, action.style))
+                            } else {
+                                val genre = action.id.removePrefix(GENRE_ROW)
+                                nav.copy(tvGenreCardStyles = nav.tvGenreCardStyles.with(genre, action.style))
+                            }
+                        }
                     }
 
                     is TvHomeRowsAction.SetPerScreen -> {
-                        val navigation = preferences.preferences.first().navigation
-                        val counts = navigation.tvCardsPerScreen - action.section
-                        preferences.setNavigation(
-                            navigation.copy(
-                                tvCardsPerScreen = action.count?.let { counts + (action.section to it) } ?: counts,
-                            ),
-                        )
+                        val section = HomeSection.entries.firstOrNull { tvRowId(it) == action.id }
+                        updateNavigation { nav ->
+                            if (section != null) {
+                                nav.copy(tvCardsPerScreen = nav.tvCardsPerScreen.with(section, action.count))
+                            } else {
+                                val genre = action.id.removePrefix(GENRE_ROW)
+                                nav.copy(tvGenreCardsPerScreen = nav.tvGenreCardsPerScreen.with(genre, action.count))
+                            }
+                        }
                     }
 
                     is TvHomeRowsAction.ToggleImmersive -> {
-                        val navigation = preferences.preferences.first().navigation
-                        val rows = navigation.tvImmersiveRows
-                        preferences.setNavigation(
-                            navigation.copy(
+                        updateNavigation { nav ->
+                            val rows = nav.tvImmersiveRows
+                            nav.copy(
                                 tvImmersiveRows =
                                     if (action.section in rows) rows - action.section else rows + action.section,
-                            ),
-                        )
+                            )
+                        }
                     }
 
+                    // The whole order is kept (#621): rows of the other mode or genres off keep their places.
                     is TvHomeRowsAction.Move -> {
-                        val shownHere = visible.first().map { it.section }
-                        preferences.setHomeOrder(moveSection(home.order, shownHere, action.section, action.up))
+                        val listed = visible.first().map { it.id }
+                        val genres = preferences.homeGenres.first()
+                        updateNavigation { nav ->
+                            val all = tvRowIds(home.order, genres, nav.tvRowOrder)
+                            nav.copy(tvRowOrder = moveRow(all, listed, action.id, action.up))
+                        }
                     }
                 }
             }
         }
     }
 
+/** [this] with [key] set to [value], or without it for `null`. */
+private fun <K, V> Map<K, V>.with(
+    key: K,
+    value: V?,
+): Map<K, V> = value?.let { this + (key to it) } ?: (this - key)
+
 /**
- * [section] moved one place up or down among [visible] (the sections this mode lists) within the whole [order]: it
- * swaps with its visible neighbor, so sections of the other mode keep their places. At an end nothing changes.
+ * [row] moved one place up or down among [visible] (the rows listed) within the whole [order]: it swaps with its
+ * visible neighbor, so the rows not listed keep their places. At an end nothing changes.
  */
-internal fun moveSection(
-    order: List<HomeSection>,
-    visible: List<HomeSection>,
-    section: HomeSection,
+internal fun <T> moveRow(
+    order: List<T>,
+    visible: List<T>,
+    row: T,
     up: Boolean,
-): List<HomeSection> {
-    val at = visible.indexOf(section).takeIf { it >= 0 } ?: return order
+): List<T> {
+    val at = visible.indexOf(row).takeIf { it >= 0 } ?: return order
     val neighbor = visible.getOrNull(if (up) at - 1 else at + 1) ?: return order
-    val a = order.indexOf(section)
+    val a = order.indexOf(row)
     val b = order.indexOf(neighbor)
+    if (a < 0 || b < 0) return order
     return order.toMutableList().apply {
         this[a] = neighbor
-        this[b] = section
+        this[b] = row
     }
 }

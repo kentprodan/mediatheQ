@@ -77,6 +77,7 @@ class TvSettingsViewModel
                     titleStyles = TvTitlePage.entries.associateWith(plain::tvTitleOf),
                     logoSizes = TvTitlePage.entries.associateWith(plain::tvLogoSizeOf),
                     posterAccent = plain.tvPosterAccent,
+                    homeMusic = plain.tvHomeMusic,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TvSettingsUiState.Loading)
 
@@ -110,6 +111,10 @@ class TvSettingsViewModel
 
                 is TvSettingsAction.SetCarousel -> {
                     updateNavigation { it.copy(tvCarousel = action.carousel) }
+                }
+
+                is TvSettingsAction.SetHomeMusic -> {
+                    updateNavigation { it.copy(tvHomeMusic = action.music) }
                 }
 
                 is TvSettingsAction.SetMenuStyle -> {

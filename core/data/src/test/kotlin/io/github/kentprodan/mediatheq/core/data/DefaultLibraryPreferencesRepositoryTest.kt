@@ -458,6 +458,10 @@ class DefaultLibraryPreferencesRepositoryTest {
                     tvMenuStyle = TvMenuStyle.Standard,
                     tvTitle = io.github.kentprodan.mediatheq.core.model.TvTitleStyle.Text,
                     tvLogoSize = io.github.kentprodan.mediatheq.core.model.TvLogoSize.Large,
+                    tvRowOrder = listOf("genre:Drama", "ContinueWatching"),
+                    tvGenreCardStyles = mapOf("Sci=Fi" to TvCardStyle.WideClassic),
+                    tvGenreCardsPerScreen = mapOf("Drama" to 3),
+                    tvHomeMusic = false,
                     tvTitles =
                         mapOf(
                             io.github.kentprodan.mediatheq.core.model.TvTitlePage.Series to

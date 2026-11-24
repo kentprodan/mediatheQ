@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.tv.settings
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.TvCardStyle
 import io.github.kentprodan.mediatheq.core.data.genreCounts
 import io.github.kentprodan.mediatheq.core.model.AppMode
 import io.github.kentprodan.mediatheq.core.model.HomeSection.ContinueWatching
@@ -25,10 +26,10 @@ class TvHomeRowsTest {
         // Video only: Shortcuts and FavoriteAlbums are not listed.
         val video = listOf(ContinueWatching, NextUp)
 
-        assertThat(moveSection(order, video, NextUp, up = true))
+        assertThat(moveRow(order, video, NextUp, up = true))
             .containsExactly(Shortcuts, NextUp, FavoriteAlbums, ContinueWatching)
             .inOrder()
-        assertThat(moveSection(order, order, ContinueWatching, up = false))
+        assertThat(moveRow(order, order, ContinueWatching, up = false))
             .containsExactly(Shortcuts, FavoriteAlbums, ContinueWatching, NextUp)
             .inOrder()
     }
@@ -42,9 +43,9 @@ class TvHomeRowsTest {
 
     @Test
     fun `at an end, or for a row not listed, nothing moves`() {
-        assertThat(moveSection(order, order, Shortcuts, up = true)).isEqualTo(order)
-        assertThat(moveSection(order, order, NextUp, up = false)).isEqualTo(order)
-        assertThat(moveSection(order, listOf(NextUp), Shortcuts, up = false)).isEqualTo(order)
+        assertThat(moveRow(order, order, Shortcuts, up = true)).isEqualTo(order)
+        assertThat(moveRow(order, order, NextUp, up = false)).isEqualTo(order)
+        assertThat(moveRow(order, listOf(NextUp), Shortcuts, up = false)).isEqualTo(order)
     }
 
     @get:Rule
@@ -79,7 +80,7 @@ class TvHomeRowsTest {
             val viewModel = TvHomeRowsViewModel(preferences, FakeAppModeRepository(initial = AppMode.Both))
             backgroundScope.launch { viewModel.state.collect() }
 
-            viewModel.onAction(TvHomeRowsAction.SetPerScreen(ContinueWatching, 2))
+            viewModel.onAction(TvHomeRowsAction.SetPerScreen(ContinueWatching.name, 2))
             runCurrent()
             assertThat(preferences.preferences.value.navigation.tvCardsPerScreen).containsExactly(ContinueWatching, 2)
             assertThat(
@@ -89,8 +90,44 @@ class TvHomeRowsTest {
                     .perScreen,
             ).isEqualTo(2)
 
-            viewModel.onAction(TvHomeRowsAction.SetPerScreen(ContinueWatching, null))
+            viewModel.onAction(TvHomeRowsAction.SetPerScreen(ContinueWatching.name, null))
             runCurrent()
             assertThat(preferences.preferences.value.navigation.tvCardsPerScreen).isEmpty()
+        }
+
+    @Test
+    fun `a genre row joins Home rows, moves among the sections and takes its own design (#621)`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val preferences = FakeLibraryPreferencesRepository()
+            val viewModel = TvHomeRowsViewModel(preferences, FakeAppModeRepository(initial = AppMode.Video))
+            backgroundScope.launch { viewModel.state.collect() }
+
+            viewModel.onAction(TvHomeRowsAction.ToggleGenre("Drama"))
+            runCurrent()
+            val ids =
+                viewModel.state.value!!
+                    .rows
+                    .map { it.id }
+            assertThat(ids.last()).isEqualTo("genre:Drama")
+
+            viewModel.onAction(TvHomeRowsAction.Move("genre:Drama", up = true))
+            runCurrent()
+            assertThat(
+                viewModel.state.value!!
+                    .rows
+                    .map { it.id },
+            ).containsExactlyElementsIn(ids.dropLast(2) + "genre:Drama" + ids[ids.size - 2])
+                .inOrder()
+
+            viewModel.onAction(TvHomeRowsAction.SetCardStyle("genre:Drama", TvCardStyle.WideClassic))
+            runCurrent()
+            assertThat(preferences.preferences.value.navigation.tvGenreCardStyles)
+                .containsExactly("Drama", TvCardStyle.WideClassic)
+            assertThat(
+                viewModel.state.value!!
+                    .rows
+                    .single { it.genre == "Drama" }
+                    .cardStyle,
+            ).isEqualTo(TvCardStyle.WideClassic)
         }
 }
