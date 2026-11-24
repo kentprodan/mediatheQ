@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.designsystem.tv.component
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -22,11 +23,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
@@ -56,6 +59,7 @@ fun MqTvCarousel(
     var active by rememberSaveable { mutableIntStateOf(0) }
     var forward by remember { mutableStateOf(true) }
     var focused by remember { mutableStateOf(false) }
+    val count by rememberUpdatedState(itemCount)
     val current = if (itemCount > 0) active.coerceIn(0, itemCount - 1) else 0
     LaunchedEffect(focused, current, itemCount) {
         if (!focused && itemCount > 1) {
@@ -94,9 +98,22 @@ fun MqTvCarousel(
                 label = "MqTvCarousel",
             ) { index ->
                 val requester = remember { FocusRequester() }
-                // The slide that had the focus leaves with its button: hand the focus to the new one.
-                LaunchedEffect(Unit) { if (focused) requester.requestFocus() }
-                Box(Modifier.fillMaxSize().focusRequester(requester).focusGroup()) { slide(index) }
+                // Live, unlike `current`: a slide's content is kept from when it first came, also while it leaves.
+                val target = transition.targetState == EnterExitState.Visible
+                // The slide that had the focus leaves with its button: hand the focus to the new one. Keyed on
+                // `target`, so a slide that comes back before it finished leaving (Right then Left) asks again.
+                LaunchedEffect(target) { if (target && focused) requester.requestFocus() }
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .focusRequester(requester)
+                        // A leaving slide takes no focus (Up during an automatic change), it would lose it.
+                        .focusProperties { onEnter = { if (!target) cancelFocusChange() } }
+                        .focusGroup(),
+                ) {
+                    // The list may have shrunk under a leaving slide.
+                    if (index < count) slide(index)
+                }
             }
         }
         if (itemCount > 1) {

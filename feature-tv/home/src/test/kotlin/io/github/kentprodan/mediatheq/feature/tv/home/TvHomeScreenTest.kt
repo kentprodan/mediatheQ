@@ -244,6 +244,19 @@ class TvHomeScreenTest {
     }
 
     @Test
+    fun `Right then Left at once keeps the focus on the carousel (#600)`() {
+        show(withCarousel)
+
+        press(listOf(Key.DirectionRight))
+        composeRule.mainClock.advanceTimeBy(100)
+        press(listOf(Key.DirectionLeft))
+        composeRule.mainClock.advanceTimeBy(2_000)
+
+        composeRule.onNodeWithText("Play").assertIsFocused().performKeyInput { pressKey(Key.DirectionCenter) }
+        assertThat(actions).containsExactly(TvHomeAction.Play(TvHomeTarget.Album(id("al1"))))
+    }
+
+    @Test
     fun `D-pad down leaves the carousel for the first row (#521)`() {
         show(withCarousel)
 
