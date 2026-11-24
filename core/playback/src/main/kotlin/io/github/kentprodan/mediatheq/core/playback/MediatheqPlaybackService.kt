@@ -230,6 +230,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private lateinit var usbAudio: AudioOutputPort
     private lateinit var passthroughCapabilities: Media3PassthroughCapabilities
     private lateinit var audioOutput: AudioOutputController
+    private lateinit var swap: SwapPlayer
+
+    /** The controller's last state, for the sink on the playback thread (#629). */
+    @Volatile private var outputNow = AudioOutputState()
     private lateinit var outputApplier: OutputStateApplier
     private lateinit var reopener: AudioTrackReopener
     private var audioSettingsJob: Job? = null
@@ -250,7 +254,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             OfflineModeNetwork(networkMonitor, offlineFilter.forced, applicationScope)
         // The player the renderers' recovery seeks, once built.
         var built: ExoPlayer? = null
-        val player =
+        val exoPlayer =
             ExoPlayer
                 .Builder(this)
                 .setAudioAttributes(
@@ -267,6 +271,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     PassthroughRenderersFactory(
                         this,
                         allowedPassthrough = { streamResolver.passthrough },
+                        // Read on the playback thread at decoder and AudioTrack setup (#629).
+                        bitPerfectFormat = { outputNow.bitPerfectFormat },
+                        floatOutput = { outputNow.floatOutput },
                         // A bitstream track gone silent (#377): a seek in place rebuilds it, on the player's thread.
                         onRecoveryNeeded = { reason ->
                             Handler(Looper.getMainLooper()).post {
@@ -316,6 +323,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         downloadCache = downloadCache,
                     ),
                 ).build()
+        // Everything holds the swap player (#219): a crossfade can move playback to a second ExoPlayer under it.
+        swap = SwapPlayer(exoPlayer)
+        val player = swap.player
         built = player
         startAudioOutput(player)
         autoActions =
@@ -688,6 +698,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 playingVideo = { player.currentMediaItem?.isVideo() == true },
                 currentGains = { player.currentMediaItem?.gains() ?: ItemGains(null, null) },
                 offloadBroken = { offloadBroken },
+                floatPipeline = FloatOutputProbe.supported,
                 port = usbAudio,
                 currentFormat = {
                     val playing =
@@ -703,6 +714,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     }
                 },
                 onChange = {
+                    outputNow = it
                     // Before applying: the next stream request already asks for what this route passes through.
                     streamResolver.passthrough = it.requestPassthrough
                     outputApplier.apply(it)

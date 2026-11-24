@@ -36,6 +36,7 @@ class LicensesTest {
                 "material-symbols",
                 "dolby-mark",
                 "moonfin-passthrough",
+                "pixelplayer-widening",
                 "androidx.media3:media3-exoplayer",
                 "com.squareup.okhttp3:okhttp",
                 "org.example:nameless",

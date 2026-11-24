@@ -41,6 +41,11 @@ internal data class AudioOutputState(
     val passthroughEncoding: Int? = null,
     /** What stream requests may ask to pass through: [passthrough] while the output's switch is on, else nothing. */
     val requestPassthrough: Set<String> = emptySet(),
+    /**
+     * Decoders may hand the sink float (#629, ADR 0056): bit-perfect is wanted on this DAC and the device takes float,
+     * so a 24-bit file keeps its depth. Known before any track, so the first decoder already outputs float.
+     */
+    val floatOutput: Boolean = false,
 )
 
 /**
@@ -75,6 +80,8 @@ internal class AudioOutputController(
     private val currentGains: () -> ItemGains = { ItemGains(null, null) },
     /** The device's offload broke (#628, [OffloadGuard]): no offload at all. */
     private val offloadBroken: () -> Boolean = { false },
+    /** The device takes float PCM ([FloatOutputProbe]): the bit-perfect pipeline is float, so 24 bits come first. */
+    private val floatPipeline: Boolean = false,
 ) {
     private var settings = AudioSettings()
     private var preferred: MixerCapability? = null
@@ -140,8 +147,9 @@ internal class AudioOutputController(
             }
         val passthrough = if (route == AudioRoute.Hdmi) passthroughCapabilities.mimeTypes() else emptySet()
         val mime = currentMime()
-        val format = if (!suspended && AudioPolicy.wantsBitPerfect(settings, route)) currentFormat() else null
-        val wanted = format?.let { MixerAttributeSelector.select(capabilities.orEmpty(), it) }
+        val bitPerfect = !suspended && AudioPolicy.wantsBitPerfect(settings, route)
+        val format = if (bitPerfect) currentFormat() else null
+        val wanted = format?.let { MixerAttributeSelector.select(capabilities.orEmpty(), it, floatPipeline) }
         val chosen = wanted?.takeIf { it == preferred || port.setPreferred(it) }
         val cleared = chosen == null && preferred != null
         if (cleared) port.clearPreferred()
@@ -169,6 +177,7 @@ internal class AudioOutputController(
                 passthroughEncoding = state.passthroughEncoding,
                 requestPassthrough =
                     passthrough.takeIf { AudioPolicy.wantsPassthrough(settings, route, it) }.orEmpty(),
+                floatOutput = floatPipeline && bitPerfect,
             ),
         )
         // After publishing: the offload change of this decision is applied first, then the track is reopened.

@@ -19,18 +19,31 @@ internal data class MixerCapability(
 /** Picks the bit-perfect mixer attribute for a track (media3 skill, section 6). Pure. */
 internal object MixerAttributeSelector {
     /**
-     * The bit-perfect capability whose format is exactly [output], or `null`: playback attaches to a bit-perfect
-     * mixer only when encoding, sample rate and channel mask all match.
+     * The bit-perfect capability for [output]'s sample rate and channel mask, or `null`: playback attaches to a
+     * bit-perfect mixer only when encoding, sample rate and channel mask all match the AudioTrack, and
+     * [BitPerfectOutputProvider] opens the AudioTrack in the chosen encoding. A wider integer container carries the
+     * samples unchanged (#629), so the order is: the pipeline's own width first ([floatPipeline]: the sink writes float,
+     * which holds 24-bit samples exactly, so 24 then 32 bits before 16), then wider, then 16 bits.
      */
     fun select(
         capabilities: List<MixerCapability>,
         output: PcmFormat,
-    ): MixerCapability? = capabilities.firstOrNull { it.bitPerfect && it.format == output }
+        floatPipeline: Boolean = false,
+    ): MixerCapability? {
+        val order =
+            if (floatPipeline) {
+                listOf(ENCODING_PCM_24BIT_PACKED, ENCODING_PCM_32BIT, ENCODING_PCM_16BIT)
+            } else {
+                listOf(ENCODING_PCM_16BIT, ENCODING_PCM_24BIT_PACKED, ENCODING_PCM_32BIT)
+            }
+        return order.firstNotNullOfOrNull { encoding ->
+            capabilities.firstOrNull { it.bitPerfect && it.format == output.copy(encoding = encoding) }
+        }
+    }
 
     /**
-     * The format the player sends to the sink for a track with this [sampleRateHz] and [channels]: Media3's default
-     * sink outputs 16-bit PCM (a 24-bit file loses its bit depth, not its sample rate). `null` when unknown or more
-     * than stereo.
+     * The format the player sends to the sink for a track with this [sampleRateHz] and [channels], as 16-bit PCM;
+     * [select] picks the container the DAC takes for it. `null` when unknown or more than stereo.
      */
     fun outputFormat(
         sampleRateHz: Int?,
@@ -48,6 +61,9 @@ internal object MixerAttributeSelector {
 
     // The platform's values (android.media.AudioFormat), kept here so the selector stays pure Kotlin.
     const val ENCODING_PCM_16BIT = 2
+    const val ENCODING_PCM_FLOAT = 4
+    const val ENCODING_PCM_24BIT_PACKED = 21
+    const val ENCODING_PCM_32BIT = 22
     const val CHANNEL_OUT_MONO = 4
     const val CHANNEL_OUT_STEREO = 12
 }
