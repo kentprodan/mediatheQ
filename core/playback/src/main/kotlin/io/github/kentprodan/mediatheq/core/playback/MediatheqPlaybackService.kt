@@ -230,6 +230,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private lateinit var usbAudio: AudioOutputPort
     private lateinit var passthroughCapabilities: Media3PassthroughCapabilities
     private lateinit var audioOutput: AudioOutputController
+    private lateinit var swap: SwapPlayer
     private lateinit var outputApplier: OutputStateApplier
     private lateinit var reopener: AudioTrackReopener
     private var audioSettingsJob: Job? = null
@@ -250,7 +251,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
             OfflineModeNetwork(networkMonitor, offlineFilter.forced, applicationScope)
         // The player the renderers' recovery seeks, once built.
         var built: ExoPlayer? = null
-        val player =
+        val exoPlayer =
             ExoPlayer
                 .Builder(this)
                 .setAudioAttributes(
@@ -316,6 +317,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         downloadCache = downloadCache,
                     ),
                 ).build()
+        // Everything holds the swap player (#219): a crossfade can move playback to a second ExoPlayer under it.
+        swap = SwapPlayer(exoPlayer)
+        val player = swap.player
         built = player
         startAudioOutput(player)
         autoActions =

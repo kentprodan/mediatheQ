@@ -21,6 +21,8 @@ Read together with `architecture` (section 7, playback boundary) and `jellyfin` 
 ```
 MediatheqPlaybackService : MediaLibraryService      the only owner of the player
   ├─ ExoPlayer (built by PlayerFactory)              audio-only renderers until Video
+  ├─ SwapPlayer                                     the ExoPlayer everyone holds: forwards to the active one, keeps the
+  │                                                  listeners and the volume, so a crossfade can swap players (#219)
   ├─ MediaLibrarySession + LibraryCallback           browse tree for Auto/Wear later, queue commands
   ├─ StreamResolver                                  MediaItem -> playable URI + headers (asks PlaybackSource)
   ├─ StreamMediaSourceFactory                        per item: HLS (converted) or the file data source (ADR 0019)
