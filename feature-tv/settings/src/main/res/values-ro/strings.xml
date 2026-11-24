@@ -62,6 +62,8 @@
     <string name="tv_settings_cards_compact">Carduri: compacte</string>
     <string name="tv_settings_cards_wide_standard">Carduri: late standard</string>
     <string name="tv_settings_cards_wide_classic">Carduri: late clasice</string>
+    <string name="tv_settings_per_screen_default">Mărime: implicită</string>
+    <string name="tv_settings_per_screen">%1$d pe ecran</string>
     <string name="tv_settings_move_up">Mută mai sus</string>
     <string name="tv_settings_move_down">Mută mai jos</string>
     <string name="tv_settings_genre_rows">Rânduri pe genuri (acest cont)</string>

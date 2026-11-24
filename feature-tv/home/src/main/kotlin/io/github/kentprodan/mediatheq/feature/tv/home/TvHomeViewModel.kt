@@ -182,8 +182,10 @@ class TvHomeViewModel
         /** Settings -> Display and Home rows (#518, #521): how Home draws. */
         private val looks =
             preferences.preferences
-                .map { Triple(it.navigation.tvCarousel, it.navigation.tvCardStyles, it.navigation.tvImmersiveRows) }
-                .distinctUntilChanged()
+                .map {
+                    val nav = it.navigation
+                    Looks(nav.tvCarousel, nav.tvCardStyles, nav.tvImmersiveRows, nav.tvCardsPerScreen)
+                }.distinctUntilChanged()
 
         /** The status, and whether a full sync ever completed (then an empty library is really empty). */
         private val status =
@@ -192,7 +194,12 @@ class TvHomeViewModel
             }
 
         val uiState: StateFlow<TvHomeUiState> =
-            combine(rows, genreRows, status, looks) { data, genreRows, status, (carousel, cards, immersive) ->
+            combine(
+                rows,
+                genreRows,
+                status,
+                looks,
+            ) { data, genreRows, status, (carousel, cards, immersive, perScreen) ->
                 val (current, everSynced) = status ?: return@combine TvHomeUiState.Loading
                 when {
                     data != null -> {
@@ -205,6 +212,7 @@ class TvHomeViewModel
                             data.featured,
                             data.slideSections,
                             immersive,
+                            perScreen,
                         )
                     }
 
@@ -373,3 +381,11 @@ internal const val FEATURED_COUNT = 6
 /** How many of [episodes] each series has, for "5 new episodes". */
 internal fun newEpisodeCounts(episodes: List<Video>): Map<MediaId, Int> =
     episodes.mapNotNull { it.seriesId }.groupingBy { it }.eachCount()
+
+/** What Settings say about how Home draws (#518, #521, #604). */
+private data class Looks(
+    val carousel: io.github.kentprodan.mediatheq.core.data.TvCarousel,
+    val cardStyles: Map<HomeSection, io.github.kentprodan.mediatheq.core.data.TvCardStyle>,
+    val immersive: Set<HomeSection>,
+    val perScreen: Map<HomeSection, Int>,
+)

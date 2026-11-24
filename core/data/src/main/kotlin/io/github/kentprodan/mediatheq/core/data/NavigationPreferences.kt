@@ -84,6 +84,8 @@ data class NavigationPreferences(
     val tvPosterAccent: Boolean = false,
     /** TV (#518): the card variant a Home row uses; a row missing here keeps its own default. */
     val tvCardStyles: Map<HomeSection, TvCardStyle> = emptyMap(),
+    /** TV (#604): how many cards of a Home row fit on screen ([CARDS_PER_SCREEN]); a row missing here keeps its default. */
+    val tvCardsPerScreen: Map<HomeSection, Int> = emptyMap(),
 ) {
     companion object {
         const val MAX_ENTRIES = 6
@@ -119,6 +121,9 @@ fun validTransparency(percent: Int): Int {
 
 /** The guideline's TV card variants (#518), chosen per Home row. */
 enum class TvCardStyle { Standard, Classic, Compact, WideStandard, WideClassic }
+
+/** The guideline's card layouts (#604): one to five cards across the screen. */
+val CARDS_PER_SCREEN = 1..5
 
 /** TV Home's featured carousel (#521, Google TV guidelines): off, an inset card, or immersive (full width). */
 enum class TvCarousel { Off, Card, Immersive }

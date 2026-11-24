@@ -71,4 +71,26 @@ class TvHomeRowsTest {
             runCurrent()
             assertThat(preferences.preferences.value.navigation.tvImmersiveRows).isEmpty()
         }
+
+    @Test
+    fun `a row's cards per screen is set and back to the default, and the list shows it (#604)`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val preferences = FakeLibraryPreferencesRepository()
+            val viewModel = TvHomeRowsViewModel(preferences, FakeAppModeRepository(initial = AppMode.Both))
+            backgroundScope.launch { viewModel.state.collect() }
+
+            viewModel.onAction(TvHomeRowsAction.SetPerScreen(ContinueWatching, 2))
+            runCurrent()
+            assertThat(preferences.preferences.value.navigation.tvCardsPerScreen).containsExactly(ContinueWatching, 2)
+            assertThat(
+                viewModel.state.value!!
+                    .rows
+                    .single { it.section == ContinueWatching }
+                    .perScreen,
+            ).isEqualTo(2)
+
+            viewModel.onAction(TvHomeRowsAction.SetPerScreen(ContinueWatching, null))
+            runCurrent()
+            assertThat(preferences.preferences.value.navigation.tvCardsPerScreen).isEmpty()
+        }
 }

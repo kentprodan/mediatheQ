@@ -42,6 +42,8 @@ sealed interface TvHomeUiState {
         val slideSections: Map<MediaId, HomeSection> = emptyMap(),
         /** Rows shown as immersive lists (#521). */
         val immersiveRows: Set<HomeSection> = emptySet(),
+        /** Settings -> Home rows (#604): how many cards of a row fit on screen; the rest keep their defaults. */
+        val cardsPerScreen: Map<HomeSection, Int> = emptyMap(),
     ) : TvHomeUiState
 
     /** Synced, but the server has no music. */

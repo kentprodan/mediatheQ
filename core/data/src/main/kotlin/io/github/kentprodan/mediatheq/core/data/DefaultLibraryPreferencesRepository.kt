@@ -129,6 +129,7 @@ class DefaultLibraryPreferencesRepository
                     tvLogoSize = navigation.tvLogoSize.name,
                     tvPosterAccent = navigation.tvPosterAccent,
                     tvCardStyles = navigation.tvCardStyles.entries.associate { (k, v) -> k.name to v.name },
+                    tvCardsPerScreen = navigation.tvCardsPerScreen.entries.associate { (k, v) -> k.name to "$v" },
                 ),
             )
 
@@ -173,6 +174,13 @@ class DefaultLibraryPreferencesRepository
                             val style = enumOrNull<TvCardStyle>(v) ?: return@mapNotNull null
                             section to style
                         }?.toMap() ?: defaults.tvCardStyles,
+                tvCardsPerScreen =
+                    stored.tvCardsPerScreen
+                        ?.mapNotNull { (k, v) ->
+                            val section = enumOrNull<HomeSection>(k) ?: return@mapNotNull null
+                            val count = v.toIntOrNull()?.takeIf { it in CARDS_PER_SCREEN } ?: return@mapNotNull null
+                            section to count
+                        }?.toMap() ?: defaults.tvCardsPerScreen,
             )
         }
 

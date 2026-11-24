@@ -53,6 +53,12 @@ enum class MqTvCardStyle {
 }
 
 /**
+ * The guideline's card width when [count] cards fit across the screen, 20 dp apart with the next one peeking (#604):
+ * 1 = 844 dp, 2 = 412, 3 = 268, 4 = 196, 5 = 124.
+ */
+fun cardWidth(count: Int): Dp = CARD_WIDTHS[count.coerceIn(1, CARD_WIDTHS.size) - 1]
+
+/**
  * A card in [style] with [image] at [imageAspectRatio], its [title], an optional [subtitle] and, on the wide variants,
  * a two-line [description]. Focus (#517, the guideline's card focus): a slight scale and a thin white outline, no
  * brand color. The content block follows the guideline's spacing (#603): 8 dp under a Standard image, 12 dp padding
@@ -69,6 +75,8 @@ fun MqTvCard(
     imageAspectRatio: Float = 1f,
     style: MqTvCardStyle = MqTvCardStyle.Classic,
     description: String? = null,
+    /** The whole card's width; a wide card gives half of it to its image. */
+    width: Dp = style.width,
     image: @Composable () -> Unit,
 ) {
     val scale = CardDefaults.scale(focusedScale = FOCUSED_SCALE)
@@ -104,9 +112,9 @@ fun MqTvCard(
     }
     val subtitleText: @Composable () -> Unit = {}
     // A wide card puts its image beside the text, at a fixed width.
-    val pictureSize = if (style.wide) Modifier.width(WIDE_IMAGE_WIDTH) else Modifier.fillMaxWidth()
+    val pictureSize = if (style.wide) Modifier.width(width / 2) else Modifier.fillMaxWidth()
     val picture: @Composable () -> Unit = { Box(pictureSize.aspectRatio(imageAspectRatio)) { image() } }
-    val sized = modifier.width(style.width)
+    val sized = modifier.width(width)
     when (style) {
         MqTvCardStyle.Standard -> {
             StandardCardContainer(
@@ -238,7 +246,7 @@ private fun focusBorder(): CardBorder =
 // Guideline widths (#507): 124 dp for five cards per screen, 268 dp for three.
 private val CARD_WIDTH = 124.dp
 private val WIDE_CARD_WIDTH = 268.dp
-private val WIDE_IMAGE_WIDTH = 124.dp
+private val CARD_WIDTHS = listOf(844.dp, 412.dp, 268.dp, 196.dp, 124.dp)
 private const val FOCUSED_SCALE = 1.05f
 
 // The guideline's content block spacing (#603).

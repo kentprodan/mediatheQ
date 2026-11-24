@@ -74,6 +74,10 @@ class LibraryPreferencesStore
                         tvPosterAccent = prefs[TV_POSTER_ACCENT],
                         tvCardStyles =
                             prefs[TV_CARD_STYLES]?.associate { it.substringBefore('=') to it.substringAfter('=') },
+                        tvCardsPerScreen =
+                            prefs[TV_CARDS_PER_SCREEN]?.associate {
+                                it.substringBefore('=') to it.substringAfter('=')
+                            },
                     ),
                 mediaLists =
                     StoredMediaLists(
@@ -267,6 +271,7 @@ class LibraryPreferencesStore
                 prefs.put(TV_LOGO_SIZE, navigation.tvLogoSize)
                 prefs.put(TV_POSTER_ACCENT, navigation.tvPosterAccent)
                 prefs.put(TV_CARD_STYLES, navigation.tvCardStyles?.map { (k, v) -> "$k=$v" }?.toSet())
+                prefs.put(TV_CARDS_PER_SCREEN, navigation.tvCardsPerScreen?.map { (k, v) -> "$k=$v" }?.toSet())
             }
         }
 
@@ -679,6 +684,9 @@ class LibraryPreferencesStore
 
             /** `Section=Style` pairs (#518). */
             val TV_CARD_STYLES = stringSetPreferencesKey("tv_card_styles")
+
+            /** `Section=Count` pairs (#604). */
+            val TV_CARDS_PER_SCREEN = stringSetPreferencesKey("tv_cards_per_screen")
             val ML_ITEM_COUNTS = booleanPreferencesKey("ml_item_counts")
             val ML_TOP_BUTTON_STYLE = stringPreferencesKey("ml_top_button_style")
             val ML_HIDDEN_TOP_BUTTONS = stringPreferencesKey("ml_hidden_top_buttons")
@@ -896,6 +904,8 @@ data class StoredNavigation(
     val tvPosterAccent: Boolean? = null,
     /** `HomeSection` name to `TvCardStyle` name (#518). */
     val tvCardStyles: Map<String, String>? = null,
+    /** `HomeSection` name to how many cards fit on screen, 1-5 (#604). */
+    val tvCardsPerScreen: Map<String, String>? = null,
 )
 
 /** Theme, font and color values as stored (#121); `null` = not set. */

@@ -59,6 +59,7 @@ import androidx.compose.ui.relocation.bringIntoView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -81,6 +82,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCarouse
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.cardWidth
 import io.github.kentprodan.mediatheq.core.designsystem.tv.focusMemory
 import io.github.kentprodan.mediatheq.core.designsystem.tv.rememberFocusMemory
 import io.github.kentprodan.mediatheq.core.model.Artist
@@ -193,6 +195,7 @@ private fun Rows(
     val rows = state.rows
     val genreRows = state.genreRows
     val cardStyles = state.cardStyles
+    val perScreen = state.cardsPerScreen
     val focus = rememberFocusMemory()
     var menu by remember { mutableStateOf<Menu?>(null) }
     var videoMenu by remember { mutableStateOf<Video?>(null) }
@@ -203,10 +206,11 @@ private fun Rows(
     val hero = rememberHero(focused)
     val showCarousel = state.carousel != TvCarousel.Off && state.featured.isNotEmpty()
     val cards =
-        remember(focus, onAction, navigation, cardStyles) {
+        remember(focus, onAction, navigation, cardStyles, perScreen) {
             Cards(
                 focus,
                 cardStyles,
+                perScreen,
                 onAction,
                 navigation,
                 onFocused = { focused.info = it },
@@ -305,6 +309,7 @@ private fun firstKey(row: TvHomeRow): String? =
 private class Cards(
     val focus: FocusMemory,
     val cardStyles: Map<HomeSection, TvCardStyle>,
+    val perScreen: Map<HomeSection, Int>,
     val onAction: (TvHomeAction) -> Unit,
     val navigation: TvHomeNavigation,
     val onFocused: (HeroInfo?) -> Unit,
@@ -317,8 +322,15 @@ private class Cards(
         default: MqTvCardStyle,
     ): MqTvCardStyle = cardStyles[row.section]?.let { MqTvCardStyle.valueOf(it.name) } ?: default
 
+    /** The row's card width (#604): how many fit on screen from Settings, else the variant's own. */
+    fun width(
+        row: TvHomeRow,
+        style: MqTvCardStyle,
+    ): Dp = perScreen[row.section]?.let(::cardWidth) ?: style.width
+
     fun LazyListScope.row(row: TvHomeRow) {
         val standard = style(row, MqTvCardStyle.Standard)
+        val standardWidth = width(row, standard)
         when (val items = row.items) {
             is HomeItems.Albums -> {
                 itemsIndexed(items.albums, key = { _, it -> it.id.toString() }) { index, album ->
@@ -329,6 +341,7 @@ private class Cards(
                         names(album.albumArtists),
                         Menu(TvHomeTarget.Album(album.id), album.title, album.albumArtists.firstOrNull()?.id),
                         style = standard,
+                        width = standardWidth,
                     ) { navigation.onOpenAlbum(album.id) }
                 }
             }
@@ -343,6 +356,7 @@ private class Cards(
                         Menu(TvHomeTarget.Artist(artist.id), artist.name),
                         MqTvIcons.Person,
                         standard,
+                        standardWidth,
                     ) { navigation.onOpenArtist(artist.id) }
                 }
             }
@@ -356,6 +370,7 @@ private class Cards(
                         null,
                         Menu(TvHomeTarget.Playlist(playlist.id), playlist.name),
                         style = standard,
+                        width = standardWidth,
                     ) { navigation.onOpenPlaylist(playlist.id) }
                 }
             }
@@ -369,6 +384,7 @@ private class Cards(
                         names(track.artists),
                         Menu(TvHomeTarget.Song(track), track.title, track.artists.firstOrNull()?.id),
                         style = standard,
+                        width = standardWidth,
                     ) { onAction(TvHomeAction.PlayTracks(items.tracks, index)) }
                 }
             }
@@ -399,6 +415,7 @@ private class Cards(
                         null,
                         icon,
                         style(row, MqTvCardStyle.Compact),
+                        width(row, style(row, MqTvCardStyle.Compact)),
                     ) { onAction(TvHomeAction.PlayMix(mix)) }
                 }
             }
@@ -445,6 +462,7 @@ private class Cards(
         menu: Menu?,
         placeholder: ImageVector = MqTvIcons.MusicNote,
         style: MqTvCardStyle = MqTvCardStyle.Standard,
+        width: Dp = style.width,
         onClick: () -> Unit,
     ) {
         val open = menu?.let { { openMenu(it) } }
@@ -465,6 +483,7 @@ private class Cards(
             placeholder = placeholder,
             onLongClick = open,
             style = style,
+            width = width,
         )
     }
 
@@ -540,6 +559,7 @@ private class Cards(
             onLongClick = open,
             style = cardStyle,
             description = video.overview,
+            width = width(row, cardStyle),
         )
     }
 }
