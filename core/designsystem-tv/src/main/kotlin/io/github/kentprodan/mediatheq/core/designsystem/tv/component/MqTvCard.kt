@@ -3,15 +3,20 @@ package io.github.kentprodan.mediatheq.core.designsystem.tv.component
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -48,8 +53,10 @@ enum class MqTvCardStyle {
 }
 
 /**
- * A card in [style] with [image] at [imageAspectRatio], its [title] and an optional [subtitle]. Focus (#517, the
- * guideline's card focus): a slight scale and a thin white outline, no brand color.
+ * A card in [style] with [image] at [imageAspectRatio], its [title], an optional [subtitle] and, on the wide variants,
+ * a two-line [description]. Focus (#517, the guideline's card focus): a slight scale and a thin white outline, no
+ * brand color. The content block follows the guideline's spacing (#603): 8 dp under a Standard image, 12 dp padding
+ * inside Classic and Compact, 16 x 12 dp beside a wide image, 8 dp before the description.
  */
 @Composable
 fun MqTvCard(
@@ -61,6 +68,7 @@ fun MqTvCard(
     onLongClick: (() -> Unit)? = null,
     imageAspectRatio: Float = 1f,
     style: MqTvCardStyle = MqTvCardStyle.Classic,
+    description: String? = null,
     image: @Composable () -> Unit,
 ) {
     val scale = CardDefaults.scale(focusedScale = FOCUSED_SCALE)
@@ -70,8 +78,31 @@ fun MqTvCard(
     val outside = style == MqTvCardStyle.Standard || style == MqTvCardStyle.WideStandard
     val textSemantics = if (outside) Modifier.clearAndSetSemantics {} else Modifier
     val label = listOfNotNull(title, subtitle).joinToString(", ")
-    val titleText: @Composable () -> Unit = { CardTitle(title, textSemantics) }
-    val subtitleText: @Composable () -> Unit = { subtitle?.let { CardSubtitle(it, textSemantics) } }
+    val padding =
+        when (style) {
+            MqTvCardStyle.Standard -> {
+                PaddingValues(top = STANDARD_GAP)
+            }
+
+            MqTvCardStyle.Classic, MqTvCardStyle.Compact -> {
+                PaddingValues(INNER_PADDING)
+            }
+
+            MqTvCardStyle.WideStandard, MqTvCardStyle.WideClassic -> {
+                PaddingValues(horizontal = WIDE_PADDING_H, vertical = INNER_PADDING)
+            }
+        }
+    // The whole content block in the title slot: tv-material's slots have no spacing or padding of their own.
+    val titleText: @Composable () -> Unit = {
+        ContentBlock(
+            title,
+            subtitle,
+            description?.takeIf { style.wide },
+            centered = style == MqTvCardStyle.Standard,
+            modifier = textSemantics.padding(padding),
+        )
+    }
+    val subtitleText: @Composable () -> Unit = {}
     // A wide card puts its image beside the text, at a fixed width.
     val pictureSize = if (style.wide) Modifier.width(WIDE_IMAGE_WIDTH) else Modifier.fillMaxWidth()
     val picture: @Composable () -> Unit = { Box(pictureSize.aspectRatio(imageAspectRatio)) { image() } }
@@ -154,24 +185,49 @@ private fun ImageCard(
     interactionSource = source,
 ) { picture() }
 
+/** The guideline's content block: title, subtitle, then the description 8 dp below. */
 @Composable
-private fun CardTitle(
-    text: String,
+private fun ContentBlock(
+    title: String,
+    subtitle: String?,
+    description: String?,
+    centered: Boolean,
     modifier: Modifier,
-) = Text(text, modifier, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-
-@Composable
-private fun CardSubtitle(
-    text: String,
-    modifier: Modifier,
-) = Text(
-    text,
-    modifier,
-    style = MaterialTheme.typography.bodySmall,
-    color = MaterialTheme.colorScheme.onSurfaceVariant,
-    maxLines = 1,
-    overflow = TextOverflow.Ellipsis,
-)
+) {
+    val align = if (centered) TextAlign.Center else TextAlign.Start
+    Column(
+        modifier,
+        horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
+    ) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            textAlign = align,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        subtitle?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = align,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        description?.let {
+            Text(
+                it,
+                Modifier.padding(top = BLOCK_GAP),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
 
 @Composable
 private fun focusBorder(): CardBorder =
@@ -184,4 +240,10 @@ private val CARD_WIDTH = 124.dp
 private val WIDE_CARD_WIDTH = 268.dp
 private val WIDE_IMAGE_WIDTH = 124.dp
 private const val FOCUSED_SCALE = 1.05f
+
+// The guideline's content block spacing (#603).
+private val STANDARD_GAP = 8.dp
+private val INNER_PADDING = 12.dp
+private val WIDE_PADDING_H = 16.dp
+private val BLOCK_GAP = 8.dp
 private val FOCUS_BORDER = 2.dp
