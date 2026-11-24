@@ -251,7 +251,14 @@ private fun Rows(
         ) {
             if (showCarousel) {
                 item(key = "featured", contentType = "featured") {
-                    FeaturedCarousel(state, focus, onAction, navigation, Modifier.rowFocus(focused, FEATURED_KEY))
+                    // Coming back up to Play brings the whole slide back, not only the button.
+                    FeaturedCarousel(
+                        state,
+                        focus,
+                        onAction,
+                        navigation,
+                        Modifier.rowFocus(focused, FEATURED_KEY).showsWholeRow(),
+                    )
                 }
             }
             items(rows.take(split), key = { it.section.name }, contentType = { "row" }) { sectionRow(it) }
@@ -514,7 +521,9 @@ private class Cards(
         // An immersive row shows 16:9 pictures (#601), four across unless the row says otherwise.
         val immersiveRow = row.section in immersive
         val wide = cardStyle.wide || immersiveRow
-        val size = if (immersiveRow && row.section !in perScreen) cardWidth(4) else width(row, cardStyle)
+        // A wide variant keeps its own width: half of it is the picture, the rest its text.
+        val size =
+            if (immersiveRow && !cardStyle.wide && row.section !in perScreen) cardWidth(4) else width(row, cardStyle)
         val episode = video.kind == VideoKind.Episode
         val newCount = video.seriesId?.let { row.newEpisodes[it] }
         val title = if (episode) video.seriesName ?: video.title else video.title

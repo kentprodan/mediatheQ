@@ -222,7 +222,7 @@ class TvHomeScreenTest {
 
     @Test
     fun `the carousel is not pinned, it scrolls away as the rows come up, and back with Up (#601)`() {
-        show(withCarousel.copy(rows = fourRows.rows))
+        show(withCarousel.copy(rows = fourRows.rows, carousel = TvCarousel.Immersive))
 
         repeat(2) {
             press(listOf(Key.DirectionDown))
@@ -235,6 +235,8 @@ class TvHomeScreenTest {
             composeRule.mainClock.advanceTimeBy(1_000)
         }
         composeRule.onNodeWithText("Play").assertIsFocused().assertIsDisplayed()
+        // The whole slide came back, its title above Play included.
+        composeRule.onNodeWithText("Album 1").assertIsDisplayed()
     }
 
     @Test

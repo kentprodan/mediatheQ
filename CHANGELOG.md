@@ -72,7 +72,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - TV Home's wide cards show the movie's or series' Jellyfin thumb (the 16:9 picture with its title), else the backdrop. Thumbs arrive with the next library sync.
 - TV cards follow Google's spacing: the title sits 8 dp under a poster, Classic and Compact cards have 12 dp padding, wide cards 16 dp beside the picture with two lines of description.
 - TV Movies -> Studios and Series -> Networks show each studio's or network's picture with its logo from Jellyfin, four across.
-- TV Home: on the first row the carousel stays in view and keeps changing slides; lower rows scroll it away.
 - TV: after closing the app with Back, the next start asks Who's watching? again; a short trip out with the Home button still does not.
 - TV Settings -> Carousel shows: pick several sections at once (checkboxes); by default the carousel mixes new movies, new episodes and Continue watching, each slide saying where it comes from.
 - TV Sort and Filter open as a side panel from the right; Genre and Decade take several choices at once (any of them), and changing a filter no longer makes the panel flicker.
