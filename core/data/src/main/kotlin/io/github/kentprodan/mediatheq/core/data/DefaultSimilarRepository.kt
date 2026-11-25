@@ -4,11 +4,13 @@ import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.datastore.AccountStore
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.server.LibrarySource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -43,6 +45,18 @@ class DefaultSimilarRepository
                 }
             }
 
+        override suspend fun similarArtists(artistId: MediaId): MqResult<List<Artist>> =
+            when (val ids = ask { source.similarArtists(it, artistId, SIMILAR_ARTISTS) }) {
+                is MqResult.Failure -> {
+                    ids
+                }
+
+                is MqResult.Success -> {
+                    // shortcut: one Room read per artist (12 at most); a batch query if this row grows.
+                    MqResult.Success(ids.value.filter { it != artistId }.mapNotNull { library.artist(it).first() })
+                }
+            }
+
         /** [request] on the signed-in server; a 401 signs out. Signed out: Unauthorized, nothing asked. */
         private suspend fun ask(request: suspend (SignedInServer) -> MqResult<List<MediaId>>): MqResult<List<MediaId>> {
             val server = accountStore.signedInServer() ?: return MqResult.Failure(MqError.Unauthorized)
@@ -59,5 +73,8 @@ class DefaultSimilarRepository
 
             /** One row of cards on the album page. */
             const val SIMILAR_ALBUMS = 12
+
+            /** One row of artists on the artist page. */
+            const val SIMILAR_ARTISTS = 12
         }
     }

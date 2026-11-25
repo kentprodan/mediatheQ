@@ -38,6 +38,8 @@ sealed interface ArtistUiState {
         val selection: ListSelection<MediaId> = ListSelection(),
         /** Tracks of a selection to add to a playlist: the picker opens, then [ArtistAction.AddToPlaylistShown]. */
         val addToPlaylist: List<MediaId>? = null,
+        /** The server's artists like this one (#681), right above About; empty without the server. */
+        val similarArtists: List<Artist> = emptyList(),
     ) : ArtistUiState {
         /** The most played tracks, as many as the setting asks for. */
         val topTracks: List<Track> get() = playedTracks.take(page.topTracksCount)

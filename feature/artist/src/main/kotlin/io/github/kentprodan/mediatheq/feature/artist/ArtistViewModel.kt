@@ -6,9 +6,11 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.LibraryRepository
+import io.github.kentprodan.mediatheq.core.data.SimilarRepository
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.albumOrder
@@ -28,6 +30,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -45,6 +48,7 @@ class ArtistViewModel
         private val commands: TrackCommands,
         private val userData: UserDataRepository,
         private val downloads: DownloadRepository,
+        private val similar: SimilarRepository,
     ) : ViewModel() {
         private val content =
             combine(
@@ -55,6 +59,13 @@ class ArtistViewModel
                 libraryRepository.artistGenres(artistId),
             ) { artist, albums, appearsOn, tracks, genres ->
                 artist?.let { ArtistUiState.Content(it, albums, appearsOn, tracks, emptyList(), genres) }
+            }
+
+        // Similar artists (#681): asked once, after the page; nothing shows when the server is out of reach.
+        private val similarArtists =
+            flow {
+                emit(emptyList())
+                (similar.similarArtists(artistId) as? MqResult.Success)?.let { emit(it.value) }
             }
 
         private val selection = MutableStateFlow(ListSelection<MediaId>())
@@ -86,10 +97,14 @@ class ArtistViewModel
             }
 
         val uiState: StateFlow<ArtistUiState> =
-            combine(page, selection, addToPlaylist) { page, selection, addToPlaylist ->
+            combine(page, selection, addToPlaylist, similarArtists) { page, selection, addToPlaylist, like ->
                 // Tracks and albums can leave the page while selected.
                 (page as? ArtistUiState.Content)?.let {
-                    it.copy(selection = selection.retain(it.selectableIds), addToPlaylist = addToPlaylist)
+                    it.copy(
+                        selection = selection.retain(it.selectableIds),
+                        addToPlaylist = addToPlaylist,
+                        similarArtists = like,
+                    )
                 }
                     ?: page
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ArtistUiState.Loading)

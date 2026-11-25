@@ -2,10 +2,12 @@ package io.github.kentprodan.mediatheq.feature.artist
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -131,10 +133,37 @@ class ArtistScreenTest {
             }
         }
 
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Show all"))
-        composeRule.onNodeWithText("Show all").performClick()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasContentDescription("Show all"))
+        composeRule.onNodeWithContentDescription("Show all").performClick()
 
         assertThat(opened).isTrue()
+    }
+
+    @Test
+    fun `a similar artist opens its page`() {
+        val like = Artist(MediaId(ServerId("s"), "ar9"), "Golan")
+        val opened = mutableListOf<MediaId>()
+        composeRule.setContent {
+            MediatheqTheme {
+                ArtistScreen(content.copy(similarArtists = listOf(like)), {}, {}, {}, onOpenArtist = { opened += it })
+            }
+        }
+
+        composeRule.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(hasText("Golan"))
+        composeRule.onNodeWithText("Similar artists").assertExists()
+        composeRule.onNodeWithText("Golan").performClick()
+
+        assertThat(opened).containsExactly(like.id)
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun `the artist's More button sits where the album page's and the track rows' do`() {
+        composeRule.setContent { MediatheqTheme { ArtistScreen(content, {}, {}, {}) } }
+
+        // 16 dp from the edge, like a track row's ⋮ (measured on the album page, density 1 here).
+        val more = composeRule.onNodeWithContentDescription("More options", substring = true).fetchSemanticsNode()
+        assertThat(more.boundsInRoot.right).isEqualTo(411f - 16f)
     }
 
     @Test
