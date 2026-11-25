@@ -41,6 +41,7 @@ object MqTvIcons {
 
     /** Settings' categories (#580). */
     val Subtitles: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_subtitles)
+    val Audio: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_graphic_eq)
     val Palette: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_palette)
     val Sync: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_sync)
     val Info: ImageVector @Composable get() = ImageVector.vectorResource(R.drawable.tv_ic_info)

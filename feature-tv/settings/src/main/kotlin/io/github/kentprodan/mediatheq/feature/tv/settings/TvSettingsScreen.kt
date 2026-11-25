@@ -424,16 +424,6 @@ private class Pages(
                         stringResource(R.string.tv_settings_display_match),
                         stringResource(state.displayMatch.label),
                     )
-                    b.row(
-                        SettingEntry(
-                            "playbackDetails",
-                            stringResource(R.string.tv_settings_playback_details),
-                            stringResource(R.string.tv_settings_playback_details_detail),
-                            control = MqTvControl.Switch,
-                            checked = state.playbackDetails,
-                            onClick = { onAction(TvSettingsAction.TogglePlaybackDetails) },
-                        ),
-                    )
                     b.section = stringResource(R.string.tv_settings_subtitles)
                     val style = state.subtitleStyle
                     b.opens(
