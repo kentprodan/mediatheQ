@@ -72,3 +72,6 @@ and dialogue), and the video screens lay its view over the picture through `Play
 That is the one playback object the screens touch besides the controller: libass draws every frame itself, which
 Media3 cues cannot carry (the library's cue mode renders one still image per line, no animation). The screens never
 command the player through it. "Burn in styled subtitles" stays for whoever prefers the server's rendering.
+
+PGS is declared `External` too (#635): a `.sup` file beside the video, or the server's extraction for a conversion,
+is side-loaded instead of burned in. Conversions side-load external subtitle files like direct plays.

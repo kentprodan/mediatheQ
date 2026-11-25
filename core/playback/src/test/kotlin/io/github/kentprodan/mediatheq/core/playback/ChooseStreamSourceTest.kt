@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.cache.ContentMetadataMutations
@@ -16,6 +17,8 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.SpatialFormat
+import io.github.kentprodan.mediatheq.core.model.SubtitleDelivery
+import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.testing.FakeAudioPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
@@ -189,6 +192,22 @@ class ChooseStreamSourceTest {
             repository.segmented = true
             assertThat(chooseVideoSource(itemId, resolver, Duration.ZERO, network::isOnline))
                 .isEqualTo(StreamSource.Hls(resolver.current(itemId)!!.url))
+        }
+
+    @Test
+    fun `a video conversion keeps its external subtitle files, a PGS one included`() =
+        runTest {
+            val pgs = SubtitleDelivery(4, SubtitleMethod.External, "https://server/Stream.pgssub", "pgssub")
+            repository.playMethod = PlayMethod.Transcode
+            repository.segmented = true
+            repository.subtitles = listOf(pgs)
+
+            val choice = chooseVideoSource(itemId, resolver, Duration.ZERO, network::isOnline) as StreamSource.Hls
+
+            assertThat(choice.subtitles).containsExactly(pgs)
+            assertThat(
+                sideLoadedSubtitles(choice.subtitles, null).single().mimeType,
+            ).isEqualTo(MimeTypes.APPLICATION_PGS)
         }
 
     @Test

@@ -364,7 +364,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                                 ),
                                 onRate = ::onCadence,
                             ),
-                        videoSubtitleParsers = styledSubtitles.parsers,
+                        videoSubtitleParsers = SupAwareSubtitleParserFactory(styledSubtitles.parsers),
                     ),
                 ).build()
         // Everything holds the swap player (#219): a crossfade can move playback to a second ExoPlayer under it.

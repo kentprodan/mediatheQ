@@ -43,6 +43,7 @@ private fun subtitleMime(codec: String?): String? =
         "webvtt", "vtt" -> MimeTypes.TEXT_VTT
         "ass", "ssa" -> MimeTypes.TEXT_SSA
         "ttml" -> MimeTypes.APPLICATION_TTML
+        "pgssub", "pgs", "sup" -> MimeTypes.APPLICATION_PGS
         else -> null
     }
 

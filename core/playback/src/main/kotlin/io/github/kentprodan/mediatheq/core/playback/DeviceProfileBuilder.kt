@@ -137,14 +137,14 @@ object DeviceProfileBuilder {
         )
 
     /**
-     * How each subtitle format reaches the phone (ADR 0050): text formats as files beside the stream or inside it, PGS
-     * inside a direct play, WebVTT inside a conversion's playlist; bitmap formats a conversion cannot carry are burned
-     * in, and so are styled ASS / SSA when [burnInStyled] (Media3 keeps only their text).
+     * How each subtitle format reaches the phone (ADR 0050): text formats and PGS (a `.sup` file, #635) as files beside
+     * the stream or inside it, WebVTT inside a conversion's playlist; DVD bitmaps are burned in, and so are styled
+     * ASS / SSA when [burnInStyled].
      */
     fun subtitleProfiles(burnInStyled: Boolean): List<SubtitleProfile> {
         val styled = setOf("ass", "ssa")
         val text = listOf("subrip", "webvtt", "ass", "ssa", "mov_text").filterNot { burnInStyled && it in styled }
-        return text.map { SubtitleProfile(it, SubtitleMethod.External) } +
+        return (text + "pgssub").map { SubtitleProfile(it, SubtitleMethod.External) } +
             (text + "pgssub").map { SubtitleProfile(it, SubtitleMethod.Embed) } +
             SubtitleProfile("webvtt", SubtitleMethod.Hls) +
             (listOf("pgssub", "dvdsub") + if (burnInStyled) styled else emptySet()).map {
