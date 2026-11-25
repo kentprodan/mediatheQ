@@ -83,6 +83,7 @@ class AudioPreferencesStore
                         subtitleMode = prefs[VIDEO_SUBTITLE_MODE],
                         subtitleLanguage = prefs[VIDEO_SUBTITLE_LANGUAGE],
                         burnInStyled = prefs[VIDEO_BURN_IN_STYLED],
+                        playbackDetails = prefs[VIDEO_PLAYBACK_DETAILS],
                         autoPlayNext = prefs[VIDEO_AUTO_PLAY_NEXT],
                         pictureInPicture = prefs[VIDEO_PICTURE_IN_PICTURE],
                         keepAudio = prefs[VIDEO_KEEP_AUDIO],
@@ -263,6 +264,7 @@ class AudioPreferencesStore
                 it.put(VIDEO_SUBTITLE_MODE, video.subtitleMode)
                 it.put(VIDEO_SUBTITLE_LANGUAGE, video.subtitleLanguage)
                 it.put(VIDEO_BURN_IN_STYLED, video.burnInStyled)
+                it.put(VIDEO_PLAYBACK_DETAILS, video.playbackDetails)
                 it.put(VIDEO_AUTO_PLAY_NEXT, video.autoPlayNext)
                 it.put(VIDEO_PICTURE_IN_PICTURE, video.pictureInPicture)
                 it.put(VIDEO_KEEP_AUDIO, video.keepAudio)
@@ -336,6 +338,7 @@ class AudioPreferencesStore
             val VIDEO_SUBTITLE_MODE = stringPreferencesKey("video_subtitle_mode")
             val VIDEO_SUBTITLE_LANGUAGE = stringPreferencesKey("video_subtitle_language")
             val VIDEO_BURN_IN_STYLED = booleanPreferencesKey("video_burn_in_styled")
+            val VIDEO_PLAYBACK_DETAILS = booleanPreferencesKey("video_playback_details")
             val VIDEO_AUTO_PLAY_NEXT = booleanPreferencesKey("video_auto_play_next")
             val VIDEO_PICTURE_IN_PICTURE = booleanPreferencesKey("video_picture_in_picture")
             val VIDEO_KEEP_AUDIO = booleanPreferencesKey("video_keep_audio")
@@ -394,6 +397,7 @@ data class StoredVideoPreferences(
     val subtitleMode: String? = null,
     val subtitleLanguage: String? = null,
     val burnInStyled: Boolean? = null,
+    val playbackDetails: Boolean? = null,
     val autoPlayNext: Boolean? = null,
     val pictureInPicture: Boolean? = null,
     val keepAudio: Boolean? = null,

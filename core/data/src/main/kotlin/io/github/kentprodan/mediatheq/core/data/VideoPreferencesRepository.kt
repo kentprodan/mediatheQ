@@ -32,6 +32,8 @@ data class VideoPreferences(
     val subtitleLanguage: String? = null,
     /** ASS / SSA keep their styling, converted into the picture by the server. */
     val burnInStyled: Boolean = false,
+    /** The player shows what the engine decided (#670): decoders, output, rate, subtitles. */
+    val playbackDetails: Boolean = false,
     /** The next episode starts after the countdown (#275). */
     val autoPlayNext: Boolean = true,
     /** Picture-in-picture when leaving the player (#278). */
@@ -136,6 +138,7 @@ internal fun StoredVideoPreferences.toPreferences(): VideoPreferences {
         subtitleMode = enumOrNull<SubtitleMode>(subtitleMode) ?: defaults.subtitleMode,
         subtitleLanguage = subtitleLanguage?.ifBlank { null },
         burnInStyled = burnInStyled ?: defaults.burnInStyled,
+        playbackDetails = playbackDetails ?: defaults.playbackDetails,
         autoPlayNext = autoPlayNext ?: defaults.autoPlayNext,
         pictureInPicture = pictureInPicture ?: defaults.pictureInPicture,
         keepAudio = keepAudio ?: defaults.keepAudio,
@@ -168,6 +171,7 @@ internal fun VideoPreferences.toStored(): StoredVideoPreferences {
         subtitleMode = subtitleMode.unlessDefault(defaults.subtitleMode)?.name,
         subtitleLanguage = subtitleLanguage,
         burnInStyled = burnInStyled.unlessDefault(defaults.burnInStyled),
+        playbackDetails = playbackDetails.unlessDefault(defaults.playbackDetails),
         autoPlayNext = autoPlayNext.unlessDefault(defaults.autoPlayNext),
         pictureInPicture = pictureInPicture.unlessDefault(defaults.pictureInPicture),
         keepAudio = keepAudio.unlessDefault(defaults.keepAudio),

@@ -40,6 +40,8 @@ sealed interface TvSettingsUiState {
         /** How the display follows a video (#384). */
         val displayMatch: io.github.kentprodan.mediatheq.core.data.DisplayMatch =
             io.github.kentprodan.mediatheq.core.data.DisplayMatch.Rate,
+        /** Video -> Playback details (#670): what the engine decided, over the picture. */
+        val playbackDetails: Boolean = false,
         /** Transitions between pages (#444): Simple when on. */
         val simpleTransitions: Boolean = false,
         /**
@@ -77,6 +79,8 @@ sealed interface TvSettingsAction {
     data object SyncNow : TvSettingsAction
 
     data object ToggleSimpleTransitions : TvSettingsAction
+
+    data object TogglePlaybackDetails : TvSettingsAction
 
     /** Settings -> Home -> Carousel (#521): Off, Card or Immersive. */
     data class SetCarousel(
