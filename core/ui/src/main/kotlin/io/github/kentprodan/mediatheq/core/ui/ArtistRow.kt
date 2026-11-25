@@ -4,6 +4,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
 import io.github.kentprodan.mediatheq.core.model.Artist
 
 /** An artist in a list: round picture and name. */
@@ -27,5 +28,6 @@ fun ArtistRow(
         isFavorite = artist.userData.isFavorite,
         onLongClick = onLongClick,
         selected = selected,
+        sharedKey = sharedCoverKey(artist.id),
     )
 }

@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -44,6 +45,8 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqArtistAvatar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedCover
+import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -66,6 +69,7 @@ import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
 @Composable
 internal fun ArtistHeader(
     state: ArtistUiState.Content,
+    coverOrigin: String? = null,
     topPadding: Dp,
     imageColor: Color?,
     onAction: (ArtistAction) -> Unit,
@@ -76,14 +80,17 @@ internal fun ArtistHeader(
     val preview = LocalInspectionMode.current
     var backdropFailed by remember(artist.backdrop) { mutableStateOf(false) }
     val backdrop = artist.backdrop?.takeIf { !backdropFailed }
+    val shared = sharedCoverKey(artist.id, coverOrigin)
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         when {
             state.page.headerBackground == ArtistHeaderBackground.Backdrop && backdrop != null -> {
-                EdgeToEdge(backdrop, BACKDROP_RATIO, "artist-backdrop") { if (!preview) backdropFailed = true }
+                EdgeToEdge(backdrop, BACKDROP_RATIO, "artist-backdrop", sharedKey = null) {
+                    if (!preview) backdropFailed = true
+                }
             }
 
             state.page.headerBackground in EDGE_TO_EDGE && artist.artwork != null -> {
-                EdgeToEdge(artist.artwork!!, 1f, "artist-image") {}
+                EdgeToEdge(artist.artwork!!, 1f, "artist-image", shared) {}
             }
 
             state.page.headerBackground == ArtistHeaderBackground.ImageColor -> {
@@ -99,13 +106,13 @@ internal fun ArtistHeader(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Spacer(Modifier.height(topPadding))
-                    Avatar(state)
+                    Avatar(state, shared)
                 }
             }
 
             else -> {
                 Spacer(Modifier.height(topPadding))
-                Avatar(state)
+                Avatar(state, shared)
             }
         }
         HeaderText(state)
@@ -118,31 +125,40 @@ private fun EdgeToEdge(
     image: Artwork,
     ratio: Float,
     tag: String,
+    sharedKey: String?,
     onError: () -> Unit,
 ) {
-    val surface = MaterialTheme.colorScheme.surface
+    // The fade into the page flies with the picture, so nothing pops in once it lands (#681).
+    val fade = Brush.verticalGradient(0.55f to Color.Transparent, 1f to MaterialTheme.colorScheme.surface)
     Box(Modifier.fillMaxWidth().testTag(tag)) {
         MqCover(
             model = image,
             contentDescription = null,
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                (sharedKey?.let { Modifier.mqSharedCover(it) } ?: Modifier).fillMaxWidth().drawWithContent {
+                    drawContent()
+                    drawRect(fade)
+                },
             blurHash = image.blurHash,
             shape = RectangleShape,
             aspectRatio = ratio,
             onError = onError,
         )
-        Box(Modifier.matchParentSize().background(Brush.verticalGradient(0.55f to Color.Transparent, 1f to surface)))
     }
 }
 
 @Composable
-private fun Avatar(state: ArtistUiState.Content) {
+private fun Avatar(
+    state: ArtistUiState.Content,
+    sharedKey: String,
+) {
     MqArtistAvatar(
         state.artist.artwork,
         Modifier
             .fillMaxWidth(AVATAR_WIDTH_FRACTION)
             .padding(vertical = MediatheqSpacing.m)
-            .testTag("artist-avatar"),
+            .testTag("artist-avatar")
+            .mqSharedCover(sharedKey),
         state.artist.artwork?.blurHash,
     )
 }

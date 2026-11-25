@@ -447,6 +447,11 @@
     <string name="settings_arp_section_appears_on">Apare pe</string>
     <string name="settings_arp_section_top_tracks">Piese de top</string>
     <string name="settings_arp_albums_sort">Ordinea albumelor</string>
+    <string name="settings_arp_album_subtitle">Sub titlul albumelor</string>
+    <string name="settings_arp_album_subtitle_year">Anul</string>
+    <string name="settings_arp_album_subtitle_quality">Calitatea (Lossless, Dolby Atmos)</string>
+    <string name="settings_arp_album_subtitle_format">Formatul (FLAC · 24/96 · kb/s)</string>
+    <string name="settings_arp_album_subtitle_nothing">Nimic</string>
     <string name="settings_arp_columns">Coloane de albume</string>
     <string name="settings_arp_landscape_columns">Coloane de albume (orizontal)</string>
     <string name="settings_arp_appears_on">Apare pe</string>

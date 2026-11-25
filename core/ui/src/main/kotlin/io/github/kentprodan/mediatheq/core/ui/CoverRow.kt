@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedCover
 import io.github.kentprodan.mediatheq.core.model.Artwork
 
 /**
@@ -40,13 +41,15 @@ internal fun CoverRow(
     onLongClick: (() -> Unit)? = null,
     /** In a multi-select list: whether this row is selected (a check replaces the cover). `null` outside selection. */
     selected: Boolean? = null,
+    /** The cover flies into the opened page under this key (an artist's picture, #681); `null` = it does not. */
+    sharedKey: String? = null,
 ) {
     val lines = listOfNotNull(subtitle, details)
     val leading: @Composable () -> Unit =
         if (selected == true) {
             { SelectedMark() }
         } else {
-            { RowCover(artwork, placeholderIcon, coverShape, isFavorite, isDownloaded) }
+            { RowCover(artwork, placeholderIcon, coverShape, isFavorite, isDownloaded, sharedKey) }
         }
     val supporting: (@Composable () -> Unit)? =
         lines.takeIf { it.isNotEmpty() }?.let {
@@ -101,10 +104,12 @@ fun RowCover(
     shape: Shape = MaterialTheme.shapes.small,
     isFavorite: Boolean = false,
     isDownloaded: Boolean = false,
+    sharedKey: String? = null,
 ) {
     Box(Modifier.size(ROW_COVER_SIZE), contentAlignment = Alignment.Center) {
         if (artwork != null) {
-            MqCover(artwork, contentDescription = null, Modifier.size(ROW_COVER_SIZE), artwork.blurHash, shape)
+            val shared = sharedKey?.let { Modifier.mqSharedCover(it) } ?: Modifier
+            MqCover(artwork, contentDescription = null, shared.size(ROW_COVER_SIZE), artwork.blurHash, shape)
         } else {
             Icon(placeholderIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }

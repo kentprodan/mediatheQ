@@ -363,6 +363,7 @@ private fun Results(
             section("songs", R.string.search_songs, results.tracks, { it.id }) { track ->
                 TrackRow(
                     track,
+                    onRate = { onAction(SearchAction.RateTrack(track, it)) },
                     onClick = tap(track.id) { onAction(SearchAction.PlayTrack(track)) },
                     onLongClick = longPress(track.id),
                     selected = selection.stateOf(track.id),

@@ -366,6 +366,7 @@ class DefaultLibraryPreferencesRepository
                     playAction = page.playAction.name,
                     sectionOrder = completeArtistOrder(page.sectionOrder).map { it.name },
                     albumsSort = page.albumsSort.name,
+                    albumSubtitle = page.albumSubtitle.name,
                     albumColumns = page.albumColumns.coerceIn(ArtistPagePreferences.COLUMNS),
                     landscapeAlbumColumns =
                         page.landscapeAlbumColumns.coerceIn(
@@ -521,6 +522,7 @@ class DefaultLibraryPreferencesRepository
                     }
                         ?: defaults.sectionOrder,
                 albumsSort = enumOrNull<MoreAlbumsSort>(stored.albumsSort) ?: defaults.albumsSort,
+                albumSubtitle = enumOrNull<ArtistAlbumSubtitle>(stored.albumSubtitle) ?: defaults.albumSubtitle,
                 albumColumns = stored.albumColumns?.coerceIn(ArtistPagePreferences.COLUMNS) ?: defaults.albumColumns,
                 landscapeAlbumColumns =
                     stored.landscapeAlbumColumns?.coerceIn(ArtistPagePreferences.LANDSCAPE_COLUMNS)

@@ -14,6 +14,18 @@ enum class ArtistHeaderBackground {
 /** The artist page's sections; [ArtistPagePreferences.sectionOrder] holds the default order (#133). */
 enum class ArtistSection { Albums, AppearsOn, TopTracks, About }
 
+/** What the artist page's album cards show under the title (#681). */
+enum class ArtistAlbumSubtitle {
+    Year,
+
+    /** "Dolby Atmos", "Hi-Res Lossless", "Lossless", or a lossy file's "MP3 320 kb/s". */
+    Quality,
+
+    /** The files' format: "FLAC · 24/96 · 1250 kb/s". */
+    Format,
+    Nothing,
+}
+
 /** The header buttons that can be hidden (#133); Play and More always show. A hidden one moves to More. */
 enum class ArtistButton { Shuffle, PlayNext, AddToQueue, Favorite }
 
@@ -29,13 +41,16 @@ enum class ArtistPlayAction {
 
 /** Settings -> Interface -> Page settings -> Artist page (#133). */
 data class ArtistPagePreferences(
-    val headerBackground: ArtistHeaderBackground = ArtistHeaderBackground.Backdrop,
+    /** The artist's own picture, the one in the lists, by default (owner, #681); the fanart is an option. */
+    val headerBackground: ArtistHeaderBackground = ArtistHeaderBackground.ArtistImage,
     /** Play next and Add to queue live in More by default (#531). */
     val hiddenButtons: Set<ArtistButton> = setOf(ArtistButton.PlayNext, ArtistButton.AddToQueue),
     val playAction: ArtistPlayAction = ArtistPlayAction.Albums,
     /** Every section once, in order. */
     val sectionOrder: List<ArtistSection> = DEFAULT_SECTIONS,
     val albumsSort: MoreAlbumsSort = MoreAlbumsSort.YearDescending,
+    /** The line under each album card's title (#681): the artist is the page's own, so the year by default. */
+    val albumSubtitle: ArtistAlbumSubtitle = ArtistAlbumSubtitle.Year,
     val albumColumns: Int = DEFAULT_COLUMNS,
     val landscapeAlbumColumns: Int = DEFAULT_LANDSCAPE_COLUMNS,
     val showAppearsOn: Boolean = true,

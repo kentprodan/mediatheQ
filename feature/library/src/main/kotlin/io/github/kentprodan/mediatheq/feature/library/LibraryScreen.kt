@@ -393,6 +393,7 @@ private fun LibraryContentView(
                 items(content.tracks, key = { it.id.toString() }) { track ->
                     TrackRow(
                         track,
+                        onRate = { onAction(LibraryAction.RateTrack(track, it)) },
                         onClick =
                             tap(track.id) {
                                 onAction(LibraryAction.PlayTrack(track))

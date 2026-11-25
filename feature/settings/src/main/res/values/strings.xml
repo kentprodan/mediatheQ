@@ -445,6 +445,11 @@
     <string name="settings_arp_section_appears_on">Appears on</string>
     <string name="settings_arp_section_top_tracks">Top tracks</string>
     <string name="settings_arp_albums_sort">Album order</string>
+    <string name="settings_arp_album_subtitle">Under album titles</string>
+    <string name="settings_arp_album_subtitle_year">Year</string>
+    <string name="settings_arp_album_subtitle_quality">Quality (Lossless, Dolby Atmos)</string>
+    <string name="settings_arp_album_subtitle_format">Format (FLAC · 24/96 · kb/s)</string>
+    <string name="settings_arp_album_subtitle_nothing">Nothing</string>
     <string name="settings_arp_columns">Album columns</string>
     <string name="settings_arp_landscape_columns">Album columns (landscape)</string>
     <string name="settings_arp_appears_on">Appears on</string>

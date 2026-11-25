@@ -48,6 +48,8 @@ fun AlbumCard(
     showSubtitle: Boolean = true,
     /** A play button on the cover (#182); `null` for none. */
     onPlay: (() -> Unit)? = null,
+    /** The line under the title instead of the album artists (the artist page's year or quality, #681). */
+    subtitle: String? = null,
 ) {
     val style = LocalMediaListStyle.current
     val textAlign = if (style.centerGridText) TextAlign.Center else TextAlign.Start
@@ -88,7 +90,7 @@ fun AlbumCard(
         )
         if (showSubtitle) {
             Text(
-                album.albumArtists.joinToString { it.name },
+                subtitle ?: album.albumArtists.joinToString { it.name },
                 Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = textAlign,

@@ -2,6 +2,9 @@ package io.github.kentprodan.mediatheq.feature.artist
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
@@ -14,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.ArtistAlbumSubtitle
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Album
@@ -176,5 +180,18 @@ class ArtistScreenTest {
         composeRule.onNodeWithContentDescription("Rate 4 stars").performClick()
 
         assertThat(actions).containsExactly(ArtistAction.Rate(8))
+    }
+
+    @Test
+    fun `album cards show the year, not the artist, unless the setting says otherwise`() {
+        val dated = content.copy(albums = listOf(album.copy(year = 2019)))
+        var page by mutableStateOf(dated)
+        composeRule.setContent { MediatheqTheme { ArtistScreen(page, {}, {}, {}) } }
+
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("2019"))
+        composeRule.onNodeWithText("2019").assertExists()
+
+        page = dated.copy(page = ArtistPagePreferences(albumSubtitle = ArtistAlbumSubtitle.Nothing))
+        composeRule.onNodeWithText("2019").assertDoesNotExist()
     }
 }

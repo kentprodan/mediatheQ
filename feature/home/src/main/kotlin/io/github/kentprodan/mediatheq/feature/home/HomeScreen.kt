@@ -86,6 +86,7 @@ data class HomeNavigation(
     /** An album opened from a section's card (#418): the card is named so its cover flies back to it. */
     val onOpenAlbumFrom: (MediaId, String) -> Unit = { id, _ -> onOpenAlbum(id) },
     val onOpenArtist: (MediaId) -> Unit = {},
+    val onOpenArtistFrom: (MediaId, String) -> Unit = { id, _ -> onOpenArtist(id) },
     val onOpenPlaylist: (MediaId) -> Unit = {},
     val onOpenSettings: () -> Unit = {},
     /** The servers and their sync, from the profile menu (#536). */
@@ -422,9 +423,10 @@ private fun CardRow(
                     { modifier: Modifier ->
                         ArtistCard(
                             artist,
-                            { navigation.onOpenArtist(artist.id) },
+                            { navigation.onOpenArtistFrom(artist.id, origin) },
                             modifier,
                             onPlay = { onAction(HomeAction.PlayArtist(artist.id)) }.takeIf { settings.playButton },
+                            coverOrigin = origin,
                         )
                     }
                 }

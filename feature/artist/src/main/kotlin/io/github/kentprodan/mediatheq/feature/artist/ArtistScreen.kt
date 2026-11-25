@@ -30,6 +30,7 @@ import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqAboveSharedCovers
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColorCache
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColors
 import io.github.kentprodan.mediatheq.core.designsystem.theme.LocalMqTheme
@@ -44,6 +45,7 @@ import io.github.kentprodan.mediatheq.core.ui.trackSwipes
 @Composable
 internal fun ArtistRoute(
     artistId: MediaId,
+    coverOrigin: String?,
     onOpenAlbum: (MediaId) -> Unit,
     onOpenTopTracks: () -> Unit,
     onBack: () -> Unit,
@@ -63,6 +65,7 @@ internal fun ArtistRoute(
         onAddToPlaylist = onAddToPlaylist,
         onOpenTopTracks = onOpenTopTracks,
         onOpenArtist = onOpenArtist,
+        coverOrigin = coverOrigin,
     )
 }
 
@@ -80,6 +83,8 @@ fun ArtistScreen(
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
     onOpenTopTracks: () -> Unit = {},
     onOpenArtist: (MediaId) -> Unit = {},
+    /** The card the page was opened from, whose picture flies into the header (#681). */
+    coverOrigin: String? = null,
     /** Screenshots: these colors instead of the artist image's (previews load no images). */
     imageColors: CoverColors? = null,
 ) {
@@ -96,6 +101,7 @@ fun ArtistScreen(
             onAddToPlaylist,
             onOpenTopTracks,
             onOpenArtist,
+            coverOrigin,
         )
     }
 }
@@ -135,6 +141,7 @@ private fun ArtistPage(
     onAddToPlaylist: (List<MediaId>) -> Unit,
     onOpenTopTracks: () -> Unit,
     onOpenArtist: (MediaId) -> Unit,
+    coverOrigin: String?,
 ) {
     val longPress = rememberSelectLongPress<MediaId> { onAction(ArtistAction.ToggleSelection(it)) }
     val swipe =
@@ -150,6 +157,8 @@ private fun ArtistPage(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeFlexibleTopAppBar(
+                // Above the picture flying in, so the back button shows from the start (#681).
+                modifier = Modifier.mqAboveSharedCovers(),
                 // The header shows the name; the bar names the artist only once it has nearly collapsed.
                 title = {
                     Text(
@@ -227,6 +236,7 @@ private fun ArtistPage(
                         item(key = "header") {
                             ArtistHeader(
                                 content,
+                                coverOrigin = coverOrigin,
                                 topPadding = if (drawsUnderBar) padding.calculateTopPadding() else 0.dp,
                                 imageColor = imageColor,
                                 onAction = onAction,

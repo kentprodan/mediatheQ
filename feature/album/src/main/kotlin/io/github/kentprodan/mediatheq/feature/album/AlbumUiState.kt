@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.data.AlbumPagePreferences
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RecordLabel
 import io.github.kentprodan.mediatheq.core.model.ResumePoint
@@ -82,6 +83,9 @@ sealed interface AlbumUiState {
                         AlbumSection.About -> page.showAbout && hasAbout
                     }
                 }
+
+        /** The album artist the cover's round picture shows (#681): the first one, when the server has its image. */
+        val avatarArtist: Artist? get() = album.albumArtists.firstOrNull()?.takeIf { it.artwork != null }
 
         fun shows(button: AlbumButton): Boolean = button !in page.hiddenButtons
 
