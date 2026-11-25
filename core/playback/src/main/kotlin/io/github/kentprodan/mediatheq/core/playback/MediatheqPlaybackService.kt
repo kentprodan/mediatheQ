@@ -18,6 +18,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSourceBitmapLoader
 import androidx.media3.datasource.DefaultDataSource
@@ -125,6 +126,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var subtitleDelays: SubtitleDelayRepository
 
     @Inject lateinit var secondarySubtitles: SecondarySubtitles
+
+    @Inject lateinit var playbackDetails: PlaybackDetails
+    private var detailsLogJob: Job? = null
 
     // The playing video's subtitle delay (#456): written on the main thread, read by the renderers on the playback thread.
     @Volatile private var subtitleDelayUs = 0L
@@ -452,7 +456,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         player.prepare()
                     }
                 },
-                log = { appLog.info("MqVideo", it) },
+                log = {
+                    appLog.info("MqVideo", it)
+                    playbackDetails.update { details -> details.copy(recoveries = details.recoveries + 1) }
+                },
             ).also(player::addListener)
         watchAudioClock(player)
         player.addListener(
@@ -837,6 +844,37 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     .ifEmpty { null }
             },
         )
+        // What the engine decided (#670): the details overlay and one MqEngine log line per change.
+        player.addAnalyticsListener(EngineDetailsListener(playbackDetails))
+        player.addListener(
+            object : Player.Listener {
+                override fun onTracksChanged(tracks: Tracks) {
+                    val id =
+                        player.currentMediaItem
+                            ?.takeIf { it.isVideo() }
+                            ?.localConfiguration
+                            ?.uri
+                            ?.videoId()
+                    val stream = id?.let(streamResolver::current)
+                    val chosen = stream?.subtitles?.firstOrNull { it.index == stream.subtitleStreamIndex }
+                    playbackDetails.update {
+                        it.copy(
+                            subtitle = chosen?.let { sub -> "${sub.codec ?: "?"} · ${sub.method.name}" },
+                            subtitleLibass =
+                                chosen != null && chosen.codec?.lowercase() in setOf("ass", "ssa") &&
+                                    chosen.method != SubtitleMethod.Encode,
+                        )
+                    }
+                }
+            },
+        )
+        detailsLogJob =
+            applicationScope.launch {
+                playbackDetails.details
+                    .map { it.copy(droppedFrames = 0) }
+                    .distinctUntilChanged()
+                    .collect { appLog.info("MqEngine", playbackDetails.details.value.logLine()) }
+            }
         // What the video plays as, for the player's info line (#276): sent with the output state.
         player.addAnalyticsListener(
             VideoLogListener(appLog) {
@@ -911,6 +949,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 },
                 onChange = {
                     outputNow = it
+                    playbackDetails.update { details ->
+                        details.copy(
+                            audioPath =
+                                when (it.mode) {
+                                    AudioMode.Passthrough -> AudioPath.Passthrough
+                                    AudioMode.BitPerfect -> AudioPath.BitPerfect
+                                    AudioMode.Offload -> AudioPath.Offload
+                                    AudioMode.Processed -> AudioPath.Pcm
+                                },
+                            passthroughEncoding = encodingName(it.passthroughEncoding),
+                        )
+                    }
                     // Before applying: the next stream request already asks for what this route passes through.
                     streamResolver.passthrough = it.requestPassthrough
                     outputApplier.apply(it)
@@ -1192,14 +1242,22 @@ class MediatheqPlaybackService : MediaLibraryService() {
     private fun followSubtitleDelay(item: MediaItem?) {
         subtitleDelayJob?.cancel()
         subtitleDelayUs = 0L
+        playbackDetails.update { it.copy(subtitleDelayMs = 0) }
         val id = item?.localConfiguration?.uri?.videoId() ?: return
         subtitleDelayJob =
-            applicationScope.launch { subtitleDelays.delay(id).collect { subtitleDelayUs = it.inWholeMicroseconds } }
+            applicationScope.launch {
+                subtitleDelays.delay(id).collect { delay ->
+                    subtitleDelayUs = delay.inWholeMicroseconds
+                    playbackDetails.update { it.copy(subtitleDelayMs = delay.inWholeMilliseconds) }
+                }
+            }
     }
 
     override fun onDestroy() {
         Media3Log.setLogger(Media3Log.Logger.DEFAULT)
         subtitleDelayJob?.cancel()
+        detailsLogJob?.cancel()
+        playbackDetails.reset()
         styledSubtitles.release(swap.player)
         videoRecovery.release()
         signOutWatch?.cancel()

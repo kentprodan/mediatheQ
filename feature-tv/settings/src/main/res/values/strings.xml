@@ -70,6 +70,8 @@
     <string name="tv_parental_limit">Up to %1$d</string>
     <string name="tv_settings_video">Video</string>
     <string name="tv_settings_display_match">Match the display to the video</string>
+    <string name="tv_settings_playback_details">Playback details</string>
+    <string name="tv_settings_playback_details_detail">Shows over the picture what the player decided: decoders, sound output, frame rate, subtitles</string>
     <string name="tv_settings_display_match_off">Off</string>
     <string name="tv_settings_display_match_rate">Frame rate</string>
     <string name="tv_settings_display_match_resolution">Frame rate and resolution</string>

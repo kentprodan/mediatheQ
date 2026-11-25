@@ -115,6 +115,9 @@ fun TvPlayerRoute(
     val subtitleDelay by viewModel.subtitleDelay.collectAsStateWithLifecycle()
     val secondLanguage by viewModel.secondarySubtitleLanguage.collectAsStateWithLifecycle()
     val secondCues by viewModel.secondarySubtitleCues.collectAsStateWithLifecycle()
+    val showDetails by viewModel.showDetails.collectAsStateWithLifecycle()
+    val details by viewModel.engineDetails.collectAsStateWithLifecycle()
+    val videoPlayback by viewModel.videoPlayback.collectAsStateWithLifecycle()
     MatchDisplay(
         format,
         displayMatch,
@@ -154,6 +157,11 @@ fun TvPlayerRoute(
     ) { scale ->
         MqTvVideoSurface(player, Modifier.fillMaxSize(), scale)
         MqTvSubtitles(player, Modifier.fillMaxSize(), style, viewModel::styledSubtitleOverlay, secondCues)
+        if (showDetails) {
+            Box(Modifier.fillMaxSize()) {
+                TvPlaybackDetails(details, videoPlayback, player, Modifier.align(Alignment.TopStart).padding(24.dp))
+            }
+        }
     }
 }
 

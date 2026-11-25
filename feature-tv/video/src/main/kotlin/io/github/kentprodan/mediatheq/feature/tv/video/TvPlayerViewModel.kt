@@ -26,6 +26,7 @@ import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.playback.PlaybackConnection
+import io.github.kentprodan.mediatheq.core.playback.VideoPlayback
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -98,6 +99,17 @@ class TvPlayerViewModel
             preferences.preferences
                 .map { it.displayMatch }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DisplayMatch.Off)
+
+        /** What the engine decided (#670), shown when Settings -> Video -> Playback details is on. */
+        val engineDetails = playback.engineDetails
+        val videoPlayback: StateFlow<VideoPlayback?> =
+            playback.state
+                .map { it.output.video }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        val showDetails: StateFlow<Boolean> =
+            preferences.preferences
+                .map { it.playbackDetails }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
         /** The streaming quality the TV asks for (its network is unmetered); the Quality menu changes it. */
         val quality: StateFlow<VideoQuality> =

@@ -70,6 +70,8 @@
     <string name="tv_parental_limit">Până la %1$d</string>
     <string name="tv_settings_video">Video</string>
     <string name="tv_settings_display_match">Potrivește afișajul cu videoul</string>
+    <string name="tv_settings_playback_details">Detalii redare</string>
+    <string name="tv_settings_playback_details_detail">Arată peste imagine ce a decis playerul: decodoare, ieșirea sunetului, rata cadrelor, subtitrări</string>
     <string name="tv_settings_display_match_off">Oprit</string>
     <string name="tv_settings_display_match_rate">Rata de cadre</string>
     <string name="tv_settings_display_match_resolution">Rata de cadre și rezoluția</string>

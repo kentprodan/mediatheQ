@@ -74,6 +74,9 @@ interface PlaybackConnection {
     /** The second subtitle track's cues now, drawn at the top of the picture. */
     val secondarySubtitleCues: StateFlow<List<Cue>> get() = NO_CUES
 
+    /** What the engine decided for the playing item (#670), for the player's details overlay. */
+    val engineDetails: StateFlow<EngineDetails> get() = NO_DETAILS
+
     /** Shows a second subtitle track in [language] with the first; `null` hides it. Kept for the next videos. */
     fun chooseSecondarySubtitles(language: String?) = Unit
 
@@ -134,3 +137,4 @@ interface PlaybackConnection {
 
 private val NO_LANGUAGE: StateFlow<String?> = MutableStateFlow(null)
 private val NO_CUES: StateFlow<List<Cue>> = MutableStateFlow(emptyList())
+private val NO_DETAILS: StateFlow<EngineDetails> = MutableStateFlow(EngineDetails())
