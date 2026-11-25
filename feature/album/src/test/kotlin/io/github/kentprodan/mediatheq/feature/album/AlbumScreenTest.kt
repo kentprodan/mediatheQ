@@ -11,6 +11,7 @@ import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -22,6 +23,7 @@ import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqTheme
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.Artist
+import io.github.kentprodan.mediatheq.core.model.Artwork
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.ResumePoint
 import io.github.kentprodan.mediatheq.core.model.ServerId
@@ -264,5 +266,40 @@ class AlbumScreenTest {
         composeRule.onNodeWithText("About").assertExists()
         composeRule.onNodeWithText("A long story about Satelit.").assertExists()
         composeRule.onNodeWithText("Release date").assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun `the album's More button lines up with the tracks' More buttons`() {
+        composeRule.setContent { MediatheqTheme { AlbumScreen(albumId, content, {}, onBack = {}) } }
+
+        val rights =
+            composeRule
+                .onAllNodesWithContentDescription("More options", substring = true)
+                .fetchSemanticsNodes()
+                .map { it.boundsInRoot.right }
+        assertThat(rights.size).isAtLeast(2)
+        assertThat(rights.toSet()).hasSize(1)
+    }
+
+    @Test
+    fun `the album artist's picture opens the artist`() {
+        val artist = Artist(MediaId(ServerId("s"), "ar1"), "Subcarpați", artwork = Artwork("ar1", "tag"))
+        val opened = mutableListOf<MediaId>()
+        composeRule.setContent {
+            MediatheqTheme {
+                AlbumScreen(
+                    albumId,
+                    content.copy(album = content.album.copy(albumArtists = listOf(artist))),
+                    {},
+                    onBack = {},
+                    onOpenArtist = { opened += it },
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Subcarpați").performClick()
+
+        assertThat(opened).containsExactly(artist.id)
     }
 }

@@ -91,9 +91,6 @@ object MqIcons {
     val FormatSurround: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_format_surround)
 
-    val FormatStereo: ImageVector
-        @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_format_stereo)
-
     val FormatMono: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.mq_ic_format_mono)
 

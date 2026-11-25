@@ -209,23 +209,27 @@ fun AlbumScreen(
                                 }
 
                                 AlbumSection.About -> {
+                                    // More like this right above About, so About ends the page (owner, #681).
+                                    similar(state, onOpenAlbum)
                                     item(key = "about") { AboutSection(state) }
                                 }
                             }
                         }
-                        if (state.similarAlbums.isNotEmpty()) {
-                            item(key = "similar") {
-                                AlbumCardRow(
-                                    stringResource(R.string.album_more_like_this),
-                                    state.similarAlbums,
-                                    onOpenAlbum,
-                                )
-                            }
-                        }
+                        if (AlbumSection.About !in state.sections) similar(state, onOpenAlbum)
                     }
                 }
             }
         }
+    }
+}
+
+private fun LazyListScope.similar(
+    state: AlbumUiState.Content,
+    onOpenAlbum: (MediaId) -> Unit,
+) {
+    if (state.similarAlbums.isEmpty()) return
+    item(key = "similar") {
+        AlbumCardRow(stringResource(R.string.album_more_like_this), state.similarAlbums, onOpenAlbum)
     }
 }
 

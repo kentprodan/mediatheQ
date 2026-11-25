@@ -49,7 +49,6 @@
         <item quantity="few">%1$d canale</item>
         <item quantity="other">%1$d de canale</item>
     </plurals>
-    <string name="core_ui_format_stereo">Stereo</string>
     <string name="core_ui_format_mono">Mono</string>
     <string name="core_ui_favorite">Favorit</string>
     <string name="core_ui_rate">Notează</string>
