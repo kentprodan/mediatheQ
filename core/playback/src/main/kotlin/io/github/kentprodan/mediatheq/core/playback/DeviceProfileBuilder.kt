@@ -5,6 +5,7 @@ import io.github.kentprodan.mediatheq.core.model.DeviceProfile
 import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
 import io.github.kentprodan.mediatheq.core.model.SubtitleProfile
 import io.github.kentprodan.mediatheq.core.model.TranscodingTarget
+import io.github.kentprodan.mediatheq.core.model.VideoCodecLimit
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
 
 /**
@@ -112,6 +113,8 @@ object DeviceProfileBuilder {
          * (the server re-encodes and tone-maps instead of copying the stream that failed).
          */
         converted: Boolean = false,
+        /** What each decoder takes (#636); a conversion goes to H.264 the server sizes, so none then. */
+        codecLimits: List<VideoCodecLimit> = emptyList(),
     ): DeviceProfile =
         DeviceProfile(
             directPlayContainers = if (converted) emptyList() else VIDEO_CONTAINERS,
@@ -130,6 +133,7 @@ object DeviceProfileBuilder {
             maxHeight = quality.maxHeight,
             subtitleProfiles = subtitleProfiles(burnInStyled),
             videoRangeTypes = if (converted) listOf("SDR") else videoRangeTypes,
+            videoCodecLimits = if (converted) emptyList() else codecLimits,
         )
 
     /**

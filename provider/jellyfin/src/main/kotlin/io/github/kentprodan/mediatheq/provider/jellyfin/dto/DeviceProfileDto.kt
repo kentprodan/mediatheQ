@@ -51,6 +51,8 @@ internal data class SubtitleProfileDto(
 internal data class CodecProfileDto(
     @SerialName("Type") val type: String,
     @SerialName("Conditions") val conditions: List<ProfileConditionDto>,
+    /** Only for this codec (`hevc`, ...); `null` = every codec of [type]. */
+    @SerialName("Codec") val codec: String? = null,
 )
 
 @Serializable

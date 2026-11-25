@@ -14,6 +14,7 @@ import io.github.kentprodan.mediatheq.core.model.StreamChoice
 import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.SubtitleDelivery
 import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
+import io.github.kentprodan.mediatheq.core.model.VideoCodecLimit
 import io.github.kentprodan.mediatheq.core.server.ClientInfo
 import io.github.kentprodan.mediatheq.core.server.PlaybackSource
 import io.github.kentprodan.mediatheq.core.server.SignedInServer
@@ -284,7 +285,7 @@ private fun DeviceProfile.toVideoDto(videoCodecs: List<String>) =
                     ),
                 ),
                 CodecProfileDto("VideoAudio", listOf(condition("LessThanEqual", "AudioChannels", MAX_AUDIO_CHANNELS))),
-            ),
+            ) + videoCodecLimits.map { it.toCodecProfile() },
         containerProfiles = emptyList(),
         subtitleProfiles = subtitleProfiles.map { SubtitleProfileDto(it.format, it.method.name) },
     )
@@ -326,6 +327,19 @@ private fun condition(
     property: String,
     value: String,
 ) = ProfileConditionDto(condition, property, value, isRequired = false)
+
+/** What one decoder takes (#636), as the server's per-codec conditions; a file beyond them is converted. */
+internal fun VideoCodecLimit.toCodecProfile() =
+    CodecProfileDto(
+        "Video",
+        listOfNotNull(
+            maxWidth?.let { condition("LessThanEqual", "Width", it.toString()) },
+            maxHeight?.let { condition("LessThanEqual", "Height", it.toString()) },
+            maxLevel?.let { condition("LessThanEqual", "VideoLevel", it.toString()) },
+            profiles?.let { condition("EqualsAny", "VideoProfile", it.joinToString("|")) },
+        ),
+        codec = codec,
+    )
 
 private const val MAX_WIDTH = "3840"
 private const val MAX_BIT_DEPTH = "10"

@@ -39,6 +39,9 @@ class StreamResolver
     ) {
         private val hdrDecoders by lazy { videoHdr.decoders() }
 
+        // What each video decoder takes (#636): read once, the codec list never changes while the app runs.
+        private val videoLimits by lazy { videoDecoders.limits() }
+
         private class Resolved(
             val stream: PlaybackStream,
             val quality: StreamingQuality,
@@ -117,6 +120,7 @@ class StreamResolver
                     burnInStyled = settings.burnInStyled,
                     videoRangeTypes = videoRangeTypes(displayHdr.types(), hdrDecoders),
                     converted = itemId in convertedVideos,
+                    codecLimits = videoLimits,
                 )
             // The chosen tracks (#274): the server's conversion takes them, and the player selects them in a file.
             val tracks = trackChooser.tracks(itemId)
