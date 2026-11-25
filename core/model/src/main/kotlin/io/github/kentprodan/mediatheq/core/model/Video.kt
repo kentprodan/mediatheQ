@@ -15,6 +15,8 @@ data class VideoFormat(
     val height: Int? = null,
     val range: VideoRange = VideoRange.Sdr,
     val bitrateKbps: Int? = null,
+    /** Frames per second as the server measured them (#631, the display mode chosen before playback). */
+    val frameRate: Float? = null,
 )
 
 enum class StreamType { Audio, Subtitle }

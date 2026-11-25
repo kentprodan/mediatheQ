@@ -12,6 +12,8 @@ internal data class MediaStreamDto(
     @SerialName("BitDepth") val bitDepth: Int? = null,
     @SerialName("Channels") val channels: Int? = null,
     @SerialName("BitRate") val bitRate: Int? = null,
+    @SerialName("RealFrameRate") val realFrameRate: Float? = null,
+    @SerialName("AverageFrameRate") val averageFrameRate: Float? = null,
     /** `None`, `DolbyAtmos` or `DTSX`. */
     @SerialName("AudioSpatialFormat") val audioSpatialFormat: String? = null,
     @SerialName("Index") val index: Int? = null,

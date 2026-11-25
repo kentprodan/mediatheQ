@@ -210,7 +210,8 @@ internal fun MediaStreamDto.toVideoFormat(): VideoFormat? {
             videoRangeType == "HLG" -> VideoRange.Hlg
             else -> VideoRange.Sdr
         }
-    return VideoFormat(codec, width, height, range, bitRate?.let { it / 1000 })
+    val frameRate = (realFrameRate ?: averageFrameRate)?.takeIf { it > 0f }
+    return VideoFormat(codec, width, height, range, bitRate?.let { it / 1000 }, frameRate)
 }
 
 /** Audio and subtitle streams only; one without an index cannot be picked, so it is dropped. */

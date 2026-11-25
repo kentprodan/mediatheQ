@@ -7,6 +7,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.SegmentType
 import io.github.kentprodan.mediatheq.core.model.ServerId
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.model.VideoFormat
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
@@ -36,11 +37,14 @@ class TvPlayerViewModelTest {
     private val preferences = FakeVideoPreferencesRepository()
     private val movie = Video(MediaId(ServerId("s"), "m1"), VideoKind.Movie, "Alien", duration = 100.minutes)
 
-    private fun TestScope.viewModel(startMs: Long = 0): TvPlayerViewModel {
-        videos.movies.value = listOf(movie)
+    private fun TestScope.viewModel(
+        startMs: Long = 0,
+        video: Video = movie,
+    ): TvPlayerViewModel {
+        videos.movies.value = listOf(video)
         val viewModel =
             TvPlayerViewModel(
-                VideoPlayerKey(movie.id, startMs),
+                VideoPlayerKey(video.id, startMs),
                 videos,
                 playback,
                 TrackPicker(videos, FakeTrackChoiceRepository()),
@@ -76,6 +80,41 @@ class TvPlayerViewModelTest {
             viewModel.onAction(TvPlayerAction.Seek(forward = true))
 
             assertThat(playback.commands).contains("seekTo ${30.minutes + 30.seconds}")
+        }
+
+    @Test
+    fun `a video with a known frame rate starts once the display settled, never before (#631)`() =
+        test {
+            val film = movie.copy(format = VideoFormat("hevc", 3840, 2160, frameRate = 23.976f))
+            val viewModel = viewModel(video = film)
+            backgroundScope.launch { viewModel.videoFormat.collect {} }
+            runCurrent()
+
+            assertThat(viewModel.videoFormat.value).isEqualTo(23.976f to 2160)
+            assertThat(playback.videoCalls).isEmpty()
+
+            viewModel.onAction(TvPlayerAction.DisplaySettled)
+            runCurrent()
+            assertThat(playback.videoCalls).hasSize(1)
+        }
+
+    @Test
+    fun `a switch while playing pauses, then seeks in place and plays on (#631)`() =
+        test {
+            val viewModel = viewModel()
+            playback.state.value = playing()
+            playback.position.value = 20.minutes
+            runCurrent()
+
+            viewModel.onAction(TvPlayerAction.DisplaySwitching)
+            assertThat(playback.commands).contains("pause")
+            playback.state.value = playing(isPlaying = false)
+            runCurrent()
+
+            viewModel.onAction(TvPlayerAction.DisplaySettled)
+            assertThat(
+                playback.commands.takeLast(2),
+            ).containsExactly("seekTo ${20.minutes}", "togglePlayPause").inOrder()
         }
 
     @Test
