@@ -116,6 +116,7 @@ class StreamResolver
                     settings.quality(networkMonitor.isMetered()),
                     burnInStyled = settings.burnInStyled,
                     videoRangeTypes = videoRangeTypes(displayHdr.types(), hdrDecoders),
+                    converted = itemId in convertedVideos,
                 )
             // The chosen tracks (#274): the server's conversion takes them, and the player selects them in a file.
             val tracks = trackChooser.tracks(itemId)
@@ -126,6 +127,12 @@ class StreamResolver
             }
             return result
         }
+
+        // Videos this device failed to show (#632): asked as a conversion from now on, for this run of the app.
+        private val convertedVideos = ConcurrentHashMap.newKeySet<MediaId>()
+
+        /** Asks [itemId] as a conversion from its next opening (#632); `false` when it already was. */
+        fun convertVideo(itemId: MediaId): Boolean = convertedVideos.add(itemId)
 
         /** [videoId]'s chosen tracks (#274), for a downloaded video played without the server (#279). */
         suspend fun chosenTracks(videoId: MediaId) = trackChooser.tracks(videoId)
