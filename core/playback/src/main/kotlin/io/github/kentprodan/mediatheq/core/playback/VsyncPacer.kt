@@ -21,7 +21,10 @@ internal class VsyncPacer {
     private var heldInARow = 0
 
     /** [releaseNs], or one vsync after the previous release when it would land on the same vsync. */
-    fun pace(releaseNs: Long, vsyncNs: Long): Long {
+    fun pace(
+        releaseNs: Long,
+        vsyncNs: Long,
+    ): Long {
         var result = releaseNs
         if (vsyncNs > 0L && lastReleaseNs != NONE && heldInARow < MAX_HELD_IN_A_ROW) {
             val earliest = lastReleaseNs + vsyncNs

@@ -109,7 +109,15 @@ internal fun Bundle.toAudioOutputInfo(): AudioOutputInfo =
                         )?.let { runCatching { PlayMethod.valueOf(it) }.getOrNull() },
                     decoder = getString(EXTRA_VIDEO_DECODER),
                     frameRate = if (containsKey(EXTRA_VIDEO_FRAME_RATE)) getFloat(EXTRA_VIDEO_FRAME_RATE) else null,
-                    cadenceRate = if (containsKey(EXTRA_VIDEO_CADENCE_RATE)) getFloat(EXTRA_VIDEO_CADENCE_RATE) else null,
+                    cadenceRate =
+                        if (containsKey(
+                                EXTRA_VIDEO_CADENCE_RATE,
+                            )
+                        ) {
+                            getFloat(EXTRA_VIDEO_CADENCE_RATE)
+                        } else {
+                            null
+                        },
                 )
             },
     )

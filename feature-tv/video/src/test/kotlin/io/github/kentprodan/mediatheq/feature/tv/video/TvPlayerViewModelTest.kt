@@ -11,8 +11,10 @@ import io.github.kentprodan.mediatheq.core.model.VideoFormat
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
+import io.github.kentprodan.mediatheq.core.playback.AudioOutputInfo
 import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
+import io.github.kentprodan.mediatheq.core.playback.VideoPlayback
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
 import io.github.kentprodan.mediatheq.core.testing.FakeTrackChoiceRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoPreferencesRepository
@@ -96,6 +98,20 @@ class TvPlayerViewModelTest {
             viewModel.onAction(TvPlayerAction.DisplaySettled)
             runCurrent()
             assertThat(playback.videoCalls).hasSize(1)
+        }
+
+    @Test
+    fun `the frames' measured timing wins over the library's rate (#633)`() =
+        test {
+            val film = movie.copy(format = VideoFormat("mpeg2video", 720, 480, frameRate = 23.976f))
+            val viewModel = viewModel(video = film)
+            backgroundScope.launch { viewModel.videoFormat.collect {} }
+            viewModel.onAction(TvPlayerAction.DisplaySettled)
+            playback.state.value =
+                playing().copy(output = AudioOutputInfo(video = VideoPlayback(height = 480, cadenceRate = 59.94f)))
+            runCurrent()
+
+            assertThat(viewModel.videoFormat.value).isEqualTo(59.94f to 480)
         }
 
     @Test

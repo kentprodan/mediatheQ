@@ -1,7 +1,6 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import android.content.Context
-import androidx.media3.exoplayer.mediacodec.MediaCodecAdapter
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -15,6 +14,7 @@ import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.AudioTrackAudioOutputProvider
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.audio.ForwardingAudioSink
+import androidx.media3.exoplayer.mediacodec.MediaCodecAdapter
 import java.nio.ByteBuffer
 
 /**

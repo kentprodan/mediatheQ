@@ -7,14 +7,32 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VsyncPacerTest {
-
     private val vsyncNs = 20_000_000L // 50Hz
 
     /** Spacings (ms) of a real 50fps file with bunched timestamps: one 20-frame, 400ms cycle. */
-    private val bunchedSpacingsMs = listOf(
-        38, 6, 19, 18, 38, 6, 13, 25, 37, 6, 13, 19,
-        43, 7, 12, 19, 44, 6, 12, 19,
-    )
+    private val bunchedSpacingsMs =
+        listOf(
+            38,
+            6,
+            19,
+            18,
+            38,
+            6,
+            13,
+            25,
+            37,
+            6,
+            13,
+            19,
+            43,
+            7,
+            12,
+            19,
+            44,
+            6,
+            12,
+            19,
+        )
 
     /** Release times as Media3 snaps the timestamps to the vsync grid. */
     private fun snappedBunchedReleases(cycles: Int): List<Long> {
@@ -29,10 +47,16 @@ class VsyncPacerTest {
         return out
     }
 
-    private fun snappedCadence(frames: Int, fps: Double, vsync: Long = vsyncNs): List<Long> =
-        List(frames) { Math.round(it * 1_000_000_000.0 / fps / vsync) * vsync }
+    private fun snappedCadence(
+        frames: Int,
+        fps: Double,
+        vsync: Long = vsyncNs,
+    ): List<Long> = List(frames) { Math.round(it * 1_000_000_000.0 / fps / vsync) * vsync }
 
-    private fun paceAll(releases: List<Long>, vsync: Long = vsyncNs): List<Long> {
+    private fun paceAll(
+        releases: List<Long>,
+        vsync: Long = vsyncNs,
+    ): List<Long> {
         val pacer = VsyncPacer()
         return releases.map { pacer.pace(it, vsync) }
     }

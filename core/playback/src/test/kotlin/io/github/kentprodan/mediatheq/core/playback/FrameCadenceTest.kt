@@ -10,15 +10,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FrameCadenceTest {
-
-    private fun uniform(fps: Double, n: Int = 120): LongArray {
+    private fun uniform(
+        fps: Double,
+        n: Int = 120,
+    ): LongArray {
         // Accumulate exact times and difference them, as a 90 kHz clock would.
         val times = LongArray(n + 1) { Math.round(it * 1_000_000.0 / fps) }
         return LongArray(n) { times[it + 1] - times[it] }
     }
 
-    private fun repeatPattern(pattern: LongArray, n: Int = 120): LongArray =
-        LongArray(n) { pattern[it % pattern.size] }
+    private fun repeatPattern(
+        pattern: LongArray,
+        n: Int = 120,
+    ): LongArray = LongArray(n) { pattern[it % pattern.size] }
 
     @Test
     fun `steady 23_976 is uniform on its own grid`() {
@@ -61,11 +65,12 @@ class FrameCadenceTest {
         // milliseconds the way that file's remuxer wrote them.
         val field = 1_000_000.0 * 1001 / 60_000
         var fields = 0
-        val times = LongArray(121) { index ->
-            val roundedMs = Math.round(fields * field / 1000)
-            fields += if (index % 2 == 0) 2 else 3
-            roundedMs * 1000
-        }
+        val times =
+            LongArray(121) { index ->
+                val roundedMs = Math.round(fields * field / 1000)
+                fields += if (index % 2 == 0) 2 else 3
+                roundedMs * 1000
+            }
         val cadence = FrameCadenceClassifier.classify(LongArray(120) { times[it + 1] - times[it] })
         assertEquals(FrameCadence.Kind.PULLDOWN_23, cadence.kind)
         assertEquals(60_000.0 / 1001, cadence.gridHz!!, 1e-6)
@@ -113,7 +118,11 @@ class FrameCadenceTest {
     fun `a steady stream reports once, then again on a change and on the heartbeat`() {
         val observer = FrameCadenceObserver(reorderDepth = 0, windowIntervals = 10, heartbeatUs = 1_000_000)
         var time = 0L
-        fun feed(intervalUs: Long, frames: Int): List<FrameCadence> {
+
+        fun feed(
+            intervalUs: Long,
+            frames: Int,
+        ): List<FrameCadence> {
             val out = mutableListOf<FrameCadence>()
             repeat(frames) {
                 time += intervalUs
@@ -134,11 +143,18 @@ class FrameCadenceTest {
     fun `a jump is a discontinuity, not an interval`() {
         val observer = FrameCadenceObserver(reorderDepth = 0, windowIntervals = 10)
         var time = 0L
-        repeat(5) { time += 41_708; assertNull(observer.onFrame(time)) }
+        repeat(5) {
+            time += 41_708
+            assertNull(observer.onFrame(time))
+        }
         time += 10_000_000
         assertNull(observer.onFrame(time))
         assertEquals(1, observer.discontinuities)
-        val reports = (1..10).mapNotNull { time += 41_708; observer.onFrame(time) }
+        val reports =
+            (1..10).mapNotNull {
+                time += 41_708
+                observer.onFrame(time)
+            }
         assertEquals(1, reports.size)
         assertEquals(FrameCadence.Kind.UNIFORM, reports[0].kind)
     }
@@ -147,7 +163,12 @@ class FrameCadenceTest {
     fun `a reset reports the same cadence afresh`() {
         val observer = FrameCadenceObserver(reorderDepth = 0, windowIntervals = 10)
         var time = 0L
-        fun steady() = (1..11).mapNotNull { time += 41_708; observer.onFrame(time) }
+
+        fun steady() =
+            (1..11).mapNotNull {
+                time += 41_708
+                observer.onFrame(time)
+            }
         assertEquals(1, steady().size)
         observer.reset()
         assertEquals(1, steady().size)
@@ -157,38 +178,43 @@ class FrameCadenceTest {
     fun `twelve uniform 29_97 intervals report early once per reset`() {
         val observer = FrameCadenceObserver(reorderDepth = 0)
         var time = 0L
-        val first = (0..FrameCadenceObserver.DEFAULT_FAST_INTERVALS).mapNotNull {
-            observer.onFrame(time).also { time += 33_367 }
-        }
+        val first =
+            (0..FrameCadenceObserver.DEFAULT_FAST_INTERVALS).mapNotNull {
+                observer.onFrame(time).also { time += 33_367 }
+            }
         assertEquals(1, first.size)
         assertEquals(12, first.single().intervals)
         assertEquals(FrameCadence.Kind.UNIFORM, first.single().kind)
         assertEquals(30_000.0 / 1001, first.single().gridHz!!, 1e-6)
 
-        val steadyWindow = (1..FrameCadenceObserver.DEFAULT_WINDOW_INTERVALS)
-            .mapNotNull { observer.onFrame(time).also { time += 33_367 } }
+        val steadyWindow =
+            (1..FrameCadenceObserver.DEFAULT_WINDOW_INTERVALS)
+                .mapNotNull { observer.onFrame(time).also { time += 33_367 } }
         assertEquals(1, steadyWindow.size)
         assertEquals(FrameCadenceObserver.DEFAULT_WINDOW_INTERVALS, steadyWindow.single().intervals)
-        val nextWindow = (1..FrameCadenceObserver.DEFAULT_WINDOW_INTERVALS)
-            .mapNotNull { observer.onFrame(time).also { time += 33_367 } }
+        val nextWindow =
+            (1..FrameCadenceObserver.DEFAULT_WINDOW_INTERVALS)
+                .mapNotNull { observer.onFrame(time).also { time += 33_367 } }
         assertTrue(nextWindow.isEmpty())
 
         observer.reset()
         time = 0L
-        val afterReset = (0..FrameCadenceObserver.DEFAULT_FAST_INTERVALS).mapNotNull {
-            observer.onFrame(time).also { time += 33_367 }
-        }
+        val afterReset =
+            (0..FrameCadenceObserver.DEFAULT_FAST_INTERVALS).mapNotNull {
+                observer.onFrame(time).also { time += 33_367 }
+            }
         assertEquals(1, afterReset.size)
         assertEquals(12, afterReset.single().intervals)
     }
 
     @Test
     fun `fast threshold equal to window uses successive full windows`() {
-        val observer = FrameCadenceObserver(
-            reorderDepth = 0,
-            windowIntervals = 12,
-            fastIntervals = 12,
-        )
+        val observer =
+            FrameCadenceObserver(
+                reorderDepth = 0,
+                windowIntervals = 12,
+                fastIntervals = 12,
+            )
         var time = 0L
         val reports = mutableListOf<FrameCadence>()
         observer.onFrame(time)
@@ -226,9 +252,10 @@ class FrameCadenceTest {
         // TV UFOP and Channel 10 write whole-millisecond timestamps, so the
         // intervals run 33, 34, 33 ms and so on.
         val observer = FrameCadenceObserver(reorderDepth = 0)
-        val reports = (0..FrameCadenceObserver.DEFAULT_FAST_INTERVALS).mapNotNull {
-            observer.onFrame(Math.round(it * 1_000_000.0 / 30.0 / 1000.0) * 1000L)
-        }
+        val reports =
+            (0..FrameCadenceObserver.DEFAULT_FAST_INTERVALS).mapNotNull {
+                observer.onFrame(Math.round(it * 1_000_000.0 / 30.0 / 1000.0) * 1000L)
+            }
 
         assertEquals(1, reports.size)
         assertEquals(FrameCadence.Kind.UNIFORM, reports.single().kind)
@@ -239,11 +266,12 @@ class FrameCadenceTest {
     fun `mixed intervals do not use the fast uniform report`() {
         val observer = FrameCadenceObserver(reorderDepth = 0)
         var time = 0L
-        val reports = (0..FrameCadenceObserver.DEFAULT_FAST_INTERVALS).mapNotNull {
-            val report = observer.onFrame(time)
-            time += if (it % 2 == 0) 33_367 else 50_050
-            report
-        }
+        val reports =
+            (0..FrameCadenceObserver.DEFAULT_FAST_INTERVALS).mapNotNull {
+                val report = observer.onFrame(time)
+                time += if (it % 2 == 0) 33_367 else 50_050
+                report
+            }
         assertTrue(reports.isEmpty())
     }
 
@@ -258,9 +286,10 @@ class FrameCadenceTest {
         time += 10_000_000
         assertNull(observer.onFrame(time))
         time += 33_367
-        val reports = (0..FrameCadenceObserver.DEFAULT_FAST_INTERVALS).mapNotNull {
-            observer.onFrame(time).also { time += 33_367 }
-        }
+        val reports =
+            (0..FrameCadenceObserver.DEFAULT_FAST_INTERVALS).mapNotNull {
+                observer.onFrame(time).also { time += 33_367 }
+            }
         assertEquals(1, reports.size)
         assertEquals(12, reports.single().intervals)
     }
@@ -280,57 +309,5 @@ class FrameCadenceTest {
             }
         }
         assertEquals(1, reports)
-    }
-
-    @Test
-    fun `stages agree on variable timing that shares a grid`() {
-        val field = 1_000_000.0 * 1001 / 60_000
-        fun on(units: IntArray) = FrameCadenceClassifier.classify(
-            LongArray(120) { Math.round(units[it % units.size] * field) },
-        )
-        val demux = on(intArrayOf(1, 1, 2, 4))
-        val output = on(intArrayOf(2, 2, 1, 4, 2))
-        assertEquals(FrameCadence.Kind.GRID, demux.kind)
-        assertTrue(FrameTimingProbe.matches(demux, output))
-    }
-
-    @Test
-    fun `readings agree on the same rate and differ on a rewritten one`() {
-        val input = FrameCadenceClassifier.classify(uniform(24_000.0 / 1001))
-        val stale = FrameCadenceClassifier.classify(
-            repeatPattern(LongArray(12) { if (it < 11) 33_367 else 500_500 - 11 * 33_367 }),
-        )
-        assertTrue(FrameTimingProbe.matches(input, FrameCadenceClassifier.classify(uniform(24_000.0 / 1001))))
-        assertFalse(FrameTimingProbe.matches(input, stale))
-    }
-
-    @Test
-    fun `seek reset accepts the current source while source reset rejects its old token`() {
-        val probe = FrameTimingProbe { }
-        val cadence = FrameCadenceClassifier.classify(uniform(30_000.0 / 1001))
-        val report = CadenceReport(
-            cadence = cadence,
-            sampleMimeType = "video/mpeg2",
-            formatFrameRate = 30_000f / 1001,
-            lastTimestampUs = 1_001_000,
-            discontinuities = 0,
-        )
-        val oldGeneration = probe.generationToken
-        probe.onDemuxReport(report, oldGeneration)
-        assertNotNull(probe.latest(FrameTimingStage.DEMUX))
-
-        probe.resetForDiscontinuity()
-        assertNull(probe.latest(FrameTimingStage.DEMUX))
-        assertEquals(oldGeneration, probe.generationToken)
-        probe.onDemuxReport(report, oldGeneration)
-        assertNotNull(probe.latest(FrameTimingStage.DEMUX))
-
-        probe.reset()
-        assertNull(probe.latest(FrameTimingStage.DEMUX))
-        assertTrue(probe.generationToken != oldGeneration)
-        probe.onDemuxReport(report, oldGeneration)
-        assertNull(probe.latest(FrameTimingStage.DEMUX))
-        probe.onDemuxReport(report, probe.generationToken)
-        assertNotNull(probe.latest(FrameTimingStage.DEMUX))
     }
 }

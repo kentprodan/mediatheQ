@@ -37,6 +37,7 @@ class LicensesTest {
                 "dolby-mark",
                 "moonfin-passthrough",
                 "moonfin-display-settle",
+                "moonfin-frame-cadence",
                 "pixelplayer-widening",
                 "androidx.media3:media3-exoplayer",
                 "com.squareup.okhttp3:okhttp",

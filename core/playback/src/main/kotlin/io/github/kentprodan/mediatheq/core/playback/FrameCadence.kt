@@ -27,7 +27,9 @@ internal data class FrameCadence(
     val dominantShare: Double,
     val intervals: Int,
 ) {
-    enum class Kind(val wireValue: String) {
+    enum class Kind(
+        val wireValue: String,
+    ) {
         /** One interval length throughout. */
         UNIFORM("uniform"),
 
@@ -64,11 +66,21 @@ internal data class FrameCadence(
 
 internal object FrameCadenceClassifier {
     /** Ascending, with each 1000/1001 rate right before its integer sibling. */
-    private val GRIDS_HZ = doubleArrayOf(
-        24_000.0 / 1001, 24.0, 25.0, 30_000.0 / 1001, 30.0,
-        48_000.0 / 1001, 48.0, 50.0, 60_000.0 / 1001, 60.0,
-        120_000.0 / 1001, 120.0,
-    )
+    private val GRIDS_HZ =
+        doubleArrayOf(
+            24_000.0 / 1001,
+            24.0,
+            25.0,
+            30_000.0 / 1001,
+            30.0,
+            48_000.0 / 1001,
+            48.0,
+            50.0,
+            60_000.0 / 1001,
+            60.0,
+            120_000.0 / 1001,
+            120.0,
+        )
 
     // Timestamps rounded to whole milliseconds, as some remuxers write them,
     // miss a 59.94 Hz grid by up to about 0.7 ms per interval.
@@ -89,29 +101,40 @@ internal object FrameCadenceClassifier {
         val dominantUs = dominant.average().roundToLong()
         val dominantShare = dominant.size.toDouble() / n
 
-        val gridHz = bestGrid(intervalsUs)
-            ?: return FrameCadence(
-                FrameCadence.Kind.IRREGULAR, meanFps, null, emptyList(),
-                dominantUs, dominantShare, n,
-            )
+        val gridHz =
+            bestGrid(intervalsUs)
+                ?: return FrameCadence(
+                    FrameCadence.Kind.IRREGULAR,
+                    meanFps,
+                    null,
+                    emptyList(),
+                    dominantUs,
+                    dominantShare,
+                    n,
+                )
         val periodUs = 1_000_000.0 / gridHz
-        val units = intervalsUs
-            .asList()
-            .groupingBy { Math.round(it / periodUs).toInt() }
-            .eachCount()
-            .entries
-            .sortedWith(compareByDescending<Map.Entry<Int, Int>> { it.value }.thenBy { it.key })
-            .map { it.key to it.value }
+        val units =
+            intervalsUs
+                .asList()
+                .groupingBy { Math.round(it / periodUs).toInt() }
+                .eachCount()
+                .entries
+                .sortedWith(compareByDescending<Map.Entry<Int, Int>> { it.value }.thenBy { it.key })
+                .map { it.key to it.value }
 
-        val kind = when {
-            units[0].second >= n * UNIFORM_SHARE -> FrameCadence.Kind.UNIFORM
-            isPulldown(units, n) -> FrameCadence.Kind.PULLDOWN_23
-            else -> FrameCadence.Kind.GRID
-        }
+        val kind =
+            when {
+                units[0].second >= n * UNIFORM_SHARE -> FrameCadence.Kind.UNIFORM
+                isPulldown(units, n) -> FrameCadence.Kind.PULLDOWN_23
+                else -> FrameCadence.Kind.GRID
+            }
         return FrameCadence(kind, meanFps, gridHz, units, dominantUs, dominantShare, n)
     }
 
-    private fun isPulldown(units: List<Pair<Int, Int>>, n: Int): Boolean {
+    private fun isPulldown(
+        units: List<Pair<Int, Int>>,
+        n: Int,
+    ): Boolean {
         if (units.size < 2) return false
         val (first, second) = units[0] to units[1]
         return setOf(first.first, second.first) == setOf(2, 3) &&
@@ -120,7 +143,10 @@ internal object FrameCadenceClassifier {
     }
 
     /** Whether the two rates are a 1000/1001 rate and its integer sibling, in either order. */
-    fun areSiblings(aHz: Double, bHz: Double): Boolean {
+    fun areSiblings(
+        aHz: Double,
+        bHz: Double,
+    ): Boolean {
         for (index in GRIDS_HZ.indices) {
             val sibling = siblingOf(index) ?: continue
             val low = GRIDS_HZ[index]
@@ -133,8 +159,10 @@ internal object FrameCadenceClassifier {
         return false
     }
 
-    private fun nearRate(hz: Double, grid: Double): Boolean =
-        hz.isFinite() && abs(hz - grid) / grid <= SIBLING_MATCH_TOLERANCE
+    private fun nearRate(
+        hz: Double,
+        grid: Double,
+    ): Boolean = hz.isFinite() && abs(hz - grid) / grid <= SIBLING_MATCH_TOLERANCE
 
     /** The integer sibling of the 1000/1001 grid at [index], or null if it has none. */
     private fun siblingOf(index: Int): Double? {
@@ -162,14 +190,20 @@ internal object FrameCadenceClassifier {
     }
 
     /** How far the run's total length is from the same intervals laid exactly on the [hz] grid. */
-    private fun drift(intervalsUs: LongArray, hz: Double): Double {
+    private fun drift(
+        intervalsUs: LongArray,
+        hz: Double,
+    ): Double {
         val periodUs = 1_000_000.0 / hz
         var units = 0L
         for (interval in intervalsUs) units += Math.round(interval / periodUs)
         return abs(intervalsUs.sum() - units * periodUs)
     }
 
-    private fun meanError(intervalsUs: LongArray, hz: Double): Double? {
+    private fun meanError(
+        intervalsUs: LongArray,
+        hz: Double,
+    ): Double? {
         val periodUs = 1_000_000.0 / hz
         var total = 0.0
         for (interval in intervalsUs) {
@@ -300,6 +334,7 @@ internal class FrameCadenceObserver(
         const val DEFAULT_WINDOW_INTERVALS = 120
         const val DEFAULT_FAST_INTERVALS = 12
         const val DEFAULT_HEARTBEAT_US = 60_000_000L
+
         // Whole-millisecond timestamps, as some IPTV origins write them, put
         // each interval up to about 0.7 ms off the true one (33 and 34 ms for
         // 30 fps), so the early reading has to allow that much.

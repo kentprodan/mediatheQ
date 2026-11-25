@@ -164,6 +164,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Volatile private var vsyncPeriodNs = 0L
 
     @Volatile private var vsyncReadAt = 0L
+
+    // Sends the info line again (set in onCreate, where the play method is known).
+    private var refreshVideoInfo: () -> Unit = {}
     private var hdrLogged = false
 
     @Inject lateinit var artworkUrls: ArtworkUrlResolver
@@ -767,6 +770,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
         }
 
         fun convertedDownload(): Boolean = currentId()?.let(streamResolver::isConvertedDownload) == true
+        refreshVideoInfo = {
+            if (::audioOutput.isInitialized) {
+                session?.sessionExtras = audioOutput.state.toInfo(currentPlayMethod(), convertedDownload()).toBundle()
+            }
+        }
         // Into the app's log (#169): tracks, play / pause with how the stream comes, errors.
         player.addListener(
             PlaybackLogListener(player, appLog) {
@@ -1051,20 +1059,24 @@ class MediatheqPlaybackService : MediaLibraryService() {
         rate: Float,
     ) {
         Handler(Looper.getMainLooper()).post {
-            val key = uri.buildUpon().clearQuery().build().toString()
+            val key =
+                uri
+                    .buildUpon()
+                    .clearQuery()
+                    .build()
+                    .toString()
             cadenceRates.remove(key)
             cadenceRates[key] = rate
             while (cadenceRates.size > CADENCE_FILES) cadenceRates.remove(cadenceRates.keys.first())
             appLog.info("MqVideo", "Frame timing asks for $rate Hz")
-            if (::audioOutput.isInitialized) {
-                session?.sessionExtras = audioOutput.state.toInfo(currentPlayMethod(), convertedDownload()).toBundle()
-            }
+            refreshVideoInfo()
         }
     }
 
     /** The playing video's measured rate, its file found by the item id in the URI. */
     private fun currentCadenceRate(): Float? {
-        val itemId = built?.currentMediaItem?.mediaId?.let { runCatching { MediaId.parse(it).itemId }.getOrNull() }
+        val mediaId = if (::swap.isInitialized) swap.player.currentMediaItem?.mediaId else null
+        val itemId = mediaId?.let { runCatching { MediaId.parse(it).itemId }.getOrNull() }
         return itemId?.let { id -> cadenceRates.entries.lastOrNull { it.key.contains(id, ignoreCase = true) }?.value }
     }
 
