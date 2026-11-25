@@ -31,6 +31,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.motion.mqAboveSharedCovers
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedBackButton
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColorCache
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColors
 import io.github.kentprodan.mediatheq.core.designsystem.theme.LocalMqTheme
@@ -169,7 +170,7 @@ private fun ArtistPage(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onBack, modifier = Modifier.mqSharedBackButton()) {
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.artist_back))
                     }
                 },
@@ -351,7 +352,7 @@ fun ArtistTopTracksScreen(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        IconButton(onClick = onBack, modifier = Modifier.mqSharedBackButton()) {
                             Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.artist_back))
                         }
                     },

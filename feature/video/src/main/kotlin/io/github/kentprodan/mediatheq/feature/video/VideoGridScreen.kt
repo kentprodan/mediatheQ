@@ -33,6 +33,7 @@ import io.github.kentprodan.mediatheq.core.data.VideoSort
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedBackButton
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.MqPosterCard
@@ -67,7 +68,7 @@ fun VideoGridScreen(
                 title = { Text(stringResource(texts.title)) },
                 navigationIcon = {
                     onBack?.let {
-                        IconButton(onClick = it) {
+                        IconButton(onClick = it, modifier = Modifier.mqSharedBackButton()) {
                             Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.video_back))
                         }
                     }

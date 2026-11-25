@@ -31,6 +31,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.motion.mqAboveSharedCovers
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedBackButton
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColorCache
 import io.github.kentprodan.mediatheq.core.designsystem.theme.LocalMqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.rememberCoverColors
@@ -126,7 +127,7 @@ fun AlbumScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onBack, modifier = Modifier.mqSharedBackButton()) {
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.album_back))
                     }
                 },

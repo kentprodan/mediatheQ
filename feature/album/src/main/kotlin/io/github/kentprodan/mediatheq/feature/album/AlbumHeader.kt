@@ -48,7 +48,6 @@ import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
-import io.github.kentprodan.mediatheq.core.designsystem.motion.mqAboveSharedCovers
 import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedCover
 import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
@@ -216,7 +215,8 @@ private fun ArtistAvatar(
         contentDescription = artist.name,
         modifier =
             modifier
-                .mqAboveSharedCovers()
+                // Flies into the artist page's header, like an artist card from Home (#681).
+                .mqSharedCover(sharedCoverKey(artist.id), aboveCoversWhenAlone = true)
                 .size(ARTIST_AVATAR_SIZE)
                 .clip(CircleShape)
                 .clickable { onOpenArtist(artist.id) },
