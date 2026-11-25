@@ -93,6 +93,7 @@ internal val settingsIndex: Map<SettingsPage, List<Int>> =
                 R.string.settings_arp_dynamic_colors,
                 R.string.settings_arp_order,
                 R.string.settings_arp_albums_sort,
+                R.string.settings_arp_album_subtitle,
                 R.string.settings_arp_columns,
                 R.string.settings_arp_landscape_columns,
                 R.string.settings_arp_appears_on,

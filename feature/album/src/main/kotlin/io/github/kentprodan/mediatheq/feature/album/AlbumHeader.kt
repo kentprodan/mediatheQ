@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -47,6 +48,7 @@ import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqAboveSharedCovers
 import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedCover
 import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
@@ -79,11 +81,12 @@ internal fun AlbumHeader(
     onAddToPlaylist: (List<MediaId>) -> Unit,
 ) {
     val surface = MaterialTheme.colorScheme.surface
-    val cover = @Composable { modifier: Modifier ->
+    // [inside] flies with the cover (the fade into the page), so nothing pops in once it lands (#681).
+    val cover = @Composable { modifier: Modifier, inside: Modifier ->
         MqCover(
             model = state.album.artwork,
             contentDescription = null,
-            modifier = modifier.mqSharedCover(sharedCoverKey(albumId, coverOrigin)),
+            modifier = modifier.mqSharedCover(sharedCoverKey(albumId, coverOrigin)).then(inside),
             blurHash = state.album.artwork?.blurHash,
             shape =
                 if (state.page.headerBackground == AlbumHeaderBackground.CoverImage) {
@@ -97,15 +100,15 @@ internal fun AlbumHeader(
         when (state.page.headerBackground) {
             AlbumHeaderBackground.CoverImage -> {
                 Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
-                    cover(Modifier.fillMaxSize())
-                    Box(
-                        Modifier.fillMaxSize().background(
-                            Brush.verticalGradient(
-                                0.55f to Color.Transparent,
-                                1f to surface,
-                            ),
-                        ),
+                    val fade = Brush.verticalGradient(0.55f to Color.Transparent, 1f to surface)
+                    cover(
+                        Modifier.fillMaxSize(),
+                        Modifier.drawWithContent {
+                            drawContent()
+                            drawRect(fade)
+                        },
                     )
+                    ArtistAvatar(state, onOpenArtist, Modifier.align(Alignment.BottomEnd).padding(MediatheqSpacing.l))
                 }
             }
 
@@ -121,13 +124,13 @@ internal fun AlbumHeader(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Spacer(Modifier.height(topPadding))
-                    cover(Modifier.fillMaxWidth(COVER_WIDTH_FRACTION).padding(vertical = MediatheqSpacing.m))
+                    SmallCover(state, onOpenArtist) { cover(it, Modifier) }
                 }
             }
 
             AlbumHeaderBackground.None -> {
                 Spacer(Modifier.height(topPadding))
-                cover(Modifier.fillMaxWidth(COVER_WIDTH_FRACTION).padding(vertical = MediatheqSpacing.m))
+                SmallCover(state, onOpenArtist) { cover(it, Modifier) }
             }
         }
         HeaderText(state, onOpenArtist)
@@ -141,65 +144,85 @@ private fun HeaderText(
     state: AlbumUiState.Content,
     onOpenArtist: (MediaId) -> Unit,
 ) {
-    Row(
+    Column(
         Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.xs),
     ) {
-        Column(
-            Modifier.weight(1f),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.xs),
-        ) {
+        Text(
+            state.title.name,
+            Modifier.semantics { heading() },
+            style = MaterialTheme.typography.headlineMediumEmphasized,
+        )
+        state.title.version?.let {
             Text(
-                state.title.name,
-                Modifier.semantics { heading() },
-                style = MaterialTheme.typography.headlineMediumEmphasized,
-            )
-            state.title.version?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Text(
-                listOfNotNull(
-                    formatTotalDuration(state.duration),
-                    state.album.year?.toString(),
-                    state.quality?.let { qualityText(it) },
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.bodyMedium,
+                it,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+        Text(
+            listOfNotNull(
+                formatTotalDuration(state.duration),
+                state.album.year?.toString(),
+                state.quality?.let { qualityText(it) },
+            ).joinToString(" · "),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        // The picture on the cover stands for the first artist (owner, #681); the others keep their names.
+        val named = if (state.avatarArtist != null) state.album.albumArtists.drop(1) else state.album.albumArtists
+        if (named.isNotEmpty()) {
             // The first artist's text lines up with the title (#534): the button's start padding moves out.
             FlowRow(
                 Modifier.offset(
                     x = -ButtonDefaults.TextButtonContentPadding.calculateStartPadding(LocalLayoutDirection.current),
                 ),
             ) {
-                state.album.albumArtists.forEach { artist ->
+                named.forEach { artist ->
                     TextButton(onClick = { onOpenArtist(artist.id) }) { Text(artist.name) }
                 }
             }
         }
-        // The first album artist's picture, small and round, no name (#682); none from the server: nothing.
-        state.album.albumArtists.firstOrNull()?.let { artist ->
-            artist.artwork?.let { artwork ->
-                MqCover(
-                    model = artwork,
-                    contentDescription = artist.name,
-                    modifier =
-                        Modifier
-                            .padding(start = MediatheqSpacing.m)
-                            .size(ARTIST_AVATAR_SIZE)
-                            .clip(CircleShape)
-                            .clickable { onOpenArtist(artist.id) },
-                    blurHash = artwork.blurHash,
-                    shape = CircleShape,
-                )
-            }
-        }
     }
+}
+
+/** The cover at [COVER_WIDTH_FRACTION] of the width, the artist's picture on its bottom right corner. */
+@Composable
+private fun SmallCover(
+    state: AlbumUiState.Content,
+    onOpenArtist: (MediaId) -> Unit,
+    cover: @Composable (Modifier) -> Unit,
+) {
+    Box(Modifier.fillMaxWidth(COVER_WIDTH_FRACTION).padding(vertical = MediatheqSpacing.m)) {
+        cover(Modifier.fillMaxWidth())
+        ArtistAvatar(state, onOpenArtist, Modifier.align(Alignment.BottomEnd).padding(MediatheqSpacing.s))
+    }
+}
+
+/**
+ * The first album artist's picture, small and round, on the cover's bottom right corner (#682, #681); it opens the
+ * artist. None from the server: nothing, and the name shows instead.
+ */
+@Composable
+private fun ArtistAvatar(
+    state: AlbumUiState.Content,
+    onOpenArtist: (MediaId) -> Unit,
+    modifier: Modifier,
+) {
+    val artist = state.avatarArtist ?: return
+    MqCover(
+        model = artist.artwork,
+        contentDescription = artist.name,
+        modifier =
+            modifier
+                .mqAboveSharedCovers()
+                .size(ARTIST_AVATAR_SIZE)
+                .clip(CircleShape)
+                .clickable { onOpenArtist(artist.id) },
+        blurHash = artist.artwork?.blurHash,
+        shape = CircleShape,
+    )
 }
 
 /** "Dolby Atmos", "Hi-Res Lossless", "Lossless", or a lossy file's "MP3 320 kb/s"; the format is in About (#534). */

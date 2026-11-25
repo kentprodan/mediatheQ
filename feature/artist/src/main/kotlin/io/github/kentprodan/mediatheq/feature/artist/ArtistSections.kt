@@ -33,6 +33,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import io.github.kentprodan.mediatheq.core.common.QualityKind
+import io.github.kentprodan.mediatheq.core.data.ArtistAlbumSubtitle
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
@@ -44,6 +46,7 @@ import io.github.kentprodan.mediatheq.core.ui.ArtistCard
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
 import io.github.kentprodan.mediatheq.core.ui.stateOf
+import io.github.kentprodan.mediatheq.core.ui.text
 
 /** A section title (#133): `titleMedium`, heading; [action] sits at its end ("Show all"). */
 @Composable
@@ -140,6 +143,8 @@ internal fun LazyListScope.albumGrid(
                         Modifier.weight(1f),
                         onLongClick = longPress(album.id),
                         selected = state.selection.stateOf(album.id),
+                        showSubtitle = state.page.albumSubtitle != ArtistAlbumSubtitle.Nothing,
+                        subtitle = albumSubtitle(album, state),
                     )
                 }
                 // Keeps the last row's cards the same width as the others.
@@ -244,3 +249,35 @@ private fun Fact(
 }
 
 private const val OVERVIEW_LINES = 3
+
+/** The card's line under the title (#681): the year, the quality or the format, as the page setting says. */
+@Composable
+private fun albumSubtitle(
+    album: Album,
+    state: ArtistUiState.Content,
+): String {
+    val quality = state.albumQualities[album.id]
+    // An unknown value leaves the line empty, so the cards of a row keep one height.
+    return when (state.page.albumSubtitle) {
+        ArtistAlbumSubtitle.Year -> {
+            album.year?.toString()
+        }
+
+        ArtistAlbumSubtitle.Quality -> {
+            quality?.let {
+                when (it.kind) {
+                    QualityKind.HighQuality, QualityKind.HighEfficiency -> it.detail
+                    else -> stringResource(it.kind.text)
+                }
+            }
+        }
+
+        ArtistAlbumSubtitle.Format -> {
+            quality?.detail
+        }
+
+        ArtistAlbumSubtitle.Nothing -> {
+            null
+        }
+    }.orEmpty()
+}

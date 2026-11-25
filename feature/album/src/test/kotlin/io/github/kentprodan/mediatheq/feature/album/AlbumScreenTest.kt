@@ -288,7 +288,19 @@ class AlbumScreenTest {
     }
 
     @Test
-    fun `the album artist's picture opens the artist`() {
+    fun `a track's stars are in its More sheet`() {
+        val actions = mutableListOf<AlbumAction>()
+        composeRule.setContent { MediatheqTheme { AlbumScreen(albumId, content, { actions += it }, onBack = {}) } }
+
+        composeRule.onNode(list).performScrollToNode(hasContentDescription("More options for Track 2"))
+        composeRule.onNodeWithContentDescription("More options for Track 2").performClick()
+        composeRule.onNodeWithContentDescription("Rate 3 stars").performClick()
+
+        assertThat(actions).containsExactly(AlbumAction.RateTrack(tracks[1], 6))
+    }
+
+    @Test
+    fun `the artist's picture on the cover replaces the name, and opens the artist`() {
         val artist = Artist(MediaId(ServerId("s"), "ar1"), "Subcarpați", artwork = Artwork("ar1", "tag"))
         val opened = mutableListOf<MediaId>()
         composeRule.setContent {
@@ -303,6 +315,7 @@ class AlbumScreenTest {
             }
         }
 
+        composeRule.onNodeWithText("Subcarpați").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("Subcarpați").performClick()
 
         assertThat(opened).containsExactly(artist.id)

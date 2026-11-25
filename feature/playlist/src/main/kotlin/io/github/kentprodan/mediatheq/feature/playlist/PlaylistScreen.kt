@@ -363,6 +363,7 @@ private fun PlaylistRow(
     ) {
         TrackRow(
             item.track,
+            onRate = { onAction(PlaylistAction.RateTrack(item.track, it)) },
             onClick = {
                 onAction(
                     if (state.isSelecting) {

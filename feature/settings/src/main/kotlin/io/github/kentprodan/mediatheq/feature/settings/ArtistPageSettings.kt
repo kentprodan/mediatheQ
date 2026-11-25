@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import io.github.kentprodan.mediatheq.core.data.ArtistAlbumSubtitle
 import io.github.kentprodan.mediatheq.core.data.ArtistButton
 import io.github.kentprodan.mediatheq.core.data.ArtistHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
@@ -31,6 +32,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 /** The dialogs of Settings -> Artist page (the section order is ViewModel state, like the Album page's). */
 enum class ArtistPageDialog {
     Background,
+    AlbumSubtitle,
     HiddenButtons,
     PlayAction,
     AlbumsSort,
@@ -94,6 +96,13 @@ internal fun LazyListScope.artistPageGroups(
                     stringResource(R.string.settings_arp_albums_sort),
                     stringResource(page.albumsSort.label),
                 ) { onOpenDialog(ArtistPageDialog.AlbumsSort) }
+            }
+            item { shapes ->
+                DialogItem(
+                    shapes,
+                    stringResource(R.string.settings_arp_album_subtitle),
+                    stringResource(page.albumSubtitle.label),
+                ) { onOpenDialog(ArtistPageDialog.AlbumSubtitle) }
             }
             item { shapes ->
                 ChoiceItem(
@@ -273,6 +282,10 @@ private fun ArtistPageChoices(
                 MoreAlbumsSort.entries.map { stringResource(it.label) to page.copy(albumsSort = it) }
             }
 
+            ArtistPageDialog.AlbumSubtitle -> {
+                ArtistAlbumSubtitle.entries.map { stringResource(it.label) to page.copy(albumSubtitle = it) }
+            }
+
             ArtistPageDialog.TopTracksCount -> {
                 TOP_TRACKS_COUNTS.map { it.toString() to page.copy(topTracksCount = it) }
             }
@@ -315,6 +328,7 @@ private val ArtistPageDialog.title: Int
             ArtistPageDialog.HiddenButtons -> R.string.settings_arp_hidden_buttons
             ArtistPageDialog.PlayAction -> R.string.settings_arp_play_action
             ArtistPageDialog.AlbumsSort -> R.string.settings_arp_albums_sort
+            ArtistPageDialog.AlbumSubtitle -> R.string.settings_arp_album_subtitle
             ArtistPageDialog.TopTracksCount -> R.string.settings_arp_top_tracks_count
             ArtistPageDialog.DynamicColors -> R.string.settings_arp_dynamic_colors
             ArtistPageDialog.Restore -> R.string.settings_restore
@@ -353,4 +367,13 @@ internal val ArtistSection.label: Int
             ArtistSection.AppearsOn -> R.string.settings_arp_section_appears_on
             ArtistSection.TopTracks -> R.string.settings_arp_section_top_tracks
             ArtistSection.About -> R.string.settings_ap_section_about
+        }
+
+internal val ArtistAlbumSubtitle.label: Int
+    get() =
+        when (this) {
+            ArtistAlbumSubtitle.Year -> R.string.settings_arp_album_subtitle_year
+            ArtistAlbumSubtitle.Quality -> R.string.settings_arp_album_subtitle_quality
+            ArtistAlbumSubtitle.Format -> R.string.settings_arp_album_subtitle_format
+            ArtistAlbumSubtitle.Nothing -> R.string.settings_arp_album_subtitle_nothing
         }

@@ -15,6 +15,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqArtistAvatar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedCover
+import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.Playlist
@@ -27,12 +29,19 @@ fun ArtistCard(
     modifier: Modifier = Modifier,
     /** A play button on the picture (#182); `null` for none. */
     onPlay: (() -> Unit)? = null,
+    /** Tells this card's picture from other cards of the same artist (Home sections, #681). */
+    coverOrigin: String? = null,
 ) {
     Column(
         modifier.clip(MaterialTheme.shapes.medium).clickable(onClick = onClick).padding(bottom = MediatheqSpacing.s),
     ) {
         Box {
-            MqArtistAvatar(artist.artwork, blurHash = artist.artwork?.blurHash)
+            // Flies into the artist page's header picture (#681).
+            MqArtistAvatar(
+                artist.artwork,
+                Modifier.mqSharedCover(sharedCoverKey(artist.id, coverOrigin)),
+                blurHash = artist.artwork?.blurHash,
+            )
             onPlay?.let { CoverPlay(artist.name, it) }
         }
         Text(

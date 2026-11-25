@@ -1,5 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.artist
 
+import io.github.kentprodan.mediatheq.core.common.QualityLabel
+import io.github.kentprodan.mediatheq.core.common.albumQuality
 import io.github.kentprodan.mediatheq.core.data.ArtistButton
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
@@ -41,6 +43,11 @@ sealed interface ArtistUiState {
         /** The server's artists like this one (#681), right above About; empty without the server. */
         val similarArtists: List<Artist> = emptyList(),
     ) : ArtistUiState {
+        /** Each album's quality from the artist's tracks on it (#681), for the cards' line under the title. */
+        val albumQualities: Map<MediaId?, QualityLabel?> by lazy {
+            tracks.groupBy { it.albumId }.mapValues { albumQuality(it.value) }
+        }
+
         /** The most played tracks, as many as the setting asks for. */
         val topTracks: List<Track> get() = playedTracks.take(page.topTracksCount)
 

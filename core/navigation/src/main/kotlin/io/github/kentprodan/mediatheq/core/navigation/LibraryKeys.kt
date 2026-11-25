@@ -18,6 +18,8 @@ data class AlbumKey(
 @Serializable
 data class ArtistKey(
     @Serializable(with = MediaIdSerializer::class) val id: MediaId,
+    /** Which card opened it (#681): the picture flies back to that card, not to another one of the same artist. */
+    val coverOrigin: String? = null,
 ) : NavKey
 
 /** Every played track of an artist, most played first: the artist page's "Show all" (#133). */

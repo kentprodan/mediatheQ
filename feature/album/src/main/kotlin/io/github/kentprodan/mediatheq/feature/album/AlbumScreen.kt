@@ -30,6 +30,7 @@ import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqAboveSharedCovers
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColorCache
 import io.github.kentprodan.mediatheq.core.designsystem.theme.LocalMqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.rememberCoverColors
@@ -113,6 +114,8 @@ fun AlbumScreen(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeFlexibleTopAppBar(
+                // Above the cover flying in, so the back button shows from the start (#681).
+                modifier = Modifier.mqAboveSharedCovers(),
                 // The header shows the title; the bar names the album only once it has nearly collapsed.
                 title = {
                     Text(
@@ -245,6 +248,7 @@ private fun LazyListScope.tracks(
         items(disc.tracks, key = { it.id.toString() }, contentType = { "track" }) { track ->
             TrackRow(
                 track,
+                onRate = { onAction(AlbumAction.RateTrack(track, it)) },
                 onClick = {
                     if (state.selection.isActive) {
                         onAction(AlbumAction.ToggleSelection(track.id))

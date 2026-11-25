@@ -13,6 +13,7 @@ fun EntryProviderScope<NavKey>.artistEntry(navigator: Navigator) {
     entry<ArtistKey> { key ->
         ArtistRoute(
             key.id,
+            coverOrigin = key.coverOrigin,
             onOpenAlbum = { navigator.navigateTo(AlbumKey(it)) },
             onOpenTopTracks = { navigator.navigateTo(ArtistTopTracksKey(key.id)) },
             onBack = { navigator.back() },

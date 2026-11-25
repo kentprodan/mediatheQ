@@ -34,6 +34,16 @@ fun Modifier.mqSharedCover(key: Any): Modifier {
     }
 }
 
+/**
+ * Draws this above the covers flying between screens (#681), e.g. the top bar's back button over an album cover that
+ * lands under it: without it the page's own parts show only once the cover has landed.
+ */
+@Composable
+fun Modifier.mqAboveSharedCovers(): Modifier {
+    val shared = LocalSharedTransitionScope.current ?: return this
+    return with(shared) { this@mqAboveSharedCovers.renderInSharedTransitionScopeOverlay(zIndexInOverlay = 1f) }
+}
+
 /** The shared-element key of a cover, the same on every screen showing that item. */
 fun sharedCoverKey(
     itemId: Any,

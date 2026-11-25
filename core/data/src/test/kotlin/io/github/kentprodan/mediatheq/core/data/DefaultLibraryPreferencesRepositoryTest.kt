@@ -888,6 +888,7 @@ class DefaultLibraryPreferencesRepositoryTest {
                             ArtistSection.AppearsOn,
                         ),
                     albumsSort = MoreAlbumsSort.Title,
+                    albumSubtitle = ArtistAlbumSubtitle.Format,
                     albumColumns = 2,
                     landscapeAlbumColumns = 6,
                     showAppearsOn = false,
@@ -919,6 +920,7 @@ class DefaultLibraryPreferencesRepositoryTest {
                 it[stringPreferencesKey("arp_background")] = "Blur"
                 it[intPreferencesKey("arp_columns")] = 9
                 it[intPreferencesKey("arp_top_tracks_count")] = 1
+                it[stringPreferencesKey("arp_album_subtitle")] = "Gone"
             }
 
             val page = repository.preferences.first().artistPage
@@ -931,7 +933,8 @@ class DefaultLibraryPreferencesRepositoryTest {
                     ArtistSection.AppearsOn,
                 ).inOrder()
             assertThat(page.hiddenButtons).isEmpty()
-            assertThat(page.headerBackground).isEqualTo(ArtistHeaderBackground.Backdrop)
+            assertThat(page.headerBackground).isEqualTo(ArtistHeaderBackground.ArtistImage)
+            assertThat(page.albumSubtitle).isEqualTo(ArtistAlbumSubtitle.Year)
             assertThat(page.albumColumns).isEqualTo(4)
             assertThat(page.topTracksCount).isEqualTo(5)
         }

@@ -55,6 +55,8 @@ fun TrackRow(
     showArtists: Boolean = true,
     /** A heart toggle before the menu (Search, #136); `null` = none. Hidden while selecting. */
     onFavorite: ((Boolean) -> Unit)? = null,
+    /** The track's stars at the top of its More sheet (#681), when ratings are on; `null` = none. */
+    onRate: ((Int?) -> Unit)? = null,
 ) {
     val style = LocalMediaListStyle.current
     if (onSwipe != null && selected == null && (style.swipeRight != null || style.swipeLeft != null)) {
@@ -71,6 +73,7 @@ fun TrackRow(
                 multilineTitle = multilineTitle,
                 showArtists = showArtists,
                 onFavorite = onFavorite,
+                onRate = onRate,
             )
         }
         return
@@ -158,7 +161,16 @@ fun TrackRow(
                 )
             }
             if (menuItems != null) {
-                OverflowMenu(stringResource(R.string.core_ui_more_options, track.title), items = menuItems)
+                // halfStars null: ratings are off.
+                val rating = onRate?.takeIf { style.halfStars != null }
+                OverflowMenu(
+                    stringResource(R.string.core_ui_more_options, track.title),
+                    header =
+                        rating?.let {
+                            { RatingSheetHeader(track.userData.halfStars, it, allowHalf = style.halfStars == true) }
+                        },
+                    items = menuItems,
+                )
             }
         }
     }
