@@ -107,16 +107,29 @@ object DeviceProfileBuilder {
         /** Settings -> Video -> Burn in styled subtitles (#276): ASS / SSA keep their styling, converted into the picture. */
         burnInStyled: Boolean = false,
         videoRangeTypes: List<String> = listOf("SDR"),
+        /**
+         * The device failed to show this video (#632): no direct play, and H.264 SDR, the conversion every decoder takes
+         * (the server re-encodes and tone-maps instead of copying the stream that failed).
+         */
+        converted: Boolean = false,
     ): DeviceProfile =
         DeviceProfile(
-            directPlayContainers = VIDEO_CONTAINERS,
+            directPlayContainers = if (converted) emptyList() else VIDEO_CONTAINERS,
             directPlayCodecs = build(audioMimeTypes, emptySet(), StreamingQuality.Original).directPlayCodecs,
             transcoding = VIDEO_TRANSCODING,
             maxStreamingBitrate = quality.bitrate,
-            videoCodecs = VIDEO_CODECS.filter { (_, mime) -> mime in videoMimeTypes }.map { it.first },
+            videoCodecs =
+                if (converted) {
+                    listOf("h264")
+                } else {
+                    VIDEO_CODECS
+                        .filter { (_, mime) ->
+                            mime in videoMimeTypes
+                        }.map { it.first }
+                },
             maxHeight = quality.maxHeight,
             subtitleProfiles = subtitleProfiles(burnInStyled),
-            videoRangeTypes = videoRangeTypes,
+            videoRangeTypes = if (converted) listOf("SDR") else videoRangeTypes,
         )
 
     /**
