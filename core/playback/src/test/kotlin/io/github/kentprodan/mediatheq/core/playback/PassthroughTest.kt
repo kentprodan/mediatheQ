@@ -235,4 +235,15 @@ class PassthroughTest {
         controller.onAudioTrackOpened(48_000, C.ENCODING_E_AC3_JOC)
         assertThat(controller.onPassthroughFailed()).isTrue()
     }
+
+    @Test
+    fun `only the encodings Android confirms as a bitstream pass through (#671)`() {
+        val media3 =
+            setOf(MimeTypes.AUDIO_E_AC3_JOC, MimeTypes.AUDIO_E_AC3, MimeTypes.AUDIO_AC3, MimeTypes.AUDIO_TRUEHD)
+
+        val confirmed = confirmedPassthrough(media3) { it == C.ENCODING_AC3 || it == C.ENCODING_E_AC3 }
+
+        assertThat(confirmed).containsExactly(MimeTypes.AUDIO_E_AC3, MimeTypes.AUDIO_AC3)
+        assertThat(confirmedPassthrough(setOf(MimeTypes.AUDIO_AC3)) { true }).containsExactly(MimeTypes.AUDIO_AC3)
+    }
 }

@@ -24,6 +24,20 @@ internal fun passthroughMimes(supportsEncoding: (Int) -> Boolean): Set<String> =
     PASSTHROUGH_ENCODINGS.filterKeys(supportsEncoding).values.toSet()
 
 /**
+ * The MIME types of [media3] that Android also confirms play as a bitstream on the route (#671, API 33+:
+ * `AudioManager.getDirectPlaybackSupport`): [bitstream] answers for an AudioTrack encoding. Pure.
+ */
+internal fun confirmedPassthrough(
+    media3: Set<String>,
+    bitstream: (Int) -> Boolean,
+): Set<String> =
+    PASSTHROUGH_ENCODINGS
+        .filter { (encoding, mime) ->
+            mime in media3 && bitstream(encoding)
+        }.values
+        .toSet()
+
+/**
  * Whether the AudioTrack the sink opened carries Dolby Atmos untouched (ADR 0039): E-AC-3 JOC, or TrueHD for a file
  * that is Atmos ([isAtmosFile]; plain 7.1 TrueHD is not).
  */
@@ -75,8 +89,12 @@ private val PASSTHROUGH_ENCODINGS =
 @UnstableApi
 internal class Media3PassthroughCapabilities(
     private val context: Context,
+    /** Media3's and Android's answers side by side, when they differ (#671). */
+    private val log: (String) -> Unit = {},
     onChange: () -> Unit,
 ) : PassthroughCapabilities {
+    private var lastDisagreement: Pair<Set<String>, Set<String>>? = null
+
     private val audioManager = context.getSystemService(AudioManager::class.java)
     private var routed: Int? = currentDevice()?.id
 
@@ -102,7 +120,34 @@ internal class Media3PassthroughCapabilities(
             current = AudioCapabilities.getCapabilities(context, MEDIA, null, emptyList())
         }
         if (device != null && hdmiTakesPcmOnly(device.type, device.encodings)) return emptySet()
-        return passthroughMimes(current::supportsEncoding)
+        val media3 = passthroughMimes(current::supportsEncoding)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return media3
+        val confirmed = confirmedPassthrough(media3, ::bitstreamSupported)
+        val disagreement = (media3 to confirmed).takeIf { media3 != confirmed }
+        if (disagreement != null && disagreement != lastDisagreement) {
+            log("Passthrough: Media3 says $media3, Android confirms $confirmed")
+        }
+        lastDisagreement = disagreement
+        return confirmed
+    }
+
+    // A 5.1 stream at 48 kHz (7.1 for TrueHD), the shape Atmos files carry.
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private fun bitstreamSupported(encoding: Int): Boolean {
+        val format =
+            android.media.AudioFormat
+                .Builder()
+                .setEncoding(encoding)
+                .setSampleRate(48_000)
+                .setChannelMask(
+                    if (encoding == C.ENCODING_DOLBY_TRUEHD) {
+                        android.media.AudioFormat.CHANNEL_OUT_7POINT1_SURROUND
+                    } else {
+                        android.media.AudioFormat.CHANNEL_OUT_5POINT1
+                    },
+                ).build()
+        val support = AudioManager.getDirectPlaybackSupport(format, MEDIA.platformAudioAttributes)
+        return support and AudioManager.DIRECT_PLAYBACK_BITSTREAM_SUPPORTED != 0
     }
 
     fun release() = receiver.unregister()
