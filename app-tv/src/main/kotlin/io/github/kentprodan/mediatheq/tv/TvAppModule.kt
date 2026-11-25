@@ -1,7 +1,6 @@
 package io.github.kentprodan.mediatheq.tv
 
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.util.Log
 import dagger.Module
@@ -49,23 +48,22 @@ object TvAppModule {
                 CoroutineExceptionHandler { _, error -> log.warn("mediatheQ", "Background work failed", error) },
         )
 
-    /** The app's log file (#169) in `files/logs`; debug builds also print each line to logcat. */
+    /** The app's log file (#169) in `files/logs`, each line also printed to logcat. */
     @Provides
     @Singleton
     fun fileAppLog(
         @ApplicationContext context: Context,
         clock: Clock,
         @IoDispatcher io: CoroutineDispatcher,
-    ): FileAppLog {
-        val debug = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-        return FileAppLog(
+    ): FileAppLog =
+        FileAppLog(
             File(context.filesDir, "logs"),
             clock,
             CoroutineScope(SupervisorJob()),
             io,
-            sink = { level, tag, line -> if (debug) Log.println(if (level == 'I') Log.INFO else Log.WARN, tag, line) },
+            // Every build prints to logcat too: the TV has no log export, and the field tests read it over adb.
+            sink = { level, tag, line -> Log.println(if (level == 'I') Log.INFO else Log.WARN, tag, line) },
         )
-    }
 
     @Provides
     fun appLog(log: FileAppLog): AppLog = log

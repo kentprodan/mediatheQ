@@ -5,6 +5,7 @@ import androidx.media3.common.Format
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Timeline
 import androidx.media3.common.TrackGroup
+import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.TrackGroupArray
@@ -84,5 +85,18 @@ class SecondarySubtitlesTest {
         assertThat(secondary.cues.value).hasSize(1)
         secondary.choose(null)
         assertThat(secondary.cues.value).isEmpty()
+    }
+
+    @Test
+    fun `a track choice set on the player is activated and selected (Media3's two-step parameters)`() {
+        val chosen =
+            selector.parameters
+                .buildUpon()
+                .addOverride(TrackSelectionOverride(romanian, 0))
+                .build()
+        selector.parameters = chosen
+        selector.onParametersActivated(chosen)
+
+        assertThat(select(english, romanian).selections[0]?.trackGroup).isEqualTo(romanian)
     }
 }

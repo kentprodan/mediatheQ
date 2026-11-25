@@ -116,6 +116,11 @@ internal class SecondarySubtitleTrackSelector(
 
     override fun isSetParametersSupported() = true
 
+    // Media3 1.11 applies new parameters in two steps: set on the app thread, activated on the playback thread. Without
+    // this the inner selector never activates them, and every track choice (audio, subtitles, off) is ignored.
+    override fun onParametersActivated(parameters: TrackSelectionParameters?) =
+        primary.onParametersActivated(parameters)
+
     override fun setAudioAttributes(audioAttributes: AudioAttributes) = primary.setAudioAttributes(audioAttributes)
 
     override fun getRendererCapabilitiesListener() = primary.rendererCapabilitiesListener
