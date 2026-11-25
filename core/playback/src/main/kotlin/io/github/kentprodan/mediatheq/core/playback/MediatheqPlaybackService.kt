@@ -914,7 +914,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
         )
         usbAudio = AudioOutputPort.create(getSystemService(AudioManager::class.java))
         // What HDMI passes through (ADR 0039); a change (plug, the TV's surround setting) decides again.
-        passthroughCapabilities = Media3PassthroughCapabilities(this) { audioOutput.onCapabilitiesChanged() }
+        passthroughCapabilities =
+            Media3PassthroughCapabilities(
+                this,
+                log = { appLog.info(AUDIO_TAG, it) },
+            ) { audioOutput.onCapabilitiesChanged() }
         // Bit-perfect turned on mid-track: a new AudioTrack, opened once the old one is gone (#165).
         reopener = AudioTrackReopener(player, handlerSchedule(Handler(Looper.getMainLooper())))
         outputApplier =

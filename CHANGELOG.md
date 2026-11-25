@@ -106,6 +106,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 
 ### Fixed
+- TV: Dolby passthrough is used only for formats Android confirms reach the receiver as they are (Android 13 and later), so the Dolby Atmos badge cannot show while the soundbar gets PCM.
 - Videos the device's decoder cannot take (a level or profile too high, 10-bit H.264) are converted by the server from the start, instead of failing first.
 - On the TV, films transferred with 3:2 pulldown (stated as 23.976 but timed for 59.94) switch the display to the rate their frames really need, and files with uneven timestamps no longer drop frames at 50 Hz.
 - A film or episode no longer stops after the screensaver took its decoder, no longer hangs buffering after a resume with plenty loaded, and no longer plays its sound over a black screen when the device cannot show the picture (a Dolby Vision profile it lacks, for one): the server converts it at once instead.
