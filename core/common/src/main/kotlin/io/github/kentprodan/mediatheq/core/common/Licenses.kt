@@ -100,6 +100,14 @@ internal val COPIED_ASSETS =
             "https://github.com/Moonfin-Client/Moonfin-Core",
         ),
         CopiedAsset(
+            "moonfin-containers",
+            "Blu-ray TS, zlib PGS and trick-play HLS",
+            "Code from Moonfin",
+            "GPL-3.0-only",
+            "GPL-3.0",
+            "https://github.com/Moonfin-Client/Moonfin-Core",
+        ),
+        CopiedAsset(
             "pixelplayer-widening",
             "Bit-perfect widening output",
             "Code from PixelPlayer",

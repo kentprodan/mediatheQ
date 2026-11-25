@@ -82,8 +82,8 @@ object DeviceProfileBuilder {
         videoRangeTypes: List<String> = listOf("SDR"),
     ): DeviceProfile = video(audioMimeTypes, videoMimeTypes, VideoQuality.Original, videoRangeTypes = videoRangeTypes)
 
-    /** Video containers Media3 reads (Jellyfin names, ADR 0050). */
-    val VIDEO_CONTAINERS = listOf("mp4", "m4v", "mkv", "webm", "ts")
+    /** Video containers Media3 reads (Jellyfin names, ADR 0050); m2ts through `HdmvTsExtractor` (#634). */
+    val VIDEO_CONTAINERS = listOf("mp4", "m4v", "mkv", "webm", "ts", "m2ts")
 
     /** What the server converts a video to: HLS fMP4, HEVC first, stereo or 5.1 AAC / Opus (ADR 0050). */
     val VIDEO_TRANSCODING =

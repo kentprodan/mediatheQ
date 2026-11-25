@@ -353,7 +353,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         downloadCache = downloadCache,
                         videoExtractors =
                             CadenceExtractorsFactory(
-                                DolbyVisionExtractorsFactory({ dolbyVisionCompat(hdrDecoders, displayHdr.types()) }),
+                                DolbyVisionExtractorsFactory(
+                                    { dolbyVisionCompat(hdrDecoders, displayHdr.types()) },
+                                    VideoContainerExtractorsFactory(),
+                                ),
                                 onRate = ::onCadence,
                             ),
                     ),
