@@ -128,6 +128,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var secondarySubtitles: SecondarySubtitles
 
     @Inject lateinit var playbackDetails: PlaybackDetails
+
+    @Inject lateinit var trackRequests: VideoTrackRequests
+    private var trackJob: Job? = null
     private var detailsLogJob: Job? = null
 
     // The playing video's subtitle delay (#456): written on the main thread, read by the renderers on the playback thread.
@@ -895,7 +898,32 @@ class MediatheqPlaybackService : MediaLibraryService() {
             },
         )
         // A video's chosen subtitle on, or text off (#274).
-        player.addListener(VideoTextSelector(player, streamResolver))
+        val textSelector = VideoTextSelector(player, streamResolver).also(player::addListener)
+        // A new track choice (#678): in place for a direct play, else the stream is asked again.
+        trackJob =
+            applicationScope.launch {
+                trackRequests.changes.collect {
+                    val item = player.currentMediaItem?.takeIf { it.isVideo() } ?: return@collect
+                    val id = item.localConfiguration?.uri?.videoId() ?: return@collect
+                    val tracks = streamResolver.chosenTracks(id)
+                    if (tracks != null && streamResolver.retargetTracks(id, tracks.audioIndex, tracks.subtitleIndex)) {
+                        appLog.info(
+                            "MqVideo",
+                            "Tracks switched in place: audio ${tracks.audioIndex}, subtitle ${tracks.subtitleIndex}",
+                        )
+                        textSelector.onTracksChanged(player.currentTracks)
+                    } else {
+                        appLog.info("MqVideo", "Tracks need the server: the stream opens again")
+                        val index = player.currentMediaItemIndex
+                        val position = player.currentPosition
+                        val playing = player.playWhenReady
+                        player.replaceMediaItem(index, item.withVideoStart(position.milliseconds))
+                        player.seekTo(index, position)
+                        player.prepare()
+                        player.playWhenReady = playing
+                    }
+                }
+            }
         // The next episode behind the playing one (#275).
         player.addListener(
             NextEpisodeQueuer(
@@ -1261,6 +1289,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
         Media3Log.setLogger(Media3Log.Logger.DEFAULT)
         subtitleDelayJob?.cancel()
         detailsLogJob?.cancel()
+        trackJob?.cancel()
         playbackDetails.reset()
         styledSubtitles.release(swap.player)
         videoRecovery.release()

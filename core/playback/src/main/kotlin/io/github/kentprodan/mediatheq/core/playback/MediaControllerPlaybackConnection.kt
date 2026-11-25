@@ -74,6 +74,7 @@ internal class MediaControllerPlaybackConnection
         private val styledSubtitles: StyledSubtitles,
         private val secondarySubtitles: SecondarySubtitles,
         private val playbackDetails: PlaybackDetails,
+        private val trackRequests: VideoTrackRequests,
     ) : PlaybackConnection {
         // Touched on the main thread only (Media3 session threading).
         private var controller: ListenableFuture<MediaController>? = null
@@ -171,6 +172,8 @@ internal class MediaControllerPlaybackConnection
         override val secondarySubtitleCues get() = secondarySubtitles.cues
 
         override val engineDetails get() = playbackDetails.details
+
+        override fun applyVideoTracks() = trackRequests.request()
 
         override fun chooseSecondarySubtitles(language: String?) = secondarySubtitles.choose(language)
 

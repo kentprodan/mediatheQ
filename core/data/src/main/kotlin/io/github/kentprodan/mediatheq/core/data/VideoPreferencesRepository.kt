@@ -55,7 +55,7 @@ data class VideoPreferences(
     /** When [watchedRemoval] was turned on: only plays after it count, so turning it on never empties the downloads. */
     val watchedRemovalSince: Instant? = null,
     /** TV (#384): the display follows the video's frame rate (and resolution) while it plays. */
-    val displayMatch: DisplayMatch = DisplayMatch.Rate,
+    val displayMatch: DisplayMatch = DisplayMatch.System,
 ) {
     /** The setting for a segment of [type]. */
     fun skipFor(type: SegmentType): SkipMode =
@@ -84,8 +84,12 @@ enum class WatchedRemoval(
     OneWeek(7.days),
 }
 
-/** How the TV display follows a video (#384). */
-enum class DisplayMatch { Off, Rate, RateAndResolution }
+/**
+ * How the TV display follows a video (#384). [System]: the app only tells Android the video's frame rate and the
+ * Google TV setting (Match content frame rate, "seamless only" by default) decides, like every streaming app; the
+ * others force the mode, with a short black screen while the TV switches.
+ */
+enum class DisplayMatch { System, Off, Rate, RateAndResolution }
 
 interface VideoPreferencesRepository {
     val preferences: Flow<VideoPreferences>

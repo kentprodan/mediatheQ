@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.feature.tv.video
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.data.DisplayMatch
 import io.github.kentprodan.mediatheq.core.data.TrackPicker
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
@@ -115,8 +116,18 @@ class TvPlayerViewModelTest {
         }
 
     @Test
+    fun `as in the Google TV settings (the default) a video starts at once, the system decides the rate (#678)`() =
+        test {
+            viewModel(video = movie.copy(format = VideoFormat("hevc", 3840, 2160, frameRate = 23.976f)))
+            runCurrent()
+
+            assertThat(playback.videoCalls).hasSize(1)
+        }
+
+    @Test
     fun `a video with a known frame rate starts once the display settled, never before (#631)`() =
         test {
+            preferences.preferences.value = preferences.preferences.value.copy(displayMatch = DisplayMatch.Rate)
             val film = movie.copy(format = VideoFormat("hevc", 3840, 2160, frameRate = 23.976f))
             val viewModel = viewModel(video = film)
             backgroundScope.launch { viewModel.videoFormat.collect {} }

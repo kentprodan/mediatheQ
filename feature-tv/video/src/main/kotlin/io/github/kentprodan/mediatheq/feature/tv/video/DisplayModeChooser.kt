@@ -27,7 +27,7 @@ fun chooseDisplayMode(
     viewer: TvDisplayMode,
     match: DisplayMatch,
 ): TvDisplayMode? {
-    if (match == DisplayMatch.Off || frameRate <= 0f) return null
+    if (match == DisplayMatch.Off || match == DisplayMatch.System || frameRate <= 0f) return null
     val rate = snapRate(frameRate)
     val sized =
         if (match == DisplayMatch.RateAndResolution) {
@@ -66,3 +66,39 @@ private val STANDARD = listOf(23.976f, 24f, 25f, 29.97f, 30f, 50f, 59.94f, 60f)
 private val DOUBLED = setOf(25f, 29.97f)
 private const val SNAP = 0.006f
 private const val SAME = 0.001f
+
+/** The display format chosen for [id] (#678), and whether the frames' own timing has been seen. */
+internal data class DisplayLock(
+    val id: io.github.kentprodan.mediatheq.core.model.MediaId,
+    val format: Pair<Float, Int>,
+    val measured: Boolean,
+)
+
+/**
+ * The display format to keep (#678): once a video has one, only the first measurement of its frames may change it, and
+ * only when it really differs (3:2 pulldown stated as 23.976 wants 59.94). A reload, a new track or a second
+ * measurement keeps it, so the TV is never switched twice for one video. A new video starts over: its library rate,
+ * else the measured or stated one.
+ */
+internal fun nextDisplayLock(
+    previous: DisplayLock?,
+    id: io.github.kentprodan.mediatheq.core.model.MediaId,
+    height: Int,
+    measured: Float?,
+    library: Float?,
+    stream: Float?,
+): DisplayLock? {
+    if (previous != null && previous.id == id) {
+        if (previous.measured || measured == null) return previous
+        val differs = kotlin.math.abs(measured - previous.format.first) > MEASURED_DIFFERS
+        return previous.copy(
+            format = if (differs) measured to previous.format.second else previous.format,
+            measured = true,
+        )
+    }
+    val rate = library ?: measured ?: stream ?: return null
+    return DisplayLock(id, rate to height, measured = measured != null)
+}
+
+// A real cadence change (24 to 60) is far above this; 23.976 measured as 23.98 is not one.
+private const val MEASURED_DIFFERS = 0.5f
