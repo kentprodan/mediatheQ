@@ -18,7 +18,6 @@ enum class MoreAlbumsSort { YearDescending, YearAscending, Title }
 data class AlbumPagePreferences(
     val headerBackground: AlbumHeaderBackground = AlbumHeaderBackground.CoverImage,
     val showQuality: Boolean = true,
-    val showRatingBar: Boolean = false,
     /** Play next and Add to queue live in More by default (#531). */
     val hiddenButtons: Set<AlbumButton> = setOf(AlbumButton.PlayNext, AlbumButton.AddToQueue),
     /** Every section once, in order. */

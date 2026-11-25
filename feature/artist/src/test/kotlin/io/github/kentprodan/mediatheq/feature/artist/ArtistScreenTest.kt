@@ -136,4 +136,16 @@ class ArtistScreenTest {
 
         assertThat(opened).isTrue()
     }
+
+    @Test
+    fun `the artist's stars are in its More sheet, not in About`() {
+        val actions = mutableListOf<ArtistAction>()
+        composeRule.setContent { MediatheqTheme { ArtistScreen(content, { actions += it }, {}, {}) } }
+        composeRule.onNodeWithContentDescription("Rate 1 star").assertDoesNotExist()
+
+        composeRule.onNodeWithContentDescription("More options for Subcarpați").performClick()
+        composeRule.onNodeWithContentDescription("Rate 4 stars").performClick()
+
+        assertThat(actions).containsExactly(ArtistAction.Rate(8))
+    }
 }

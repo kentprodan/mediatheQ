@@ -398,8 +398,6 @@
     <string name="settings_ap_background_none">Fără</string>
     <string name="settings_ap_quality">Calitate</string>
     <string name="settings_ap_quality_summary">Dolby Atmos, Hi-Res Lossless, Lossless sau codecul, după an.</string>
-    <string name="settings_ap_rating">Stelele de notă</string>
-    <string name="settings_ap_rating_summary">Stele sub butoane, când notele sunt pornite.</string>
     <string name="settings_ap_hidden_buttons">Butoane ascunse</string>
     <string name="settings_ap_button_resume">Continuă</string>
     <string name="settings_ap_button_shuffle">Amestecă</string>

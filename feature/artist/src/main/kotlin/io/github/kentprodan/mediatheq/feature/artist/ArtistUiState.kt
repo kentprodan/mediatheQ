@@ -57,11 +57,11 @@ sealed interface ArtistUiState {
                     }
                 }
 
-        /** A biography, genres, counts, favorite or rating: something for About to show. */
+        /** A biography, genres, counts or favorite: something for About to show. */
         private val hasAbout: Boolean
             get() =
                 artist.overview != null || genres.isNotEmpty() || albums.isNotEmpty() || tracks.isNotEmpty() ||
-                    artist.userData.isFavorite || ratingMode != RatingMode.Off
+                    artist.userData.isFavorite
 
         fun shows(button: ArtistButton): Boolean = button !in page.hiddenButtons
 

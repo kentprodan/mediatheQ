@@ -29,8 +29,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import io.github.kentprodan.mediatheq.core.data.RatingMode
-import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -192,18 +190,6 @@ internal fun AboutSection(
         }
         if (state.artist.userData.isFavorite) {
             Fact(R.string.artist_about_favorite, stringResource(R.string.artist_about_favorite_yes))
-        }
-        if (state.ratingMode != RatingMode.Off) {
-            ListItem(
-                content = { Text(stringResource(R.string.artist_about_rating)) },
-                supportingContent = {
-                    MqStarRating(
-                        state.artist.userData.halfStars,
-                        { onAction(ArtistAction.Rate(it)) },
-                        allowHalf = state.ratingMode == RatingMode.HalfStars,
-                    )
-                },
-            )
         }
     }
 }

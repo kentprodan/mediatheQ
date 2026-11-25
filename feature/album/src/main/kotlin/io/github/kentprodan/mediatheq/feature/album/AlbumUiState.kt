@@ -60,8 +60,6 @@ sealed interface AlbumUiState {
         /** The best quality among the tracks, when the setting shows it. */
         val quality: QualityLabel? get() = if (page.showQuality) albumQuality(tracks) else null
 
-        val showRating: Boolean get() = page.showRatingBar && ratingMode != RatingMode.Off
-
         /** The original files' total size; `null` when no track's size is known. */
         val sizeBytes: Long? get() = tracks.mapNotNull { it.sizeBytes }.takeIf { it.isNotEmpty() }?.sum()
 

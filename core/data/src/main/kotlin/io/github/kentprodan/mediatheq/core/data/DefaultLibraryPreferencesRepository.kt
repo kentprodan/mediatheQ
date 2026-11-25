@@ -343,7 +343,6 @@ class DefaultLibraryPreferencesRepository
                 StoredAlbumPage(
                     headerBackground = page.headerBackground.name,
                     showQuality = page.showQuality,
-                    showRatingBar = page.showRatingBar,
                     hiddenButtons = page.hiddenButtons.map { it.name },
                     sectionOrder = completeOrder(page.sectionOrder).map { it.name },
                     showMoreFromArtist = page.showMoreFromArtist,
@@ -545,7 +544,6 @@ class DefaultLibraryPreferencesRepository
                 headerBackground =
                     enumOrNull<AlbumHeaderBackground>(stored.headerBackground) ?: defaults.headerBackground,
                 showQuality = stored.showQuality ?: defaults.showQuality,
-                showRatingBar = stored.showRatingBar ?: defaults.showRatingBar,
                 hiddenButtons =
                     stored.hiddenButtons?.mapNotNull { enumOrNull<AlbumButton>(it) }?.toSet() ?: defaults.hiddenButtons,
                 sectionOrder =

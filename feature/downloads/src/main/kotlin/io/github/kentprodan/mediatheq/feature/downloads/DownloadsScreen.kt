@@ -16,7 +16,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,6 +61,7 @@ import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.ui.AlbumRow
+import io.github.kentprodan.mediatheq.core.ui.MqMenuItem
 import io.github.kentprodan.mediatheq.core.ui.PlaylistRow
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.RemoveDownloadMenuItem
@@ -511,7 +511,7 @@ private fun ColumnScope.CollectionMenuItems(
     onAction: (DownloadsAction) -> Unit,
     close: () -> Unit,
 ) {
-    DropdownMenuItem(
+    MqMenuItem(
         text = { Text(stringResource(R.string.downloads_play)) },
         leadingIcon = { Icon(MqIcons.PlayArrow, contentDescription = null) },
         onClick = {
@@ -519,7 +519,7 @@ private fun ColumnScope.CollectionMenuItems(
             close()
         },
     )
-    DropdownMenuItem(
+    MqMenuItem(
         text = { Text(stringResource(R.string.downloads_shuffle)) },
         leadingIcon = { Icon(MqIcons.Shuffle, contentDescription = null) },
         onClick = {
@@ -552,7 +552,7 @@ private fun DownloadRow(
                 close = close,
             )
             if (download.state == DownloadState.Failed) {
-                DropdownMenuItem(
+                MqMenuItem(
                     text = { Text(stringResource(R.string.downloads_retry)) },
                     leadingIcon = { Icon(MqIcons.Download, contentDescription = null) },
                     onClick = {

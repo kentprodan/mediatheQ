@@ -23,7 +23,6 @@
     <string name="artist_about_tracks">Tracks</string>
     <string name="artist_about_favorite">Favorite</string>
     <string name="artist_about_favorite_yes">In your favorites</string>
-    <string name="artist_about_rating">Rating</string>
     <plurals name="artist_album_count">
         <item quantity="one">%d album</item>
         <item quantity="other">%d albums</item>

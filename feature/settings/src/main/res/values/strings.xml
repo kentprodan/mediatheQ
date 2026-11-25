@@ -396,8 +396,6 @@
     <string name="settings_ap_background_none">None</string>
     <string name="settings_ap_quality">Quality</string>
     <string name="settings_ap_quality_summary">Dolby Atmos, Hi-Res Lossless, Lossless or the codec, after the year.</string>
-    <string name="settings_ap_rating">Rating stars</string>
-    <string name="settings_ap_rating_summary">Stars under the buttons, when ratings are on.</string>
     <string name="settings_ap_hidden_buttons">Hidden buttons</string>
     <string name="settings_ap_button_resume">Resume</string>
     <string name="settings_ap_button_shuffle">Shuffle</string>

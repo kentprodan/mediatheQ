@@ -118,14 +118,11 @@ class AlbumScreenTest {
     }
 
     @Test
-    fun `the header heart and stars and a track menu send favorite and rating`() {
+    fun `the header heart and a track menu send favorite`() {
         val actions = mutableListOf<AlbumAction>()
-        val stars = content.copy(page = AlbumPagePreferences(showRatingBar = true))
-        composeRule.setContent { MediatheqTheme { AlbumScreen(albumId, stars, { actions += it }, onBack = {}) } }
+        composeRule.setContent { MediatheqTheme { AlbumScreen(albumId, content, { actions += it }, onBack = {}) } }
 
-        composeRule.onNode(list).performScrollToNode(hasContentDescription("Rate 4 stars"))
         composeRule.onNodeWithContentDescription("Favorite").performClick()
-        composeRule.onNodeWithContentDescription("Rate 4 stars").performClick()
         composeRule
             .onNode(list)
             .performScrollToNode(hasContentDescription("More options for Track 2"))
@@ -133,19 +130,28 @@ class AlbumScreenTest {
         composeRule.onNodeWithText("Add to favorites").performClick()
 
         assertThat(actions)
-            .containsExactly(
-                AlbumAction.SetFavorite(albumId, true),
-                AlbumAction.Rate(8),
-                AlbumAction.SetFavorite(tracks[1].id, true),
-            ).inOrder()
+            .containsExactly(AlbumAction.SetFavorite(albumId, true), AlbumAction.SetFavorite(tracks[1].id, true))
+            .inOrder()
+    }
+
+    @Test
+    fun `the album's stars are in its More sheet`() {
+        val actions = mutableListOf<AlbumAction>()
+        composeRule.setContent { MediatheqTheme { AlbumScreen(albumId, content, { actions += it }, onBack = {}) } }
+
+        composeRule.onNodeWithContentDescription("More options for Satelit").performClick()
+        composeRule.onNodeWithContentDescription("Rate 4 stars").performClick()
+
+        assertThat(actions).containsExactly(AlbumAction.Rate(8))
     }
 
     @Test
     fun `with ratings off only the heart shows`() {
-        val off = content.copy(ratingMode = RatingMode.Off, page = AlbumPagePreferences(showRatingBar = true))
+        val off = content.copy(ratingMode = RatingMode.Off)
         composeRule.setContent { MediatheqTheme { AlbumScreen(albumId, off, {}, onBack = {}) } }
 
         composeRule.onNodeWithContentDescription("Favorite").assertExists()
+        composeRule.onNodeWithContentDescription("More options for Satelit").performClick()
         composeRule.onNodeWithContentDescription("Rate 1 star").assertDoesNotExist()
     }
 
@@ -156,18 +162,17 @@ class AlbumScreenTest {
             content.copy(
                 album = content.album.copy(userData = UserData(rating = 8.0)),
                 ratingMode = RatingMode.HalfStars,
-                page = AlbumPagePreferences(showRatingBar = true),
             )
         composeRule.setContent { MediatheqTheme { AlbumScreen(albumId, rated, { actions += it }, onBack = {}) } }
 
-        composeRule.onNode(list).performScrollToNode(hasContentDescription("Rate 3.5 stars"))
+        composeRule.onNodeWithContentDescription("More options for Satelit").performClick()
         composeRule.onNodeWithContentDescription("Rate 3.5 stars").performClick()
 
         assertThat(actions).containsExactly(AlbumAction.Rate(7))
     }
 
     @Test
-    fun `the stars are off by default`() {
+    fun `the stars are not on the page, only in More`() {
         composeRule.setContent { MediatheqTheme { AlbumScreen(albumId, content, {}, onBack = {}) } }
 
         composeRule.onNodeWithContentDescription("Rate 1 star").assertDoesNotExist()

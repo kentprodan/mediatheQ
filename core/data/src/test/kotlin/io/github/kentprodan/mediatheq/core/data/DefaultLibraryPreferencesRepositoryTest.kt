@@ -835,7 +835,6 @@ class DefaultLibraryPreferencesRepositoryTest {
                 AlbumPagePreferences(
                     headerBackground = AlbumHeaderBackground.CoverColor,
                     showQuality = false,
-                    showRatingBar = true,
                     hiddenButtons = setOf(AlbumButton.Resume, AlbumButton.Favorite),
                     sectionOrder = listOf(AlbumSection.About, AlbumSection.Tracks, AlbumSection.MoreFromArtist),
                     showMoreFromArtist = false,

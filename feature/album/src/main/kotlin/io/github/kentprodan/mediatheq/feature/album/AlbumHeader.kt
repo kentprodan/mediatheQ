@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,7 +46,6 @@ import io.github.kentprodan.mediatheq.core.data.AlbumHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
-import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedCover
 import io.github.kentprodan.mediatheq.core.designsystem.motion.sharedCoverKey
@@ -56,8 +54,10 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.AddToPlaylistMenuItem
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
+import io.github.kentprodan.mediatheq.core.ui.MqMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
+import io.github.kentprodan.mediatheq.core.ui.RatingSheetHeader
 import io.github.kentprodan.mediatheq.core.ui.StartRadioMenuItem
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
 import io.github.kentprodan.mediatheq.core.ui.text
@@ -132,13 +132,6 @@ internal fun AlbumHeader(
         }
         HeaderText(state, onOpenArtist)
         HeaderButtons(albumId, state, onAction, onAddToPlaylist)
-        if (state.showRating) {
-            MqStarRating(
-                state.album.userData.halfStars,
-                { onAction(AlbumAction.Rate(it)) },
-                allowHalf = state.ratingMode == RatingMode.HalfStars,
-            )
-        }
     }
 }
 
@@ -279,7 +272,21 @@ private fun HeaderButtons(
         if (state.shows(AlbumButton.Favorite)) {
             MqFavoriteToggle(state.album.userData.isFavorite, { onAction(AlbumAction.SetFavorite(albumId, it)) })
         }
-        OverflowMenu(stringResource(R.string.album_more_options, state.album.title)) { close ->
+        OverflowMenu(
+            stringResource(R.string.album_more_options, state.album.title),
+            header =
+                if (state.ratingMode != RatingMode.Off) {
+                    {
+                        RatingSheetHeader(
+                            state.album.userData.halfStars,
+                            { onAction(AlbumAction.Rate(it)) },
+                            allowHalf = state.ratingMode == RatingMode.HalfStars,
+                        )
+                    }
+                } else {
+                    null
+                },
+        ) { close ->
             if (resume) {
                 ActionItem(R.string.album_play_from_start, { onAction(AlbumAction.Play) }, close) {
                     Icon(MqIcons.PlayArrow, contentDescription = null)
@@ -329,7 +336,7 @@ private fun ActionItem(
     close: () -> Unit,
     icon: @Composable () -> Unit,
 ) {
-    DropdownMenuItem(
+    MqMenuItem(
         text = { Text(stringResource(label)) },
         leadingIcon = icon,
         onClick = {
