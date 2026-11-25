@@ -120,6 +120,7 @@
     <string name="core_ui_tracks_audio">Audio</string>
     <string name="core_ui_tracks_subtitles">Subtitles</string>
     <string name="core_ui_subtitle_timing">Subtitle timing</string>
+    <string name="core_ui_tracks_second_subtitles">Second subtitles</string>
     <string name="core_ui_subtitles_earlier">−0.1 s</string>
     <string name="core_ui_subtitles_later">+0.1 s</string>
     <string name="core_ui_subtitles_reset">Reset</string>

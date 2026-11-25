@@ -86,6 +86,8 @@ internal fun VideoPlayerRoute(
     val skip by viewModel.skipButton.collectAsStateWithLifecycle()
     val extras by viewModel.extras.collectAsStateWithLifecycle()
     val subtitleDelay by viewModel.subtitleDelay.collectAsStateWithLifecycle()
+    val secondLanguage by viewModel.secondarySubtitleLanguage.collectAsStateWithLifecycle()
+    val secondCues by viewModel.secondarySubtitleCues.collectAsStateWithLifecycle()
     val skipped by viewModel.skippedNotice.collectAsStateWithLifecycle()
     val playing = state as? VideoPlayerUiState.Playing
     val inPip = rememberIsInPipMode()
@@ -97,7 +99,7 @@ internal fun VideoPlayerRoute(
         // Only the picture and its subtitles in the small window (#278).
         Box(Modifier.fillMaxSize()) {
             MqVideoSurface(player, Modifier.fillMaxSize())
-            MqSubtitles(player, Modifier.fillMaxSize(), viewModel::styledSubtitleOverlay)
+            MqSubtitles(player, Modifier.fillMaxSize(), viewModel::styledSubtitleOverlay, secondCues)
         }
         return
     }
@@ -118,11 +120,12 @@ internal fun VideoPlayerRoute(
         skipped = skipped,
         extras = extras,
         subtitleDelay = subtitleDelay,
+        secondLanguage = secondLanguage,
         onPip = LocalActivity.current?.let { activity -> { enterPip(activity) } },
     ) {
         Box(Modifier.fillMaxSize()) {
             MqVideoSurface(player, Modifier.fillMaxSize())
-            MqSubtitles(player, Modifier.fillMaxSize(), viewModel::styledSubtitleOverlay)
+            MqSubtitles(player, Modifier.fillMaxSize(), viewModel::styledSubtitleOverlay, secondCues)
         }
     }
 }
@@ -166,6 +169,8 @@ fun VideoPlayerScreen(
     extras: PlayerExtras = PlayerExtras(),
     /** How much later (negative: earlier) the subtitles show (#456). */
     subtitleDelay: Duration = Duration.ZERO,
+    /** The second subtitle track's language (#635), `null` for none. */
+    secondLanguage: String? = null,
     /** The PiP button (#445); `null` hides it. */
     onPip: (() -> Unit)? = null,
     surface: @Composable () -> Unit,
@@ -293,12 +298,21 @@ fun VideoPlayerScreen(
                     MqTracksSheet(
                         tracks
                             .sheet(stringResource(R.string.video_tracks_off), stringResource(R.string.video_track))
-                            .copy(subtitleDelay = subtitleDelay.takeIf { tracks.resolved.subtitleIndex != null }),
+                            .copy(
+                                subtitleDelay = subtitleDelay.takeIf { tracks.resolved.subtitleIndex != null },
+                                secondSubtitles =
+                                    tracks.secondSubtitles(
+                                        stringResource(R.string.video_tracks_off),
+                                        stringResource(R.string.video_track),
+                                        secondLanguage,
+                                    ),
+                            ),
                         onAudio = { onAction(VideoPlayerAction.ChooseAudio(it)) },
                         onSubtitle = { onAction(VideoPlayerAction.ChooseSubtitle(it)) },
                         onWholeSeason = { onAction(VideoPlayerAction.WholeSeason(it)) },
                         onDismiss = { tracksOpen = false },
                         onShiftSubtitles = { onAction(VideoPlayerAction.ShiftSubtitles(it)) },
+                        onSecondSubtitle = { onAction(VideoPlayerAction.ChooseSecondSubtitle(it)) },
                     )
                 }
             }

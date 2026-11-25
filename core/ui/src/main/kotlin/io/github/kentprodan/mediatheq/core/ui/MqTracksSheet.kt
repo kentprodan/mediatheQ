@@ -44,6 +44,8 @@ data class TracksSheetState(
     val wholeSeason: Boolean? = null,
     /** In the player with subtitles on (#456): how much later (negative: earlier) they show; `null` hides the row. */
     val subtitleDelay: Duration? = null,
+    /** In the player (#635): Off, then a plain text subtitle per language for a second track at the top; `null` hides. */
+    val secondSubtitles: List<TrackOption>? = null,
 )
 
 /** The audio and subtitle choice as a sheet (#274); a pick applies at once, the sheet stays for the other list. */
@@ -57,9 +59,11 @@ fun MqTracksSheet(
     onDismiss: () -> Unit,
     /** Subtitles 0.1 s later (`true`), earlier, or back in step (`null`), #456. */
     onShiftSubtitles: (Boolean?) -> Unit = {},
+    /** A row of the second subtitles (#635), by stream index; `null` = Off. */
+    onSecondSubtitle: (Int?) -> Unit = {},
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        MqTracksContent(state, onAudio, onSubtitle, onWholeSeason, onShiftSubtitles)
+        MqTracksContent(state, onAudio, onSubtitle, onWholeSeason, onShiftSubtitles, onSecondSubtitle)
     }
 }
 
@@ -71,6 +75,7 @@ fun MqTracksContent(
     onSubtitle: (Int?) -> Unit,
     onWholeSeason: (Boolean) -> Unit,
     onShiftSubtitles: (Boolean?) -> Unit = {},
+    onSecondSubtitle: (Int?) -> Unit = {},
 ) {
     LazyColumn(contentPadding = PaddingValues(bottom = MediatheqSpacing.l)) {
         state.wholeSeason?.let { whole ->
@@ -92,6 +97,12 @@ fun MqTracksContent(
             item(key = "s${option.index}") { OptionRow(option) { onSubtitle(option.index) } }
         }
         state.subtitleDelay?.let { delay -> item(key = "timing") { TimingRow(delay, onShiftSubtitles) } }
+        state.secondSubtitles?.let { options ->
+            item(key = "second") { Title(R.string.core_ui_tracks_second_subtitles) }
+            options.forEach { option ->
+                item(key = "t${option.index}") { OptionRow(option) { onSecondSubtitle(option.index) } }
+            }
+        }
     }
 }
 

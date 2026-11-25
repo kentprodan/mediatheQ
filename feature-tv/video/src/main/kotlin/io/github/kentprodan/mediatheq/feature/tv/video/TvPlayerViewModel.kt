@@ -80,6 +80,10 @@ class TvPlayerViewModel
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Duration.ZERO)
         }
 
+        /** The second subtitle track's language and cues (#635). */
+        val secondarySubtitleLanguage = playback.secondarySubtitleLanguage
+        val secondarySubtitleCues = playback.secondarySubtitleCues
+
         /** The player asks whether anyone still watches; playback is paused until the answer. */
         val stillWatching: StateFlow<Boolean> = asking
 
@@ -280,6 +284,10 @@ class TvPlayerViewModel
                     choose(video) { picker.choose(video, action.index, it?.subtitleIndex, wholeSeason = false) }
                 }
 
+                is TvPlayerAction.ChooseSecondSubtitles -> {
+                    playback.chooseSecondarySubtitles(action.language)
+                }
+
                 is TvPlayerAction.ShiftSubtitles -> {
                     val video = playing?.video ?: return
                     val delay =
@@ -447,6 +455,11 @@ sealed interface TvPlayerAction {
     /** `null` = Off. */
     data class ChooseSubtitle(
         val index: Int?,
+    ) : TvPlayerAction
+
+    /** A second subtitle track in [language] at the top (#635); `null` = none. */
+    data class ChooseSecondSubtitles(
+        val language: String?,
     ) : TvPlayerAction
 
     /** Subtitles 0.1 s [later] or earlier (#456); `null` back in step with the picture. */

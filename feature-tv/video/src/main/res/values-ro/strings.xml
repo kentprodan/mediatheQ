@@ -111,6 +111,7 @@
     <string name="tv_player_quality_low">Mai mică</string>
     <string name="tv_player_zoom">Zoom</string>
     <string name="tv_player_subtitle_timing">Sincronizare subtitrări</string>
+    <string name="tv_player_second_subtitles">Subtitrări secundare</string>
     <string name="tv_player_subtitles_earlier">Mai devreme cu 0,1 s</string>
     <string name="tv_player_subtitles_later">Mai târziu cu 0,1 s</string>
     <string name="tv_player_subtitles_reset">Resetează</string>
