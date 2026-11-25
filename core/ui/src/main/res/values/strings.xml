@@ -44,7 +44,6 @@
         <item quantity="one">%1$d channel</item>
         <item quantity="other">%1$d channels</item>
     </plurals>
-    <string name="core_ui_format_stereo">Stereo</string>
     <string name="core_ui_format_mono">Mono</string>
     <string name="core_ui_favorite">Favorite</string>
     <string name="core_ui_rate">Rate</string>

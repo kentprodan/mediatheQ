@@ -22,8 +22,6 @@ internal sealed interface FormatBadge {
         val channels: Int,
     ) : FormatBadge
 
-    data object Stereo : FormatBadge
-
     data object Mono : FormatBadge
 }
 
@@ -32,16 +30,23 @@ internal fun AudioFormat.formatBadge(): FormatBadge? {
     val channels = channels
     return when {
         spatialFormat == SpatialFormat.DolbyAtmos -> FormatBadge.DolbyAtmos
+
         spatialFormat == SpatialFormat.DtsX -> FormatBadge.DtsX
+
         channels == null -> null
+
         channels > 2 -> FormatBadge.Surround(channels)
-        channels == 2 -> FormatBadge.Stereo
+
+        // Stereo is what a track is unless it says otherwise: no badge for it (owner, #681).
+        channels == 2 -> null
+
         channels == 1 -> FormatBadge.Mono
+
         else -> null
     }
 }
 
-/** The badge as an icon in the content color, named for TalkBack ("Stereo", "Surround 5.1", "Dolby Atmos"). */
+/** The badge as an icon in the content color, named for TalkBack ("Surround 5.1", "Dolby Atmos"). */
 @Composable
 internal fun FormatBadgeIcon(
     badge: FormatBadge,
@@ -55,7 +60,6 @@ private fun FormatBadge.icon(): ImageVector =
     when (this) {
         FormatBadge.DolbyAtmos -> MqIcons.FormatDolbyAtmos
         FormatBadge.DtsX, is FormatBadge.Surround -> MqIcons.FormatSurround
-        FormatBadge.Stereo -> MqIcons.FormatStereo
         FormatBadge.Mono -> MqIcons.FormatMono
     }
 
@@ -76,10 +80,6 @@ private fun FormatBadge.label(): String =
                 8 -> stringResource(R.string.core_ui_format_surround_7_1)
                 else -> pluralStringResource(R.plurals.core_ui_format_channels, channels, channels)
             }
-        }
-
-        FormatBadge.Stereo -> {
-            stringResource(R.string.core_ui_format_stereo)
         }
 
         FormatBadge.Mono -> {

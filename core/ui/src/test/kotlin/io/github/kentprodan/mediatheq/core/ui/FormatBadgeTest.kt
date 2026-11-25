@@ -31,7 +31,7 @@ class FormatBadgeTest {
 
     @Test
     fun `two channels is stereo, one is mono`() {
-        assertThat(badge(2)).isEqualTo(FormatBadge.Stereo)
+        assertThat(badge(2)).isNull()
         assertThat(badge(1)).isEqualTo(FormatBadge.Mono)
     }
 

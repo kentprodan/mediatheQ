@@ -191,7 +191,7 @@ private fun qualityText(quality: QualityLabel): String =
     }
 
 /**
- * Play (and Resume) with labels, then icon buttons; a hidden one moves to More. Wraps onto a second line instead of
+ * Play (and Resume) with labels and the queue icons on the left, Favorite and More on the right; a hidden one moves to More. Wraps onto a second line instead of
  * shrinking at large font sizes.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -238,6 +238,8 @@ private fun HeaderButtons(
                 Icon(MqIcons.AddToQueue, stringResource(R.string.album_add_to_queue))
             }
         }
+        // Favorite and More sit on the right, the play buttons on the left (owner, #681).
+        Spacer(Modifier.weight(1f))
         if (state.shows(AlbumButton.Favorite)) {
             MqFavoriteToggle(state.album.userData.isFavorite, { onAction(AlbumAction.SetFavorite(albumId, it)) })
         }
