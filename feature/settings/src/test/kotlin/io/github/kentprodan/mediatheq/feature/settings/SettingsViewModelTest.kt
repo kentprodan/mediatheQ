@@ -427,7 +427,7 @@ class SettingsViewModelTest {
         runTest {
             signIn()
             library.setAlbumColumns(4)
-            val chosen = AlbumPagePreferences(headerBackground = AlbumHeaderBackground.None, showRatingBar = true)
+            val chosen = AlbumPagePreferences(headerBackground = AlbumHeaderBackground.None, showQuality = false)
 
             viewModel.onAction(SettingsAction.SetAlbumPage(chosen))
             assertThat(content().library.albumPage).isEqualTo(chosen)

@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
@@ -74,6 +73,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
+import io.github.kentprodan.mediatheq.core.ui.MqMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
 import io.github.kentprodan.mediatheq.core.ui.SelectionCommand
@@ -402,7 +402,7 @@ private fun PlaylistRow(
                         DownloadMenuItem({ onAction(PlaylistAction.Download(item.position)) }, close)
                         StartRadioMenuItem({ onAction(PlaylistAction.StartRadio(item.track.id)) }, close)
                         if (canEditItem) {
-                            DropdownMenuItem(
+                            MqMenuItem(
                                 text = { Text(remove) },
                                 leadingIcon = { Icon(MqIcons.Delete, contentDescription = null) },
                                 onClick = {

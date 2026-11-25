@@ -75,7 +75,6 @@ internal val settingsIndex: Map<SettingsPage, List<Int>> =
             listOf(
                 R.string.settings_ap_background,
                 R.string.settings_ap_quality,
-                R.string.settings_ap_rating,
                 R.string.settings_ap_hidden_buttons,
                 R.string.settings_ap_order,
                 R.string.settings_ap_more,

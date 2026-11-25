@@ -23,7 +23,6 @@
     <string name="artist_about_tracks">Piese</string>
     <string name="artist_about_favorite">Favorit</string>
     <string name="artist_about_favorite_yes">În favoritele tale</string>
-    <string name="artist_about_rating">Notă</string>
     <plurals name="artist_album_count">
         <item quantity="one">%d album</item>
         <item quantity="few">%d albume</item>

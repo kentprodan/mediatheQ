@@ -68,6 +68,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Person
 import io.github.kentprodan.mediatheq.core.model.RemoteSession
 import io.github.kentprodan.mediatheq.core.model.Video
+import io.github.kentprodan.mediatheq.core.ui.MqMenuItem
 import io.github.kentprodan.mediatheq.core.ui.MqTracksSheet
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import kotlin.time.Duration
@@ -247,7 +248,7 @@ private fun MovieContent(
                 // Play from start sits in More while there is a resume point (#538).
                 state.resumeAt?.let {
                     OverflowMenu(stringResource(R.string.video_more_options, movie.title)) { close ->
-                        DropdownMenuItem(
+                        MqMenuItem(
                             text = { Text(stringResource(R.string.video_play_from_start)) },
                             leadingIcon = { Icon(MqIcons.PlayArrow, contentDescription = null) },
                             onClick = {

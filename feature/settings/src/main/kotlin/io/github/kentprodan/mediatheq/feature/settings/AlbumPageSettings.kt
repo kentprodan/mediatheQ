@@ -57,14 +57,6 @@ internal fun LazyListScope.albumPageGroups(
                 ) { set(page.copy(showQuality = it)) }
             }
             item { shapes ->
-                SwitchItem(
-                    shapes,
-                    stringResource(R.string.settings_ap_rating),
-                    stringResource(R.string.settings_ap_rating_summary),
-                    page.showRatingBar,
-                ) { set(page.copy(showRatingBar = it)) }
-            }
-            item { shapes ->
                 val hidden = AlbumButton.entries.filter { it in page.hiddenButtons }.map { stringResource(it.label) }
                 DialogItem(
                     shapes,

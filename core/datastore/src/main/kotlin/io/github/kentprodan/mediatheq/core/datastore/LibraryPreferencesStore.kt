@@ -145,7 +145,6 @@ class LibraryPreferencesStore
                     StoredAlbumPage(
                         headerBackground = prefs[AP_BACKGROUND],
                         showQuality = prefs[AP_QUALITY],
-                        showRatingBar = prefs[AP_RATING],
                         hiddenButtons =
                             prefs[AP_HIDDEN_BUTTONS]
                                 ?.split(
@@ -416,7 +415,6 @@ class LibraryPreferencesStore
             dataStore.edit { prefs ->
                 prefs.put(AP_BACKGROUND, page.headerBackground)
                 prefs.put(AP_QUALITY, page.showQuality)
-                prefs.put(AP_RATING, page.showRatingBar)
                 // An empty set is stored as an empty string: "none hidden" differs from "not set".
                 prefs.put(AP_HIDDEN_BUTTONS, page.hiddenButtons?.joinToString(LIST_SEPARATOR))
                 prefs.put(AP_SECTIONS, page.sectionOrder?.joinToString(LIST_SEPARATOR))
@@ -626,7 +624,6 @@ class LibraryPreferencesStore
             val LP_SPACING = stringPreferencesKey("lp_spacing")
             val AP_BACKGROUND = stringPreferencesKey("ap_background")
             val AP_QUALITY = booleanPreferencesKey("ap_quality")
-            val AP_RATING = booleanPreferencesKey("ap_rating")
             val AP_HIDDEN_BUTTONS = stringPreferencesKey("ap_hidden_buttons")
             val AP_SECTIONS = stringPreferencesKey("ap_sections")
             val AP_MORE = booleanPreferencesKey("ap_more")
@@ -793,7 +790,6 @@ data class StoredLibraryPreferences(
 data class StoredAlbumPage(
     val headerBackground: String? = null,
     val showQuality: Boolean? = null,
-    val showRatingBar: Boolean? = null,
     val hiddenButtons: List<String>? = null,
     val sectionOrder: List<String>? = null,
     val showMoreFromArtist: Boolean? = null,

@@ -50,6 +50,7 @@ import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.ui.MqMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.title
 
@@ -168,7 +169,7 @@ private fun TopButtons(
         if (hidden.isNotEmpty() && enabled) {
             OverflowMenu(stringResource(R.string.library_more_actions)) { close ->
                 hidden.sortedBy { it.ordinal }.forEach { button ->
-                    DropdownMenuItem(
+                    MqMenuItem(
                         text = { Text(stringResource(button.label)) },
                         leadingIcon = { Icon(button.icon, contentDescription = null) },
                         onClick = {

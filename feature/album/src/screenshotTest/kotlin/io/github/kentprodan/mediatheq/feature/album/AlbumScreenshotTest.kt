@@ -70,7 +70,6 @@ fun AlbumPlainHeaderScreenshot() =
         content(
             AlbumPagePreferences(
                 headerBackground = AlbumHeaderBackground.None,
-                showRatingBar = true,
                 hiddenButtons = AlbumButton.entries.toSet(),
             ),
         ).copy(album = album.copy(userData = UserData(isFavorite = true, rating = 6.0))),

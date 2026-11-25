@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +39,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import io.github.kentprodan.mediatheq.core.data.ArtistButton
 import io.github.kentprodan.mediatheq.core.data.ArtistHeaderBackground
+import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqArtistAvatar
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqCover
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteToggle
@@ -50,8 +50,10 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.AddToPlaylistMenuItem
 import io.github.kentprodan.mediatheq.core.ui.DownloadMenuItem
 import io.github.kentprodan.mediatheq.core.ui.FavoriteMenuItem
+import io.github.kentprodan.mediatheq.core.ui.MqMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 import io.github.kentprodan.mediatheq.core.ui.QueueMenuItems
+import io.github.kentprodan.mediatheq.core.ui.RatingSheetHeader
 import io.github.kentprodan.mediatheq.core.ui.StartRadioMenuItem
 import io.github.kentprodan.mediatheq.core.ui.formatTotalDuration
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
@@ -226,7 +228,21 @@ private fun HeaderButtons(
         if (state.shows(ArtistButton.Favorite)) {
             MqFavoriteToggle(favorite, { onAction(ArtistAction.SetFavorite(it)) })
         }
-        OverflowMenu(stringResource(R.string.artist_more_options, state.artist.name)) { close ->
+        OverflowMenu(
+            stringResource(R.string.artist_more_options, state.artist.name),
+            header =
+                if (state.ratingMode != RatingMode.Off) {
+                    {
+                        RatingSheetHeader(
+                            state.artist.userData.halfStars,
+                            { onAction(ArtistAction.Rate(it)) },
+                            allowHalf = state.ratingMode == RatingMode.HalfStars,
+                        )
+                    }
+                } else {
+                    null
+                },
+        ) { close ->
             if (enabled && !state.shows(ArtistButton.Shuffle)) {
                 ActionItem(R.string.artist_shuffle, { onAction(ArtistAction.Shuffle) }, close) {
                     Icon(MqIcons.Shuffle, contentDescription = null)
@@ -264,7 +280,7 @@ private fun ActionItem(
     close: () -> Unit,
     icon: @Composable () -> Unit,
 ) {
-    DropdownMenuItem(
+    MqMenuItem(
         text = { Text(stringResource(label)) },
         leadingIcon = icon,
         onClick = {

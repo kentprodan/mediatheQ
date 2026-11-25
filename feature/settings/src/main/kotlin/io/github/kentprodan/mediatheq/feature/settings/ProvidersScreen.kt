@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,6 +43,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.mqReorderItem
 import io.github.kentprodan.mediatheq.core.designsystem.component.rememberMqReorderState
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import io.github.kentprodan.mediatheq.core.ui.MqMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
 
 @Composable
@@ -252,7 +252,7 @@ internal fun ProviderMenuItems(
         label: Int,
         onClick: () -> Unit,
         color: Color = Color.Unspecified,
-    ) = DropdownMenuItem(
+    ) = MqMenuItem(
         text = { Text(stringResource(label), color = color) },
         onClick = {
             onClick()

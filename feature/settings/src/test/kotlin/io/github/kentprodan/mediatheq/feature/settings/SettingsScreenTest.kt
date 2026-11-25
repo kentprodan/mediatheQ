@@ -703,12 +703,12 @@ class SettingsScreenTest {
     fun `the album page switches apply at once and its order row opens the organize dialog`() {
         show(SettingsPage.Album)
 
-        composeRule.onNode(hasText("Rating stars") and isToggleable()).performClick()
+        composeRule.onNode(hasText("Quality") and isToggleable()).performClick()
         composeRule.onNode(hasText("Section order") and hasClickAction()).performClick()
 
         assertThat(actions)
             .containsExactly(
-                SettingsAction.SetAlbumPage(AlbumPagePreferences(showRatingBar = true)),
+                SettingsAction.SetAlbumPage(AlbumPagePreferences(showQuality = false)),
                 SettingsAction.OpenAlbumSections,
             ).inOrder()
     }
