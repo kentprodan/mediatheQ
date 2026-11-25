@@ -1,6 +1,7 @@
 package io.github.kentprodan.mediatheq.core.playback
 
 import android.content.Context
+import androidx.media3.exoplayer.mediacodec.MediaCodecAdapter
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -30,7 +31,12 @@ internal class PassthroughRenderersFactory(
     private val bitPerfectFormat: () -> PcmFormat? = { null },
     /** Whether the decoders may hand the sink float now (`AudioOutputState.floatOutput`). */
     private val floatOutput: () -> Boolean = { false },
+    /** The display's vsync period in ns, 0 when unknown: video frames get one vsync each (#633). */
+    private val vsyncNs: () -> Long = { 0L },
 ) : DefaultRenderersFactory(context) {
+    override fun getCodecAdapterFactory(): MediaCodecAdapter.Factory =
+        VsyncPacingAdapterFactory(super.getCodecAdapterFactory(), vsyncNs)
+
     override fun buildAudioSink(
         context: Context,
         enableFloatOutput: Boolean,
