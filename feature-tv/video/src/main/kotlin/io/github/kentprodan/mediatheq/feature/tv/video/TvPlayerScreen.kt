@@ -158,6 +158,7 @@ fun TvPlayerRoute(
         subtitleDelay = subtitleDelay,
         secondLanguage = secondLanguage,
         showDetails = showDetails,
+        details = { TvPlaybackDetails(details, videoPlayback, player, it) },
         onLeave = {
             viewModel.onAction(TvPlayerAction.Leave)
             onBack()
@@ -165,11 +166,6 @@ fun TvPlayerRoute(
     ) { scale ->
         MqTvVideoSurface(player, Modifier.fillMaxSize(), scale)
         MqTvSubtitles(player, Modifier.fillMaxSize(), style, viewModel::styledSubtitleOverlay, secondCues)
-        if (showDetails) {
-            Box(Modifier.fillMaxSize()) {
-                TvPlaybackDetails(details, videoPlayback, player, Modifier.align(Alignment.TopStart).padding(24.dp))
-            }
-        }
     }
 }
 
@@ -194,8 +190,9 @@ fun TvPlayerScreen(
     subtitleDelay: Duration = Duration.ZERO,
     /** The second subtitle track's language (#635), `null` for none. */
     secondLanguage: String? = null,
-    /** The playback details over the picture (#670), toggled from the bar (#678). */
+    /** The playback details over the picture (#670), toggled from the bar (#678); they show with the bar only. */
     showDetails: Boolean = false,
+    details: @Composable (Modifier) -> Unit = {},
     surface: @Composable (ContentScale) -> Unit,
 ) {
     // Fit each time a video opens; Fill and Stretch from the bar (owner, #429).
@@ -299,6 +296,7 @@ fun TvPlayerScreen(
                 // Any key (counted above) brings the paused player back.
                 if (saver && !bar) PauseScreensaver(state.video)
                 if (bar) {
+                    if (showDetails) details(Modifier.align(Alignment.TopStart).padding(24.dp))
                     Bar(state, position, onAction, extras.chapters, showDetails, onMenu = { menu = it })
                 } else if (seeking > 0) {
                     Column(Modifier.align(Alignment.BottomCenter).padding(EDGE)) {
