@@ -21,9 +21,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
@@ -45,6 +47,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -60,6 +63,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.tv.material3.Icon
+import androidx.tv.material3.IconButton
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
@@ -69,10 +74,12 @@ import io.github.kentprodan.mediatheq.core.data.VideoTracks
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvControl
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvSidePanel
 import io.github.kentprodan.mediatheq.core.model.Chapter
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.MediaStreamInfo
@@ -150,6 +157,7 @@ fun TvPlayerRoute(
         skip = skip,
         subtitleDelay = subtitleDelay,
         secondLanguage = secondLanguage,
+        showDetails = showDetails,
         onLeave = {
             viewModel.onAction(TvPlayerAction.Leave)
             onBack()
@@ -186,22 +194,22 @@ fun TvPlayerScreen(
     subtitleDelay: Duration = Duration.ZERO,
     /** The second subtitle track's language (#635), `null` for none. */
     secondLanguage: String? = null,
+    /** The playback details over the picture (#670), toggled from the bar (#678). */
+    showDetails: Boolean = false,
     surface: @Composable (ContentScale) -> Unit,
 ) {
     // Fit each time a video opens; Fill and Stretch from the bar (owner, #429).
     var zoom by remember { mutableStateOf(TvZoom.Fit) }
     var menu by remember { mutableStateOf<PlayerMenu?>(null) }
     var bar by remember { mutableStateOf(false) }
-    // Open over the bar: the bar waits for it (its keys never reach this screen's handler).
-    var tracks by remember { mutableStateOf(false) }
     var keys by remember { mutableIntStateOf(0) }
     var seeking by remember { mutableIntStateOf(0) }
     val root = remember { FocusRequester() }
     BackHandler {
         if (bar) bar = false else onLeave()
     }
-    LaunchedEffect(bar, keys, tracks, menu) {
-        if (bar && !tracks && menu == null) {
+    LaunchedEffect(bar, keys, menu) {
+        if (bar && menu == null) {
             delay(BAR_TIME)
             bar = false
         }
@@ -291,7 +299,7 @@ fun TvPlayerScreen(
                 // Any key (counted above) brings the paused player back.
                 if (saver && !bar) PauseScreensaver(state.video)
                 if (bar) {
-                    Bar(state, position, onAction, extras.chapters, onMenu = { menu = it }) { tracks = true }
+                    Bar(state, position, onAction, extras.chapters, showDetails, onMenu = { menu = it })
                 } else if (seeking > 0) {
                     Column(Modifier.align(Alignment.BottomCenter).padding(EDGE)) {
                         extras.trickplay?.let { MqTvTrickplayPreview(it, position, Modifier.padding(bottom = 12.dp)) }
@@ -307,7 +315,6 @@ fun TvPlayerScreen(
             }
         }
     }
-    playing?.tracks?.takeIf { tracks }?.let { PlayerTracksMenu(it, secondLanguage, onAction) { tracks = false } }
     when (menu) {
         PlayerMenu.Quality -> {
             MqTvMenu(
@@ -329,8 +336,12 @@ fun TvPlayerScreen(
             ) { menu = null }
         }
 
-        PlayerMenu.SubtitleTiming -> {
-            SubtitleTimingDialog(subtitleDelay, onAction) { menu = null }
+        PlayerMenu.Audio -> {
+            playing?.tracks?.let { AudioPanel(it, onAction) { menu = null } }
+        }
+
+        PlayerMenu.Subtitles -> {
+            playing?.tracks?.let { SubtitlesPanel(it, secondLanguage, subtitleDelay, onAction) { menu = null } }
         }
 
         PlayerMenu.Zoom -> {
@@ -434,8 +445,8 @@ private fun Bar(
     position: Duration,
     onAction: (TvPlayerAction) -> Unit,
     chapters: List<Chapter>,
+    showDetails: Boolean,
     onMenu: (PlayerMenu) -> Unit,
-    onTracks: () -> Unit,
 ) {
     val first = remember { FocusRequester() }
     Box(
@@ -446,7 +457,7 @@ private fun Bar(
         Column(Modifier.align(Alignment.BottomStart).padding(EDGE), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(titleOf(state.video), style = MaterialTheme.typography.headlineSmall, color = Color.White)
             Progress(position, state.duration, chapters.map { it.start })
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 MqTvButton(
                     stringResource(if (state.isPlaying) R.string.tv_player_pause else R.string.tv_player_play),
                     { onAction(TvPlayerAction.TogglePlayPause) },
@@ -461,26 +472,35 @@ private fun Bar(
                     stringResource(R.string.tv_player_forward_30),
                     { onAction(TvPlayerAction.Seek(forward = true)) },
                 )
-                if (state.tracks?.streams?.isNotEmpty() == true) {
-                    MqTvButton(stringResource(R.string.tv_movie_tracks), onTracks)
-                }
                 if (chapters.isNotEmpty()) {
                     MqTvButton(stringResource(R.string.tv_player_chapters), { onMenu(PlayerMenu.Chapters) })
                 }
                 MqTvButton(stringResource(R.string.tv_player_quality), { onMenu(PlayerMenu.Quality) })
                 MqTvButton(stringResource(R.string.tv_player_zoom), { onMenu(PlayerMenu.Zoom) })
-                if (state.tracks?.resolved?.subtitleIndex != null) {
-                    MqTvButton(
-                        stringResource(R.string.tv_player_subtitle_timing),
-                        { onMenu(PlayerMenu.SubtitleTiming) },
-                    )
-                }
                 if (state.hasNext) {
                     MqTvButton(
                         stringResource(R.string.tv_player_next),
                         { onAction(TvPlayerAction.PlayNextNow) },
                         icon = MqTvIcons.SkipNext,
                     )
+                }
+                val streams = state.tracks?.streams.orEmpty()
+                if (streams.count { it.type == StreamType.Audio } > 1) {
+                    BarIcon(MqTvIcons.Audio, stringResource(R.string.tv_player_audio)) { onMenu(PlayerMenu.Audio) }
+                }
+                if (streams.any { it.type == StreamType.Subtitle }) {
+                    BarIcon(
+                        MqTvIcons.Subtitles,
+                        stringResource(R.string.tv_movie_subtitles),
+                        selected = state.tracks?.resolved?.subtitleIndex != null,
+                    ) { onMenu(PlayerMenu.Subtitles) }
+                }
+                BarIcon(
+                    MqTvIcons.Info,
+                    stringResource(R.string.tv_settings_playback_details_short),
+                    selected = showDetails,
+                ) {
+                    onAction(TvPlayerAction.ToggleDetails)
                 }
             }
         }
@@ -555,43 +575,116 @@ private fun NextCard(
     LaunchedEffect(Unit) { runCatching { now.requestFocus() } }
 }
 
-/** Subtitles earlier or later in 0.1 s steps (#456); stays open while stepping, Back closes it. */
+/** An icon-only bar button (#678); [label] is what TalkBack says. */
 @Composable
-private fun SubtitleTimingDialog(
+private fun BarIcon(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean = false,
+    onClick: () -> Unit,
+) {
+    IconButton(onClick, Modifier.size(52.dp)) {
+        Icon(
+            icon,
+            contentDescription = label,
+            Modifier.size(28.dp),
+            tint = if (selected) MaterialTheme.colorScheme.primary else Color.Unspecified,
+        )
+    }
+}
+
+private fun MediaStreamInfo.label(trackFormat: String) = displayTitle ?: title ?: language ?: trackFormat.format(index)
+
+/** The audio tracks in a side panel (#678); the one playing is checked and focused, a pick applies at once. */
+@Composable
+private fun AudioPanel(
+    tracks: VideoTracks,
+    onAction: (TvPlayerAction) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val trackFormat = stringResource(R.string.tv_movie_track)
+    val audio = tracks.streams.filter { it.type == StreamType.Audio }
+    val playing = tracks.resolved.audioIndex ?: audio.firstOrNull { it.isDefault }?.index ?: audio.firstOrNull()?.index
+    MqTvSidePanel(stringResource(R.string.tv_player_audio), onDismiss) { current ->
+        items(audio) { stream ->
+            MqTvListItem(
+                stream.label(trackFormat),
+                {
+                    onAction(TvPlayerAction.ChooseAudio(stream.index))
+                    onDismiss()
+                },
+                if (stream.index == playing) Modifier.focusRequester(current) else Modifier,
+                selected = stream.index == playing,
+                control = MqTvControl.Radio,
+            )
+        }
+    }
+}
+
+/**
+ * The subtitles in a side panel (#678): Off and each track, then a second track at the top (#635, plain text ones by
+ * language) and the timing (#456, stays open while stepping). Back closes it.
+ */
+@Composable
+private fun SubtitlesPanel(
+    tracks: VideoTracks,
+    secondLanguage: String?,
     delay: Duration,
     onAction: (TvPlayerAction) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val first = remember { FocusRequester() }
+    val trackFormat = stringResource(R.string.tv_movie_track)
+    val off = stringResource(R.string.tv_movie_subtitles_off)
+    val subtitles = tracks.streams.filter { it.type == StreamType.Subtitle }
+    val chosen = tracks.resolved.subtitleIndex
+    val second = subtitles.filter { it.isTextSubtitle() && it.language != null }.distinctBy { it.language }
     val seconds = "%.1f".format(delay.absoluteValue.inWholeMilliseconds / 1000.0)
-    val now =
+    val timing =
         when {
             delay.isPositive() -> stringResource(R.string.tv_player_subtitles_later_by, seconds)
             delay.isNegative() -> stringResource(R.string.tv_player_subtitles_earlier_by, seconds)
             else -> stringResource(R.string.tv_player_subtitles_in_step)
         }
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = MaterialTheme.shapes.large) {
-            Column(Modifier.width(360.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    stringResource(R.string.tv_player_subtitle_timing),
-                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp).semantics { heading() },
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    now,
-                    Modifier.padding(horizontal = 12.dp).padding(bottom = 8.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                MqTvListItem(
-                    stringResource(R.string.tv_player_subtitles_earlier),
-                    { onAction(TvPlayerAction.ShiftSubtitles(later = false)) },
-                    Modifier.focusRequester(first),
-                )
-                MqTvListItem(
-                    stringResource(R.string.tv_player_subtitles_later),
-                    { onAction(TvPlayerAction.ShiftSubtitles(later = true)) },
-                )
+    val timingTitle = stringResource(R.string.tv_player_subtitle_timing)
+    val secondTitle = stringResource(R.string.tv_player_second_subtitles)
+    MqTvSidePanel(stringResource(R.string.tv_movie_subtitles), onDismiss) { current ->
+        item(key = "off") {
+            MqTvListItem(
+                off,
+                {
+                    onAction(TvPlayerAction.ChooseSubtitle(null))
+                    onDismiss()
+                },
+                if (chosen == null) Modifier.focusRequester(current) else Modifier,
+                selected = chosen == null,
+                control = MqTvControl.Radio,
+            )
+        }
+        items(subtitles, key = { "s${it.index}" }) { stream ->
+            MqTvListItem(
+                stream.label(trackFormat),
+                {
+                    onAction(TvPlayerAction.ChooseSubtitle(stream.index))
+                    onDismiss()
+                },
+                if (stream.index == chosen) Modifier.focusRequester(current) else Modifier,
+                selected = stream.index == chosen,
+                control = MqTvControl.Radio,
+            )
+        }
+        if (chosen != null) {
+            item(key = "timing") { PanelHeading(timingTitle, timing) }
+            item(key = "earlier") {
+                MqTvListItem(stringResource(R.string.tv_player_subtitles_earlier), {
+                    onAction(TvPlayerAction.ShiftSubtitles(later = false))
+                })
+            }
+            item(key = "later") {
+                MqTvListItem(stringResource(R.string.tv_player_subtitles_later), {
+                    onAction(TvPlayerAction.ShiftSubtitles(later = true))
+                })
+            }
+            item(key = "reset") {
                 MqTvListItem(
                     stringResource(R.string.tv_player_subtitles_reset),
                     { onAction(TvPlayerAction.ShiftSubtitles(later = null)) },
@@ -599,70 +692,37 @@ private fun SubtitleTimingDialog(
                 )
             }
         }
-        LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+        if (second.isNotEmpty()) {
+            item(key = "second") { PanelHeading(secondTitle, null) }
+            item(key = "second-off") {
+                MqTvListItem(
+                    off,
+                    { onAction(TvPlayerAction.ChooseSecondSubtitles(null)) },
+                    selected = secondLanguage == null,
+                    control = MqTvControl.Radio,
+                )
+            }
+            items(second, key = { "t${it.index}" }) { stream ->
+                MqTvListItem(
+                    stream.label(trackFormat),
+                    { onAction(TvPlayerAction.ChooseSecondSubtitles(stream.language)) },
+                    selected = stream.language == secondLanguage,
+                    control = MqTvControl.Radio,
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun PlayerTracksMenu(
-    tracks: VideoTracks,
-    secondLanguage: String?,
-    onAction: (TvPlayerAction) -> Unit,
-    onDismiss: () -> Unit,
+private fun PanelHeading(
+    title: String,
+    detail: String?,
 ) {
-    val trackFormat = stringResource(R.string.tv_movie_track)
-    val audioLabel = stringResource(R.string.tv_movie_audio)
-    val subtitleLabel = stringResource(R.string.tv_movie_subtitles)
-    val off = stringResource(R.string.tv_movie_subtitles_off)
-
-    fun MediaStreamInfo.label() = displayTitle ?: title ?: language ?: trackFormat.format(index)
-    val audio = tracks.streams.filter { it.type == StreamType.Audio }
-    val playingAudio =
-        tracks.resolved.audioIndex ?: audio.firstOrNull { it.isDefault }?.index ?: audio.firstOrNull()?.index
-    val entries =
-        audio.map { stream ->
-            MqTvMenuEntry("$audioLabel: ${stream.label()}", null, stream.index == playingAudio) {
-                onAction(TvPlayerAction.ChooseAudio(stream.index))
-            }
-        } +
-            MqTvMenuEntry("$subtitleLabel: $off", null, tracks.resolved.subtitleIndex == null) {
-                onAction(TvPlayerAction.ChooseSubtitle(null))
-            } +
-            tracks.streams.filter { it.type == StreamType.Subtitle }.map { stream ->
-                MqTvMenuEntry(
-                    "$subtitleLabel: ${stream.label()}",
-                    null,
-                    stream.index == tracks.resolved.subtitleIndex,
-                ) {
-                    onAction(TvPlayerAction.ChooseSubtitle(stream.index))
-                }
-            } +
-            secondSubtitleEntries(tracks, secondLanguage, onAction) { it.label() }
-    MqTvMenu(stringResource(R.string.tv_movie_tracks), entries, onDismiss)
-}
-
-/** Off, then one entry per language of the plain text subtitles (#635): the second track shows at the top. */
-@Composable
-private fun secondSubtitleEntries(
-    tracks: VideoTracks,
-    secondLanguage: String?,
-    onAction: (TvPlayerAction) -> Unit,
-    label: (MediaStreamInfo) -> String,
-): List<MqTvMenuEntry> {
-    val second = stringResource(R.string.tv_player_second_subtitles)
-    val off = stringResource(R.string.tv_movie_subtitles_off)
-    val text = tracks.streams.filter { it.isTextSubtitle() && it.language != null }.distinctBy { it.language }
-    if (text.isEmpty()) return emptyList()
-    return listOf(
-        MqTvMenuEntry("$second: $off", null, secondLanguage == null) {
-            onAction(TvPlayerAction.ChooseSecondSubtitles(null))
-        },
-    ) +
-        text.map { stream ->
-            MqTvMenuEntry("$second: ${label(stream)}", null, stream.language == secondLanguage) {
-                onAction(TvPlayerAction.ChooseSecondSubtitles(stream.language))
-            }
-        }
+    Column(Modifier.padding(start = 12.dp, top = 20.dp, bottom = 4.dp)) {
+        Text(title, Modifier.semantics { heading() }, style = MaterialTheme.typography.titleSmall)
+        detail?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+    }
 }
 
 /** A movie's title, or "Series · S2 · E5 · Episode title". */
@@ -677,7 +737,7 @@ private fun titleOf(video: Video): String =
         video.title
     }
 
-internal enum class PlayerMenu { Chapters, Quality, Zoom, SubtitleTiming }
+internal enum class PlayerMenu { Chapters, Quality, Zoom, Audio, Subtitles }
 
 /** "Skip intro" or "Skip credits" (#430): Select skips while it shows; it goes after a few seconds by itself. */
 @Composable

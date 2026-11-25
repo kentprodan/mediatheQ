@@ -110,6 +110,8 @@
     <string name="tv_player_quality_720">720p</string>
     <string name="tv_player_quality_low">Mai mică</string>
     <string name="tv_player_zoom">Zoom</string>
+    <string name="tv_player_audio">Audio</string>
+    <string name="tv_settings_playback_details_short">Detalii redare</string>
     <string name="tv_player_details_video">Video</string>
     <string name="tv_player_details_rate">Rata cadrelor</string>
     <string name="tv_player_details_measured">măsurată %1$s</string>

@@ -67,7 +67,6 @@ class TvSettingsViewModel
                     appMode = mode.takeIf { appMode.videoAvailable },
                     subtitleStyle = video.subtitleStyle,
                     displayMatch = video.displayMatch,
-                    playbackDetails = video.playbackDetails,
                     simpleTransitions = plain.simpleTransitions,
                     carousel = plain.tvCarousel,
                     // What Home mixes (#575): the chosen sections the mode has, else the default.
@@ -163,10 +162,6 @@ class TvSettingsViewModel
                         val navigation = repo.preferences.first().navigation
                         repo.setNavigation(navigation.copy(simpleTransitions = !navigation.simpleTransitions))
                     }
-                }
-
-                TvSettingsAction.TogglePlaybackDetails -> {
-                    viewModelScope.launch { videoPreferences.update { it.copy(playbackDetails = !it.playbackDetails) } }
                 }
 
                 is TvSettingsAction.SetDisplayMatch -> {

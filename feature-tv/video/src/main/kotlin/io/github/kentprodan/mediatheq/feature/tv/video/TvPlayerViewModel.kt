@@ -307,6 +307,10 @@ class TvPlayerViewModel
                     choose(video) { picker.choose(video, action.index, it?.subtitleIndex, wholeSeason = false) }
                 }
 
+                TvPlayerAction.ToggleDetails -> {
+                    viewModelScope.launch { preferences.update { it.copy(playbackDetails = !it.playbackDetails) } }
+                }
+
                 is TvPlayerAction.ChooseSecondSubtitles -> {
                     playback.chooseSecondarySubtitles(action.language)
                 }
@@ -479,6 +483,9 @@ sealed interface TvPlayerAction {
     data class ChooseSubtitle(
         val index: Int?,
     ) : TvPlayerAction
+
+    /** The playback details over the picture on or off (#670, #678). */
+    data object ToggleDetails : TvPlayerAction
 
     /** A second subtitle track in [language] at the top (#635); `null` = none. */
     data class ChooseSecondSubtitles(

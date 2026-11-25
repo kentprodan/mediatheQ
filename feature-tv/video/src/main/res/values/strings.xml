@@ -113,6 +113,8 @@
     <string name="tv_player_quality_720">720p</string>
     <string name="tv_player_quality_low">Lower</string>
     <string name="tv_player_zoom">Zoom</string>
+    <string name="tv_player_audio">Audio</string>
+    <string name="tv_settings_playback_details_short">Playback details</string>
     <string name="tv_player_details_video">Video</string>
     <string name="tv_player_details_rate">Frame rate</string>
     <string name="tv_player_details_measured">measured %1$s</string>
