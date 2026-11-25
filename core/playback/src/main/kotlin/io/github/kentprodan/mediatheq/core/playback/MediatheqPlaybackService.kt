@@ -94,6 +94,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
+import androidx.media3.common.util.Log as Media3Log
 
 /**
  * The only owner of the player (media3 skill, section 1): ExoPlayer with audio focus and "becoming noisy" pause, a
@@ -262,6 +263,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Volatile private var outputNow = AudioOutputState()
     private lateinit var outputApplier: OutputStateApplier
     private lateinit var reopener: AudioTrackReopener
+    private lateinit var videoRecovery: VideoRecovery
     private var audioSettingsJob: Job? = null
     private var outputsJob: Job? = null
     private val equalizer by lazy { EqualizerEffect(AudioPreferences.EQ_BANDS_HZ, appLog) }
@@ -402,6 +404,27 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 },
                 scope = applicationScope + Dispatchers.Main,
             ).also(player::addListener)
+        // A video this device fails to show converts on the server; a reclaimed decoder or a stuck resume opens again
+        // where it was (#632).
+        videoRecovery =
+            VideoRecovery(
+                player,
+                Handler(Looper.getMainLooper()),
+                currentId = { player.currentMediaItem?.let { runCatching { MediaId.parse(it.mediaId) }.getOrNull() } },
+                isVideo = { player.currentMediaItem?.isVideo() == true },
+                convert = streamResolver::convertVideo,
+                reprepare = {
+                    player.currentMediaItem?.let { item ->
+                        val index = player.currentMediaItemIndex
+                        val position = player.currentPosition
+                        player.replaceMediaItem(index, item.withVideoStart(position.milliseconds))
+                        player.seekTo(index, position)
+                        player.prepare()
+                    }
+                },
+                log = { appLog.info("MqVideo", it) },
+            ).also(player::addListener)
+        watchAudioClock(player)
         player.addListener(
             SkipFailedTrackListener(
                 player,
@@ -409,7 +432,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
                     // The output refused the AudioTrack: bit-perfect plays on normally, passthrough is tried once more.
                     outputApplier.recover(
                         error,
-                    ) { audioOutput.onBitPerfectFailed() || audioOutput.onPassthroughFailed() }
+                    ) { audioOutput.onBitPerfectFailed() || audioOutput.onPassthroughFailed() } ||
+                        videoRecovery.recover(error)
                 },
             ) { session?.sendPlaybackError(packageName, it) },
         )
@@ -1111,7 +1135,32 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     private var resumeListener: ResumeListener? = null
 
+    /**
+     * A corrupted audio clock (a passthrough HAL resetting its head, read as hours ahead) seeks in place, which rebuilds
+     * the sink, once a minute at most (#632). Media3's log is the only place that tells it.
+     */
+    private fun watchAudioClock(player: Player) {
+        val createdAt = SystemClock.elapsedRealtime()
+        var recoveredAt = createdAt - VideoRecoveryRules.CLOCK_RECOVERY_EVERY_MS
+        val main = Handler(Looper.getMainLooper())
+        Media3Log.setLogger(
+            AudioClockWatch { headUs ->
+                main.post {
+                    val now = SystemClock.elapsedRealtime()
+                    val due = now - recoveredAt >= VideoRecoveryRules.CLOCK_RECOVERY_EVERY_MS
+                    if (due && VideoRecoveryRules.clockCorrupted(headUs, now - createdAt)) {
+                        recoveredAt = now
+                        appLog.info("MqAudioOutput", "audio clock ${headUs / 1_000_000} s ahead, seeking in place")
+                        player.seekTo(player.currentPosition)
+                    }
+                }
+            },
+        )
+    }
+
     override fun onDestroy() {
+        Media3Log.setLogger(Media3Log.Logger.DEFAULT)
+        videoRecovery.release()
         signOutWatch?.cancel()
         persistJob?.cancel()
         prefetchJob?.cancel()

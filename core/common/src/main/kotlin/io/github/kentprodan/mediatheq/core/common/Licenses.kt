@@ -84,6 +84,14 @@ internal val COPIED_ASSETS =
             "https://github.com/Moonfin-Client/Moonfin-Core",
         ),
         CopiedAsset(
+            "moonfin-video-recovery",
+            "Video recovery",
+            "Code from Moonfin",
+            "GPL-3.0-only",
+            "GPL-3.0",
+            "https://github.com/Moonfin-Client/Moonfin-Core",
+        ),
+        CopiedAsset(
             "moonfin-frame-cadence",
             "Frame cadence and vsync pacing",
             "Code from Moonfin",
