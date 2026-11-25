@@ -68,6 +68,7 @@ internal fun Video.toEntity() =
         height = format?.height,
         videoRange = format?.range?.name,
         bitrateKbps = format?.bitrateKbps,
+        frameRate = format?.frameRate,
         sizeBytes = sizeBytes,
         image = artwork.toColumns(),
         backdrop = backdrop.toColumns(),
@@ -125,6 +126,7 @@ internal fun VideoEntity.toDomain(): Video {
                     height,
                     VideoRange.entries.firstOrNull { it.name == videoRange } ?: VideoRange.Sdr,
                     bitrateKbps,
+                    frameRate,
                 )
             },
         sizeBytes = sizeBytes,
