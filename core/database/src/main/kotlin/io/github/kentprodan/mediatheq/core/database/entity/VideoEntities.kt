@@ -85,6 +85,8 @@ data class VideoEntity(
     /** `VideoRange` name. */
     @ColumnInfo(name = "video_range") val videoRange: String? = null,
     @ColumnInfo(name = "bitrate_kbps") val bitrateKbps: Int? = null,
+    /** Frames per second (#631). */
+    @ColumnInfo(name = "frame_rate") val frameRate: Float? = null,
     @ColumnInfo(name = "size_bytes") val sizeBytes: Long? = null,
     @Embedded val image: ImageColumns = ImageColumns(),
     @Embedded(prefix = "backdrop_") val backdrop: ImageColumns = ImageColumns(),

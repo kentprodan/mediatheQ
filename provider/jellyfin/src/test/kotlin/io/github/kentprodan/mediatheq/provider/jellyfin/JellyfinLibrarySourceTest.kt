@@ -510,7 +510,8 @@ class JellyfinLibrarySourceTest {
             assertThat(movie.studios).containsExactly("Mandate Pictures", "Point Grey Pictures").inOrder()
             assertThat(movie.genres).containsExactly("Comedy", "Drama").inOrder()
             assertThat(movie.dateAdded).isEqualTo(Instant.parse("2026-11-07T21:38:14.2409704Z"))
-            assertThat(movie.format).isEqualTo(VideoFormat("h264", 1920, 1080, VideoRange.Sdr, 14_477))
+            assertThat(movie.format)
+                .isEqualTo(VideoFormat("h264", 1920, 1080, VideoRange.Sdr, 14_477, 23.976025f))
             assertThat(movie.streams.map { Triple(it.index, it.type, it.language) })
                 .containsExactly(Triple(1, StreamType.Audio, "rus"), Triple(2, StreamType.Audio, "eng"))
                 .inOrder()
@@ -527,7 +528,8 @@ class JellyfinLibrarySourceTest {
 
             val movie = (source.movies(server, 0, 500) as MqResult.Success).value.items.single()
 
-            assertThat(movie.format).isEqualTo(VideoFormat("hevc", 3840, 1604, VideoRange.DolbyVision, 23_946))
+            assertThat(movie.format)
+                .isEqualTo(VideoFormat("hevc", 3840, 1604, VideoRange.DolbyVision, 23_946, 23.976025f))
         }
 
     @Test

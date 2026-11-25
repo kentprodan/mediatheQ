@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.tv.video
 
+import android.view.Display
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.annotation.StringRes
@@ -106,7 +107,12 @@ fun TvPlayerRoute(
     val skip by viewModel.skipButton.collectAsStateWithLifecycle()
     val displayMatch by viewModel.displayMatch.collectAsStateWithLifecycle()
     val format by viewModel.videoFormat.collectAsStateWithLifecycle()
-    MatchDisplay(format, displayMatch)
+    MatchDisplay(
+        format,
+        displayMatch,
+        onSwitching = { viewModel.onAction(TvPlayerAction.DisplaySwitching) },
+        onSettled = { viewModel.onAction(TvPlayerAction.DisplaySettled) },
+    )
     val stillWatching by viewModel.stillWatching.collectAsStateWithLifecycle()
     if (stillWatching) {
         MqTvMenu(
@@ -684,31 +690,43 @@ private val SEEK_TIME = 2.seconds
 
 /**
  * Switches the TV to the video's frame rate (and resolution) while the player shows (#384) and back to the TV's own
- * mode when it closes; the display's modes come from Android, the choice from [chooseDisplayMode].
+ * mode when it closes; the display's modes come from Android, the choice from [chooseDisplayMode]. A real switch is
+ * told [onSwitching] first, then [onSettled] once the display and HDMI audio are quiet (#631); no switch is settled at
+ * once. The next video keeps the mode when it wants the same one, and an unknown rate gives the viewer's mode back.
  */
 @Composable
 private fun MatchDisplay(
     format: Pair<Float, Int>?,
     match: DisplayMatch,
+    onSwitching: () -> Unit,
+    onSettled: () -> Unit,
 ) {
-    val activity = LocalActivity.current ?: return
+    val activity = LocalActivity.current
+    // The TV's own mode, before this player switched it: the resolution reference and the mode handed back.
+    val viewer = remember(activity) { activity?.display?.mode?.toTvMode() }
     LaunchedEffect(format, match) {
-        val (rate, height) = format ?: return@LaunchedEffect
-        val display = activity.display ?: return@LaunchedEffect
-        val modes =
-            display.supportedModes.map {
-                TvDisplayMode(
-                    it.modeId,
-                    it.physicalWidth,
-                    it.physicalHeight,
-                    it.refreshRate,
-                )
-            }
-        val current = display.mode.let { TvDisplayMode(it.modeId, it.physicalWidth, it.physicalHeight, it.refreshRate) }
-        val chosen = chooseDisplayMode(rate, height, modes, current, match) ?: return@LaunchedEffect
-        activity.window.attributes = activity.window.attributes.apply { preferredDisplayModeId = chosen.id }
+        val display = activity?.display
+        if (display == null || viewer == null) {
+            onSettled()
+            return@LaunchedEffect
+        }
+        val modes = display.supportedModes.map { it.toTvMode() }
+        val wanted = format?.let { (rate, height) -> chooseDisplayMode(rate, height, modes, viewer, match) }
+        val current = display.mode.toTvMode()
+        if (sameDisplayMode(wanted ?: viewer, current)) {
+            onSettled()
+            return@LaunchedEffect
+        }
+        onSwitching()
+        activity.window.attributes = activity.window.attributes.apply { preferredDisplayModeId = wanted?.id ?: 0 }
+        awaitDisplaySettled(activity)
+        onSettled()
     }
     DisposableEffect(activity) {
-        onDispose { activity.window.attributes = activity.window.attributes.apply { preferredDisplayModeId = 0 } }
+        onDispose {
+            activity?.window?.attributes = activity?.window?.attributes?.apply { preferredDisplayModeId = 0 }
+        }
     }
 }
+
+private fun Display.Mode.toTvMode() = TvDisplayMode(modeId, physicalWidth, physicalHeight, refreshRate)
