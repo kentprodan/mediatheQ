@@ -72,6 +72,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Any TV Home row can be an immersive list (Settings -> Home rows, long press a row): the focused card's picture and details appear behind the row.
 
 ### Changed
+- On the TV, a film switches the display to its frame rate before it starts and waits for the TV and the sound system to settle, so the first second of sound is no longer lost and Dolby Atmos is not decoded because the sound started too early. Two films that want the same mode keep it, without a black screen in between.
 - Volume normalization now raises quiet tracks too, not only lowers loud ones, with a limiter so nothing clips. A raised track plays without battery offload.
 - The player keeps up to two minutes of a film ahead and sizes its buffer to the device's memory, so large 4K remuxes neither stall on a network dip nor run the app out of memory.
 - TV Settings, round 3: Home rows live in Settings. Reorder rows picks a row up with Select and moves it with Up and Down. Each row has its own level (Show on Home, Immersive list, Design, Size). Genres turned on join the rows, in any order, with their own design and size. Movies, Series and Music each have a pages level for the title and logo. Home shows can keep Home to movies and series. Who's watching? shows round profile pictures with the name under them.

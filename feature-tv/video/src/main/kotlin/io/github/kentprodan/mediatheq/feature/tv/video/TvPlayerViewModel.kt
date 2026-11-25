@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.ceil
 import kotlin.time.Clock
 import kotlin.time.Duration
@@ -75,16 +76,11 @@ class TvPlayerViewModel
                 .map { it.subtitleStyle }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SubtitleStyle())
 
-        /** How the display follows the video (#384) and the stream's frame rate and height once known. */
+        /** How the display follows the video (#384). */
         val displayMatch: StateFlow<DisplayMatch> =
             preferences.preferences
                 .map { it.displayMatch }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DisplayMatch.Off)
-        val videoFormat: StateFlow<Pair<Float, Int>?> =
-            playback.state
-                .map { player -> player.output.video?.let { v -> v.frameRate?.let { it to v.height } } }
-                .distinctUntilChanged()
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
         /** The streaming quality the TV asks for (its network is unmetered); the Quality menu changes it. */
         val quality: StateFlow<VideoQuality> =
@@ -94,6 +90,26 @@ class TvPlayerViewModel
 
         private val videoId = MutableStateFlow(key.id)
         private val video = videoId.flatMapLatest { videos.video(it) }
+
+        /**
+         * The frame rate and height the display follows: the library's (known before playback, so the mode switches
+         * before any sound, #631), else the stream's once it plays.
+         */
+        val videoFormat: StateFlow<Pair<Float, Int>?> =
+            combine(video, playback.state) { video, player ->
+                val stream = player.output.video?.takeIf { player.item?.id == video?.id }
+                val height = video?.format?.height ?: stream?.height ?: 0
+                // The frames' own timing wins once measured (#633): 3:2 pulldown stated as 23.976 wants 59.94.
+                stream?.cadenceRate?.let { it to height }
+                    ?: video?.format?.frameRate?.let { it to height }
+                    ?: stream?.frameRate?.let { it to stream.height }
+            }.distinctUntilChanged()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        // The display mode switch (#631): the first start waits for it to settle; a switch while playing pauses and
+        // then seeks in place, which opens a new audio track on the renegotiated HDMI route.
+        private val displaySettled = MutableStateFlow(false)
+        private var resumeAfterSwitch = false
         private val tracks = video.flatMapLatest { it?.let(picker::tracks) ?: flowOf(null) }
 
         // Set once this screen's video played: a video ending after that ends the screen.
@@ -205,6 +221,9 @@ class TvPlayerViewModel
             if (!key.attach) {
                 viewModelScope.launch {
                     videos.video(key.id).first()?.let {
+                        val match = preferences.preferences.first().displayMatch
+                        val switches = it.format?.frameRate != null && match != DisplayMatch.Off
+                        if (switches) withTimeoutOrNull(START_HOLD_MAX) { displaySettled.first { ready -> ready } }
                         val saved = key.startPositionMs.milliseconds
                         playback.playVideo(it, if (saved > Duration.ZERO) resumeStart(saved) else Duration.ZERO)
                     }
@@ -273,6 +292,22 @@ class TvPlayerViewModel
                     button.value?.let(::skip)
                 }
 
+                TvPlayerAction.DisplaySwitching -> {
+                    if (started.value && playback.state.value.isPlaying) {
+                        playback.pause()
+                        resumeAfterSwitch = true
+                    }
+                }
+
+                TvPlayerAction.DisplaySettled -> {
+                    displaySettled.value = true
+                    if (resumeAfterSwitch) {
+                        resumeAfterSwitch = false
+                        playback.seekTo(position.value)
+                        if (!playback.state.value.isPlaying) playback.togglePlayPause()
+                    }
+                }
+
                 is TvPlayerAction.SeekTo -> {
                     playback.seekTo(action.position)
                 }
@@ -339,6 +374,9 @@ class TvPlayerViewModel
         companion object {
             /** The next episode's countdown (owner: "Next episode in 10 s"). */
             val NEXT_COUNTDOWN = 10.seconds
+
+            /** The first start never waits longer for the display than this (the settle itself stops at 8 s). */
+            val START_HOLD_MAX = 10.seconds
         }
     }
 
@@ -394,6 +432,12 @@ sealed interface TvPlayerAction {
 
     /** The Skip intro / Skip credits button (#430). */
     data object SkipSegment : TvPlayerAction
+
+    /** The display is about to change mode (#631): playback pauses until it settles. */
+    data object DisplaySwitching : TvPlayerAction
+
+    /** The display is in the video's mode and settled, or needed no switch (#631). */
+    data object DisplaySettled : TvPlayerAction
 
     /** A chapter chosen from the list (#430). */
     data class SeekTo(

@@ -18,9 +18,9 @@ class DisplayModeChooserTest {
     private fun choose(
         rate: Float,
         height: Int = 2160,
-        current: TvDisplayMode = uhd60,
+        viewer: TvDisplayMode = uhd60,
         match: DisplayMatch = DisplayMatch.Rate,
-    ) = chooseDisplayMode(rate, height, modes, current, match)
+    ) = chooseDisplayMode(rate, height, modes, viewer, match)
 
     @Test
     fun `film plays at its own rate, never 60 Hz, and 1000-1001 rates are told apart`() {
@@ -34,8 +34,17 @@ class DisplayModeChooserTest {
     fun `25 and 29_97 prefer twice their rate, and no switch when the display is already right`() {
         assertThat(choose(25f)).isEqualTo(uhd50)
         assertThat(choose(29.97f)).isEqualTo(uhd5994)
-        assertThat(choose(59.94f, current = uhd5994)).isNull()
-        assertThat(choose(60f)).isNull()
+        assertThat(sameDisplayMode(choose(59.94f)!!, current = uhd5994)).isTrue()
+        assertThat(sameDisplayMode(choose(60f)!!, current = uhd60)).isTrue()
+        // Same rate and height under another id (a 1080p 23.976 film on a 4K 23.976 display, rate only): no switch.
+        assertThat(sameDisplayMode(TvDisplayMode(9, 4096, 2160, 23.976f), current = uhd23976)).isTrue()
+        assertThat(sameDisplayMode(uhd24, current = uhd23976)).isFalse()
+    }
+
+    @Test
+    fun `no rate or no fitting mode gives the viewer's mode back`() {
+        assertThat(choose(0f)).isNull()
+        assertThat(choose(17f)).isNull()
     }
 
     @Test

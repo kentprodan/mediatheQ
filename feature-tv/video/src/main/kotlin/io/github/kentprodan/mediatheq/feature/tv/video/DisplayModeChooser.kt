@@ -12,7 +12,9 @@ data class TvDisplayMode(
 )
 
 /**
- * The mode a video of [frameRate] (and [videoHeight]) should play in (#384), `null` to leave the display as it is. Rules
+ * The mode a video of [frameRate] (and [videoHeight]) should play in (#384), `null` for the viewer's own mode (off, no
+ * rate known, or no mode fits: a mode chosen for the last video would be wrong for this one). [viewer] is the mode the
+ * TV had before the player switched it, the resolution reference. Rules
  * (owner decision, after Moonfin's): a rate is snapped to the standard one it is near (1000/1001 rates told from whole
  * ones); the refresh must be a whole multiple of it (so 23.976 never plays at 60 Hz, which judders 3:2); 25 and 29.97
  * prefer twice their rate (50, 59.94) so a mix of 29.97 and 59.94 never switches; film keeps its own rate. With
@@ -22,29 +24,33 @@ fun chooseDisplayMode(
     frameRate: Float,
     videoHeight: Int,
     modes: List<TvDisplayMode>,
-    current: TvDisplayMode,
+    viewer: TvDisplayMode,
     match: DisplayMatch,
 ): TvDisplayMode? {
     if (match == DisplayMatch.Off || frameRate <= 0f) return null
     val rate = snapRate(frameRate)
     val sized =
         if (match == DisplayMatch.RateAndResolution) {
-            val fitting = modes.filter { it.height >= videoHeight }.minOfOrNull { it.height } ?: current.height
+            val fitting = modes.filter { it.height >= videoHeight }.minOfOrNull { it.height } ?: viewer.height
             modes.filter { it.height == fitting }
         } else {
-            modes.filter { it.width == current.width && it.height == current.height }
+            modes.filter { it.width == viewer.width && it.height == viewer.height }
         }
     val preferredMultiples = if (rate in DOUBLED) listOf(2, 1) else listOf(1, 2, 3, 4, 5)
-    val best =
-        preferredMultiples.firstNotNullOfOrNull { multiple ->
-            sized.filter { sameRate(it.refreshRate, rate * multiple) }.maxByOrNull { it.width }
-        } ?: return null
-    // Already there: a switch would renegotiate HDMI (a black screen and dropped audio) for nothing.
-    return best.takeUnless {
-        it.id == current.id ||
-            (sameRate(current.refreshRate, best.refreshRate) && it.height == current.height)
+    return preferredMultiples.firstNotNullOfOrNull { multiple ->
+        sized.filter { sameRate(it.refreshRate, rate * multiple) }.maxByOrNull { it.width }
     }
 }
+
+/**
+ * Whether the display in [current] already shows [target]: asking for it would renegotiate HDMI (a black screen and
+ * dropped audio) for nothing, so two videos that want the same mode keep it (#631).
+ */
+fun sameDisplayMode(
+    target: TvDisplayMode,
+    current: TvDisplayMode,
+): Boolean =
+    target.id == current.id || (sameRate(current.refreshRate, target.refreshRate) && target.height == current.height)
 
 /** The standard rate [rate] is near (0.6 %), else [rate] as it is. */
 internal fun snapRate(rate: Float): Float =

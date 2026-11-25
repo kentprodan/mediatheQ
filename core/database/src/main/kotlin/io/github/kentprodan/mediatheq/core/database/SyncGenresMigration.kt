@@ -69,3 +69,6 @@ class SyncLogosMigration : ResyncMigration(STAGING_12)
 
 /** 22 -> 23 (#605): movies and series have no thumb yet. */
 class SyncThumbsMigration : ResyncMigration(STAGING_12)
+
+/** 23 -> 24 (#631): movies and episodes have no frame rate yet. */
+class SyncFrameRateMigration : ResyncMigration(STAGING_12)
