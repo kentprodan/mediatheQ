@@ -1,11 +1,13 @@
 package io.github.kentprodan.mediatheq.feature.album
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.calculateStartPadding
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -27,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -35,6 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import io.github.kentprodan.mediatheq.core.common.QualityKind
 import io.github.kentprodan.mediatheq.core.common.QualityLabel
 import io.github.kentprodan.mediatheq.core.data.AlbumButton
@@ -143,40 +148,62 @@ private fun HeaderText(
     state: AlbumUiState.Content,
     onOpenArtist: (MediaId) -> Unit,
 ) {
-    Column(
+    Row(
         Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            state.title.name,
-            Modifier.semantics { heading() },
-            style = MaterialTheme.typography.headlineMediumEmphasized,
-        )
-        state.title.version?.let {
+        Column(
+            Modifier.weight(1f),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.xs),
+        ) {
             Text(
-                it,
-                style = MaterialTheme.typography.titleMedium,
+                state.title.name,
+                Modifier.semantics { heading() },
+                style = MaterialTheme.typography.headlineMediumEmphasized,
+            )
+            state.title.version?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                listOfNotNull(
+                    formatTotalDuration(state.duration),
+                    state.album.year?.toString(),
+                    state.quality?.let { qualityText(it) },
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // The first artist's text lines up with the title (#534): the button's start padding moves out.
+            FlowRow(
+                Modifier.offset(
+                    x = -ButtonDefaults.TextButtonContentPadding.calculateStartPadding(LocalLayoutDirection.current),
+                ),
+            ) {
+                state.album.albumArtists.forEach { artist ->
+                    TextButton(onClick = { onOpenArtist(artist.id) }) { Text(artist.name) }
+                }
+            }
         }
-        Text(
-            listOfNotNull(
-                formatTotalDuration(state.duration),
-                state.album.year?.toString(),
-                state.quality?.let { qualityText(it) },
-            ).joinToString(" · "),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        // The first artist's text lines up with the title (#534): the button's start padding moves out.
-        FlowRow(
-            Modifier.offset(
-                x = -ButtonDefaults.TextButtonContentPadding.calculateStartPadding(LocalLayoutDirection.current),
-            ),
-        ) {
-            state.album.albumArtists.forEach { artist ->
-                TextButton(onClick = { onOpenArtist(artist.id) }) { Text(artist.name) }
+        // The first album artist's picture, small and round, no name (#682); none from the server: nothing.
+        state.album.albumArtists.firstOrNull()?.let { artist ->
+            artist.artwork?.let { artwork ->
+                MqCover(
+                    model = artwork,
+                    contentDescription = artist.name,
+                    modifier =
+                        Modifier
+                            .padding(start = MediatheqSpacing.m)
+                            .size(ARTIST_AVATAR_SIZE)
+                            .clip(CircleShape)
+                            .clickable { onOpenArtist(artist.id) },
+                    blurHash = artwork.blurHash,
+                    shape = CircleShape,
+                )
             }
         }
     }
@@ -191,8 +218,8 @@ private fun qualityText(quality: QualityLabel): String =
     }
 
 /**
- * Play (and Resume) with labels and the queue icons on the left, Favorite and More on the right; a hidden one moves to More. Wraps onto a second line instead of
- * shrinking at large font sizes.
+ * Play (and Resume) with labels and the queue icons on the left, Favorite and More on the right; a hidden one moves
+ * to More. The left group wraps onto a second line instead of shrinking at large font sizes.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -204,42 +231,51 @@ private fun HeaderButtons(
 ) {
     val enabled = state.tracks.isNotEmpty()
     val resume = state.resume != null && state.shows(AlbumButton.Resume)
-    FlowRow(
-        Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
-        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
-        verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
-        itemVerticalAlignment = Alignment.CenterVertically,
+    // Favorite and More sit on the right, their ⋮ above the tracks' ⋮; the play buttons on the left (owner, #681).
+    Row(
+        Modifier.fillMaxWidth().padding(
+            start = MediatheqSpacing.l,
+            end = TRACK_END_PADDING,
+            top = MediatheqSpacing.s,
+            bottom = MediatheqSpacing.s,
+        ),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        // One main button (#531): Resume when there is a resume point, else Play; the other one is in More.
-        if (resume) {
-            Button(onClick = { onAction(AlbumAction.Resume) }) {
-                Icon(MqIcons.Resume, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-                Text(stringResource(R.string.album_resume), Modifier.padding(start = ButtonDefaults.IconSpacing))
+        FlowRow(
+            Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
+            verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            // One main button (#531): Resume when there is a resume point, else Play; the other one is in More.
+            if (resume) {
+                Button(onClick = { onAction(AlbumAction.Resume) }) {
+                    Icon(MqIcons.Resume, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                    Text(stringResource(R.string.album_resume), Modifier.padding(start = ButtonDefaults.IconSpacing))
+                }
+            } else {
+                Button(onClick = { onAction(AlbumAction.Play) }, enabled = enabled) {
+                    Icon(MqIcons.PlayArrow, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                    Text(stringResource(R.string.album_play), Modifier.padding(start = ButtonDefaults.IconSpacing))
+                }
             }
-        } else {
-            Button(onClick = { onAction(AlbumAction.Play) }, enabled = enabled) {
-                Icon(MqIcons.PlayArrow, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-                Text(stringResource(R.string.album_play), Modifier.padding(start = ButtonDefaults.IconSpacing))
+            if (state.shows(AlbumButton.Shuffle)) {
+                FilledTonalButton(onClick = { onAction(AlbumAction.Shuffle) }, enabled = enabled) {
+                    Icon(MqIcons.Shuffle, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                    Text(stringResource(R.string.album_shuffle), Modifier.padding(start = ButtonDefaults.IconSpacing))
+                }
+            }
+            if (state.shows(AlbumButton.PlayNext)) {
+                IconButton(onClick = { onAction(AlbumAction.PlayNext()) }, enabled = enabled) {
+                    Icon(MqIcons.PlayNext, stringResource(R.string.album_play_next))
+                }
+            }
+            if (state.shows(AlbumButton.AddToQueue)) {
+                IconButton(onClick = { onAction(AlbumAction.AddToQueue()) }, enabled = enabled) {
+                    Icon(MqIcons.AddToQueue, stringResource(R.string.album_add_to_queue))
+                }
             }
         }
-        if (state.shows(AlbumButton.Shuffle)) {
-            FilledTonalButton(onClick = { onAction(AlbumAction.Shuffle) }, enabled = enabled) {
-                Icon(MqIcons.Shuffle, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-                Text(stringResource(R.string.album_shuffle), Modifier.padding(start = ButtonDefaults.IconSpacing))
-            }
-        }
-        if (state.shows(AlbumButton.PlayNext)) {
-            IconButton(onClick = { onAction(AlbumAction.PlayNext()) }, enabled = enabled) {
-                Icon(MqIcons.PlayNext, stringResource(R.string.album_play_next))
-            }
-        }
-        if (state.shows(AlbumButton.AddToQueue)) {
-            IconButton(onClick = { onAction(AlbumAction.AddToQueue()) }, enabled = enabled) {
-                Icon(MqIcons.AddToQueue, stringResource(R.string.album_add_to_queue))
-            }
-        }
-        // Favorite and More sit on the right, the play buttons on the left (owner, #681).
-        Spacer(Modifier.weight(1f))
         if (state.shows(AlbumButton.Favorite)) {
             MqFavoriteToggle(state.album.userData.isFavorite, { onAction(AlbumAction.SetFavorite(albumId, it)) })
         }
@@ -304,3 +340,8 @@ private fun ActionItem(
 }
 
 private const val COVER_WIDTH_FRACTION = 0.6f
+
+private val ARTIST_AVATAR_SIZE = 56.dp
+
+// So the header's ⋮ lines up with the tracks' (measured: their ListItem ends 4 dp further right).
+private val TRACK_END_PADDING = MediatheqSpacing.m
