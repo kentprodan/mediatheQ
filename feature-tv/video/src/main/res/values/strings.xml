@@ -114,6 +114,7 @@
     <string name="tv_player_quality_low">Lower</string>
     <string name="tv_player_zoom">Zoom</string>
     <string name="tv_player_subtitle_timing">Subtitle timing</string>
+    <string name="tv_player_second_subtitles">Second subtitles</string>
     <string name="tv_player_subtitles_earlier">Earlier by 0.1 s</string>
     <string name="tv_player_subtitles_later">Later by 0.1 s</string>
     <string name="tv_player_subtitles_reset">Reset</string>

@@ -75,6 +75,10 @@ class VideoPlayerViewModel
                 .flatMapLatest(delays::delay)
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Duration.ZERO)
 
+        /** The second subtitle track's language and cues (#635). */
+        val secondarySubtitleLanguage = playback.secondarySubtitleLanguage
+        val secondarySubtitleCues = playback.secondarySubtitleCues
+
         // Set once the player had this video: its going away afterwards means it ended, not that it is loading.
         private var seen = false
 
@@ -307,6 +311,11 @@ class VideoPlayerViewModel
 
                 is VideoPlayerAction.ChooseSubtitle -> {
                     choose(subtitleOff = action.index == null) { it.copy(subtitleIndex = action.index) }
+                }
+
+                is VideoPlayerAction.ChooseSecondSubtitle -> {
+                    val streams = (uiState.value as? VideoPlayerUiState.Playing)?.tracks?.streams.orEmpty()
+                    playback.chooseSecondarySubtitles(streams.firstOrNull { it.index == action.index }?.language)
                 }
 
                 is VideoPlayerAction.ShiftSubtitles -> {

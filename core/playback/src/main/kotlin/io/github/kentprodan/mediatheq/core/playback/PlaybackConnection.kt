@@ -3,10 +3,12 @@ package io.github.kentprodan.mediatheq.core.playback
 import android.content.Context
 import android.view.View
 import androidx.media3.common.Player
+import androidx.media3.common.text.Cue
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.model.Video
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.Duration
 
@@ -66,6 +68,15 @@ interface PlaybackConnection {
     /** The view drawing the video's styled ASS subtitles (#635), to lay over the picture; `null` where there is none. */
     fun styledSubtitleOverlay(context: Context): View? = null
 
+    /** The language of the second subtitle track shown with the first (#635), `null` for none. */
+    val secondarySubtitleLanguage: StateFlow<String?> get() = NO_LANGUAGE
+
+    /** The second subtitle track's cues now, drawn at the top of the picture. */
+    val secondarySubtitleCues: StateFlow<List<Cue>> get() = NO_CUES
+
+    /** Shows a second subtitle track in [language] with the first; `null` hides it. Kept for the next videos. */
+    fun chooseSecondarySubtitles(language: String?) = Unit
+
     /** Pauses, also before playing started (a video left while its stream loads). */
     fun pause()
 
@@ -120,3 +131,6 @@ interface PlaybackConnection {
     /** Clears [error] once its message was shown. */
     fun dismissError()
 }
+
+private val NO_LANGUAGE: StateFlow<String?> = MutableStateFlow(null)
+private val NO_CUES: StateFlow<List<Cue>> = MutableStateFlow(emptyList())

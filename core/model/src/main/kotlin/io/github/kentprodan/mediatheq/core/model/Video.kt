@@ -35,6 +35,10 @@ data class MediaStreamInfo(
     val isExternal: Boolean = false,
 )
 
+/** A plain text subtitle stream, which can show as the second track (#635); bitmap and styled ones cannot. */
+fun MediaStreamInfo.isTextSubtitle(): Boolean =
+    type == StreamType.Subtitle && codec?.lowercase() in setOf("subrip", "srt", "webvtt", "vtt", "mov_text", "ttml")
+
 /** A movie or an episode (one table, ADR 0048); the series fields are `null` for a movie. */
 data class Video(
     val id: MediaId,

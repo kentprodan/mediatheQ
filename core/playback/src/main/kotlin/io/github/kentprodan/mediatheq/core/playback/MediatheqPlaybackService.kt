@@ -124,6 +124,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var subtitleDelays: SubtitleDelayRepository
 
+    @Inject lateinit var secondarySubtitles: SecondarySubtitles
+
     // The playing video's subtitle delay (#456): written on the main thread, read by the renderers on the playback thread.
     @Volatile private var subtitleDelayUs = 0L
     private var subtitleDelayJob: Job? = null
@@ -329,8 +331,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
                             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON),
                         styledSubtitles.handler,
                         delayUs = { subtitleDelayUs },
+                        secondary = secondarySubtitles,
                     ),
-                ).setLoadControl(playerLoadControl(this))
+                ).setTrackSelector(SecondarySubtitleTrackSelector(this, secondarySubtitles))
+                .setLoadControl(playerLoadControl(this))
                 .setMediaSourceFactory(
                     StreamMediaSourceFactory(
                         DefaultMediaSourceFactory(

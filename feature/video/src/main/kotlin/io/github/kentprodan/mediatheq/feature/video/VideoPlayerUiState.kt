@@ -61,6 +61,11 @@ sealed interface VideoPlayerAction {
         val index: Int?,
     ) : VideoPlayerAction
 
+    /** The second subtitles row (#635) by stream index; `null` = Off. */
+    data class ChooseSecondSubtitle(
+        val index: Int?,
+    ) : VideoPlayerAction
+
     /** Subtitles 0.1 s [later] or earlier (#456); `null` back in step with the picture. */
     data class ShiftSubtitles(
         val later: Boolean?,

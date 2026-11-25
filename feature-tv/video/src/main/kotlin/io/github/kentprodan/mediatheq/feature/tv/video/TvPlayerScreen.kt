@@ -82,6 +82,7 @@ import io.github.kentprodan.mediatheq.core.model.StreamType
 import io.github.kentprodan.mediatheq.core.model.Video
 import io.github.kentprodan.mediatheq.core.model.VideoKind
 import io.github.kentprodan.mediatheq.core.model.VideoQuality
+import io.github.kentprodan.mediatheq.core.model.isTextSubtitle
 import io.github.kentprodan.mediatheq.core.navigation.VideoPlayerKey
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvSubtitles
 import io.github.kentprodan.mediatheq.core.ui.tv.MqTvTrickplayPreview
@@ -112,6 +113,8 @@ fun TvPlayerRoute(
     val displayMatch by viewModel.displayMatch.collectAsStateWithLifecycle()
     val format by viewModel.videoFormat.collectAsStateWithLifecycle()
     val subtitleDelay by viewModel.subtitleDelay.collectAsStateWithLifecycle()
+    val secondLanguage by viewModel.secondarySubtitleLanguage.collectAsStateWithLifecycle()
+    val secondCues by viewModel.secondarySubtitleCues.collectAsStateWithLifecycle()
     MatchDisplay(
         format,
         displayMatch,
@@ -143,13 +146,14 @@ fun TvPlayerRoute(
         extras = extras,
         skip = skip,
         subtitleDelay = subtitleDelay,
+        secondLanguage = secondLanguage,
         onLeave = {
             viewModel.onAction(TvPlayerAction.Leave)
             onBack()
         },
     ) { scale ->
         MqTvVideoSurface(player, Modifier.fillMaxSize(), scale)
-        MqTvSubtitles(player, Modifier.fillMaxSize(), style, viewModel::styledSubtitleOverlay)
+        MqTvSubtitles(player, Modifier.fillMaxSize(), style, viewModel::styledSubtitleOverlay, secondCues)
     }
 }
 
@@ -172,6 +176,8 @@ fun TvPlayerScreen(
     skip: MediaSegment? = null,
     /** How much later (negative: earlier) the subtitles show (#456). */
     subtitleDelay: Duration = Duration.ZERO,
+    /** The second subtitle track's language (#635), `null` for none. */
+    secondLanguage: String? = null,
     surface: @Composable (ContentScale) -> Unit,
 ) {
     // Fit each time a video opens; Fill and Stretch from the bar (owner, #429).
@@ -293,7 +299,7 @@ fun TvPlayerScreen(
             }
         }
     }
-    playing?.tracks?.takeIf { tracks }?.let { PlayerTracksMenu(it, onAction) { tracks = false } }
+    playing?.tracks?.takeIf { tracks }?.let { PlayerTracksMenu(it, secondLanguage, onAction) { tracks = false } }
     when (menu) {
         PlayerMenu.Quality -> {
             MqTvMenu(
@@ -592,6 +598,7 @@ private fun SubtitleTimingDialog(
 @Composable
 private fun PlayerTracksMenu(
     tracks: VideoTracks,
+    secondLanguage: String?,
     onAction: (TvPlayerAction) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -621,8 +628,33 @@ private fun PlayerTracksMenu(
                 ) {
                     onAction(TvPlayerAction.ChooseSubtitle(stream.index))
                 }
-            }
+            } +
+            secondSubtitleEntries(tracks, secondLanguage, onAction) { it.label() }
     MqTvMenu(stringResource(R.string.tv_movie_tracks), entries, onDismiss)
+}
+
+/** Off, then one entry per language of the plain text subtitles (#635): the second track shows at the top. */
+@Composable
+private fun secondSubtitleEntries(
+    tracks: VideoTracks,
+    secondLanguage: String?,
+    onAction: (TvPlayerAction) -> Unit,
+    label: (MediaStreamInfo) -> String,
+): List<MqTvMenuEntry> {
+    val second = stringResource(R.string.tv_player_second_subtitles)
+    val off = stringResource(R.string.tv_movie_subtitles_off)
+    val text = tracks.streams.filter { it.isTextSubtitle() && it.language != null }.distinctBy { it.language }
+    if (text.isEmpty()) return emptyList()
+    return listOf(
+        MqTvMenuEntry("$second: $off", null, secondLanguage == null) {
+            onAction(TvPlayerAction.ChooseSecondSubtitles(null))
+        },
+    ) +
+        text.map { stream ->
+            MqTvMenuEntry("$second: ${label(stream)}", null, stream.language == secondLanguage) {
+                onAction(TvPlayerAction.ChooseSecondSubtitles(stream.language))
+            }
+        }
 }
 
 /** A movie's title, or "Series · S2 · E5 · Episode title". */

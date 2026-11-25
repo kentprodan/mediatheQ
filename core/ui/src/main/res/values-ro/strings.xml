@@ -129,6 +129,7 @@
     <string name="core_ui_tracks_audio">Audio</string>
     <string name="core_ui_tracks_subtitles">Subtitrări</string>
     <string name="core_ui_subtitle_timing">Sincronizare subtitrări</string>
+    <string name="core_ui_tracks_second_subtitles">Subtitrări secundare</string>
     <string name="core_ui_subtitles_earlier">−0,1 s</string>
     <string name="core_ui_subtitles_later">+0,1 s</string>
     <string name="core_ui_subtitles_reset">Resetează</string>

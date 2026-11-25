@@ -15,6 +15,7 @@ import androidx.media3.exoplayer.RenderersFactory
 import androidx.media3.exoplayer.audio.AudioRendererEventListener
 import androidx.media3.exoplayer.metadata.MetadataOutput
 import androidx.media3.exoplayer.text.TextOutput
+import androidx.media3.exoplayer.text.TextRenderer
 import androidx.media3.exoplayer.video.VideoRendererEventListener
 import io.github.peerless2012.ass.media.AssHandler
 import io.github.peerless2012.ass.media.parser.AssSubtitleParserFactory
@@ -68,6 +69,8 @@ internal class StyledSubtitleRenderersFactory(
     private val delegate: RenderersFactory,
     private val handler: AssHandler,
     private val delayUs: () -> Long = { 0L },
+    /** The second subtitle track's renderer goes last, where [SecondarySubtitleTrackSelector] expects it (#635). */
+    private val secondary: SecondarySubtitles? = null,
 ) : RenderersFactory {
     override fun createRenderers(
         eventHandler: Handler,
@@ -85,7 +88,15 @@ internal class StyledSubtitleRenderersFactory(
                 metadataRendererOutput,
             ).map { if (it.trackType == C.TRACK_TYPE_TEXT) DelayedTextRenderer(it, delayUs) else it }
             .toTypedArray() +
-            AssClockRenderer(handler, delayUs)
+            AssClockRenderer(handler, delayUs) +
+            listOfNotNull(
+                secondary?.let { second ->
+                    DelayedTextRenderer(
+                        TextRenderer({ group -> second.publish(group.cues) }, eventHandler.looper),
+                        delayUs,
+                    )
+                },
+            )
 
     override fun createSecondaryRenderer(
         renderer: Renderer,

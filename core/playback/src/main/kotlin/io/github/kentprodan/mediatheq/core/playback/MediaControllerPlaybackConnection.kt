@@ -72,6 +72,7 @@ internal class MediaControllerPlaybackConnection
         private val log: AppLog,
         @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
         private val styledSubtitles: StyledSubtitles,
+        private val secondarySubtitles: SecondarySubtitles,
     ) : PlaybackConnection {
         // Touched on the main thread only (Media3 session threading).
         private var controller: ListenableFuture<MediaController>? = null
@@ -163,6 +164,12 @@ internal class MediaControllerPlaybackConnection
         }
 
         override fun styledSubtitleOverlay(context: Context): View = styledSubtitles.overlay(context)
+
+        override val secondarySubtitleLanguage get() = secondarySubtitles.language
+
+        override val secondarySubtitleCues get() = secondarySubtitles.cues
+
+        override fun chooseSecondarySubtitles(language: String?) = secondarySubtitles.choose(language)
 
         override val videoPlayer: StateFlow<Player?> =
             connected
