@@ -231,6 +231,14 @@ internal class HiResRateCap private constructor(
         )
         return sonic.configure(inputAudioFormat)
     }
+
+    // Kotlin's `by` skips the interface's Java default methods, so both flushes must be handed over by hand: the
+    // defaults throw "must implement at least one #flush() overload" and every track failed to play.
+    override fun flush(streamMetadata: AudioProcessor.StreamMetadata) = sonic.flush(streamMetadata)
+
+    @Deprecated("Media3's own deprecation", ReplaceWith("flush(streamMetadata)"))
+    @Suppress("DEPRECATION")
+    override fun flush() = sonic.flush()
 }
 
 /** The rate [sampleRateHz] is halved to, as often as needed to reach 192 kHz at most, or `null` when it is fine. Pure. */

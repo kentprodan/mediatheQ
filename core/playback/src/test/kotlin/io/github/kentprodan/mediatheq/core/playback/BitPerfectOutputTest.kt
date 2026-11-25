@@ -110,4 +110,22 @@ class BitPerfectOutputTest {
             (out.get(at).toInt() and 0xFF) or ((out.get(at + 1).toInt() and 0xFF) shl 8) or
                 (out.get(at + 2).toInt() shl 16)
         )
+
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    @Test
+    fun `the rate cap flushes like any processor, so tracks play (every track failed before)`() {
+        val cap = HiResRateCap()
+        cap.configure(
+            androidx.media3.common.audio.AudioProcessor.AudioFormat(
+                48_000,
+                2,
+                androidx.media3.common.C.ENCODING_PCM_16BIT,
+            ),
+        )
+
+        cap.flush(
+            androidx.media3.common.audio.AudioProcessor
+                .StreamMetadata(androidx.media3.common.C.TIME_UNSET),
+        )
+    }
 }
