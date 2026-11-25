@@ -17,6 +17,7 @@ fun EntryProviderScope<NavKey>.artistEntry(navigator: Navigator) {
             onOpenTopTracks = { navigator.navigateTo(ArtistTopTracksKey(key.id)) },
             onBack = { navigator.back() },
             onAddToPlaylist = { navigator.navigateTo(AddToPlaylistKey(it)) },
+            onOpenArtist = { navigator.navigateTo(ArtistKey(it)) },
         )
     }
     entry<ArtistTopTracksKey> { key ->

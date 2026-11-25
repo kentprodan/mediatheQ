@@ -219,6 +219,19 @@ class JellyfinLibrarySource internal constructor(
             listOf("userId" to server.userId, "limit" to limit.toString()),
         ) { result -> result.items.mapNotNull { item -> item.id?.let { MediaId(server.serverId, it) } } }
 
+    // #681: ids only, the artists are in Room.
+    override suspend fun similarArtists(
+        server: SignedInServer,
+        artistId: MediaId,
+        limit: Int,
+    ): MqResult<List<MediaId>> =
+        http.get(
+            server.connection,
+            "Artists/${artistId.itemId}/Similar",
+            QueryResultDto.serializer(),
+            listOf("userId" to server.userId, "limit" to limit.toString()),
+        ) { result -> result.items.mapNotNull { item -> item.id?.let { MediaId(server.serverId, it) } } }
+
     /** One item query with `fields=People` (#427); a person without an id or a name is left out. */
     override suspend fun people(
         server: SignedInServer,

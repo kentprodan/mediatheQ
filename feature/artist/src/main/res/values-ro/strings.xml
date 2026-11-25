@@ -29,4 +29,5 @@
         <item quantity="few">%d albume</item>
         <item quantity="other">%d de albume</item>
     </plurals>
+    <string name="artist_similar">Artiști similari</string>
 </resources>

@@ -294,6 +294,18 @@ class FakeLibrarySource : LibrarySource {
         return similarAnswer
     }
 
+    /** What [similarArtists] answers. */
+    var similarArtistsAnswer: MqResult<List<MediaId>> = MqResult.Success(emptyList())
+
+    override suspend fun similarArtists(
+        server: SignedInServer,
+        artistId: MediaId,
+        limit: Int,
+    ): MqResult<List<MediaId>> {
+        calls += "similarArtists:${artistId.itemId}@$limit"
+        return similarArtistsAnswer
+    }
+
     override suspend fun resumeVideos(
         server: SignedInServer,
         limit: Int,

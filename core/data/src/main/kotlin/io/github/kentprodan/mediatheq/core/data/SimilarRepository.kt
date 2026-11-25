@@ -2,6 +2,7 @@ package io.github.kentprodan.mediatheq.core.data
 
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.model.Album
+import io.github.kentprodan.mediatheq.core.model.Artist
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 
@@ -18,4 +19,7 @@ interface SimilarRepository {
      * [albumId] itself, at most 12. Fails without the server.
      */
     suspend fun similarAlbums(albumId: MediaId): MqResult<List<Album>>
+
+    /** Artists like [artistId] (#681): the server's, kept to the library's artists, at most 12. Fails without the server. */
+    suspend fun similarArtists(artistId: MediaId): MqResult<List<Artist>>
 }
