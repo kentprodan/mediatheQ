@@ -5,8 +5,10 @@ import android.os.Build
 import android.os.Handler
 import android.view.View
 import androidx.annotation.OptIn
+import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.ForwardingRenderer
 import androidx.media3.exoplayer.NoSampleRenderer
 import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.RenderersFactory
@@ -58,12 +60,14 @@ class StyledSubtitles
 /**
  * [delegate]'s renderers and one that hands libass the playing period's time (#635). ass-media's own renderer subtracts
  * a fixed offset that holds only for the first item of a playlist, so the next episode's subtitles would drift by the
- * previous one's length; this one subtracts the offset the player gives each period.
+ * previous one's length; this one subtracts the offset the player gives each period. Text renderers and libass see the
+ * position [delayUs] earlier (#456): positive shows subtitles later, negative earlier. Read on the playback thread.
  */
 @UnstableApi
 internal class StyledSubtitleRenderersFactory(
     private val delegate: RenderersFactory,
     private val handler: AssHandler,
+    private val delayUs: () -> Long = { 0L },
 ) : RenderersFactory {
     override fun createRenderers(
         eventHandler: Handler,
@@ -72,13 +76,16 @@ internal class StyledSubtitleRenderersFactory(
         textRendererOutput: TextOutput,
         metadataRendererOutput: MetadataOutput,
     ): Array<Renderer> =
-        delegate.createRenderers(
-            eventHandler,
-            videoRendererEventListener,
-            audioRendererEventListener,
-            textRendererOutput,
-            metadataRendererOutput,
-        ) + AssClockRenderer(handler)
+        delegate
+            .createRenderers(
+                eventHandler,
+                videoRendererEventListener,
+                audioRendererEventListener,
+                textRendererOutput,
+                metadataRendererOutput,
+            ).map { if (it.trackType == C.TRACK_TYPE_TEXT) DelayedTextRenderer(it, delayUs) else it }
+            .toTypedArray() +
+            AssClockRenderer(handler, delayUs)
 
     override fun createSecondaryRenderer(
         renderer: Renderer,
@@ -101,6 +108,7 @@ internal class StyledSubtitleRenderersFactory(
 @UnstableApi
 internal class AssClockRenderer(
     private val handler: AssHandler,
+    private val delayUs: () -> Long = { 0L },
 ) : NoSampleRenderer() {
     private var offsetUs = 0L
 
@@ -114,6 +122,26 @@ internal class AssClockRenderer(
         positionUs: Long,
         elapsedRealtimeUs: Long,
     ) {
-        handler.videoTime = positionUs - offsetUs
+        handler.videoTime = positionUs - offsetUs - delayUs()
     }
+}
+
+/**
+ * A text renderer that sees the position [delayUs] earlier (#456), so its cues show that much later (earlier when
+ * negative). Showing them earlier reads cues that far ahead, which the player has buffered except right after a seek.
+ */
+@UnstableApi
+internal class DelayedTextRenderer(
+    renderer: Renderer,
+    private val delayUs: () -> Long,
+) : ForwardingRenderer(renderer) {
+    override fun render(
+        positionUs: Long,
+        elapsedRealtimeUs: Long,
+    ) = super.render(positionUs - delayUs(), elapsedRealtimeUs)
+
+    override fun resetPosition(
+        positionUs: Long,
+        sampleStreamIsResetToKeyFrame: Boolean,
+    ) = super.resetPosition(positionUs - delayUs(), sampleStreamIsResetToKeyFrame)
 }

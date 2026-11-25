@@ -11,12 +11,14 @@ import io.github.kentprodan.mediatheq.core.common.HeldKey
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.DisplayMatch
 import io.github.kentprodan.mediatheq.core.data.SegmentAction
+import io.github.kentprodan.mediatheq.core.data.SubtitleDelayRepository
 import io.github.kentprodan.mediatheq.core.data.TrackPicker
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.VideoTracks
 import io.github.kentprodan.mediatheq.core.data.resumeStart
 import io.github.kentprodan.mediatheq.core.data.segmentAction
+import io.github.kentprodan.mediatheq.core.data.subtitleDelayStep
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.SubtitleStyle
@@ -60,6 +62,7 @@ class TvPlayerViewModel
         private val videos: VideoRepository,
         private val playback: PlaybackConnection,
         private val picker: TrackPicker,
+        private val delays: SubtitleDelayRepository,
         private val preferences: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
         private val clock: Clock = Clock.System,
     ) : ViewModel() {
@@ -67,6 +70,15 @@ class TvPlayerViewModel
         private var autoStarted = 0
         private var lastKey = clock.now()
         private val asking = MutableStateFlow(false)
+
+        /** How much later (negative: earlier) the playing video's subtitles show (#456). */
+        val subtitleDelay: StateFlow<Duration> by lazy {
+            uiState
+                .map { (it as? TvPlayerUiState.Playing)?.video?.id }
+                .distinctUntilChanged()
+                .flatMapLatest { id -> id?.let(delays::delay) ?: flowOf(Duration.ZERO) }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Duration.ZERO)
+        }
 
         /** The player asks whether anyone still watches; playback is paused until the answer. */
         val stillWatching: StateFlow<Boolean> = asking
@@ -268,6 +280,17 @@ class TvPlayerViewModel
                     choose(video) { picker.choose(video, action.index, it?.subtitleIndex, wholeSeason = false) }
                 }
 
+                is TvPlayerAction.ShiftSubtitles -> {
+                    val video = playing?.video ?: return
+                    val delay =
+                        if (action.later == null) {
+                            Duration.ZERO
+                        } else {
+                            subtitleDelayStep(subtitleDelay.value, action.later)
+                        }
+                    viewModelScope.launch { delays.save(video.id, delay) }
+                }
+
                 is TvPlayerAction.ChooseSubtitle -> {
                     val video = playing?.video ?: return
                     choose(video) {
@@ -424,6 +447,11 @@ sealed interface TvPlayerAction {
     /** `null` = Off. */
     data class ChooseSubtitle(
         val index: Int?,
+    ) : TvPlayerAction
+
+    /** Subtitles 0.1 s [later] or earlier (#456); `null` back in step with the picture. */
+    data class ShiftSubtitles(
+        val later: Boolean?,
     ) : TvPlayerAction
 
     data object CancelNext : TvPlayerAction

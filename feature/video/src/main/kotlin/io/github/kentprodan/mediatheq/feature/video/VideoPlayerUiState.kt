@@ -61,6 +61,11 @@ sealed interface VideoPlayerAction {
         val index: Int?,
     ) : VideoPlayerAction
 
+    /** Subtitles 0.1 s [later] or earlier (#456); `null` back in step with the picture. */
+    data class ShiftSubtitles(
+        val later: Boolean?,
+    ) : VideoPlayerAction
+
     /** The skip button: the segment showing it is skipped (#277). */
     data object SkipSegment : VideoPlayerAction
 

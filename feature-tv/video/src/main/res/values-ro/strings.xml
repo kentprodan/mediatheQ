@@ -110,6 +110,13 @@
     <string name="tv_player_quality_720">720p</string>
     <string name="tv_player_quality_low">Mai mică</string>
     <string name="tv_player_zoom">Zoom</string>
+    <string name="tv_player_subtitle_timing">Sincronizare subtitrări</string>
+    <string name="tv_player_subtitles_earlier">Mai devreme cu 0,1 s</string>
+    <string name="tv_player_subtitles_later">Mai târziu cu 0,1 s</string>
+    <string name="tv_player_subtitles_reset">Resetează</string>
+    <string name="tv_player_subtitles_in_step">Sincron cu imaginea</string>
+    <string name="tv_player_subtitles_later_by">Cu %1$s s mai târziu</string>
+    <string name="tv_player_subtitles_earlier_by">Cu %1$s s mai devreme</string>
     <string name="tv_player_zoom_fit">Încadrează</string>
     <string name="tv_player_zoom_fill">Umple</string>
     <string name="tv_player_zoom_stretch">Întinde</string>

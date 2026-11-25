@@ -113,6 +113,13 @@
     <string name="tv_player_quality_720">720p</string>
     <string name="tv_player_quality_low">Lower</string>
     <string name="tv_player_zoom">Zoom</string>
+    <string name="tv_player_subtitle_timing">Subtitle timing</string>
+    <string name="tv_player_subtitles_earlier">Earlier by 0.1 s</string>
+    <string name="tv_player_subtitles_later">Later by 0.1 s</string>
+    <string name="tv_player_subtitles_reset">Reset</string>
+    <string name="tv_player_subtitles_in_step">In step with the picture</string>
+    <string name="tv_player_subtitles_later_by">%1$s s later</string>
+    <string name="tv_player_subtitles_earlier_by">%1$s s earlier</string>
     <string name="tv_player_zoom_fit">Fit</string>
     <string name="tv_player_zoom_fill">Fill</string>
     <string name="tv_player_zoom_stretch">Stretch</string>

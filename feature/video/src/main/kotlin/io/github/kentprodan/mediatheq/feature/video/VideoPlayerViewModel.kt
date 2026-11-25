@@ -9,12 +9,14 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.data.SegmentAction
+import io.github.kentprodan.mediatheq.core.data.SubtitleDelayRepository
 import io.github.kentprodan.mediatheq.core.data.TrackPicker
 import io.github.kentprodan.mediatheq.core.data.VideoPreferences
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
 import io.github.kentprodan.mediatheq.core.data.resumeStart
 import io.github.kentprodan.mediatheq.core.data.segmentAction
+import io.github.kentprodan.mediatheq.core.data.subtitleDelayStep
 import io.github.kentprodan.mediatheq.core.model.MediaSegment
 import io.github.kentprodan.mediatheq.core.model.PlayerExtras
 import io.github.kentprodan.mediatheq.core.model.ResolvedTracks
@@ -58,6 +60,7 @@ class VideoPlayerViewModel
         private val playback: PlaybackConnection,
         private val picker: TrackPicker,
         private val videoPreferences: VideoPreferencesRepository = VideoPreferencesRepository.Defaults,
+        private val delays: SubtitleDelayRepository,
     ) : ViewModel() {
         private val controlsShown = MutableStateFlow(true)
         private var hideJob: Job? = null
@@ -65,6 +68,12 @@ class VideoPlayerViewModel
         // The key's video until the player has one, then the one it has: the next episode plays on this screen (#275).
         private val videoId = MutableStateFlow(key.id)
         private val video = videoId.flatMapLatest { videos.video(it) }
+
+        /** How much later (negative: earlier) the playing video's subtitles show (#456). */
+        val subtitleDelay: StateFlow<Duration> =
+            videoId
+                .flatMapLatest(delays::delay)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Duration.ZERO)
 
         // Set once the player had this video: its going away afterwards means it ended, not that it is loading.
         private var seen = false
@@ -298,6 +307,12 @@ class VideoPlayerViewModel
 
                 is VideoPlayerAction.ChooseSubtitle -> {
                     choose(subtitleOff = action.index == null) { it.copy(subtitleIndex = action.index) }
+                }
+
+                is VideoPlayerAction.ShiftSubtitles -> {
+                    val id = videoId.value
+                    val delay = action.later?.let { subtitleDelayStep(subtitleDelay.value, it) } ?: Duration.ZERO
+                    viewModelScope.launch { delays.save(id, delay) }
                 }
 
                 is VideoPlayerAction.WholeSeason -> {

@@ -1,6 +1,8 @@
 package io.github.kentprodan.mediatheq.core.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
@@ -11,8 +13,10 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,6 +26,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
+import kotlin.time.Duration
 
 /** One row of the tracks sheet: a stream by its server index (`null` = Off for subtitles). */
 data class TrackOption(
@@ -37,6 +42,8 @@ data class TracksSheetState(
     val subtitles: List<TrackOption>,
     /** For an episode: whether the choice is saved for its whole season; `null` for a movie. */
     val wholeSeason: Boolean? = null,
+    /** In the player with subtitles on (#456): how much later (negative: earlier) they show; `null` hides the row. */
+    val subtitleDelay: Duration? = null,
 )
 
 /** The audio and subtitle choice as a sheet (#274); a pick applies at once, the sheet stays for the other list. */
@@ -48,9 +55,11 @@ fun MqTracksSheet(
     onSubtitle: (Int?) -> Unit,
     onWholeSeason: (Boolean) -> Unit,
     onDismiss: () -> Unit,
+    /** Subtitles 0.1 s later (`true`), earlier, or back in step (`null`), #456. */
+    onShiftSubtitles: (Boolean?) -> Unit = {},
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        MqTracksContent(state, onAudio, onSubtitle, onWholeSeason)
+        MqTracksContent(state, onAudio, onSubtitle, onWholeSeason, onShiftSubtitles)
     }
 }
 
@@ -61,6 +70,7 @@ fun MqTracksContent(
     onAudio: (Int) -> Unit,
     onSubtitle: (Int?) -> Unit,
     onWholeSeason: (Boolean) -> Unit,
+    onShiftSubtitles: (Boolean?) -> Unit = {},
 ) {
     LazyColumn(contentPadding = PaddingValues(bottom = MediatheqSpacing.l)) {
         state.wholeSeason?.let { whole ->
@@ -81,7 +91,38 @@ fun MqTracksContent(
         state.subtitles.forEach { option ->
             item(key = "s${option.index}") { OptionRow(option) { onSubtitle(option.index) } }
         }
+        state.subtitleDelay?.let { delay -> item(key = "timing") { TimingRow(delay, onShiftSubtitles) } }
     }
+}
+
+@Composable
+private fun TimingRow(
+    delay: Duration,
+    onShift: (Boolean?) -> Unit,
+) {
+    val seconds = "%.1f".format(delay.absoluteValue.inWholeMilliseconds / 1000.0)
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.core_ui_subtitle_timing)) },
+        supportingContent = {
+            Text(
+                when {
+                    delay.isPositive() -> stringResource(R.string.core_ui_subtitles_later_by, seconds)
+                    delay.isNegative() -> stringResource(R.string.core_ui_subtitles_earlier_by, seconds)
+                    else -> stringResource(R.string.core_ui_subtitles_in_step)
+                },
+            )
+        },
+        trailingContent = {
+            Row(horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s)) {
+                if (delay != Duration.ZERO) {
+                    TextButton({ onShift(null) }) { Text(stringResource(R.string.core_ui_subtitles_reset)) }
+                }
+                OutlinedButton({ onShift(false) }) { Text(stringResource(R.string.core_ui_subtitles_earlier)) }
+                OutlinedButton({ onShift(true) }) { Text(stringResource(R.string.core_ui_subtitles_later)) }
+            }
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+    )
 }
 
 @Composable

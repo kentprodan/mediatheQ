@@ -85,6 +85,7 @@ internal fun VideoPlayerRoute(
     val nextIn by viewModel.nextIn.collectAsStateWithLifecycle()
     val skip by viewModel.skipButton.collectAsStateWithLifecycle()
     val extras by viewModel.extras.collectAsStateWithLifecycle()
+    val subtitleDelay by viewModel.subtitleDelay.collectAsStateWithLifecycle()
     val skipped by viewModel.skippedNotice.collectAsStateWithLifecycle()
     val playing = state as? VideoPlayerUiState.Playing
     val inPip = rememberIsInPipMode()
@@ -116,6 +117,7 @@ internal fun VideoPlayerRoute(
         skip = skip?.type,
         skipped = skipped,
         extras = extras,
+        subtitleDelay = subtitleDelay,
         onPip = LocalActivity.current?.let { activity -> { enterPip(activity) } },
     ) {
         Box(Modifier.fillMaxSize()) {
@@ -162,6 +164,8 @@ fun VideoPlayerScreen(
     skipped: SegmentType? = null,
     /** Chapters and seek previews (#277). */
     extras: PlayerExtras = PlayerExtras(),
+    /** How much later (negative: earlier) the subtitles show (#456). */
+    subtitleDelay: Duration = Duration.ZERO,
     /** The PiP button (#445); `null` hides it. */
     onPip: (() -> Unit)? = null,
     surface: @Composable () -> Unit,
@@ -287,11 +291,14 @@ fun VideoPlayerScreen(
                 val tracks = state.tracks
                 if (tracksOpen && tracks != null) {
                     MqTracksSheet(
-                        tracks.sheet(stringResource(R.string.video_tracks_off), stringResource(R.string.video_track)),
+                        tracks
+                            .sheet(stringResource(R.string.video_tracks_off), stringResource(R.string.video_track))
+                            .copy(subtitleDelay = subtitleDelay.takeIf { tracks.resolved.subtitleIndex != null }),
                         onAudio = { onAction(VideoPlayerAction.ChooseAudio(it)) },
                         onSubtitle = { onAction(VideoPlayerAction.ChooseSubtitle(it)) },
                         onWholeSeason = { onAction(VideoPlayerAction.WholeSeason(it)) },
                         onDismiss = { tracksOpen = false },
+                        onShiftSubtitles = { onAction(VideoPlayerAction.ShiftSubtitles(it)) },
                     )
                 }
             }

@@ -119,6 +119,13 @@
     <string name="core_ui_video_forward_10">Forward 10 seconds</string>
     <string name="core_ui_tracks_audio">Audio</string>
     <string name="core_ui_tracks_subtitles">Subtitles</string>
+    <string name="core_ui_subtitle_timing">Subtitle timing</string>
+    <string name="core_ui_subtitles_earlier">−0.1 s</string>
+    <string name="core_ui_subtitles_later">+0.1 s</string>
+    <string name="core_ui_subtitles_reset">Reset</string>
+    <string name="core_ui_subtitles_in_step">In step with the picture</string>
+    <string name="core_ui_subtitles_later_by">%1$s s later</string>
+    <string name="core_ui_subtitles_earlier_by">%1$s s earlier</string>
     <string name="core_ui_tracks_whole_season">Apply to the whole season</string>
     <string name="core_ui_tracks_open">Audio and subtitles</string>
     <string name="core_ui_home_continue_watching">Continue watching</string>

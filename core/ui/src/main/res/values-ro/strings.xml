@@ -128,6 +128,13 @@
     <string name="core_ui_video_forward_10">Înainte 10 secunde</string>
     <string name="core_ui_tracks_audio">Audio</string>
     <string name="core_ui_tracks_subtitles">Subtitrări</string>
+    <string name="core_ui_subtitle_timing">Sincronizare subtitrări</string>
+    <string name="core_ui_subtitles_earlier">−0,1 s</string>
+    <string name="core_ui_subtitles_later">+0,1 s</string>
+    <string name="core_ui_subtitles_reset">Resetează</string>
+    <string name="core_ui_subtitles_in_step">Sincron cu imaginea</string>
+    <string name="core_ui_subtitles_later_by">Cu %1$s s mai târziu</string>
+    <string name="core_ui_subtitles_earlier_by">Cu %1$s s mai devreme</string>
     <string name="core_ui_tracks_whole_season">Aplică întregului sezon</string>
     <string name="core_ui_tracks_open">Audio și subtitrări</string>
     <string name="core_ui_home_continue_watching">Continuă vizionarea</string>

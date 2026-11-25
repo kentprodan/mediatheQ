@@ -60,6 +60,7 @@ import io.github.kentprodan.mediatheq.core.data.QueueRepository
 import io.github.kentprodan.mediatheq.core.data.ResumeRepository
 import io.github.kentprodan.mediatheq.core.data.SessionRepository
 import io.github.kentprodan.mediatheq.core.data.SessionState
+import io.github.kentprodan.mediatheq.core.data.SubtitleDelayRepository
 import io.github.kentprodan.mediatheq.core.data.UserDataRepository
 import io.github.kentprodan.mediatheq.core.data.VideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.data.VideoRepository
@@ -120,6 +121,12 @@ class MediatheqPlaybackService : MediaLibraryService() {
     @Inject lateinit var videoRepository: VideoRepository
 
     @Inject lateinit var styledSubtitles: StyledSubtitles
+
+    @Inject lateinit var subtitleDelays: SubtitleDelayRepository
+
+    // The playing video's subtitle delay (#456): written on the main thread, read by the renderers on the playback thread.
+    @Volatile private var subtitleDelayUs = 0L
+    private var subtitleDelayJob: Job? = null
 
     @Inject lateinit var videoPreferences: VideoPreferencesRepository
 
@@ -321,6 +328,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                             // passthrough, so Atmos is never decoded by FFmpeg on a route that takes it.
                             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON),
                         styledSubtitles.handler,
+                        delayUs = { subtitleDelayUs },
                     ),
                 ).setLoadControl(playerLoadControl(this))
                 .setMediaSourceFactory(
@@ -371,6 +379,14 @@ class MediatheqPlaybackService : MediaLibraryService() {
         swap = SwapPlayer(buildPlayer())
         val player = swap.player
         styledSubtitles.attach(player)
+        player.addListener(
+            object : Player.Listener {
+                override fun onMediaItemTransition(
+                    mediaItem: MediaItem?,
+                    reason: Int,
+                ) = followSubtitleDelay(mediaItem)
+            },
+        )
         built = player
         startAudioOutput(player)
         startCrossfade(player, ::buildPlayer)
@@ -1168,8 +1184,18 @@ class MediatheqPlaybackService : MediaLibraryService() {
         )
     }
 
+    /** Follows the delay of [item]'s subtitles while it plays (#456); none for music. */
+    private fun followSubtitleDelay(item: MediaItem?) {
+        subtitleDelayJob?.cancel()
+        subtitleDelayUs = 0L
+        val id = item?.localConfiguration?.uri?.videoId() ?: return
+        subtitleDelayJob =
+            applicationScope.launch { subtitleDelays.delay(id).collect { subtitleDelayUs = it.inWholeMicroseconds } }
+    }
+
     override fun onDestroy() {
         Media3Log.setLogger(Media3Log.Logger.DEFAULT)
+        subtitleDelayJob?.cancel()
         styledSubtitles.release(swap.player)
         videoRecovery.release()
         signOutWatch?.cancel()
