@@ -204,7 +204,7 @@ internal class StreamMediaSourceFactory(
     private val chooseVideo: suspend (MediaId, MediaItem) -> StreamSource = { _, _ -> StreamSource.Progressive },
     /** The download cache, read only, for a downloaded video (#279). */
     private val downloadCache: Cache? = null,
-    /** The extractors of a video file: Dolby Vision profile 7 and HDR10+ handling (#385). */
+    /** The extractors of a video file: container fixes (#634), Dolby Vision profile 7 and HDR10+ handling (#385). */
     private val videoExtractors: ExtractorsFactory = DefaultExtractorsFactory(),
 ) : ForwardingMediaSourceFactory(progressive) {
     override fun createMediaSource(mediaItem: MediaItem): MediaSource {
@@ -258,6 +258,7 @@ internal class StreamMediaSourceFactory(
                 val authenticated = authenticated()
                 HlsMediaSource
                     .Factory(authenticated)
+                    .setPlaylistParserFactory(TrickPlayFreeHlsPlaylistParserFactory())
                     .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
                     .createMediaSource(
                         mediaItem

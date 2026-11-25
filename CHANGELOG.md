@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 ## [Unreleased]
 
 ### Added
+- Video files that failed to open now play: Blu-ray TS rips with DTS or DTS-HD audio, MKV files with compressed PGS subtitles, files with no seek table (they seek now), and streams whose playlist lists a trick-play variant first (they had no sound).
 - Dolby Vision Blu-ray remuxes (profile 7) play as they are, no server conversion: the TV enters Dolby Vision on players that decode profile 8 (the Streamer), and plays them in HDR10 elsewhere. Films with both Dolby Vision and HDR10+ play directly too, without the black screen some players show.
 - Crossfade (Settings -> Playback -> Transitions): 1 to 12 seconds between tracks of different albums and in shuffled queues, with fade curves and smart fades that start where a track gets quiet. Albums playing in order stay gapless; no crossfade on bit-perfect or passthrough outputs, and only for tracks downloaded or fully cached.
 - Bit-perfect USB: 24-bit files reach the DAC with all 24 bits, and DACs that take only 24 or 32-bit audio now play bit-perfect too. Files above 192 kHz play at half their rate on other outputs, where some phones stall.

@@ -39,6 +39,7 @@ class LicensesTest {
                 "moonfin-display-settle",
                 "moonfin-video-recovery",
                 "moonfin-frame-cadence",
+                "moonfin-containers",
                 "pixelplayer-widening",
                 "androidx.media3:media3-exoplayer",
                 "com.squareup.okhttp3:okhttp",

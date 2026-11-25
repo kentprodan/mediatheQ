@@ -174,7 +174,7 @@ class DeviceProfileBuilderTest {
     fun `a video profile plays video containers with the music audio rule inside`() {
         val profile = DeviceProfileBuilder.video(pixel, h264, VideoQuality.Original)
 
-        assertThat(profile.directPlayContainers).containsExactly("mp4", "m4v", "mkv", "webm", "ts")
+        assertThat(profile.directPlayContainers).containsExactly("mp4", "m4v", "mkv", "webm", "ts", "m2ts")
         assertThat(profile.directPlayCodecs).containsAtLeast("aac", "opus", "ac3")
         // A plain E-AC-3 decoder is not enough (JOC rule), and phones never get TrueHD.
         assertThat(profile.directPlayCodecs).containsNoneOf("eac3", "truehd")
