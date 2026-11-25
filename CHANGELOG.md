@@ -100,6 +100,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 
 ### Fixed
+- On the TV, films transferred with 3:2 pulldown (stated as 23.976 but timed for 59.94) switch the display to the rate their frames really need, and files with uneven timestamps no longer drop frames at 50 Hz.
 - A film or episode no longer stops after the screensaver took its decoder, no longer hangs buffering after a resume with plenty loaded, and no longer plays its sound over a black screen when the device cannot show the picture (a Dolby Vision profile it lacks, for one): the server converts it at once instead.
 - A device whose battery-saving audio offload fails to start, or resets, now plays on normally without it instead of staying silent or stuttering; a stall is remembered until the next system update.
 - TV: Dolby Atmos passthrough survives the HDMI link dropping for a few seconds at playback start, and a soundbar that stays silent after a pause gets its audio back on its own. The passthrough switch now really decodes the audio when it is off.

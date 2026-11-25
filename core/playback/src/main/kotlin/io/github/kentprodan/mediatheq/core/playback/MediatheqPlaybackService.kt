@@ -157,6 +157,17 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     // What the playing video plays as (#276), from the video listener.
     private var videoPlayback: VideoPlayback? = null
+
+    // The rate each video file's frame timing asks for, by its URI (#633); a handful at most (the playing one, the next).
+    private val cadenceRates = LinkedHashMap<String, Float>()
+
+    // The display's vsync period, re-read once a second on the playback thread (#633).
+    @Volatile private var vsyncPeriodNs = 0L
+
+    @Volatile private var vsyncReadAt = 0L
+
+    // Sends the info line again (set in onCreate, where the play method is known).
+    private var refreshVideoInfo: () -> Unit = {}
     private var hdrLogged = false
 
     @Inject lateinit var artworkUrls: ArtworkUrlResolver
@@ -292,6 +303,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         // Read on the playback thread at decoder and AudioTrack setup (#629).
                         bitPerfectFormat = { outputNow.bitPerfectFormat },
                         floatOutput = { outputNow.floatOutput },
+                        vsyncNs = ::vsyncNs,
                         // A bitstream track gone silent (#377): a seek in place rebuilds it, on the player's thread.
                         onRecoveryNeeded = { reason ->
                             Handler(Looper.getMainLooper()).post {
@@ -340,8 +352,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
                         },
                         downloadCache = downloadCache,
                         videoExtractors =
-                            DolbyVisionExtractorsFactory(
-                                { dolbyVisionCompat(hdrDecoders, displayHdr.types()) },
+                            CadenceExtractorsFactory(
+                                DolbyVisionExtractorsFactory({ dolbyVisionCompat(hdrDecoders, displayHdr.types()) }),
+                                onRate = ::onCadence,
                             ),
                     ),
                 ).build()
@@ -781,6 +794,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
         }
 
         fun convertedDownload(): Boolean = currentId()?.let(streamResolver::isConvertedDownload) == true
+        refreshVideoInfo = {
+            if (::audioOutput.isInitialized) {
+                session?.sessionExtras = audioOutput.state.toInfo(currentPlayMethod(), convertedDownload()).toBundle()
+            }
+        }
         // Into the app's log (#169): tracks, play / pause with how the stream comes, errors.
         player.addListener(
             PlaybackLogListener(player, appLog) {
@@ -1053,11 +1071,51 @@ class MediatheqPlaybackService : MediaLibraryService() {
             playedItemId = played.itemId,
             streamKnown = played.known,
             convertedKbps = played.convertedKbps,
-            video = videoPlayback?.copy(playMethod = playMethod),
+            video = videoPlayback?.copy(playMethod = playMethod, cadenceRate = currentCadenceRate()),
         )
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
+
+    /** A video file's frame timing settled on [rate] (#633, on a loader thread): the TV switches to it. */
+    private fun onCadence(
+        uri: android.net.Uri,
+        rate: Float,
+    ) {
+        Handler(Looper.getMainLooper()).post {
+            val key =
+                uri
+                    .buildUpon()
+                    .clearQuery()
+                    .build()
+                    .toString()
+            cadenceRates.remove(key)
+            cadenceRates[key] = rate
+            while (cadenceRates.size > CADENCE_FILES) cadenceRates.remove(cadenceRates.keys.first())
+            appLog.info("MqVideo", "Frame timing asks for $rate Hz")
+            refreshVideoInfo()
+        }
+    }
+
+    /** The playing video's measured rate, its file found by the item id in the URI. */
+    private fun currentCadenceRate(): Float? {
+        val mediaId = if (::swap.isInitialized) swap.player.currentMediaItem?.mediaId else null
+        val itemId = mediaId?.let { runCatching { MediaId.parse(it).itemId }.getOrNull() }
+        return itemId?.let { id -> cadenceRates.entries.lastOrNull { it.key.contains(id, ignoreCase = true) }?.value }
+    }
+
+    private fun vsyncNs(): Long {
+        val now = SystemClock.elapsedRealtime()
+        if (now - vsyncReadAt >= 1_000L) {
+            vsyncReadAt = now
+            val hz =
+                getSystemService(android.hardware.display.DisplayManager::class.java)
+                    ?.getDisplay(android.view.Display.DEFAULT_DISPLAY)
+                    ?.refreshRate ?: 0f
+            vsyncPeriodNs = if (hz > 1f) (1_000_000_000.0 / hz).toLong() else 0L
+        }
+        return vsyncPeriodNs
+    }
 
     /**
      * Stops with the task only when nothing is playing; otherwise music keeps going (with its notification), unless
@@ -1288,6 +1346,7 @@ internal fun localCoverBytes(uri: Uri): ByteArray? {
 }
 
 private const val AUDIO_TAG = "MqAudioOutput"
+private const val CADENCE_FILES = 4
 private const val OFFLOAD_PREFS = "offload"
 private const val OFFLOAD_BROKEN_BUILD = "broken_build"
 

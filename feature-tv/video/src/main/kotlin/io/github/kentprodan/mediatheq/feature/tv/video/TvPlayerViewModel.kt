@@ -97,8 +97,12 @@ class TvPlayerViewModel
          */
         val videoFormat: StateFlow<Pair<Float, Int>?> =
             combine(video, playback.state) { video, player ->
-                video?.format?.let { f -> f.frameRate?.let { it to (f.height ?: 0) } }
-                    ?: player.output.video?.let { v -> v.frameRate?.let { it to v.height } }
+                val stream = player.output.video?.takeIf { player.item?.id == video?.id }
+                val height = video?.format?.height ?: stream?.height ?: 0
+                // The frames' own timing wins once measured (#633): 3:2 pulldown stated as 23.976 wants 59.94.
+                stream?.cadenceRate?.let { it to height }
+                    ?: video?.format?.frameRate?.let { it to height }
+                    ?: stream?.frameRate?.let { it to stream.height }
             }.distinctUntilChanged()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

@@ -99,6 +99,8 @@ data class VideoPlayback(
     val decoder: String? = null,
     /** Frames per second as the stream states it (#384); `null` when unknown. */
     val frameRate: Float? = null,
+    /** The refresh rate the frames' own timing asks for (#633, 59.94 for 3:2 pulldown film); `null` until measured. */
+    val cadenceRate: Float? = null,
 )
 
 /** The range a decoded format carries (#276): Dolby Vision by its decoder, else HDR10 (PQ) or HLG by its transfer. */
