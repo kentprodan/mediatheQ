@@ -11,6 +11,7 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.PlayMethod
 import io.github.kentprodan.mediatheq.core.model.PlaybackStream
 import io.github.kentprodan.mediatheq.core.model.StreamChoice
+import io.github.kentprodan.mediatheq.core.model.SubtitleMethod
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -284,6 +285,34 @@ class StreamResolver
         /** The stream the player uses for [itemId], or `null` if it was never resolved. */
         fun current(itemId: MediaId): PlaybackStream? = streams[itemId]?.stream
 
+        /**
+         * Points [itemId]'s known direct play at other tracks of its file (#678): the player has every audio track and
+         * every embedded or side-loaded subtitle already, so nothing is asked again. `false` when the server must answer
+         * again: a conversion, a subtitle it burns in, or no known stream.
+         */
+        fun retargetTracks(
+            itemId: MediaId,
+            audioIndex: Int?,
+            subtitleIndex: Int?,
+        ): Boolean {
+            val known = streams[itemId] ?: return false
+            val stream = known.stream
+            if (!playsWithoutServer(stream, subtitleIndex)) return false
+            streams[itemId] =
+                Resolved(
+                    stream.copy(
+                        audioStreamIndex = audioIndex ?: stream.audioStreamIndex,
+                        subtitleStreamIndex = subtitleIndex,
+                    ),
+                    known.quality,
+                    known.passthrough,
+                    known.local,
+                    known.convertedKbps,
+                    known.video,
+                )
+            return true
+        }
+
         /** The quality [itemId]'s known stream was asked for; `null` while none is known. */
         fun quality(itemId: MediaId): StreamingQuality? = streams[itemId]?.takeUnless { it.video }?.quality
 
@@ -311,3 +340,14 @@ private const val BITS_PER_KBIT = 1000
 
 /** Why a video download failed (#279): the phone cannot play the original, and videos are never converted for it. */
 const val CANNOT_DOWNLOAD = "download: the server cannot send this video as it is"
+
+/** Whether [subtitleIndex] (or none) plays from [stream] as it is: a direct play whose subtitle is in or beside the file. */
+internal fun playsWithoutServer(
+    stream: PlaybackStream,
+    subtitleIndex: Int?,
+): Boolean {
+    if (stream.playMethod != PlayMethod.DirectPlay || stream.segmented) return false
+    if (subtitleIndex == null) return true
+    val subtitle = stream.subtitles.firstOrNull { it.index == subtitleIndex } ?: return false
+    return subtitle.method == SubtitleMethod.Embed || subtitle.method == SubtitleMethod.External
+}

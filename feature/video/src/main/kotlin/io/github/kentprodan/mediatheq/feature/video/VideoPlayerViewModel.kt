@@ -348,7 +348,7 @@ class VideoPlayerViewModel
                     wholeSeason ?: (current.wholeSeason == true),
                     subtitleOff,
                 )
-                playback.reloadVideo()
+                playback.applyVideoTracks()
             }
         }
 

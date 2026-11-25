@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -122,17 +123,26 @@ class TvPlayerViewModel
 
         /**
          * The frame rate and height the display follows: the library's (known before playback, so the mode switches
-         * before any sound, #631), else the stream's once it plays.
+         * before any sound, #631), else the stream's once it plays. Held per video ([nextDisplayLock]): a reload or a
+         * new measurement of the same video never switches the TV again, except once for a measured 3:2 pulldown.
          */
         val videoFormat: StateFlow<Pair<Float, Int>?> =
             combine(video, playback.state) { video, player ->
-                val stream = player.output.video?.takeIf { player.item?.id == video?.id }
-                val height = video?.format?.height ?: stream?.height ?: 0
-                // The frames' own timing wins once measured (#633): 3:2 pulldown stated as 23.976 wants 59.94.
-                stream?.cadenceRate?.let { it to height }
-                    ?: video?.format?.frameRate?.let { it to height }
-                    ?: stream?.frameRate?.let { it to stream.height }
-            }.distinctUntilChanged()
+                video to
+                    player.output.video?.takeIf { player.item?.id == video?.id }
+            }.scan(null as DisplayLock?) { lock, (video, stream) ->
+                video?.let {
+                    nextDisplayLock(
+                        lock,
+                        it.id,
+                        it.format?.height ?: stream?.height ?: 0,
+                        measured = stream?.cadenceRate,
+                        library = it.format?.frameRate,
+                        stream = stream?.frameRate,
+                    )
+                } ?: lock
+            }.map { it?.format }
+                .distinctUntilChanged()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
         // The display mode switch (#631): the first start waits for it to settle; a switch while playing pauses and
@@ -254,7 +264,8 @@ class TvPlayerViewModel
                 viewModelScope.launch {
                     videos.video(key.id).first()?.let {
                         val match = preferences.preferences.first().displayMatch
-                        val switches = it.format?.frameRate != null && match != DisplayMatch.Off
+                        val switches =
+                            it.format?.frameRate != null && match != DisplayMatch.Off && match != DisplayMatch.System
                         if (switches) withTimeoutOrNull(START_HOLD_MAX) { displaySettled.first { ready -> ready } }
                         val saved = key.startPositionMs.milliseconds
                         playback.playVideo(it, if (saved > Duration.ZERO) resumeStart(saved) else Duration.ZERO)
@@ -408,7 +419,7 @@ class TvPlayerViewModel
                 if (playback.state.value.item
                         ?.id == video.id
                 ) {
-                    playback.reloadVideo()
+                    playback.applyVideoTracks()
                 }
             }
         }

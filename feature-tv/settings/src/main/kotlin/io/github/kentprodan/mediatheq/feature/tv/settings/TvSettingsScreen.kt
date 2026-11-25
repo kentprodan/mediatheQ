@@ -1060,6 +1060,10 @@ private const val BITS_PER_KBIT = 1000
 private val io.github.kentprodan.mediatheq.core.data.DisplayMatch.label: Int
     get() =
         when (this) {
+            io.github.kentprodan.mediatheq.core.data.DisplayMatch.System -> {
+                R.string.tv_settings_display_match_system
+            }
+
             io.github.kentprodan.mediatheq.core.data.DisplayMatch.Off -> {
                 R.string.tv_settings_display_match_off
             }

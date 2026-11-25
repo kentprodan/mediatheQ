@@ -72,9 +72,10 @@
     <string name="tv_settings_display_match">Potrivește afișajul cu videoul</string>
     <string name="tv_settings_playback_details">Detalii redare</string>
     <string name="tv_settings_playback_details_detail">Arată peste imagine ce a decis playerul: decodoare, ieșirea sunetului, rata cadrelor, subtitrări</string>
-    <string name="tv_settings_display_match_off">Oprit</string>
-    <string name="tv_settings_display_match_rate">Rata de cadre</string>
-    <string name="tv_settings_display_match_resolution">Rata de cadre și rezoluția</string>
+    <string name="tv_settings_display_match_system">Ca în setările Google TV</string>
+    <string name="tv_settings_display_match_off">Niciodată</string>
+    <string name="tv_settings_display_match_rate">Mereu: rata de cadre</string>
+    <string name="tv_settings_display_match_resolution">Mereu: rata de cadre și rezoluția</string>
     <string name="tv_settings_immersive_row">Listă imersivă</string>
     <string name="tv_settings_carousel">Caruselul de pe Acasă</string>
     <string name="tv_settings_carousel_off">Oprit</string>

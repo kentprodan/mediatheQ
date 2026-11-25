@@ -74,6 +74,12 @@ interface PlaybackConnection {
     /** The second subtitle track's cues now, drawn at the top of the picture. */
     val secondarySubtitleCues: StateFlow<List<Cue>> get() = NO_CUES
 
+    /**
+     * The playing video's chosen tracks changed (#678): a direct play switches to them in place, without reloading or
+     * touching the display; a conversion or a burned-in subtitle asks the server again, like [reloadVideo].
+     */
+    fun applyVideoTracks() = reloadVideo()
+
     /** What the engine decided for the playing item (#670), for the player's details overlay. */
     val engineDetails: StateFlow<EngineDetails> get() = NO_DETAILS
 

@@ -106,6 +106,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - Optimized builds: the app is about a fifth of the size and smoother; install the `daily` build for everyday use.
 
 ### Fixed
+- TV: changing the audio track or the subtitles switches at once, without reloading the film or blanking the screen (a burned-in subtitle or a converted stream still opens again).
+- TV: the display follows Google TV's own Match content frame rate setting by default, like other streaming apps; forcing the film's rate (with a short black screen) is Settings -> Video -> Match the display to the video -> Always. A forced switch now happens once per film, never again on a reload.
 - TV: Dolby passthrough is used only for formats Android confirms reach the receiver as they are (Android 13 and later), so the Dolby Atmos badge cannot show while the soundbar gets PCM.
 - Videos the device's decoder cannot take (a level or profile too high, 10-bit H.264) are converted by the server from the start, instead of failing first.
 - On the TV, films transferred with 3:2 pulldown (stated as 23.976 but timed for 59.94) switch the display to the rate their frames really need, and files with uneven timestamps no longer drop frames at 50 Hz.

@@ -39,7 +39,7 @@ sealed interface TvSettingsUiState {
         val subtitleStyle: SubtitleStyle = SubtitleStyle(),
         /** How the display follows a video (#384). */
         val displayMatch: io.github.kentprodan.mediatheq.core.data.DisplayMatch =
-            io.github.kentprodan.mediatheq.core.data.DisplayMatch.Rate,
+            io.github.kentprodan.mediatheq.core.data.DisplayMatch.System,
         /** Video -> Playback details (#670): what the engine decided, over the picture. */
         val playbackDetails: Boolean = false,
         /** Transitions between pages (#444): Simple when on. */
