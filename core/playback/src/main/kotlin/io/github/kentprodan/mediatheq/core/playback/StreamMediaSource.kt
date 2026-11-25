@@ -18,6 +18,8 @@ import androidx.media3.exoplayer.source.ForwardingTimeline
 import androidx.media3.exoplayer.source.MediaPeriod
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.upstream.Allocator
+import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.ExtractorsFactory
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
@@ -202,6 +204,8 @@ internal class StreamMediaSourceFactory(
     private val chooseVideo: suspend (MediaId, MediaItem) -> StreamSource = { _, _ -> StreamSource.Progressive },
     /** The download cache, read only, for a downloaded video (#279). */
     private val downloadCache: Cache? = null,
+    /** The extractors of a video file: Dolby Vision profile 7 and HDR10+ handling (#385). */
+    private val videoExtractors: ExtractorsFactory = DefaultExtractorsFactory(),
 ) : ForwardingMediaSourceFactory(progressive) {
     override fun createMediaSource(mediaItem: MediaItem): MediaSource {
         mediaItem.localConfiguration?.uri?.videoId()?.let { videoId ->
@@ -226,7 +230,7 @@ internal class StreamMediaSourceFactory(
             }
 
             is StreamSource.Direct -> {
-                DefaultMediaSourceFactory(authenticated())
+                DefaultMediaSourceFactory(authenticated(), videoExtractors)
                     .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
                     .createMediaSource(
                         mediaItem
@@ -238,7 +242,7 @@ internal class StreamMediaSourceFactory(
             }
 
             is StreamSource.Downloaded -> {
-                DefaultMediaSourceFactory(downloadedVideoDataSource(requireNotNull(downloadCache)))
+                DefaultMediaSourceFactory(downloadedVideoDataSource(requireNotNull(downloadCache)), videoExtractors)
                     .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
                     .createMediaSource(
                         mediaItem

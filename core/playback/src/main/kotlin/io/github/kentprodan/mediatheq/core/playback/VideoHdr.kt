@@ -17,6 +17,10 @@ data class VideoHdrDecoders(
     val hevcHdr10Plus: Boolean = false,
     /** A `video/dolby-vision` decoder. */
     val dolbyVision: Boolean = false,
+    /** A Dolby Vision decoder for profile 7 (dual layer, Blu-ray). */
+    val dolbyVisionProfile7: Boolean = false,
+    /** A Dolby Vision decoder for profile 8 (single layer on an HDR10 / HLG / SDR base). */
+    val dolbyVisionProfile8: Boolean = false,
 )
 
 /** The decoders' HDR abilities; read once per resolve. */
@@ -43,7 +47,10 @@ fun videoRangeTypes(
     val hlg = decoders.hevcMain10 && Display.HdrCapabilities.HDR_TYPE_HLG in display
     // An HDR10+ file has an HDR10 base: it plays as HDR10 where the dynamic metadata is not taken (as Jellyfin web).
     val hdr10Plus = hdr10
-    val dv = decoders.dolbyVision && Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION in display
+    val dvDisplay = Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION in display
+    val dv = decoders.dolbyVision && dvDisplay
+    // Profile 7 plays as it is, converted to 8.1 or as its HDR10 base layer (DolbyVisionCompat, #385).
+    val profile7 = hdr10 || (dvDisplay && (decoders.dolbyVisionProfile7 || decoders.dolbyVisionProfile8))
     return buildList {
         add("SDR")
         if (hdr10) add("HDR10")
@@ -51,8 +58,12 @@ fun videoRangeTypes(
         if (hdr10Plus) add("HDR10Plus")
         if (dv) add("DOVI")
         if (dv || hdr10) add("DOVIWithHDR10")
+        // Its HDR10+ is dropped when Dolby Vision plays, else the HDR10 base plays (#385).
+        if (dv || hdr10) add("DOVIWithHDR10Plus")
         if (dv || hlg) add("DOVIWithHLG")
         add("DOVIWithSDR")
+        if (profile7) add("DOVIWithEL")
+        if (profile7) add("DOVIWithELHDR10Plus")
     }
 }
 
@@ -69,6 +80,7 @@ internal class MediaCodecVideoHdr
                     .flatMap { info -> info.getCapabilitiesForType(mime).profileLevels.map { it.profile } }
                     .toSet()
             val hevc = profiles("video/hevc")
+            val dolbyVision = profiles("video/dolby-vision")
             return VideoHdrDecoders(
                 hevcMain10 =
                     hevc.any {
@@ -78,6 +90,8 @@ internal class MediaCodecVideoHdr
                     },
                 hevcHdr10Plus = CodecProfileLevel.HEVCProfileMain10HDR10Plus in hevc,
                 dolbyVision = infos.any { "video/dolby-vision" in it.supportedTypes },
+                dolbyVisionProfile7 = CodecProfileLevel.DolbyVisionProfileDvheDtb in dolbyVision,
+                dolbyVisionProfile8 = CodecProfileLevel.DolbyVisionProfileDvheSt in dolbyVision,
             )
         }
     }

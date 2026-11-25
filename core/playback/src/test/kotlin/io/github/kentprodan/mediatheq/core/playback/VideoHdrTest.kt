@@ -24,7 +24,18 @@ class VideoHdrTest {
     @Test
     fun `an HDR display with Main 10 takes HDR10, HLG and Dolby Vision on an HDR10 or HLG base layer`() {
         assertThat(videoRangeTypes(hdrDisplay, main10))
-            .containsExactly("SDR", "HDR10", "HLG", "HDR10Plus", "DOVIWithHDR10", "DOVIWithHLG", "DOVIWithSDR")
+            .containsExactly(
+                "SDR",
+                "HDR10",
+                "HLG",
+                "HDR10Plus",
+                "DOVIWithHDR10",
+                "DOVIWithHDR10Plus",
+                "DOVIWithHLG",
+                "DOVIWithSDR",
+                "DOVIWithEL",
+                "DOVIWithELHDR10Plus",
+            )
     }
 
     @Test

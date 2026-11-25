@@ -125,6 +125,9 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var videoHdr: VideoHdrCapabilities
 
+    // The decoders' HDR facts never change while the app runs.
+    private val hdrDecoders by lazy { videoHdr.decoders() }
+
     /**
      * A downloaded video's source (#279): its downloaded external subtitles from Room's streams (only fully downloaded
      * files: a missing side-loaded file would fail the playback), the chosen one on by default.
@@ -336,6 +339,10 @@ class MediatheqPlaybackService : MediaLibraryService() {
                             }
                         },
                         downloadCache = downloadCache,
+                        videoExtractors =
+                            DolbyVisionExtractorsFactory(
+                                { dolbyVisionCompat(hdrDecoders, displayHdr.types()) },
+                            ),
                     ),
                 ).build()
         // Everything holds the swap player (#219): a crossfade can move playback to a second ExoPlayer under it.
@@ -789,7 +796,11 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 // The phone's HDR facts once, at the first video, for the media3 skill's table (#276).
                 if (it != null && !hdrLogged) {
                     hdrLogged = true
-                    appLog.info("MqVideo", "HDR display ${displayHdr.types()} decoders ${videoHdr.decoders()}")
+                    appLog.info(
+                        "MqVideo",
+                        "HDR display ${displayHdr.types()} decoders ${videoHdr.decoders()} " +
+                            "Dolby Vision ${dolbyVisionCompat(videoHdr.decoders(), displayHdr.types())}",
+                    )
                 }
                 if (::audioOutput.isInitialized) {
                     session?.sessionExtras =
