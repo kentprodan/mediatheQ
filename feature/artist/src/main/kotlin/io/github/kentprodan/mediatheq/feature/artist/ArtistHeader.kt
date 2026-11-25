@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -185,30 +186,41 @@ private fun HeaderButtons(
 ) {
     val enabled = state.tracks.isNotEmpty()
     val favorite = state.artist.userData.isFavorite
-    FlowRow(
-        Modifier.fillMaxWidth().padding(horizontal = MediatheqSpacing.l, vertical = MediatheqSpacing.s),
-        horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
-        verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
-        itemVerticalAlignment = Alignment.CenterVertically,
+    // Favorite and More sit on the right, their ⋮ above the tracks' ⋮, like the album page (owner, #681).
+    Row(
+        Modifier.fillMaxWidth().padding(
+            start = MediatheqSpacing.l,
+            end = TRACK_END_PADDING,
+            top = MediatheqSpacing.s,
+            bottom = MediatheqSpacing.s,
+        ),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Button(onClick = { onAction(ArtistAction.Play) }, enabled = enabled) {
-            Icon(MqIcons.PlayArrow, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-            Text(stringResource(R.string.artist_play), Modifier.padding(start = ButtonDefaults.IconSpacing))
-        }
-        if (state.shows(ArtistButton.Shuffle)) {
-            FilledTonalButton(onClick = { onAction(ArtistAction.Shuffle) }, enabled = enabled) {
-                Icon(MqIcons.Shuffle, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-                Text(stringResource(R.string.artist_shuffle), Modifier.padding(start = ButtonDefaults.IconSpacing))
+        FlowRow(
+            Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
+            verticalArrangement = Arrangement.spacedBy(MediatheqSpacing.s),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(onClick = { onAction(ArtistAction.Play) }, enabled = enabled) {
+                Icon(MqIcons.PlayArrow, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                Text(stringResource(R.string.artist_play), Modifier.padding(start = ButtonDefaults.IconSpacing))
             }
-        }
-        if (state.shows(ArtistButton.PlayNext)) {
-            IconButton(onClick = { onAction(ArtistAction.PlayNext) }, enabled = enabled) {
-                Icon(MqIcons.PlayNext, stringResource(R.string.artist_play_next))
+            if (state.shows(ArtistButton.Shuffle)) {
+                FilledTonalButton(onClick = { onAction(ArtistAction.Shuffle) }, enabled = enabled) {
+                    Icon(MqIcons.Shuffle, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                    Text(stringResource(R.string.artist_shuffle), Modifier.padding(start = ButtonDefaults.IconSpacing))
+                }
             }
-        }
-        if (state.shows(ArtistButton.AddToQueue)) {
-            IconButton(onClick = { onAction(ArtistAction.AddToQueue) }, enabled = enabled) {
-                Icon(MqIcons.AddToQueue, stringResource(R.string.artist_add_to_queue))
+            if (state.shows(ArtistButton.PlayNext)) {
+                IconButton(onClick = { onAction(ArtistAction.PlayNext) }, enabled = enabled) {
+                    Icon(MqIcons.PlayNext, stringResource(R.string.artist_play_next))
+                }
+            }
+            if (state.shows(ArtistButton.AddToQueue)) {
+                IconButton(onClick = { onAction(ArtistAction.AddToQueue) }, enabled = enabled) {
+                    Icon(MqIcons.AddToQueue, stringResource(R.string.artist_add_to_queue))
+                }
             }
         }
         if (state.shows(ArtistButton.Favorite)) {
@@ -267,3 +279,6 @@ private val EDGE_TO_EDGE = setOf(ArtistHeaderBackground.Backdrop, ArtistHeaderBa
 
 private const val BACKDROP_RATIO = 16f / 9f
 private const val AVATAR_WIDTH_FRACTION = 0.5f
+
+// So the header's ⋮ lines up with the tracks' (their ListItem ends 4 dp further right).
+private val TRACK_END_PADDING = MediatheqSpacing.m

@@ -1,6 +1,8 @@
 package io.github.kentprodan.mediatheq.feature.artist
 
 import com.google.common.truth.Truth.assertThat
+import io.github.kentprodan.mediatheq.core.common.MqError
+import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.ArtistButton
 import io.github.kentprodan.mediatheq.core.data.ArtistPagePreferences
 import io.github.kentprodan.mediatheq.core.data.ArtistPlayAction
@@ -74,7 +76,7 @@ class ArtistViewModelTest {
 
     private fun TestScope.viewModel(): ArtistViewModel {
         val viewModel =
-            ArtistViewModel(artistId, library, preferences, playback, trackTaps, commands, userData, downloads)
+            ArtistViewModel(artistId, library, preferences, playback, trackTaps, commands, userData, downloads, similar)
         backgroundScope.launch { viewModel.uiState.collect() }
         return viewModel
     }
@@ -93,6 +95,7 @@ class ArtistViewModelTest {
                 commands,
                 userData,
                 downloads,
+                similar,
             ).uiState.value,
         ).isEqualTo(ArtistUiState.Loading)
     }
@@ -115,6 +118,19 @@ class ArtistViewModelTest {
             assertThat(state.appearsOn).containsExactly(compilation)
             assertThat(state.tracks).isEqualTo(tracks)
             assertThat(state.isEmpty).isFalse()
+        }
+
+    @Test
+    fun `similar artists come from the server, none without it`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            withArtist()
+            val like = Artist(MediaId(ServerId("s"), "ar9"), "Golan")
+            similar.similarArtistsAnswer = MqResult.Success(listOf(like))
+
+            assertThat(viewModel().content.similarArtists).containsExactly(like)
+
+            similar.similarArtistsAnswer = MqResult.Failure(MqError.Network)
+            assertThat(viewModel().content.similarArtists).isEmpty()
         }
 
     @Test
@@ -142,7 +158,7 @@ class ArtistViewModelTest {
             library.artistTracks.value = mapOf(artistId to (1..20).map { track("t$it", plays = it) })
             val viewModel = viewModel()
 
-            assertThat(viewModel.content.topTracks).hasSize(15)
+            assertThat(viewModel.content.topTracks).hasSize(5)
             assertThat(
                 viewModel.content.topTracks
                     .first()

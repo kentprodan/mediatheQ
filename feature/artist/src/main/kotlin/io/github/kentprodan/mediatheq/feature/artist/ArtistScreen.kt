@@ -48,6 +48,7 @@ internal fun ArtistRoute(
     onOpenTopTracks: () -> Unit,
     onBack: () -> Unit,
     onAddToPlaylist: (List<MediaId>) -> Unit,
+    onOpenArtist: (MediaId) -> Unit,
     viewModel: ArtistViewModel =
         hiltViewModel<ArtistViewModel, ArtistViewModel.Factory>(key = artistId.toString(), creationCallback = {
             it.create(artistId)
@@ -61,6 +62,7 @@ internal fun ArtistRoute(
         onBack,
         onAddToPlaylist = onAddToPlaylist,
         onOpenTopTracks = onOpenTopTracks,
+        onOpenArtist = onOpenArtist,
     )
 }
 
@@ -77,6 +79,7 @@ fun ArtistScreen(
     modifier: Modifier = Modifier,
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
     onOpenTopTracks: () -> Unit = {},
+    onOpenArtist: (MediaId) -> Unit = {},
     /** Screenshots: these colors instead of the artist image's (previews load no images). */
     imageColors: CoverColors? = null,
 ) {
@@ -92,6 +95,7 @@ fun ArtistScreen(
             modifier,
             onAddToPlaylist,
             onOpenTopTracks,
+            onOpenArtist,
         )
     }
 }
@@ -130,6 +134,7 @@ private fun ArtistPage(
     modifier: Modifier,
     onAddToPlaylist: (List<MediaId>) -> Unit,
     onOpenTopTracks: () -> Unit,
+    onOpenArtist: (MediaId) -> Unit,
 ) {
     val longPress = rememberSelectLongPress<MediaId> { onAction(ArtistAction.ToggleSelection(it)) }
     val swipe =
@@ -268,10 +273,13 @@ private fun ArtistPage(
                                 }
 
                                 ArtistSection.About -> {
+                                    // Similar artists right above About, so About ends the page (owner, #681).
+                                    similarArtists(content, onOpenArtist)
                                     item(key = "about") { AboutSection(content, onAction) }
                                 }
                             }
                         }
+                        if (ArtistSection.About !in content.sections) similarArtists(content, onOpenArtist)
                     }
                 }
             }

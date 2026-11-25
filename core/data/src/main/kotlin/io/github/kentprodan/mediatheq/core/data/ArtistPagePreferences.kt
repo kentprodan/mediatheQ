@@ -50,7 +50,7 @@ data class ArtistPagePreferences(
             listOf(ArtistSection.Albums, ArtistSection.TopTracks, ArtistSection.AppearsOn, ArtistSection.About)
         const val DEFAULT_COLUMNS = 3
         const val DEFAULT_LANDSCAPE_COLUMNS = 5
-        const val DEFAULT_TOP_TRACKS = 15
+        const val DEFAULT_TOP_TRACKS = 5
         val COLUMNS = 2..4
         val LANDSCAPE_COLUMNS = 3..6
         val TOP_TRACKS = 5..50

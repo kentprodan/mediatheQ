@@ -6,16 +6,19 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,16 +29,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.kentprodan.mediatheq.core.data.RatingMode
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqStarRating
+import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.Album
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.Track
 import io.github.kentprodan.mediatheq.core.ui.AlbumCard
+import io.github.kentprodan.mediatheq.core.ui.ArtistCard
 import io.github.kentprodan.mediatheq.core.ui.TrackRow
 import io.github.kentprodan.mediatheq.core.ui.formatTrackCount
 import io.github.kentprodan.mediatheq.core.ui.stateOf
@@ -44,12 +51,19 @@ import io.github.kentprodan.mediatheq.core.ui.stateOf
 @Composable
 internal fun SectionTitle(
     @StringRes title: Int,
-    action: (@Composable () -> Unit)? = null,
+    /** Opens the full list: the whole title is the button, with a ">" like Home's sections (#681). */
+    onOpen: (() -> Unit)? = null,
 ) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(start = MediatheqSpacing.l, end = MediatheqSpacing.s, top = MediatheqSpacing.l),
+            .then(onOpen?.let { Modifier.clickable(role = Role.Button, onClick = it) } ?: Modifier)
+            .padding(
+                start = MediatheqSpacing.l,
+                end = MediatheqSpacing.l,
+                top = MediatheqSpacing.l,
+                bottom = MediatheqSpacing.s,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -57,7 +71,38 @@ internal fun SectionTitle(
             Modifier.weight(1f).semantics { heading() },
             style = MaterialTheme.typography.titleLarge,
         )
-        action?.invoke()
+        if (onOpen != null) {
+            Icon(
+                MqIcons.ChevronRight,
+                contentDescription = stringResource(R.string.artist_show_all),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** Artists like this one (#681): a row of artist cards. */
+internal fun LazyListScope.similarArtists(
+    state: ArtistUiState.Content,
+    onOpenArtist: (MediaId) -> Unit,
+) {
+    if (state.similarArtists.isEmpty()) return
+    item(key = "similar") {
+        Column {
+            SectionTitle(R.string.artist_similar)
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = MediatheqSpacing.l),
+                horizontalArrangement = Arrangement.spacedBy(MediatheqSpacing.m),
+            ) {
+                items(state.similarArtists, key = { it.id.toString() }) { artist ->
+                    ArtistCard(
+                        artist,
+                        onClick = { onOpenArtist(artist.id) },
+                        modifier = Modifier.width(MediatheqSizes.albumCardInRow),
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -106,7 +151,7 @@ internal fun LazyListScope.albumGrid(
     }
 }
 
-/** Top tracks with a "Show all" that opens every played track (#133). */
+/** Top tracks; with more played, the title's ">" opens every played track (#133, #681). */
 internal fun LazyListScope.topTracks(
     state: ArtistUiState.Content,
     onAction: (ArtistAction) -> Unit,
@@ -115,11 +160,7 @@ internal fun LazyListScope.topTracks(
     swipe: (Track, Boolean) -> Unit,
 ) {
     item(key = "top-title") {
-        SectionTitle(R.string.artist_top_tracks) {
-            if (state.playedTracks.size > state.topTracks.size) {
-                TextButton(onClick = onShowAll) { Text(stringResource(R.string.artist_show_all)) }
-            }
-        }
+        SectionTitle(R.string.artist_top_tracks, onShowAll.takeIf { state.playedTracks.size > state.topTracks.size })
     }
     items(state.topTracks, key = { "top-${it.id}" }) { track ->
         ArtistTrackRow(track, state, onAction, longPress, swipe, all = false)

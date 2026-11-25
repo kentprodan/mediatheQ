@@ -28,4 +28,5 @@
         <item quantity="one">%d album</item>
         <item quantity="other">%d albums</item>
     </plurals>
+    <string name="artist_similar">Similar artists</string>
 </resources>
