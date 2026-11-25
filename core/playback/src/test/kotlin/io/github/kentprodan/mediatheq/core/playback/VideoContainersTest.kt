@@ -20,7 +20,7 @@ class VideoContainersTest {
             androidx.media3.extractor
                 .DefaultExtractorsFactory()
                 .createExtractors()
-        val ours = VideoContainerExtractorsFactory().createExtractors()
+        val ours = VideoContainerExtractorsFactory(StyledSubtitles()).createExtractors()
 
         assertEquals(default.size, ours.size)
         assertEquals(1, ours.count { it is PgsTolerantMatroskaExtractor })

@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.video
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -70,6 +71,9 @@ class VideoPlayerViewModel
 
         /** The surface's player (the connection's controller), `null` until connected. */
         val player = playback.videoPlayer
+
+        /** The view drawing styled ASS subtitles over the picture (#635). */
+        fun styledSubtitleOverlay(context: Context) = playback.styledSubtitleOverlay(context)
 
         /** Sampled by the connection while playing. */
         val position: StateFlow<Duration> = playback.position

@@ -1,5 +1,6 @@
 package io.github.kentprodan.mediatheq.feature.tv.video
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -121,6 +122,9 @@ class TvPlayerViewModel
         private val held = HeldKey()
         private var heldTarget: Duration? = null
         val videoPlayer = playback.videoPlayer
+
+        /** The view drawing styled ASS subtitles over the picture (#635). */
+        fun styledSubtitleOverlay(context: Context) = playback.styledSubtitleOverlay(context)
 
         val uiState: StateFlow<TvPlayerUiState> =
             combine(video, playback.state, tracks, started) { video, player, tracks, seen ->

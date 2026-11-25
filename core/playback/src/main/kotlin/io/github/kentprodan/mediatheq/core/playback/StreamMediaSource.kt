@@ -20,6 +20,8 @@ import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.upstream.Allocator
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ExtractorsFactory
+import androidx.media3.extractor.text.DefaultSubtitleParserFactory
+import androidx.media3.extractor.text.SubtitleParser
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
@@ -39,9 +41,14 @@ import kotlin.time.Duration
 internal sealed interface StreamSource {
     data object Progressive : StreamSource
 
-    /** A converted stream in segments (R15): [url] is its playlist (no token in any URL). */
+    /**
+     * A converted stream in segments (R15): [url] is its playlist (no token in any URL). A video's external subtitle
+     * files are side-loaded as in [Direct] (#635: PGS reaches a conversion as a `.sup` file).
+     */
     data class Hls(
         val url: String,
+        val subtitles: List<SubtitleDelivery> = emptyList(),
+        val chosenSubtitle: Int? = null,
     ) : StreamSource
 
     /**
@@ -163,7 +170,7 @@ internal suspend fun chooseVideoSource(
         when (val result = resolver.resolveVideo(itemId, startPosition)) {
             is MqResult.Success -> {
                 return if (result.value.segmented) {
-                    StreamSource.Hls(result.value.url)
+                    StreamSource.Hls(result.value.url, result.value.subtitles, result.value.subtitleStreamIndex)
                 } else {
                     StreamSource.Direct(result.value.url, result.value.subtitles, result.value.subtitleStreamIndex)
                 }
@@ -206,6 +213,8 @@ internal class StreamMediaSourceFactory(
     private val downloadCache: Cache? = null,
     /** The extractors of a video file: container fixes (#634), Dolby Vision profile 7 and HDR10+ handling (#385). */
     private val videoExtractors: ExtractorsFactory = DefaultExtractorsFactory(),
+    /** The parsers of a video's side-loaded subtitles: libass for ASS (#635). */
+    private val videoSubtitleParsers: SubtitleParser.Factory = DefaultSubtitleParserFactory(),
 ) : ForwardingMediaSourceFactory(progressive) {
     override fun createMediaSource(mediaItem: MediaItem): MediaSource {
         mediaItem.localConfiguration?.uri?.videoId()?.let { videoId ->
@@ -231,6 +240,7 @@ internal class StreamMediaSourceFactory(
 
             is StreamSource.Direct -> {
                 DefaultMediaSourceFactory(authenticated(), videoExtractors)
+                    .setSubtitleParserFactory(videoSubtitleParsers)
                     .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
                     .createMediaSource(
                         mediaItem
@@ -243,6 +253,7 @@ internal class StreamMediaSourceFactory(
 
             is StreamSource.Downloaded -> {
                 DefaultMediaSourceFactory(downloadedVideoDataSource(requireNotNull(downloadCache)), videoExtractors)
+                    .setSubtitleParserFactory(videoSubtitleParsers)
                     .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
                     .createMediaSource(
                         mediaItem
@@ -256,17 +267,28 @@ internal class StreamMediaSourceFactory(
             is StreamSource.Hls -> {
                 onOpen(itemId)
                 val authenticated = authenticated()
-                HlsMediaSource
-                    .Factory(authenticated)
-                    .setPlaylistParserFactory(TrickPlayFreeHlsPlaylistParserFactory())
-                    .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
-                    .createMediaSource(
-                        mediaItem
-                            .buildUpon()
-                            .setUri(source.url)
-                            .setMimeType(MimeTypes.APPLICATION_M3U8)
-                            .build(),
-                    )
+                val item =
+                    mediaItem
+                        .buildUpon()
+                        .setUri(source.url)
+                        .setMimeType(MimeTypes.APPLICATION_M3U8)
+                        .setSubtitleConfigurations(sideLoadedSubtitles(source.subtitles, source.chosenSubtitle))
+                        .build()
+                // HlsMediaSource ignores a media item's subtitle files (#635); DefaultMediaSourceFactory merges them,
+                // each loaded once selected, around its own HLS source (without the trick-play filter, which Jellyfin's
+                // single-variant conversions do not need).
+                if (item.localConfiguration!!.subtitleConfigurations.isNotEmpty()) {
+                    DefaultMediaSourceFactory(authenticated)
+                        .setSubtitleParserFactory(videoSubtitleParsers)
+                        .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
+                        .createMediaSource(item)
+                } else {
+                    HlsMediaSource
+                        .Factory(authenticated)
+                        .setPlaylistParserFactory(TrickPlayFreeHlsPlaylistParserFactory())
+                        .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
+                        .createMediaSource(item)
+                }
             }
         }
 

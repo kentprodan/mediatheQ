@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.os.Bundle
+import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -70,6 +71,7 @@ internal class MediaControllerPlaybackConnection
         @ApplicationScope private val scope: CoroutineScope,
         private val log: AppLog,
         @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
+        private val styledSubtitles: StyledSubtitles,
     ) : PlaybackConnection {
         // Touched on the main thread only (Media3 session threading).
         private var controller: ListenableFuture<MediaController>? = null
@@ -159,6 +161,8 @@ internal class MediaControllerPlaybackConnection
                 controller.playWhenReady = playing
             }
         }
+
+        override fun styledSubtitleOverlay(context: Context): View = styledSubtitles.overlay(context)
 
         override val videoPlayer: StateFlow<Player?> =
             connected

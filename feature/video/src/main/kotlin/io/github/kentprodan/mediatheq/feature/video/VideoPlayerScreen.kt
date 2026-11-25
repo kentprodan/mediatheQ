@@ -96,7 +96,7 @@ internal fun VideoPlayerRoute(
         // Only the picture and its subtitles in the small window (#278).
         Box(Modifier.fillMaxSize()) {
             MqVideoSurface(player, Modifier.fillMaxSize())
-            MqSubtitles(player, Modifier.fillMaxSize())
+            MqSubtitles(player, Modifier.fillMaxSize(), viewModel::styledSubtitleOverlay)
         }
         return
     }
@@ -120,7 +120,7 @@ internal fun VideoPlayerRoute(
     ) {
         Box(Modifier.fillMaxSize()) {
             MqVideoSurface(player, Modifier.fillMaxSize())
-            MqSubtitles(player, Modifier.fillMaxSize())
+            MqSubtitles(player, Modifier.fillMaxSize(), viewModel::styledSubtitleOverlay)
         }
     }
 }

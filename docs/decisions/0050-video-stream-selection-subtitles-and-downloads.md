@@ -63,3 +63,15 @@ page lists "HDR support" without naming Dolby Vision (checked 2026-11-12).
   with `ApiKey`, resume thresholds); each gets a fixture and a test.
 - ADR 0024 is amended (no converted downloads for video); ADR 0019 gains a note that video transcodes use the same
   lazy source.
+
+## Amendment (#635, 2026-11-25): styled ASS / SSA through libass
+
+ASS and SSA subtitles (side-loaded and inside MKV) are parsed and drawn by libass (`io.github.peerless2012:ass-media`,
+MIT) in its overlay mode: the service's player feeds one process-wide `StyledSubtitles` (tracks, clock, the MKV's fonts
+and dialogue), and the video screens lay its view over the picture through `PlaybackConnection.styledSubtitleOverlay`.
+That is the one playback object the screens touch besides the controller: libass draws every frame itself, which
+Media3 cues cannot carry (the library's cue mode renders one still image per line, no animation). The screens never
+command the player through it. "Burn in styled subtitles" stays for whoever prefers the server's rendering.
+
+PGS is declared `External` too (#635): a `.sup` file beside the video, or the server's extraction for a conversion,
+is side-loaded instead of burned in. Conversions side-load external subtitle files like direct plays.

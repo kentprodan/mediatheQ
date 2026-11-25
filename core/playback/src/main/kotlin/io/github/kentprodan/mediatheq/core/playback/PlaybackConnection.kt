@@ -1,5 +1,7 @@
 package io.github.kentprodan.mediatheq.core.playback
 
+import android.content.Context
+import android.view.View
 import androidx.media3.common.Player
 import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.model.RepeatMode
@@ -60,6 +62,9 @@ interface PlaybackConnection {
      * connected. Screens never command it: commands go through this connection.
      */
     val videoPlayer: StateFlow<Player?>
+
+    /** The view drawing the video's styled ASS subtitles (#635), to lay over the picture; `null` where there is none. */
+    fun styledSubtitleOverlay(context: Context): View? = null
 
     /** Pauses, also before playing started (a video left while its stream loads). */
     fun pause()

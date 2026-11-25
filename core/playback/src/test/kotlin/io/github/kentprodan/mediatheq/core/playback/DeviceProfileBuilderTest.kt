@@ -211,7 +211,9 @@ class DeviceProfileBuilderTest {
 
         assertThat(methods("subrip")).containsExactly(SubtitleMethod.External, SubtitleMethod.Embed)
         assertThat(methods("webvtt")).containsExactly(SubtitleMethod.External, SubtitleMethod.Embed, SubtitleMethod.Hls)
-        assertThat(methods("pgssub")).containsExactly(SubtitleMethod.Embed, SubtitleMethod.Encode)
+        assertThat(
+            methods("pgssub"),
+        ).containsExactly(SubtitleMethod.External, SubtitleMethod.Embed, SubtitleMethod.Encode)
         assertThat(methods("dvdsub")).containsExactly(SubtitleMethod.Encode)
         assertThat(methods("ass")).containsExactly(SubtitleMethod.External, SubtitleMethod.Embed)
         assertThat(methods("ass", burnIn = true)).containsExactly(SubtitleMethod.Encode)
