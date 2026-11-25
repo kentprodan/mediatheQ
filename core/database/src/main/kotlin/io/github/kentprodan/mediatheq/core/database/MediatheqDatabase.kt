@@ -59,7 +59,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 23,
+    version = 24,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -151,6 +151,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 21, to = 22, spec = SyncLogosMigration::class),
         // 23: the 16:9 thumbs of movies and series (#605, horizontal cards); the next start syncs them.
         AutoMigration(from = 22, to = 23, spec = SyncThumbsMigration::class),
+        // 24: the frame rate of movies and episodes (#631, the display mode before playback); the next start syncs it.
+        AutoMigration(from = 23, to = 24, spec = SyncFrameRateMigration::class),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {
