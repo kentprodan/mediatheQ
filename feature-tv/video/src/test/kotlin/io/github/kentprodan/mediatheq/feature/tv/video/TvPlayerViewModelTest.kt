@@ -16,6 +16,7 @@ import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.VideoPlayback
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakeSubtitleDelayRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTrackChoiceRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
@@ -27,6 +28,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -37,6 +39,7 @@ class TvPlayerViewModelTest {
     private val videos = FakeVideoRepository()
     private val playback = FakePlaybackConnection()
     private val preferences = FakeVideoPreferencesRepository()
+    private val delays = FakeSubtitleDelayRepository()
     private val movie = Video(MediaId(ServerId("s"), "m1"), VideoKind.Movie, "Alien", duration = 100.minutes)
 
     private fun TestScope.viewModel(
@@ -50,6 +53,7 @@ class TvPlayerViewModelTest {
                 videos,
                 playback,
                 TrackPicker(videos, FakeTrackChoiceRepository()),
+                delays,
                 preferences,
             )
         backgroundScope.launch { viewModel.uiState.collect {} }
@@ -82,6 +86,32 @@ class TvPlayerViewModelTest {
             viewModel.onAction(TvPlayerAction.Seek(forward = true))
 
             assertThat(playback.commands).contains("seekTo ${30.minutes + 30.seconds}")
+        }
+
+    @Test
+    fun `subtitles move in 0_1 s steps for this video only, at most 5 s, and back in step (#456)`() =
+        test {
+            val viewModel = viewModel()
+            backgroundScope.launch { viewModel.subtitleDelay.collect {} }
+            playback.state.value = playing()
+            runCurrent()
+
+            viewModel.onAction(TvPlayerAction.ShiftSubtitles(later = true))
+            runCurrent()
+            viewModel.onAction(TvPlayerAction.ShiftSubtitles(later = true))
+            runCurrent()
+            assertThat(viewModel.subtitleDelay.value).isEqualTo(200.milliseconds)
+            assertThat(delays.delays.value).containsExactly(movie.id, 200.milliseconds)
+
+            repeat(80) {
+                viewModel.onAction(TvPlayerAction.ShiftSubtitles(later = false))
+                runCurrent()
+            }
+            assertThat(viewModel.subtitleDelay.value).isEqualTo(-5.seconds)
+
+            viewModel.onAction(TvPlayerAction.ShiftSubtitles(later = null))
+            runCurrent()
+            assertThat(delays.delays.value).isEmpty()
         }
 
     @Test

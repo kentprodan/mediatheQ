@@ -10,6 +10,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.SeriesEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoCollectionEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamEntity
+import io.github.kentprodan.mediatheq.core.database.entity.VideoSubtitleDelayEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoTrackChoiceEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -254,6 +255,22 @@ interface VideoDao {
 
     @Query("DELETE FROM video_track_choice WHERE server_id = :serverId AND item_id = :itemId")
     suspend fun clearTrackChoice(
+        serverId: String,
+        itemId: String,
+    )
+
+    /** A movie's or episode's subtitle delay (#456); `null` when none was set. */
+    @Query("SELECT delay_ms FROM video_subtitle_delay WHERE server_id = :serverId AND item_id = :itemId")
+    fun subtitleDelay(
+        serverId: String,
+        itemId: String,
+    ): Flow<Long?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveSubtitleDelay(delay: VideoSubtitleDelayEntity)
+
+    @Query("DELETE FROM video_subtitle_delay WHERE server_id = :serverId AND item_id = :itemId")
+    suspend fun clearSubtitleDelay(
         serverId: String,
         itemId: String,
     )

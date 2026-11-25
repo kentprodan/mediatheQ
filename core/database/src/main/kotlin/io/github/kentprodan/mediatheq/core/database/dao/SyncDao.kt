@@ -284,6 +284,7 @@ interface SyncDao {
         clearAlbumResume()
         clearPlaylistResume()
         clearTrackChoices()
+        clearSubtitleDelays()
         clearFollowedSeries()
         clearQueueEntries()
         clearQueueState()
@@ -298,6 +299,9 @@ interface SyncDao {
 
     @Query("DELETE FROM video_track_choice")
     suspend fun clearTrackChoices()
+
+    @Query("DELETE FROM video_subtitle_delay")
+    suspend fun clearSubtitleDelays()
 
     @Query("DELETE FROM followed_series")
     suspend fun clearFollowedSeries()

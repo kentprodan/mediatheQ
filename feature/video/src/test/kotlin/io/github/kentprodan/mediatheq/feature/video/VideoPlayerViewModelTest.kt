@@ -21,6 +21,7 @@ import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.playback.VideoPlayback
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakeSubtitleDelayRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTrackChoiceRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoPreferencesRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
@@ -41,6 +42,7 @@ class VideoPlayerViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    private val delays = FakeSubtitleDelayRepository()
     private val id = MediaId(ServerId("s"), "m1")
     private val movie = Video(id, VideoKind.Movie, "Moșoi", year = 2019, duration = 90.minutes)
     private val videos = FakeVideoRepository().apply { movies.value = listOf(movie) }
@@ -52,7 +54,7 @@ class VideoPlayerViewModelTest {
     private fun TestScope.viewModel(
         key: VideoPlayerKey = VideoPlayerKey(id, startPositionMs = 60_000),
     ): VideoPlayerViewModel =
-        VideoPlayerViewModel(key, videos, playback, picker, settings).also { vm ->
+        VideoPlayerViewModel(key, videos, playback, picker, settings, delays).also { vm ->
             backgroundScope.launch { vm.uiState.collect() }
             runCurrent()
         }
@@ -199,7 +201,14 @@ class VideoPlayerViewModelTest {
             runCurrent()
             assertThat(viewModel.uiState.value).isInstanceOf(VideoPlayerUiState.Error::class.java)
 
-            val gone = VideoPlayerViewModel(VideoPlayerKey(MediaId(ServerId("s"), "gone")), videos, playback, picker)
+            val gone =
+                VideoPlayerViewModel(
+                    VideoPlayerKey(MediaId(ServerId("s"), "gone")),
+                    videos,
+                    playback,
+                    picker,
+                    delays = delays,
+                )
             backgroundScope.launch { gone.uiState.collect() }
             runCurrent()
             assertThat(gone.uiState.value).isEqualTo(VideoPlayerUiState.Error(MqError.NotFound))

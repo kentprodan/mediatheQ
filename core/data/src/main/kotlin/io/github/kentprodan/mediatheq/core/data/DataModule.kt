@@ -42,6 +42,9 @@ internal interface DataModule {
     fun trackChoiceRepository(repository: DefaultTrackChoiceRepository): TrackChoiceRepository
 
     @Binds
+    fun subtitleDelayRepository(repository: DefaultSubtitleDelayRepository): SubtitleDelayRepository
+
+    @Binds
     fun videoRepository(repository: DefaultVideoRepository): VideoRepository
 
     @Binds

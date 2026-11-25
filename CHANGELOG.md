@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 ## [Unreleased]
 
 ### Added
+- Subtitles can be moved earlier or later in 0.1 s steps, up to 5 s, from the player's Subtitle timing (TV) or the tracks sheet (phone); each movie and episode remembers its own timing.
 - Styled ASS / SSA subtitles (anime fansubs, karaoke) show as their authors made them, with their fonts, positions and animations, on the phone and the TV, instead of plain white text.
 - Blu-ray (PGS) subtitles in a separate .sup file play without the server converting the whole video, and converted videos keep their PGS and external subtitles instead of losing them.
 - Video files that failed to open now play: Blu-ray TS rips with DTS or DTS-HD audio, MKV files with compressed PGS subtitles, files with no seek table (they seek now), and streams whose playlist lists a trick-play variant first (they had no sound).

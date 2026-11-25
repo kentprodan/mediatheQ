@@ -16,6 +16,7 @@ import io.github.kentprodan.mediatheq.core.playback.NowPlayingItem
 import io.github.kentprodan.mediatheq.core.playback.PlayerUiModel
 import io.github.kentprodan.mediatheq.core.testing.FakeDownloadRepository
 import io.github.kentprodan.mediatheq.core.testing.FakePlaybackConnection
+import io.github.kentprodan.mediatheq.core.testing.FakeSubtitleDelayRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeTrackChoiceRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeUserDataRepository
 import io.github.kentprodan.mediatheq.core.testing.FakeVideoRepository
@@ -65,7 +66,14 @@ class TrackChoiceViewModelsTest {
             val playback = FakePlaybackConnection()
             playback.state.value =
                 PlayerUiModel(item = NowPlayingItem(movie.id, "Moșoi", "", isVideo = true), isPlaying = true)
-            val viewModel = VideoPlayerViewModel(VideoPlayerKey(movie.id, attach = true), videos, playback, picker)
+            val viewModel =
+                VideoPlayerViewModel(
+                    VideoPlayerKey(movie.id, attach = true),
+                    videos,
+                    playback,
+                    picker,
+                    delays = FakeSubtitleDelayRepository(),
+                )
             backgroundScope.launch { viewModel.uiState.collect() }
             runCurrent()
 

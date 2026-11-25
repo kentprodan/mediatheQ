@@ -53,8 +53,11 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
@@ -66,6 +69,7 @@ import io.github.kentprodan.mediatheq.core.data.VideoTracks
 import io.github.kentprodan.mediatheq.core.designsystem.tv.MqTvIcons
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvButton
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvCard
+import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvListItem
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenu
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMenuEntry
 import io.github.kentprodan.mediatheq.core.designsystem.tv.component.MqTvMessage
@@ -107,6 +111,7 @@ fun TvPlayerRoute(
     val skip by viewModel.skipButton.collectAsStateWithLifecycle()
     val displayMatch by viewModel.displayMatch.collectAsStateWithLifecycle()
     val format by viewModel.videoFormat.collectAsStateWithLifecycle()
+    val subtitleDelay by viewModel.subtitleDelay.collectAsStateWithLifecycle()
     MatchDisplay(
         format,
         displayMatch,
@@ -137,6 +142,7 @@ fun TvPlayerRoute(
         quality = quality,
         extras = extras,
         skip = skip,
+        subtitleDelay = subtitleDelay,
         onLeave = {
             viewModel.onAction(TvPlayerAction.Leave)
             onBack()
@@ -164,6 +170,8 @@ fun TvPlayerScreen(
     extras: PlayerExtras = PlayerExtras(),
     /** The segment whose Skip button shows (#430); `null` for none. */
     skip: MediaSegment? = null,
+    /** How much later (negative: earlier) the subtitles show (#456). */
+    subtitleDelay: Duration = Duration.ZERO,
     surface: @Composable (ContentScale) -> Unit,
 ) {
     // Fit each time a video opens; Fill and Stretch from the bar (owner, #429).
@@ -307,6 +315,10 @@ fun TvPlayerScreen(
             ) { menu = null }
         }
 
+        PlayerMenu.SubtitleTiming -> {
+            SubtitleTimingDialog(subtitleDelay, onAction) { menu = null }
+        }
+
         PlayerMenu.Zoom -> {
             MqTvMenu(
                 stringResource(R.string.tv_player_zoom),
@@ -443,6 +455,12 @@ private fun Bar(
                 }
                 MqTvButton(stringResource(R.string.tv_player_quality), { onMenu(PlayerMenu.Quality) })
                 MqTvButton(stringResource(R.string.tv_player_zoom), { onMenu(PlayerMenu.Zoom) })
+                if (state.tracks?.resolved?.subtitleIndex != null) {
+                    MqTvButton(
+                        stringResource(R.string.tv_player_subtitle_timing),
+                        { onMenu(PlayerMenu.SubtitleTiming) },
+                    )
+                }
                 if (state.hasNext) {
                     MqTvButton(
                         stringResource(R.string.tv_player_next),
@@ -523,6 +541,54 @@ private fun NextCard(
     LaunchedEffect(Unit) { runCatching { now.requestFocus() } }
 }
 
+/** Subtitles earlier or later in 0.1 s steps (#456); stays open while stepping, Back closes it. */
+@Composable
+private fun SubtitleTimingDialog(
+    delay: Duration,
+    onAction: (TvPlayerAction) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val first = remember { FocusRequester() }
+    val seconds = "%.1f".format(delay.absoluteValue.inWholeMilliseconds / 1000.0)
+    val now =
+        when {
+            delay.isPositive() -> stringResource(R.string.tv_player_subtitles_later_by, seconds)
+            delay.isNegative() -> stringResource(R.string.tv_player_subtitles_earlier_by, seconds)
+            else -> stringResource(R.string.tv_player_subtitles_in_step)
+        }
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = MaterialTheme.shapes.large) {
+            Column(Modifier.width(360.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    stringResource(R.string.tv_player_subtitle_timing),
+                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp).semantics { heading() },
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    now,
+                    Modifier.padding(horizontal = 12.dp).padding(bottom = 8.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                MqTvListItem(
+                    stringResource(R.string.tv_player_subtitles_earlier),
+                    { onAction(TvPlayerAction.ShiftSubtitles(later = false)) },
+                    Modifier.focusRequester(first),
+                )
+                MqTvListItem(
+                    stringResource(R.string.tv_player_subtitles_later),
+                    { onAction(TvPlayerAction.ShiftSubtitles(later = true)) },
+                )
+                MqTvListItem(
+                    stringResource(R.string.tv_player_subtitles_reset),
+                    { onAction(TvPlayerAction.ShiftSubtitles(later = null)) },
+                    enabled = delay != Duration.ZERO,
+                )
+            }
+        }
+        LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+    }
+}
+
 @Composable
 private fun PlayerTracksMenu(
     tracks: VideoTracks,
@@ -571,7 +637,7 @@ private fun titleOf(video: Video): String =
         video.title
     }
 
-internal enum class PlayerMenu { Chapters, Quality, Zoom }
+internal enum class PlayerMenu { Chapters, Quality, Zoom, SubtitleTiming }
 
 /** "Skip intro" or "Skip credits" (#430): Select skips while it shows; it goes after a few seconds by itself. */
 @Composable

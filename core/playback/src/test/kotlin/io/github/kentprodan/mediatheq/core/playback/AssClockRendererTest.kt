@@ -41,4 +41,24 @@ class AssClockRendererTest {
 
         assertThat(handler.videoTime).isEqualTo(5_000_000L)
     }
+
+    @Test
+    fun `a subtitle delay of 0_5 s draws libass half a second behind the picture (#456)`() {
+        val delayed = AssClockRenderer(handler) { 500_000L }
+        delayed.enable(
+            RendererConfiguration.DEFAULT,
+            arrayOf<Format>(),
+            EmptySampleStream(),
+            0L,
+            false,
+            true,
+            0L,
+            1_000_000_000_000L,
+            MediaSource.MediaPeriodId(Any()),
+        )
+
+        delayed.render(1_000_000_000_000L + 5_000_000L, 0L)
+
+        assertThat(handler.videoTime).isEqualTo(4_500_000L)
+    }
 }

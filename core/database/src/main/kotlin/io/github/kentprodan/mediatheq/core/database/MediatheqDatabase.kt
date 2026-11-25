@@ -54,12 +54,13 @@ import io.github.kentprodan.mediatheq.core.database.entity.VideoEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStaging
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoStreamStaging
+import io.github.kentprodan.mediatheq.core.database.entity.VideoSubtitleDelayEntity
 import io.github.kentprodan.mediatheq.core.database.entity.VideoTrackChoiceEntity
 import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
 
 /** The local copy of the library (ADR 0006). Schema changes need a migration and a migration test. */
 @Database(
-    version = 24,
+    version = 25,
     entities = [
         ArtistEntity::class,
         AlbumEntity::class,
@@ -91,6 +92,7 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AlbumLabelStaging::class,
         AlbumResumeEntity::class,
         VideoTrackChoiceEntity::class,
+        VideoSubtitleDelayEntity::class,
         FollowedSeriesEntity::class,
         PlaylistResumeEntity::class,
         SeriesEntity::class,
@@ -153,6 +155,8 @@ import io.github.kentprodan.mediatheq.core.database.entity.WaveformEntity
         AutoMigration(from = 22, to = 23, spec = SyncThumbsMigration::class),
         // 24: the frame rate of movies and episodes (#631, the display mode before playback); the next start syncs it.
         AutoMigration(from = 23, to = 24, spec = SyncFrameRateMigration::class),
+        // 25: subtitle delays per movie or episode (#456), a new table.
+        AutoMigration(from = 24, to = 25),
     ],
 )
 abstract class MediatheqDatabase : RoomDatabase() {
