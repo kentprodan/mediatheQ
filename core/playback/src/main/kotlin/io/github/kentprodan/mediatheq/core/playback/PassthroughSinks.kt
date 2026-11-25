@@ -14,6 +14,7 @@ import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.AudioTrackAudioOutputProvider
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.audio.ForwardingAudioSink
+import androidx.media3.exoplayer.mediacodec.MediaCodecAdapter
 import java.nio.ByteBuffer
 
 /**
@@ -30,7 +31,12 @@ internal class PassthroughRenderersFactory(
     private val bitPerfectFormat: () -> PcmFormat? = { null },
     /** Whether the decoders may hand the sink float now (`AudioOutputState.floatOutput`). */
     private val floatOutput: () -> Boolean = { false },
+    /** The display's vsync period in ns, 0 when unknown: video frames get one vsync each (#633). */
+    private val vsyncNs: () -> Long = { 0L },
 ) : DefaultRenderersFactory(context) {
+    override fun getCodecAdapterFactory(): MediaCodecAdapter.Factory =
+        VsyncPacingAdapterFactory(super.getCodecAdapterFactory(), vsyncNs)
+
     override fun buildAudioSink(
         context: Context,
         enableFloatOutput: Boolean,
