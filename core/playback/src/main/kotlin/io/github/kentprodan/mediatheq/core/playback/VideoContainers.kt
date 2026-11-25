@@ -20,14 +20,17 @@ import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.text.DefaultSubtitleParserFactory
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import androidx.media3.extractor.ts.TsExtractor
+import io.github.peerless2012.ass.media.extractor.AssMatroskaExtractor
 
 /**
  * The extractors of a video file (#634): Media3's, with constant-bitrate seeking for files without a seek table, MKV files with zlib-compressed PGS subtitles let through
- * ([PgsTolerantMatroskaExtractor]) and Blu-ray DTS read from a TS that carries the HDMV registration
+ * ([PgsTolerantMatroskaExtractor], which also hands libass the ASS dialogue and fonts) and Blu-ray DTS read from a TS that carries the HDMV registration
  * ([HdmvTsExtractor]). The replacements are built with the settings [DefaultExtractorsFactory] gives its own.
  */
 @UnstableApi
-internal class VideoContainerExtractorsFactory : ExtractorsFactory {
+internal class VideoContainerExtractorsFactory(
+    private val styled: StyledSubtitles,
+) : ExtractorsFactory {
     private val base = DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true)
 
     override fun createExtractors(): Array<Extractor> = base.createExtractors().map(::replace).toTypedArray()
@@ -40,7 +43,7 @@ internal class VideoContainerExtractorsFactory : ExtractorsFactory {
     private fun replace(extractor: Extractor): Extractor =
         when (extractor) {
             is MatroskaExtractor -> {
-                PgsTolerantMatroskaExtractor()
+                PgsTolerantMatroskaExtractor(styled)
             }
 
             is TsExtractor -> {
@@ -69,7 +72,9 @@ internal class VideoContainerExtractorsFactory : ExtractorsFactory {
  * inflates zlib samples itself (#634). A PGS track's zlib compression is let through; every other stays refused.
  */
 @UnstableApi
-internal class PgsTolerantMatroskaExtractor : MatroskaExtractor(DefaultSubtitleParserFactory()) {
+internal class PgsTolerantMatroskaExtractor(
+    styled: StyledSubtitles,
+) : AssMatroskaExtractor(styled.parsers, styled.handler) {
     override fun integerElement(
         id: Int,
         value: Long,

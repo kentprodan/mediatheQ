@@ -143,7 +143,7 @@ fun TvPlayerRoute(
         },
     ) { scale ->
         MqTvVideoSurface(player, Modifier.fillMaxSize(), scale)
-        MqTvSubtitles(player, Modifier.fillMaxSize(), style)
+        MqTvSubtitles(player, Modifier.fillMaxSize(), style, viewModel::styledSubtitleOverlay)
     }
 }
 

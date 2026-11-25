@@ -2,8 +2,11 @@ package io.github.kentprodan.mediatheq.core.ui.tv
 
 import android.content.Context
 import android.graphics.Color
+import android.view.View
 import android.view.accessibility.CaptioningManager
 import androidx.annotation.OptIn
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +32,8 @@ fun MqTvSubtitles(
     modifier: Modifier = Modifier,
     /** The app's choices over the system caption style (#429); all System by default. */
     style: SubtitleStyle = SubtitleStyle(),
+    /** The view drawing styled ASS subtitles (#635), laid over Media3's; `null` for none. */
+    styledOverlay: ((Context) -> View?)? = null,
 ) {
     val context = LocalContext.current
     val view = remember(context) { SubtitleView(context) }
@@ -45,7 +50,12 @@ fun MqTvSubtitles(
             view.setCues(null)
         }
     }
-    AndroidView(factory = { view }, modifier = modifier)
+    Box(modifier) {
+        AndroidView(factory = { view }, modifier = Modifier.fillMaxSize())
+        styledOverlay?.let { overlay ->
+            AndroidView(factory = { overlay(it) ?: View(it) }, modifier = Modifier.fillMaxSize())
+        }
+    }
 }
 
 /** The system caption style with [style]'s parts on top; the size as a share of the picture or the system's. */

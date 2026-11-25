@@ -119,6 +119,8 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     @Inject lateinit var videoRepository: VideoRepository
 
+    @Inject lateinit var styledSubtitles: StyledSubtitles
+
     @Inject lateinit var videoPreferences: VideoPreferencesRepository
 
     @Inject lateinit var displayHdr: DisplayHdr
@@ -297,26 +299,29 @@ class MediatheqPlaybackService : MediaLibraryService() {
                 ).setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setRenderersFactory(
-                    PassthroughRenderersFactory(
-                        this,
-                        allowedPassthrough = { streamResolver.passthrough },
-                        // Read on the playback thread at decoder and AudioTrack setup (#629).
-                        bitPerfectFormat = { outputNow.bitPerfectFormat },
-                        floatOutput = { outputNow.floatOutput },
-                        vsyncNs = ::vsyncNs,
-                        // A bitstream track gone silent (#377): a seek in place rebuilds it, on the player's thread.
-                        onRecoveryNeeded = { reason ->
-                            Handler(Looper.getMainLooper()).post {
-                                appLog.info(AUDIO_TAG, "Passthrough recovery: $reason")
-                                built?.let { it.seekTo(it.currentPosition) }
-                            }
-                        },
-                    )
-                        // A failing hardware decoder hands over to the next one.
-                        .setEnableDecoderFallback(true)
-                        // The platform first, FFmpeg for what it lacks (#625): AC-3 / E-AC-3 / JOC reach MediaCodec and
-                        // passthrough, so Atmos is never decoded by FFmpeg on a route that takes it.
-                        .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON),
+                    StyledSubtitleRenderersFactory(
+                        PassthroughRenderersFactory(
+                            this,
+                            allowedPassthrough = { streamResolver.passthrough },
+                            // Read on the playback thread at decoder and AudioTrack setup (#629).
+                            bitPerfectFormat = { outputNow.bitPerfectFormat },
+                            floatOutput = { outputNow.floatOutput },
+                            vsyncNs = ::vsyncNs,
+                            // A bitstream track gone silent (#377): a seek in place rebuilds it, on the player's thread.
+                            onRecoveryNeeded = { reason ->
+                                Handler(Looper.getMainLooper()).post {
+                                    appLog.info(AUDIO_TAG, "Passthrough recovery: $reason")
+                                    built?.let { it.seekTo(it.currentPosition) }
+                                }
+                            },
+                        )
+                            // A failing hardware decoder hands over to the next one.
+                            .setEnableDecoderFallback(true)
+                            // The platform first, FFmpeg for what it lacks (#625): AC-3 / E-AC-3 / JOC reach MediaCodec and
+                            // passthrough, so Atmos is never decoded by FFmpeg on a route that takes it.
+                            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON),
+                        styledSubtitles.handler,
+                    ),
                 ).setLoadControl(playerLoadControl(this))
                 .setMediaSourceFactory(
                     StreamMediaSourceFactory(
@@ -355,15 +360,17 @@ class MediatheqPlaybackService : MediaLibraryService() {
                             CadenceExtractorsFactory(
                                 DolbyVisionExtractorsFactory(
                                     { dolbyVisionCompat(hdrDecoders, displayHdr.types()) },
-                                    VideoContainerExtractorsFactory(),
+                                    VideoContainerExtractorsFactory(styledSubtitles),
                                 ),
                                 onRate = ::onCadence,
                             ),
+                        videoSubtitleParsers = styledSubtitles.parsers,
                     ),
                 ).build()
         // Everything holds the swap player (#219): a crossfade can move playback to a second ExoPlayer under it.
         swap = SwapPlayer(buildPlayer())
         val player = swap.player
+        styledSubtitles.attach(player)
         built = player
         startAudioOutput(player)
         startCrossfade(player, ::buildPlayer)
@@ -1163,6 +1170,7 @@ class MediatheqPlaybackService : MediaLibraryService() {
 
     override fun onDestroy() {
         Media3Log.setLogger(Media3Log.Logger.DEFAULT)
+        styledSubtitles.release(swap.player)
         videoRecovery.release()
         signOutWatch?.cancel()
         persistJob?.cancel()

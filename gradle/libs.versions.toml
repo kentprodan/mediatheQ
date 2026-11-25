@@ -1,4 +1,5 @@
 [versions]
+libass = "0.5.1"
 tvprovider = "1.0.0"
 # The apps' version, shared by the phone and the TV app (ADR 0038).
 mediatheqVersionName = "0.1.0"
@@ -97,6 +98,8 @@ androidx-media3-session = { module = "androidx.media3:media3-session", version.r
 jellyfin-media3-ffmpeg-decoder = { module = "org.jellyfin.media3:media3-ffmpeg-decoder", version = "1.9.0+1" }
 # Dolby Vision profile 7 -> 8.1 and HDR10+ stripping (libdovi behind JNI, MIT; #385).
 exoplayerhdrutils = { module = "com.suyashbelekar:exoplayerhdrutils", version = "0.4.1" }
+ass-media = { module = "io.github.peerless2012:ass-media", version.ref = "libass" }
+ass-kt = { module = "io.github.peerless2012:ass-kt", version.ref = "libass" }
 androidx-media3-exoplayer-hls = { module = "androidx.media3:media3-exoplayer-hls", version.ref = "media3" }
 androidx-media3-datasource-okhttp = { module = "androidx.media3:media3-datasource-okhttp", version.ref = "media3" }
 androidx-media3-inspector = { module = "androidx.media3:media3-inspector", version.ref = "media3" }

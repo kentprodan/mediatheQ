@@ -20,6 +20,8 @@ import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.upstream.Allocator
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ExtractorsFactory
+import androidx.media3.extractor.text.DefaultSubtitleParserFactory
+import androidx.media3.extractor.text.SubtitleParser
 import io.github.kentprodan.mediatheq.core.common.MqError
 import io.github.kentprodan.mediatheq.core.common.MqResult
 import io.github.kentprodan.mediatheq.core.data.DownloadRepository
@@ -206,6 +208,8 @@ internal class StreamMediaSourceFactory(
     private val downloadCache: Cache? = null,
     /** The extractors of a video file: container fixes (#634), Dolby Vision profile 7 and HDR10+ handling (#385). */
     private val videoExtractors: ExtractorsFactory = DefaultExtractorsFactory(),
+    /** The parsers of a video's side-loaded subtitles: libass for ASS (#635). */
+    private val videoSubtitleParsers: SubtitleParser.Factory = DefaultSubtitleParserFactory(),
 ) : ForwardingMediaSourceFactory(progressive) {
     override fun createMediaSource(mediaItem: MediaItem): MediaSource {
         mediaItem.localConfiguration?.uri?.videoId()?.let { videoId ->
@@ -231,6 +235,7 @@ internal class StreamMediaSourceFactory(
 
             is StreamSource.Direct -> {
                 DefaultMediaSourceFactory(authenticated(), videoExtractors)
+                    .setSubtitleParserFactory(videoSubtitleParsers)
                     .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
                     .createMediaSource(
                         mediaItem
@@ -243,6 +248,7 @@ internal class StreamMediaSourceFactory(
 
             is StreamSource.Downloaded -> {
                 DefaultMediaSourceFactory(downloadedVideoDataSource(requireNotNull(downloadCache)), videoExtractors)
+                    .setSubtitleParserFactory(videoSubtitleParsers)
                     .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy())
                     .createMediaSource(
                         mediaItem

@@ -1,6 +1,10 @@
 package io.github.kentprodan.mediatheq.core.ui
 
+import android.content.Context
+import android.view.View
 import androidx.annotation.OptIn
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
@@ -21,6 +25,8 @@ import androidx.media3.ui.SubtitleView
 fun MqSubtitles(
     player: Player?,
     modifier: Modifier = Modifier,
+    /** The view drawing styled ASS subtitles (#635), laid over Media3's; `null` for none. */
+    styledOverlay: ((Context) -> View?)? = null,
 ) {
     val context = LocalContext.current
     val view =
@@ -42,5 +48,10 @@ fun MqSubtitles(
             view.setCues(null)
         }
     }
-    AndroidView(factory = { view }, modifier = modifier)
+    Box(modifier) {
+        AndroidView(factory = { view }, modifier = Modifier.fillMaxSize())
+        styledOverlay?.let { overlay ->
+            AndroidView(factory = { overlay(it) ?: View(it) }, modifier = Modifier.fillMaxSize())
+        }
+    }
 }
