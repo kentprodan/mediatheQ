@@ -56,6 +56,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqDialog
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqBackButtonAboveCovers
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.DownloadState
 import io.github.kentprodan.mediatheq.core.model.MediaId
@@ -104,7 +105,7 @@ internal fun DownloadsScreen(
                 title = { Text(stringResource(R.string.downloads_title)) },
                 navigationIcon = {
                     onBack?.let {
-                        IconButton(onClick = it) {
+                        IconButton(onClick = it, modifier = Modifier.mqBackButtonAboveCovers()) {
                             Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.downloads_back))
                         }
                     }

@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -28,9 +29,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.data.ArtistHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
+import io.github.kentprodan.mediatheq.core.designsystem.component.overImageIconButtonColors
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
-import io.github.kentprodan.mediatheq.core.designsystem.motion.mqAboveSharedCovers
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqBackButtonAboveCovers
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColorCache
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColors
 import io.github.kentprodan.mediatheq.core.designsystem.theme.LocalMqTheme
@@ -41,12 +43,13 @@ import io.github.kentprodan.mediatheq.core.model.MediaId
 import io.github.kentprodan.mediatheq.core.ui.SelectableList
 import io.github.kentprodan.mediatheq.core.ui.rememberSelectLongPress
 import io.github.kentprodan.mediatheq.core.ui.trackSwipes
+import java.util.UUID
 
 @Composable
 internal fun ArtistRoute(
     artistId: MediaId,
     coverOrigin: String?,
-    onOpenAlbum: (MediaId) -> Unit,
+    onOpenAlbum: (MediaId, String) -> Unit,
     onOpenTopTracks: () -> Unit,
     onBack: () -> Unit,
     onAddToPlaylist: (List<MediaId>) -> Unit,
@@ -57,11 +60,15 @@ internal fun ArtistRoute(
         }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // This page's own album covers (#681): an album opened from it flies back to its card only, not into the grid
+    // of another page of the same artist (album -> its artist again).
+    val albumOrigin = rememberSaveable { "artist-${UUID.randomUUID()}" }
     ArtistScreen(
         state,
         viewModel::onAction,
-        onOpenAlbum,
+        { onOpenAlbum(it, albumOrigin) },
         onBack,
+        albumOrigin = albumOrigin,
         onAddToPlaylist = onAddToPlaylist,
         onOpenTopTracks = onOpenTopTracks,
         onOpenArtist = onOpenArtist,
@@ -83,6 +90,8 @@ fun ArtistScreen(
     onAddToPlaylist: (List<MediaId>) -> Unit = {},
     onOpenTopTracks: () -> Unit = {},
     onOpenArtist: (MediaId) -> Unit = {},
+    /** Tells this page's album covers from other pages' (#681); `null` in previews and tests. */
+    albumOrigin: String? = null,
     /** The card the page was opened from, whose picture flies into the header (#681). */
     coverOrigin: String? = null,
     /** Screenshots: these colors instead of the artist image's (previews load no images). */
@@ -102,6 +111,7 @@ fun ArtistScreen(
             onOpenTopTracks,
             onOpenArtist,
             coverOrigin,
+            albumOrigin,
         )
     }
 }
@@ -142,6 +152,7 @@ private fun ArtistPage(
     onOpenTopTracks: () -> Unit,
     onOpenArtist: (MediaId) -> Unit,
     coverOrigin: String?,
+    albumOrigin: String?,
 ) {
     val longPress = rememberSelectLongPress<MediaId> { onAction(ArtistAction.ToggleSelection(it)) }
     val swipe =
@@ -157,8 +168,6 @@ private fun ArtistPage(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeFlexibleTopAppBar(
-                // Above the picture flying in, so the back button shows from the start (#681).
-                modifier = Modifier.mqAboveSharedCovers(),
                 // The header shows the name; the bar names the artist only once it has nearly collapsed.
                 title = {
                     Text(
@@ -169,7 +178,15 @@ private fun ArtistPage(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.mqBackButtonAboveCovers(),
+                        // Readable over a light image (#681), plain once the bar has its own background.
+                        colors =
+                            overImageIconButtonColors(
+                                if (drawsUnderBar) 1f - scrollBehavior.state.collapsedFraction else 0f,
+                            ),
+                    ) {
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.artist_back))
                     }
                 },
@@ -263,6 +280,7 @@ private fun ArtistPage(
                                         content,
                                         openAlbum,
                                         longPress,
+                                        albumOrigin,
                                     )
                                 }
 
@@ -275,6 +293,7 @@ private fun ArtistPage(
                                         content,
                                         openAlbum,
                                         longPress,
+                                        albumOrigin,
                                     )
                                 }
 
@@ -351,7 +370,7 @@ fun ArtistTopTracksScreen(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        IconButton(onClick = onBack, modifier = Modifier.mqBackButtonAboveCovers()) {
                             Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.artist_back))
                         }
                     },

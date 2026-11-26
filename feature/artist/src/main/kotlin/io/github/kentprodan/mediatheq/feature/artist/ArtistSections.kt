@@ -128,6 +128,7 @@ internal fun LazyListScope.albumGrid(
     state: ArtistUiState.Content,
     onOpenAlbum: (MediaId) -> Unit,
     longPress: (MediaId) -> () -> Unit,
+    coverOrigin: String?,
 ) {
     item(key = "$key-title") { SectionTitle(title) }
     albums.chunked(columns).forEachIndexed { index, row ->
@@ -141,6 +142,7 @@ internal fun LazyListScope.albumGrid(
                         album,
                         onClick = { onOpenAlbum(album.id) },
                         Modifier.weight(1f),
+                        coverOrigin = coverOrigin,
                         onLongClick = longPress(album.id),
                         selected = state.selection.stateOf(album.id),
                         showSubtitle = state.page.albumSubtitle != ArtistAlbumSubtitle.Nothing,

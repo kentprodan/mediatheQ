@@ -61,6 +61,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.MqFavoriteTogg
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqIconToggle
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqLoadingIndicator
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqBackButtonAboveCovers
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSizes
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.model.DownloadState
@@ -131,7 +132,7 @@ internal fun VideoPageScaffold(
             TopAppBar(
                 title = {},
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onBack, modifier = Modifier.mqBackButtonAboveCovers()) {
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.video_back))
                     }
                 },
