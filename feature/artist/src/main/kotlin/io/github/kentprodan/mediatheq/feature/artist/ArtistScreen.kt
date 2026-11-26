@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.data.ArtistHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.ArtistSection
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
+import io.github.kentprodan.mediatheq.core.designsystem.component.overImageIconButtonColors
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.motion.mqBackButtonAboveCovers
@@ -177,7 +178,15 @@ private fun ArtistPage(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.mqBackButtonAboveCovers()) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.mqBackButtonAboveCovers(),
+                        // Readable over a light image (#681), plain once the bar has its own background.
+                        colors =
+                            overImageIconButtonColors(
+                                if (drawsUnderBar) 1f - scrollBehavior.state.collapsedFraction else 0f,
+                            ),
+                    ) {
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.artist_back))
                     }
                 },

@@ -28,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kentprodan.mediatheq.core.data.AlbumHeaderBackground
 import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
+import io.github.kentprodan.mediatheq.core.designsystem.component.overImageIconButtonColors
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
 import io.github.kentprodan.mediatheq.core.designsystem.motion.mqBackButtonAboveCovers
@@ -124,7 +125,15 @@ fun AlbumScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.mqBackButtonAboveCovers()) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.mqBackButtonAboveCovers(),
+                        // Readable over a light image (#681), plain once the bar has its own background.
+                        colors =
+                            overImageIconButtonColors(
+                                if (drawsUnderBar) 1f - scrollBehavior.state.collapsedFraction else 0f,
+                            ),
+                    ) {
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.album_back))
                     }
                 },
