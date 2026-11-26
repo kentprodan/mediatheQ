@@ -65,14 +65,14 @@ fun Modifier.mqSharedCover(
  * lands under it: without it the page's own parts show only once the cover has landed.
  */
 @Composable
-fun Modifier.mqAboveSharedCovers(): Modifier {
+fun Modifier.mqAboveSharedCovers(zIndexInOverlay: Float = 1f): Modifier {
     val shared = LocalSharedTransitionScope.current ?: return this
     val visibility = LocalNavAnimatedVisibilityScope.current ?: return this
     // Only while this screen comes in: a leaving screen's parts stay under the covers and fade with it (#681).
     return with(shared) {
         this@mqAboveSharedCovers.renderInSharedTransitionScopeOverlay(
             renderInOverlay = { isTransitionActive && visibility.isEntering() },
-            zIndexInOverlay = 1f,
+            zIndexInOverlay = zIndexInOverlay,
         )
     }
 }
@@ -80,13 +80,14 @@ fun Modifier.mqAboveSharedCovers(): Modifier {
 private fun AnimatedVisibilityScope.isEntering(): Boolean = transition.targetState == EnterExitState.Visible
 
 /**
- * The top bar's back button as one element across screens (owner, #681): from a page with a back button to another
- * it stays in place through the transition instead of fading out and in; from a page without one it shows from the
- * start, above the cover flying in.
+ * The top bar's back button while its screen comes in (owner, #681): drawn above the covers flying in, so from a page
+ * with a back button to another it seems to stay in place, and from one without it shows from the start.
  */
 @Composable
-fun Modifier.mqSharedBackButton(): Modifier =
-    mqSharedCover("back-button", aboveCoversWhenAlone = true, zIndexInOverlay = 2f)
+fun Modifier.mqBackButtonAboveCovers(): Modifier =
+    // Not a shared element: a matched one hid itself once its short flight ended, while a cover still flew over it.
+    // The entering screen's button drawn on top from the start reads the same, the leaving one fading under it.
+    mqAboveSharedCovers(zIndexInOverlay = 2f)
 
 /** The shared-element key of a cover, the same on every screen showing that item. */
 fun sharedCoverKey(

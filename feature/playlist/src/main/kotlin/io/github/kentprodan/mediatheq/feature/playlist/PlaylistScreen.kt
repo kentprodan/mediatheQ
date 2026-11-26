@@ -62,7 +62,7 @@ import io.github.kentprodan.mediatheq.core.designsystem.component.mqReorderItem
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.component.rememberMqReorderState
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
-import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedBackButton
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqBackButtonAboveCovers
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColorCache
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColors
 import io.github.kentprodan.mediatheq.core.designsystem.theme.LocalMqTheme
@@ -163,7 +163,7 @@ private fun PlaylistPage(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.mqSharedBackButton()) {
+                    IconButton(onClick = onBack, modifier = Modifier.mqBackButtonAboveCovers()) {
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.playlist_back))
                     }
                 },

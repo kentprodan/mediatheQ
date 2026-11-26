@@ -30,8 +30,7 @@ import io.github.kentprodan.mediatheq.core.data.AlbumSection
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
-import io.github.kentprodan.mediatheq.core.designsystem.motion.mqAboveSharedCovers
-import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedBackButton
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqBackButtonAboveCovers
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColorCache
 import io.github.kentprodan.mediatheq.core.designsystem.theme.LocalMqTheme
 import io.github.kentprodan.mediatheq.core.designsystem.theme.rememberCoverColors
@@ -115,8 +114,6 @@ fun AlbumScreen(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeFlexibleTopAppBar(
-                // Above the cover flying in, so the back button shows from the start (#681).
-                modifier = Modifier.mqAboveSharedCovers(),
                 // The header shows the title; the bar names the album only once it has nearly collapsed.
                 title = {
                     Text(
@@ -127,7 +124,7 @@ fun AlbumScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.mqSharedBackButton()) {
+                    IconButton(onClick = onBack, modifier = Modifier.mqBackButtonAboveCovers()) {
                         Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.album_back))
                     }
                 },

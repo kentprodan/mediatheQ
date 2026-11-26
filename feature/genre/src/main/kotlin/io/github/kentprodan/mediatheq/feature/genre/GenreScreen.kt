@@ -42,7 +42,7 @@ import io.github.kentprodan.mediatheq.core.data.GenreSection
 import io.github.kentprodan.mediatheq.core.designsystem.component.MqEmptyState
 import io.github.kentprodan.mediatheq.core.designsystem.component.plusBottomBars
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
-import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedBackButton
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqBackButtonAboveCovers
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColorCache
 import io.github.kentprodan.mediatheq.core.designsystem.theme.CoverColors
 import io.github.kentprodan.mediatheq.core.designsystem.theme.LocalMqTheme
@@ -118,7 +118,7 @@ fun GenreScreen(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack, modifier = Modifier.mqSharedBackButton()) {
+                        IconButton(onClick = onBack, modifier = Modifier.mqBackButtonAboveCovers()) {
                             Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.genre_back))
                         }
                     },
@@ -358,7 +358,7 @@ fun GenreTopTracksScreen(
                     title = { Text(stringResource(R.string.genre_top_tracks)) },
                     subtitle = { Text(content?.genre?.name.orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     navigationIcon = {
-                        IconButton(onClick = onBack, modifier = Modifier.mqSharedBackButton()) {
+                        IconButton(onClick = onBack, modifier = Modifier.mqBackButtonAboveCovers()) {
                             Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.genre_back))
                         }
                     },

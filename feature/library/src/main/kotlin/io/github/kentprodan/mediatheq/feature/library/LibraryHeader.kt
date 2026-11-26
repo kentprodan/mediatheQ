@@ -49,7 +49,7 @@ import io.github.kentprodan.mediatheq.core.data.LibrarySort
 import io.github.kentprodan.mediatheq.core.data.TopButton
 import io.github.kentprodan.mediatheq.core.data.TopButtonStyle
 import io.github.kentprodan.mediatheq.core.designsystem.icon.MqIcons
-import io.github.kentprodan.mediatheq.core.designsystem.motion.mqSharedBackButton
+import io.github.kentprodan.mediatheq.core.designsystem.motion.mqBackButtonAboveCovers
 import io.github.kentprodan.mediatheq.core.designsystem.theme.MediatheqSpacing
 import io.github.kentprodan.mediatheq.core.ui.MqMenuItem
 import io.github.kentprodan.mediatheq.core.ui.OverflowMenu
@@ -73,7 +73,7 @@ internal fun LibraryHeader(
     Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = MediatheqSpacing.l)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (onBack != null && !header.hideBackButton) {
-                IconButton(onClick = onBack, modifier = Modifier.mqSharedBackButton()) {
+                IconButton(onClick = onBack, modifier = Modifier.mqBackButtonAboveCovers()) {
                     Icon(MqIcons.ArrowBack, contentDescription = stringResource(R.string.library_back))
                 }
             }
